@@ -85,10 +85,19 @@ def parse_game_feed(feed: dict) -> list[dict]:
         pitch_calls = []
         pitch_px = []
         pitch_pz = []
+        pitch_speeds = []
+        pitch_end_speeds = []
+        pitch_spin_rates = []
+        pitch_extensions = []
+        pitch_break_vertical = []
+        pitch_break_horizontal = []
         sz_top = None
         sz_bottom = None
         launch_speed = None
         launch_angle = None
+        trajectory = None
+        hardness = None
+        total_distance = None
 
         for event in play.get("playEvents", []):
             if not event.get("isPitch"):
@@ -101,6 +110,13 @@ def parse_game_feed(feed: dict) -> list[dict]:
             pitch_calls.append(details.get("call", {}).get("code", ""))
             pitch_px.append(coords.get("pX"))
             pitch_pz.append(coords.get("pZ"))
+            pitch_speeds.append(pitch_data.get("startSpeed"))
+            pitch_end_speeds.append(pitch_data.get("endSpeed"))
+            breaks = pitch_data.get("breaks", {})
+            pitch_spin_rates.append(breaks.get("spinRate"))
+            pitch_extensions.append(pitch_data.get("extension"))
+            pitch_break_vertical.append(breaks.get("breakVertical"))
+            pitch_break_horizontal.append(breaks.get("breakHorizontal"))
 
             sz_top = pitch_data.get("strikeZoneTop", sz_top)
             sz_bottom = pitch_data.get("strikeZoneBottom", sz_bottom)
@@ -109,6 +125,9 @@ def parse_game_feed(feed: dict) -> list[dict]:
             if hit_data:
                 launch_speed = hit_data.get("launchSpeed")
                 launch_angle = hit_data.get("launchAngle")
+                trajectory = hit_data.get("trajectory")
+                hardness = hit_data.get("hardness")
+                total_distance = hit_data.get("totalDistance")
 
         rows.append({
             "game_pk": game_pk,
@@ -133,6 +152,15 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "final_count_strikes": count.get("strikes", 0),
             "launch_speed": launch_speed,
             "launch_angle": launch_angle,
+            "trajectory": trajectory,
+            "hardness": hardness,
+            "total_distance": total_distance,
+            "pitch_speeds": pitch_speeds,
+            "pitch_end_speeds": pitch_end_speeds,
+            "pitch_spin_rates": pitch_spin_rates,
+            "pitch_extensions": pitch_extensions,
+            "pitch_break_vertical": pitch_break_vertical,
+            "pitch_break_horizontal": pitch_break_horizontal,
             "event_type": event_type,
             "is_hit": 1 if event_type in HIT_EVENTS else 0,
             "weather_temp": weather_temp,

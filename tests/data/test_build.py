@@ -136,6 +136,29 @@ def test_build_season_merges_weather(sample_feed_path, tmp_path):
     assert df["humidity"].iloc[0] == 72.0
 
 
+def test_parse_game_feed_statcast_hit_data(sample_game_feed):
+    rows = parse_game_feed(sample_game_feed)
+    single = rows[0]
+    assert single["trajectory"] == "line_drive"
+    assert single["hardness"] == "hard"
+    assert single["total_distance"] == 310.0
+    strikeout = rows[1]
+    assert strikeout["trajectory"] is None
+    assert strikeout["hardness"] is None
+    assert strikeout["total_distance"] is None
+
+
+def test_parse_game_feed_statcast_pitch_data(sample_game_feed):
+    rows = parse_game_feed(sample_game_feed)
+    single = rows[0]
+    assert single["pitch_speeds"] == [93.5, 85.2, 84.1, 94.0]
+    assert single["pitch_spin_rates"] == [2400, 2700, 1800, 2350]
+    assert single["pitch_extensions"] == [6.3, 6.1, 6.2, 6.4]
+    assert single["pitch_break_vertical"] == [-15.0, -32.0, -28.0, -14.0]
+    assert single["pitch_break_horizontal"] == [8.0, -2.0, -12.0, 9.0]
+    assert single["pitch_end_speeds"] == [85.0, 78.0, 76.0, 86.0]
+
+
 def test_build_season_filters_game_type(sample_game_feed, tmp_path):
     raw_dir = tmp_path / "raw"
     season_dir = raw_dir / "2025"
