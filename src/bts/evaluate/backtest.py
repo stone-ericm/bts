@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-from bts.features.compute import FEATURE_COLS
+from bts.features.compute import FEATURE_COLS, TRAIN_START_YEAR
 
 
 def walk_forward_evaluate(
@@ -30,9 +30,9 @@ def walk_forward_evaluate(
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
 
-    # Split
+    # Split — train on TRAIN_START_YEAR onward (older data hurts)
     test_start = df[df["season"] == test_season]["date"].min()
-    train_pool = df[df["date"] < test_start].copy()
+    train_pool = df[(df["date"] < test_start) & (df["season"] >= TRAIN_START_YEAR)].copy()
     test_data = df[df["date"] >= test_start].copy()
 
     test_dates = sorted(test_data["date"].unique())

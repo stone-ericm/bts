@@ -13,6 +13,12 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 
+# Optimal training window: 2019 onward. Adding 2017-2018 hurts P@1 by 1.1%
+# because the game changed enough that old training examples add noise.
+# Features are still computed from ALL available history (expanding features
+# benefit from more data), but the model should be trained on 2019+ PAs.
+TRAIN_START_YEAR = 2019
+
 
 def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute all features for every PA in the DataFrame.
