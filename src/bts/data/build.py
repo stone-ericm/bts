@@ -1,0 +1,140 @@
+"""Parse MLB game feed JSON into plate appearance records."""
+
+import json
+import re
+from pathlib import Path
+
+import pandas as pd
+
+from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS
+
+
+def _parse_wind(wind_str: str) -> tuple[int | None, str | None]:
+    """Parse '9 mph, Out To CF' into (9, 'Out To CF')."""
+    if not wind_str:
+        return None, None
+    match = re.match(r"(\d+)\s*mph,?\s*(.*)", wind_str)
+    if match:
+        return int(match.group(1)), match.group(2).strip()
+    return None, wind_str
+
+
+def _get_lineup_positions(boxscore: dict) -> dict[int, int]:
+    """Build a map of batter_id -> lineup_position from boxscore.
+
+    battingOrder is stored as "100", "200", etc. Divide by 100.
+    Pinch hitters and substitutes may have values like "101" -> still position 1.
+    """
+    positions = {}
+    for side in ("away", "home"):
+        players = boxscore["teams"][side].get("players", {})
+        for key, player in players.items():
+            batting_order = player.get("battingOrder")
+            if batting_order:
+                batter_id = player["person"]["id"]
+                positions[batter_id] = int(batting_order) // 100
+    return positions
+
+
+def _get_hp_umpire_id(boxscore: dict) -> int | None:
+    """Extract home plate umpire ID from officials list."""
+    for official in boxscore.get("officials", []):
+        if official.get("officialType") == "Home Plate":
+            return official["official"]["id"]
+    return None
+
+
+def parse_game_feed(feed: dict) -> list[dict]:
+    """Parse a game feed into a list of plate appearance dicts.
+
+    Each dict has all columns defined in schema.PA_COLUMNS.
+    Pitch sequence fields are stored as Python lists.
+    """
+    game_data = feed["gameData"]
+    live_data = feed["liveData"]
+    boxscore = live_data["boxscore"]
+
+    game_pk = game_data["game"]["pk"]
+    date = game_data["datetime"]["officialDate"]
+    season = int(game_data["game"]["season"])
+    venue_id = game_data["venue"]["id"]
+    roof_type = game_data["venue"].get("fieldInfo", {}).get("roofType")
+
+    weather = game_data.get("weather", {})
+    weather_temp_str = weather.get("temp")
+    weather_temp = int(weather_temp_str) if weather_temp_str else None
+    wind_speed, wind_dir = _parse_wind(weather.get("wind", ""))
+
+    hp_umpire_id = _get_hp_umpire_id(boxscore)
+    lineup_positions = _get_lineup_positions(boxscore)
+
+    rows = []
+    for play in live_data["plays"]["allPlays"]:
+        event_type = play["result"].get("eventType", "")
+        if event_type not in PA_ENDING_EVENTS:
+            continue
+
+        batter_id = play["matchup"]["batter"]["id"]
+        pitcher_id = play["matchup"]["pitcher"]["id"]
+        is_home = play["about"]["halfInning"] == "bottom"
+        count = play.get("count", {})
+
+        pitch_types = []
+        pitch_calls = []
+        pitch_px = []
+        pitch_pz = []
+        sz_top = None
+        sz_bottom = None
+        launch_speed = None
+        launch_angle = None
+
+        for event in play.get("playEvents", []):
+            if not event.get("isPitch"):
+                continue
+            details = event.get("details", {})
+            pitch_data = event.get("pitchData", {})
+            coords = pitch_data.get("coordinates", {})
+
+            pitch_types.append(details.get("type", {}).get("code", "UN"))
+            pitch_calls.append(details.get("call", {}).get("code", ""))
+            pitch_px.append(coords.get("pX"))
+            pitch_pz.append(coords.get("pZ"))
+
+            sz_top = pitch_data.get("strikeZoneTop", sz_top)
+            sz_bottom = pitch_data.get("strikeZoneBottom", sz_bottom)
+
+            hit_data = event.get("hitData")
+            if hit_data:
+                launch_speed = hit_data.get("launchSpeed")
+                launch_angle = hit_data.get("launchAngle")
+
+        rows.append({
+            "game_pk": game_pk,
+            "date": date,
+            "season": season,
+            "batter_id": batter_id,
+            "pitcher_id": pitcher_id,
+            "lineup_position": lineup_positions.get(batter_id),
+            "is_home": is_home,
+            "hp_umpire_id": hp_umpire_id,
+            "venue_id": venue_id,
+            "pitch_count": len(pitch_types),
+            "pitch_types": pitch_types,
+            "pitch_calls": pitch_calls,
+            "pitch_px": pitch_px,
+            "pitch_pz": pitch_pz,
+            "sz_top": sz_top,
+            "sz_bottom": sz_bottom,
+            "final_count_balls": count.get("balls", 0),
+            "final_count_strikes": count.get("strikes", 0),
+            "launch_speed": launch_speed,
+            "launch_angle": launch_angle,
+            "event_type": event_type,
+            "is_hit": 1 if event_type in HIT_EVENTS else 0,
+            "weather_temp": weather_temp,
+            "weather_wind_speed": wind_speed,
+            "weather_wind_dir": wind_dir,
+            "roof_type": roof_type,
+        })
+
+    return rows
