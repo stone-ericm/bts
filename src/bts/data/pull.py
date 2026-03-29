@@ -92,15 +92,23 @@ def pull_feeds(
     """
     games = discover_games(start_date, end_date)
     paths = []
+    failed = []
 
     for i, game in enumerate(games):
         season = game["date"][:4]
         output_dir = data_dir / season
-        path = download_game_feed(game["gamePk"], output_dir)
-        paths.append(path)
+        try:
+            path = download_game_feed(game["gamePk"], output_dir)
+            paths.append(path)
+        except Exception as e:
+            failed.append(game["gamePk"])
+            print(f"  SKIP {game['gamePk']}: {e}")
 
         if delay > 0 and i < len(games) - 1:
             time.sleep(delay)
+
+    if failed:
+        print(f"  {len(failed)} games failed: {failed}")
 
     return paths
 
