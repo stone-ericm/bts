@@ -1,6 +1,24 @@
 # Optimization Ideas (Parking Lot)
 
-Ideas to try after validation confirms the model is real.
+## Known Edge Cases for `bts predict`
+
+### Opener vs starter
+Some teams use a reliever ("opener") for the first 1-2 innings, then a bulk pitcher for the rest. Our prediction grabs pitcher features from the first PA's matchup, which would be the opener — wrong for 3 out of 4 PAs. The bulk pitcher's features are what matter.
+
+**Detection**: Check if the scheduled "starter" has a reliever profile (low innings/appearance, high appearances, bullpen usage pattern). Or pull from team-specific opener tendency data.
+
+**Impact on backtesting**: None — backtesting uses actual PA-level pitcher_id.
+
+### Players on the Injured List
+A player on the IL can't play and shouldn't be picked. A player just activated from the IL has stale rolling features (batter_hr_7g from weeks ago) and high days_rest. The model has few training examples with 15+ day gaps, so predictions for IL returns are unreliable.
+
+**Fix**: Check roster status via MLB API before generating picks. Flag any player with days_rest > 7 as unreliable. Consider a minimum recency threshold for rolling features.
+
+### Other edge cases to handle
+- **Postponed/suspended games**: Pick wasted if game is rained out
+- **Late scratches**: Player removed from lineup after pick is locked
+- **Doubleheaders**: Player could play in both games (pick applies to first)
+- **Interleague DH rules**: Universal DH since 2022, so no longer an issue
 
 ## Feature Ideas
 - Batter H2H history vs specific pitcher (sparse but might add on top of archetype)
