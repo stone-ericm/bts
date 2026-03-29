@@ -186,10 +186,22 @@ def build_season(
         feed = json.loads(json_path.read_text())
 
         # Filter by game type
-        gt = feed.get("gameData", {}).get("game", {}).get("type", "")
+        game_info = feed.get("gameData", {}).get("game", {})
+        gt = game_info.get("type", "")
         if gt not in game_types:
             skipped += 1
             continue
+
+        # Skip 7-inning doubleheader games (2020-2021 COVID rule).
+        # The API reports scheduledInnings=9 even for these, so we detect
+        # them by: doubleheader flag + actual innings played <= 7.
+        dh = game_info.get("doubleHeader", "N")
+        if dh in ("Y", "S"):
+            plays = feed.get("liveData", {}).get("plays", {}).get("allPlays", [])
+            max_inning = max((p["about"]["inning"] for p in plays), default=9)
+            if max_inning <= 7:
+                skipped += 1
+                continue
 
         rows = parse_game_feed(feed)
 
