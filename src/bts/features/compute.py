@@ -169,6 +169,29 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         lambda r: arch_map.get((r["batter_id"], r.get("pitcher_cluster"))), axis=1
     )
 
+    # --- Pitcher arsenal entropy ---
+    def _pitch_entropy(types):
+        if not isinstance(types, (list, np.ndarray)) or len(types) == 0:
+            return np.nan
+        counts = Counter(types)
+        total = sum(counts.values())
+        probs = [c / total for c in counts.values()]
+        return -sum(p * np.log2(p) for p in probs if p > 0)
+
+    df["pa_pitch_entropy"] = df["pitch_types"].apply(_pitch_entropy)
+    pitcher_entropy = df.groupby(["pitcher_id", "date", "game_pk"])["pa_pitch_entropy"].mean().reset_index()
+    pitcher_entropy = pitcher_entropy.sort_values(["pitcher_id", "date"])
+    pitcher_entropy["pitcher_entropy_30g"] = (
+        pitcher_entropy.groupby("pitcher_id")["pa_pitch_entropy"]
+        .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
+    )
+    df = df.merge(
+        pitcher_entropy[["pitcher_id", "date", "game_pk", "pitcher_entropy_30g"]].drop_duplicates(
+            subset=["pitcher_id", "date", "game_pk"]
+        ),
+        on=["pitcher_id", "date", "game_pk"], how="left",
+    )
+
     # Context features
     df["park_factor"] = df["venue_id"].map(park_factor)
     df["days_rest"] = df.apply(
@@ -217,17 +240,16 @@ def _compute_pitcher_archetypes(df: pd.DataFrame, n_clusters: int = 8) -> tuple[
 # lineup_position effect is handled by the game-level aggregation step.
 FEATURE_COLS = [
     "batter_hr_7g",
-    "batter_hr_14g",
     "batter_hr_30g",
     "batter_hr_60g",
     "batter_hr_120g",
-    "batter_whiff_60g",
     "batter_count_tendency_30g",
     "batter_gb_hit_rate",
     "platoon_hr",
     "batter_vs_arch_hr",
     "pitcher_hr_30g",
     "pitcher_cluster",
+    "pitcher_entropy_30g",
     "weather_temp",
     "park_factor",
     "days_rest",
