@@ -21,6 +21,8 @@ PA_COLUMNS = [
     "season",
     "batter_id",
     "pitcher_id",
+    "bat_side",
+    "pitch_hand",
     "lineup_position",
     "is_home",
     "hp_umpire_id",

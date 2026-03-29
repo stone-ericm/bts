@@ -4,6 +4,7 @@ from bts.data.schema import PA_COLUMNS, HIT_EVENTS, PA_ENDING_EVENTS
 def test_pa_columns_has_required_fields():
     required = [
         "game_pk", "date", "season", "batter_id", "pitcher_id",
+        "bat_side", "pitch_hand",
         "lineup_position", "is_home", "hp_umpire_id", "venue_id",
         "pitch_count", "pitch_types", "pitch_calls", "pitch_px", "pitch_pz",
         "sz_top", "sz_bottom", "final_count_balls", "final_count_strikes",

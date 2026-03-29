@@ -67,7 +67,9 @@ def sample_game_feed():
                         },
                         "matchup": {
                             "batter": {"id": 100001},
+                            "batSide": {"code": "R", "description": "Right"},
                             "pitcher": {"id": 300001},
+                            "pitchHand": {"code": "L", "description": "Left"},
                         },
                         "count": {"balls": 1, "strikes": 2},
                         "playEvents": [
@@ -149,7 +151,9 @@ def sample_game_feed():
                         },
                         "matchup": {
                             "batter": {"id": 200001},
+                            "batSide": {"code": "L", "description": "Left"},
                             "pitcher": {"id": 400001},
+                            "pitchHand": {"code": "R", "description": "Right"},
                         },
                         "count": {"balls": 0, "strikes": 3},
                         "playEvents": [

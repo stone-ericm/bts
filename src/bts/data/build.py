@@ -76,6 +76,8 @@ def parse_game_feed(feed: dict) -> list[dict]:
 
         batter_id = play["matchup"]["batter"]["id"]
         pitcher_id = play["matchup"]["pitcher"]["id"]
+        bat_side = play["matchup"].get("batSide", {}).get("code")
+        pitch_hand = play["matchup"].get("pitchHand", {}).get("code")
         is_home = play["about"]["halfInning"] == "bottom"
         count = play.get("count", {})
 
@@ -114,6 +116,8 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "season": season,
             "batter_id": batter_id,
             "pitcher_id": pitcher_id,
+            "bat_side": bat_side,
+            "pitch_hand": pitch_hand,
             "lineup_position": lineup_positions.get(batter_id),
             "is_home": is_home,
             "hp_umpire_id": hp_umpire_id,
