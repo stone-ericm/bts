@@ -66,3 +66,71 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
         click.echo(f"Enriching {season} weather data...")
         count = enrich_weather(season_dir, delay=delay)
         click.echo(f"  {count} games enriched.")
+
+
+@cli.command()
+@click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
+@click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
+@click.option("--top", default=15, type=int, help="Number of picks to show")
+@click.option("--no-opener-check", is_flag=True, help="Skip opener detection (faster)")
+def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
+    """Generate ranked BTS picks for a date."""
+    import pandas as pd
+    from bts.features.compute import compute_all_features
+    from bts.model.predict import train_model, predict as make_predictions, _build_feature_lookups
+
+    proc = Path(data_dir)
+    click.echo(f"Loading data from {proc}/...")
+    dfs = []
+    for parquet in sorted(proc.glob("pa_*.parquet")):
+        dfs.append(pd.read_parquet(parquet))
+    if not dfs:
+        click.echo("No Parquet files found. Run 'bts data build' first.")
+        return
+
+    df = pd.concat(dfs, ignore_index=True)
+    click.echo(f"  {len(df):,} PAs loaded")
+
+    click.echo("Computing features...")
+    df = compute_all_features(df)
+    df["date"] = pd.to_datetime(df["date"])
+
+    click.echo("Training model...")
+    model = train_model(df)
+
+    lookups = _build_feature_lookups(df)
+
+    click.echo(f"Generating picks for {date}...")
+    picks = make_predictions(
+        date, df, model, lookups,
+        check_openers=not no_opener_check,
+    )
+
+    if picks.empty:
+        click.echo("No games found for this date.")
+        return
+
+    click.echo(f"\n{'='*80}")
+    click.echo(f"BTS PICKS — {date}")
+    click.echo(f"{'='*80}")
+    click.echo(f"{'#':<4} {'Batter':<22} {'Team':<5} {'Pos':>3} {'vs Pitcher':<22} {'P(PA)':>6} {'P(Game)':>7}  {'Flags'}")
+    click.echo(f"{'-'*80}")
+
+    shown = 0
+    for _, row in picks.iterrows():
+        if shown >= top:
+            break
+        if pd.isna(row.get("p_game_hit")):
+            continue
+        flags = row.get("flags", "")
+        click.echo(
+            f"{shown+1:<4} {row['batter_name']:<22} {row['team']:<5} "
+            f"{int(row['lineup']):>3} {row['pitcher_name']:<22} "
+            f"{row['p_hit_pa']:>5.1%} {row['p_game_hit']:>6.1%}  {flags}"
+        )
+        shown += 1
+
+    best = picks.iloc[0]
+    click.echo(f"\nRecommended pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
+    if best.get("flags"):
+        click.echo(f"  WARNING: {best['flags']}")
