@@ -20,6 +20,35 @@ from collections import Counter
 TRAIN_START_YEAR = 2019
 
 
+def _is_barrel(ev, la):
+    """MLB barrel classification from exit velocity + launch angle."""
+    if pd.isna(ev) or pd.isna(la) or ev < 98:
+        return False
+    bonus = (min(ev, 116) - 98) * 2
+    la_min = max(8, 26 - bonus)
+    la_max = min(50, 30 + bonus)
+    return la_min <= la <= la_max
+
+
+def _mean_of_list(lst):
+    """Mean of a list, ignoring None values. Returns NaN if empty."""
+    if not isinstance(lst, (list, np.ndarray)):
+        return np.nan
+    vals = [v for v in lst if v is not None]
+    return np.mean(vals) if vals else np.nan
+
+
+def _total_break(vert_list, horiz_list):
+    """Mean total break magnitude from per-pitch vertical and horizontal break lists."""
+    if not isinstance(vert_list, (list, np.ndarray)):
+        return np.nan
+    total = []
+    for v, h in zip(vert_list, horiz_list):
+        if v is not None and h is not None:
+            total.append(np.sqrt(v**2 + h**2))
+    return np.mean(total) if total else np.nan
+
+
 def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute all features for every PA in the DataFrame.
 
@@ -102,6 +131,55 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["batter_id", "date"], how="left",
     )
 
+    # --- Batter Statcast batted ball features (date-level) ---
+    df["is_barrel"] = df.apply(lambda r: _is_barrel(r["launch_speed"], r["launch_angle"]), axis=1)
+    df["is_hard_hit"] = df["launch_speed"].notna() & (df["launch_speed"] >= 95)
+    df["is_sweet_spot"] = df["launch_angle"].notna() & (df["launch_angle"] >= 8) & (df["launch_angle"] <= 32)
+    df["has_batted_ball"] = df["launch_speed"].notna()
+
+    date_batted = df.groupby(["batter_id", "date"]).agg(
+        barrels=("is_barrel", "sum"),
+        hard_hits=("is_hard_hit", "sum"),
+        sweet_spots=("is_sweet_spot", "sum"),
+        batted_balls=("has_batted_ball", "sum"),
+        avg_ev=("launch_speed", lambda x: x.dropna().mean() if x.notna().any() else np.nan),
+    ).reset_index().sort_values(["batter_id", "date"])
+
+    date_batted["barrel_rate"] = np.where(
+        date_batted["batted_balls"] > 0,
+        date_batted["barrels"] / date_batted["batted_balls"],
+        np.nan,
+    )
+    date_batted["hard_hit_rate"] = np.where(
+        date_batted["batted_balls"] > 0,
+        date_batted["hard_hits"] / date_batted["batted_balls"],
+        np.nan,
+    )
+    date_batted["sweet_spot_rate"] = np.where(
+        date_batted["batted_balls"] > 0,
+        date_batted["sweet_spots"] / date_batted["batted_balls"],
+        np.nan,
+    )
+
+    date_batted["batter_barrel_rate_30g"] = date_batted.groupby("batter_id")["barrel_rate"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_batted["batter_hard_hit_rate_30g"] = date_batted.groupby("batter_id")["hard_hit_rate"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_batted["batter_sweet_spot_rate_30g"] = date_batted.groupby("batter_id")["sweet_spot_rate"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_batted["batter_avg_ev_30g"] = date_batted.groupby("batter_id")["avg_ev"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+
+    batter_dates = batter_dates.merge(
+        date_batted[["batter_id", "date", "batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
+                      "batter_sweet_spot_rate_30g", "batter_avg_ev_30g"]],
+        on=["batter_id", "date"], how="left",
+    )
+
     # --- Platoon H/PA — expanding, date-level ---
     df["platoon_key"] = df["batter_id"].astype(str) + "_" + df["pitch_hand"].fillna("U")
     date_platoon = df.groupby(["platoon_key", "batter_id", "pitch_hand", "date"]).agg(
@@ -144,6 +222,42 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     date_entropy["pitcher_entropy_30g"] = (
         date_entropy.groupby("pitcher_id")["pa_pitch_entropy"]
         .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
+    )
+
+    # --- Pitcher Statcast features (date-level) ---
+    df["pa_avg_velo"] = df["pitch_speeds"].apply(_mean_of_list)
+    df["pa_avg_spin"] = df["pitch_spin_rates"].apply(_mean_of_list)
+    df["pa_avg_extension"] = df["pitch_extensions"].apply(_mean_of_list)
+    df["pa_total_break"] = df.apply(
+        lambda r: _total_break(r.get("pitch_break_vertical", []), r.get("pitch_break_horizontal", [])), axis=1
+    )
+
+    date_pitch_stats = df.groupby(["pitcher_id", "date"]).agg(
+        avg_velo=("pa_avg_velo", "mean"),
+        avg_spin=("pa_avg_spin", "mean"),
+        avg_extension=("pa_avg_extension", "mean"),
+        avg_break=("pa_total_break", "mean"),
+    ).reset_index().sort_values(["pitcher_id", "date"])
+
+    date_pitch_stats["pitcher_avg_velo_30g"] = date_pitch_stats.groupby("pitcher_id")["avg_velo"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_pitch_stats["pitcher_avg_spin_30g"] = date_pitch_stats.groupby("pitcher_id")["avg_spin"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_pitch_stats["pitcher_avg_extension_30g"] = date_pitch_stats.groupby("pitcher_id")["avg_extension"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+    date_pitch_stats["pitcher_break_total_30g"] = date_pitch_stats.groupby("pitcher_id")["avg_break"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
+    )
+
+    # --- Batter: average pitch velocity faced (date-level) ---
+    date_velo_faced = df.groupby(["batter_id", "date"])["pa_avg_velo"].mean().reset_index()
+    date_velo_faced.columns = ["batter_id", "date", "avg_velo_faced"]
+    date_velo_faced = date_velo_faced.sort_values(["batter_id", "date"])
+    date_velo_faced["batter_avg_velo_faced_30g"] = date_velo_faced.groupby("batter_id")["avg_velo_faced"].transform(
+        lambda x: x.shift(1).rolling(30, min_periods=10).mean()
     )
 
     # --- Park factor (expanding, date-level, expanding normalization) ---
@@ -193,6 +307,21 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["pitcher_id", "date"], how="left",
     )
 
+    # Pitcher Statcast
+    df = df.merge(
+        date_pitch_stats[["pitcher_id", "date", "pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
+                           "pitcher_avg_extension_30g", "pitcher_break_total_30g"]]
+        .drop_duplicates(subset=["pitcher_id", "date"]),
+        on=["pitcher_id", "date"], how="left",
+    )
+
+    # Batter velo faced
+    df = df.merge(
+        date_velo_faced[["batter_id", "date", "batter_avg_velo_faced_30g"]]
+        .drop_duplicates(subset=["batter_id", "date"]),
+        on=["batter_id", "date"], how="left",
+    )
+
     # Platoon (batter × pitch_hand × date)
     df = df.merge(
         date_platoon[["batter_id", "pitch_hand", "date", "platoon_hr"]].drop_duplicates(
@@ -227,9 +356,18 @@ FEATURE_COLS = [
     "batter_whiff_60g",
     "batter_count_tendency_30g",
     "batter_gb_hit_rate",
+    "batter_barrel_rate_30g",
+    "batter_hard_hit_rate_30g",
+    "batter_sweet_spot_rate_30g",
+    "batter_avg_ev_30g",
     "platoon_hr",
     "pitcher_hr_30g",
     "pitcher_entropy_30g",
+    "pitcher_avg_velo_30g",
+    "pitcher_avg_spin_30g",
+    "pitcher_avg_extension_30g",
+    "pitcher_break_total_30g",
+    "batter_avg_velo_faced_30g",
     "weather_temp",
     "park_factor",
     "days_rest",
