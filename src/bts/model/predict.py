@@ -94,6 +94,54 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
     # Batter last played date
     lookups["last_date"] = df.groupby("batter_id")["date"].max().to_dict()
 
+    # --- Team bullpen composite ---
+    # Identify relievers: pitchers who aren't the first pitcher faced by batters in a game
+    import numpy as np
+    game_starters = {}
+    for gpk, game in df.groupby("game_pk"):
+        for is_home in [True, False]:
+            side = game[game["is_home"] == is_home]
+            if len(side) > 0:
+                game_starters[(gpk, is_home)] = side.iloc[0]["pitcher_id"]
+
+    df_copy = df.copy()
+    df_copy["_starter_id"] = df_copy.apply(
+        lambda r: game_starters.get((r["game_pk"], r["is_home"])), axis=1
+    )
+    df_copy["_is_reliever"] = df_copy["pitcher_id"] != df_copy["_starter_id"]
+
+    # Reliever PAs, grouped by opposing team (the team whose relievers are pitching)
+    # The "opposing team" for a batter is identified by NOT is_home
+    # We need team_id — approximate from venue or game structure
+    # Simpler: group by (game_pk, pitcher side) to get team identity
+    # Actually, we need team_id in the data. Let's use a simpler approach:
+    # compute bullpen stats per pitcher, then average across a team's relievers
+    reliever_pas = df_copy[df_copy["_is_reliever"]]
+    if len(reliever_pas) > 0:
+        # Per-pitcher reliever stats (last 30 dates)
+        rp_dates = reliever_pas.groupby(["pitcher_id", "date"]).agg(
+            rp_hits=("is_hit", "sum"), rp_pas=("is_hit", "count"),
+        ).reset_index().sort_values(["pitcher_id", "date"])
+        rp_dates["rp_hr"] = rp_dates["rp_hits"] / rp_dates["rp_pas"]
+        rp_dates["rp_hr_30g"] = rp_dates.groupby("pitcher_id")["rp_hr"].transform(
+            lambda x: x.shift(1).rolling(30, min_periods=5).mean()
+        )
+        lookups["reliever_hr"] = rp_dates.dropna(subset=["rp_hr_30g"]).groupby(
+            "pitcher_id"
+        )["rp_hr_30g"].last().to_dict()
+
+        # League-average reliever stats as fallback for debut pitchers
+        all_reliever_hr = reliever_pas["is_hit"].mean()
+        lookups["league_avg_reliever_hr"] = all_reliever_hr
+    else:
+        lookups["reliever_hr"] = {}
+        lookups["league_avg_reliever_hr"] = 0.22
+
+    # League-average starter stats for debut pitcher fallback
+    starter_pas = df_copy[~df_copy["_is_reliever"]]
+    lookups["league_avg_starter_hr"] = starter_pas["is_hit"].mean() if len(starter_pas) > 0 else 0.22
+    lookups["league_avg_entropy"] = df.dropna(subset=["pitcher_entropy_30g"])["pitcher_entropy_30g"].mean()
+
     return lookups
 
 
@@ -212,9 +260,16 @@ def predict(
         # Platoon
         row["platoon_hr"] = lookups["platoon"].get((bid, slot["pitcher_hand"]))
 
-        # Pitcher
-        row["pitcher_hr_30g"] = lookups["pitcher_hr"].get(slot["pitcher_id"])
-        row["pitcher_entropy_30g"] = lookups["pitcher_ent"].get(slot["pitcher_id"])
+        # Pitcher — with debut fallback
+        pitcher_hr = lookups["pitcher_hr"].get(slot["pitcher_id"])
+        pitcher_ent = lookups["pitcher_ent"].get(slot["pitcher_id"])
+        is_debut = pitcher_hr is None
+        if is_debut:
+            pitcher_hr = lookups.get("league_avg_starter_hr", 0.22)
+            pitcher_ent = lookups.get("league_avg_entropy")
+
+        row["pitcher_hr_30g"] = pitcher_hr
+        row["pitcher_entropy_30g"] = pitcher_ent
 
         # Context
         row["weather_temp"] = slot["weather_temp"]
@@ -229,23 +284,57 @@ def predict(
         if row["days_rest"] and row["days_rest"] > IL_RETURN_DAYS_THRESHOLD:
             flags.append(f"IL? ({int(row['days_rest'])}d rest)")
 
+        is_opener = False
         if check_openers and slot["pitcher_id"]:
             opener_info = _check_opener(slot["pitcher_id"], df)
             if opener_info["is_opener"]:
+                is_opener = True
                 flags.append(f"OPENER ({opener_info['avg_ip_approx']}ip avg)")
 
-        rows.append({**slot, **row, "flags": ", ".join(flags)})
+        if is_debut:
+            flags.append("DEBUT pitcher (using league avg)")
+
+        rows.append({**slot, **row, "flags": ", ".join(flags), "_is_opener": is_opener})
 
     pred_df = pd.DataFrame(rows)
 
-    # Predict
+    # Predict P(hit|PA) with starter features
     feat_df = pred_df[FEATURE_COLS]
     valid = feat_df.notna().all(axis=1)
-    pred_df.loc[valid, "p_hit_pa"] = model.predict_proba(feat_df[valid])[:, 1]
+    pred_df.loc[valid, "p_hit_vs_starter"] = model.predict_proba(feat_df[valid])[:, 1]
 
-    # Aggregate to game level
+    # Also predict P(hit|PA) with league-average reliever features
+    # (swap pitcher features for reliever averages)
+    feat_reliever = feat_df.copy()
+    feat_reliever["pitcher_hr_30g"] = lookups.get("league_avg_reliever_hr", 0.22)
+    feat_reliever["pitcher_entropy_30g"] = lookups.get("league_avg_entropy")
+    pred_df.loc[valid, "p_hit_vs_reliever"] = model.predict_proba(feat_reliever[valid])[:, 1]
+
+    # Split aggregation: PAs 1-2 face starter, PAs 3+ face relievers
+    # (based on analysis: PA#1=89%, PA#2=91% vs starter, PA#3=51%, PA#4=1%)
     pa_est = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
     pred_df["est_pas"] = pred_df["lineup"].map(pa_est).fillna(4.0)
-    pred_df["p_game_hit"] = 1 - (1 - pred_df["p_hit_pa"]) ** pred_df["est_pas"]
+
+    starter_pas = 2.5  # ~PAs 1-2.5 face the starter
+    pred_df["reliever_pas"] = (pred_df["est_pas"] - starter_pas).clip(lower=0)
+    pred_df["starter_pas"] = pred_df["est_pas"] - pred_df["reliever_pas"]
+
+    # For openers, ALL PAs effectively face relievers
+    is_opener = pred_df.get("_is_opener", False)
+    if "_is_opener" in pred_df.columns:
+        pred_df.loc[pred_df["_is_opener"], "reliever_pas"] = pred_df.loc[pred_df["_is_opener"], "est_pas"]
+        pred_df.loc[pred_df["_is_opener"], "starter_pas"] = 0
+
+    # P(>=1 hit) = 1 - P(no hit in starter PAs) * P(no hit in reliever PAs)
+    pred_df["p_game_hit"] = 1 - (
+        (1 - pred_df["p_hit_vs_starter"]) ** pred_df["starter_pas"] *
+        (1 - pred_df["p_hit_vs_reliever"]) ** pred_df["reliever_pas"]
+    )
+
+    # Convenience: average PA probability for display
+    pred_df["p_hit_pa"] = (
+        pred_df["p_hit_vs_starter"] * pred_df["starter_pas"] +
+        pred_df["p_hit_vs_reliever"] * pred_df["reliever_pas"]
+    ) / pred_df["est_pas"]
 
     return pred_df.sort_values("p_game_hit", ascending=False).reset_index(drop=True)
