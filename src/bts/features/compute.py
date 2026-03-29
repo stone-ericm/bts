@@ -79,48 +79,70 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["batter_id", "date", "game_pk"], how="left",
     )
 
-    # --- Batter GB hit rate (speed proxy) ---
+    # --- Batter GB hit rate (speed proxy) — EXPANDING with shift ---
     df["is_groundball"] = df["launch_angle"].notna() & (df["launch_angle"] < 10)
-    gb_only = df[df["is_groundball"]].copy()
-    batter_gb = gb_only.groupby("batter_id").agg(
-        gb_hits=("is_hit", "sum"), gb_total=("is_hit", "count"),
-    ).reset_index()
-    batter_gb["batter_gb_hit_rate"] = np.where(
-        batter_gb["gb_total"] >= 20,
-        batter_gb["gb_hits"] / batter_gb["gb_total"],
+    df["gb_hit"] = np.where(df["is_groundball"], df["is_hit"], np.nan)
+    game_gb = df.groupby(["batter_id", "date", "game_pk"])["gb_hit"].agg(
+        ["sum", "count"]
+    ).reset_index().sort_values(["batter_id", "date"])
+    game_gb.columns = ["batter_id", "date", "game_pk", "gb_hits", "gb_count"]
+    # Use expanding sum with shift(1) — cumulative GB hit rate from all prior games
+    game_gb["cum_gb_hits"] = game_gb.groupby("batter_id")["gb_hits"].transform(
+        lambda x: x.shift(1).expanding(min_periods=20).sum()
+    )
+    game_gb["cum_gb_count"] = game_gb.groupby("batter_id")["gb_count"].transform(
+        lambda x: x.shift(1).expanding(min_periods=20).sum()
+    )
+    game_gb["batter_gb_hit_rate"] = np.where(
+        game_gb["cum_gb_count"] > 0,
+        game_gb["cum_gb_hits"] / game_gb["cum_gb_count"],
         np.nan,
     )
-    gb_map = dict(zip(batter_gb["batter_id"], batter_gb["batter_gb_hit_rate"]))
+    batter_games = batter_games.merge(
+        game_gb[["batter_id", "date", "game_pk", "batter_gb_hit_rate"]],
+        on=["batter_id", "date", "game_pk"], how="left",
+    )
 
-    # --- Platoon historical H/PA ---
-    platoon = df.groupby(["batter_id", "pitch_hand"]).agg(
+    # --- Platoon H/PA — EXPANDING with shift ---
+    # Per-PA platoon matchup result, then expanding average per batter×hand
+    df["platoon_key"] = df["batter_id"].astype(str) + "_" + df["pitch_hand"].fillna("U")
+    game_platoon = df.groupby(["platoon_key", "batter_id", "pitch_hand", "date", "game_pk"]).agg(
         ph_hits=("is_hit", "sum"), ph_pas=("is_hit", "count"),
-    ).reset_index()
-    platoon["platoon_hr"] = np.where(
-        platoon["ph_pas"] >= 30,
-        platoon["ph_hits"] / platoon["ph_pas"],
+    ).reset_index().sort_values(["platoon_key", "date"])
+    game_platoon["ph_rate"] = game_platoon["ph_hits"] / game_platoon["ph_pas"]
+    game_platoon["cum_ph_hits"] = game_platoon.groupby("platoon_key")["ph_hits"].transform(
+        lambda x: x.shift(1).expanding(min_periods=5).sum()
+    )
+    game_platoon["cum_ph_pas"] = game_platoon.groupby("platoon_key")["ph_pas"].transform(
+        lambda x: x.shift(1).expanding(min_periods=5).sum()
+    )
+    game_platoon["platoon_hr"] = np.where(
+        game_platoon["cum_ph_pas"] >= 30,
+        game_platoon["cum_ph_hits"] / game_platoon["cum_ph_pas"],
         np.nan,
     )
-    platoon_map = {}
-    for _, row in platoon.iterrows():
-        platoon_map[(row["batter_id"], row["pitch_hand"])] = row["platoon_hr"]
 
-    # --- Pitcher archetypes ---
+    # --- Pitcher archetypes (use all data — archetypes are structural, not temporal) ---
     pitcher_cluster_map, n_clusters = _compute_pitcher_archetypes(df)
 
-    # --- Batter x archetype hit rate ---
+    # --- Batter x archetype hit rate — EXPANDING with shift ---
     df["pitcher_cluster"] = df["pitcher_id"].map(pitcher_cluster_map)
-    batter_arch = df.dropna(subset=["pitcher_cluster"]).groupby(
-        ["batter_id", "pitcher_cluster"]
+    df["arch_key"] = df["batter_id"].astype(str) + "_" + df["pitcher_cluster"].astype(str)
+    game_arch = df.dropna(subset=["pitcher_cluster"]).groupby(
+        ["arch_key", "batter_id", "pitcher_cluster", "date", "game_pk"]
     ).agg(arch_hits=("is_hit", "sum"), arch_pas=("is_hit", "count")).reset_index()
-    batter_arch["batter_vs_arch_hr"] = np.where(
-        batter_arch["arch_pas"] >= 15,
-        batter_arch["arch_hits"] / batter_arch["arch_pas"],
+    game_arch = game_arch.sort_values(["arch_key", "date"])
+    game_arch["cum_arch_hits"] = game_arch.groupby("arch_key")["arch_hits"].transform(
+        lambda x: x.shift(1).expanding(min_periods=3).sum()
+    )
+    game_arch["cum_arch_pas"] = game_arch.groupby("arch_key")["arch_pas"].transform(
+        lambda x: x.shift(1).expanding(min_periods=3).sum()
+    )
+    game_arch["batter_vs_arch_hr"] = np.where(
+        game_arch["cum_arch_pas"] >= 15,
+        game_arch["cum_arch_hits"] / game_arch["cum_arch_pas"],
         np.nan,
     )
-    arch_map = {}
-    for _, row in batter_arch.iterrows():
-        arch_map[(row["batter_id"], row["pitcher_cluster"])] = row["batter_vs_arch_hr"]
 
     # --- Pitcher rolling H/9 ---
     pitcher_games = df.groupby(["pitcher_id", "date", "game_pk"]).agg(
@@ -132,10 +154,16 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
     )
 
-    # --- Park factor ---
-    venue_hr = df.groupby("venue_id")["is_hit"].mean()
+    # --- Park factor (expanding — uses all prior games at each venue) ---
+    game_venue = df.groupby(["venue_id", "date", "game_pk"])["is_hit"].mean().reset_index()
+    game_venue.columns = ["venue_id", "date", "game_pk", "venue_game_hr"]
+    game_venue = game_venue.sort_values(["venue_id", "date"])
+    game_venue["park_factor"] = game_venue.groupby("venue_id")["venue_game_hr"].transform(
+        lambda x: x.shift(1).expanding(min_periods=20).mean()
+    )
+    # Normalize to overall mean
     overall_hr = df["is_hit"].mean()
-    park_factor = (venue_hr / overall_hr).to_dict()
+    game_venue["park_factor"] = game_venue["park_factor"] / overall_hr
 
     # --- Rest days ---
     batter_dates = df.groupby(["batter_id", "date"]).size().reset_index()[["batter_id", "date"]]
@@ -160,14 +188,17 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     )
     df = df.merge(pitcher_merge, on=["pitcher_id", "date", "game_pk"], how="left")
 
-    # Static batter features
-    df["batter_gb_hit_rate"] = df["batter_id"].map(gb_map)
-    df["platoon_hr"] = df.apply(
-        lambda r: platoon_map.get((r["batter_id"], r["pitch_hand"])), axis=1
+    # Temporal platoon features (expanding, not static)
+    platoon_merge = game_platoon[["batter_id", "pitch_hand", "date", "game_pk", "platoon_hr"]].drop_duplicates(
+        subset=["batter_id", "pitch_hand", "date", "game_pk"]
     )
-    df["batter_vs_arch_hr"] = df.apply(
-        lambda r: arch_map.get((r["batter_id"], r.get("pitcher_cluster"))), axis=1
+    df = df.merge(platoon_merge, on=["batter_id", "pitch_hand", "date", "game_pk"], how="left")
+
+    # Temporal batter vs archetype features
+    arch_merge = game_arch[["batter_id", "pitcher_cluster", "date", "game_pk", "batter_vs_arch_hr"]].drop_duplicates(
+        subset=["batter_id", "pitcher_cluster", "date", "game_pk"]
     )
+    df = df.merge(arch_merge, on=["batter_id", "pitcher_cluster", "date", "game_pk"], how="left")
 
     # --- Pitcher arsenal entropy ---
     def _pitch_entropy(types):
@@ -192,8 +223,11 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["pitcher_id", "date", "game_pk"], how="left",
     )
 
-    # Context features
-    df["park_factor"] = df["venue_id"].map(park_factor)
+    # Park factor (temporal)
+    park_merge = game_venue[["venue_id", "date", "game_pk", "park_factor"]].drop_duplicates(
+        subset=["venue_id", "date", "game_pk"]
+    )
+    df = df.merge(park_merge, on=["venue_id", "date", "game_pk"], how="left")
     df["days_rest"] = df.apply(
         lambda r: rest_map.get((r["batter_id"], r["date"])), axis=1
     )
