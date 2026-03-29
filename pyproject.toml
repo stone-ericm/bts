@@ -5,8 +5,10 @@ description = "Beat the Streak v2 — PA-level MLB hit prediction"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1",
+    "lightgbm>=4.6.0",
     "pandas>=2.2",
     "pyarrow>=15.0",
+    "scikit-learn>=1.8.0",
 ]
 
 [project.scripts]
