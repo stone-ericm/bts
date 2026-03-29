@@ -27,3 +27,14 @@ def test_hit_events_contains_all_hit_types():
     assert "triple" in HIT_EVENTS
     assert "home_run" in HIT_EVENTS
     assert len(HIT_EVENTS) == 4
+
+
+def test_pa_columns_has_statcast_fields():
+    statcast_fields = [
+        "trajectory", "hardness", "total_distance",
+        "pitch_speeds", "pitch_spin_rates", "pitch_extensions",
+        "pitch_break_vertical", "pitch_break_horizontal",
+        "pitch_end_speeds",
+    ]
+    for field in statcast_fields:
+        assert field in PA_COLUMNS, f"Missing Statcast field: {field}"
