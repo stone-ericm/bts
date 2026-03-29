@@ -1,5 +1,6 @@
+import json
 import pandas as pd
-from bts.data.build import parse_game_feed
+from bts.data.build import parse_game_feed, build_season
 from bts.data.schema import PA_COLUMNS
 
 
@@ -91,9 +92,6 @@ def test_parse_game_feed_has_all_columns(sample_game_feed):
         assert col in rows[0], f"Missing column: {col}"
 
 
-from bts.data.build import build_season
-
-
 def test_build_season_creates_parquet(sample_feed_path, tmp_path):
     raw_dir = sample_feed_path.parent.parent  # tmp_path/raw
     output_path = tmp_path / "processed" / "pa_2025.parquet"
@@ -119,3 +117,20 @@ def test_build_season_preserves_pitch_lists(sample_feed_path, tmp_path):
     pitch_types = list(row["pitch_types"])
     assert isinstance(pitch_types, list)
     assert pitch_types == ["FF", "SL", "CH", "FF"]
+
+
+def test_build_season_merges_weather(sample_feed_path, tmp_path):
+    weather_path = sample_feed_path.parent / "999999_weather.json"
+    weather_path.write_text(json.dumps({
+        "surface_pressure": 1010.5,
+        "relative_humidity": 72.0,
+    }))
+
+    raw_dir = sample_feed_path.parent.parent
+    output_path = tmp_path / "processed" / "pa_2025.parquet"
+
+    build_season(raw_dir, output_path, season=2025)
+
+    df = pd.read_parquet(output_path)
+    assert df["atm_pressure"].iloc[0] == 1010.5
+    assert df["humidity"].iloc[0] == 72.0

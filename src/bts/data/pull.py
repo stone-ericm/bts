@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.request import urlopen, Request
 
 API_BASE = "https://statsapi.mlb.com"
+OPEN_METEO_BASE = "https://archive-api.open-meteo.com/v1/archive"
 
 
 def discover_games(start_date: str, end_date: str) -> list[dict]:
@@ -96,3 +97,72 @@ def pull_feeds(
             time.sleep(delay)
 
     return paths
+
+
+def enrich_weather(season_dir: Path, delay: float = 0.3) -> int:
+    """Fetch atmospheric data from Open-Meteo for all games in a season directory.
+
+    Writes {gamePk}_weather.json sidecar files with pressure, humidity, dewpoint.
+    Skips games that already have weather files.
+
+    Returns:
+        Number of games enriched
+    """
+    count = 0
+    game_files = sorted(season_dir.glob("*.json"))
+
+    for game_path in game_files:
+        if game_path.stem.endswith("_weather"):
+            continue
+
+        weather_path = season_dir / f"{game_path.stem}_weather.json"
+        if weather_path.exists():
+            continue
+
+        feed = json.loads(game_path.read_text())
+        game_data = feed.get("gameData", {})
+
+        coords = (
+            game_data.get("venue", {})
+            .get("location", {})
+            .get("defaultCoordinates", {})
+        )
+        lat = coords.get("latitude")
+        lon = coords.get("longitude")
+        date = game_data.get("datetime", {}).get("officialDate")
+
+        if not all([lat, lon, date]):
+            continue
+
+        url = (
+            f"{OPEN_METEO_BASE}"
+            f"?latitude={lat}&longitude={lon}"
+            f"&start_date={date}&end_date={date}"
+            f"&hourly=surface_pressure,relative_humidity_2m,dewpoint_2m"
+        )
+
+        try:
+            resp = urlopen(url, timeout=15)
+            data = json.loads(resp.read())
+            hourly = data.get("hourly", {})
+
+            pressures = [p for p in hourly.get("surface_pressure", []) if p is not None]
+            humidities = [h for h in hourly.get("relative_humidity_2m", []) if h is not None]
+            dewpoints = [d for d in hourly.get("dewpoint_2m", []) if d is not None]
+
+            weather_data = {
+                "surface_pressure": sum(pressures) / len(pressures) if pressures else None,
+                "relative_humidity": sum(humidities) / len(humidities) if humidities else None,
+                "dewpoint": sum(dewpoints) / len(dewpoints) if dewpoints else None,
+            }
+
+            weather_path.write_text(json.dumps(weather_data))
+            count += 1
+
+            if delay > 0:
+                time.sleep(delay)
+
+        except Exception:
+            continue
+
+    return count

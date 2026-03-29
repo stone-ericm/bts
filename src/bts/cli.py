@@ -46,3 +46,23 @@ def build(seasons: str, raw_dir: str, out_dir: str):
         click.echo(f"Building {output_path} from {raw}/{season}/...")
         df = build_season(raw, output_path, season)
         click.echo(f"  {len(df)} plate appearances written.")
+
+
+@data.command(name="enrich-weather")
+@click.option("--data-dir", default="data/raw", type=click.Path(), help="Raw data directory")
+@click.option("--seasons", required=True, help="Comma-separated seasons (e.g., 2023,2024,2025)")
+@click.option("--delay", default=0.3, type=float, help="Seconds between API requests")
+def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
+    """Enrich game feeds with atmospheric data from Open-Meteo."""
+    from bts.data.pull import enrich_weather
+
+    raw = Path(data_dir)
+    for season_str in seasons.split(","):
+        season = int(season_str.strip())
+        season_dir = raw / str(season)
+        if not season_dir.exists():
+            click.echo(f"Skipping {season}: no raw data at {season_dir}")
+            continue
+        click.echo(f"Enriching {season} weather data...")
+        count = enrich_weather(season_dir, delay=delay)
+        click.echo(f"  {count} games enriched.")

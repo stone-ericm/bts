@@ -9,6 +9,7 @@ def test_pa_columns_has_required_fields():
         "sz_top", "sz_bottom", "final_count_balls", "final_count_strikes",
         "launch_speed", "launch_angle", "event_type", "is_hit",
         "weather_temp", "weather_wind_speed", "weather_wind_dir", "roof_type",
+        "atm_pressure", "humidity",
     ]
     for col in required:
         assert col in PA_COLUMNS, f"Missing column: {col}"

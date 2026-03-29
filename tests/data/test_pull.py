@@ -1,6 +1,6 @@
 import json
 from unittest.mock import patch, MagicMock
-from bts.data.pull import discover_games, download_game_feed, pull_feeds
+from bts.data.pull import discover_games, download_game_feed, pull_feeds, enrich_weather
 
 
 MOCK_SCHEDULE_RESPONSE = {
@@ -80,6 +80,58 @@ def test_download_game_feed_skips_existing(tmp_path):
 
     mock_open.assert_not_called()
     assert json.loads(path.read_text()) == {"already": "here"}
+
+
+MOCK_OPEN_METEO_RESPONSE = {
+    "hourly": {
+        "time": ["2025-06-15T19:00"],
+        "surface_pressure": [1013.2],
+        "relative_humidity_2m": [65],
+        "dewpoint_2m": [18.5],
+    }
+}
+
+
+def test_enrich_weather_writes_sidecar(tmp_path):
+    game_feed = {
+        "gameData": {
+            "datetime": {"officialDate": "2025-06-15", "dateTime": "2025-06-15T23:10:00Z"},
+            "venue": {
+                "location": {"defaultCoordinates": {"latitude": 40.757, "longitude": -73.845}},
+            },
+        },
+    }
+    raw_dir = tmp_path / "2025"
+    raw_dir.mkdir()
+    (raw_dir / "999999.json").write_text(json.dumps(game_feed))
+
+    def _mock_meteo(url, **kwargs):
+        resp = MagicMock()
+        resp.read.return_value = json.dumps(MOCK_OPEN_METEO_RESPONSE).encode()
+        resp.__enter__ = lambda s: s
+        resp.__exit__ = MagicMock(return_value=False)
+        return resp
+
+    with patch("bts.data.pull.urlopen", side_effect=_mock_meteo):
+        enrich_weather(raw_dir)
+
+    weather_path = raw_dir / "999999_weather.json"
+    assert weather_path.exists()
+    data = json.loads(weather_path.read_text())
+    assert data["surface_pressure"] == 1013.2
+    assert data["relative_humidity"] == 65
+
+
+def test_enrich_weather_skips_existing(tmp_path):
+    raw_dir = tmp_path / "2025"
+    raw_dir.mkdir()
+    (raw_dir / "999999.json").write_text("{}")
+    (raw_dir / "999999_weather.json").write_text('{"already": "enriched"}')
+
+    with patch("bts.data.pull.urlopen") as mock_open:
+        enrich_weather(raw_dir)
+
+    mock_open.assert_not_called()
 
 
 def test_pull_feeds_orchestrates(tmp_path):

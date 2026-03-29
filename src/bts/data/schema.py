@@ -42,4 +42,6 @@ PA_COLUMNS = [
     "weather_wind_speed",
     "weather_wind_dir",
     "roof_type",
+    "atm_pressure",
+    "humidity",
 ]

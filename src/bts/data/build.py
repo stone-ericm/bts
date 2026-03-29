@@ -135,6 +135,8 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "weather_wind_speed": wind_speed,
             "weather_wind_dir": wind_dir,
             "roof_type": roof_type,
+            "atm_pressure": None,
+            "humidity": None,
         })
 
     return rows
@@ -164,6 +166,15 @@ def build_season(raw_dir: Path, output_path: Path, season: int) -> pd.DataFrame:
             continue
         feed = json.loads(json_path.read_text())
         rows = parse_game_feed(feed)
+
+        # Merge weather sidecar if present
+        weather_path = json_path.parent / f"{json_path.stem}_weather.json"
+        if weather_path.exists():
+            weather = json.loads(weather_path.read_text())
+            for row in rows:
+                row["atm_pressure"] = weather.get("surface_pressure")
+                row["humidity"] = weather.get("relative_humidity")
+
         all_rows.extend(rows)
 
     df = pd.DataFrame(all_rows)
