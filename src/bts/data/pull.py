@@ -60,11 +60,17 @@ def download_game_feed(game_pk: int, output_dir: Path) -> Path:
         return output_path
 
     url = f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live"
-    resp = urlopen(url, timeout=30)
-    data = resp.read()
-
-    output_path.write_bytes(data)
-    return output_path
+    for attempt in range(3):
+        try:
+            resp = urlopen(url, timeout=30)
+            data = resp.read()
+            output_path.write_bytes(data)
+            return output_path
+        except Exception:
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+            else:
+                raise
 
 
 def pull_feeds(
