@@ -22,7 +22,7 @@ def sample_game_feed():
                 "temp": "78",
                 "wind": "9 mph, Out To CF",
             },
-            "game": {"pk": 999999, "season": "2025"},
+            "game": {"pk": 999999, "season": "2025", "type": "R"},
         },
         "liveData": {
             "boxscore": {

@@ -142,22 +142,37 @@ def parse_game_feed(feed: dict) -> list[dict]:
     return rows
 
 
-def build_season(raw_dir: Path, output_path: Path, season: int) -> pd.DataFrame:
+REGULAR_SEASON_TYPE = "R"
+
+
+def build_season(
+    raw_dir: Path,
+    output_path: Path,
+    season: int,
+    game_types: set[str] | None = None,
+) -> pd.DataFrame:
     """Build PA-level Parquet from raw game feed JSONs for one season.
 
     Args:
         raw_dir: Root raw directory (looks in raw_dir/{season}/*.json)
         output_path: Path to write the Parquet file
         season: Year to process
+        game_types: Set of game type codes to include (default: {"R"} for regular season only).
+            Codes: R=regular, S=spring training, E=exhibition, F=wild card,
+            D=division series, L=league championship, W=world series, A=all-star.
 
     Returns:
         The built DataFrame
     """
+    if game_types is None:
+        game_types = {REGULAR_SEASON_TYPE}
+
     season_dir = raw_dir / str(season)
     if not season_dir.exists():
         raise FileNotFoundError(f"No raw data for season {season} at {season_dir}")
 
     all_rows = []
+    skipped = 0
     json_files = sorted(season_dir.glob("*.json"))
 
     for json_path in json_files:
@@ -165,6 +180,13 @@ def build_season(raw_dir: Path, output_path: Path, season: int) -> pd.DataFrame:
         if json_path.stem.endswith("_weather"):
             continue
         feed = json.loads(json_path.read_text())
+
+        # Filter by game type
+        gt = feed.get("gameData", {}).get("game", {}).get("type", "")
+        if gt not in game_types:
+            skipped += 1
+            continue
+
         rows = parse_game_feed(feed)
 
         # Merge weather sidecar if present

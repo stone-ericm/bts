@@ -134,3 +134,25 @@ def test_build_season_merges_weather(sample_feed_path, tmp_path):
     df = pd.read_parquet(output_path)
     assert df["atm_pressure"].iloc[0] == 1010.5
     assert df["humidity"].iloc[0] == 72.0
+
+
+def test_build_season_filters_game_type(sample_game_feed, tmp_path):
+    raw_dir = tmp_path / "raw"
+    season_dir = raw_dir / "2025"
+    season_dir.mkdir(parents=True)
+
+    # Regular season game
+    reg = sample_game_feed.copy()
+    reg["gameData"] = {**sample_game_feed["gameData"], "game": {"pk": 111, "season": "2025", "type": "R"}}
+    (season_dir / "111.json").write_text(json.dumps(reg))
+
+    # Spring training game
+    spring = sample_game_feed.copy()
+    spring["gameData"] = {**sample_game_feed["gameData"], "game": {"pk": 222, "season": "2025", "type": "S"}}
+    (season_dir / "222.json").write_text(json.dumps(spring))
+
+    output_path = tmp_path / "processed" / "pa_2025.parquet"
+    df = build_season(raw_dir, output_path, season=2025)
+
+    # Default should only include regular season
+    assert df["game_pk"].unique().tolist() == [111]
