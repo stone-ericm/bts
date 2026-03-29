@@ -89,3 +89,33 @@ def test_parse_game_feed_has_all_columns(sample_game_feed):
     rows = parse_game_feed(sample_game_feed)
     for col in PA_COLUMNS:
         assert col in rows[0], f"Missing column: {col}"
+
+
+from bts.data.build import build_season
+
+
+def test_build_season_creates_parquet(sample_feed_path, tmp_path):
+    raw_dir = sample_feed_path.parent.parent  # tmp_path/raw
+    output_path = tmp_path / "processed" / "pa_2025.parquet"
+
+    build_season(raw_dir, output_path, season=2025)
+
+    assert output_path.exists()
+    df = pd.read_parquet(output_path)
+    assert len(df) == 2
+    assert df["is_hit"].sum() == 1
+    assert df["game_pk"].iloc[0] == 999999
+
+
+def test_build_season_preserves_pitch_lists(sample_feed_path, tmp_path):
+    raw_dir = sample_feed_path.parent.parent
+    output_path = tmp_path / "processed" / "pa_2025.parquet"
+
+    build_season(raw_dir, output_path, season=2025)
+
+    df = pd.read_parquet(output_path)
+    row = df.iloc[0]
+    # Parquet round-trips list columns as array-like; verify as list
+    pitch_types = list(row["pitch_types"])
+    assert isinstance(pitch_types, list)
+    assert pitch_types == ["FF", "SL", "CH", "FF"]

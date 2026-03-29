@@ -138,3 +138,35 @@ def parse_game_feed(feed: dict) -> list[dict]:
         })
 
     return rows
+
+
+def build_season(raw_dir: Path, output_path: Path, season: int) -> pd.DataFrame:
+    """Build PA-level Parquet from raw game feed JSONs for one season.
+
+    Args:
+        raw_dir: Root raw directory (looks in raw_dir/{season}/*.json)
+        output_path: Path to write the Parquet file
+        season: Year to process
+
+    Returns:
+        The built DataFrame
+    """
+    season_dir = raw_dir / str(season)
+    if not season_dir.exists():
+        raise FileNotFoundError(f"No raw data for season {season} at {season_dir}")
+
+    all_rows = []
+    json_files = sorted(season_dir.glob("*.json"))
+
+    for json_path in json_files:
+        # Skip weather sidecar files
+        if json_path.stem.endswith("_weather"):
+            continue
+        feed = json.loads(json_path.read_text())
+        rows = parse_game_feed(feed)
+        all_rows.extend(rows)
+
+    df = pd.DataFrame(all_rows)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+    return df
