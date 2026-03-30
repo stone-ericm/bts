@@ -67,6 +67,8 @@ def parse_game_feed(feed: dict) -> list[dict]:
 
     hp_umpire_id = _get_hp_umpire_id(boxscore)
     lineup_positions = _get_lineup_positions(boxscore)
+    away_team_id = game_data.get("teams", {}).get("away", {}).get("id")
+    home_team_id = game_data.get("teams", {}).get("home", {}).get("id")
 
     rows = []
     for play in live_data["plays"]["allPlays"]:
@@ -98,6 +100,9 @@ def parse_game_feed(feed: dict) -> list[dict]:
         trajectory = None
         hardness = None
         total_distance = None
+        challenge_player_id = None
+        challenge_overturned = None
+        challenge_team_batting = None
 
         for event in play.get("playEvents", []):
             if not event.get("isPitch"):
@@ -128,6 +133,18 @@ def parse_game_feed(feed: dict) -> list[dict]:
                 trajectory = hit_data.get("trajectory")
                 hardness = hit_data.get("hardness")
                 total_distance = hit_data.get("totalDistance")
+
+            # ABS challenge data (2026+)
+            review = details.get("hasReview") or event.get("reviewDetails")
+            if event.get("reviewDetails"):
+                rd = event["reviewDetails"]
+                challenge_player_id = rd.get("player", {}).get("id")
+                challenge_overturned = rd.get("isOverturned")
+                # Determine if the challenging team is batting
+                challenge_tid = rd.get("challengeTeamId")
+                if challenge_tid is not None:
+                    batting_tid = away_team_id if not is_home else home_team_id
+                    challenge_team_batting = (challenge_tid == batting_tid)
 
         rows.append({
             "game_pk": game_pk,
@@ -161,6 +178,9 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "pitch_extensions": pitch_extensions,
             "pitch_break_vertical": pitch_break_vertical,
             "pitch_break_horizontal": pitch_break_horizontal,
+            "challenge_player_id": challenge_player_id,
+            "challenge_overturned": challenge_overturned,
+            "challenge_team_batting": challenge_team_batting,
             "event_type": event_type,
             "is_hit": 1 if event_type in HIT_EVENTS else 0,
             "weather_temp": weather_temp,

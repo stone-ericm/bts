@@ -35,6 +35,7 @@ def test_pa_columns_has_statcast_fields():
         "pitch_speeds", "pitch_spin_rates", "pitch_extensions",
         "pitch_break_vertical", "pitch_break_horizontal",
         "pitch_end_speeds",
+        "challenge_player_id", "challenge_overturned", "challenge_team_batting",
     ]
     for field in statcast_fields:
         assert field in PA_COLUMNS, f"Missing Statcast field: {field}"
