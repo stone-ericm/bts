@@ -191,16 +191,71 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
     return lookups
 
 
+def _fetch_prior_lineup(team_id: int) -> list[dict]:
+    """Fetch a team's most recent game lineup as fallback.
+
+    Returns list of {batter_id, batter_name, lineup} dicts.
+    """
+    try:
+        sched = json.loads(urlopen(
+            f"{API_BASE}/api/v1/schedule?sportId=1&teamId={team_id}"
+            f"&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+            timeout=15,
+        ).read())
+        # Walk backwards through dates to find most recent Final game
+        all_games = []
+        for d in sched.get("dates", []):
+            for g in d.get("games", []):
+                if g["status"]["detailedState"] == "Final":
+                    all_games.append(g)
+        if not all_games:
+            return []
+
+        last_game = all_games[-1]
+        feed = json.loads(urlopen(
+            f"{API_BASE}/api/v1.1/game/{last_game['gamePk']}/feed/live", timeout=15
+        ).read())
+        bs = feed["liveData"]["boxscore"]
+
+        # Figure out which side this team was on
+        for side_name in ["away", "home"]:
+            side = bs["teams"][side_name]
+            players = side.get("players", {})
+            lineup = []
+            for key, player in players.items():
+                bo = player.get("battingOrder")
+                if bo and int(bo) <= 900:
+                    lineup.append({
+                        "batter_id": player["person"]["id"],
+                        "batter_name": player["person"]["fullName"],
+                        "lineup": int(bo) // 100,
+                    })
+            if lineup:
+                # Verify this is the right team by checking team ID
+                side_team_id = feed["gameData"]["teams"][side_name]["id"]
+                if side_team_id == team_id:
+                    return sorted(lineup, key=lambda x: x["lineup"])
+    except Exception:
+        pass
+    return []
+
+
 def _fetch_game_slots(date: str) -> list[dict]:
     """Fetch all batter-game slots for a date from MLB API.
+
+    When lineups aren't posted yet (pre-game), falls back to each team's
+    most recent lineup with a PROJECTED flag. Uses probable pitchers from
+    the schedule when play data isn't available.
 
     Returns list of dicts with batter/pitcher/venue/weather info.
     """
     sched = json.loads(urlopen(
-        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}", timeout=15
+        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}"
+        f"&hydrate=probablePitcher", timeout=15
     ).read())
 
     slots = []
+    projected_count = 0
     for d in sched.get("dates", []):
         for g in d.get("games", []):
             pk = g["gamePk"]
@@ -220,7 +275,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
             boxscore = feed["liveData"]["boxscore"]
             plays = feed["liveData"]["plays"]["allPlays"]
 
-            # Build pitcher hand lookup
+            # Build pitcher hand lookup from plays
             pitcher_hands = {}
             for play in plays:
                 pid = play["matchup"]["pitcher"]["id"]
@@ -231,9 +286,10 @@ def _fetch_game_slots(date: str) -> list[dict]:
             for side in ["away", "home"]:
                 opp = "home" if side == "away" else "away"
                 team_abbr = gd["teams"][side]["abbreviation"]
+                team_id = gd["teams"][side]["id"]
                 target_half = "bottom" if side == "away" else "top"
 
-                # Find opposing pitcher
+                # Find opposing pitcher — from plays if available, else from schedule
                 opp_pitcher_id = None
                 opp_pitcher_name = "TBD"
                 opp_pitcher_hand = None
@@ -244,17 +300,39 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         opp_pitcher_hand = pitcher_hands.get(opp_pitcher_id)
                         break
 
+                if opp_pitcher_id is None:
+                    # Use probable pitcher from schedule
+                    pp = g["teams"][opp].get("probablePitcher", {})
+                    if pp:
+                        opp_pitcher_id = pp.get("id")
+                        opp_pitcher_name = pp.get("fullName", "TBD")
+
+                # Get lineup — from boxscore if posted, else fallback to prior game
                 players = boxscore["teams"][side]["players"]
+                lineup_players = []
                 for key, player in players.items():
                     bo = player.get("battingOrder")
-                    if not bo or int(bo) > 900:
-                        continue
+                    if bo and int(bo) <= 900:
+                        lineup_players.append({
+                            "batter_id": player["person"]["id"],
+                            "batter_name": player["person"]["fullName"],
+                            "lineup": int(bo) // 100,
+                        })
 
-                    slots.append({
-                        "batter_id": player["person"]["id"],
-                        "batter_name": player["person"]["fullName"],
+                is_projected = False
+                if not lineup_players:
+                    # Fallback: use prior game's lineup
+                    lineup_players = _fetch_prior_lineup(team_id)
+                    is_projected = True
+                    if lineup_players:
+                        projected_count += 1
+
+                for lp in lineup_players:
+                    slot = {
+                        "batter_id": lp["batter_id"],
+                        "batter_name": lp["batter_name"],
                         "team": team_abbr,
-                        "lineup": int(bo) // 100,
+                        "lineup": lp["lineup"],
                         "pitcher_id": opp_pitcher_id,
                         "pitcher_name": opp_pitcher_name,
                         "pitcher_hand": opp_pitcher_hand,
@@ -262,7 +340,13 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         "weather_temp": temp,
                         "game_pk": pk,
                         "status": status,
-                    })
+                    }
+                    if is_projected:
+                        slot["projected"] = True
+                    slots.append(slot)
+
+    if projected_count > 0:
+        print(f"  NOTE: {projected_count} teams using projected lineups (prior game)")
 
     return slots
 
@@ -342,6 +426,9 @@ def predict(
 
         if is_debut:
             flags.append("DEBUT pitcher (using league avg)")
+
+        if slot.get("projected"):
+            flags.append("PROJECTED lineup")
 
         rows.append({**slot, **row, "flags": ", ".join(flags), "_is_opener": is_opener})
 
