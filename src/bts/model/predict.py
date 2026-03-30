@@ -305,7 +305,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                 opp = "home" if side == "away" else "away"
                 team_abbr = gd["teams"][side]["abbreviation"]
                 team_id = gd["teams"][side]["id"]
-                target_half = "bottom" if side == "away" else "top"
+                target_half = "top" if side == "away" else "bottom"
 
                 # Find opposing pitcher — from plays if available, else from schedule
                 opp_pitcher_id = None
