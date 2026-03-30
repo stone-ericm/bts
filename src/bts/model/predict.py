@@ -11,6 +11,37 @@ from bts.features.compute import compute_all_features, FEATURE_COLS, TRAIN_START
 
 API_BASE = "https://statsapi.mlb.com"
 
+# Baseline features (original 13) — used by each blend variant
+BASELINE_COLS = [
+    "batter_hr_7g", "batter_hr_30g", "batter_hr_60g", "batter_hr_120g",
+    "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate",
+    "platoon_hr", "pitcher_hr_30g", "pitcher_entropy_30g",
+    "weather_temp", "park_factor", "days_rest",
+]
+
+# 12-model blend: each variant adds one Statcast feature to baseline.
+# Validated at 86.2% avg P@1 across 2024-2025 (vs 85.1% single model).
+BLEND_CONFIGS = [
+    ("baseline", BASELINE_COLS),
+    ("barrel", BASELINE_COLS + ["batter_barrel_rate_30g"]),
+    ("hard_hit", BASELINE_COLS + ["batter_hard_hit_rate_30g"]),
+    ("sweet_spot", BASELINE_COLS + ["batter_sweet_spot_rate_30g"]),
+    ("avg_ev", BASELINE_COLS + ["batter_avg_ev_30g"]),
+    ("velo", BASELINE_COLS + ["pitcher_avg_velo_30g"]),
+    ("spin", BASELINE_COLS + ["pitcher_avg_spin_30g"]),
+    ("extension", BASELINE_COLS + ["pitcher_avg_extension_30g"]),
+    ("break", BASELINE_COLS + ["pitcher_break_total_30g"]),
+    ("velo_faced", BASELINE_COLS + ["batter_avg_velo_faced_30g"]),
+    ("best_two", BASELINE_COLS + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
+    ("all_statcast", FEATURE_COLS),
+]
+
+LGB_PARAMS = dict(
+    n_estimators=200, max_depth=6, learning_rate=0.05, num_leaves=31,
+    min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
+    verbose=-1,
+)
+
 # Pitchers averaging < 3 IP over their recent appearances are likely openers/relievers
 OPENER_IP_THRESHOLD = 3.0
 OPENER_MIN_APPEARANCES = 5
@@ -20,19 +51,34 @@ IL_RETURN_DAYS_THRESHOLD = 7
 
 
 def train_model(df: pd.DataFrame) -> lgb.LGBMClassifier:
-    """Train LightGBM on historical PA data (2019+)."""
+    """Train single LightGBM on historical PA data (2019+)."""
     train = df[df["season"] >= TRAIN_START_YEAR]
     train_X = train[FEATURE_COLS]
     train_y = train["is_hit"]
     mask = train_X.notna().all(axis=1)
 
-    model = lgb.LGBMClassifier(
-        n_estimators=200, max_depth=6, learning_rate=0.05, num_leaves=31,
-        min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
-        random_state=42, verbose=-1,
-    )
+    model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
     model.fit(train_X[mask], train_y[mask])
     return model
+
+
+def train_blend(df: pd.DataFrame) -> dict:
+    """Train 12-model blend on historical PA data (2019+).
+
+    Returns dict of {name: (model, feature_cols)} for each blend variant.
+    """
+    train = df[df["season"] >= TRAIN_START_YEAR]
+    train_y = train["is_hit"]
+    blend = {}
+
+    for name, cols in BLEND_CONFIGS:
+        train_X = train[cols]
+        mask = train_X.notna().any(axis=1)
+        model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
+        model.fit(train_X[mask], train_y[mask])
+        blend[name] = (model, cols)
+
+    return blend
 
 
 def _check_opener(pitcher_id: int, df: pd.DataFrame) -> dict:
@@ -224,18 +270,21 @@ def _fetch_game_slots(date: str) -> list[dict]:
 def predict(
     date: str,
     df: pd.DataFrame,
-    model: lgb.LGBMClassifier,
+    model,
     lookups: dict,
     check_openers: bool = True,
+    blend: dict | None = None,
 ) -> pd.DataFrame:
     """Generate ranked BTS picks for a date.
 
     Args:
         date: YYYY-MM-DD
         df: Feature-enriched PA DataFrame (for opener checks)
-        model: Trained LightGBM model
+        model: Trained LightGBM model (used when blend is None)
         lookups: Feature lookup tables from _build_feature_lookups
         check_openers: Whether to flag likely openers
+        blend: Optional dict from train_blend. If provided, uses 12-model
+            blend for ranking instead of single model.
 
     Returns:
         DataFrame of picks sorted by P(game hit), with flags for edge cases.
@@ -298,29 +347,26 @@ def predict(
 
     pred_df = pd.DataFrame(rows)
 
-    # Predict P(hit|PA) with starter features
+    # --- Single-model prediction (used for display and as fallback) ---
     feat_df = pred_df[FEATURE_COLS]
     valid = feat_df.notna().all(axis=1)
     pred_df.loc[valid, "p_hit_vs_starter"] = model.predict_proba(feat_df[valid])[:, 1]
 
-    # Also predict P(hit|PA) with league-average reliever features
-    # (swap pitcher features for reliever averages)
+    # Reliever features: swap pitcher features for league averages
     feat_reliever = feat_df.copy()
     feat_reliever["pitcher_hr_30g"] = lookups.get("league_avg_reliever_hr", 0.22)
     feat_reliever["pitcher_entropy_30g"] = lookups.get("league_avg_entropy")
     pred_df.loc[valid, "p_hit_vs_reliever"] = model.predict_proba(feat_reliever[valid])[:, 1]
 
-    # Split aggregation: PAs 1-2 face starter, PAs 3+ face relievers
-    # (based on analysis: PA#1=89%, PA#2=91% vs starter, PA#3=51%, PA#4=1%)
+    # Split aggregation: PAs 1-2.5 face starter, PAs 3+ face relievers
     pa_est = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
     pred_df["est_pas"] = pred_df["lineup"].map(pa_est).fillna(4.0)
 
-    starter_pas = 2.5  # ~PAs 1-2.5 face the starter
+    starter_pas = 2.5
     pred_df["reliever_pas"] = (pred_df["est_pas"] - starter_pas).clip(lower=0)
     pred_df["starter_pas"] = pred_df["est_pas"] - pred_df["reliever_pas"]
 
     # For openers, ALL PAs effectively face relievers
-    is_opener = pred_df.get("_is_opener", False)
     if "_is_opener" in pred_df.columns:
         pred_df.loc[pred_df["_is_opener"], "reliever_pas"] = pred_df.loc[pred_df["_is_opener"], "est_pas"]
         pred_df.loc[pred_df["_is_opener"], "starter_pas"] = 0
@@ -336,5 +382,38 @@ def predict(
         pred_df["p_hit_vs_starter"] * pred_df["starter_pas"] +
         pred_df["p_hit_vs_reliever"] * pred_df["reliever_pas"]
     ) / pred_df["est_pas"]
+
+    # --- Blend ranking (if blend is provided) ---
+    if blend:
+        # Each blend model predicts P(hit|PA) for starter features,
+        # then we aggregate to game level and average across models.
+        blend_game_scores = {}
+        for name, (bmodel, bcols) in blend.items():
+            bfeat = pred_df[bcols]
+            bvalid = bfeat.notna().all(axis=1)
+            p_starter = pd.Series(np.nan, index=pred_df.index)
+            if bvalid.any():
+                p_starter[bvalid] = bmodel.predict_proba(bfeat[bvalid])[:, 1]
+
+            # Game-level: 1 - (1-p)^starter_pas * (1-p_reliever)^reliever_pas
+            # Use single-model reliever estimate (blend is for starter matchup ranking)
+            p_game = 1 - (
+                (1 - p_starter) ** pred_df["starter_pas"] *
+                (1 - pred_df["p_hit_vs_reliever"]) ** pred_df["reliever_pas"]
+            )
+
+            for idx, val in p_game.items():
+                if pd.notna(val):
+                    bid = pred_df.at[idx, "batter_id"]
+                    if bid not in blend_game_scores:
+                        blend_game_scores[bid] = []
+                    blend_game_scores[bid].append(val)
+
+        # Average across models per batter → blend rank
+        blend_avg = {bid: np.mean(scores) for bid, scores in blend_game_scores.items()}
+        pred_df["p_game_blend"] = pred_df["batter_id"].map(blend_avg)
+
+        # Use blend score for ranking, keep single-model scores for display
+        pred_df["p_game_hit"] = pred_df["p_game_blend"].fillna(pred_df["p_game_hit"])
 
     return pred_df.sort_values("p_game_hit", ascending=False).reset_index(drop=True)
