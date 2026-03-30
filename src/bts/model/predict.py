@@ -55,7 +55,7 @@ def train_model(df: pd.DataFrame) -> lgb.LGBMClassifier:
     train = df[df["season"] >= TRAIN_START_YEAR]
     train_X = train[FEATURE_COLS]
     train_y = train["is_hit"]
-    mask = train_X.notna().all(axis=1)
+    mask = train_X.notna().any(axis=1)
 
     model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
     model.fit(train_X[mask], train_y[mask])
@@ -131,6 +131,24 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
     lookups["pitcher_ent"] = df.dropna(subset=["pitcher_entropy_30g"]).groupby(
         "pitcher_id"
     )["pitcher_entropy_30g"].last().to_dict()
+
+    # Batter Statcast features
+    batter_statcast_cols = ["batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
+                            "batter_sweet_spot_rate_30g", "batter_avg_ev_30g",
+                            "batter_avg_velo_faced_30g"]
+    for col in batter_statcast_cols:
+        if col in df.columns:
+            lookups["batter"][col] = df.dropna(subset=[col]).groupby("batter_id")[col].last().to_dict()
+
+    # Pitcher Statcast features
+    pitcher_statcast_cols = ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
+                             "pitcher_avg_extension_30g", "pitcher_break_total_30g"]
+    lookups["pitcher_statcast"] = {}
+    for col in pitcher_statcast_cols:
+        if col in df.columns:
+            lookups["pitcher_statcast"][col] = df.dropna(subset=[col]).groupby(
+                "pitcher_id"
+            )[col].last().to_dict()
 
     # Park factor
     lookups["park"] = df.dropna(subset=["park_factor"]).groupby(
@@ -385,10 +403,13 @@ def predict(
         row = {}
         bid = slot["batter_id"]
 
-        # Batter features from lookups
+        # Batter features from lookups (baseline + Statcast)
         for col in ["batter_hr_7g", "batter_hr_30g", "batter_hr_60g", "batter_hr_120g",
-                     "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate"]:
-            row[col] = lookups["batter"][col].get(bid)
+                     "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate",
+                     "batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
+                     "batter_sweet_spot_rate_30g", "batter_avg_ev_30g",
+                     "batter_avg_velo_faced_30g"]:
+            row[col] = lookups["batter"].get(col, {}).get(bid)
 
         # Platoon
         row["platoon_hr"] = lookups["platoon"].get((bid, slot["pitcher_hand"]))
@@ -403,6 +424,11 @@ def predict(
 
         row["pitcher_hr_30g"] = pitcher_hr
         row["pitcher_entropy_30g"] = pitcher_ent
+
+        # Pitcher Statcast features
+        for col in ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
+                     "pitcher_avg_extension_30g", "pitcher_break_total_30g"]:
+            row[col] = lookups.get("pitcher_statcast", {}).get(col, {}).get(slot["pitcher_id"])
 
         # Context
         row["weather_temp"] = slot["weather_temp"]
@@ -435,8 +461,13 @@ def predict(
     pred_df = pd.DataFrame(rows)
 
     # --- Single-model prediction (used for display and as fallback) ---
+    # Ensure numeric dtypes (lookups can produce mixed object columns)
+    for col in FEATURE_COLS:
+        if col in pred_df.columns:
+            pred_df[col] = pd.to_numeric(pred_df[col], errors="coerce")
+
     feat_df = pred_df[FEATURE_COLS]
-    valid = feat_df.notna().all(axis=1)
+    valid = feat_df.notna().any(axis=1)
     pred_df.loc[valid, "p_hit_vs_starter"] = model.predict_proba(feat_df[valid])[:, 1]
 
     # Reliever features: swap pitcher features for league averages
@@ -477,7 +508,7 @@ def predict(
         blend_game_scores = {}
         for name, (bmodel, bcols) in blend.items():
             bfeat = pred_df[bcols]
-            bvalid = bfeat.notna().all(axis=1)
+            bvalid = bfeat.notna().any(axis=1)
             p_starter = pd.Series(np.nan, index=pred_df.index)
             if bvalid.any():
                 p_starter[bvalid] = bmodel.predict_proba(bfeat[bvalid])[:, 1]
