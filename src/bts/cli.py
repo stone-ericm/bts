@@ -137,7 +137,24 @@ def predict(date: str, data_dir: str, top: int, no_opener_check: bool, no_blend:
         )
         shown += 1
 
+    # Recommendation: 1 or 2 picks based on P(both hit)
+    DOUBLE_THRESHOLD = 0.65
     best = picks.iloc[0]
-    click.echo(f"\nRecommended pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
+    valid_picks = picks[picks["p_game_hit"].notna()]
+
+    if len(valid_picks) >= 2:
+        second = valid_picks.iloc[1]
+        p_both = best["p_game_hit"] * second["p_game_hit"]
+
+        if p_both >= DOUBLE_THRESHOLD:
+            click.echo(f"\nDOUBLE DOWN: {best['batter_name']} ({best['p_game_hit']:.1%}) "
+                        f"+ {second['batter_name']} ({second['p_game_hit']:.1%})")
+            click.echo(f"  P(both hit): {p_both:.1%}")
+        else:
+            click.echo(f"\nSingle pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
+            click.echo(f"  P(both hit) with #{second['batter_name']}: {p_both:.1%} (below {DOUBLE_THRESHOLD:.0%} threshold)")
+    else:
+        click.echo(f"\nSingle pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
+
     if best.get("flags"):
         click.echo(f"  WARNING: {best['flags']}")
