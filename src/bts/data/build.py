@@ -135,9 +135,10 @@ def parse_game_feed(feed: dict) -> list[dict]:
                 hardness = hit_data.get("hardness")
                 total_distance = hit_data.get("totalDistance")
 
-            # ABS challenge data (2026+)
-            if event.get("reviewDetails"):
-                rd = event["reviewDetails"]
+            # ABS challenge data (2026+). Only MJ type = standard ball/strike challenge.
+            # NH and MA types are non-player reviews (umpire-initiated, foul ball, etc).
+            rd = event.get("reviewDetails")
+            if rd and rd.get("reviewType") == "MJ":
                 challenge_player_id = rd.get("player", {}).get("id")
                 challenge_overturned = rd.get("isOverturned")
                 # Determine challenger's role in this PA
