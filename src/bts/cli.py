@@ -73,8 +73,7 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
 @click.option("--top", default=15, type=int, help="Number of picks to show")
 @click.option("--no-opener-check", is_flag=True, help="Skip opener detection (faster)")
-@click.option("--no-blend", is_flag=True, help="Use single model instead of 12-model blend")
-def predict(date: str, data_dir: str, top: int, no_opener_check: bool, no_blend: bool):
+def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
     """Generate ranked BTS picks for a date."""
     import pandas as pd
     from bts.features.compute import compute_all_features
@@ -99,10 +98,8 @@ def predict(date: str, data_dir: str, top: int, no_opener_check: bool, no_blend:
     click.echo("Training model...")
     model = train_model(df)
 
-    blend = None
-    if not no_blend:
-        click.echo("Training 12-model blend...")
-        blend = train_blend(df)
+    click.echo("Training 12-model blend...")
+    blend = train_blend(df)
 
     lookups = _build_feature_lookups(df)
 
