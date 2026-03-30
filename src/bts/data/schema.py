@@ -48,6 +48,7 @@ PA_COLUMNS = [
     "pitch_break_vertical",
     "pitch_break_horizontal",
     "challenge_player_id",
+    "challenge_role",
     "challenge_overturned",
     "challenge_team_batting",
     "event_type",

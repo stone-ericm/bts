@@ -101,6 +101,7 @@ def parse_game_feed(feed: dict) -> list[dict]:
         hardness = None
         total_distance = None
         challenge_player_id = None
+        challenge_role = None
         challenge_overturned = None
         challenge_team_batting = None
 
@@ -135,11 +136,17 @@ def parse_game_feed(feed: dict) -> list[dict]:
                 total_distance = hit_data.get("totalDistance")
 
             # ABS challenge data (2026+)
-            review = details.get("hasReview") or event.get("reviewDetails")
             if event.get("reviewDetails"):
                 rd = event["reviewDetails"]
                 challenge_player_id = rd.get("player", {}).get("id")
                 challenge_overturned = rd.get("isOverturned")
+                # Determine challenger's role in this PA
+                if challenge_player_id == batter_id:
+                    challenge_role = "batter"
+                elif challenge_player_id == pitcher_id:
+                    challenge_role = "pitcher"
+                else:
+                    challenge_role = "catcher"  # ~95% of non-batter/pitcher challenges
                 # Determine if the challenging team is batting
                 challenge_tid = rd.get("challengeTeamId")
                 if challenge_tid is not None:
@@ -179,6 +186,7 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "pitch_break_vertical": pitch_break_vertical,
             "pitch_break_horizontal": pitch_break_horizontal,
             "challenge_player_id": challenge_player_id,
+            "challenge_role": challenge_role,
             "challenge_overturned": challenge_overturned,
             "challenge_team_batting": challenge_team_batting,
             "event_type": event_type,
