@@ -223,8 +223,13 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
         click.echo(f"Pick locked: {current.pick.batter_name} (game started)")
         return
 
-    # Step 5: Select best available
-    best_row = available.iloc[0]
+    # Step 5: Select best available (filter to valid predictions)
+    valid = available[available["p_game_hit"].notna()]
+    if valid.empty:
+        click.echo("No batters with valid predictions available.")
+        return
+
+    best_row = valid.iloc[0]
     new_pick = pick_from_row(best_row)
 
     if current and current.pick.batter_id == new_pick.batter_id:
@@ -238,7 +243,6 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
 
     # Step 6: Check for double-down
     double_pick = None
-    valid = available[available["p_game_hit"].notna()]
     if len(valid) >= 2:
         second_row = valid.iloc[1]
         p_both = best_row["p_game_hit"] * second_row["p_game_hit"]
@@ -275,7 +279,8 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
             double_pick.batter_name if double_pick else None,
             double_pick.p_game_hit if double_pick else None,
         )
-        click.echo(f"  Would post:\n{text}")
+        would_post = should_post_now(new_pick.game_time, daily.bluesky_posted)
+        click.echo(f"  Would post ({would_post}):\n{text}")
         return
 
     if should_post_now(new_pick.game_time, daily.bluesky_posted):
