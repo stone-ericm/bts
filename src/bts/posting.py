@@ -34,13 +34,19 @@ def format_post(
 
 
 def get_bluesky_password() -> str:
-    """Get Bluesky app password from macOS Keychain."""
+    """Get Bluesky app password from macOS Keychain.
+
+    Raises RuntimeError if the password is not found.
+    """
     result = subprocess.run(
         ["security", "find-generic-password", "-a", "claude-cli",
          "-s", "bluesky-bts-app-password", "-w"],
         capture_output=True, text=True,
     )
-    return result.stdout.strip()
+    password = result.stdout.strip()
+    if result.returncode != 0 or not password:
+        raise RuntimeError("Bluesky app password not found in keychain")
+    return password
 
 
 def post_to_bluesky(text: str) -> str:
@@ -49,8 +55,6 @@ def post_to_bluesky(text: str) -> str:
     Raises RuntimeError if auth or posting fails.
     """
     password = get_bluesky_password()
-    if not password:
-        raise RuntimeError("No Bluesky app password found in keychain")
 
     # Authenticate
     auth_data = json.dumps({

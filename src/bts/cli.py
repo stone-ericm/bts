@@ -207,7 +207,11 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
     streak = load_streak(picks_path)
 
     # Step 3: Filter to games not yet started
-    statuses = get_game_statuses(date)
+    try:
+        statuses = get_game_statuses(date)
+    except Exception as e:
+        click.echo(f"ERROR: Failed to fetch game statuses — {e}", err=True)
+        return
     not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")
     available = predictions[not_started]
 
@@ -322,7 +326,11 @@ def check_results(date: str, picks_dir: str):
 
     # Check primary pick
     click.echo(f"Checking {daily.pick.batter_name} (game {daily.pick.game_pk})...")
-    primary_result = check_hit(daily.pick.game_pk, daily.pick.batter_id)
+    try:
+        primary_result = check_hit(daily.pick.game_pk, daily.pick.batter_id)
+    except Exception as e:
+        click.echo(f"ERROR: Failed to check game result — {e}", err=True)
+        return
 
     if primary_result is None:
         click.echo(f"Game {daily.pick.game_pk} not final yet. Try again later.")
@@ -333,7 +341,11 @@ def check_results(date: str, picks_dir: str):
     # Check double-down if applicable
     if daily.double_down:
         click.echo(f"Checking {daily.double_down.batter_name} (game {daily.double_down.game_pk})...")
-        double_result = check_hit(daily.double_down.game_pk, daily.double_down.batter_id)
+        try:
+            double_result = check_hit(daily.double_down.game_pk, daily.double_down.batter_id)
+        except Exception as e:
+            click.echo(f"ERROR: Failed to check double-down result — {e}", err=True)
+            return
         if double_result is None:
             click.echo(f"Game {daily.double_down.game_pk} not final yet. Try again later.")
             return
