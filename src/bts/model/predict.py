@@ -1,6 +1,7 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
 import json
+import pickle  # noqa: S403 — used for caching trained ML models, not untrusted data
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
@@ -71,6 +72,20 @@ def train_blend(df: pd.DataFrame) -> dict:
         blend[name] = (model, cols)
 
     return blend
+
+
+def save_blend(blend: dict, path) -> None:
+    """Save trained blend models to disk."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as f:
+        pickle.dump(blend, f)
+
+
+def load_blend(path) -> dict:
+    """Load trained blend models from disk."""
+    with open(path, "rb") as f:
+        return pickle.load(f)  # noqa: S301 — loading our own cached models
 
 
 def _check_opener(pitcher_id: int, df: pd.DataFrame) -> dict:
@@ -542,11 +557,19 @@ def run_pipeline(
     date: str,
     data_dir: str = "data/processed",
     check_openers: bool = True,
+    cached_blend: dict | None = None,
+    save_blend_path=None,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
     Loads historical data, computes features, trains the 12-model blend,
     and returns ranked picks sorted by P(game hit).
+
+    Args:
+        cached_blend: Pre-trained blend dict to skip retraining. Must include
+            a "_model" key with the single model.
+        save_blend_path: If provided and no cached_blend, save the trained
+            blend (including single model) to this path.
     """
     proc = Path(data_dir)
     dfs = []
@@ -559,8 +582,16 @@ def run_pipeline(
     df = compute_all_features(df)
     df["date"] = pd.to_datetime(df["date"])
 
-    model = train_model(df)
-    blend = train_blend(df)
+    if cached_blend:
+        model = cached_blend.pop("_model")
+        blend = cached_blend
+    else:
+        model = train_model(df)
+        blend = train_blend(df)
+        if save_blend_path:
+            to_save = {**blend, "_model": model}
+            save_blend(to_save, save_blend_path)
+
     lookups = _build_feature_lookups(df)
 
     return predict(
