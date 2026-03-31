@@ -345,9 +345,9 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# Feature columns — provably leak-free.
-# No clustering features (pitcher_cluster, batter_vs_arch_hr) —
-# K-Means centroids are unstable and use full-dataset pitch data.
+# Baseline feature columns (13) — provably leak-free, used by the single model
+# and as the core of each blend variant. No clustering features
+# (pitcher_cluster, batter_vs_arch_hr) — K-Means centroids are unstable.
 FEATURE_COLS = [
     "batter_hr_7g",
     "batter_hr_30g",
@@ -356,19 +356,25 @@ FEATURE_COLS = [
     "batter_whiff_60g",
     "batter_count_tendency_30g",
     "batter_gb_hit_rate",
+    "platoon_hr",
+    "pitcher_hr_30g",
+    "pitcher_entropy_30g",
+    "weather_temp",
+    "park_factor",
+    "days_rest",
+]
+
+# Statcast features (9) — computed from game feed pitchData/hitData.
+# These don't improve the single model but add diversity to the 12-model blend.
+# Each blend variant uses FEATURE_COLS + one Statcast feature.
+STATCAST_COLS = [
     "batter_barrel_rate_30g",
     "batter_hard_hit_rate_30g",
     "batter_sweet_spot_rate_30g",
     "batter_avg_ev_30g",
-    "platoon_hr",
-    "pitcher_hr_30g",
-    "pitcher_entropy_30g",
     "pitcher_avg_velo_30g",
     "pitcher_avg_spin_30g",
     "pitcher_avg_extension_30g",
     "pitcher_break_total_30g",
     "batter_avg_velo_faced_30g",
-    "weather_temp",
-    "park_factor",
-    "days_rest",
 ]

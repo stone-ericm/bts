@@ -7,33 +7,25 @@ import lightgbm as lgb
 from pathlib import Path
 from urllib.request import urlopen
 
-from bts.features.compute import compute_all_features, FEATURE_COLS, TRAIN_START_YEAR
+from bts.features.compute import compute_all_features, FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
 
 API_BASE = "https://statsapi.mlb.com"
 
-# Baseline features (original 13) — used by each blend variant
-BASELINE_COLS = [
-    "batter_hr_7g", "batter_hr_30g", "batter_hr_60g", "batter_hr_120g",
-    "batter_whiff_60g", "batter_count_tendency_30g", "batter_gb_hit_rate",
-    "platoon_hr", "pitcher_hr_30g", "pitcher_entropy_30g",
-    "weather_temp", "park_factor", "days_rest",
-]
-
-# 12-model blend: each variant adds one Statcast feature to baseline.
+# 12-model blend: baseline + single-Statcast variants + combos.
 # Validated at 86.2% avg P@1 across 2024-2025 (vs 85.1% single model).
 BLEND_CONFIGS = [
-    ("baseline", BASELINE_COLS),
-    ("barrel", BASELINE_COLS + ["batter_barrel_rate_30g"]),
-    ("hard_hit", BASELINE_COLS + ["batter_hard_hit_rate_30g"]),
-    ("sweet_spot", BASELINE_COLS + ["batter_sweet_spot_rate_30g"]),
-    ("avg_ev", BASELINE_COLS + ["batter_avg_ev_30g"]),
-    ("velo", BASELINE_COLS + ["pitcher_avg_velo_30g"]),
-    ("spin", BASELINE_COLS + ["pitcher_avg_spin_30g"]),
-    ("extension", BASELINE_COLS + ["pitcher_avg_extension_30g"]),
-    ("break", BASELINE_COLS + ["pitcher_break_total_30g"]),
-    ("velo_faced", BASELINE_COLS + ["batter_avg_velo_faced_30g"]),
-    ("best_two", BASELINE_COLS + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
-    ("all_statcast", FEATURE_COLS),
+    ("baseline", FEATURE_COLS),
+    ("barrel", FEATURE_COLS + ["batter_barrel_rate_30g"]),
+    ("hard_hit", FEATURE_COLS + ["batter_hard_hit_rate_30g"]),
+    ("sweet_spot", FEATURE_COLS + ["batter_sweet_spot_rate_30g"]),
+    ("avg_ev", FEATURE_COLS + ["batter_avg_ev_30g"]),
+    ("velo", FEATURE_COLS + ["pitcher_avg_velo_30g"]),
+    ("spin", FEATURE_COLS + ["pitcher_avg_spin_30g"]),
+    ("extension", FEATURE_COLS + ["pitcher_avg_extension_30g"]),
+    ("break", FEATURE_COLS + ["pitcher_break_total_30g"]),
+    ("velo_faced", FEATURE_COLS + ["batter_avg_velo_faced_30g"]),
+    ("best_two", FEATURE_COLS + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
+    ("all_statcast", FEATURE_COLS + STATCAST_COLS),
 ]
 
 LGB_PARAMS = dict(

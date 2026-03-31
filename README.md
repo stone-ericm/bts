@@ -1,24 +1,26 @@
 # Beat the Streak v2
 
-A PA-level MLB hit prediction model that beats the current state of the art on backtested data.
+A PA-level MLB hit prediction model with a 12-model ensemble that beats the current state of the art on backtested data.
 
 MLB's [Beat the Streak](https://www.mlb.com/apps/beat-the-streak) is a free contest with a $5.6 million prize: pick one player each day who you think will get at least one hit. String together 57 correct picks in a row — beating Joe DiMaggio's 56-game hitting streak — and you win. Since the contest launched in 2001, nobody has won.
 
 This project investigates whether it's possible to build a model that makes this achievable, and what that model looks like.
 
+**Daily picks:** [@beatthestreakbot.bsky.social](https://bsky.app/profile/beatthestreakbot.bsky.social)
+
 ## Results
 
 Walk-forward backtested, provably leak-free, validated across 6 MLB seasons:
 
-| Metric | BTS v2 | SOTA (Garnett 2026) |
-|--------|--------|---------------------|
-| P@1 (daily best pick) | 87.0% | ~85% |
-| P@100 (top 100 picks) | 91.0% | 85% |
-| P@500 (depth of signal) | 87.2% | 77% |
+| Metric | BTS v2 (single) | BTS v2 (blend) | SOTA (Garnett 2026) |
+|--------|-----------------|----------------|---------------------|
+| P@1 (daily best pick) | 87.0% | 86.2% avg | ~85% |
+| P@100 (top 100 picks) | 91.0% | — | 85% |
+| P@500 (depth of signal) | 87.2% | — | 77% |
 
-The P@500 advantage is the most robust finding — the model beats SOTA on this metric in every season tested (2020-2025).
+The single model achieves 87% P@1 on 2025. The 12-model blend improves **average P@1 across seasons** from 85.1% to 86.2% by better tie-breaking between near-equivalent top picks.
 
-### Multi-season validation
+### Multi-season validation (single model, 13 baseline features)
 
 ```
 Season  Training data    P@1     P@100   P@500
@@ -32,7 +34,9 @@ Season  Training data    P@1     P@100   P@500
 
 ### What this means for BTS
 
-At 87% P@1, streak simulation over 50,000 seasons gives a median longest streak of 26 games and a 57+ game streak in ~0.6% of seasons. Still very unlikely, but meaningfully better than the mathematical baseline.
+At 87% P@1, streak simulation over 50,000 seasons gives a median longest streak of 25 games and a 57+ game streak in ~0.6% of seasons. Still very unlikely, but meaningfully better than the mathematical baseline.
+
+Longest streak in backtesting: **47 games** (2022 season).
 
 ## The Story
 
@@ -61,33 +65,41 @@ P(>=1 hit in game) = 1 - PROD(P(no hit in each PA))
 
 If we model hit probability at the plate appearance level and aggregate, we get:
 
-1. **More training data.** ~180K batter-game records per season become ~180K PAs per season, with ~4 PAs per batter-game giving us richer signal per record.
-2. **Lineup position becomes natural.** The PA model doesn't need it as a feature — a leadoff hitter's advantage comes from having 4.5 PAs instead of 3.6, which the aggregation handles automatically.
+1. **More training data.** ~180K PAs per season with ~4 PAs per batter-game giving us richer signal per record.
+2. **Lineup position becomes natural.** A leadoff hitter's advantage comes from having 4.5 PAs instead of 3.6, which the aggregation handles automatically — no feature needed.
 3. **Pitcher matchup at the right level.** Platoon splits, pitcher quality, and pitch arsenal features are PA-level phenomena, not game-level.
 
 ### The leakage story
 
 The most important part of this project was finding and fixing three separate data leakage bugs:
 
-**Leakage #1: Static features using future data.** `platoon_hr` and `batter_gb_hit_rate` were computed over ALL data, including the test period. A batter's September 2025 performance leaked into their April 2025 predictions. Fix: expanding calculations with date-level `shift(1)`.
+**Leakage #1: Static features using future data.** `platoon_hr` and `batter_gb_hit_rate` were computed over ALL data, including the test period. Fix: expanding calculations with date-level `shift(1)`.
 
-**Leakage #2: K-Means clustering instability.** Pitcher archetypes were clustered on the full dataset. When re-clustered on training data only, 90.8% of pitchers changed clusters — making `batter_vs_arch_hr` (our top feature by importance!) entirely dependent on future data. Fix: removed clustering features entirely.
+**Leakage #2: K-Means clustering instability.** Pitcher archetypes were clustered on the full dataset. When re-clustered on training data only, 90.8% of pitchers changed clusters. Fix: removed clustering features entirely.
 
 **Leakage #3: Doubleheader contamination.** `shift(1)` on game-level features meant game 2 of a doubleheader could see game 1's results. Fix: aggregate to date level before shifting.
 
-The impact: P@1 dropped from 94% (leaky) to 87% (clean). Every leakage bug looked like a legitimate improvement until rigorously tested. This is consistent with Garnett's warning that "data leakage via iterative test evaluation is the most common invisible failure mode."
+The impact: P@1 dropped from 94% (leaky) to 87% (clean). Every leakage bug looked like a legitimate improvement until rigorously tested.
 
 **Verification:** A "nuclear test" manually recomputes every feature from scratch for random test PAs using only pre-date data, comparing against the pipeline's output. 260/260 checks passed.
 
+### The 12-model blend
+
+Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~30 experiments confirmed that no single feature or modeling change consistently improves both test seasons (2024 and 2025).
+
+Failure analysis revealed why: when the model's #1 pick goes hitless, the #2 pick gets a hit 84-88% of the time. The model isn't wrong about *who's good* — it struggles to distinguish between two ~81% picks on any given day.
+
+The 12-model blend solves this by averaging predictions across 12 LightGBM variants, each using the baseline 13 features plus one Statcast-derived feature. The diverse votes break ties differently, and the consensus pick is right more often. This improved average P@1 from 85.1% to 86.2% across both test seasons — the only approach that consistently helped.
+
 ## Architecture
 
-Two-stage PA-level model:
+Two-stage PA-level model with a 12-model ensemble:
 
 ```
-MLB Stats API -> raw JSON -> PA-level Parquet -> 13 temporal features -> LightGBM -> P(hit|PA) -> P(>=1 hit|game)
+MLB Stats API -> raw JSON -> PA-level Parquet -> features -> 12-model LightGBM blend -> P(hit|PA) -> P(>=1 hit|game)
 ```
 
-### Features (13)
+### Baseline features (13)
 
 | Feature | Type | What it captures |
 |---------|------|-----------------|
@@ -104,16 +116,61 @@ MLB Stats API -> raw JSON -> PA-level Parquet -> 13 temporal features -> LightGB
 
 Every feature is provably temporal — only data from dates strictly before the prediction date is used.
 
+### Statcast features (9, used by blend variants)
+
+Extracted from game feed hitData and pitchData. Each appears in one blend model alongside the 13 baseline features.
+
+| Feature | Type | What it captures |
+|---------|------|-----------------|
+| batter_barrel_rate_30g | Rolling | Quality of hardest contact (stabilizes at ~50 BIP) |
+| batter_hard_hit_rate_30g | Rolling | Hard contact rate (EV >= 95 mph) |
+| batter_sweet_spot_rate_30g | Rolling | Launch angle discipline (8-32°) |
+| batter_avg_ev_30g | Rolling | Consistent hard contact |
+| pitcher_avg_velo_30g | Rolling | Pitch velocity |
+| pitcher_avg_spin_30g | Rolling | Spin rate (pitch quality proxy) |
+| pitcher_avg_extension_30g | Rolling | Release extension (perceived velocity) |
+| pitcher_break_total_30g | Rolling | Pitch movement magnitude |
+| batter_avg_velo_faced_30g | Rolling | Average pitch velocity faced |
+
+These features don't improve the single model, but each adds diversity to the blend — the ensemble's power comes from models that disagree on close calls.
+
+### Prediction features
+
+- **Starter/reliever split**: PAs 1-2.5 use starter features, PAs 3+ use bullpen composite
+- **Opener detection**: Pitchers averaging < 3 IP flagged; all PAs treated as reliever PAs
+- **IL return flags**: Players with 7+ days rest flagged
+- **Debut pitcher fallback**: League-average features for pitchers with no MLB history
+- **Projected lineup fallback**: When lineups aren't posted yet, uses team's most recent game lineup
+
+### Double-down strategy
+
+BTS allows picking 1 or 2 batters per day (both must get hits for streak to advance by 2). When the model's P(both hit) >= 65% — roughly half the season — it recommends doubling. Selective doubling improved the longest backtested streak from 19 to 25 (2024) and 41 to 44 (2025).
+
+### ABS challenge data (2026)
+
+Extracts MLB's new Automated Ball-Strike challenge data (player, role, outcome, team) for future feature development. A shadow model monitors when challenge skill features accumulate enough signal to improve predictions.
+
 ### What didn't work
 
-- **Lineup position as a PA feature**: Double-counts with the aggregation step
-- **Home/away**: No PA-level effect
-- **Pitcher archetypes (K-Means)**: Cluster assignments unstable across train/test splits
-- **MLP ensemble**: Trees handle our interaction features better
-- **Umpire zone tendency**: Real effect (~3.6% CSR variance) but zero predictive power
-- **Exit velocity trends, wind, career PAs, day of week**: All noise
-- **Calibration (Platt/isotonic)**: Hurts P@K by reducing training data for base model
-- **Training data before 2019**: Game changed enough that old data hurts (-1.1%)
+**Features rejected** (tested and dropped after empirical validation):
+- MiLB debut pitcher entropy — no P@1 improvement; LightGBM handles missing values well
+- Team defensive efficiency (BABIP) — 30-day rolling too noisy (r=0.19)
+- Granular defense (GB/FB splits, error rate, hard-hit conversion) — all park effects
+- Lineup position as a PA feature — double-counts with the aggregation step
+- Pitcher archetypes (K-Means) — 90.8% cluster assignment instability
+- Umpire zone tendency — zero predictive power
+- Exit velocity trends, wind, career PAs, day of week — all noise
+
+**Modeling rejected** (tested and dropped):
+- Hyperparameter tuning — default params are robust; tuning hurt P@1
+- Recency weighting — downweighting old data removes volume the model needs
+- Ranking-optimized objective — improves one season, hurts the other
+- Adaptive feature selection — worse than fixed blend
+- 15+ model blend — dilutes signal; 12 is the sweet spot
+- Different architectures in blend (Decision Tree, Logistic Regression) — all members must be equally competent
+- MLP ensemble — trees handle our interaction features better
+- Calibration (Platt/isotonic) — hurts P@K
+- Training data before 2019 — game changed enough that old data hurts (-1.1%)
 
 ## Data
 
@@ -121,18 +178,26 @@ Every feature is provably temporal — only data from dates strictly before the 
 - **Scope**: 9 seasons (2017-2025), 1.5M plate appearances
 - **Training window**: 2019 onward (optimal)
 - **Filters**: Regular season only. 7-inning COVID doubleheaders (2021) excluded.
+- **Statcast fields**: trajectory, hardness, total_distance, pitch velocities, spin rates, extensions, break vectors
+- **ABS fields**: challenge player, role, outcome, team (2026+)
 
 ## Usage
 
 ```bash
 # Install
-uv sync
+UV_CACHE_DIR=/tmp/uv-cache uv sync
 
 # Pull game data
-bts data pull --start 2019-03-20 --end 2025-10-01
+UV_CACHE_DIR=/tmp/uv-cache uv run bts data pull --start 2019-03-20 --end 2025-10-01
 
-# Build PA Parquet
-bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
+# Build PA Parquet (with Statcast fields)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
+
+# Daily prediction (12-model blend, auto double-down recommendation)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts predict --date 2026-03-31
+
+# Post pick to Bluesky
+UV_CACHE_DIR=/tmp/uv-cache uv run bts post --date 2026-03-31 --batter "Name" --team TEA --pitcher "Name" --pct 70.6 --streak 2
 
 # Evaluate (Python)
 from bts.features.compute import compute_all_features
@@ -149,10 +214,12 @@ metrics, preds = walk_forward_evaluate(df, test_season=2025)
 
 1. **PA-level modeling beats game-level.** More data, natural lineup position handling, pitcher matchup at the right granularity.
 2. **Leakage is invisible until you test for it.** Three bugs, each discovered only through systematic verification. The "nuclear test" should be standard practice.
-3. **Feature selection changes completely when leakage is present.** Our top feature under leakage (batter_vs_arch_hr) was entirely fake. Features that "hurt" under leakage (lineup_position) helped with clean data, and vice versa.
-4. **More data helps, to a point.** Each additional training season improves the model, but data older than ~6 years hurts because the game changes.
-5. **Simpler models with clean features beat complex models with noisy ones.** 13 features > 18. LightGBM alone > LightGBM + MLP. Default hyperparameters are fine.
-6. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation is essential.
+3. **Feature selection changes completely when leakage is present.** Our top feature under leakage was entirely fake.
+4. **Year-to-year instability is fundamental.** Features that help one season hurt the next. Only the blend consistently improves both test seasons.
+5. **Blend diversity > model complexity.** 12 LightGBM variants with different feature subsets beat any single model, hyperparameter tuning, different architectures, or adaptive selection. The power is in tie-breaking via diverse votes.
+6. **The model's problem is ranking, not prediction.** When the top pick misses, #2 gets a hit 84-88% of the time. The model knows who's good — it struggles with who's best *today*.
+7. **Simpler models with clean features beat complex models with noisy ones.** 13 features > 18. Default hyperparameters are robust to tuning.
+8. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation is essential.
 
 ## References
 
