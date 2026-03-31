@@ -145,63 +145,18 @@ def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
 def post(date: str, batter: str, team: str, pitcher: str, pct: float,
          streak: int, double: str, double_pct: float, dry_run: bool):
     """Post today's pick to Bluesky."""
-    import json
-    import subprocess
-    from urllib.request import urlopen, Request
-    from datetime import datetime, timezone
+    from bts.posting import format_post, post_to_bluesky
 
-    if double and double_pct:
-        text = (
-            f"Today's picks: {batter} ({team}) + {double}\n"
-            f"vs {pitcher} | P(both): {pct * double_pct / 100:.1f}%\n\n"
-            f"Streak: {streak}"
-        )
-    else:
-        text = (
-            f"Today's pick: {batter} ({team})\n"
-            f"vs {pitcher} | {pct:.1f}%\n\n"
-            f"Streak: {streak}"
-        )
+    p_game = pct / 100
+    double_p = double_pct / 100 if double_pct else None
+    text = format_post(batter, team, pitcher, p_game, streak, double, double_p)
 
     if dry_run:
         click.echo(f"Would post:\n{text}")
         return
 
-    password = subprocess.run(
-        ["security", "find-generic-password", "-a", "claude-cli",
-         "-s", "bluesky-bts-app-password", "-w"],
-        capture_output=True, text=True,
-    ).stdout.strip()
-
-    if not password:
-        click.echo("Error: No Bluesky app password found in keychain.")
-        return
-
-    # Authenticate
-    auth_data = json.dumps({
-        "identifier": "beatthestreakbot.bsky.social",
-        "password": password,
-    }).encode()
-    req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
-                  data=auth_data, headers={"Content-Type": "application/json"})
-    session = json.loads(urlopen(req, timeout=15).read())
-
-    # Post
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    record = {
-        "repo": session["did"],
-        "collection": "app.bsky.feed.post",
-        "record": {
-            "$type": "app.bsky.feed.post",
-            "text": text,
-            "createdAt": now,
-        },
-    }
-    req = Request(
-        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
-        data=json.dumps(record).encode(),
-        headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {session['accessJwt']}"},
-    )
-    resp = json.loads(urlopen(req, timeout=15).read())
-    click.echo(f"Posted: {resp['uri']}")
+    try:
+        uri = post_to_bluesky(text)
+        click.echo(f"Posted: {uri}")
+    except RuntimeError as e:
+        click.echo(f"Error: {e}", err=True)

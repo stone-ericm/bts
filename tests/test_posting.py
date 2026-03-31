@@ -1,0 +1,60 @@
+import pytest
+from datetime import datetime
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
+from bts.posting import format_post, should_post_now
+
+ET = ZoneInfo("America/New_York")
+
+
+class TestFormatPost:
+    def test_single_pick(self):
+        text = format_post(
+            batter="Jacob Wilson", team="ATH", pitcher="Jose Suarez",
+            p_game=0.763, streak=3,
+        )
+        assert text == (
+            "Today's pick: Jacob Wilson (ATH)\n"
+            "vs Jose Suarez | 76.3%\n\n"
+            "Streak: 3"
+        )
+
+    def test_double_down(self):
+        text = format_post(
+            batter="Jacob Wilson", team="ATH", pitcher="Jose Suarez",
+            p_game=0.763, streak=3,
+            double="Shohei Ohtani", double_p_game=0.741,
+        )
+        assert "Today's picks: Jacob Wilson (ATH) + Shohei Ohtani" in text
+        assert "P(both): 56.5%" in text
+        assert "Streak: 3" in text
+
+    def test_streak_zero(self):
+        text = format_post(
+            batter="Mike Trout", team="LAA", pitcher="Max Scherzer",
+            p_game=0.875, streak=0,
+        )
+        assert "Streak: 0" in text
+
+
+class TestShouldPostNow:
+    @patch("bts.posting._now_et")
+    def test_game_within_3_hours_posts(self, mock_now):
+        mock_now.return_value = datetime(2026, 4, 1, 14, 0, tzinfo=ET)
+        # Game at 4:30pm ET (20:30 UTC) = within 2.5 hours
+        assert should_post_now("2026-04-01T20:30:00Z", already_posted=False) is True
+
+    @patch("bts.posting._now_et")
+    def test_game_far_away_skips(self, mock_now):
+        mock_now.return_value = datetime(2026, 4, 1, 11, 0, tzinfo=ET)
+        # Game at 7:10pm ET (23:10 UTC) = 8+ hours away
+        assert should_post_now("2026-04-01T23:10:00Z", already_posted=False) is False
+
+    @patch("bts.posting._now_et")
+    def test_evening_run_always_posts(self, mock_now):
+        mock_now.return_value = datetime(2026, 4, 1, 19, 30, tzinfo=ET)
+        # Game at 10pm ET — but it's after 7pm so post anyway
+        assert should_post_now("2026-04-02T02:00:00Z", already_posted=False) is True
+
+    def test_already_posted_skips(self):
+        assert should_post_now("2026-04-01T23:10:00Z", already_posted=True) is False
