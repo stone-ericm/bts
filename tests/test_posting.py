@@ -58,3 +58,9 @@ class TestShouldPostNow:
 
     def test_already_posted_skips(self):
         assert should_post_now("2026-04-01T23:10:00Z", already_posted=True) is False
+
+    @patch("bts.posting._now_et")
+    def test_game_already_started_skips(self, mock_now):
+        mock_now.return_value = datetime(2026, 4, 1, 17, 0, tzinfo=ET)
+        # Game started 3 hours ago (at 2pm ET = 18:00 UTC)
+        assert should_post_now("2026-04-01T18:00:00Z", already_posted=False) is False

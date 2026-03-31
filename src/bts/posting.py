@@ -101,8 +101,9 @@ def should_post_now(game_time_utc: str, already_posted: bool) -> bool:
     now_et = _now_et()
     game_dt = datetime.fromisoformat(game_time_utc).astimezone(ET)
 
-    # Post if game starts within 3 hours
-    if game_dt - now_et <= timedelta(hours=3):
+    # Post if game starts within 3 hours (future only)
+    time_to_game = game_dt - now_et
+    if timedelta(0) <= time_to_game <= timedelta(hours=3):
         return True
 
     # Post on the final run (after 7pm ET)
