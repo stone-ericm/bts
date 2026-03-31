@@ -4,7 +4,8 @@ import json
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.request import urlopen
+
+from bts.util import retry_urlopen
 
 API_BASE = "https://statsapi.mlb.com"
 
@@ -31,7 +32,6 @@ class DailyPick:
     pick: Pick
     double_down: Pick | None
     runner_up: dict | None  # {"batter_name": str, "p_game_hit": float}
-    streak: int
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
 
@@ -75,7 +75,6 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         pick=Pick(**data["pick"]),
         double_down=Pick(**data["double_down"]) if data["double_down"] else None,
         runner_up=data["runner_up"],
-        streak=data["streak"],
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
     )
@@ -117,7 +116,7 @@ def get_game_statuses(date: str) -> dict[int, str]:
     Returns {game_pk: abstractGameCode} where codes are:
         P = Preview (not started), L = Live, F = Final
     """
-    resp = json.loads(urlopen(
+    resp = json.loads(retry_urlopen(
         f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
         timeout=15,
     ).read())
@@ -131,9 +130,10 @@ def get_game_statuses(date: str) -> dict[int, str]:
 def check_hit(game_pk: int, batter_id: int) -> bool | None:
     """Check if a batter got a hit in a game.
 
-    Returns True (hit), False (no hit), or None (game not final).
+    Returns True (hit), False (no hit), or None (game not final OR batter
+    not found in boxscore, e.g. scratched).
     """
-    resp = json.loads(urlopen(
+    resp = json.loads(retry_urlopen(
         f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
         timeout=15,
     ).read())
@@ -148,4 +148,5 @@ def check_hit(game_pk: int, batter_id: int) -> bool | None:
         if key in players:
             hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
             return hits > 0
-    return False
+    # Batter not in boxscore — likely scratched
+    return None

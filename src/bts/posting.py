@@ -1,10 +1,14 @@
 """Bluesky posting for BTS picks."""
 
 import json
+import os
 import subprocess
 from datetime import datetime, timedelta, timezone
-from urllib.request import urlopen, Request
+from urllib.error import HTTPError
+from urllib.request import Request
 from zoneinfo import ZoneInfo
+
+from bts.util import retry_urlopen
 
 ET = ZoneInfo("America/New_York")
 
@@ -34,25 +38,37 @@ def format_post(
 
 
 def get_bluesky_password() -> str:
-    """Get Bluesky app password from macOS Keychain.
+    """Get Bluesky app password from macOS Keychain or environment variable.
 
-    Raises RuntimeError if the password is not found.
+    Tries macOS keychain first, then falls back to BTS_BLUESKY_PASSWORD env var.
+    Raises RuntimeError if no password is found.
     """
-    result = subprocess.run(
-        ["security", "find-generic-password", "-a", "claude-cli",
-         "-s", "bluesky-bts-app-password", "-w"],
-        capture_output=True, text=True,
+    # Try macOS keychain first
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "claude-cli",
+             "-s", "bluesky-bts-app-password", "-w"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass  # Not on macOS
+
+    # Fallback to environment variable
+    password = os.environ.get("BTS_BLUESKY_PASSWORD")
+    if password:
+        return password
+
+    raise RuntimeError(
+        "Bluesky app password not found. Set BTS_BLUESKY_PASSWORD or add to macOS keychain."
     )
-    password = result.stdout.strip()
-    if result.returncode != 0 or not password:
-        raise RuntimeError("Bluesky app password not found in keychain")
-    return password
 
 
 def post_to_bluesky(text: str) -> str:
     """Post text to Bluesky. Returns post URI.
 
-    Raises RuntimeError if auth or posting fails.
+    Raises RuntimeError if auth or posting fails with a meaningful message.
     """
     password = get_bluesky_password()
 
@@ -63,7 +79,13 @@ def post_to_bluesky(text: str) -> str:
     }).encode()
     req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
                   data=auth_data, headers={"Content-Type": "application/json"})
-    session = json.loads(urlopen(req, timeout=15).read())
+    try:
+        session = json.loads(retry_urlopen(req, timeout=15).read())
+    except HTTPError as e:
+        if e.code == 401:
+            raise RuntimeError("Bluesky auth failed — check app password in keychain") from e
+        body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        raise RuntimeError(f"Bluesky auth error (HTTP {e.code}): {body}") from e
 
     # Post
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -82,7 +104,14 @@ def post_to_bluesky(text: str) -> str:
         headers={"Content-Type": "application/json",
                  "Authorization": f"Bearer {session['accessJwt']}"},
     )
-    resp = json.loads(urlopen(req, timeout=15).read())
+    try:
+        resp = json.loads(retry_urlopen(req, timeout=15).read())
+    except HTTPError as e:
+        if e.code == 429:
+            raise RuntimeError("Bluesky rate limited — try again in a few minutes") from e
+        body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        raise RuntimeError(f"Bluesky post error (HTTP {e.code}): {body}") from e
+
     return resp["uri"]
 
 

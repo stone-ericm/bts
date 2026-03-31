@@ -31,7 +31,6 @@ def _sample_daily(pick=None, **overrides):
         pick=pick or _sample_pick(),
         double_down=None,
         runner_up={"batter_name": "Jake Mangum", "p_game_hit": 0.726},
-        streak=3,
         bluesky_posted=False,
         bluesky_uri=None,
     )
@@ -49,7 +48,6 @@ class TestPickFileIO:
         assert loaded.pick.batter_name == "Jacob Wilson"
         assert loaded.pick.p_game_hit == pytest.approx(0.763)
         assert loaded.pick.game_pk == 778899
-        assert loaded.streak == 3
 
     def test_load_nonexistent_returns_none(self, tmp_path):
         assert load_pick("2099-01-01", tmp_path) is None
@@ -61,14 +59,13 @@ class TestPickFileIO:
         assert (subdir / "2026-04-01.json").exists()
 
     def test_save_overwrites_existing(self, tmp_path):
-        daily = _sample_daily(streak=3)
+        daily = _sample_daily()
         save_pick(daily, tmp_path)
 
-        updated = _sample_daily(streak=4, bluesky_posted=True, bluesky_uri="at://did:plc:xxx/post/yyy")
+        updated = _sample_daily(bluesky_posted=True, bluesky_uri="at://did:plc:xxx/post/yyy")
         save_pick(updated, tmp_path)
 
         loaded = load_pick("2026-04-01", tmp_path)
-        assert loaded.streak == 4
         assert loaded.bluesky_posted is True
 
     def test_roundtrip_with_double_down(self, tmp_path):
@@ -99,6 +96,14 @@ class TestPickFileIO:
         assert raw["pick"]["game_pk"] == 778899
         assert raw["double_down"] is None
         assert raw["runner_up"]["batter_name"] == "Jake Mangum"
+
+    def test_no_streak_in_pick_file(self, tmp_path):
+        """Streak should not be stored in the pick file (Issue 3)."""
+        daily = _sample_daily()
+        save_pick(daily, tmp_path)
+
+        raw = json.loads((tmp_path / "2026-04-01.json").read_text())
+        assert "streak" not in raw
 
 
 class TestPickFromRow:
@@ -206,7 +211,7 @@ def _mock_feed_response(batter_id, hits, status_code="F"):
 
 
 class TestGameStatuses:
-    @patch("bts.picks.urlopen")
+    @patch("bts.picks.retry_urlopen")
     def test_returns_status_map(self, mock_urlopen):
         mock_urlopen.return_value.read.return_value = json.dumps(
             _mock_schedule_response([
@@ -219,7 +224,7 @@ class TestGameStatuses:
         result = get_game_statuses("2026-04-01")
         assert result == {100: "P", 200: "L", 300: "F"}
 
-    @patch("bts.picks.urlopen")
+    @patch("bts.picks.retry_urlopen")
     def test_empty_schedule(self, mock_urlopen):
         mock_urlopen.return_value.read.return_value = json.dumps(
             {"dates": []}
@@ -228,31 +233,32 @@ class TestGameStatuses:
 
 
 class TestCheckHit:
-    @patch("bts.picks.urlopen")
+    @patch("bts.picks.retry_urlopen")
     def test_batter_got_hit(self, mock_urlopen):
         mock_urlopen.return_value.read.return_value = json.dumps(
             _mock_feed_response(batter_id=700363, hits=2, status_code="F")
         ).encode()
         assert check_hit(778899, 700363) is True
 
-    @patch("bts.picks.urlopen")
+    @patch("bts.picks.retry_urlopen")
     def test_batter_no_hit(self, mock_urlopen):
         mock_urlopen.return_value.read.return_value = json.dumps(
             _mock_feed_response(batter_id=700363, hits=0, status_code="F")
         ).encode()
         assert check_hit(778899, 700363) is False
 
-    @patch("bts.picks.urlopen")
+    @patch("bts.picks.retry_urlopen")
     def test_game_not_final_returns_none(self, mock_urlopen):
         mock_urlopen.return_value.read.return_value = json.dumps(
             _mock_feed_response(batter_id=700363, hits=0, status_code="L")
         ).encode()
         assert check_hit(778899, 700363) is None
 
-    @patch("bts.picks.urlopen")
-    def test_batter_not_in_game(self, mock_urlopen):
+    @patch("bts.picks.retry_urlopen")
+    def test_batter_not_in_game_returns_none(self, mock_urlopen):
+        """Scratched players return None, not False (Issue 5)."""
         mock_urlopen.return_value.read.return_value = json.dumps(
             _mock_feed_response(batter_id=999999, hits=1, status_code="F")
         ).encode()
         # Batter 700363 not in boxscore (only 999999 is)
-        assert check_hit(778899, 700363) is False
+        assert check_hit(778899, 700363) is None
