@@ -166,8 +166,9 @@ def post(date: str, batter: str, team: str, pitcher: str, pct: float,
 @click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks output directory")
+@click.option("--models-dir", default="data/models", type=click.Path(), help="Cached models directory")
 @click.option("--dry-run", is_flag=True, help="Skip Bluesky posting")
-def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
+def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool):
     """Run daily BTS automation: predict, save pick, optionally post.
 
     Designed to run via cron at 11am, 4pm, and 7:30pm ET.
@@ -177,7 +178,7 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
     import pandas as pd
     from pathlib import Path
     from datetime import datetime, timezone
-    from bts.model.predict import run_pipeline
+    from bts.model.predict import run_pipeline, save_blend, load_blend
     from bts.picks import (
         pick_from_row, save_pick, load_pick, load_streak,
         get_game_statuses, DailyPick,
@@ -185,12 +186,23 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
     from bts.posting import format_post, post_to_bluesky, should_post_now
 
     picks_path = Path(picks_dir)
+    models_path = Path(models_dir)
     DOUBLE_THRESHOLD = 0.65
 
-    # Step 1: Run prediction pipeline
+    # Step 1: Run prediction pipeline (with model caching)
     click.echo(f"[{datetime.now(timezone.utc).strftime('%H:%M UTC')}] Running predictions for {date}...")
+    cache_path = models_path / f"blend_{date}.pkl"
+    cached_blend = None
+    if cache_path.exists():
+        click.echo(f"  Loading cached model from {cache_path}")
+        cached_blend = load_blend(cache_path)
+
     try:
-        predictions = run_pipeline(date, data_dir)
+        predictions = run_pipeline(
+            date, data_dir,
+            cached_blend=cached_blend,
+            save_blend_path=cache_path if not cached_blend else None,
+        )
     except RuntimeError as e:
         click.echo(f"ERROR: {e}", err=True)
         return
@@ -261,21 +273,20 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
         ru = valid.iloc[1]
         runner_up = {"batter_name": ru["batter_name"], "p_game_hit": float(ru["p_game_hit"])}
 
-    # Step 8: Save pick
+    # Step 8: Save pick (streak is NOT stored — read from streak.json at post time)
     daily = DailyPick(
         date=date,
         run_time=datetime.now(timezone.utc).isoformat(),
         pick=new_pick,
         double_down=double_pick,
         runner_up=runner_up,
-        streak=streak,
         bluesky_posted=current.bluesky_posted if current else False,
         bluesky_uri=current.bluesky_uri if current else None,
     )
     save_pick(daily, picks_path)
     click.echo(f"  Saved to {picks_path / f'{date}.json'}")
 
-    # Step 9: Post to Bluesky if appropriate
+    # Step 9: Post to Bluesky if appropriate (read streak fresh from streak.json)
     if dry_run:
         text = format_post(
             new_pick.batter_name, new_pick.team, new_pick.pitcher_name,
@@ -333,7 +344,9 @@ def check_results(date: str, picks_dir: str):
         return
 
     if primary_result is None:
-        click.echo(f"Game {daily.pick.game_pk} not final yet. Try again later.")
+        # Could be game not final OR batter scratched
+        click.echo(f"WARNING: {daily.pick.batter_name} not found in boxscore or game not final. "
+                    f"Streak unchanged. Check manually.")
         return
 
     results = [primary_result]
@@ -347,7 +360,8 @@ def check_results(date: str, picks_dir: str):
             click.echo(f"ERROR: Failed to check double-down result — {e}", err=True)
             return
         if double_result is None:
-            click.echo(f"Game {daily.double_down.game_pk} not final yet. Try again later.")
+            click.echo(f"WARNING: {daily.double_down.batter_name} not found in boxscore or game not final. "
+                        f"Streak unchanged. Check manually.")
             return
         results.append(double_result)
 
@@ -367,7 +381,3 @@ def check_results(date: str, picks_dir: str):
         if len(results) > 1 and not results[1]:
             miss_names.append(daily.double_down.batter_name)
         click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
-
-    # Save result to pick file for reference
-    daily.streak = new_streak
-    save_pick(daily, picks_path)
