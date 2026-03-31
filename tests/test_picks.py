@@ -1,6 +1,7 @@
 import json
 import pytest
-from bts.picks import Pick, DailyPick, save_pick, load_pick
+from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak
+from bts.picks import pick_from_row
 
 
 def _sample_pick(**overrides):
@@ -98,7 +99,46 @@ class TestPickFileIO:
         assert raw["runner_up"]["batter_name"] == "Jake Mangum"
 
 
-from bts.picks import load_streak, save_streak, update_streak
+class TestPickFromRow:
+    def _row(self, **overrides):
+        defaults = {
+            "batter_name": "Jacob Wilson",
+            "batter_id": 700363,
+            "team": "ATH",
+            "lineup": 1,
+            "pitcher_name": "Jose Suarez",
+            "pitcher_id": 660761,
+            "p_game_hit": 0.763,
+            "flags": "",
+            "game_pk": 778899,
+            "game_time": "2026-04-01T23:10:00Z",
+        }
+        defaults.update(overrides)
+        return defaults
+
+    def test_basic_row(self):
+        pick = pick_from_row(self._row())
+        assert pick.batter_name == "Jacob Wilson"
+        assert pick.batter_id == 700363
+        assert pick.lineup_position == 1
+        assert pick.flags == []
+        assert pick.projected_lineup is False
+
+    def test_flags_parsed_from_comma_string(self):
+        pick = pick_from_row(self._row(flags="IL? (8d rest), PROJECTED lineup"))
+        assert pick.flags == ["IL? (8d rest)", "PROJECTED lineup"]
+        assert pick.projected_lineup is True
+
+    def test_none_pitcher_id(self):
+        pick = pick_from_row(self._row(pitcher_id=None))
+        assert pick.pitcher_id is None
+
+    def test_missing_flags_key(self):
+        row = self._row()
+        del row["flags"]
+        pick = pick_from_row(row)
+        assert pick.flags == []
+        assert pick.projected_lineup is False
 
 
 class TestStreak:
