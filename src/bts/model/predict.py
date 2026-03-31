@@ -276,6 +276,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
         for g in d.get("games", []):
             pk = g["gamePk"]
             status = g["status"]["detailedState"]
+            game_time = g.get("gameDate", "")
 
             try:
                 feed = json.loads(urlopen(
@@ -355,6 +356,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         "venue_id": venue_id,
                         "weather_temp": temp,
                         "game_pk": pk,
+                        "game_time": game_time,
                         "status": status,
                     }
                     if is_projected:
@@ -534,3 +536,35 @@ def predict(
         pred_df["p_game_hit"] = pred_df["p_game_blend"].fillna(pred_df["p_game_hit"])
 
     return pred_df.sort_values("p_game_hit", ascending=False).reset_index(drop=True)
+
+
+def run_pipeline(
+    date: str,
+    data_dir: str = "data/processed",
+    check_openers: bool = True,
+) -> pd.DataFrame:
+    """Run the full prediction pipeline for a date.
+
+    Loads historical data, computes features, trains the 12-model blend,
+    and returns ranked picks sorted by P(game hit).
+    """
+    proc = Path(data_dir)
+    dfs = []
+    for parquet in sorted(proc.glob("pa_*.parquet")):
+        dfs.append(pd.read_parquet(parquet))
+    if not dfs:
+        raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
+
+    df = pd.concat(dfs, ignore_index=True)
+    df = compute_all_features(df)
+    df["date"] = pd.to_datetime(df["date"])
+
+    model = train_model(df)
+    blend = train_blend(df)
+    lookups = _build_feature_lookups(df)
+
+    return predict(
+        date, df, model, lookups,
+        check_openers=check_openers,
+        blend=blend,
+    )

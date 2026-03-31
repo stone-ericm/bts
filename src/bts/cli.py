@@ -76,39 +76,14 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
 def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
     """Generate ranked BTS picks for a date."""
     import pandas as pd
-    from bts.features.compute import compute_all_features
-    from bts.model.predict import train_model, train_blend, predict as make_predictions, _build_feature_lookups
+    from bts.model.predict import run_pipeline
 
-    proc = Path(data_dir)
-    click.echo(f"Loading data from {proc}/...")
-    dfs = []
-    for parquet in sorted(proc.glob("pa_*.parquet")):
-        dfs.append(pd.read_parquet(parquet))
-    if not dfs:
-        click.echo("No Parquet files found. Run 'bts data build' first.")
+    click.echo(f"Running prediction pipeline for {date}...")
+    try:
+        picks = run_pipeline(date, data_dir, check_openers=not no_opener_check)
+    except RuntimeError as e:
+        click.echo(str(e))
         return
-
-    df = pd.concat(dfs, ignore_index=True)
-    click.echo(f"  {len(df):,} PAs loaded")
-
-    click.echo("Computing features...")
-    df = compute_all_features(df)
-    df["date"] = pd.to_datetime(df["date"])
-
-    click.echo("Training model...")
-    model = train_model(df)
-
-    click.echo("Training 12-model blend...")
-    blend = train_blend(df)
-
-    lookups = _build_feature_lookups(df)
-
-    click.echo(f"Generating picks for {date}...")
-    picks = make_predictions(
-        date, df, model, lookups,
-        check_openers=not no_opener_check,
-        blend=blend,
-    )
 
     if picks.empty:
         click.echo("No games found for this date.")
