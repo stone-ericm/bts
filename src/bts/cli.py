@@ -300,3 +300,62 @@ def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
             click.echo(f"  Bluesky post failed: {e}", err=True)
     else:
         click.echo("  Not posting yet (game not within 3h, not evening run)")
+
+
+@cli.command(name="check-results")
+@click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+def check_results(date: str, picks_dir: str):
+    """Check if yesterday's pick got a hit and update the streak.
+
+    Designed to run via cron at 1am ET (after all games finish).
+    """
+    from pathlib import Path
+    from bts.picks import load_pick, check_hit, update_streak, save_pick
+
+    picks_path = Path(picks_dir)
+    daily = load_pick(date, picks_path)
+
+    if daily is None:
+        click.echo(f"No pick found for {date}.")
+        return
+
+    # Check primary pick
+    click.echo(f"Checking {daily.pick.batter_name} (game {daily.pick.game_pk})...")
+    primary_result = check_hit(daily.pick.game_pk, daily.pick.batter_id)
+
+    if primary_result is None:
+        click.echo(f"Game {daily.pick.game_pk} not final yet. Try again later.")
+        return
+
+    results = [primary_result]
+
+    # Check double-down if applicable
+    if daily.double_down:
+        click.echo(f"Checking {daily.double_down.batter_name} (game {daily.double_down.game_pk})...")
+        double_result = check_hit(daily.double_down.game_pk, daily.double_down.batter_id)
+        if double_result is None:
+            click.echo(f"Game {daily.double_down.game_pk} not final yet. Try again later.")
+            return
+        results.append(double_result)
+
+    # Update streak
+    new_streak = update_streak(results, picks_path)
+
+    # Report
+    if all(results):
+        hit_names = [daily.pick.batter_name]
+        if daily.double_down:
+            hit_names.append(daily.double_down.batter_name)
+        click.echo(f"HIT! {' + '.join(hit_names)}. Streak: {new_streak}")
+    else:
+        miss_names = []
+        if not results[0]:
+            miss_names.append(daily.pick.batter_name)
+        if len(results) > 1 and not results[1]:
+            miss_names.append(daily.double_down.batter_name)
+        click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
+
+    # Save result to pick file for reference
+    daily.streak = new_streak
+    save_pick(daily, picks_path)
