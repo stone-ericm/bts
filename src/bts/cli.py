@@ -155,3 +155,78 @@ def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
 
     if best.get("flags"):
         click.echo(f"  WARNING: {best['flags']}")
+
+
+@cli.command()
+@click.option("--date", required=True, help="Date of the pick (YYYY-MM-DD)")
+@click.option("--batter", required=True, help="Batter name")
+@click.option("--team", required=True, help="Team abbreviation")
+@click.option("--pitcher", required=True, help="Opposing pitcher name")
+@click.option("--pct", required=True, type=float, help="P(game hit) percentage")
+@click.option("--streak", required=True, type=int, help="Current streak count")
+@click.option("--double", default=None, help="Second pick name for double down (optional)")
+@click.option("--double-pct", default=None, type=float, help="Second pick P(game hit)")
+@click.option("--dry-run", is_flag=True, help="Print post text without posting")
+def post(date: str, batter: str, team: str, pitcher: str, pct: float,
+         streak: int, double: str, double_pct: float, dry_run: bool):
+    """Post today's pick to Bluesky."""
+    import json
+    import subprocess
+    from urllib.request import urlopen, Request
+    from datetime import datetime, timezone
+
+    if double and double_pct:
+        text = (
+            f"Today's picks: {batter} ({team}) + {double}\n"
+            f"vs {pitcher} | P(both): {pct * double_pct / 100:.1f}%\n\n"
+            f"Streak: {streak}"
+        )
+    else:
+        text = (
+            f"Today's pick: {batter} ({team})\n"
+            f"vs {pitcher} | {pct:.1f}%\n\n"
+            f"Streak: {streak}"
+        )
+
+    if dry_run:
+        click.echo(f"Would post:\n{text}")
+        return
+
+    password = subprocess.run(
+        ["security", "find-generic-password", "-a", "claude-cli",
+         "-s", "bluesky-bts-app-password", "-w"],
+        capture_output=True, text=True,
+    ).stdout.strip()
+
+    if not password:
+        click.echo("Error: No Bluesky app password found in keychain.")
+        return
+
+    # Authenticate
+    auth_data = json.dumps({
+        "identifier": "beatthestreakbot.bsky.social",
+        "password": password,
+    }).encode()
+    req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                  data=auth_data, headers={"Content-Type": "application/json"})
+    session = json.loads(urlopen(req, timeout=15).read())
+
+    # Post
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    record = {
+        "repo": session["did"],
+        "collection": "app.bsky.feed.post",
+        "record": {
+            "$type": "app.bsky.feed.post",
+            "text": text,
+            "createdAt": now,
+        },
+    }
+    req = Request(
+        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        data=json.dumps(record).encode(),
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {session['accessJwt']}"},
+    )
+    resp = json.loads(urlopen(req, timeout=15).read())
+    click.echo(f"Posted: {resp['uri']}")
