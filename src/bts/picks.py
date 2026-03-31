@@ -4,6 +4,9 @@ import json
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.request import urlopen
+
+API_BASE = "https://statsapi.mlb.com"
 
 
 @dataclass
@@ -106,3 +109,43 @@ def update_streak(results: list[bool], picks_dir: Path) -> int:
     new = current + len(results) if all(results) else 0
     save_streak(new, picks_dir)
     return new
+
+
+def get_game_statuses(date: str) -> dict[int, str]:
+    """Get game statuses for all games on a date.
+
+    Returns {game_pk: abstractGameCode} where codes are:
+        P = Preview (not started), L = Live, F = Final
+    """
+    resp = json.loads(urlopen(
+        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
+        timeout=15,
+    ).read())
+    statuses = {}
+    for d in resp.get("dates", []):
+        for g in d.get("games", []):
+            statuses[g["gamePk"]] = g["status"]["abstractGameCode"]
+    return statuses
+
+
+def check_hit(game_pk: int, batter_id: int) -> bool | None:
+    """Check if a batter got a hit in a game.
+
+    Returns True (hit), False (no hit), or None (game not final).
+    """
+    resp = json.loads(urlopen(
+        f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
+        timeout=15,
+    ).read())
+    status = resp["gameData"]["status"]["abstractGameCode"]
+    if status != "F":
+        return None
+
+    # Check boxscore batting stats
+    for side in ("away", "home"):
+        players = resp["liveData"]["boxscore"]["teams"][side]["players"]
+        key = f"ID{batter_id}"
+        if key in players:
+            hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
+            return hits > 0
+    return False
