@@ -13,15 +13,31 @@ Automate the daily BTS workflow: run the model twice daily, post picks to Bluesk
 
 ## What Needs Automating
 
-### Two-Run Schedule
+### Three-Run Schedule
 
-- **11:00 AM ET**: Run model with available lineups. Identify best pick whose game hasn't started.
-- **5:30 PM ET**: Re-run with confirmed lineups. If a better pick exists whose game hasn't started, update the recommendation. If the 11am pick's game already started, it's locked.
+75% of game days have games starting after 9pm ET (west coast). A two-run schedule misses those lineups. Three runs cover all time slots:
+
+- **11:00 AM ET**: Early games (1-3pm starts, ~519 games/season). Lineups posted by ~9-11am. Pick the best available whose game hasn't started.
+- **4:00 PM ET**: Bulk games (6-8pm starts, ~947 games/season). Lineups posted by ~2-4pm. Upgrade pick if a better option exists whose game hasn't started.
+- **7:30 PM ET**: West coast (9-10pm starts, ~580 games/season). Lineups posted by ~5-7pm. Final upgrade opportunity.
+
+Each run compares its best pick to the current pick. If the current pick's game already started, it's locked. If a better pick exists for an upcoming game, switch. The Bluesky post should reflect the final pick only — intermediate picks are internal.
+
+Game time distribution (2025 season, ET):
+```
+1-3pm:   519 games (day games, getaway days)
+4-5pm:   348 games (early evening)
+6-7pm:   947 games (prime time — bulk of schedule)
+8-9pm:   451 games (late evening)
+10pm+:   129 games (west coast)
+```
 
 ### Bluesky Posting
 
-- Post the pick after the 5:30pm run (or after 11am if the best pick is an early game)
-- If pick changes between runs, post an update (keep the original, add context)
+- Post after the **final relevant run** — typically 7:30pm, but earlier if all remaining games are covered
+- Only post once per day — don't post intermediate picks that might change
+- Exception: if the best pick is an early game (1pm start), post at 11am since it locks before the 4pm run
+- If pick changes due to a later run, post an update (keep the original, add context)
 - Never delete posts without human approval
 
 ### Notifications
