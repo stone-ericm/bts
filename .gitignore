@@ -1,6 +1,7 @@
 data/raw/
 data/processed/
 data/models/
+data/picks/
 __pycache__/
 *.pyc
 .venv/
