@@ -132,6 +132,12 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
         if col in df.columns:
             lookups["batter"][col] = df.dropna(subset=[col]).groupby("batter_id")[col].last().to_dict()
 
+    # Catcher framing proxy
+    if "pitcher_catcher_framing" in df.columns:
+        lookups["pitcher_framing"] = df.dropna(subset=["pitcher_catcher_framing"]).groupby(
+            "pitcher_id"
+        )["pitcher_catcher_framing"].last().to_dict()
+
     # Pitcher Statcast features
     pitcher_statcast_cols = ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
                              "pitcher_avg_extension_30g", "pitcher_break_total_30g"]
@@ -416,6 +422,7 @@ def predict(
 
         row["pitcher_hr_30g"] = pitcher_hr
         row["pitcher_entropy_30g"] = pitcher_ent
+        row["pitcher_catcher_framing"] = lookups.get("pitcher_framing", {}).get(slot["pitcher_id"])
 
         # Pitcher Statcast features
         for col in ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",

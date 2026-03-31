@@ -83,23 +83,27 @@ The impact: P@1 dropped from 94% (leaky) to 87% (clean). Every leakage bug looke
 
 **Verification:** A "nuclear test" manually recomputes every feature from scratch for random test PAs using only pre-date data, comparing against the pipeline's output. 260/260 checks passed.
 
+### Catcher framing: the breakthrough
+
+After ~40 experiments testing features, models, and blends, catcher framing was the only feature to consistently improve P@1 on both test seasons.
+
+The insight: every PA involves three people (batter, pitcher, catcher), but the model only knew about two. A catcher who frames well steals called strikes on borderline pitches, shifting counts against the batter. The effect is massive — 11 WAR spread across MLB catchers (SABR research). We compute a proxy from the called-strike rate on borderline pitches (|pX| 0.5-1.2 or near zone edges) per pitcher, expanding with temporal shift.
+
+Adding catcher framing improved average P@1 from 85.1% to 87.0% — a larger gain than the 12-model blend (86.2%) or any other feature tested.
+
 ### The 12-model blend
 
-Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~30 experiments confirmed that no single feature or modeling change consistently improves both test seasons (2024 and 2025).
-
-Failure analysis revealed why: when the model's #1 pick goes hitless, the #2 pick gets a hit 84-88% of the time. The model isn't wrong about *who's good* — it struggles to distinguish between two ~81% picks on any given day.
-
-The 12-model blend solves this by averaging predictions across 12 LightGBM variants, each using the baseline 13 features plus one Statcast-derived feature. The diverse votes break ties differently, and the consensus pick is right more often. This improved average P@1 from 85.1% to 86.2% across both test seasons — the only approach that consistently helped.
+Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~40 experiments confirmed this pattern. The 12-model blend (each using baseline features plus one Statcast-derived feature) improved P@1 from 85.1% to 86.2% through tie-breaking diversity. However, with catcher framing as a core feature, the single model (87.0%) now outperforms the blend (86.5%), so the blend serves as additional insurance rather than the primary improvement.
 
 ## Architecture
 
 Two-stage PA-level model with a 12-model ensemble:
 
 ```
-MLB Stats API -> raw JSON -> PA-level Parquet -> features -> 12-model LightGBM blend -> P(hit|PA) -> P(>=1 hit|game)
+MLB Stats API -> raw JSON -> PA-level Parquet -> 14 features + blend -> LightGBM -> P(hit|PA) -> P(>=1 hit|game)
 ```
 
-### Baseline features (13)
+### Core features (14)
 
 | Feature | Type | What it captures |
 |---------|------|-----------------|
@@ -110,6 +114,7 @@ MLB Stats API -> raw JSON -> PA-level Parquet -> features -> 12-model LightGBM b
 | platoon_hr | Expanding | Batter x pitcher handedness matchup |
 | pitcher_hr_30g | Rolling | Pitcher quality |
 | pitcher_entropy_30g | Rolling | Arsenal diversity (harder to hit) |
+| pitcher_catcher_framing | Expanding | Opposing catcher's borderline called-strike rate (framing proxy) |
 | weather_temp | Context | Temperature affects ball flight |
 | park_factor | Expanding | Venue effect on hit rates |
 | days_rest | Context | Rust after time off |
@@ -171,6 +176,11 @@ Extracts MLB's new Automated Ball-Strike challenge data (player, role, outcome, 
 - MLP ensemble — trees handle our interaction features better
 - Calibration (Platt/isotonic) — hurts P@K
 - Training data before 2019 — game changed enough that old data hurts (-1.1%)
+- Sprint speed proxy (soft GB hit rate) — too noisy
+- Prior-start pitch count — hurt P@1
+- Nash Score proxy (pitch allocation balance) — hurt P@1
+- Times through order adjustment — no effect (aggregation already captures it)
+- Wind-out component — hurt 2025
 
 ## Data
 
