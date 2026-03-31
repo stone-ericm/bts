@@ -160,3 +160,138 @@ def post(date: str, batter: str, team: str, pitcher: str, pct: float,
         click.echo(f"Posted: {uri}")
     except RuntimeError as e:
         click.echo(f"Error: {e}", err=True)
+
+
+@cli.command()
+@click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
+@click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks output directory")
+@click.option("--dry-run", is_flag=True, help="Skip Bluesky posting")
+def run(date: str, data_dir: str, picks_dir: str, dry_run: bool):
+    """Run daily BTS automation: predict, save pick, optionally post.
+
+    Designed to run via cron at 11am, 4pm, and 7:30pm ET.
+    Each run picks the best available batter whose game hasn't started.
+    Posts to Bluesky when the game is within 3 hours or after 7pm ET.
+    """
+    import pandas as pd
+    from pathlib import Path
+    from datetime import datetime, timezone
+    from bts.model.predict import run_pipeline
+    from bts.picks import (
+        pick_from_row, save_pick, load_pick, load_streak,
+        get_game_statuses, DailyPick,
+    )
+    from bts.posting import format_post, post_to_bluesky, should_post_now
+
+    picks_path = Path(picks_dir)
+    DOUBLE_THRESHOLD = 0.65
+
+    # Step 1: Run prediction pipeline
+    click.echo(f"[{datetime.now(timezone.utc).strftime('%H:%M UTC')}] Running predictions for {date}...")
+    try:
+        predictions = run_pipeline(date, data_dir)
+    except RuntimeError as e:
+        click.echo(f"ERROR: {e}", err=True)
+        return
+    except Exception as e:
+        click.echo(f"ERROR: Pipeline failed — {e}", err=True)
+        return
+
+    if predictions.empty:
+        click.echo("No games found for this date.")
+        return
+
+    # Step 2: Load current state
+    current = load_pick(date, picks_path)
+    streak = load_streak(picks_path)
+
+    # Step 3: Filter to games not yet started
+    statuses = get_game_statuses(date)
+    not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")
+    available = predictions[not_started]
+
+    if available.empty:
+        if current:
+            click.echo(f"All games started. Pick locked: {current.pick.batter_name}")
+        else:
+            click.echo("All games started, no pick was made.")
+        return
+
+    # Step 4: Check if current pick is locked
+    if current and statuses.get(current.pick.game_pk) != "P":
+        click.echo(f"Pick locked: {current.pick.batter_name} (game started)")
+        return
+
+    # Step 5: Select best available
+    best_row = available.iloc[0]
+    new_pick = pick_from_row(best_row)
+
+    if current and current.pick.batter_id == new_pick.batter_id:
+        click.echo(f"Confirmed: {new_pick.batter_name} ({new_pick.p_game_hit:.1%})")
+    elif current:
+        click.echo(f"Upgraded: {current.pick.batter_name} -> {new_pick.batter_name} "
+                    f"({current.pick.p_game_hit:.1%} -> {new_pick.p_game_hit:.1%})")
+    else:
+        click.echo(f"Pick: {new_pick.batter_name} ({new_pick.p_game_hit:.1%}) "
+                    f"vs {new_pick.pitcher_name}")
+
+    # Step 6: Check for double-down
+    double_pick = None
+    valid = available[available["p_game_hit"].notna()]
+    if len(valid) >= 2:
+        second_row = valid.iloc[1]
+        p_both = best_row["p_game_hit"] * second_row["p_game_hit"]
+        if p_both >= DOUBLE_THRESHOLD:
+            double_pick = pick_from_row(second_row)
+            click.echo(f"  DOUBLE DOWN: + {double_pick.batter_name} "
+                        f"({double_pick.p_game_hit:.1%}), P(both): {p_both:.1%}")
+
+    # Step 7: Build runner-up info
+    runner_up = None
+    if len(valid) >= 2:
+        ru = valid.iloc[1]
+        runner_up = {"batter_name": ru["batter_name"], "p_game_hit": float(ru["p_game_hit"])}
+
+    # Step 8: Save pick
+    daily = DailyPick(
+        date=date,
+        run_time=datetime.now(timezone.utc).isoformat(),
+        pick=new_pick,
+        double_down=double_pick,
+        runner_up=runner_up,
+        streak=streak,
+        bluesky_posted=current.bluesky_posted if current else False,
+        bluesky_uri=current.bluesky_uri if current else None,
+    )
+    save_pick(daily, picks_path)
+    click.echo(f"  Saved to {picks_path / f'{date}.json'}")
+
+    # Step 9: Post to Bluesky if appropriate
+    if dry_run:
+        text = format_post(
+            new_pick.batter_name, new_pick.team, new_pick.pitcher_name,
+            new_pick.p_game_hit, streak,
+            double_pick.batter_name if double_pick else None,
+            double_pick.p_game_hit if double_pick else None,
+        )
+        click.echo(f"  Would post:\n{text}")
+        return
+
+    if should_post_now(new_pick.game_time, daily.bluesky_posted):
+        text = format_post(
+            new_pick.batter_name, new_pick.team, new_pick.pitcher_name,
+            new_pick.p_game_hit, streak,
+            double_pick.batter_name if double_pick else None,
+            double_pick.p_game_hit if double_pick else None,
+        )
+        try:
+            uri = post_to_bluesky(text)
+            daily.bluesky_posted = True
+            daily.bluesky_uri = uri
+            save_pick(daily, picks_path)
+            click.echo(f"  Posted to Bluesky: {uri}")
+        except Exception as e:
+            click.echo(f"  Bluesky post failed: {e}", err=True)
+    else:
+        click.echo("  Not posting yet (game not within 3h, not evening run)")
