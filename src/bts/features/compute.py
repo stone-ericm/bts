@@ -12,6 +12,7 @@ dates strictly before D. This is enforced by:
 import numpy as np
 import pandas as pd
 from collections import Counter
+from pathlib import Path
 
 # Optimal training window: 2019 onward. Adding 2017-2018 hurts P@1 by 1.1%
 # because the game changed enough that old training examples add noise.
@@ -279,38 +280,60 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         np.nan,
     )
 
-    # --- Catcher framing proxy (pitcher-level, expanding) ---
-    # Borderline pitch = near horizontal edge (|pX| 0.5-1.2) or near vertical edge
-    # of strike zone. Catcher framing skill shows as higher called-strike rate on these.
-    # We use pitcher_id as proxy for catcher (noisy but captures team-level effect).
-    def _borderline_csr(row):
-        calls = row.get("pitch_calls")
-        px = row.get("pitch_px")
-        pz = row.get("pitch_pz")
-        sz_top = row.get("sz_top")
-        sz_bottom = row.get("sz_bottom")
-        if not isinstance(calls, (list, np.ndarray)) or len(calls) == 0:
+    # --- Catcher framing (from Savant data, prior-season) ---
+    # Uses actual catcher_id from boxscore + Savant framing leaderboard (rv_tot).
+    # Prior-season data only (no leakage). Falls back to proxy if Savant data missing.
+    framing_path = Path(__file__).parent.parent.parent / "data" / "external" / "savant_catcher_framing.csv"
+    if framing_path.exists() and "fielding_catcher_id" in df.columns:
+        framing_data = pd.read_csv(framing_path)
+        # Build prior-season lookup: for season S, use season S-1 framing
+        framing_lookup = {}
+        for _, row in framing_data.iterrows():
+            framing_lookup[(int(row["id"]), int(row["season"]) + 1)] = row["rv_tot"]
+        # Normalize rv_tot per season to framing runs per 1000 pitches
+        pitches_lookup = {}
+        for _, row in framing_data.iterrows():
+            pitches_lookup[(int(row["id"]), int(row["season"]) + 1)] = row["pitches"]
+        def _get_framing(catcher_id, season):
+            rv = framing_lookup.get((catcher_id, season))
+            pitches = pitches_lookup.get((catcher_id, season))
+            if rv is not None and pitches is not None and pitches > 0:
+                return rv / pitches * 1000  # framing runs per 1000 pitches
             return np.nan
-        if px is None or pz is None:
-            return np.nan
-        borderline = 0
-        called_strikes = 0
-        for c, x, z in zip(calls, px, pz):
-            if x is None or z is None or sz_top is None or sz_bottom is None:
-                continue
-            if 0.5 < abs(x) < 1.2 or abs(z - sz_top) < 0.3 or abs(z - sz_bottom) < 0.3:
-                borderline += 1
-                if c == "C":
-                    called_strikes += 1
-        return called_strikes / borderline if borderline > 0 else np.nan
-
-    df["pa_borderline_csr"] = df.apply(_borderline_csr, axis=1)
-    date_framing = df.groupby(["pitcher_id", "date"])["pa_borderline_csr"].mean().reset_index()
-    date_framing.columns = ["pitcher_id", "date", "date_csr"]
-    date_framing = date_framing.sort_values(["pitcher_id", "date"])
-    date_framing["pitcher_catcher_framing"] = date_framing.groupby("pitcher_id")["date_csr"].transform(
-        lambda x: x.shift(1).expanding(min_periods=5).mean()
-    )
+        df["pitcher_catcher_framing"] = df.apply(
+            lambda r: _get_framing(r["fielding_catcher_id"], r["season"])
+            if pd.notna(r.get("fielding_catcher_id")) else np.nan,
+            axis=1,
+        )
+    else:
+        # Fallback: proxy from borderline called-strike rate per pitcher
+        def _borderline_csr(row):
+            calls = row.get("pitch_calls")
+            px = row.get("pitch_px")
+            pz = row.get("pitch_pz")
+            sz_top = row.get("sz_top")
+            sz_bottom = row.get("sz_bottom")
+            if not isinstance(calls, (list, np.ndarray)) or len(calls) == 0:
+                return np.nan
+            if px is None or pz is None:
+                return np.nan
+            borderline = 0
+            called_strikes = 0
+            for c, x, z in zip(calls, px, pz):
+                if x is None or z is None or sz_top is None or sz_bottom is None:
+                    continue
+                if 0.5 < abs(x) < 1.2 or abs(z - sz_top) < 0.3 or abs(z - sz_bottom) < 0.3:
+                    borderline += 1
+                    if c == "C":
+                        called_strikes += 1
+            return called_strikes / borderline if borderline > 0 else np.nan
+        df["pa_borderline_csr"] = df.apply(_borderline_csr, axis=1)
+        date_framing = df.groupby(["pitcher_id", "date"])["pa_borderline_csr"].mean().reset_index()
+        date_framing.columns = ["pitcher_id", "date", "date_csr"]
+        date_framing = date_framing.sort_values(["pitcher_id", "date"])
+        date_framing["pitcher_catcher_framing"] = date_framing.groupby("pitcher_id")["date_csr"].transform(
+            lambda x: x.shift(1).expanding(min_periods=5).mean()
+        )
 
     # --- Rest days ---
     rest_dates = df.groupby(["batter_id", "date"]).size().reset_index()[["batter_id", "date"]]
@@ -355,12 +378,13 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["batter_id", "date"], how="left",
     )
 
-    # Catcher framing (pitcher × date)
-    df = df.merge(
-        date_framing[["pitcher_id", "date", "pitcher_catcher_framing"]]
-        .drop_duplicates(subset=["pitcher_id", "date"]),
-        on=["pitcher_id", "date"], how="left",
-    )
+    # Catcher framing — merge only needed for proxy path (Savant path sets it directly)
+    if "pitcher_catcher_framing" not in df.columns:
+        df = df.merge(
+            date_framing[["pitcher_id", "date", "pitcher_catcher_framing"]]
+            .drop_duplicates(subset=["pitcher_id", "date"]),
+            on=["pitcher_id", "date"], how="left",
+        )
 
     # Platoon (batter × pitch_hand × date)
     df = df.merge(

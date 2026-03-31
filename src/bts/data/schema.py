@@ -47,6 +47,7 @@ PA_COLUMNS = [
     "pitch_extensions",
     "pitch_break_vertical",
     "pitch_break_horizontal",
+    "fielding_catcher_id",
     "challenge_player_id",
     "challenge_role",
     "challenge_overturned",

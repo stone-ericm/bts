@@ -36,6 +36,27 @@ def _get_lineup_positions(boxscore: dict) -> dict[int, int]:
     return positions
 
 
+def _get_starting_catchers(boxscore: dict) -> dict[str, int | None]:
+    """Get the starting catcher ID for each side (away/home)."""
+    catchers = {}
+    for side in ("away", "home"):
+        players = boxscore["teams"][side].get("players", {})
+        for key, player in players.items():
+            all_pos = player.get("allPositions", [])
+            if any(ap.get("code") == "2" for ap in all_pos):
+                catchers[side] = player["person"]["id"]
+                break
+        if side not in catchers:
+            # Fallback: check primary position
+            for key, player in players.items():
+                if player.get("position", {}).get("code") == "2":
+                    catchers[side] = player["person"]["id"]
+                    break
+        if side not in catchers:
+            catchers[side] = None
+    return catchers
+
+
 def _get_hp_umpire_id(boxscore: dict) -> int | None:
     """Extract home plate umpire ID from officials list."""
     for official in boxscore.get("officials", []):
@@ -67,6 +88,7 @@ def parse_game_feed(feed: dict) -> list[dict]:
 
     hp_umpire_id = _get_hp_umpire_id(boxscore)
     lineup_positions = _get_lineup_positions(boxscore)
+    catchers = _get_starting_catchers(boxscore)
     away_team_id = game_data.get("teams", {}).get("away", {}).get("id")
     home_team_id = game_data.get("teams", {}).get("home", {}).get("id")
 
@@ -81,6 +103,8 @@ def parse_game_feed(feed: dict) -> list[dict]:
         bat_side = play["matchup"].get("batSide", {}).get("code")
         pitch_hand = play["matchup"].get("pitchHand", {}).get("code")
         is_home = play["about"]["halfInning"] == "bottom"
+        # Fielding catcher: opposite side of the batter
+        fielding_catcher_id = catchers.get("away" if is_home else "home")
         count = play.get("count", {})
 
         pitch_types = []
@@ -186,6 +210,7 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "pitch_extensions": pitch_extensions,
             "pitch_break_vertical": pitch_break_vertical,
             "pitch_break_horizontal": pitch_break_horizontal,
+            "fielding_catcher_id": fielding_catcher_id,
             "challenge_player_id": challenge_player_id,
             "challenge_role": challenge_role,
             "challenge_overturned": challenge_overturned,

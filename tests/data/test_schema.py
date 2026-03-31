@@ -35,6 +35,7 @@ def test_pa_columns_has_statcast_fields():
         "pitch_speeds", "pitch_spin_rates", "pitch_extensions",
         "pitch_break_vertical", "pitch_break_horizontal",
         "pitch_end_speeds",
+        "fielding_catcher_id",
         "challenge_player_id", "challenge_role", "challenge_overturned", "challenge_team_batting",
     ]
     for field in statcast_fields:
