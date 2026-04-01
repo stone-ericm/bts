@@ -169,9 +169,10 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
             click.echo("All games started, no pick was made.")
         return
 
-    # Step 4: Check if current pick is locked (game already started)
-    if current and statuses.get(current.pick.game_pk) != "P":
-        click.echo(f"Pick locked: {current.pick.batter_name} (game started)")
+    # Step 4: Check if current pick is locked (game started OR already posted)
+    if current and (statuses.get(current.pick.game_pk) != "P" or current.bluesky_posted):
+        reason = "game started" if statuses.get(current.pick.game_pk) != "P" else "already posted"
+        click.echo(f"Pick locked: {current.pick.batter_name} ({reason})")
         # Still post if we haven't yet — don't lose the Bluesky post
         if not current.bluesky_posted and not dry_run:
             text = format_post(
