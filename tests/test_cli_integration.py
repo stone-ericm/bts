@@ -124,7 +124,7 @@ class TestBtsRun:
         ])
 
         assert result.exit_code == 0
-        assert "Would post" in result.output
+        assert "dry-run" in result.output
 
     @patch("bts.picks.get_game_statuses", return_value={778899: "P", 778900: "P"})
     @patch("bts.model.predict.run_pipeline")

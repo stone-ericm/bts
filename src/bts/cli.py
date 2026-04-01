@@ -68,98 +68,6 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
         click.echo(f"  {count} games enriched.")
 
 
-@cli.command()
-@click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
-@click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
-@click.option("--top", default=15, type=int, help="Number of picks to show")
-@click.option("--no-opener-check", is_flag=True, help="Skip opener detection (faster)")
-def predict(date: str, data_dir: str, top: int, no_opener_check: bool):
-    """Generate ranked BTS picks for a date."""
-    import pandas as pd
-    from bts.model.predict import run_pipeline
-
-    click.echo(f"Running prediction pipeline for {date}...")
-    try:
-        picks = run_pipeline(date, data_dir, check_openers=not no_opener_check)
-    except RuntimeError as e:
-        click.echo(str(e))
-        return
-
-    if picks.empty:
-        click.echo("No games found for this date.")
-        return
-
-    click.echo(f"\n{'='*80}")
-    click.echo(f"BTS PICKS — {date}")
-    click.echo(f"{'='*80}")
-    click.echo(f"{'#':<4} {'Batter':<22} {'Team':<5} {'Pos':>3} {'vs Pitcher':<22} {'P(PA)':>6} {'P(Game)':>7}  {'Flags'}")
-    click.echo(f"{'-'*80}")
-
-    shown = 0
-    for _, row in picks.iterrows():
-        if shown >= top:
-            break
-        if pd.isna(row.get("p_game_hit")):
-            continue
-        flags = row.get("flags", "")
-        click.echo(
-            f"{shown+1:<4} {row['batter_name']:<22} {row['team']:<5} "
-            f"{int(row['lineup']):>3} {row['pitcher_name']:<22} "
-            f"{row['p_hit_pa']:>5.1%} {row['p_game_hit']:>6.1%}  {flags}"
-        )
-        shown += 1
-
-    # Recommendation: 1 or 2 picks based on P(both hit)
-    DOUBLE_THRESHOLD = 0.65
-    best = picks.iloc[0]
-    valid_picks = picks[picks["p_game_hit"].notna()]
-
-    if len(valid_picks) >= 2:
-        second = valid_picks.iloc[1]
-        p_both = best["p_game_hit"] * second["p_game_hit"]
-
-        if p_both >= DOUBLE_THRESHOLD:
-            click.echo(f"\nDOUBLE DOWN: {best['batter_name']} ({best['p_game_hit']:.1%}) "
-                        f"+ {second['batter_name']} ({second['p_game_hit']:.1%})")
-            click.echo(f"  P(both hit): {p_both:.1%}")
-        else:
-            click.echo(f"\nSingle pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
-            click.echo(f"  P(both hit) with #{second['batter_name']}: {p_both:.1%} (below {DOUBLE_THRESHOLD:.0%} threshold)")
-    else:
-        click.echo(f"\nSingle pick: {best['batter_name']} ({best['p_game_hit']:.1%})")
-
-    if best.get("flags"):
-        click.echo(f"  WARNING: {best['flags']}")
-
-
-@cli.command()
-@click.option("--date", required=True, help="Date of the pick (YYYY-MM-DD)")
-@click.option("--batter", required=True, help="Batter name")
-@click.option("--team", required=True, help="Team abbreviation")
-@click.option("--pitcher", required=True, help="Opposing pitcher name")
-@click.option("--pct", required=True, type=float, help="P(game hit) percentage")
-@click.option("--streak", required=True, type=int, help="Current streak count")
-@click.option("--double", default=None, help="Second pick name for double down (optional)")
-@click.option("--double-pct", default=None, type=float, help="Second pick P(game hit)")
-@click.option("--dry-run", is_flag=True, help="Print post text without posting")
-def post(date: str, batter: str, team: str, pitcher: str, pct: float,
-         streak: int, double: str, double_pct: float, dry_run: bool):
-    """Post today's pick to Bluesky."""
-    from bts.posting import format_post, post_to_bluesky
-
-    p_game = pct / 100
-    double_p = double_pct / 100 if double_pct else None
-    text = format_post(batter, team, pitcher, p_game, streak, double, double_p)
-
-    if dry_run:
-        click.echo(f"Would post:\n{text}")
-        return
-
-    try:
-        uri = post_to_bluesky(text)
-        click.echo(f"Posted: {uri}")
-    except RuntimeError as e:
-        click.echo(f"Error: {e}", err=True)
 
 
 @cli.command()
@@ -167,13 +75,14 @@ def post(date: str, batter: str, team: str, pitcher: str, pct: float,
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks output directory")
 @click.option("--models-dir", default="data/models", type=click.Path(), help="Cached models directory")
-@click.option("--dry-run", is_flag=True, help="Skip Bluesky posting")
-def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool):
-    """Run daily BTS automation: predict, save pick, optionally post.
+@click.option("--top", default=10, type=int, help="Number of ranked picks to show")
+@click.option("--dry-run", is_flag=True, help="Print rankings only — don't save pick or post to Bluesky")
+def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry_run: bool):
+    """Run daily BTS automation: predict, save pick, post to Bluesky.
 
     Designed to run via cron at 11am, 4pm, and 7:30pm ET.
-    Each run picks the best available batter whose game hasn't started.
-    Posts to Bluesky when the game is within 3 hours or after 7pm ET.
+    Uses densest-bucket strategy with 78% override threshold.
+    Use --dry-run to preview rankings without saving or posting.
     """
     import pandas as pd
     from pathlib import Path
@@ -214,7 +123,33 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
         click.echo("No games found for this date.")
         return
 
+    # Print ranked picks
+    import pandas as pd
+    click.echo(f"\n{'='*80}")
+    click.echo(f"BTS PICKS — {date}")
+    click.echo(f"{'='*80}")
+    click.echo(f"{'#':<4} {'Batter':<22} {'Team':<5} {'Pos':>3} {'vs Pitcher':<22} {'P(PA)':>6} {'P(Game)':>7}  {'Flags'}")
+    click.echo(f"{'-'*80}")
+    shown = 0
+    for _, row in predictions.iterrows():
+        if shown >= top:
+            break
+        if pd.isna(row.get("p_game_hit")):
+            continue
+        flags = row.get("flags", "")
+        p_pa = row.get("p_hit_pa", row.get("p_game_hit", 0))
+        click.echo(
+            f"{shown+1:<4} {row['batter_name']:<22} {row['team']:<5} "
+            f"{int(row.get('lineup', 0)):>3} {row['pitcher_name']:<22} "
+            f"{p_pa:>5.1%} {row['p_game_hit']:>6.1%}  {flags}"
+        )
+        shown += 1
+
     # Step 2: Load current state
+    if dry_run:
+        click.echo("\n  (--dry-run: not saving or posting)")
+        return
+
     current = load_pick(date, picks_path)
     streak = load_streak(picks_path)
 
@@ -354,17 +289,6 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
     click.echo(f"  Saved to {picks_path / f'{date}.json'}")
 
     # Step 9: Post to Bluesky if appropriate (read streak fresh from streak.json)
-    if dry_run:
-        text = format_post(
-            new_pick.batter_name, new_pick.team, new_pick.pitcher_name,
-            new_pick.p_game_hit, streak,
-            double_pick.batter_name if double_pick else None,
-            double_pick.p_game_hit if double_pick else None,
-        )
-        would_post = should_post_now(new_pick.game_time, daily.bluesky_posted)
-        click.echo(f"  Would post ({would_post}):\n{text}")
-        return
-
     if should_post_now(new_pick.game_time, daily.bluesky_posted):
         text = format_post(
             new_pick.batter_name, new_pick.team, new_pick.pitcher_name,
