@@ -4,6 +4,12 @@ import numpy as np
 import pytest
 from bts.simulate.strategies import Strategy, ALL_STRATEGIES
 from bts.simulate.monte_carlo import DailyProfile, simulate_season, SeasonResult
+from bts.simulate.monte_carlo import (
+    load_profiles, run_monte_carlo, MonteCarloResult,
+    load_all_profiles, load_season_profiles, run_replay,
+)
+
+import pandas as pd
 
 
 def _profile(top1_p: float, top1_hit: int, top2_p: float = 0.70, top2_hit: int = 1) -> DailyProfile:
@@ -104,3 +110,72 @@ class TestSimulateSeason:
         result = simulate_season([], ALL_STRATEGIES["baseline"])
         assert result.max_streak == 0
         assert result.play_days == 0
+
+
+def _make_profile_df(n_days: int = 30, hit_rate: float = 0.85) -> pd.DataFrame:
+    """Create a synthetic backtest profile DataFrame."""
+    rng = np.random.default_rng(42)
+    rows = []
+    for i in range(n_days):
+        date = f"2024-{(i // 28) + 4:02d}-{(i % 28) + 1:02d}"
+        for rank in range(1, 11):
+            p = max(0.5, 0.90 - rank * 0.02 + rng.normal(0, 0.02))
+            hit = 1 if rng.random() < hit_rate else 0
+            rows.append({"date": date, "rank": rank, "batter_id": rank * 1000,
+                          "p_game_hit": p, "actual_hit": hit, "n_pas": 4})
+    return pd.DataFrame(rows)
+
+
+class TestLoadProfiles:
+    def test_extracts_top2_per_day(self):
+        df = _make_profile_df(n_days=5)
+        profiles = load_profiles(df)
+        assert len(profiles) == 5
+        assert all(isinstance(p, DailyProfile) for p in profiles)
+
+    def test_profiles_use_rank_1_and_2(self):
+        df = _make_profile_df(n_days=1)
+        profiles = load_profiles(df)
+        r1 = df[df["rank"] == 1].iloc[0]
+        r2 = df[df["rank"] == 2].iloc[0]
+        assert profiles[0].top1_p == r1["p_game_hit"]
+        assert profiles[0].top1_hit == r1["actual_hit"]
+        assert profiles[0].top2_p == r2["p_game_hit"]
+        assert profiles[0].top2_hit == r2["actual_hit"]
+
+
+class TestRunMonteCarlo:
+    def test_returns_correct_shape(self):
+        df = _make_profile_df(n_days=60)
+        profiles = load_profiles(df)
+        result = run_monte_carlo(profiles, ALL_STRATEGIES["baseline"], n_trials=100, season_length=30)
+        assert isinstance(result, MonteCarloResult)
+        assert result.n_trials == 100
+        assert len(result.max_streaks) == 100
+        assert 0 <= result.p_57 <= 1
+        assert result.median_streak >= 0
+        assert result.p95_streak >= result.median_streak
+
+    def test_perfect_hit_rate_reaches_57(self):
+        """If every profile is a hit, P(57) should be 1.0 with enough days."""
+        profiles = [_profile(0.90, 1)] * 60
+        result = run_monte_carlo(profiles, ALL_STRATEGIES["baseline"], n_trials=50, season_length=60)
+        assert result.p_57 == 1.0
+
+    def test_zero_hit_rate_never_reaches_57(self):
+        profiles = [_profile(0.50, 0)] * 60
+        result = run_monte_carlo(profiles, ALL_STRATEGIES["baseline"], n_trials=50, season_length=60)
+        assert result.p_57 == 0.0
+
+
+class TestRunReplay:
+    def test_replays_each_season(self):
+        season_profiles = {
+            2024: [_profile(0.85, 1)] * 10 + [_profile(0.85, 0)] + [_profile(0.85, 1)] * 5,
+            2025: [_profile(0.85, 1)] * 20,
+        }
+        results = run_replay(season_profiles, ALL_STRATEGIES["baseline"])
+        assert len(results) == 2
+        assert 2024 in results
+        assert 2025 in results
+        assert results[2025].max_streak == 20
