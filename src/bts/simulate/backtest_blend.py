@@ -8,23 +8,15 @@ per day to parquet for strategy simulation.
 import sys
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-import lightgbm as lgb
-
-from bts.features.compute import compute_all_features, FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
-from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
-from bts.simulate.monte_carlo import DailyProfile, load_profiles
-
 PROFILE_COLUMNS = ["date", "rank", "batter_id", "p_game_hit", "actual_hit", "n_pas"]
 
 
 def blend_walk_forward(
-    df: pd.DataFrame,
+    df: "pd.DataFrame",
     test_season: int,
     retrain_every: int = 7,
     top_n: int = 10,
-) -> pd.DataFrame:
+) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
     For each game day in the test season:
@@ -35,6 +27,12 @@ def blend_walk_forward(
 
     Returns DataFrame with PROFILE_COLUMNS.
     """
+    import numpy as np
+    import pandas as pd
+    import lightgbm as lgb
+    from bts.features.compute import FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
+    from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
+
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
 
@@ -103,7 +101,7 @@ def blend_walk_forward(
     return result
 
 
-def save_profiles(df: pd.DataFrame, season: int, output_dir: Path) -> Path:
+def save_profiles(df: "pd.DataFrame", season: int, output_dir: "Path") -> "Path":
     """Save daily profiles to parquet."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -124,6 +122,9 @@ def run_backtest(
     Loads all PA parquets, computes features once, then runs blend
     walk-forward for each test season.
     """
+    import pandas as pd
+    from bts.features.compute import compute_all_features
+
     if seasons is None:
         seasons = [2021, 2022, 2023, 2024, 2025]
 
