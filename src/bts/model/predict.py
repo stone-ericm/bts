@@ -553,12 +553,43 @@ def predict(
     return pred_df.sort_values("p_game_hit", ascending=False).reset_index(drop=True)
 
 
+def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: str = "data/processed"):
+    """Pull recent game feeds and rebuild current season parquet.
+
+    Downloads any new Final games from season start through yesterday,
+    then rebuilds the season's parquet. Skips already-downloaded games.
+    """
+    from bts.data.pull import pull_feeds
+    from bts.data.build import build_season
+    from datetime import datetime, timedelta
+
+    pred_date = datetime.strptime(date, "%Y-%m-%d")
+    season = pred_date.year
+    yesterday = (pred_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    season_start = f"{season}-03-20"
+
+    if yesterday < season_start:
+        return  # Too early in the year
+
+    raw = Path(raw_dir)
+    proc = Path(processed_dir)
+
+    print(f"  Refreshing {season} data through {yesterday}...", file=__import__('sys').stderr)
+    paths = pull_feeds(season_start, yesterday, raw, delay=0.3)
+    print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=__import__('sys').stderr)
+
+    output_path = proc / f"pa_{season}.parquet"
+    df = build_season(raw, output_path, season)
+    print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=__import__('sys').stderr)
+
+
 def run_pipeline(
     date: str,
     data_dir: str = "data/processed",
     check_openers: bool = True,
     cached_blend: dict | None = None,
     save_blend_path=None,
+    refresh_data: bool = True,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
@@ -570,7 +601,12 @@ def run_pipeline(
             a "_model" key with the single model.
         save_blend_path: If provided and no cached_blend, save the trained
             blend (including single model) to this path.
+        refresh_data: Pull latest game feeds and rebuild current season
+            parquet before running. Set False for backtesting.
     """
+    if refresh_data:
+        _refresh_season_data(date, processed_dir=data_dir)
+
     proc = Path(data_dir)
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
