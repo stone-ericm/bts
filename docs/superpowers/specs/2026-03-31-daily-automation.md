@@ -13,9 +13,9 @@ Automate the daily BTS workflow: run the model twice daily, post picks to Bluesk
 
 ## What Needs Automating
 
-### Densest Bucket Strategy
+### Densest Bucket + Override Strategy
 
-Pick from whichever time window has the most games that day. More games = more options = better top pick. Validated at 85.1% avg P@1 across 2024-2025, statistically equivalent to "always prime" (85.4%) but handles edge cases (no-prime days) without special logic.
+Pick from whichever time window has the most games that day, UNLESS a pick from any window exceeds 78% P(game hit) — in which case, take it regardless of window. Validated at 86.9% avg P@1 across 6 seasons (2020-2025), +1.6% over pure densest bucket.
 
 Three time windows:
 - **Early**: before 4pm ET (day games, getaway days)
