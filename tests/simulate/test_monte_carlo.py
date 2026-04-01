@@ -10,6 +10,8 @@ from bts.simulate.monte_carlo import (
 )
 
 import pandas as pd
+from click.testing import CliRunner
+from bts.simulate.cli import simulate
 
 
 def _profile(top1_p: float, top1_hit: int, top2_p: float = 0.70, top2_hit: int = 1) -> DailyProfile:
@@ -179,3 +181,43 @@ class TestRunReplay:
         assert 2024 in results
         assert 2025 in results
         assert results[2025].max_streak == 20
+
+
+class TestCLI:
+    def test_simulate_run_with_synthetic_profiles(self, tmp_path):
+        """CLI runs Monte Carlo on saved profile parquets."""
+        df = _make_profile_df(n_days=30, hit_rate=0.85)
+        df.to_parquet(tmp_path / "backtest_2024.parquet", index=False)
+
+        runner = CliRunner()
+        result = runner.invoke(simulate, [
+            "run", "--profiles-dir", str(tmp_path), "--trials", "100",
+        ])
+        assert result.exit_code == 0
+        assert "baseline" in result.output
+        assert "P(57)" in result.output
+
+    def test_simulate_run_replay_only(self, tmp_path):
+        """CLI replay mode."""
+        df = _make_profile_df(n_days=30, hit_rate=0.85)
+        df.to_parquet(tmp_path / "backtest_2024.parquet", index=False)
+
+        runner = CliRunner()
+        result = runner.invoke(simulate, [
+            "run", "--profiles-dir", str(tmp_path), "--replay-only",
+        ])
+        assert result.exit_code == 0
+        assert "Replay" in result.output
+
+    def test_simulate_run_single_strategy(self, tmp_path):
+        """CLI with --strategy flag runs only that strategy."""
+        df = _make_profile_df(n_days=30, hit_rate=0.85)
+        df.to_parquet(tmp_path / "backtest_2024.parquet", index=False)
+
+        runner = CliRunner()
+        result = runner.invoke(simulate, [
+            "run", "--profiles-dir", str(tmp_path),
+            "--strategy", "sprint", "--trials", "50",
+        ])
+        assert result.exit_code == 0
+        assert "sprint" in result.output

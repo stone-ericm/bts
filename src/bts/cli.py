@@ -8,6 +8,10 @@ def cli():
     pass
 
 
+from bts.simulate.cli import simulate
+cli.add_command(simulate)
+
+
 @cli.group()
 def data():
     """Data pipeline commands."""
