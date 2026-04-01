@@ -158,8 +158,8 @@ def render_page():
         <div class="hero">
             <div class="hero-right">
                 <div class="hero-label">TODAY'S PICK</div>
-                <div class="hero-name">Pending...</div>
-                <div class="hero-detail">Next run will generate today's pick</div>
+                <div class="hero-name">Coming at 11 AM</div>
+                <div class="hero-detail">Pi5 orchestrator runs at 11am, 4pm, and 7:30pm ET</div>
             </div>
         </div>"""
 
@@ -232,9 +232,18 @@ def render_page():
         tr.today {{ background: #e8f5e9; }}
         tr.today:hover {{ background: #dcedc8; }}
 
+        table {{ table-layout: fixed; }}
+        col.col-date {{ width: 100px; }}
+        col.col-batter {{ width: 28%; }}
+        col.col-matchup {{ width: 22%; }}
+        col.col-pct {{ width: 70px; }}
+        col.col-double {{ width: 22%; }}
+        col.col-flags {{ width: 80px; }}
+
         .team-logo {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }}
         .team-logo-sm {{ width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }}
         .batter-cell strong {{ color: #041E42; }}
+        .batter-cell, .matchup-cell, .double-cell {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
         .matchup-cell {{ color: #666; }}
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
         .double {{ color: #D50032; font-weight: 600; }}
@@ -285,6 +294,10 @@ def render_page():
 
         <div class="section-header">Pick History</div>
         <table>
+            <colgroup>
+                <col class="col-date"><col class="col-batter"><col class="col-matchup">
+                <col class="col-pct"><col class="col-double"><col class="col-flags">
+            </colgroup>
             <tr><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Double</th><th>Flags</th></tr>
             {pick_rows}
         </table>
