@@ -60,7 +60,7 @@ def blend_walk_forward(
             for name, cols in BLEND_CONFIGS:
                 train_X = available[cols]
                 mask = train_X.notna().any(axis=1)
-                model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42, verbose=-1)
+                model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
                 model.fit(train_X[mask], train_y[mask])
                 blend[name] = (model, cols)
 
