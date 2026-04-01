@@ -57,6 +57,15 @@ def load_streak():
     return 0
 
 
+def _at_uri_to_web_url(at_uri, handle="beatthestreakbot.bsky.social"):
+    """Convert at://did:plc:xxx/app.bsky.feed.post/rkey to bsky.app URL."""
+    parts = at_uri.split("/")
+    if len(parts) >= 5:
+        rkey = parts[-1]
+        return f"https://bsky.app/profile/{handle}/post/{rkey}"
+    return ""
+
+
 def fetch_bluesky_posts(limit=5):
     """Fetch recent posts from @beatthestreakbot.bsky.social."""
     try:
@@ -68,10 +77,12 @@ def fetch_bluesky_posts(limit=5):
         for item in data.get("feed", []):
             post = item.get("post", {})
             record = post.get("record", {})
+            at_uri = post.get("uri", "")
             posts.append({
                 "text": record.get("text", ""),
                 "created_at": record.get("createdAt", ""),
-                "uri": post.get("uri", ""),
+                "uri": at_uri,
+                "web_url": _at_uri_to_web_url(at_uri),
             })
         return posts
     except:
@@ -124,12 +135,24 @@ def render_page():
             <td class="flags-cell">{flags_str}</td>
         </tr>"""
 
-    # Build Bluesky posts
+    # Build Bluesky posts as official embeds
     posts_html = ""
     for post in posts:
-        created = post["created_at"][:10] if post["created_at"] else ""
-        text = post["text"].replace("\n", "<br>")
-        posts_html += f"""
+        web_url = post.get("web_url", "")
+        if web_url:
+            posts_html += f"""
+        <div class="post-embed">
+            <blockquote class="bluesky-embed" data-bluesky-uri="{post['uri']}"
+                data-bluesky-cid="">
+                <p>{post['text']}</p>
+                &mdash; Beat the Streak Bot
+                (<a href="{web_url}">link</a>)
+            </blockquote>
+        </div>"""
+        else:
+            created = post["created_at"][:10] if post["created_at"] else ""
+            text = post["text"].replace("\n", "<br>")
+            posts_html += f"""
         <div class="post">
             <div class="post-date">{created}</div>
             <div class="post-text">{text}</div>
@@ -251,6 +274,8 @@ def render_page():
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
 
         .posts {{ margin-top: 8px; }}
+        .post-embed {{ margin: 12px 0; }}
+        .post-embed blockquote {{ max-width: 600px; }}
         .post {{ background: #fff; border-radius: 10px; padding: 16px; margin: 8px 0;
                  border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
         .post-date {{ color: #888; font-size: 0.75em; font-weight: 600; }}
@@ -311,6 +336,7 @@ def render_page():
             Updated {datetime.now().strftime('%Y-%m-%d %H:%M ET')} · LAN only · Not affiliated with MLB
         </div>
     </div>
+    <script src="https://embed.bsky.app/static/embed.js" async charset="utf-8"></script>
 </body>
 </html>"""
 
