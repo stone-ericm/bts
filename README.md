@@ -12,31 +12,31 @@ This project investigates whether it's possible to build a model that makes this
 
 Walk-forward backtested, provably leak-free, validated across 6 MLB seasons:
 
-| Metric | BTS v2 (single) | BTS v2 (blend) | SOTA (Garnett 2026) |
-|--------|-----------------|----------------|---------------------|
-| P@1 (daily best pick) | 87.0% | 86.2% avg | ~85% |
-| P@100 (top 100 picks) | 91.0% | — | 85% |
-| P@500 (depth of signal) | 87.2% | — | 77% |
+| Metric | BTS v2 | SOTA (Garnett 2026) |
+|--------|--------|---------------------|
+| P@1 (daily best pick) | **86.9% avg** (6 seasons) | ~85% |
+| P@100 (top 100 picks) | 91.0% | 85% |
+| P@500 (depth of signal) | 87.2% | 77% |
 
-The single model achieves 87% P@1 on 2025. The 12-model blend improves **average P@1 across seasons** from 85.1% to 86.2% by better tie-breaking between near-equivalent top picks.
+The 86.9% P@1 uses a densest-bucket timing strategy with 78% override threshold, 14-feature model with catcher framing, and 12-model blend — validated across all 6 test seasons (2020-2025).
 
-### Multi-season validation (single model, 13 baseline features)
+### Multi-season validation
 
 ```
-Season  Training data    P@1     P@100   P@500
-2020    2019             89.6%   83.0%   83.0%
-2021    2019-20          89.0%   87.0%   86.4%
-2022    2019-21          90.5%   92.0%   89.0%
-2023    2019-22          87.9%   95.0%   88.4%
-2024    2019-23          81.6%   87.0%   85.8%
-2025    2019-24          87.0%   91.0%   87.2%
+Season  Training data    P@1 (model)   P@1 (with strategy)
+2020    2019             89.6%         88.1%
+2021    2019-20          89.0%         88.5%
+2022    2019-21          90.5%         88.3%
+2023    2019-22          87.9%         87.4%
+2024    2019-23          81.6%         86.5%
+2025    2019-24          87.0%         86.4%
 ```
+
+"With strategy" includes the densest-bucket timing + 78% override, which lifts the weaker seasons (2024: 81.6% → 86.5%) at the cost of slightly moderating the strongest ones.
 
 ### What this means for BTS
 
-At 87% P@1, streak simulation over 50,000 seasons gives a median longest streak of 25 games and a 57+ game streak in ~0.6% of seasons. Still very unlikely, but meaningfully better than the mathematical baseline.
-
-Longest streak in backtesting: **47 games** (2022 season).
+At ~87% P@1, streak simulation gives a median longest streak of 25 games and a 57+ game streak in ~0.6% of seasons. Longest streak in backtesting: **49 days** (2025, with selective doubling at 67% threshold).
 
 ## The Story
 
@@ -93,14 +93,22 @@ Adding catcher framing improved average P@1 from 85.1% to 87.0% — a larger gai
 
 ### The 12-model blend
 
-Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~40 experiments confirmed this pattern. The 12-model blend (each using baseline features plus one Statcast-derived feature) improved P@1 from 85.1% to 86.2% through tie-breaking diversity. However, with catcher framing as a core feature, the single model (87.0%) now outperforms the blend (86.5%), so the blend serves as additional insurance rather than the primary improvement.
+Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~40 experiments confirmed this pattern. The 12-model blend (each using baseline features plus one Statcast-derived feature) improves P@1 through tie-breaking diversity. When the model's #1 pick goes hitless, the #2 pick gets a hit 84-88% of the time — the blend's diverse votes break these ties better than any single model.
+
+### Densest bucket + override timing strategy
+
+Not all game times are equal. Backtesting across 6 seasons showed that picking from the **densest time window** (the one with the most games) produces the best results. More games = more options = higher expected best pick.
+
+The override: if any pick from any window exceeds **78% P(game hit)**, take it regardless of which window is densest. These high-confidence picks hit 87%+ of the time and shouldn't be missed just because they're in a smaller window.
+
+This strategy runs via a **two-run daily schedule** (11am + 4pm ET), with the 4pm run as the primary pick. It improved average P@1 from 85.3% (pure densest) to 86.9%.
 
 ## Architecture
 
-Two-stage PA-level model with a 12-model ensemble:
+Two-stage PA-level model with daily automation:
 
 ```
-MLB Stats API -> raw JSON -> PA-level Parquet -> 14 features + blend -> LightGBM -> P(hit|PA) -> P(>=1 hit|game)
+MLB Stats API -> raw JSON -> PA-level Parquet -> 14 features + blend -> LightGBM -> P(hit|PA) -> P(>=1 hit|game) -> densest bucket + override -> pick
 ```
 
 ### Core features (14)
@@ -181,6 +189,10 @@ Extracts MLB's new Automated Ball-Strike challenge data (player, role, outcome, 
 - Nash Score proxy (pitch allocation balance) — hurt P@1
 - Times through order adjustment — no effect (aggregation already captures it)
 - Wind-out component — hurt 2025
+- Vegas player props (market implied P(hit)) — doesn't pass both-seasons test
+- Savant catcher framing (static prior-season) — expanding proxy beats the "real" data
+- Eastward travel flag — helped individually but hurt in combination
+- 25-PA hot hand rolling — mixed (helped 2024, flat 2025)
 
 ## Data
 
@@ -203,21 +215,17 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts data pull --start 2019-03-20 --end 2025-10
 # Build PA Parquet (with Statcast fields)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
 
-# Daily prediction (12-model blend, auto double-down recommendation)
+# Daily prediction (12-model blend, densest bucket + override, auto double-down)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts predict --date 2026-03-31
 
-# Post pick to Bluesky
-UV_CACHE_DIR=/tmp/uv-cache uv run bts post --date 2026-03-31 --batter "Name" --team TEA --pitcher "Name" --pct 70.6 --streak 2
+# Daily automation (predict, save pick, post to Bluesky)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-03-31
 
-# Evaluate (Python)
-from bts.features.compute import compute_all_features
-from bts.evaluate.backtest import walk_forward_evaluate
+# Check yesterday's results and update streak
+UV_CACHE_DIR=/tmp/uv-cache uv run bts check-results --date 2026-03-30
 
-df = compute_all_features(pd.concat([
-    pd.read_parquet(f"data/processed/pa_{y}.parquet")
-    for y in range(2019, 2026)
-]))
-metrics, preds = walk_forward_evaluate(df, test_season=2025)
+# Install cron jobs (11am + 4pm ET predictions, 1am results check)
+bash scripts/cron-setup.sh install
 ```
 
 ## Key Learnings
@@ -229,7 +237,10 @@ metrics, preds = walk_forward_evaluate(df, test_season=2025)
 5. **Blend diversity > model complexity.** 12 LightGBM variants with different feature subsets beat any single model, hyperparameter tuning, different architectures, or adaptive selection. The power is in tie-breaking via diverse votes.
 6. **The model's problem is ranking, not prediction.** When the top pick misses, #2 gets a hit 84-88% of the time. The model knows who's good — it struggles with who's best *today*.
 7. **Simpler models with clean features beat complex models with noisy ones.** 13 features > 18. Default hyperparameters are robust to tuning.
-8. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation is essential.
+8. **Timing strategy matters as much as the model.** Picking from the densest time window with a high-confidence override added +1.6% P@1 — more than most feature experiments.
+9. **Real data isn't always better than a proxy.** Savant's calibrated catcher framing (static, prior-season) lost to our expanding proxy that updates every game. Adaptive beats precise-but-stale.
+10. **The market doesn't know more than the model.** Vegas player prop odds didn't improve P@1 — the market and our model look at the same fundamentals.
+11. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation (6 seasons) is essential — 2-season results are unreliable.
 
 ## References
 
