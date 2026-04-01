@@ -380,7 +380,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                     slots.append(slot)
 
     if projected_count > 0:
-        print(f"  NOTE: {projected_count} teams using projected lineups (prior game)")
+        print(f"  NOTE: {projected_count} teams using projected lineups (prior game)", file=sys.stderr)
 
     return slots
 
