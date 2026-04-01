@@ -221,3 +221,31 @@ class TestCLI:
         ])
         assert result.exit_code == 0
         assert "sprint" in result.output
+
+
+class TestSolveCLI:
+    def test_simulate_solve(self, tmp_path):
+        """CLI runs MDP solver on saved profiles."""
+        df = _make_profile_df(n_days=30, hit_rate=0.85)
+        df.to_parquet(tmp_path / "backtest_2024.parquet", index=False)
+
+        runner = CliRunner()
+        result = runner.invoke(simulate, [
+            "solve", "--profiles-dir", str(tmp_path), "--season-length", "50",
+        ])
+        assert result.exit_code == 0
+        assert "Optimal P(57)" in result.output
+        assert "Heuristic P(57)" in result.output
+
+    def test_simulate_exact(self, tmp_path):
+        """CLI computes exact P(57) for a named strategy."""
+        df = _make_profile_df(n_days=30, hit_rate=0.85)
+        df.to_parquet(tmp_path / "backtest_2024.parquet", index=False)
+
+        runner = CliRunner()
+        result = runner.invoke(simulate, [
+            "exact", "--profiles-dir", str(tmp_path),
+            "--strategy", "baseline", "--season-length", "50",
+        ])
+        assert result.exit_code == 0
+        assert "baseline" in result.output
