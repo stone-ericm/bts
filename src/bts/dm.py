@@ -9,7 +9,7 @@ from urllib.request import Request
 from bts.util import retry_urlopen
 
 BSKY_HOST = "https://bsky.social/xrpc"
-CHAT_PROXY = "did:web:api.bsky.chat#bsky_chat"
+CHAT_HOST = "https://api.bsky.chat/xrpc"
 BOT_HANDLE = "beatthestreakbot.bsky.social"
 
 
@@ -74,13 +74,10 @@ def send_dm(recipient_handle: str, text: str) -> str:
     )
     target_did = json.loads(retry_urlopen(req, timeout=15).read())["did"]
 
-    # Step 3: Get or create conversation
+    # Step 3: Get or create conversation (via chat service directly)
     req = Request(
-        f"{BSKY_HOST}/chat.bsky.convo.getConvoForMembers?members={target_did}",
-        headers={
-            "Authorization": f"Bearer {jwt}",
-            "atproto-proxy": CHAT_PROXY,
-        },
+        f"{CHAT_HOST}/chat.bsky.convo.getConvoForMembers?members={target_did}",
+        headers={"Authorization": f"Bearer {jwt}"},
     )
     convo_id = json.loads(retry_urlopen(req, timeout=15).read())["convo"]["id"]
 
@@ -90,12 +87,11 @@ def send_dm(recipient_handle: str, text: str) -> str:
         "message": {"text": text},
     }).encode()
     req = Request(
-        f"{BSKY_HOST}/chat.bsky.convo.sendMessage",
+        f"{CHAT_HOST}/chat.bsky.convo.sendMessage",
         data=msg_data,
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {jwt}",
-            "atproto-proxy": CHAT_PROXY,
         },
     )
     result = json.loads(retry_urlopen(req, timeout=15).read())
