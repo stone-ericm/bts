@@ -329,6 +329,7 @@ def render_page():
                 <h1>Beat the <span>Streak</span> Bot</h1>
                 <div class="subtitle">
                     14 features · 12-model blend · 86.9% P@1 ·
+                    <a href="https://www.mlb.com/apps/beat-the-streak/game">Play BTS</a> ·
                     <a href="https://bsky.app/profile/beatthestreakbot.bsky.social">@beatthestreakbot</a> ·
                     <a href="https://github.com/stone-ericm/bts">GitHub</a>
                 </div>
