@@ -205,6 +205,69 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo("  Not posting yet (game not within 3h, not evening run)")
 
 
+@cli.command(name="predict-json")
+@click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
+@click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
+@click.option("--models-dir", default="data/models", type=click.Path(), help="Cached models directory")
+def predict_json(date: str, data_dir: str, models_dir: str):
+    """Run predictions and output JSON to stdout.
+
+    Worker command for remote orchestration. Outputs a JSON array of
+    ranked predictions. All log messages go to stderr.
+    """
+    import json as _json
+    import sys
+    from datetime import datetime, timezone
+    from bts.model.predict import run_pipeline, save_blend, load_blend
+
+    models_path = Path(models_dir)
+
+    click.echo(
+        f"[{datetime.now(timezone.utc).strftime('%H:%M UTC')}] "
+        f"Running predictions for {date}...",
+        err=True,
+    )
+
+    cache_path = models_path / f"blend_{date}.pkl"
+    cached_blend = None
+    if cache_path.exists():
+        click.echo(f"  Loading cached model from {cache_path}", err=True)
+        cached_blend = load_blend(cache_path)
+
+    try:
+        predictions = run_pipeline(
+            date, data_dir,
+            cached_blend=cached_blend,
+            save_blend_path=cache_path if not cached_blend else None,
+        )
+    except Exception as e:
+        click.echo(f"ERROR: {e}", err=True)
+        sys.exit(1)
+
+    if predictions.empty:
+        click.echo("[]")
+        return
+
+    # Select columns needed by the orchestrator
+    columns = [
+        "batter_name", "batter_id", "team", "lineup",
+        "pitcher_name", "pitcher_id", "game_pk", "game_time",
+        "p_hit_pa", "p_game_hit", "flags",
+    ]
+    output_cols = [c for c in columns if c in predictions.columns]
+    output = predictions[output_cols].to_dict(orient="records")
+
+    # Clean up NaN/None for JSON serialization
+    for row in output:
+        for k, v in row.items():
+            if isinstance(v, float) and (v != v):  # NaN check
+                row[k] = None
+            elif hasattr(v, 'item'):  # numpy scalar
+                row[k] = v.item()
+
+    click.echo(_json.dumps(output, indent=2))
+
+
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
