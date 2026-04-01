@@ -1,7 +1,7 @@
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak
+from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak, load_saver_available
 from bts.picks import pick_from_row
 from bts.picks import get_game_statuses, check_hit
 
@@ -163,7 +163,7 @@ class TestStreak:
         assert load_streak(tmp_path) == 4
 
     def test_update_single_miss_resets(self, tmp_path):
-        save_streak(10, tmp_path)
+        save_streak(5, tmp_path)  # streak 5, outside saver range
         new = update_streak([False], tmp_path)
         assert new == 0
         assert load_streak(tmp_path) == 0
@@ -182,6 +182,36 @@ class TestStreak:
         save_streak(5, tmp_path)
         new = update_streak([False, False], tmp_path)
         assert new == 0
+
+    def test_saver_preserves_streak_at_12(self, tmp_path):
+        """Miss at streak 12 with saver → streak holds, saver consumed."""
+        save_streak(12, tmp_path, saver_available=True)
+        new = update_streak([False], tmp_path)
+        assert new == 12
+        assert load_saver_available(tmp_path) is False
+
+    def test_saver_not_available_after_use(self, tmp_path):
+        """After saver is consumed, next miss resets normally."""
+        save_streak(12, tmp_path, saver_available=True)
+        update_streak([False], tmp_path)  # saver fires
+        save_streak(14, tmp_path)  # rebuild streak (saver_available preserved as False)
+        new = update_streak([False], tmp_path)
+        assert new == 0  # no saver, reset
+
+    def test_saver_does_not_fire_above_15(self, tmp_path):
+        save_streak(16, tmp_path, saver_available=True)
+        new = update_streak([False], tmp_path)
+        assert new == 0
+        assert load_saver_available(tmp_path) is True  # unused
+
+    def test_saver_does_not_fire_below_10(self, tmp_path):
+        save_streak(8, tmp_path, saver_available=True)
+        new = update_streak([False], tmp_path)
+        assert new == 0
+        assert load_saver_available(tmp_path) is True
+
+    def test_saver_default_available(self, tmp_path):
+        assert load_saver_available(tmp_path) is True
 
 
 def _mock_schedule_response(games):

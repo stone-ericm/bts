@@ -90,12 +90,25 @@ def load_streak(picks_dir: Path) -> int:
     return json.loads(path.read_text()).get("streak", 0)
 
 
-def save_streak(streak: int, picks_dir: Path) -> None:
-    """Save current streak count."""
+def load_saver_available(picks_dir: Path) -> bool:
+    """Load streak saver status. True if not yet consumed this season."""
+    path = picks_dir / "streak.json"
+    if not path.exists():
+        return True
+    return json.loads(path.read_text()).get("saver_available", True)
+
+
+def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = None) -> None:
+    """Save current streak count and saver status."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / "streak.json"
+    # Preserve existing saver state if not explicitly set
+    existing_saver = True
+    if path.exists() and saver_available is None:
+        existing_saver = json.loads(path.read_text()).get("saver_available", True)
     path.write_text(json.dumps({
         "streak": streak,
+        "saver_available": saver_available if saver_available is not None else existing_saver,
         "updated": datetime.now(timezone.utc).isoformat(),
     }))
 
@@ -105,11 +118,25 @@ def update_streak(results: list[bool], picks_dir: Path) -> int:
 
     Single pick: [True] -> +1, [False] -> 0
     Double-down: [True, True] -> +2, anything else -> 0
+
+    Handles streak saver: if miss at streak 10-15 with saver available,
+    streak holds and saver is consumed.
     """
     current = load_streak(picks_dir)
-    new = current + len(results) if all(results) else 0
-    save_streak(new, picks_dir)
-    return new
+    saver = load_saver_available(picks_dir)
+
+    if all(results):
+        new = current + len(results)
+        save_streak(new, picks_dir)
+        return new
+
+    # Miss — check saver
+    if saver and 10 <= current <= 15:
+        save_streak(current, picks_dir, saver_available=False)
+        return current  # streak preserved, saver consumed
+
+    save_streak(0, picks_dir)
+    return 0
 
 
 def get_game_statuses(date: str) -> dict[int, str]:

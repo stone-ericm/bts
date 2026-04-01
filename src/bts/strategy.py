@@ -17,6 +17,7 @@ import pandas as pd
 
 from bts.picks import (
     DailyPick, Pick, pick_from_row, load_pick, get_game_statuses,
+    load_saver_available,
 )
 
 OVERRIDE_THRESHOLD = 0.78
@@ -50,7 +51,7 @@ def _load_mdp():
         return None
 
 
-def _mdp_action(p_game_hit: float, streak: int, date: str, saver: bool = True) -> str | None:
+def _mdp_action(p_game_hit: float, streak: int, date: str, saver: bool) -> str | None:
     """Look up optimal action from MDP policy. Returns None if MDP not available."""
     mdp = _load_mdp()
     if not mdp:
@@ -180,7 +181,8 @@ def select_pick(
     best_row = valid.iloc[0]
 
     # Determine action: MDP policy (preferred) or heuristic fallback
-    action = _mdp_action(best_row["p_game_hit"], streak, date)
+    saver = load_saver_available(picks_dir)
+    action = _mdp_action(best_row["p_game_hit"], streak, date, saver)
     if action is None:
         # Heuristic fallback
         if best_row["p_game_hit"] < SKIP_THRESHOLD:
