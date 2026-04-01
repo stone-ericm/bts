@@ -177,24 +177,24 @@ def render_page():
 
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Inter', -apple-system, system-ui, sans-serif;
-                background: #041E42; color: #e8e8e8; }}
+                background: #f0f2f5; color: #1a1a2e; }}
 
-        .topbar {{ background: #002D72; border-bottom: 3px solid #D50032;
+        .topbar {{ background: #041E42; border-bottom: 3px solid #D50032;
                    padding: 8px 20px; display: flex; align-items: center; gap: 12px; }}
-        .mlb-logo {{ height: 32px; opacity: 0.6; }}
-        .topbar-title {{ font-size: 0.85em; color: #8899bb; font-weight: 500; letter-spacing: 0.5px; }}
+        .mlb-logo {{ height: 32px; opacity: 0.8; }}
+        .topbar-title {{ font-size: 0.85em; color: #a0b0cc; font-weight: 500; letter-spacing: 0.5px; }}
 
         .container {{ max-width: 960px; margin: 0 auto; padding: 20px; }}
 
         .header {{ display: flex; align-items: center; justify-content: space-between;
                    margin-bottom: 20px; }}
-        .header-left h1 {{ color: #fff; font-size: 1.6em; font-weight: 800; }}
+        .header-left h1 {{ color: #041E42; font-size: 1.6em; font-weight: 800; }}
         .header-left h1 span {{ color: #D50032; }}
-        .subtitle {{ color: #6b84a8; font-size: 0.85em; margin-top: 4px; }}
-        .subtitle a {{ color: #5b9bd5; text-decoration: none; }}
+        .subtitle {{ color: #666; font-size: 0.85em; margin-top: 4px; }}
+        .subtitle a {{ color: #002D72; text-decoration: none; font-weight: 500; }}
         .subtitle a:hover {{ text-decoration: underline; }}
 
-        .streak-box {{ background: #002D72; border: 2px solid #D50032;
+        .streak-box {{ background: #041E42; border: 2px solid #D50032;
                        border-radius: 12px; padding: 15px 30px; text-align: center; }}
         .streak-label {{ color: #8899bb; font-size: 0.7em; text-transform: uppercase;
                          letter-spacing: 2px; font-weight: 600; }}
@@ -203,49 +203,52 @@ def render_page():
         .streak-sub {{ color: #D50032; font-size: 0.7em; text-transform: uppercase;
                        letter-spacing: 1px; font-weight: 600; }}
 
-        .hero {{ background: linear-gradient(135deg, #002D72 0%, #041E42 100%);
-                 border-radius: 12px; padding: 24px; margin: 20px 0;
-                 border: 1px solid #1a3a5c; display: flex; align-items: center; gap: 20px; }}
+        .hero {{ background: #fff; border-radius: 12px; padding: 24px; margin: 20px 0;
+                 border: 1px solid #ddd; border-left: 4px solid #D50032;
+                 display: flex; align-items: center; gap: 20px;
+                 box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
         .hero-left {{ flex-shrink: 0; }}
         .hero-logo {{ width: 72px; height: 72px; }}
         .hero-right {{ flex: 1; }}
         .hero-label {{ color: #D50032; font-size: 0.7em; text-transform: uppercase;
                        letter-spacing: 3px; font-weight: 700; }}
-        .hero-name {{ font-size: 1.8em; font-weight: 800; color: #fff; margin: 4px 0; }}
-        .hero-detail {{ color: #8899bb; font-size: 0.95em; }}
+        .hero-name {{ font-size: 1.8em; font-weight: 800; color: #041E42; margin: 4px 0; }}
+        .hero-detail {{ color: #666; font-size: 0.95em; }}
         .hero-pct {{ font-size: 2.2em; font-weight: 800; color: #D50032;
                      flex-shrink: 0; }}
 
-        .section-header {{ color: #8899bb; font-size: 0.75em; text-transform: uppercase;
+        .section-header {{ color: #041E42; font-size: 0.75em; text-transform: uppercase;
                            letter-spacing: 2px; font-weight: 700; margin: 28px 0 12px;
-                           padding-bottom: 8px; border-bottom: 2px solid #0d2b4d; }}
+                           padding-bottom: 8px; border-bottom: 2px solid #ddd; }}
 
-        table {{ width: 100%; border-collapse: collapse; }}
-        th {{ text-align: left; color: #5b7a9e; font-size: 0.7em; text-transform: uppercase;
+        table {{ width: 100%; border-collapse: collapse; background: #fff;
+                 border-radius: 8px; overflow: hidden;
+                 box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
+        th {{ text-align: left; color: #041E42; font-size: 0.7em; text-transform: uppercase;
               letter-spacing: 1px; font-weight: 700; padding: 10px 8px;
-              border-bottom: 2px solid #0d2b4d; }}
-        td {{ padding: 10px 8px; border-bottom: 1px solid #0a2240; font-size: 0.9em; }}
-        tr:hover {{ background: #0a2240; }}
-        tr.today {{ background: #0d2b1a; }}
-        tr.today:hover {{ background: #0f3320; }}
+              background: #f8f9fa; border-bottom: 2px solid #ddd; }}
+        td {{ padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }}
+        tr:hover {{ background: #f0f4ff; }}
+        tr.today {{ background: #e8f5e9; }}
+        tr.today:hover {{ background: #dcedc8; }}
 
         .team-logo {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }}
         .team-logo-sm {{ width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }}
-        .batter-cell strong {{ color: #fff; }}
-        .matchup-cell {{ color: #8899bb; }}
-        .pct-cell {{ color: #5b9bd5; font-weight: 600; font-variant-numeric: tabular-nums; }}
+        .batter-cell strong {{ color: #041E42; }}
+        .matchup-cell {{ color: #666; }}
+        .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
         .double {{ color: #D50032; font-weight: 600; }}
-        .flags-cell {{ color: #5b7a9e; font-size: 0.8em; }}
-        .date-cell {{ color: #5b7a9e; font-variant-numeric: tabular-nums; }}
+        .flags-cell {{ color: #999; font-size: 0.8em; }}
+        .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
 
         .posts {{ margin-top: 8px; }}
-        .post {{ background: #002D72; border-radius: 10px; padding: 16px; margin: 8px 0;
-                 border: 1px solid #1a3a5c; }}
-        .post-date {{ color: #5b7a9e; font-size: 0.75em; font-weight: 600; }}
-        .post-text {{ margin-top: 6px; line-height: 1.5; color: #c8d4e0; }}
+        .post {{ background: #fff; border-radius: 10px; padding: 16px; margin: 8px 0;
+                 border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
+        .post-date {{ color: #888; font-size: 0.75em; font-weight: 600; }}
+        .post-text {{ margin-top: 6px; line-height: 1.5; color: #333; }}
 
-        .footer {{ color: #2a4060; font-size: 0.75em; margin-top: 30px; text-align: center;
-                   padding-top: 20px; border-top: 1px solid #0d2b4d; }}
+        .footer {{ color: #999; font-size: 0.75em; margin-top: 30px; text-align: center;
+                   padding-top: 20px; border-top: 1px solid #ddd; }}
 
         @media (max-width: 640px) {{
             .hero {{ flex-direction: column; text-align: center; }}
