@@ -135,3 +135,87 @@ def run_sim(profiles_dir: str, trials: int, season_length: int,
         Path(save_json).parent.mkdir(parents=True, exist_ok=True)
         Path(save_json).write_text(json.dumps(json_results, indent=2))
         click.echo(f"Results saved to {save_json}")
+
+
+@simulate.command()
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest profile parquets")
+@click.option("--season-length", default=180, type=int, help="Days per season")
+def solve(profiles_dir: str, season_length: int):
+    """Solve MDP for optimal strategy — exact P(57) and policy extraction."""
+    from rich.console import Console
+    from bts.simulate.quality_bins import compute_bins
+    from bts.simulate.exact import exact_p57
+    from bts.simulate.mdp import solve_mdp
+
+    import pandas as pd
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+
+    # Load profiles and compute bins
+    dfs = [pd.read_parquet(p) for p in sorted(profiles_path.glob("backtest_*.parquet"))]
+    if not dfs:
+        click.echo("No profile parquets found.", err=True)
+        raise SystemExit(1)
+    profiles_df = pd.concat(dfs, ignore_index=True)
+    bins = compute_bins(profiles_df)
+
+    console.print(f"[bold]Quality Bins ({len(bins.bins)} bins, "
+                  f"{profiles_df['date'].nunique()} days)[/bold]")
+    for b in bins.bins:
+        console.print(f"  Q{b.index+1} [{b.p_range[0]:.3f}-{b.p_range[1]:.3f}]: "
+                      f"P(hit)={b.p_hit:.1%}  P(both)={b.p_both:.1%}  freq={b.frequency:.1%}")
+
+    # Solve MDP
+    console.print(f"\n[bold]Solving MDP ({season_length} days)...[/bold]")
+    sol = solve_mdp(bins, season_length=season_length)
+    console.print(f"  [green]Optimal P(57) = {sol.optimal_p57:.4%}[/green]")
+
+    # Compare with heuristic
+    heuristic = ALL_STRATEGIES.get("combined", ALL_STRATEGIES["streak-aware"])
+    p_heuristic = exact_p57(heuristic, bins, season_length=season_length)
+    console.print(f"  Heuristic P(57) = {p_heuristic:.4%}")
+    gap = sol.optimal_p57 - p_heuristic
+    if gap > 0.0001:
+        console.print(f"  [yellow]Gap: +{gap:.4%} — room for improvement[/yellow]")
+    else:
+        console.print(f"  [green]Gap: {gap:.4%} — heuristic is near-optimal[/green]")
+
+    # Policy summary
+    console.print(f"\n[bold]Policy Summary:[/bold]")
+    console.print(sol.extract_thresholds())
+
+
+@simulate.command()
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest profile parquets")
+@click.option("--strategy", "strategy_name", default="combined",
+              help="Strategy to evaluate (default: combined)")
+@click.option("--season-length", default=180, type=int, help="Days per season")
+def exact(profiles_dir: str, strategy_name: str, season_length: int):
+    """Compute exact P(57) for a named strategy via absorbing chain."""
+    from rich.console import Console
+    from bts.simulate.quality_bins import compute_bins
+    from bts.simulate.exact import exact_p57
+
+    import pandas as pd
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+
+    if strategy_name not in ALL_STRATEGIES:
+        click.echo(f"Unknown strategy: {strategy_name}. "
+                   f"Options: {', '.join(ALL_STRATEGIES.keys())}", err=True)
+        raise SystemExit(1)
+
+    dfs = [pd.read_parquet(p) for p in sorted(profiles_path.glob("backtest_*.parquet"))]
+    if not dfs:
+        click.echo("No profile parquets found.", err=True)
+        raise SystemExit(1)
+    profiles_df = pd.concat(dfs, ignore_index=True)
+    bins = compute_bins(profiles_df)
+
+    strategy = ALL_STRATEGIES[strategy_name]
+    p = exact_p57(strategy, bins, season_length=season_length)
+    console.print(f"{strategy_name}: P(57) = {p:.4%}  (exact, {season_length}-day season)")
