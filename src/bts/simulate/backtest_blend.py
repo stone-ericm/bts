@@ -36,9 +36,10 @@ def blend_walk_forward(
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
 
-    test_start = df[df["season"] == test_season]["date"].min()
+    season_data = df[df["season"] == test_season]
+    test_start = season_data["date"].min()
     train_pool = df[(df["date"] < test_start) & (df["season"] >= TRAIN_START_YEAR)].copy()
-    test_data = df[df["date"] >= test_start].copy()
+    test_data = season_data.copy()
     test_dates = sorted(test_data["date"].unique())
 
     print(f"Blend walk-forward: {len(test_dates)} test days, "
