@@ -268,6 +268,23 @@ def predict_json(date: str, data_dir: str, models_dir: str):
     click.echo(_json.dumps(output, indent=2))
 
 
+@cli.command()
+@click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
+@click.option("--config", "config_path", required=True,
+              type=click.Path(exists=True), help="Orchestrator config TOML file")
+def orchestrate(date: str, config_path: str):
+    """Orchestrate predictions across compute tiers (Pi5 command).
+
+    Cascades through SSH tiers (Mac -> Alienware -> Cloud), applies
+    pick strategy, saves pick, posts to Bluesky. DMs on total failure.
+    """
+    from bts.orchestrator import orchestrate as _orchestrate
+
+    success = _orchestrate(Path(config_path), date)
+    if not success:
+        raise SystemExit(1)
+
+
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")

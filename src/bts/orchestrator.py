@@ -1,0 +1,177 @@
+"""Pi5 orchestrator: cascade model runs across compute machines via SSH."""
+
+import json
+import subprocess
+import sys
+import tomllib
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pandas as pd
+
+
+def load_config(path: Path) -> dict:
+    """Load orchestrator config from TOML file."""
+    with open(path, "rb") as f:
+        return tomllib.load(f)
+
+
+def ssh_predict(
+    ssh_host: str,
+    bts_dir: str,
+    date: str,
+    timeout_sec: int = 300,
+) -> pd.DataFrame | None:
+    """Run bts predict-json on a remote machine via SSH.
+
+    Returns predictions DataFrame on success, None on any failure.
+    """
+    cmd = (
+        f"cd {bts_dir} && "
+        f"UV_CACHE_DIR=/tmp/uv-cache uv run bts predict-json --date {date}"
+    )
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
+             ssh_host, cmd],
+            capture_output=True, text=True, timeout=timeout_sec,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"  [{ssh_host}] Timeout after {timeout_sec}s", file=sys.stderr)
+        return None
+    except OSError as e:
+        print(f"  [{ssh_host}] SSH error: {e}", file=sys.stderr)
+        return None
+
+    if result.returncode != 0:
+        print(f"  [{ssh_host}] Exit code {result.returncode}", file=sys.stderr)
+        if result.stderr:
+            lines = result.stderr.strip().split("\n")
+            for line in lines[-5:]:
+                print(f"    {line}", file=sys.stderr)
+        return None
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print(f"  [{ssh_host}] Invalid JSON output", file=sys.stderr)
+        return None
+
+    if not data:
+        return pd.DataFrame()
+
+    return pd.DataFrame(data)
+
+
+def run_cascade(
+    tiers: list[dict],
+    date: str,
+) -> tuple[pd.DataFrame | None, str | None]:
+    """Try each tier in order until one succeeds.
+
+    Returns (predictions_df, tier_name) or (None, None) if all fail.
+    """
+    for tier in tiers:
+        name = tier["name"]
+        print(f"Trying {name}...", file=sys.stderr)
+        df = ssh_predict(
+            tier["ssh_host"],
+            tier["bts_dir"],
+            date,
+            timeout_sec=tier["timeout_min"] * 60,
+        )
+        if df is not None:
+            print(f"  [{name}] Success — {len(df)} predictions", file=sys.stderr)
+            return df, name
+
+    return None, None
+
+
+def orchestrate(config_path: Path, date: str) -> bool:
+    """Run the full orchestration: cascade -> strategy -> save -> post.
+
+    Returns True if a pick was made, False otherwise.
+    """
+    from bts.dm import send_dm
+    from bts.picks import save_pick, load_streak
+    from bts.posting import format_post, post_to_bluesky, should_post_now
+    from bts.strategy import select_pick
+
+    config = load_config(config_path)
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    dm_recipient = config["bluesky"]["dm_recipient"]
+
+    # Run cascade
+    predictions, tier_name = run_cascade(config["tiers"], date)
+
+    if predictions is None:
+        msg = f"BTS {date}: All compute tiers failed. No pick made."
+        print(msg, file=sys.stderr)
+        try:
+            send_dm(dm_recipient, msg)
+            print(f"  DM sent to {dm_recipient}", file=sys.stderr)
+        except Exception as e:
+            print(f"  DM failed: {e}", file=sys.stderr)
+        return False
+
+    if predictions.empty:
+        print(f"No games found for {date}.", file=sys.stderr)
+        return False
+
+    # Apply strategy
+    result = select_pick(predictions, date, picks_dir)
+
+    if result is None:
+        print("No valid picks available.", file=sys.stderr)
+        return False
+
+    if result.locked:
+        print(f"Pick locked: {result.daily.pick.batter_name}", file=sys.stderr)
+        # Catch-up posting
+        if not result.daily.bluesky_posted:
+            streak = load_streak(picks_dir)
+            text = format_post(
+                result.daily.pick.batter_name, result.daily.pick.team,
+                result.daily.pick.pitcher_name, result.daily.pick.p_game_hit,
+                streak,
+                result.daily.double_down.batter_name if result.daily.double_down else None,
+                result.daily.double_down.p_game_hit if result.daily.double_down else None,
+            )
+            try:
+                uri = post_to_bluesky(text)
+                result.daily.bluesky_posted = True
+                result.daily.bluesky_uri = uri
+                save_pick(result.daily, picks_dir)
+                print(f"  Posted to Bluesky (catch-up): {uri}", file=sys.stderr)
+            except Exception as e:
+                print(f"  Bluesky catch-up failed: {e}", file=sys.stderr)
+        return True
+
+    # New pick
+    daily = result.daily
+    save_pick(daily, picks_dir)
+    print(
+        f"Pick ({tier_name}): {daily.pick.batter_name} "
+        f"({daily.pick.p_game_hit:.1%})",
+        file=sys.stderr,
+    )
+
+    # Post to Bluesky
+    streak = load_streak(picks_dir)
+    if should_post_now(daily.pick.game_time, daily.bluesky_posted):
+        text = format_post(
+            daily.pick.batter_name, daily.pick.team,
+            daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+            daily.double_down.batter_name if daily.double_down else None,
+            daily.double_down.p_game_hit if daily.double_down else None,
+        )
+        try:
+            uri = post_to_bluesky(text)
+            daily.bluesky_posted = True
+            daily.bluesky_uri = uri
+            save_pick(daily, picks_dir)
+            print(f"  Posted to Bluesky: {uri}", file=sys.stderr)
+        except Exception as e:
+            print(f"  Bluesky post failed: {e}", file=sys.stderr)
+
+    return True
