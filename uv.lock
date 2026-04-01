@@ -11,7 +11,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-26T13:33:58.781786Z"
+exclude-newer = "2026-03-29T03:10:01.538223Z"
 exclude-newer-span = "P3D"
 
 [[package]]
@@ -20,9 +20,13 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
-    { name = "lightgbm" },
     { name = "pandas" },
     { name = "pyarrow" },
+]
+
+[package.optional-dependencies]
+model = [
+    { name = "lightgbm" },
     { name = "scikit-learn" },
 ]
 
@@ -34,11 +38,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
-    { name = "lightgbm", specifier = ">=4.6.0" },
+    { name = "lightgbm", marker = "extra == 'model'", specifier = ">=4.6.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pyarrow", specifier = ">=15.0" },
-    { name = "scikit-learn", specifier = ">=1.8.0" },
+    { name = "scikit-learn", marker = "extra == 'model'", specifier = ">=1.8.0" },
 ]
+provides-extras = ["model"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0" }]
