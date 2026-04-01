@@ -1,0 +1,87 @@
+{
+  "date": "2022-06-08",
+  "timestamp": "2022-06-08T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b9a2617a18e385192ac92a7799f54d9e",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d5385bbc7eaf543ca135559205ce14e7",
+      "away_team": "Seattle Mariners",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "040e1cb998440434c505b351f7939d20",
+      "away_team": "Chicago Cubs",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ed8ed200849784557726ea93aa0fa0e4",
+      "away_team": "Texas Rangers",
+      "home_team": "Cleveland Guardians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6db451e18a2c8403d87c41862e6e15e7",
+      "away_team": "Oakland Athletics",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e9828ce7b1a8bb7c419ac6efb3cf6c34",
+      "away_team": "New York Yankees",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7fd57d9f0a80ca0bb9371fe4e5ba2cca",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "17975bda912727e3bb5f0d14703a1cb3",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bce7d3fd536c1faaec1a47f99c1062c4",
+      "away_team": "New York Mets",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8625a5d27f9e5832578fd140cdfad712",
+      "away_team": "Boston Red Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "76ea2e82a20b72c294ce65ef5ad17e13",
+      "away_team": "Washington Nationals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fd5b84d4e8fc897deb51f9502dc2e954",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b126e5062e9fbf70530673e3a2c2ccbe",
+      "away_team": "Colorado Rockies",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999740"
+}

@@ -1,0 +1,51 @@
+{
+  "date": "2022-06-16",
+  "timestamp": "2022-06-16T22:00:00Z",
+  "n_events": 7,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "7a393b9aa1c315b71db9e74143af94f1",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7d7a0a943e488ea8b2fe5b0e9a8816d1",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "da12287062338cc29fa57bd262dd02dc",
+      "away_team": "Texas Rangers",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7c408644ce051531d100c38b10dd57c6",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a4aa258ec6e2ccc434bd1cc4c110e759",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d8cd874dded6df38de60ece149eaa375",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "24d7111f156d75ce6a1573f695fb6f77",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999732"
+}

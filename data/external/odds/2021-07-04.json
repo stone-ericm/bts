@@ -1,0 +1,87 @@
+{
+  "date": "2021-07-04",
+  "timestamp": "2021-07-04T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "1023b07aa0fe2072ed52f60402171c25",
+      "away_team": "San Francisco Giants",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3495293f866255c12ebcb0b11f8381da",
+      "away_team": "New York Mets",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f8645b2b1376fe827e89a746e9179c32",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "69095e7afb484d6cdc9b0d940e910a35",
+      "away_team": "Atlanta Braves",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bacef0c7105ec2ea7ae68bd7dfa4a4b9",
+      "away_team": "Chicago White Sox",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a139a2982fb2e63377d06a51d162ce2f",
+      "away_team": "Cleveland Indians",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b557f356c58cca98278c0a00454d7f11",
+      "away_team": "Detroit Tigers",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "21333e9245b9e331e5a581d44c3ab6bb",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "216c0559fb281d0302d995af6ad5cc3a",
+      "away_team": "Boston Red Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b542902f21333b34f7938ff1b31606cb",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1de349eb121d1ffb1a09ccbee6ad19dc",
+      "away_team": "Boston Red Sox",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "946b3f4d55f90ae7aa0cd86b162ea2cb",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7ff31167281a18d154c91bfb1956d781",
+      "away_team": "Texas Rangers",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999894"
+}

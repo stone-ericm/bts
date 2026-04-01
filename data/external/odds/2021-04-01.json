@@ -1,0 +1,75 @@
+{
+  "date": "2021-04-01",
+  "timestamp": "2021-04-01T22:00:00Z",
+  "n_events": 11,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "9204ed4b0cc075f041db9a4e332b9db4",
+      "away_team": "Minnesota Twins",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9e97c14ee897e282b52eb3ec127b9adc",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "083f3aaa7b83b33f02a46a644b5276c9",
+      "away_team": "Atlanta Braves",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b0b9ae9c23f344cef0b44243c5ddcc91",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ff7b57cadf3497fd3a93f988f615ddf3",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "36d9176ecd7bf5bebcd1ddd779e40cf0",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b0537b313c92bc74b7c8fe0dd7e36271",
+      "away_team": "Texas Rangers",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fa7f8583e45c629772603f6000d248b4",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "abf548d5fc0e755984d8602456e3258b",
+      "away_team": "Chicago White Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4e110533c3c74dccb4d92dfd40592bf0",
+      "away_team": "Houston Astros",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e8756307c58a3acc443bd1813c55f5b1",
+      "away_team": "San Francisco Giants",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999988"
+}

@@ -1,0 +1,81 @@
+{
+  "date": "2022-07-14",
+  "timestamp": "2022-07-14T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "fef10591805f349afe2965278a53bbe5",
+      "away_team": "New York Mets",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "81c7598c04d3bfc43f67b018dab15fdc",
+      "away_team": "Boston Red Sox",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ce3f1a746fbdaf46960fd11ea8908fb1",
+      "away_team": "Detroit Tigers",
+      "home_team": "Cleveland Guardians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8e89265d6f3217aac8a8537b68269b21",
+      "away_team": "Seattle Mariners",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6de75a03924dd7c99cf6812d90f082d7",
+      "away_team": "Kansas City Royals",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "869ecd2abc6cbf7d442d5c0873104167",
+      "away_team": "San Diego Padres",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ac7ea1dfc68c7c1d89cf47bc599f9908",
+      "away_team": "Atlanta Braves",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "78b1b3c478f01c742b419bb9b015449c",
+      "away_team": "Cincinnati Reds",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "80b272f62423b6e17e4de79f3ff05566",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "eeb1f24852ca7472bdee3d97f0a029ca",
+      "away_team": "Chicago White Sox",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c0bc4eb8590e7720ab4daedd4d8e4ad6",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8c6a5eb987e54276f65a51e71ccf9bd1",
+      "away_team": "Houston Astros",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999704"
+}

@@ -1,0 +1,75 @@
+{
+  "date": "2022-04-11",
+  "timestamp": "2022-04-11T22:00:00Z",
+  "n_events": 11,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "5cfc7462ea0a13796d0ab91a1a5f0655",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "92a320dbe30bc857b15112678b4e01f2",
+      "away_team": "Colorado Rockies",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0bff4e4780faac145136ea3845bf48b4",
+      "away_team": "Boston Red Sox",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "98070e1e12a0428a801d8b2b6c506ca6",
+      "away_team": "Oakland Athletics",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d87d521e691946f8ed4733916dde6d1f",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b4c810ca9200db24b5ad1e5745876566",
+      "away_team": "New York Mets",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3edcf26191814bb7e2d09d74a41bb713",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1fe554f2b767bcc4630f9083c108d598",
+      "away_team": "Seattle Mariners",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "63ade9a2b4e0e82db2d6193cbd5484a4",
+      "away_team": "San Diego Padres",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1fbb5c7df56d4059c0cbea1cf804a0b1",
+      "away_team": "Miami Marlins",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "819dc5cca2c63f47f9fdf3224892835d",
+      "away_team": "Washington Nationals",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999798"
+}

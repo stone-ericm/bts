@@ -1,0 +1,39 @@
+{
+  "date": "2022-04-10",
+  "timestamp": "2022-04-10T22:00:00Z",
+  "n_events": 5,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b90b629621ae7f9fbb4ab986085b5236",
+      "away_team": "Boston Red Sox",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9e64cd5fac2d6dea8a6a1a0e752e7403",
+      "away_team": "San Diego Padres",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b7ab554f9220ff3e7c1d9ce4eb081b3c",
+      "away_team": "Miami Marlins",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9e16da48b260c45bdf132f5cd4e4e4b7",
+      "away_team": "Houston Astros",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "70ecb534a05c6d0c72d5cdefa79832f8",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999799"
+}

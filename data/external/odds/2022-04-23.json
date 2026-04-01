@@ -1,0 +1,81 @@
+{
+  "date": "2022-04-23",
+  "timestamp": "2022-04-23T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "f3246d903837ed2886dfe03a8f9c83f3",
+      "away_team": "Chicago White Sox",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f2aca7971a5a80ebe404c5ba9e1dbdf3",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4d99287e22adf3f0a08f13e190c1993b",
+      "away_team": "Texas Rangers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "cc0abe1fe610a2a957a299793b0255b3",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d27997051d5aeefe610080e08f4d0db3",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2bca0cc9b0b89c8e9a13817b4b204cd0",
+      "away_team": "New York Mets",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7c4475492e09d447ecd69772a4a4a0b8",
+      "away_team": "Colorado Rockies",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3fff5f8916eabcd4c7a097b22bdf1818",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "82052d6ceb57a7425e8f2b35926947bc",
+      "away_team": "Miami Marlins",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d2f1d6e3d7779c8522d6a0289e24b0a9",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d679accb4795c2755b8f17c4cb121a4c",
+      "away_team": "Kansas City Royals",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0a5331013ad6151a264f85d06337c66c",
+      "away_team": "Boston Red Sox",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999786"
+}

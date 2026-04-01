@@ -1,0 +1,63 @@
+{
+  "date": "2022-06-09",
+  "timestamp": "2022-06-09T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b93637e8066fb85b003f4cfa81246915",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ebb2ab2d775b357547dd639ed252b133",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3c2d3d57e23644c92203e836be09da82",
+      "away_team": "Colorado Rockies",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e0fe017d3897df70fa989e2635e5f851",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6defdf5b470396fcf540fbf4ca1dad11",
+      "away_team": "New York Yankees",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "76652c1094cfce2bded104c4ba8397f0",
+      "away_team": "Washington Nationals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3534b8b2fb417df20703384f104acfea",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7ea5e85f000c3f0346cbcd9f58d63f7b",
+      "away_team": "Boston Red Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "490a2b0f9fd3d91d30ff542db2057e54",
+      "away_team": "Oakland Athletics",
+      "home_team": "Cleveland Guardians",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999739"
+}

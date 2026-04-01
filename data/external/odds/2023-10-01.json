@@ -1,0 +1,144 @@
+{
+  "date": "2023-10-01",
+  "timestamp": "2023-10-01T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 9,
+  "events": [
+    {
+      "event_id": "bef7ce95f5432a1e519b1e64cd7e224e",
+      "away_team": "Washington Nationals",
+      "home_team": "Atlanta Braves",
+      "commence_time": "2023-10-01T19:05:00Z",
+      "props": {
+        "id": "bef7ce95f5432a1e519b1e64cd7e224e",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:05:00Z",
+        "home_team": "Atlanta Braves",
+        "away_team": "Washington Nationals",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "8fb76a2db4495298affe5c202d85cc0d",
+      "away_team": "Boston Red Sox",
+      "home_team": "Baltimore Orioles",
+      "commence_time": "2023-10-01T19:05:00Z",
+      "props": {
+        "id": "8fb76a2db4495298affe5c202d85cc0d",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:05:00Z",
+        "home_team": "Baltimore Orioles",
+        "away_team": "Boston Red Sox",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "cf60559447f7b19ca718f76aa6a7252d",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "San Francisco Giants",
+      "commence_time": "2023-10-01T19:05:00Z",
+      "props": {
+        "id": "cf60559447f7b19ca718f76aa6a7252d",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:05:00Z",
+        "home_team": "San Francisco Giants",
+        "away_team": "Los Angeles Dodgers",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "32b8e04d2b21b556969619acf693d340",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Toronto Blue Jays",
+      "commence_time": "2023-10-01T19:07:00Z",
+      "props": {
+        "id": "32b8e04d2b21b556969619acf693d340",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:07:00Z",
+        "home_team": "Toronto Blue Jays",
+        "away_team": "Tampa Bay Rays",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "e47b3f9dcd07926f571c0fb9803264bb",
+      "away_team": "San Diego Padres",
+      "home_team": "Chicago White Sox",
+      "commence_time": "2023-10-01T19:10:00Z",
+      "props": {
+        "id": "e47b3f9dcd07926f571c0fb9803264bb",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:10:00Z",
+        "home_team": "Chicago White Sox",
+        "away_team": "San Diego Padres",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "1b7c55469cfb01d1d27e4faf27a9d1ad",
+      "away_team": "Minnesota Twins",
+      "home_team": "Colorado Rockies",
+      "commence_time": "2023-10-01T19:10:00Z",
+      "props": {
+        "id": "1b7c55469cfb01d1d27e4faf27a9d1ad",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:10:00Z",
+        "home_team": "Colorado Rockies",
+        "away_team": "Minnesota Twins",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "e26c06a44e2fc8afc8f6b08b651142e8",
+      "away_team": "Houston Astros",
+      "home_team": "Arizona Diamondbacks",
+      "commence_time": "2023-10-01T19:10:57Z",
+      "props": {
+        "id": "e26c06a44e2fc8afc8f6b08b651142e8",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:10:57Z",
+        "home_team": "Arizona Diamondbacks",
+        "away_team": "Houston Astros",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "7d2492d76f2490b6c3389c93d18b0f2b",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Detroit Tigers",
+      "commence_time": "2023-10-01T19:11:20Z",
+      "props": {
+        "id": "7d2492d76f2490b6c3389c93d18b0f2b",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:11:20Z",
+        "home_team": "Detroit Tigers",
+        "away_team": "Cleveland Guardians",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "4b76f30bd2c28a3a4d8e8bcd1803d412",
+      "away_team": "Cincinnati Reds",
+      "home_team": "St. Louis Cardinals",
+      "commence_time": "2023-10-01T19:26:39Z",
+      "props": {
+        "id": "4b76f30bd2c28a3a4d8e8bcd1803d412",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2023-10-01T19:26:39Z",
+        "home_team": "St. Louis Cardinals",
+        "away_team": "Cincinnati Reds",
+        "bookmakers": []
+      }
+    }
+  ],
+  "credits_remaining": "4996162"
+}

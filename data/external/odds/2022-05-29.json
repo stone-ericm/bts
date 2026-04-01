@@ -1,0 +1,51 @@
+{
+  "date": "2022-05-29",
+  "timestamp": "2022-05-29T22:00:00Z",
+  "n_events": 7,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "85d35c7cf97ec00cf062fd19b3397000",
+      "away_team": "Texas Rangers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0422bf436bc10507c98ea404708bfe01",
+      "away_team": "Chicago Cubs",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bd235c15215bc12c3f8ba59c44f0d48a",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d5e386cc867e165e515edb733ddd58ec",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "efbea87a70eae9271e03222090c88ae6",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fc4f2a8442a16d8726cb4625f57eb63f",
+      "away_team": "Houston Astros",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ce8b38396a4126878f0cfe3b68e54832",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999750"
+}

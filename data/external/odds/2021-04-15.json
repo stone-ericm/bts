@@ -1,0 +1,63 @@
+{
+  "date": "2021-04-15",
+  "timestamp": "2021-04-15T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "0626ea18f06685e7a69d5c2c9fe4b408",
+      "away_team": "Texas Rangers",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f8cabd52af95c4a2172a746536d25da4",
+      "away_team": "Colorado Rockies",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "de967d0ea462c433cef5330816896166",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "87d1bfadcb04e284cd0fbef9969bf154",
+      "away_team": "Detroit Tigers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1ab6b0d2bc7d1802ca0c6055da099bed",
+      "away_team": "Seattle Mariners",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "030487263155ee45d25adfeaeafa49cf",
+      "away_team": "Cleveland Indians",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7f72cd6c809fdece7b1cff83139e81a2",
+      "away_team": "Texas Rangers",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7e9b594cccd8fa6640ba7ea3d273e322",
+      "away_team": "Colorado Rockies",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6b7ea061775a5afee0016c389659ce0b",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999974"
+}

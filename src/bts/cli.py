@@ -239,11 +239,35 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
         click.echo(f"Pick locked: {current.pick.batter_name} (game started)")
         return
 
-    # Step 5: Select best available (filter to valid predictions)
+    # Step 5: Densest bucket strategy — pick from whichever time window has the most games
     valid = available[available["p_game_hit"].notna()]
     if valid.empty:
         click.echo("No batters with valid predictions available.")
         return
+
+    if "game_time" in valid.columns:
+        from datetime import timedelta as _td
+        def _et_hour(gt):
+            try:
+                from datetime import datetime as _dt
+                utc = _dt.fromisoformat(str(gt).replace("Z", "+00:00"))
+                return (utc - _td(hours=4)).hour
+            except:
+                return 18  # default to prime
+        valid = valid.copy()
+        valid["_et_hour"] = valid["game_time"].apply(_et_hour)
+        early = valid[valid["_et_hour"] < 16]
+        prime = valid[(valid["_et_hour"] >= 16) & (valid["_et_hour"] < 20)]
+        west = valid[valid["_et_hour"] >= 20]
+
+        buckets = {"early": early, "prime": prime, "west": west}
+        densest_name = max(buckets, key=lambda k: len(buckets[k]))
+        densest = buckets[densest_name]
+
+        if len(densest) > 0:
+            click.echo(f"  Densest window: {densest_name} ({len(densest)} batters)")
+            valid = densest
+        # If densest is empty (shouldn't happen), fall through to all valid
 
     best_row = valid.iloc[0]
     new_pick = pick_from_row(best_row)

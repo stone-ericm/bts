@@ -1,0 +1,33 @@
+{
+  "date": "2022-05-19",
+  "timestamp": "2022-05-19T22:00:00Z",
+  "n_events": 4,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "5e12b32b4d25d0b75bbc85018e292a36",
+      "away_team": "Seattle Mariners",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "79b9a4b280c34e8b51e99dc4808bd155",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "938c1faad0b650f2234e36f4e6cffa59",
+      "away_team": "Chicago White Sox",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3046b5793fe5581a1b2fdb6841b182ee",
+      "away_team": "Texas Rangers",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999760"
+}

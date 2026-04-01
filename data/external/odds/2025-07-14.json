@@ -1,0 +1,218 @@
+{
+  "date": "2025-07-14",
+  "timestamp": "2025-07-14T22:00:00Z",
+  "n_events": 1,
+  "n_with_props": 1,
+  "events": [
+    {
+      "event_id": "1f983bf90e7b9336141675ec98f29552",
+      "away_team": "American League",
+      "home_team": "National League",
+      "commence_time": "2025-07-16T00:00:00Z",
+      "props": {
+        "id": "1f983bf90e7b9336141675ec98f29552",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-07-16T00:00:00Z",
+        "home_team": "National League",
+        "away_team": "American League",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2025-07-14T21:54:53Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2025-07-14T21:55:46Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Aaron Judge",
+                    "price": -105,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 100,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gleyber Torres",
+                    "price": 105,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Manny Machado",
+                    "price": 115,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Freddie Freeman",
+                    "price": 110,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 115,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jacob Wilson",
+                    "price": 115,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Francisco Lindor",
+                    "price": 115,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Vladimir Guerrero Jr.",
+                    "price": 110,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Will Smith",
+                    "price": 125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ronald Acu\u00f1a Jr.",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle Tucker",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Pete Crow-Armstrong",
+                    "price": 140,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Junior Caminero",
+                    "price": 155,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Javier B\u00e1ez",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 650,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gleyber Torres",
+                    "price": 750,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 750,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Aaron Judge",
+                    "price": 750,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Vladimir Guerrero Jr.",
+                    "price": 750,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Freddie Freeman",
+                    "price": 800,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 800,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jacob Wilson",
+                    "price": 800,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 900,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Francisco Lindor",
+                    "price": 900,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Manny Machado",
+                    "price": 900,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Will Smith",
+                    "price": 950,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ronald Acu\u00f1a Jr.",
+                    "price": 950,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "credits_remaining": "4964811"
+}

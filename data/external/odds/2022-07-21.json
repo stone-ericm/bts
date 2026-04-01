@@ -1,0 +1,69 @@
+{
+  "date": "2022-07-21",
+  "timestamp": "2022-07-21T22:00:00Z",
+  "n_events": 10,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "498b449f0a0f7fefcf4a4d4d5e42a0d2",
+      "away_team": "Detroit Tigers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8fc0935fca31931ac6913eace71165ec",
+      "away_team": "San Francisco Giants",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7a231eb2f380d728cab8ca4f659c069b",
+      "away_team": "Detroit Tigers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a2b531eeecb48c78e401ec6a39f01629",
+      "away_team": "New York Yankees",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4ec6406b3e00d4d9ddf9f08ad825b99f",
+      "away_team": "Chicago Cubs",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b35717e2a6da92212db943c2e0ebd3bd",
+      "away_team": "Colorado Rockies",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2efb771da15c01a0b5c25713d48166af",
+      "away_team": "San Diego Padres",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3c2602c1a3907ad5424a5f3b5f5a7234",
+      "away_team": "New York Yankees",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b9638aa0805376e9fbb6d122ed6c0fc9",
+      "away_team": "Texas Rangers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1373e51f82bac11ec3bba5cacdba7432",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999697"
+}

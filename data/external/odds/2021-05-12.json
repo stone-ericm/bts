@@ -1,0 +1,81 @@
+{
+  "date": "2021-05-12",
+  "timestamp": "2021-05-12T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "623883823cee8b9676beaca14076fe6c",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fc182ec3b539776cf104da8fd4bae4fa",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "41f2db11a92e29194068fe674a2f4494",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6a79f74e47ace317d8c531c856160572",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "06491ea7037ea180adc75d8fa7ecd77c",
+      "away_team": "Minnesota Twins",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f6b7538ded021d37d58f9ccbf1d143d4",
+      "away_team": "Seattle Mariners",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2425cefb3a01e1055087e61bf0947183",
+      "away_team": "Kansas City Royals",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9d4b5a52fde27d87a67f10032a39f8da",
+      "away_team": "Oakland Athletics",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5b0bd3e1f4e5bf16afc0f0a941339f61",
+      "away_team": "San Diego Padres",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4e9d5c718180c02df189a4f6bb86b7a6",
+      "away_team": "New York Yankees",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2f45068b45e9d75827e9920ed5ebae63",
+      "away_team": "San Diego Padres",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4527cfea2cef874076c15351ee91cc82",
+      "away_team": "Miami Marlins",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999947"
+}

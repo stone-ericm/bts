@@ -1,0 +1,15 @@
+{
+  "date": "2021-07-13",
+  "timestamp": "2021-07-13T22:00:00Z",
+  "n_events": 1,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "4a8e7f662ace984f0f7b55f45696544e",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999885"
+}

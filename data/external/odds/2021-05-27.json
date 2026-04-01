@@ -1,0 +1,63 @@
+{
+  "date": "2021-05-27",
+  "timestamp": "2021-05-27T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "506a0e5a057cb3dd4cf6a2691f763430",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2de986409ae5d9e3e865cdb6830488ea",
+      "away_team": "Kansas City Royals",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7c687d46b8f4de6740d9861a0bd16d60",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6777978513f780bd0e0f7322f9a83128",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "386a18b35f364afb70ba5ed792a9c1ad",
+      "away_team": "Texas Rangers",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "477338c76911927eaf83a802f5bf744a",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9bdfc9ccbad7b0de7ab9f585ed7fe795",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c3cd7dadf1151f5793af2f3aab3aa99e",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "386d018bcaadaf537785431e728937e3",
+      "away_team": "San Francisco Giants",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999932"
+}

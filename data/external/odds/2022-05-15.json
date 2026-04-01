@@ -1,0 +1,39 @@
+{
+  "date": "2022-05-15",
+  "timestamp": "2022-05-15T22:00:00Z",
+  "n_events": 5,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "9c1680e7c3e6daabebd1a64057900a60",
+      "away_team": "Kansas City Royals",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b98b4d93b54492c4ac325cb622a93f9f",
+      "away_team": "San Francisco Giants",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bd14a8eb2e3f0b285a685e1837070db2",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "150ae2989e17fa0cb0f23e0f0f6462eb",
+      "away_team": "Chicago Cubs",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "309b276d962ce1285fb16d8a23f05ae3",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999764"
+}

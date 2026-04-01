@@ -1,0 +1,63 @@
+{
+  "date": "2021-04-22",
+  "timestamp": "2021-04-22T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "de2752bea262a25bce2f905ee217b0d2",
+      "away_team": "New York Mets",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "03860c6242f40b5bdc61b8cb208283eb",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "51188e71db321ac20f348ef78e4f9fe4",
+      "away_team": "Miami Marlins",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8d2897186ad21fb78b1698cec72a3e55",
+      "away_team": "San Diego Padres",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "688cd79687320ba7c0afeba9d8dd3b42",
+      "away_team": "Seattle Mariners",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "94c0720291b25f5171a36681d65095b0",
+      "away_team": "New York Mets",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "545d434b5e38aa90901a75284a8da60e",
+      "away_team": "New York Yankees",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "42943090fefc9d5a7dd0005274b0bf0d",
+      "away_team": "Oakland Athletics",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "71d175b7a99d51542bc903396ac9845e",
+      "away_team": "Washington Nationals",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999967"
+}

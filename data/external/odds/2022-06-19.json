@@ -1,0 +1,45 @@
+{
+  "date": "2022-06-19",
+  "timestamp": "2022-06-19T22:00:00Z",
+  "n_events": 6,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "ba70fe80517c755cfc1ab97406b7a23d",
+      "away_team": "Chicago White Sox",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ec58758f059b0b501f29e0865b0a3dcd",
+      "away_team": "San Diego Padres",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c7fc42fa0797dd75a12f64ca7fb1f9be",
+      "away_team": "Kansas City Royals",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9a691e52e72d8487d438677c8a9b76cf",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "766762802cb80e8432d338f09e43aa61",
+      "away_team": "Minnesota Twins",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9cde317059dc1fc45f0aafaeca52c247",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999729"
+}

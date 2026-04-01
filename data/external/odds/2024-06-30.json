@@ -1,0 +1,5802 @@
+{
+  "date": "2024-06-30",
+  "timestamp": "2024-06-30T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 9,
+  "events": [
+    {
+      "event_id": "0ba2f3eda24bd07ed666743b26e6503d",
+      "away_team": "Houston Astros",
+      "home_team": "New York Mets",
+      "commence_time": "2024-06-30T17:40:17Z",
+      "props": {
+        "id": "0ba2f3eda24bd07ed666743b26e6503d",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T17:40:17Z",
+        "home_team": "New York Mets",
+        "away_team": "Houston Astros",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "48aaf9582878013f36142d0bba3a1e12",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "San Francisco Giants",
+      "commence_time": "2024-06-30T20:06:00Z",
+      "props": {
+        "id": "48aaf9582878013f36142d0bba3a1e12",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T20:06:00Z",
+        "home_team": "San Francisco Giants",
+        "away_team": "Los Angeles Dodgers",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2024-06-30T21:55:28Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:52:41Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "David Villar",
+                    "price": 5000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andy Pages",
+                    "price": 280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nick Ahmed",
+                    "price": 260,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Slater",
+                    "price": 360,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Patrick Bailey",
+                    "price": 430,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Matt Chapman",
+                    "price": 700,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Teoscar Hernandez",
+                    "price": 260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "David Villar",
+                    "price": 250,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Fitzgerald",
+                    "price": 280,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Soler",
+                    "price": 310,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heliot Ramos",
+                    "price": 340,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "draftkings",
+            "title": "DraftKings",
+            "last_update": "2024-06-30T21:55:18Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:53:16Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Andy Pages",
+                    "price": 265,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Pages",
+                    "price": -380,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Slater",
+                    "price": 360,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Slater",
+                    "price": -550,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Chris Taylor",
+                    "price": 370,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Chris Taylor",
+                    "price": -575,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "David Villar",
+                    "price": 310,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "David Villar",
+                    "price": -475,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gavin Lux",
+                    "price": 320,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gavin Lux",
+                    "price": -475,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heliot Ramos",
+                    "price": 320,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heliot Ramos",
+                    "price": -475,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Soler",
+                    "price": 300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Soler",
+                    "price": -450,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Enrique Hernandez",
+                    "price": 400,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Enrique Hernandez",
+                    "price": -650,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luis Matos",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luis Matos",
+                    "price": -280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Matt Chapman",
+                    "price": 600,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Matt Chapman",
+                    "price": -1100,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nick Ahmed",
+                    "price": 310,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nick Ahmed",
+                    "price": -475,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Patrick Bailey",
+                    "price": 475,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Patrick Bailey",
+                    "price": -800,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Shohei Ohtani",
+                    "price": -310,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Fitzgerald",
+                    "price": 320,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Fitzgerald",
+                    "price": -475,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "bovada",
+            "title": "Bovada",
+            "last_update": "2024-06-30T21:55:21Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:52:30Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Andy Pages",
+                    "price": 260,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Pages",
+                    "price": -375,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Barnes",
+                    "price": 250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Barnes",
+                    "price": -350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Slater",
+                    "price": 350,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Slater",
+                    "price": -550,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Chris Taylor",
+                    "price": 375,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Chris Taylor",
+                    "price": -600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "David Villar",
+                    "price": 300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "David Villar",
+                    "price": -450,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gavin Lux",
+                    "price": 325,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gavin Lux",
+                    "price": -500,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heliot Ramos",
+                    "price": 325,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heliot Ramos",
+                    "price": -500,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Soler",
+                    "price": 300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Soler",
+                    "price": -450,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luis Matos",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luis Matos",
+                    "price": -275,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Matt Chapman",
+                    "price": 600,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Matt Chapman",
+                    "price": -1100,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nick Ahmed",
+                    "price": 325,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nick Ahmed",
+                    "price": -500,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Patrick Bailey",
+                    "price": 500,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Patrick Bailey",
+                    "price": -900,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Shohei Ohtani",
+                    "price": -300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Fitzgerald",
+                    "price": 325,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Fitzgerald",
+                    "price": -500,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "williamhill_us",
+            "title": "Caesars",
+            "last_update": "2024-06-30T21:55:14Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:51:35Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Matt Chapman",
+                    "price": 522,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Matt Chapman",
+                    "price": -1104,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Enrique Hernandez",
+                    "price": 376,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Enrique Hernandez",
+                    "price": -654,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Soler",
+                    "price": 275,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Soler",
+                    "price": -429,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Patrick Bailey",
+                    "price": 448,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Patrick Bailey",
+                    "price": -854,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heliot Ramos",
+                    "price": 300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heliot Ramos",
+                    "price": -479,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gavin Lux",
+                    "price": 300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gavin Lux",
+                    "price": -479,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andy Pages",
+                    "price": 236,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Pages",
+                    "price": -354,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nick Ahmed",
+                    "price": 287,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nick Ahmed",
+                    "price": -454,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Shohei Ohtani",
+                    "price": 196,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Shohei Ohtani",
+                    "price": -284,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Fitzgerald",
+                    "price": 311,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Fitzgerald",
+                    "price": -504,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "David Villar",
+                    "price": 287,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "David Villar",
+                    "price": -454,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luis Matos",
+                    "price": 184,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luis Matos",
+                    "price": -264,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Slater",
+                    "price": 334,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Slater",
+                    "price": -554,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Chris Taylor",
+                    "price": 345,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Chris Taylor",
+                    "price": -579,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "ef385836da77357c76087cbf36518abe",
+      "away_team": "Detroit Tigers",
+      "home_team": "Los Angeles Angels",
+      "commence_time": "2024-06-30T20:08:00Z",
+      "props": {
+        "id": "ef385836da77357c76087cbf36518abe",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T20:08:00Z",
+        "home_team": "Los Angeles Angels",
+        "away_team": "Detroit Tigers",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2024-06-30T21:55:28Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:52:44Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Luis Rengifo",
+                    "price": 104,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willie Calhoun",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Taylor Ward",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 162,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mark Canha",
+                    "price": 174,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel San\u00f3",
+                    "price": 182,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zach Neto",
+                    "price": 200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gio Urshela",
+                    "price": 235,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carson Kelly",
+                    "price": 175,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andy Ibanez",
+                    "price": 290,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Justyn-Henry Malloy",
+                    "price": 350,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Logan O'Hoppe",
+                    "price": 1600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mickey Moniak",
+                    "price": 2600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wenceel Perez",
+                    "price": 2600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake Rogers",
+                    "price": 2700,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Logan O'Hoppe",
+                    "price": 160,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wenceel Perez",
+                    "price": 210,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake Rogers",
+                    "price": 230,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mickey Moniak",
+                    "price": 240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carson Kelly",
+                    "price": 2000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Justyn-Henry Malloy",
+                    "price": 8000,
+                    "point": 3.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "draftkings",
+            "title": "DraftKings",
+            "last_update": "2024-06-30T21:55:18Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:35Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Andy Ibanez",
+                    "price": 380,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Ibanez",
+                    "price": -575,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carson Kelly",
+                    "price": 210,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carson Kelly",
+                    "price": -300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gio Urshela",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gio Urshela",
+                    "price": -265,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake Rogers",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake Rogers",
+                    "price": -285,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Justyn-Henry Malloy",
+                    "price": 330,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Justyn-Henry Malloy",
+                    "price": -500,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Logan O'Hoppe",
+                    "price": 170,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Logan O'Hoppe",
+                    "price": -240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mark Canha",
+                    "price": 160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mark Canha",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mickey Moniak",
+                    "price": 280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mickey Moniak",
+                    "price": -425,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel San\u00f3",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel San\u00f3",
+                    "price": -275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nolan Schanuel",
+                    "price": 265,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nolan Schanuel",
+                    "price": -380,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 140,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Riley Greene",
+                    "price": -195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Kreidler",
+                    "price": 400,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan Kreidler",
+                    "price": -600,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wenceel Perez",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wenceel Perez",
+                    "price": -280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zach Neto",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zach Neto",
+                    "price": -275,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "williamhill_us",
+            "title": "Caesars",
+            "last_update": "2024-06-30T21:55:14Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:36Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 143,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Riley Greene",
+                    "price": -199,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mickey Moniak",
+                    "price": 275,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mickey Moniak",
+                    "price": -429,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wenceel Perez",
+                    "price": 202,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wenceel Perez",
+                    "price": -294,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel San\u00f3",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel San\u00f3",
+                    "price": -274,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake Rogers",
+                    "price": 202,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake Rogers",
+                    "price": -294,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gio Urshela",
+                    "price": 184,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gio Urshela",
+                    "price": -264,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mark Canha",
+                    "price": 159,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mark Canha",
+                    "price": -224,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willie Calhoun",
+                    "price": 146,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Willie Calhoun",
+                    "price": -204,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Kreidler",
+                    "price": 376,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan Kreidler",
+                    "price": -654,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Logan O'Hoppe",
+                    "price": 159,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Logan O'Hoppe",
+                    "price": -224,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nolan Schanuel",
+                    "price": 252,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nolan Schanuel",
+                    "price": -384,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Taylor Ward",
+                    "price": 143,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Taylor Ward",
+                    "price": -199,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carson Kelly",
+                    "price": 208,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carson Kelly",
+                    "price": -304,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andy Ibanez",
+                    "price": 345,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Ibanez",
+                    "price": -579,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jo Adell",
+                    "price": 275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jo Adell",
+                    "price": -429,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zach Neto",
+                    "price": 202,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zach Neto",
+                    "price": -294,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Justyn-Henry Malloy",
+                    "price": 323,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Justyn-Henry Malloy",
+                    "price": -529,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "bovada",
+            "title": "Bovada",
+            "last_update": "2024-06-30T21:55:21Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:50:00Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Andy Ibanez",
+                    "price": 350,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andy Ibanez",
+                    "price": -550,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carson Kelly",
+                    "price": 220,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carson Kelly",
+                    "price": -300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gio Urshela",
+                    "price": 200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gio Urshela",
+                    "price": -275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake Rogers",
+                    "price": 220,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake Rogers",
+                    "price": -300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Justyn-Henry Malloy",
+                    "price": 350,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Justyn-Henry Malloy",
+                    "price": -550,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Logan O'Hoppe",
+                    "price": 170,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Logan O'Hoppe",
+                    "price": -225,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luis Rengifo",
+                    "price": 105,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luis Rengifo",
+                    "price": -135,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mark Canha",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mark Canha",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Mickey Moniak",
+                    "price": 300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Mickey Moniak",
+                    "price": -450,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel San\u00f3",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel San\u00f3",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nolan Schanuel",
+                    "price": 120,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nolan Schanuel",
+                    "price": -155,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Riley Greene",
+                    "price": 150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Riley Greene",
+                    "price": -200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Kreidler",
+                    "price": 425,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan Kreidler",
+                    "price": -700,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Taylor Ward",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Taylor Ward",
+                    "price": -170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wenceel Perez",
+                    "price": 220,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wenceel Perez",
+                    "price": -300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willie Calhoun",
+                    "price": 160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Willie Calhoun",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zach Neto",
+                    "price": 200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zach Neto",
+                    "price": -275,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "e351a98ae7a8095f2ff7e57eb76c794c",
+      "away_team": "Oakland Athletics",
+      "home_team": "Arizona Diamondbacks",
+      "commence_time": "2024-06-30T20:11:00Z",
+      "props": {
+        "id": "e351a98ae7a8095f2ff7e57eb76c794c",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T20:11:00Z",
+        "home_team": "Arizona Diamondbacks",
+        "away_team": "Oakland Athletics",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2024-06-30T21:55:28Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:52:53Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Christian Walker",
+                    "price": 4800,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle McCann",
+                    "price": 6000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Walker",
+                    "price": 220,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle McCann",
+                    "price": 270,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Joc Pederson",
+                    "price": 4300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Soderstrom",
+                    "price": 5000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ketel Marte",
+                    "price": 142,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corbin Carroll",
+                    "price": 154,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel Andujar",
+                    "price": 178,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": 205,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Brent Rooker",
+                    "price": 225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake McCarthy",
+                    "price": 270,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Nevin",
+                    "price": 270,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Joc Pederson",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Soderstrom",
+                    "price": 290,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zack Gelof",
+                    "price": 290,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "draftkings",
+            "title": "DraftKings",
+            "last_update": "2024-06-30T21:55:18Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:29Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Brent Rooker",
+                    "price": 260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Brent Rooker",
+                    "price": -380,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Walker",
+                    "price": 255,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Walker",
+                    "price": -370,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Eugenio Suarez",
+                    "price": 370,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Eugenio Suarez",
+                    "price": -575,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Geraldo Perdomo",
+                    "price": 500,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Geraldo Perdomo",
+                    "price": -900,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake McCarthy",
+                    "price": 320,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake McCarthy",
+                    "price": -475,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "JJ Bleday",
+                    "price": 650,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "JJ Bleday",
+                    "price": -1100,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle McCann",
+                    "price": 340,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Kyle McCann",
+                    "price": -525,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": 225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": -320,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel Andujar",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel Andujar",
+                    "price": -275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Nevin",
+                    "price": 340,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Nevin",
+                    "price": -525,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Soderstrom",
+                    "price": 285,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Soderstrom",
+                    "price": -425,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zack Gelof",
+                    "price": 320,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zack Gelof",
+                    "price": -475,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "williamhill_us",
+            "title": "Caesars",
+            "last_update": "2024-06-30T21:55:14Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:53:56Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Christian Walker",
+                    "price": 252,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Walker",
+                    "price": -384,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zack Gelof",
+                    "price": 300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zack Gelof",
+                    "price": -479,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "JJ Bleday",
+                    "price": 414,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "JJ Bleday",
+                    "price": -754,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake McCarthy",
+                    "price": 311,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake McCarthy",
+                    "price": -504,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Nevin",
+                    "price": 323,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Nevin",
+                    "price": -529,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Soderstrom",
+                    "price": 262,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Soderstrom",
+                    "price": -404,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Brent Rooker",
+                    "price": 227,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Brent Rooker",
+                    "price": -339,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle McCann",
+                    "price": 323,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Kyle McCann",
+                    "price": -529,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Geraldo Perdomo",
+                    "price": 448,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Geraldo Perdomo",
+                    "price": -854,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ketel Marte",
+                    "price": 178,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ketel Marte",
+                    "price": -254,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Joc Pederson",
+                    "price": 464,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Joc Pederson",
+                    "price": -904,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel Andujar",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel Andujar",
+                    "price": -234,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Eugenio Suarez",
+                    "price": 345,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Eugenio Suarez",
+                    "price": -579,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": 213,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": -314,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "bovada",
+            "title": "Bovada",
+            "last_update": "2024-06-30T21:55:21Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:45Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Brent Rooker",
+                    "price": 230,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Brent Rooker",
+                    "price": -325,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Walker",
+                    "price": 260,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Walker",
+                    "price": -375,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Eugenio Suarez",
+                    "price": 400,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Eugenio Suarez",
+                    "price": -650,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Geraldo Perdomo",
+                    "price": 600,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Geraldo Perdomo",
+                    "price": -1100,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jake McCarthy",
+                    "price": 350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jake McCarthy",
+                    "price": -550,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "JJ Bleday",
+                    "price": 450,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "JJ Bleday",
+                    "price": -750,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Joc Pederson",
+                    "price": 550,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Joc Pederson",
+                    "price": -1000,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ketel Marte",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ketel Marte",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Kyle McCann",
+                    "price": 350,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Kyle McCann",
+                    "price": -550,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": 250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Lourdes Gurriel Jr.",
+                    "price": -350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Miguel Andujar",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Miguel Andujar",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Nevin",
+                    "price": 350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Nevin",
+                    "price": -550,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Tyler Soderstrom",
+                    "price": 300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Tyler Soderstrom",
+                    "price": -450,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Zack Gelof",
+                    "price": 350,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Zack Gelof",
+                    "price": -550,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "c63fd8015ebaad0605f87d61d8879c54",
+      "away_team": "Minnesota Twins",
+      "home_team": "Seattle Mariners",
+      "commence_time": "2024-06-30T20:11:00Z",
+      "props": {
+        "id": "c63fd8015ebaad0605f87d61d8879c54",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T20:11:00Z",
+        "home_team": "Seattle Mariners",
+        "away_team": "Minnesota Twins",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2024-06-30T21:55:28Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:53:20Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Willi Castro",
+                    "price": 2900,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luke Raley",
+                    "price": 5000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Vazquez",
+                    "price": 250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Royce Lewis",
+                    "price": 290,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Julio Rodriguez",
+                    "price": 135,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Max Kepler",
+                    "price": 130,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Rojas",
+                    "price": 160,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "J.P. Crawford",
+                    "price": 165,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Dylan Moore",
+                    "price": 175,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Martin",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 230,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jose Miranda",
+                    "price": 250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Trevor Larnach",
+                    "price": 330,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willi Castro",
+                    "price": 230,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luke Raley",
+                    "price": 320,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Max Kepler",
+                    "price": 1200,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Julio Rodriguez",
+                    "price": 1300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Rojas",
+                    "price": 1800,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "J.P. Crawford",
+                    "price": 1900,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Dylan Moore",
+                    "price": 1900,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Martin",
+                    "price": 2400,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 3000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jose Miranda",
+                    "price": 3600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Trevor Larnach",
+                    "price": 5000,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "williamhill_us",
+            "title": "Caesars",
+            "last_update": "2024-06-30T21:55:14Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:07Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Royce Lewis",
+                    "price": 252,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Royce Lewis",
+                    "price": -384,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willi Castro",
+                    "price": 202,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Willi Castro",
+                    "price": -294,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 236,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Cal Raleigh",
+                    "price": -354,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jose Miranda",
+                    "price": 196,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jose Miranda",
+                    "price": -284,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Martin",
+                    "price": 184,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Martin",
+                    "price": -264,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "J.P. Crawford",
+                    "price": 172,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "J.P. Crawford",
+                    "price": -244,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Julio Rodriguez",
+                    "price": 133,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Julio Rodriguez",
+                    "price": -184,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luke Raley",
+                    "price": 323,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luke Raley",
+                    "price": -529,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Rojas",
+                    "price": 184,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Rojas",
+                    "price": -264,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Trevor Larnach",
+                    "price": 300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Trevor Larnach",
+                    "price": -479,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Byron Buxton",
+                    "price": 287,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Byron Buxton",
+                    "price": -454,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Polanco",
+                    "price": 311,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Polanco",
+                    "price": -504,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Max Kepler",
+                    "price": 136,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Max Kepler",
+                    "price": -189,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Vazquez",
+                    "price": 202,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Vazquez",
+                    "price": -294,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ty France",
+                    "price": 287,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ty France",
+                    "price": -454,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carlos Santana",
+                    "price": 275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carlos Santana",
+                    "price": -429,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "bovada",
+            "title": "Bovada",
+            "last_update": "2024-06-30T21:55:21Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:51:25Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Austin Martin",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Martin",
+                    "price": -275,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Cal Raleigh",
+                    "price": -350,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carlos Santana",
+                    "price": 325,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carlos Santana",
+                    "price": -500,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Vazquez",
+                    "price": 220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Vazquez",
+                    "price": -300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jose Miranda",
+                    "price": 220,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jose Miranda",
+                    "price": -300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Rojas",
+                    "price": 190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Rojas",
+                    "price": -260,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Julio Rodriguez",
+                    "price": 145,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Julio Rodriguez",
+                    "price": -190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luke Raley",
+                    "price": 375,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luke Raley",
+                    "price": -600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Max Kepler",
+                    "price": 145,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Max Kepler",
+                    "price": -190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Royce Lewis",
+                    "price": 260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Royce Lewis",
+                    "price": -375,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Trevor Larnach",
+                    "price": 350,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Trevor Larnach",
+                    "price": -550,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willi Castro",
+                    "price": 220,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Willi Castro",
+                    "price": -300,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "draftkings",
+            "title": "DraftKings",
+            "last_update": "2024-06-30T21:55:18Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:39Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Austin Martin",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Martin",
+                    "price": -280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Byron Buxton",
+                    "price": 320,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Byron Buxton",
+                    "price": -475,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cal Raleigh",
+                    "price": 245,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Cal Raleigh",
+                    "price": -350,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Carlos Santana",
+                    "price": 300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Carlos Santana",
+                    "price": -450,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Christian Vazquez",
+                    "price": 205,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Christian Vazquez",
+                    "price": -295,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Polanco",
+                    "price": 350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Polanco",
+                    "price": -525,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jose Miranda",
+                    "price": 205,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jose Miranda",
+                    "price": -295,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Julio Rodriguez",
+                    "price": 140,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Julio Rodriguez",
+                    "price": -195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Luke Raley",
+                    "price": 350,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Luke Raley",
+                    "price": -550,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Max Kepler",
+                    "price": 140,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Max Kepler",
+                    "price": -190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Royce Lewis",
+                    "price": 250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Royce Lewis",
+                    "price": -370,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Trevor Larnach",
+                    "price": 330,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Trevor Larnach",
+                    "price": -500,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ty France",
+                    "price": 310,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ty France",
+                    "price": -450,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Willi Castro",
+                    "price": 200,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Willi Castro",
+                    "price": -285,
+                    "point": 2.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "6fec9549d84c687814daa785b8a67c1b",
+      "away_team": "Texas Rangers",
+      "home_team": "Baltimore Orioles",
+      "commence_time": "2024-06-30T23:10:00Z",
+      "props": {
+        "id": "6fec9549d84c687814daa785b8a67c1b",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-06-30T23:10:00Z",
+        "home_team": "Baltimore Orioles",
+        "away_team": "Texas Rangers",
+        "bookmakers": [
+          {
+            "key": "fanduel",
+            "title": "FanDuel",
+            "last_update": "2024-06-30T21:55:28Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:53:29Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 155,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 180,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 210,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 230,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": 240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": 270,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 270,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 280,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 290,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": 340,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": 360,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 370,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": 410,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 420,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": -330,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": -300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": -280,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": -270,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -270,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -240,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -175,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 650,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 850,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 950,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 1000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 1000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 1100,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 1100,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 1200,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": 1200,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": 1300,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 1400,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 1400,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 1400,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 1900,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": 2000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": 2000,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": 2500,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 2600,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 3200,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 4900,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 5000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 6000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 6000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 6500,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 6500,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 7000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": 7500,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": 9000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 9000,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 9500,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 9500,
+                    "point": 3.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "mybookieag",
+            "title": "MyBookie.ag",
+            "last_update": "2024-06-30T21:55:27Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:45Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": -167,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": 300,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": 1250,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 189,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 680,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 255,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 950,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -222,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 232,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 920,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": -159,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": 370,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": 1650,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": -350,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 174,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 530,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 1725,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": -310,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 550,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 1750,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -238,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 670,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": -152,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": 380,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": 1700,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": -380,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 152,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 500,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 1700,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -232,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 191,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 660,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": 226,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": 960,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -139,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 320,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 1175,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -265,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 179,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 640,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": -125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": 440,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": 1900,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": -319,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 186,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 540,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 1750,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": -300,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 199,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 560,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 1750,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 270,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 1025,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -208,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 242,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 950,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": -400,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 149,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 490,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 1700,
+                    "point": 3.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "betonlineag",
+            "title": "BetOnline.ag",
+            "last_update": "2024-06-30T21:55:12Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:31Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 677,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 189,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 668,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 188,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": -159,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": 368,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ramon Urias",
+                    "price": 1652,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 1738,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 533,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": -333,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 178,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": -167,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": 298,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Cedric Mullins",
+                    "price": 1239,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": 1696,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": 380,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Leody Taveras",
+                    "price": -152,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 152,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 1694,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 497,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": -385,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": -312,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 552,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 1753,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 919,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 234,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -217,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 254,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 950,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 1686,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 146,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 489,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": -400,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 950,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -208,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 242,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 186,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": -323,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 542,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 1745,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -233,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 656,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 191,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": 226,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Corey Seager",
+                    "price": 963,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -169,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 272,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 1019,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -263,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 179,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 645,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": 437,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": -125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Travis Jankowski",
+                    "price": 1902,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 199,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 556,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 1756,
+                    "point": 3.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": -303,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -139,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 316,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 1183,
+                    "point": 2.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 181,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 183,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan Mountcastle",
+                    "price": 152,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan Mountcastle",
+                    "price": -200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 178,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -238,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -217,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 140,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 146,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -192,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 186,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -233,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 174,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -208,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 158,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 194,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -263,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 199,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -270,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -139,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 107,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jonah Heim",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jonah Heim",
+                    "price": -263,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -169,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 130,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "draftkings",
+            "title": "DraftKings",
+            "last_update": "2024-06-30T21:55:18Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:01Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 185,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -255,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 180,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -255,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -255,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -230,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -140,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 100,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Davis Wendzel",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -265,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Derek Hill",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 145,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -200,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -230,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 205,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -290,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "williamhill_us",
+            "title": "Caesars",
+            "last_update": "2024-06-30T21:55:14Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:55:19Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 178,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -254,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -204,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 146,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -199,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 143,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -145,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Davis Wendzel",
+                    "price": 106,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -224,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 159,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -169,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 123,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 152,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -214,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 178,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -254,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 159,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -224,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -204,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 146,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -234,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -244,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 172,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -166,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -274,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Derek Hill",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -234,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -254,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 178,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -199,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 143,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -145,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 106,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "betmgm",
+            "title": "BetMGM",
+            "last_update": "2024-06-30T21:55:15Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:53:51Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -275,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -175,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Davis Wendzel",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -145,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 110,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 180,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 175,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 165,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -225,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 145,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 185,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -175,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 155,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "betrivers",
+            "title": "BetRivers",
+            "last_update": "2024-06-30T21:55:07Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:48Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": 285,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": -420,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 215,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -295,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": -235,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": 175,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -278,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 205,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": -335,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": 240,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -210,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 155,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": 240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": -335,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -205,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 155,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -265,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -265,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": 295,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": -435,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 188,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 180,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -245,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": 230,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": -315,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": 295,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": -435,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": 240,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": -335,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": 270,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": -385,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 265,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -375,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": -305,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": 220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": 210,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": -295,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": -278,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": 205,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 195,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -265,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -225,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": 260,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": -385,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -186,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 140,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": 340,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": -530,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -167,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 128,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": 375,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": -590,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -195,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Derek Hill",
+                    "price": 148,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": 380,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": -590,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -162,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 123,
+                    "point": 0.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "superbook",
+            "title": "SuperBook",
+            "last_update": "2024-06-30T21:54:38Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:50Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 180,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -248,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -220,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -232,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -174,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jorge Mateo",
+                    "price": -240,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jorge Mateo",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 146,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -196,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -232,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -214,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 158,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -178,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Davis Wendzel",
+                    "price": 130,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -248,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 186,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -254,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -142,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 108,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -280,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Derek Hill",
+                    "price": 200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -166,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 124,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -248,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 166,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -224,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "bovada",
+            "title": "Bovada",
+            "last_update": "2024-06-30T21:55:21Z",
+            "markets": [
+              {
+                "key": "batter_hits",
+                "last_update": "2024-06-30T21:54:53Z",
+                "outcomes": [
+                  {
+                    "name": "Over",
+                    "description": "Adley Rutschman",
+                    "price": 185,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adley Rutschman",
+                    "price": -250,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Adolis Garcia",
+                    "price": 170,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Adolis Garcia",
+                    "price": -230,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Andrew Knizner",
+                    "price": -200,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Andrew Knizner",
+                    "price": 150,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Anthony Santander",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Anthony Santander",
+                    "price": 185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Austin Hays",
+                    "price": -250,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Austin Hays",
+                    "price": 185,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Colton Cowser",
+                    "price": -145,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Colton Cowser",
+                    "price": 110,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Davis Wendzel",
+                    "price": -160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Davis Wendzel",
+                    "price": 120,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Derek Hill",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Derek Hill",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Gunnar Henderson",
+                    "price": -230,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Gunnar Henderson",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Heston Kjerstad",
+                    "price": -165,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Heston Kjerstad",
+                    "price": 125,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Jordan Westburg",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Jordan Westburg",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Josh Smith",
+                    "price": -215,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Josh Smith",
+                    "price": 160,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Marcus Semien",
+                    "price": 145,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Marcus Semien",
+                    "price": -190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Nathaniel Lowe",
+                    "price": -230,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Nathaniel Lowe",
+                    "price": 170,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Robbie Grossman",
+                    "price": -260,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Robbie Grossman",
+                    "price": 190,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Ryan O'Hearn",
+                    "price": -180,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Ryan O'Hearn",
+                    "price": 135,
+                    "point": 0.5
+                  },
+                  {
+                    "name": "Over",
+                    "description": "Wyatt Langford",
+                    "price": 190,
+                    "point": 1.5
+                  },
+                  {
+                    "name": "Under",
+                    "description": "Wyatt Langford",
+                    "price": -260,
+                    "point": 1.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "15887187d59ee45403630947e2cb2977",
+      "away_team": "Houston Astros",
+      "home_team": "Toronto Blue Jays",
+      "commence_time": "2024-07-01T19:08:00Z",
+      "props": {
+        "id": "15887187d59ee45403630947e2cb2977",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-07-01T19:08:00Z",
+        "home_team": "Toronto Blue Jays",
+        "away_team": "Houston Astros",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "a8eb78abb9402eabd2edf5e19522382b",
+      "away_team": "New York Mets",
+      "home_team": "Washington Nationals",
+      "commence_time": "2024-07-01T22:46:00Z",
+      "props": {
+        "id": "a8eb78abb9402eabd2edf5e19522382b",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-07-01T22:46:00Z",
+        "home_team": "Washington Nationals",
+        "away_team": "New York Mets",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "0761d558b9bd0c01ee6af1e5f48c07cb",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Colorado Rockies",
+      "commence_time": "2024-07-02T00:41:00Z",
+      "props": {
+        "id": "0761d558b9bd0c01ee6af1e5f48c07cb",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2024-07-02T00:41:00Z",
+        "home_team": "Colorado Rockies",
+        "away_team": "Milwaukee Brewers",
+        "bookmakers": []
+      }
+    }
+  ],
+  "credits_remaining": "4986149"
+}

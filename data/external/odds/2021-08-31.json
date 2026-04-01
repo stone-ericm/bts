@@ -1,0 +1,93 @@
+{
+  "date": "2021-08-31",
+  "timestamp": "2021-08-31T22:00:00Z",
+  "n_events": 14,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "dd685e2229e10207615fa58370c2a267",
+      "away_team": "Cleveland Indians",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8eb4becc34f5e6c83f1f8829ccc96b23",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2b2ae37d7ac88e8fe5358be1e7731569",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "77e5df1ea8246763c0e893b843ed3161",
+      "away_team": "Oakland Athletics",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f9787dd2833e09a51ab242c5d21add32",
+      "away_team": "Colorado Rockies",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e36e933c8df7415ef0ff12160222fdc1",
+      "away_team": "Chicago Cubs",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "39fefc0e8634394577e26e33ed10a571",
+      "away_team": "San Diego Padres",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "752111f374cd01df7d419b984d111a66",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "43e5072c0c5a1d1c285688b4e372810e",
+      "away_team": "Atlanta Braves",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fa2555f803436fba175e3b20eec5139b",
+      "away_team": "Houston Astros",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bf9ef41e0428c331dfa36a1a1149a8d0",
+      "away_team": "New York Yankees",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a63c7caf867c9a216e75c0c664a21991",
+      "away_team": "Miami Marlins",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fe960f16d845084c142da69abacc2c8e",
+      "away_team": "Boston Red Sox",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3bbc0009de4c985dfd4301ea14aa9dfa",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999836"
+}

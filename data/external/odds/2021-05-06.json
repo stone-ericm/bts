@@ -1,0 +1,33 @@
+{
+  "date": "2021-05-06",
+  "timestamp": "2021-05-06T22:00:00Z",
+  "n_events": 4,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b3c39572f19482ab44b2d51d64c0a141",
+      "away_team": "Atlanta Braves",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e35a59b42d0dde75fd6c2703b9f262c5",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c04ad7b68a6a4ce973a47d0e06b4e8c5",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a5c2339fe2286df47f5b34d28cfa893c",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999953"
+}

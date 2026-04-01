@@ -1,0 +1,93 @@
+{
+  "date": "2022-04-15",
+  "timestamp": "2022-04-15T22:00:00Z",
+  "n_events": 14,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "83bca89feac802fd48dfc8229a2e70b6",
+      "away_team": "Minnesota Twins",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "38a45cb47a565822b37dea86abfe1f9c",
+      "away_team": "Oakland Athletics",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8ac1405e322e7508aafbcb95ef9e478a",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b6699aacd783147ca22ac049702c71b9",
+      "away_team": "San Francisco Giants",
+      "home_team": "Cleveland Guardians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c9693473a7673332de711c0a0d882ef3",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9d2f69d9bf6b09c2ec3254bf6f15e86e",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5771dafdac16c34ccf6563ad0328d375",
+      "away_team": "Washington Nationals",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a2669f16a683adea5ea17adfda707043",
+      "away_team": "Houston Astros",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "61d0a345a6d4a57fa7020997734b32f5",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4a97461409b9875f58c50a8981e347aa",
+      "away_team": "Atlanta Braves",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c243118efdaab7318d25ea9d6e3bce99",
+      "away_team": "Detroit Tigers",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "374b5fe1abf3d9b4183f868af020a5f1",
+      "away_team": "New York Yankees",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "36d7281f431c785bbee83087b9b4ef0b",
+      "away_team": "Chicago Cubs",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "66316d5b1d38462b4824cc416ed3e805",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999794"
+}

@@ -1,0 +1,63 @@
+{
+  "date": "2022-04-14",
+  "timestamp": "2022-04-14T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "9064007e76ec0f6906e8270562617a35",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bdbd340ffd289eeef4449dd99d16d855",
+      "away_team": "Washington Nationals",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6f9a2be16f51014361079b39a5a367c6",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ea147ce8e5f5f62d5fd71ab5306cfdf8",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6683a35e96b22b05e1930d4e82f4b4ce",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1f30d32a30722bbb8880bdcf0947b00f",
+      "away_team": "Atlanta Braves",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7dc8843f40f3ea8382487d65c85008a0",
+      "away_team": "Chicago Cubs",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1a1d72e0e4939f8dbe0dbc58cb95f9c9",
+      "away_team": "Detroit Tigers",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ecbdb297a5db6efe4dca628fa36615bc",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999795"
+}

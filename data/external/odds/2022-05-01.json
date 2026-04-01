@@ -1,0 +1,51 @@
+{
+  "date": "2022-05-01",
+  "timestamp": "2022-05-01T22:00:00Z",
+  "n_events": 7,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "91a4c1b4da15c67d8c9d33061b934cd4",
+      "away_team": "Boston Red Sox",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "954dadc9ba9a30ba37486841e361d6ac",
+      "away_team": "San Diego Padres",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8de187c87473564211131c9aa3ab804a",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b44cc6e1145f11a084c9ddd695277b33",
+      "away_team": "Washington Nationals",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c90c3d55c42679263ec87bde81848e9d",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1dedb27843cdfbc0c3ad7ef4679f7890",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d6eab7f62f0cd6737c7c907eefca4012",
+      "away_team": "Detroit Tigers",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999778"
+}

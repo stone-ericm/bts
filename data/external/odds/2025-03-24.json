@@ -1,0 +1,234 @@
+{
+  "date": "2025-03-24",
+  "timestamp": "2025-03-24T22:00:00Z",
+  "n_events": 15,
+  "n_with_props": 15,
+  "events": [
+    {
+      "event_id": "91b0003e1f948b2e8dd065b2edb48457",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "New York Yankees",
+      "commence_time": "2025-03-27T19:05:00Z",
+      "props": {
+        "id": "91b0003e1f948b2e8dd065b2edb48457",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T19:05:00Z",
+        "home_team": "New York Yankees",
+        "away_team": "Milwaukee Brewers",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "65211308f0f91aaf4fa7d7a7d6b0b1f1",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "commence_time": "2025-03-27T19:07:00Z",
+      "props": {
+        "id": "65211308f0f91aaf4fa7d7a7d6b0b1f1",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T19:07:00Z",
+        "home_team": "Toronto Blue Jays",
+        "away_team": "Baltimore Orioles",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "708aca021091b589a655c8d020ca0a41",
+      "away_team": "Boston Red Sox",
+      "home_team": "Texas Rangers",
+      "commence_time": "2025-03-27T20:05:00Z",
+      "props": {
+        "id": "708aca021091b589a655c8d020ca0a41",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:05:00Z",
+        "home_team": "Texas Rangers",
+        "away_team": "Boston Red Sox",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "f94eecb922d6a386480695645c795a6c",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Washington Nationals",
+      "commence_time": "2025-03-27T20:05:00Z",
+      "props": {
+        "id": "f94eecb922d6a386480695645c795a6c",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:05:00Z",
+        "home_team": "Washington Nationals",
+        "away_team": "Philadelphia Phillies",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "d8f58d7be766e68de54c5a8026f11ee3",
+      "away_team": "Atlanta Braves",
+      "home_team": "San Diego Padres",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "d8f58d7be766e68de54c5a8026f11ee3",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "San Diego Padres",
+        "away_team": "Atlanta Braves",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "4894dbca42b346cb11933fa12281afac",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Chicago White Sox",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "4894dbca42b346cb11933fa12281afac",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "Chicago White Sox",
+        "away_team": "Los Angeles Angels",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "253f6616bc79e7f3ea32e3d99e7ec22d",
+      "away_team": "San Francisco Giants",
+      "home_team": "Cincinnati Reds",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "253f6616bc79e7f3ea32e3d99e7ec22d",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "Cincinnati Reds",
+        "away_team": "San Francisco Giants",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "142fb70590876de4e6bcdd7c2c573b75",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Kansas City Royals",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "142fb70590876de4e6bcdd7c2c573b75",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "Kansas City Royals",
+        "away_team": "Cleveland Guardians",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "ff8f3c3a438d8a757f1db41acc5b2c97",
+      "away_team": "New York Mets",
+      "home_team": "Houston Astros",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "ff8f3c3a438d8a757f1db41acc5b2c97",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "Houston Astros",
+        "away_team": "New York Mets",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "bf85db32e1aaf8f18745ef8d95291e96",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Miami Marlins",
+      "commence_time": "2025-03-27T20:10:00Z",
+      "props": {
+        "id": "bf85db32e1aaf8f18745ef8d95291e96",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:10:00Z",
+        "home_team": "Miami Marlins",
+        "away_team": "Pittsburgh Pirates",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "12660fafc55fd09d81e366232c8596b1",
+      "away_team": "Minnesota Twins",
+      "home_team": "St. Louis Cardinals",
+      "commence_time": "2025-03-27T20:15:00Z",
+      "props": {
+        "id": "12660fafc55fd09d81e366232c8596b1",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T20:15:00Z",
+        "home_team": "St. Louis Cardinals",
+        "away_team": "Minnesota Twins",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "f1850a3586e7fe1bfbf52e794af5fee5",
+      "away_team": "Detroit Tigers",
+      "home_team": "Los Angeles Dodgers",
+      "commence_time": "2025-03-27T23:10:00Z",
+      "props": {
+        "id": "f1850a3586e7fe1bfbf52e794af5fee5",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-27T23:10:00Z",
+        "home_team": "Los Angeles Dodgers",
+        "away_team": "Detroit Tigers",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "616968030acffc897d4291919a2f2d2d",
+      "away_team": "Chicago Cubs",
+      "home_team": "Arizona Diamondbacks",
+      "commence_time": "2025-03-28T02:10:00Z",
+      "props": {
+        "id": "616968030acffc897d4291919a2f2d2d",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-28T02:10:00Z",
+        "home_team": "Arizona Diamondbacks",
+        "away_team": "Chicago Cubs",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "71e1d9600d6493e154d90bde08a406a4",
+      "away_team": "Oakland Athletics",
+      "home_team": "Seattle Mariners",
+      "commence_time": "2025-03-28T02:10:00Z",
+      "props": {
+        "id": "71e1d9600d6493e154d90bde08a406a4",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-28T02:10:00Z",
+        "home_team": "Seattle Mariners",
+        "away_team": "Oakland Athletics",
+        "bookmakers": []
+      }
+    },
+    {
+      "event_id": "ec09334eefe13119d0ebb9c7f085115f",
+      "away_team": "Colorado Rockies",
+      "home_team": "Tampa Bay Rays",
+      "commence_time": "2025-03-28T20:10:00Z",
+      "props": {
+        "id": "ec09334eefe13119d0ebb9c7f085115f",
+        "sport_key": "baseball_mlb",
+        "sport_title": "MLB",
+        "commence_time": "2025-03-28T20:10:00Z",
+        "home_team": "Tampa Bay Rays",
+        "away_team": "Colorado Rockies",
+        "bookmakers": []
+      }
+    }
+  ],
+  "credits_remaining": "4976693"
+}

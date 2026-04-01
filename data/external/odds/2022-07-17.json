@@ -1,0 +1,33 @@
+{
+  "date": "2022-07-17",
+  "timestamp": "2022-07-17T22:00:00Z",
+  "n_events": 4,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "ebf47efbd3bdddecc967d3c97eb6f838",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "43dde4bf07711c95b30225c7330d5466",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "cc77cd3d885ba7028785eb2245a23eb9",
+      "away_team": "Seattle Mariners",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "128a6879def08253df191479a741382a",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999701"
+}

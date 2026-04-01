@@ -1,0 +1,33 @@
+{
+  "date": "2021-07-25",
+  "timestamp": "2021-07-25T22:00:00Z",
+  "n_events": 4,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "2e3a0eb6b80c790c6d6a6cb80bc5c89a",
+      "away_team": "Chicago White Sox",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ae7f767102370da77a49a7b5bc00c4f1",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "722efed39427e71b03da61282fd7a862",
+      "away_team": "Colorado Rockies",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0210b81a458ad4865c720257a666f114",
+      "away_team": "Oakland Athletics",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999873"
+}

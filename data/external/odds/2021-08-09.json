@@ -1,0 +1,39 @@
+{
+  "date": "2021-08-09",
+  "timestamp": "2021-08-09T22:00:00Z",
+  "n_events": 5,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b6cb1259acbe0db8724aaf18165a725e",
+      "away_team": "New York Yankees",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "86612b4f68492a7e5cc57a03bc1425bb",
+      "away_team": "Miami Marlins",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "98002741d282a441b80511a71f6d73be",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f3726007b2f94f4fe4e8d52a46941fd2",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c16002d7fe6a1342b29693b81a00a627",
+      "away_team": "Chicago White Sox",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999858"
+}

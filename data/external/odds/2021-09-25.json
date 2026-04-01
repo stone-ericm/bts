@@ -1,0 +1,93 @@
+{
+  "date": "2021-09-25",
+  "timestamp": "2021-09-25T22:00:00Z",
+  "n_events": 14,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "fee9fa8eed70e57891c0b6df6db242ee",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "cff577b9a17276998e7f5e8ea19c2f58",
+      "away_team": "Kansas City Royals",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a5c467958fddfa558dc0188afebfe4d2",
+      "away_team": "Miami Marlins",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "72a23d60a976af2794087c9acf7e1242",
+      "away_team": "New York Yankees",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "283b6ff86d99ac94a75c88d856ce9664",
+      "away_team": "Washington Nationals",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c89a2812c1ba9e62c49e4d058479a7d6",
+      "away_team": "Chicago White Sox",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0ae9aea4cb341155541046b3e0945ec0",
+      "away_team": "San Francisco Giants",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "19a6f5ff45bb849c5a209f1f025d4353",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7469fd0ead011fde3b4a2a6a6b388f97",
+      "away_team": "Houston Astros",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bbcf0f9b00d3657c8e88c489e0afd0b7",
+      "away_team": "Texas Rangers",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ff043f8bc4ad09536e41ab3de73bf64a",
+      "away_team": "New York Mets",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a10a48aec0495231e43ad61110c478b6",
+      "away_team": "Seattle Mariners",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d6e80b6c75c61e90ca1e4d748039711e",
+      "away_team": "Atlanta Braves",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0f2a5f2a01b6a8921c065b3ba9ffb469",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999811"
+}

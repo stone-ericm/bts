@@ -1,0 +1,51 @@
+{
+  "date": "2021-08-19",
+  "timestamp": "2021-08-19T22:00:00Z",
+  "n_events": 7,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "d676a299318cb9a1b512fa4381f3a455",
+      "away_team": "Seattle Mariners",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "79dca5e7edf0f5b7e65e4bd5016f5904",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2d0de7bfa8d3afcf68d69b9eea56d4fc",
+      "away_team": "Houston Astros",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "74d0454d612bc14a05a59245c3423bae",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "eb3a1533b1ec5dd813c66b5c19bc63d9",
+      "away_team": "Minnesota Twins",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f083e85a3121482369ea571e31ffd1a6",
+      "away_team": "Miami Marlins",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "05aff41c3e64a781f8d639d2e6532e2b",
+      "away_team": "New York Mets",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999848"
+}

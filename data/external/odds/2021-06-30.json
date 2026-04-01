@@ -1,0 +1,87 @@
+{
+  "date": "2021-06-30",
+  "timestamp": "2021-06-30T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "a89e4d5e951296d94959a65c6cccc538",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d75a80055e8c1c83fda34cd95046c8a7",
+      "away_team": "New York Mets",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1732dfc3bd2c66b360d73c7bf0afba6b",
+      "away_team": "Texas Rangers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7fdf1bba9fee874a1e8121af3209813b",
+      "away_team": "San Diego Padres",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "99e2b4f594339d3a043b53fc91f86c85",
+      "away_team": "Miami Marlins",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "28803681ce8313833fa55a37d6fa0490",
+      "away_team": "Chicago Cubs",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "390bbc144b33e5602ecdff5f66b814d9",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0a2f656c32367a42c20aa6585b005762",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5c45d0d10097b4a851701b1efca295d0",
+      "away_team": "Detroit Tigers",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8669840504db8ab575d8bd40f3e425fd",
+      "away_team": "Minnesota Twins",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "58d4a671e119b4a0421fd0e6f010e99e",
+      "away_team": "Los Angeles Angels",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3197c116993fb0aa52eaf89057f0085d",
+      "away_team": "Seattle Mariners",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a9915d158b9fb5b5adee1b5ea9a33166",
+      "away_team": "Kansas City Royals",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999898"
+}

@@ -1,0 +1,87 @@
+{
+  "date": "2022-06-01",
+  "timestamp": "2022-06-01T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "f388a862fec55332279b89d8411d2511",
+      "away_team": "Houston Astros",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "57729b2f17416da2da4f26847ec51178",
+      "away_team": "Atlanta Braves",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "52749027f13149f00716e115fac832e3",
+      "away_team": "San Francisco Giants",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3da5d15601d52a264bc7a95f3d1fce23",
+      "away_team": "Los Angeles Angels",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5fa9b42b7c7b1e5e01efa36185cceac1",
+      "away_team": "Seattle Mariners",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8f22a520761959a311007822d743de58",
+      "away_team": "Chicago White Sox",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "01c91f09464c4a698c57f269868db2c3",
+      "away_team": "Minnesota Twins",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ea0062a18869999f81d6e2dd002c113c",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "dc64c4d8110906f0f5909682583b6cbb",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7f1840405cffdf8907dea1f0a3fbd466",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "be56f278e8487e98000da4ff59c8a782",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3fd92a3494df256c96f2c29b52fdf5ec",
+      "away_team": "Miami Marlins",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ecd3ddd901c7e007e266f3120ad22e9f",
+      "away_team": "Miami Marlins",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999747"
+}

@@ -1,0 +1,45 @@
+{
+  "date": "2022-04-13",
+  "timestamp": "2022-04-13T22:00:00Z",
+  "n_events": 6,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "03d9c250f533c56f808b7965f6ff6311",
+      "away_team": "San Diego Padres",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1cf4edb5bd81a3a2c597339462a3bab5",
+      "away_team": "Houston Astros",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6bfe93d8b7bcd4a7c0b048a21532781e",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7464fa8a187a875d301e37c5ff41f4ec",
+      "away_team": "Seattle Mariners",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "82b2a644db7b89ee14a650634086f718",
+      "away_team": "Oakland Athletics",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b7eb5a9bb22e440f447f52971264d6c2",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999796"
+}

@@ -2,10 +2,9 @@
 # BTS daily automation cron setup for Mac.
 # All times are in the system timezone (ET assumed).
 #
-# Schedule:
-#   11:00 AM ET — Early games (1-3pm starts)
-#   4:00 PM ET  — Bulk games (6-8pm starts)
-#   7:30 PM ET  — West coast (9-10pm starts), always posts
+# Schedule (densest bucket strategy):
+#   11:00 AM ET — Early game check (lock only if early is densest + P>80%)
+#   4:00 PM ET  — Main run (pick from densest window, post to Bluesky)
 #   1:00 AM ET  — Check yesterday's results, update streak
 #
 # Usage: bash scripts/cron-setup.sh [install|show|remove]
@@ -35,7 +34,6 @@ rotate_log() {
 CRON_LINES="$MARKER
 0 11 * * * cd $BTS_DIR && $UV_PREFIX uv run bts run --date \$(date +\%Y-\%m-\%d) >> $LOG_DIR/automation.log 2>&1 $MARKER
 0 16 * * * cd $BTS_DIR && $UV_PREFIX uv run bts run --date \$(date +\%Y-\%m-\%d) >> $LOG_DIR/automation.log 2>&1 $MARKER
-30 19 * * * cd $BTS_DIR && $UV_PREFIX uv run bts run --date \$(date +\%Y-\%m-\%d) >> $LOG_DIR/automation.log 2>&1 $MARKER
 0 1 * * * cd $BTS_DIR && $UV_PREFIX uv run bts check-results --date $YESTERDAY_CMD >> $LOG_DIR/automation.log 2>&1 $MARKER"
 
 case "${1:-show}" in

@@ -1,0 +1,63 @@
+{
+  "date": "2021-06-24",
+  "timestamp": "2021-06-24T22:00:00Z",
+  "n_events": 9,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "d2caa23987788f310635857f138c52ca",
+      "away_team": "Atlanta Braves",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6eb8aeed02b577ccebd953073396e461",
+      "away_team": "Washington Nationals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "76cb529e0d3c74a166b1ecaa25511f5a",
+      "away_team": "Cleveland Indians",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "34634e75767abe7b6c5ba1afdc429d63",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "04e4274053cd73ac33a05003ae8faccc",
+      "away_team": "Chicago Cubs",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1ff9dbb686e352bcee0a93cc2fabe22c",
+      "away_team": "Houston Astros",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "acfa00b69bb77bd26f2b04b156377b76",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4ee7118375935516c924aec0fce5d35a",
+      "away_team": "Boston Red Sox",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5b8b2121ff079067db54740e54fd60f0",
+      "away_team": "Colorado Rockies",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999904"
+}

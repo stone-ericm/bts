@@ -1,0 +1,87 @@
+{
+  "date": "2022-06-20",
+  "timestamp": "2022-06-20T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "e99da246c0f6fea0296bc7f78c950b79",
+      "away_team": "Chicago Cubs",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c97c084cd6267fde246530ea5c85fade",
+      "away_team": "Detroit Tigers",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fcc914adb0778216a1f1a1687f149252",
+      "away_team": "New York Yankees",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "192e82b267e74d29f3518afced6e88fd",
+      "away_team": "San Francisco Giants",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "89977fcfb07495b12d0f5df61cd62eb1",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0826041673726b901e7b180a713da125",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "36b3778474d2ad720dd49c7bf1968560",
+      "away_team": "Kansas City Royals",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0a9b22efb3bdd396de99d515e32ecf86",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a2de41920743d56cb06fccaef64e2b02",
+      "away_team": "Seattle Mariners",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "19ab58170bf4ab2333dcaec5a677baee",
+      "away_team": "Colorado Rockies",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "55affd2b9ff9e5d90ebfd51f5a306fa4",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3dace265f1e6c04788ad68b0513ed202",
+      "away_team": "Chicago Cubs",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "970ddc3f1d4bfcd0135347d28fc15d05",
+      "away_team": "Detroit Tigers",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999728"
+}

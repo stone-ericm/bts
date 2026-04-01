@@ -1,0 +1,81 @@
+{
+  "date": "2021-08-21",
+  "timestamp": "2021-08-21T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "b16df3d0bb92c4067e3dc53d8d1bd1aa",
+      "away_team": "New York Mets",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "59f891ba9e0a95950fc85c7933e9ee38",
+      "away_team": "Washington Nationals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "aefc9e41e7257d8035b87b828acce208",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ef585f5fc77d5a12969d44945d77334d",
+      "away_team": "San Francisco Giants",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "04cd55ad890e6f463c5b9323babac584",
+      "away_team": "Seattle Mariners",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2504a1da48b5341e3aa67920da5cf02d",
+      "away_team": "Kansas City Royals",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3ea136b6ec5aed7a47cff9d68d1da157",
+      "away_team": "Atlanta Braves",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ffc61530bafe18b6d9bca0305ff170c8",
+      "away_team": "Texas Rangers",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "43ed98b2d7bbfa01da89495f446578b9",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f86f8eeb50742d2001fec467be98dcc9",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e756fe9dbb4f329725253036b62a5cae",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "08b8319c0daced9384651c5403bdad7d",
+      "away_team": "Miami Marlins",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999846"
+}

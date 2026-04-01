@@ -1,0 +1,51 @@
+{
+  "date": "2022-04-21",
+  "timestamp": "2022-04-21T22:00:00Z",
+  "n_events": 7,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "697adb28ae8a7821f615c965ce8098a3",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a6fe21e7b9f98107dc0a4fd181f933a2",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "38b5edf95026be2340df356029a1eff2",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "eeea446e0bbb1d1707dd1bcc3a6f84d7",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "78cfa49090fe4362d15a21528ec93cbb",
+      "away_team": "Texas Rangers",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3d6251d34060083b8ea0a5dc107e98dd",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    },
+    {
+      "event_id": "46166623cc83b09d3b2d54b63f3cd059",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999788"
+}

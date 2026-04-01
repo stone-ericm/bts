@@ -1,0 +1,45 @@
+{
+  "date": "2021-07-18",
+  "timestamp": "2021-07-18T22:00:00Z",
+  "n_events": 6,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "579ce72d6e88cfe45d825eeccfa04cb4",
+      "away_team": "Cleveland Indians",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "bc39d2f040a352b0380c965abdda18f3",
+      "away_team": "Chicago Cubs",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1457c8fc5f199d332264d157d127b61e",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "47961f6e40533ab754ab83f30e6810fb",
+      "away_team": "Seattle Mariners",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "666fe7555a1b93817b676610445475af",
+      "away_team": "Boston Red Sox",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b948d5a7bd8b93d2c4a7398f43f912ce",
+      "away_team": "San Diego Padres",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999880"
+}

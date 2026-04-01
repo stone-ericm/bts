@@ -1,0 +1,57 @@
+{
+  "date": "2021-04-04",
+  "timestamp": "2021-04-04T22:00:00Z",
+  "n_events": 8,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "4cb485050cdeeb4d19901c310d64b872",
+      "away_team": "Chicago White Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fc23fe52611ae0f861f6da6515c1a29a",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8e12f067d8c960a68fa5dc995027746d",
+      "away_team": "Houston Astros",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "de8966b44f6a1480e2f0c3460fe61193",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "00170e713be9b44841ea19630efbb89a",
+      "away_team": "Minnesota Twins",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2a5e85327d31b76549d2f484ff522c81",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3512fe50a9cc5fb41d8b9f2f81a35178",
+      "away_team": "Texas Rangers",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ba42f6328b12da56e76643b1435821a1",
+      "away_team": "Chicago White Sox",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999985"
+}

@@ -1,0 +1,39 @@
+{
+  "date": "2021-09-16",
+  "timestamp": "2021-09-16T22:00:00Z",
+  "n_events": 5,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "269fef16e60ad2ce09ccf19b0a8c5f08",
+      "away_team": "New York Yankees",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "580bb1c7eec4bc7f090ca68bd82aa652",
+      "away_team": "Detroit Tigers",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "efd5ef01dabebb2b8648c2a835dc8d21",
+      "away_team": "Houston Astros",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "864ea7aedaf724bc4eeca37f8a41c2a2",
+      "away_team": "San Diego Padres",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "abdbb4cb3dd91ff48787afe4365f898b",
+      "away_team": "Chicago Cubs",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999820"
+}

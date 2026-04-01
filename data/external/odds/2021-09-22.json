@@ -1,0 +1,81 @@
+{
+  "date": "2021-09-22",
+  "timestamp": "2021-09-22T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "8d931e6ee9c7aa808826b6501234ca92",
+      "away_team": "Washington Nationals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3963099028484339019d08cfe96b4af4",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6c0c9041428bcb720381cddb3aad5eb9",
+      "away_team": "Texas Rangers",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "52b341bea2f67ee01ab0ba1341d02165",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1f29281dc6fbdb7d0d0f8b485b87104f",
+      "away_team": "Atlanta Braves",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8d67d1599746d1b461cdc08e14a94863",
+      "away_team": "Seattle Mariners",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a820e7432452cd7775985bc5253922c3",
+      "away_team": "Minnesota Twins",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d73767b9096cb72bd373478206da4ed4",
+      "away_team": "Houston Astros",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "09314ee871e0435b4837a3a6979b3d68",
+      "away_team": "New York Mets",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "87288d42865f59b8661716b7ca8f0eaa",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fbb49526c2ba8ea851745ac9e24f1fc3",
+      "away_team": "San Francisco Giants",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "940314da002f928b7385eb4c040d3437",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999814"
+}

@@ -1,0 +1,87 @@
+{
+  "date": "2021-08-07",
+  "timestamp": "2021-08-07T22:00:00Z",
+  "n_events": 13,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "14c73117da05592c5fcfae23492038f8",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5adf1fcb7e498f2e105d1717364379ce",
+      "away_team": "Minnesota Twins",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1b44a599af3b39de0abb6c4ad3fb80f3",
+      "away_team": "Boston Red Sox",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "abb1c315bbe7c9cef3902c47565260c7",
+      "away_team": "Texas Rangers",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ab86388f2a4ca022ad5878f8dc8cae83",
+      "away_team": "San Francisco Giants",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d797b0274398e994c1cd306ec32da207",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4680a4d9e50ba43fc36ef9ac68ee847f",
+      "away_team": "New York Mets",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e28dbea74a0525193c3f99005e9a9965",
+      "away_team": "Detroit Tigers",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "aca8fa9fa1532821c3bd2ba09316673e",
+      "away_team": "Kansas City Royals",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3b4779512c5c8c7c3ca6eabb8c75e450",
+      "away_team": "Washington Nationals",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "57506c788477518f07f9cdef67caa0a8",
+      "away_team": "Miami Marlins",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "515a13c609669c4560ffe13e7e9b2f69",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "8889a5c6b4d057cc03de406de06c37d6",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Cincinnati Reds",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999860"
+}

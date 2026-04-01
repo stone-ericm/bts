@@ -1,0 +1,81 @@
+{
+  "date": "2021-05-10",
+  "timestamp": "2021-05-10T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "4ecd5f1de66b435091102c90cc6a22df",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "555eeeb4103f2bfed773922b0705a46f",
+      "away_team": "Miami Marlins",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e146c6e59acd007e09fc6958156fe1c1",
+      "away_team": "Philadelphia Phillies",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "907520393be1b0af920fe126b1191077",
+      "away_team": "Chicago Cubs",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "85f23084e98055a1104e50a6583ed110",
+      "away_team": "Kansas City Royals",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "0eb1292a1ac8e9380796b0e525ff3ea3",
+      "away_team": "New York Yankees",
+      "home_team": "Tampa Bay Rays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "eb28b0d213ed7a9a3bf436fcfc563a61",
+      "away_team": "St. Louis Cardinals",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e75e3042f1c5acf9a0efaf01bf25e204",
+      "away_team": "Minnesota Twins",
+      "home_team": "Chicago White Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "dc347f9d7049eec78da13af3f8887d8d",
+      "away_team": "Seattle Mariners",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "25c0509e11d13105ae6630d7bf51ac60",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "066abeeca65cb8be406b5e3b0a1fa3ac",
+      "away_team": "Texas Rangers",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "4487ed55ce4eaa34ddd0bf2376465478",
+      "away_team": "Boston Red Sox",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999949"
+}

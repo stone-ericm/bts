@@ -1,0 +1,141 @@
+{
+  "date": "2022-06-13",
+  "timestamp": "2022-06-13T22:00:00Z",
+  "n_events": 22,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "aa9b13f623468c64dd928cceeb105363",
+      "away_team": "Atlanta Braves",
+      "home_team": "Washington Nationals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a9711006fdb5cae783e6ca022f09b83c",
+      "away_team": "Miami Marlins",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "fae37c00faeabe695182cf519d8a9e7a",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "07403f1b6a43974dc4c76194322e3973",
+      "away_team": "Chicago White Sox",
+      "home_team": "Detroit Tigers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ccdeb882d955ff04d4627407df6be8bb",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "122ceea21961a2b64269f9eb4765ec71",
+      "away_team": "Houston Astros",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c68ca2b80b484b0cd9ea8c8ee6a4a3cd",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "2898aae2117dc58c4c160e78f94811e8",
+      "away_team": "Minnesota Twins",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c3f0d33d629efab90067eb3bf737073e",
+      "away_team": "San Diego Padres",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f8f884cd834f378a977c80685946b6a7",
+      "away_team": "Kansas City Royals",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f9ac8ac5c2f1a376a4c2bd4550d37aa5",
+      "away_team": "Miami Marlins",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b083b6cd0345754a259dff29a870ec08",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "New York Yankees",
+      "error": "no_props"
+    },
+    {
+      "event_id": "02fe7d41ecd3caca46a010a57b1bb037",
+      "away_team": "Baltimore Orioles",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "9bfb0a534ead984875c5413d5688c7cc",
+      "away_team": "Milwaukee Brewers",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "cfacc19479eccda4fb26b7551c2f165a",
+      "away_team": "Oakland Athletics",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "67eb927248df0bffb83639fafe87ff22",
+      "away_team": "Houston Astros",
+      "home_team": "Texas Rangers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b6bb598a57e026d0d65971dba3323c99",
+      "away_team": "Cleveland Guardians",
+      "home_team": "Colorado Rockies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a86f32d99d67279d16c8e740c31efb86",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Arizona Diamondbacks",
+      "error": "no_props"
+    },
+    {
+      "event_id": "35346b47018b0bf098e89611ccc14a37",
+      "away_team": "Kansas City Royals",
+      "home_team": "San Francisco Giants",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c556922c9bde496f6e4eb8abef8501dc",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "1af3c4584fba46c6eb465cb6d0040bdc",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c7ac692a434b003707fb5845d281ab04",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "St. Louis Cardinals",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999735"
+}

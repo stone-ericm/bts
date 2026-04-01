@@ -1,0 +1,57 @@
+{
+  "date": "2021-07-26",
+  "timestamp": "2021-07-26T22:00:00Z",
+  "n_events": 8,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "7923267f2b89fd93ec0a918c42b389d6",
+      "away_team": "Atlanta Braves",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7a70c62715c950cd550f39635495c6c3",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5f384cccd360a4cdebc954987a9ceab9",
+      "away_team": "Washington Nationals",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c4d50e8490ea4950470ee414c26727a9",
+      "away_team": "Chicago White Sox",
+      "home_team": "Kansas City Royals",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3edd59b931358ba98f01969131fe7d4a",
+      "away_team": "Detroit Tigers",
+      "home_team": "Minnesota Twins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "10e44d5e9a566edf6d310f7ea12dee1c",
+      "away_team": "Colorado Rockies",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f0251224f1484e39bb8d3a7af41f48a3",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "66bf1e7aa5e1f74adde1f087cccc5e37",
+      "away_team": "Houston Astros",
+      "home_team": "Seattle Mariners",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999872"
+}

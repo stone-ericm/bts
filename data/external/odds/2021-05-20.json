@@ -1,0 +1,57 @@
+{
+  "date": "2021-05-20",
+  "timestamp": "2021-05-20T22:00:00Z",
+  "n_events": 8,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "983c73810d42e8c72942e59b993e6e5f",
+      "away_team": "Pittsburgh Pirates",
+      "home_team": "Atlanta Braves",
+      "error": "no_props"
+    },
+    {
+      "event_id": "80bad07581e4969a0f35b258423aa802",
+      "away_team": "Houston Astros",
+      "home_team": "Oakland Athletics",
+      "error": "no_props"
+    },
+    {
+      "event_id": "5516a49d980f0e579d26fa0acd673e38",
+      "away_team": "Miami Marlins",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "44861dd7fb419a0cc4fc7f38953b1a13",
+      "away_team": "Washington Nationals",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7f69bb5f87abe066837545683a1c9815",
+      "away_team": "Boston Red Sox",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6f4bd893f652df8a5f366e5b8fb457f3",
+      "away_team": "Minnesota Twins",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "d64875cbfd6f804cdb1421d716b82501",
+      "away_team": "Minnesota Twins",
+      "home_team": "Los Angeles Angels",
+      "error": "no_props"
+    },
+    {
+      "event_id": "a526613cbbf6b2f69eceb23e541182dd",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Los Angeles Dodgers",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999939"
+}

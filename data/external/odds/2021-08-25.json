@@ -1,0 +1,81 @@
+{
+  "date": "2021-08-25",
+  "timestamp": "2021-08-25T22:00:00Z",
+  "n_events": 12,
+  "n_with_props": 0,
+  "events": [
+    {
+      "event_id": "f0dc43a6a167ac3974da6169b088d5d2",
+      "away_team": "Kansas City Royals",
+      "home_team": "Houston Astros",
+      "error": "no_props"
+    },
+    {
+      "event_id": "b22e6dd1a55ecd76d51c68dd12241ae0",
+      "away_team": "Los Angeles Angels",
+      "home_team": "Baltimore Orioles",
+      "error": "no_props"
+    },
+    {
+      "event_id": "e44658a24ac6c90f9210e919991d98fd",
+      "away_team": "Arizona Diamondbacks",
+      "home_team": "Pittsburgh Pirates",
+      "error": "no_props"
+    },
+    {
+      "event_id": "ee4a26d8ad932363d40e5f154a6063e7",
+      "away_team": "Chicago White Sox",
+      "home_team": "Toronto Blue Jays",
+      "error": "no_props"
+    },
+    {
+      "event_id": "dc0d1c4e191f39b60e5e8f76ce743159",
+      "away_team": "Minnesota Twins",
+      "home_team": "Boston Red Sox",
+      "error": "no_props"
+    },
+    {
+      "event_id": "771bbbf25e90222393a0c370286f75c2",
+      "away_team": "San Francisco Giants",
+      "home_team": "New York Mets",
+      "error": "no_props"
+    },
+    {
+      "event_id": "3461ec5df4418fad8905f75dc6dd0325",
+      "away_team": "Cincinnati Reds",
+      "home_team": "Milwaukee Brewers",
+      "error": "no_props"
+    },
+    {
+      "event_id": "f91c8a570caea181cbc424b1a2665bb8",
+      "away_team": "Washington Nationals",
+      "home_team": "Miami Marlins",
+      "error": "no_props"
+    },
+    {
+      "event_id": "6a8c7b5327ad6d73ef72b30f4a125bce",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "San Diego Padres",
+      "error": "no_props"
+    },
+    {
+      "event_id": "c07649b34e343ee7308125843f54cdc3",
+      "away_team": "Texas Rangers",
+      "home_team": "Cleveland Indians",
+      "error": "no_props"
+    },
+    {
+      "event_id": "7f2acdaea0a18d727bc2994da1976e9c",
+      "away_team": "Tampa Bay Rays",
+      "home_team": "Philadelphia Phillies",
+      "error": "no_props"
+    },
+    {
+      "event_id": "46acf3419e3752838ea2cd6147b74f5b",
+      "away_team": "Colorado Rockies",
+      "home_team": "Chicago Cubs",
+      "error": "no_props"
+    }
+  ],
+  "credits_remaining": "4999842"
+}

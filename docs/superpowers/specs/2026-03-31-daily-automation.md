@@ -13,15 +13,20 @@ Automate the daily BTS workflow: run the model twice daily, post picks to Bluesk
 
 ## What Needs Automating
 
-### Three-Run Schedule
+### Densest Bucket Strategy
 
-75% of game days have games starting after 9pm ET (west coast). A two-run schedule misses those lineups. Three runs cover all time slots:
+Pick from whichever time window has the most games that day. More games = more options = better top pick. Validated at 85.1% avg P@1 across 2024-2025, statistically equivalent to "always prime" (85.4%) but handles edge cases (no-prime days) without special logic.
 
-- **11:00 AM ET**: Early games (1-3pm starts, ~519 games/season). Lineups posted by ~9-11am. Pick the best available whose game hasn't started.
-- **4:00 PM ET**: Bulk games (6-8pm starts, ~947 games/season). Lineups posted by ~2-4pm. Upgrade pick if a better option exists whose game hasn't started.
-- **7:30 PM ET**: West coast (9-10pm starts, ~580 games/season). Lineups posted by ~5-7pm. Final upgrade opportunity.
+Three time windows:
+- **Early**: before 4pm ET (day games, getaway days)
+- **Prime**: 4-8pm ET (bulk of schedule — densest ~90% of days)
+- **West**: 8pm+ ET (west coast)
 
-Each run compares its best pick to the current pick. If the current pick's game already started, it's locked. If a better pick exists for an upcoming game, switch. The Bluesky post should reflect the final pick only — intermediate picks are internal.
+**Two-run schedule:**
+- **11:00 AM ET**: Check early games. Lock a pick ONLY if the early window is densest AND the best pick exceeds 80% P(game hit). Otherwise this run is informational.
+- **4:00 PM ET**: Main run. Identify the densest window (usually prime). Lock the best pick from that window. Post to Bluesky.
+
+On the ~6 days/season with no prime games, the densest bucket naturally falls to early or west — no fallback logic needed.
 
 Game time distribution (2025 season, ET):
 ```
@@ -32,12 +37,13 @@ Game time distribution (2025 season, ET):
 10pm+:   129 games (west coast)
 ```
 
+**Why not three runs?** Backtesting showed "always wait for west coast" underperforms prime-only (81.1% vs 85.1%). The west pool is smaller, producing noisier picks. The 7:30pm run adds complexity without improving accuracy.
+
 ### Bluesky Posting
 
-- Post after the **final relevant run** — typically 7:30pm, but earlier if all remaining games are covered
+- Post after the **4pm run** (the main run)
 - Only post once per day — don't post intermediate picks that might change
-- Exception: if the best pick is an early game (1pm start), post at 11am since it locks before the 4pm run
-- If pick changes due to a later run, post an update (keep the original, add context)
+- Exception: if the 11am run locks an early game pick (>80%, densest bucket is early), post then
 - Never delete posts without human approval
 
 ### Notifications
