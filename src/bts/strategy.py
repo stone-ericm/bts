@@ -15,7 +15,25 @@ from bts.picks import (
 )
 
 OVERRIDE_THRESHOLD = 0.78
-DOUBLE_THRESHOLD = 0.65
+SKIP_THRESHOLD = 0.80
+
+# Streak-aware double thresholds (Monte Carlo optimized, 2026-04-01).
+# Doubling reduces total days at risk. But at 46+ a double-miss is
+# catastrophic — stop doubling for the final sprint.
+_DOUBLE_BY_STREAK = (
+    (9, 0.55),    # aggressive — little to lose
+    (15, 0.60),   # saver phase — moderate
+    (45, 0.65),   # mid + lockdown — selective doubling
+    (56, None),   # sprint — singles only, don't risk a near-win
+)
+
+
+def _double_threshold(streak: int) -> float | None:
+    """Return the P(both hit) threshold for doubling at this streak."""
+    for max_streak, threshold in _DOUBLE_BY_STREAK:
+        if streak <= max_streak:
+            return threshold
+    return None
 
 
 @dataclass
@@ -72,6 +90,7 @@ def select_pick(
     predictions: pd.DataFrame,
     date: str,
     picks_dir: Path,
+    streak: int = 0,
 ) -> PickResult | None:
     """Apply densest bucket + override strategy to predictions.
 
@@ -108,14 +127,20 @@ def select_pick(
     valid = _apply_densest_bucket(valid)
 
     best_row = valid.iloc[0]
+
+    # Skip check — if top pick is below threshold, don't play today
+    if best_row["p_game_hit"] < SKIP_THRESHOLD:
+        return None
+
     new_pick = pick_from_row(best_row)
 
-    # Double-down check
+    # Streak-aware double-down check
     double_pick = None
-    if len(valid) >= 2:
+    double_thresh = _double_threshold(streak)
+    if double_thresh is not None and len(valid) >= 2:
         second_row = valid.iloc[1]
         p_both = best_row["p_game_hit"] * second_row["p_game_hit"]
-        if p_both >= DOUBLE_THRESHOLD:
+        if p_both >= double_thresh:
             double_pick = pick_from_row(second_row)
 
     # Runner-up

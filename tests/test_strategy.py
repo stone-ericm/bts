@@ -39,14 +39,14 @@ class TestSelectPick:
         from bts.strategy import select_pick
 
         preds = _predictions([
-            {"batter_name": "Jacob Wilson", "p_game_hit": 0.763},
+            {"batter_name": "Jacob Wilson", "p_game_hit": 0.83},
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
         assert result is not None
         assert not result.locked
         assert result.daily.pick.batter_name == "Jacob Wilson"
-        assert result.daily.pick.p_game_hit == 0.763
+        assert result.daily.pick.p_game_hit == 0.83
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_double_down_when_threshold_met(self, mock_statuses, tmp_path):
@@ -63,11 +63,12 @@ class TestSelectPick:
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_no_double_down_below_threshold(self, mock_statuses, tmp_path):
+        """P(both) = 0.82 * 0.66 = 0.5412 < 0.55 (streak 0 threshold)."""
         from bts.strategy import select_pick
 
         preds = _predictions([
-            {"batter_name": "Wilson", "p_game_hit": 0.75, "game_pk": 778899},
-            {"batter_name": "Mangum", "p_game_hit": 0.70, "game_pk": 778900},
+            {"batter_name": "Wilson", "p_game_hit": 0.82, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.66, "game_pk": 778900},
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
@@ -133,8 +134,8 @@ class TestSelectPick:
         from bts.strategy import select_pick
 
         preds = _predictions([
-            {"batter_name": "Wilson", "p_game_hit": 0.76, "game_pk": 778899},
-            {"batter_name": "Mangum", "p_game_hit": 0.72, "game_pk": 778900},
+            {"batter_name": "Wilson", "p_game_hit": 0.84, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.81, "game_pk": 778900},
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
@@ -166,22 +167,68 @@ class TestSelectPick:
         778899: "P", 778900: "P", 778901: "P", 778902: "P",
     })
     def test_no_override_below_threshold(self, mock_statuses, tmp_path):
-        """A non-densest pick below 78% should NOT override."""
+        """A non-densest pick below 78% override should not override.
+
+        The densest window top pick (0.82) is above skip threshold, so
+        the day is playable. The non-densest pick (0.77) is below the
+        override threshold (0.78), so densest window is used.
+        """
         from bts.strategy import select_pick
 
         preds = _predictions([
             {"batter_name": "Early OK", "p_game_hit": 0.77,
              "game_pk": 778899, "game_time": "2026-04-01T17:10:00Z"},
-            {"batter_name": "Prime 1", "p_game_hit": 0.74,
+            {"batter_name": "Prime 1", "p_game_hit": 0.82,
              "game_pk": 778900, "game_time": "2026-04-01T23:10:00Z"},
-            {"batter_name": "Prime 2", "p_game_hit": 0.72,
+            {"batter_name": "Prime 2", "p_game_hit": 0.81,
              "game_pk": 778901, "game_time": "2026-04-01T23:40:00Z"},
-            {"batter_name": "Prime 3", "p_game_hit": 0.70,
+            {"batter_name": "Prime 3", "p_game_hit": 0.80,
              "game_pk": 778902, "game_time": "2026-04-02T00:10:00Z"},
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
         assert result.daily.pick.batter_name == "Prime 1"
+
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    def test_skip_below_threshold(self, mock_statuses, tmp_path):
+        """Top pick below 0.80 skip threshold → skip day (return None)."""
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Wilson", "p_game_hit": 0.78},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is None
+
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    def test_no_double_during_sprint(self, mock_statuses, tmp_path):
+        """At streak 50+, no doubling even with strong picks."""
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Wilson", "p_game_hit": 0.88, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.85, "game_pk": 778900},
+        ])
+        # P(both) = 0.748 > any normal threshold, but sprint = no doubling
+        result = select_pick(preds, "2026-04-01", tmp_path, streak=50)
+
+        assert result is not None
+        assert result.daily.double_down is None
+
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    def test_double_during_lockdown(self, mock_statuses, tmp_path):
+        """At streak 35, doubling at 0.65 threshold still active."""
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Wilson", "p_game_hit": 0.85, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.82, "game_pk": 778900},
+        ])
+        # P(both) = 0.697 > 0.65 lockdown threshold
+        result = select_pick(preds, "2026-04-01", tmp_path, streak=35)
+
+        assert result.daily.double_down is not None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_empty_predictions(self, mock_statuses, tmp_path):
