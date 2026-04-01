@@ -129,11 +129,37 @@ def get_game_statuses(date: str) -> dict[int, str]:
     return statuses
 
 
-def check_hit(game_pk: int, batter_id: int) -> bool | None:
+def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = None) -> bool | None:
+    """Check if a batter got a hit in a game feed response.
+
+    Looks up by ID first, falls back to name match if ID not found.
+    Returns True (hit), False (no hit), or None (not found).
+    """
+    for side in ("away", "home"):
+        players = resp["liveData"]["boxscore"]["teams"][side]["players"]
+        # Try by ID first
+        key = f"ID{batter_id}"
+        if key in players:
+            hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
+            return hits > 0
+        # Fallback: search by name
+        if batter_name:
+            for pid, pdata in players.items():
+                if pdata["person"]["fullName"].lower() == batter_name.lower():
+                    hits = pdata.get("stats", {}).get("batting", {}).get("hits", 0)
+                    return hits > 0
+    return None
+
+
+def check_hit(game_pk: int, batter_id: int, batter_name: str | None = None,
+              date: str | None = None, team: str | None = None) -> bool | None:
     """Check if a batter got a hit in a game.
 
     Returns True (hit), False (no hit), or None (game not final OR batter
     not found in boxscore, e.g. scratched).
+
+    If game_pk lookup fails and date+team are provided, finds the correct
+    game for that team on that date and retries.
     """
     resp = json.loads(retry_urlopen(
         f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
@@ -143,12 +169,28 @@ def check_hit(game_pk: int, batter_id: int) -> bool | None:
     if status != "F":
         return None
 
-    # Check boxscore batting stats
-    for side in ("away", "home"):
-        players = resp["liveData"]["boxscore"]["teams"][side]["players"]
-        key = f"ID{batter_id}"
-        if key in players:
-            hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
-            return hits > 0
-    # Batter not in boxscore — likely scratched
+    result = _check_hit_in_game(resp, batter_id, batter_name)
+    if result is not None:
+        return result
+
+    # Batter not found — try every other Final game on that date
+    if date:
+        sched = json.loads(retry_urlopen(
+            f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
+            timeout=15,
+        ).read())
+        for d in sched.get("dates", []):
+            for g in d.get("games", []):
+                if g["gamePk"] == game_pk:
+                    continue  # Already tried this one
+                if g["status"]["abstractGameCode"] != "F":
+                    continue
+                alt_resp = json.loads(retry_urlopen(
+                    f"{API_BASE}/api/v1.1/game/{g['gamePk']}/feed/live",
+                    timeout=15,
+                ).read())
+                result = _check_hit_in_game(alt_resp, batter_id, batter_name)
+                if result is not None:
+                    return result
+
     return None

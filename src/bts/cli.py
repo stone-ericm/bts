@@ -306,7 +306,11 @@ def check_results(date: str, picks_dir: str):
     # Check primary pick
     click.echo(f"Checking {daily.pick.batter_name} (game {daily.pick.game_pk})...")
     try:
-        primary_result = check_hit(daily.pick.game_pk, daily.pick.batter_id)
+        primary_result = check_hit(
+            daily.pick.game_pk, daily.pick.batter_id,
+            batter_name=daily.pick.batter_name,
+            date=date, team=daily.pick.team,
+        )
     except Exception as e:
         click.echo(f"ERROR: Failed to check game result — {e}", err=True)
         return
@@ -323,7 +327,11 @@ def check_results(date: str, picks_dir: str):
     if daily.double_down:
         click.echo(f"Checking {daily.double_down.batter_name} (game {daily.double_down.game_pk})...")
         try:
-            double_result = check_hit(daily.double_down.game_pk, daily.double_down.batter_id)
+            double_result = check_hit(
+                daily.double_down.game_pk, daily.double_down.batter_id,
+                batter_name=daily.double_down.batter_name,
+                date=date, team=daily.double_down.team,
+            )
         except Exception as e:
             click.echo(f"ERROR: Failed to check double-down result — {e}", err=True)
             return
