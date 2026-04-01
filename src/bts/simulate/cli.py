@@ -141,7 +141,9 @@ def run_sim(profiles_dir: str, trials: int, season_length: int,
 @click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
               help="Directory with backtest profile parquets")
 @click.option("--season-length", default=180, type=int, help="Days per season")
-def solve(profiles_dir: str, season_length: int):
+@click.option("--save-policy", "policy_path", default=None, type=click.Path(),
+              help="Save policy table for production use (e.g. data/models/mdp_policy.npz)")
+def solve(profiles_dir: str, season_length: int, policy_path: str | None):
     """Solve MDP for optimal strategy — exact P(57) and policy extraction."""
     from rich.console import Console
     from bts.simulate.quality_bins import compute_bins
@@ -185,6 +187,12 @@ def solve(profiles_dir: str, season_length: int):
     # Policy summary
     console.print(f"\n[bold]Policy Summary:[/bold]")
     console.print(sol.extract_thresholds())
+
+    # Save policy for production use
+    if policy_path:
+        saved = sol.save(policy_path)
+        console.print(f"\n[bold green]Policy saved to {saved}[/bold green]")
+        console.print("  strategy.py will auto-load this on next prediction run.")
 
 
 @simulate.command()

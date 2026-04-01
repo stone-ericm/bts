@@ -1,4 +1,9 @@
-"""Pick strategy: densest bucket + asymmetric override.
+"""Pick strategy: MDP-optimal with heuristic fallback.
+
+Uses the MDP policy table (if available) for provably optimal
+skip/single/double decisions based on (streak, days_remaining,
+saver, quality_bin). Falls back to heuristic thresholds if no
+policy file exists.
 
 Extracted from cli.py so both `bts run` (local) and the Pi5 orchestrator
 share the same decision logic.
@@ -15,11 +20,57 @@ from bts.picks import (
 )
 
 OVERRIDE_THRESHOLD = 0.78
+
+# --- MDP policy (preferred) ---
+# Loaded once on first use. Falls back to heuristic if not available.
+_mdp_cache: dict | None = None
+
+# Approximate season end — used to compute days_remaining for MDP lookup.
+# Updated each season. The MDP is robust to ±5 days.
+SEASON_END_DATE = "2026-09-28"
+
+
+def _load_mdp():
+    """Load MDP policy table, caching on first call. Returns None if not available."""
+    global _mdp_cache
+    if _mdp_cache is not None:
+        return _mdp_cache
+
+    try:
+        from bts.simulate.mdp import load_policy, DEFAULT_POLICY_PATH
+        policy_table, boundaries, season_length = load_policy(DEFAULT_POLICY_PATH)
+        _mdp_cache = {
+            "policy_table": policy_table,
+            "boundaries": boundaries,
+            "season_length": season_length,
+        }
+        return _mdp_cache
+    except (FileNotFoundError, ImportError):
+        _mdp_cache = {}  # empty dict = tried but failed
+        return None
+
+
+def _mdp_action(p_game_hit: float, streak: int, date: str, saver: bool = True) -> str | None:
+    """Look up optimal action from MDP policy. Returns None if MDP not available."""
+    mdp = _load_mdp()
+    if not mdp:
+        return None
+
+    from bts.simulate.mdp import lookup_action
+
+    end = datetime.strptime(SEASON_END_DATE, "%Y-%m-%d")
+    today = datetime.strptime(date, "%Y-%m-%d")
+    days_remaining = max(0, (end - today).days)
+
+    return lookup_action(
+        mdp["policy_table"], mdp["boundaries"],
+        streak, days_remaining, saver, p_game_hit, mdp["season_length"],
+    )
+
+
+# --- Heuristic fallback ---
 SKIP_THRESHOLD = 0.80
 
-# Streak-aware double thresholds (Monte Carlo optimized, 2026-04-01).
-# Doubling reduces total days at risk. But at 46+ a double-miss is
-# catastrophic — stop doubling for the final sprint.
 _DOUBLE_BY_STREAK = (
     (9, 0.55),    # aggressive — little to lose
     (15, 0.60),   # saver phase — moderate
@@ -128,20 +179,28 @@ def select_pick(
 
     best_row = valid.iloc[0]
 
-    # Skip check — if top pick is below threshold, don't play today
-    if best_row["p_game_hit"] < SKIP_THRESHOLD:
+    # Determine action: MDP policy (preferred) or heuristic fallback
+    action = _mdp_action(best_row["p_game_hit"], streak, date)
+    if action is None:
+        # Heuristic fallback
+        if best_row["p_game_hit"] < SKIP_THRESHOLD:
+            action = "skip"
+        elif _double_threshold(streak) is not None and len(valid) >= 2:
+            second = valid.iloc[1]
+            p_both = best_row["p_game_hit"] * second["p_game_hit"]
+            action = "double" if p_both >= _double_threshold(streak) else "single"
+        else:
+            action = "single"
+
+    if action == "skip":
         return None
 
     new_pick = pick_from_row(best_row)
 
-    # Streak-aware double-down check
+    # Double-down
     double_pick = None
-    double_thresh = _double_threshold(streak)
-    if double_thresh is not None and len(valid) >= 2:
-        second_row = valid.iloc[1]
-        p_both = best_row["p_game_hit"] * second_row["p_game_hit"]
-        if p_both >= double_thresh:
-            double_pick = pick_from_row(second_row)
+    if action == "double" and len(valid) >= 2:
+        double_pick = pick_from_row(valid.iloc[1])
 
     # Runner-up
     runner_up = None

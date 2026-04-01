@@ -6,12 +6,15 @@ via backward induction. State space: 57 × 181 × 2 × N_bins ≈ 103K.
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
 from bts.simulate.quality_bins import QualityBins
 
 ACTIONS = ("skip", "single", "double")
+
+DEFAULT_POLICY_PATH = Path("data/models/mdp_policy.npz")
 
 
 @dataclass
@@ -55,6 +58,58 @@ class MDPSolution:
                 lines.append(f"    streak={s:2d}: {' '.join(parts)}{saver_str}")
 
         return "\n".join(lines)
+
+    def save(self, path: Path | str = DEFAULT_POLICY_PATH) -> Path:
+        """Save policy table + bin boundaries to disk."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            path,
+            policy_table=self.policy_table,
+            boundaries=np.array(self.quality_bins.boundaries),
+            season_length=np.array(self.season_length),
+            optimal_p57=np.array(self.optimal_p57),
+        )
+        return path
+
+
+def load_policy(path: Path | str = DEFAULT_POLICY_PATH) -> tuple[np.ndarray, list[float], int]:
+    """Load a saved MDP policy. Returns (policy_table, bin_boundaries, season_length)."""
+    data = np.load(path)
+    return (
+        data["policy_table"],
+        data["boundaries"].tolist(),
+        int(data["season_length"]),
+    )
+
+
+def lookup_action(
+    policy_table: np.ndarray,
+    boundaries: list[float],
+    streak: int,
+    days_remaining: int,
+    saver: bool,
+    top_pick_confidence: float,
+    season_length: int = 180,
+) -> str:
+    """Look up the optimal action from a saved MDP policy.
+
+    This is the production entry point — called from strategy.py.
+    """
+    if streak >= 57 or days_remaining <= 0:
+        return "skip"
+
+    # Classify quality bin
+    q = 0
+    for i, boundary in enumerate(boundaries):
+        if top_pick_confidence >= boundary:
+            q = i + 1
+    n_bins = len(boundaries) + 1
+    q = min(q, n_bins - 1)
+
+    d = min(days_remaining, season_length)
+    s = min(streak, 56)
+    return ACTIONS[policy_table[s, d, int(saver), q]]
 
 
 def solve_mdp(bins: QualityBins, season_length: int = 180) -> MDPSolution:
