@@ -2,6 +2,7 @@ data/raw/
 data/processed/
 data/models/
 data/picks/
+data/external/odds/
 __pycache__/
 *.pyc
 .venv/
