@@ -132,7 +132,14 @@ def render_page():
             d_logo_img = f'<img src="{d_logo}" class="team-logo-sm" alt="{d_team}">' if d_logo else ""
             double_str = f'{d_logo_img} <span class="double">{double.get("batter_name", "?")} ({double.get("p_game_hit", 0):.1%})</span>'
 
-        row_class = "today" if date == today else ""
+        if date == today:
+            row_class = "today"
+        elif result == "hit":
+            row_class = "row-hit"
+        elif result == "miss":
+            row_class = "row-miss"
+        else:
+            row_class = ""
         pick_rows += f"""
         <tr class="{row_class}">
             <td class="result-cell">{result_html}</td>
@@ -261,8 +268,12 @@ def render_page():
               background: #f8f9fa; border-bottom: 2px solid #ddd; }}
         td {{ padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }}
         tr:hover {{ background: #f0f4ff; }}
-        tr.today {{ background: #e8f5e9; }}
-        tr.today:hover {{ background: #dcedc8; }}
+        tr.today {{ background: #fff8e1; }}
+        tr.today:hover {{ background: #fff3c4; }}
+        tr.row-hit {{ background: #e8f5e9; }}
+        tr.row-hit:hover {{ background: #c8e6c9; }}
+        tr.row-miss {{ background: #fce4ec; }}
+        tr.row-miss:hover {{ background: #f8bbd0; }}
 
         table {{ table-layout: fixed; }}
         col.col-result {{ width: 36px; }}
