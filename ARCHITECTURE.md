@@ -91,6 +91,35 @@ Tested and rejected after empirical validation:
 - **Nuclear leakage test**: Manual from-scratch feature computation for random test PAs
 - **Multi-season**: Validated across 6 test seasons (2020-2025)
 
+## Orchestration
+
+Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 handles decisions and posting.
+
+```
+┌──────────────────────────────────────────────┐
+│  Pi5 (Orchestrator)                          │
+│  Cron: 11am / 4pm / 7:30pm / 1am ET         │
+│  bts orchestrate --date X --config ~/.toml   │
+│  Owns: pick strategy, Bluesky, streak, DMs   │
+└────────┬──────────┬──────────┬───────────────┘
+         │ SSH      │ SSH      │ SSH
+   ┌─────▼──┐  ┌────▼─────┐  ┌▼──────────┐
+   │  Mac   │  │Alienware │  │ Cloud VPS │
+   │ (unix) │  │(windows) │  │  (TBD)    │
+   └────────┘  └──────────┘  └───────────┘
+   Each: bts predict-json --date X → JSON to stdout
+```
+
+**Key modules:**
+- `strategy.py` — pick logic (densest bucket + 78% override, double-down). Shared by `bts run` and orchestrator.
+- `orchestrator.py` — SSH cascade, TOML config, calls strategy + posting. `bts orchestrate` CLI command.
+- `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
+- `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
+
+**Config:** `~/.bts-orchestrator.toml` on Pi5. Each tier has `ssh_host`, `bts_dir`, `timeout_min`, optional `platform = "windows"`.
+
+**LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
+
 ## Pipeline
 
 ```
