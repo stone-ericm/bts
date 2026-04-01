@@ -2,14 +2,16 @@
 
 ## Quick Start
 ```bash
-UV_CACHE_DIR=/tmp/uv-cache uv sync
-UV_CACHE_DIR=/tmp/uv-cache uv run bts predict --date 2026-03-30
+UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model   # Mac/Alienware (full)
+UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 ```
 
 ## Required Prefixes
 - All `uv` commands: `UV_CACHE_DIR=/tmp/uv-cache`
 - LightGBM needs ARM libomp: `arch -arm64 /opt/homebrew/bin/brew install libomp`
+- LightGBM is an optional dep: `uv sync --extra model` to install it
 
 ## Safety Rules
 - **Never use features computed on full dataset** without shift(1) temporal guard
