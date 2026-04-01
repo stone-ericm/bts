@@ -103,7 +103,7 @@ def orchestrate(config_path: Path, date: str) -> bool:
     """
     from bts.dm import send_dm
     from bts.picks import save_pick, load_streak
-    from bts.posting import format_post, post_to_bluesky, should_post_now
+    from bts.posting import format_post, format_skip_post, post_to_bluesky, should_post_now
     from bts.strategy import select_pick
 
     config = load_config(config_path)
@@ -132,7 +132,20 @@ def orchestrate(config_path: Path, date: str) -> bool:
     result = select_pick(predictions, date, picks_dir, streak=streak)
 
     if result is None:
-        print(f"No pick — skipping today (streak holds at {streak}).", file=sys.stderr)
+        top = predictions.iloc[0] if not predictions.empty else None
+        if top is not None:
+            print(f"Skipping — {top['batter_name']} at {top['p_game_hit']:.1%} "
+                  f"below threshold. Streak holds at {streak}.", file=sys.stderr)
+            if should_post_now(top.get("game_time", ""), False):
+                text = format_skip_post(top["batter_name"], top.get("team", "?"),
+                                        top["p_game_hit"], streak)
+                try:
+                    uri = post_to_bluesky(text)
+                    print(f"  Posted skip to Bluesky: {uri}", file=sys.stderr)
+                except Exception as e:
+                    print(f"  Bluesky skip post failed: {e}", file=sys.stderr)
+        else:
+            print(f"No valid picks. Streak holds at {streak}.", file=sys.stderr)
         return False
 
     if result.locked:

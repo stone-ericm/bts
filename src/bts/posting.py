@@ -37,6 +37,20 @@ def format_post(
     )
 
 
+def format_skip_post(
+    batter: str,
+    team: str,
+    p_game: float,
+    streak: int,
+) -> str:
+    """Format Bluesky post text for a skip day."""
+    return (
+        f"Sitting today out. Top pick: {batter} ({team}) at {p_game:.1%} "
+        f"— below our threshold.\n\n"
+        f"Streak holds at {streak}."
+    )
+
+
 def get_bluesky_password() -> str:
     """Get Bluesky app password from macOS Keychain or environment variable.
 

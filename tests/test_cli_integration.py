@@ -76,7 +76,7 @@ def _mock_predictions():
 class TestBtsRun:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.posting.should_post_now", return_value=True)
-    @patch("bts.picks.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     @patch("bts.model.predict.run_pipeline")
     def test_run_saves_pick_and_posts(
         self, mock_pipeline, mock_statuses, mock_should_post, mock_post, tmp_path,
@@ -106,7 +106,7 @@ class TestBtsRun:
         assert data["bluesky_posted"] is True
 
     @patch("bts.posting.should_post_now", return_value=False)
-    @patch("bts.picks.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     @patch("bts.model.predict.run_pipeline")
     def test_run_dry_run_skips_posting(
         self, mock_pipeline, mock_statuses, mock_should_post, tmp_path,
@@ -126,7 +126,7 @@ class TestBtsRun:
         assert result.exit_code == 0
         assert "dry-run" in result.output
 
-    @patch("bts.picks.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     @patch("bts.model.predict.run_pipeline")
     def test_run_no_games_reports_empty(
         self, mock_pipeline, mock_statuses, tmp_path,

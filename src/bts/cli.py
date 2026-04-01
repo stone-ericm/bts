@@ -152,7 +152,22 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     result = select_pick(predictions, date, picks_path, streak=streak)
 
     if result is None:
-        click.echo(f"No pick — top prediction below skip threshold or no valid picks. Streak holds at {streak}.")
+        # Skip day — post to Bluesky with top pick info
+        top = predictions.iloc[0] if not predictions.empty else None
+        if top is not None and pd.notna(top.get("p_game_hit")):
+            from bts.posting import format_skip_post, post_to_bluesky, should_post_now
+            click.echo(f"Skipping — {top['batter_name']} ({top.get('team', '?')}) "
+                       f"at {top['p_game_hit']:.1%} below threshold. Streak holds at {streak}.")
+            if not dry_run and should_post_now(top.get("game_time", ""), False):
+                text = format_skip_post(top["batter_name"], top.get("team", "?"),
+                                        top["p_game_hit"], streak)
+                try:
+                    uri = post_to_bluesky(text)
+                    click.echo(f"  Posted skip to Bluesky: {uri}")
+                except Exception as e:
+                    click.echo(f"  Bluesky skip post failed: {e}", err=True)
+        else:
+            click.echo(f"No valid picks available. Streak holds at {streak}.")
         return
 
     if result.locked:
