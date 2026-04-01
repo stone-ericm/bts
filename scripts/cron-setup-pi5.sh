@@ -16,6 +16,8 @@ BTS_DIR="$HOME/projects/bts"
 CONFIG="$HOME/.bts-orchestrator.toml"
 LOG_DIR="$BTS_DIR/data/picks"
 UV_PREFIX="UV_CACHE_DIR=/tmp/uv-cache"
+ENV_SOURCE="set -a; . $BTS_DIR/.env; set +a"
+PATH_PREFIX="PATH=\$HOME/.local/bin:\$HOME/.cargo/bin:\$PATH"
 MARKER="# BTS-ORCHESTRATOR"
 
 # Cross-platform yesterday date
@@ -26,10 +28,10 @@ else
 fi
 
 CRON_LINES="$MARKER
-0 11 * * * cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
-0 16 * * * cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
-30 19 * * * cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
-0 1 * * * cd $BTS_DIR && $UV_PREFIX uv run bts check-results --date $YESTERDAY_CMD >> $LOG_DIR/orchestrator.log 2>&1 $MARKER"
+0 11 * * * $PATH_PREFIX; $ENV_SOURCE; cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
+0 16 * * * $PATH_PREFIX; $ENV_SOURCE; cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
+30 19 * * * $PATH_PREFIX; $ENV_SOURCE; cd $BTS_DIR && $UV_PREFIX uv run bts orchestrate --date \$(date +\%Y-\%m-\%d) --config $CONFIG >> $LOG_DIR/orchestrator.log 2>&1 $MARKER
+0 1 * * * $PATH_PREFIX; $ENV_SOURCE; cd $BTS_DIR && $UV_PREFIX uv run bts check-results --date $YESTERDAY_CMD >> $LOG_DIR/orchestrator.log 2>&1 $MARKER"
 
 case "${1:-show}" in
     install)
