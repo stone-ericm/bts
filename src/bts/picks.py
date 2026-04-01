@@ -34,6 +34,7 @@ class DailyPick:
     runner_up: dict | None  # {"batter_name": str, "p_game_hit": float}
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
+    result: str | None = None  # "hit", "miss", or None (pending)
 
 
 def pick_from_row(row) -> Pick:
@@ -77,6 +78,7 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         runner_up=data["runner_up"],
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
+        result=data.get("result"),
     )
 
 

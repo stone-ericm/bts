@@ -113,6 +113,14 @@ def render_page():
         flags = pick.get("flags", [])
         flags_str = ", ".join(flags) if isinstance(flags, list) else str(flags)
 
+        result = p.get("result")
+        if result == "hit":
+            result_html = '<span class="result-hit">&#10003;</span>'
+        elif result == "miss":
+            result_html = '<span class="result-miss">&#10007;</span>'
+        else:
+            result_html = '<span class="result-pending">&ndash;</span>'
+
         logo = team_logo_url(team)
         logo_img = f'<img src="{logo}" class="team-logo" alt="{team}">' if logo else ""
 
@@ -127,6 +135,7 @@ def render_page():
         row_class = "today" if date == today else ""
         pick_rows += f"""
         <tr class="{row_class}">
+            <td class="result-cell">{result_html}</td>
             <td class="date-cell">{date}</td>
             <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
             <td class="matchup-cell">vs {pitcher}</td>
@@ -256,12 +265,13 @@ def render_page():
         tr.today:hover {{ background: #dcedc8; }}
 
         table {{ table-layout: fixed; }}
-        col.col-date {{ width: 100px; }}
-        col.col-batter {{ width: 28%; }}
-        col.col-matchup {{ width: 22%; }}
-        col.col-pct {{ width: 70px; }}
-        col.col-double {{ width: 22%; }}
-        col.col-flags {{ width: 80px; }}
+        col.col-result {{ width: 36px; }}
+        col.col-date {{ width: 95px; }}
+        col.col-batter {{ width: 26%; }}
+        col.col-matchup {{ width: 20%; }}
+        col.col-pct {{ width: 65px; }}
+        col.col-double {{ width: 20%; }}
+        col.col-flags {{ width: 75px; }}
 
         .team-logo {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }}
         .team-logo-sm {{ width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }}
@@ -272,6 +282,10 @@ def render_page():
         .double {{ color: #D50032; font-weight: 600; }}
         .flags-cell {{ color: #999; font-size: 0.8em; }}
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
+        .result-cell {{ text-align: center; font-size: 1.1em; }}
+        .result-hit {{ color: #2e7d32; font-weight: 800; }}
+        .result-miss {{ color: #D50032; font-weight: 800; }}
+        .result-pending {{ color: #ccc; }}
 
         .posts {{ margin-top: 8px; }}
         .post-embed {{ margin: 12px 0; }}
@@ -320,10 +334,10 @@ def render_page():
         <div class="section-header">Pick History</div>
         <table>
             <colgroup>
-                <col class="col-date"><col class="col-batter"><col class="col-matchup">
-                <col class="col-pct"><col class="col-double"><col class="col-flags">
+                <col class="col-result"><col class="col-date"><col class="col-batter">
+                <col class="col-matchup"><col class="col-pct"><col class="col-double"><col class="col-flags">
             </colgroup>
-            <tr><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Double</th><th>Flags</th></tr>
+            <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Double</th><th>Flags</th></tr>
             {pick_rows}
         </table>
 

@@ -336,6 +336,10 @@ def check_results(date: str, picks_dir: str):
     # Update streak
     new_streak = update_streak(results, picks_path)
 
+    # Save result back to pick file
+    daily.result = "hit" if all(results) else "miss"
+    save_pick(daily, picks_path)
+
     # Report
     if all(results):
         hit_names = [daily.pick.batter_name]
