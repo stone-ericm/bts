@@ -234,9 +234,25 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
             click.echo("All games started, no pick was made.")
         return
 
-    # Step 4: Check if current pick is locked
+    # Step 4: Check if current pick is locked (game already started)
     if current and statuses.get(current.pick.game_pk) != "P":
         click.echo(f"Pick locked: {current.pick.batter_name} (game started)")
+        # Still post if we haven't yet — don't lose the Bluesky post
+        if not current.bluesky_posted and not dry_run:
+            text = format_post(
+                current.pick.batter_name, current.pick.team, current.pick.pitcher_name,
+                current.pick.p_game_hit, streak,
+                current.double_down.batter_name if current.double_down else None,
+                current.double_down.p_game_hit if current.double_down else None,
+            )
+            try:
+                uri = post_to_bluesky(text)
+                current.bluesky_posted = True
+                current.bluesky_uri = uri
+                save_pick(current, picks_path)
+                click.echo(f"  Posted to Bluesky (catch-up): {uri}")
+            except Exception as e:
+                click.echo(f"  Bluesky catch-up post failed: {e}", err=True)
         return
 
     # Step 5: Densest bucket strategy — pick from whichever time window has the most games
