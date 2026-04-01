@@ -21,16 +21,24 @@ def ssh_predict(
     bts_dir: str,
     date: str,
     timeout_sec: int = 300,
+    platform: str = "unix",
 ) -> pd.DataFrame | None:
     """Run bts predict-json on a remote machine via SSH.
 
     Returns predictions DataFrame on success, None on any failure.
     """
-    cmd = (
-        f"export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH && "
-        f"cd {bts_dir} && "
-        f"UV_CACHE_DIR=/tmp/uv-cache uv run bts predict-json --date {date}"
-    )
+    if platform == "windows":
+        cmd = (
+            f"cd /d {bts_dir} && "
+            f"set UV_CACHE_DIR=%TEMP%\\uv-cache && "
+            f"%USERPROFILE%\\.local\\bin\\uv run bts predict-json --date {date}"
+        )
+    else:
+        cmd = (
+            f"export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH && "
+            f"cd {bts_dir} && "
+            f"UV_CACHE_DIR=/tmp/uv-cache uv run bts predict-json --date {date}"
+        )
     try:
         result = subprocess.run(
             ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
@@ -80,6 +88,7 @@ def run_cascade(
             tier["bts_dir"],
             date,
             timeout_sec=tier["timeout_min"] * 60,
+            platform=tier.get("platform", "unix"),
         )
         if df is not None:
             print(f"  [{name}] Success — {len(df)} predictions", file=sys.stderr)

@@ -79,7 +79,7 @@ class TestRunCascade:
     def test_falls_through_to_second_tier(self, mock_ssh):
         import pandas as pd
 
-        def side_effect(host, bts_dir, date, timeout_sec):
+        def side_effect(host, bts_dir, date, timeout_sec, platform="unix"):
             if host == "mac":
                 return None  # Mac failed
             return pd.DataFrame(json.loads(SAMPLE_PREDICTIONS))
