@@ -1,7 +1,8 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
 import json
-import pickle  # noqa: S403 — used for caching trained ML models, not untrusted data
+import pickle  # noqa: S403 — caching trained ML models, not untrusted data
+import sys
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
@@ -574,13 +575,13 @@ def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: st
     raw = Path(raw_dir)
     proc = Path(processed_dir)
 
-    print(f"  Refreshing {season} data through {yesterday}...", file=__import__('sys').stderr)
+    print(f"  Refreshing {season} data through {yesterday}...", file=sys.stderr)
     paths = pull_feeds(season_start, yesterday, raw, delay=0.3)
-    print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=__import__('sys').stderr)
+    print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=sys.stderr)
 
     output_path = proc / f"pa_{season}.parquet"
     df = build_season(raw, output_path, season)
-    print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=__import__('sys').stderr)
+    print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=sys.stderr)
 
 
 def run_pipeline(

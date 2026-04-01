@@ -1,6 +1,7 @@
 """MLB Stats API data pulling: schedule discovery and game feed download."""
 
 import json
+import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -102,13 +103,13 @@ def pull_feeds(
             paths.append(path)
         except Exception as e:
             failed.append(game["gamePk"])
-            print(f"  SKIP {game['gamePk']}: {e}")
+            print(f"  SKIP {game['gamePk']}: {e}", file=sys.stderr)
 
         if delay > 0 and i < len(games) - 1:
             time.sleep(delay)
 
     if failed:
-        print(f"  {len(failed)} games failed: {failed}")
+        print(f"  {len(failed)} games failed: {failed}", file=sys.stderr)
 
     return paths
 
