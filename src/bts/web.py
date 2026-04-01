@@ -298,11 +298,6 @@ def render_page():
         .result-miss {{ color: #D50032; font-weight: 800; }}
         .result-pending {{ color: #ccc; }}
 
-        .bts-game-frame {{ margin: 12px 0; background: #fff; border-radius: 12px;
-                          overflow: hidden; border: 1px solid #ddd;
-                          box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
-        .bts-game-frame iframe {{ width: 100%; height: 700px; border: none; }}
-
         .posts {{ margin-top: 8px; }}
         .post-embed {{ margin: 12px 0; }}
         .post-embed blockquote {{ max-width: 600px; }}
@@ -357,14 +352,6 @@ def render_page():
             <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Double</th><th>Flags</th></tr>
             {pick_rows}
         </table>
-
-        <div class="section-header">Play Beat the Streak</div>
-        <div class="bts-game-frame">
-            <iframe src="https://www.mlb.com/apps/beat-the-streak/game"
-                    title="Beat the Streak"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    loading="lazy"></iframe>
-        </div>
 
         <div class="section-header">Bluesky Posts</div>
         <div class="posts">
