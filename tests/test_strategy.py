@@ -8,6 +8,13 @@ from unittest.mock import patch
 
 import pandas as pd
 
+
+# Force heuristic mode in all strategy tests — MDP policy file may exist on dev machines
+@pytest.fixture(autouse=True)
+def _disable_mdp():
+    with patch("bts.strategy._load_mdp", return_value=None):
+        yield
+
 from bts.picks import Pick, DailyPick, save_pick
 
 

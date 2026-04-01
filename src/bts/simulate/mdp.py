@@ -112,22 +112,42 @@ def lookup_action(
     return ACTIONS[policy_table[s, d, int(saver), q]]
 
 
-def solve_mdp(bins: QualityBins, season_length: int = 180) -> MDPSolution:
+def solve_mdp(
+    bins: QualityBins,
+    season_length: int = 180,
+    late_bins: QualityBins | None = None,
+    late_phase_days: int = 60,
+) -> MDPSolution:
     """Solve the reachability MDP via backward induction.
 
     State: (streak, days_remaining, saver_available, quality_bin)
     Actions: skip, single, double
     Objective: maximize P(reaching streak 57)
+
+    Args:
+        bins: Quality bins for early phase (or all season if late_bins is None).
+        late_bins: If provided, use these bins when days_remaining <= late_phase_days.
+            Models the empirical observation that hit rates degrade in Aug-Sep.
+        late_phase_days: Days remaining threshold for switching to late_bins.
     """
     n_streaks = 58   # 0-57
     n_days = season_length + 1  # 0 to season_length
     n_saver = 2      # 0=used/off, 1=available
     n_bins = len(bins.bins)
 
-    # Precompute bin frequencies and transition probs
-    freq = np.array([b.frequency for b in bins.bins])
-    p_hit = np.array([b.p_hit for b in bins.bins])
-    p_both = np.array([b.p_both for b in bins.bins])
+    # Precompute bin frequencies and transition probs for each phase
+    freq_early = np.array([b.frequency for b in bins.bins])
+    p_hit_early = np.array([b.p_hit for b in bins.bins])
+    p_both_early = np.array([b.p_both for b in bins.bins])
+
+    if late_bins is not None:
+        freq_late = np.array([b.frequency for b in late_bins.bins])
+        p_hit_late = np.array([b.p_hit for b in late_bins.bins])
+        p_both_late = np.array([b.p_both for b in late_bins.bins])
+    else:
+        freq_late = freq_early
+        p_hit_late = p_hit_early
+        p_both_late = p_both_early
 
     # Value function and policy
     V = np.zeros((n_streaks, n_days, n_saver, n_bins))
@@ -138,12 +158,22 @@ def solve_mdp(bins: QualityBins, season_length: int = 180) -> MDPSolution:
 
     # Backward induction: d = 1..season_length
     for d in range(1, n_days):
+        # Select bins for this day's phase
+        is_late = (d <= late_phase_days) if late_bins is not None else False
+        freq = freq_late if is_late else freq_early
+        p_hit = p_hit_late if is_late else p_hit_early
+        p_both = p_both_late if is_late else p_both_early
+
         for s in range(57):
             for saver in range(n_saver):
                 for q in range(n_bins):
                     # Expected value over next day's quality for a given next state
+                    # Next day is d-1 remaining — use ITS phase for the expectation
+                    next_is_late = ((d - 1) <= late_phase_days) if late_bins is not None else False
+                    next_freq = freq_late if next_is_late else freq_early
+
                     def ev(next_s, next_saver):
-                        return float(np.dot(freq, V[next_s, d - 1, next_saver, :]))
+                        return float(np.dot(next_freq, V[next_s, d - 1, next_saver, :]))
 
                     # Skip: streak holds, lose a day
                     v_skip = ev(s, saver)
