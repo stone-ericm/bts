@@ -30,7 +30,6 @@ def ssh_predict(
     if platform == "windows":
         cmd = (
             f"cd /d {bts_dir} && "
-            f"set UV_CACHE_DIR=%TEMP%\\uv-cache && "
             f"%USERPROFILE%\\.local\\bin\\uv run bts predict-json --date {date}"
         )
     else:
