@@ -127,11 +127,12 @@ def orchestrate(config_path: Path, date: str) -> bool:
         print(f"No games found for {date}.", file=sys.stderr)
         return False
 
-    # Apply strategy
-    result = select_pick(predictions, date, picks_dir)
+    # Apply strategy (streak-aware thresholds)
+    streak = load_streak(picks_dir)
+    result = select_pick(predictions, date, picks_dir, streak=streak)
 
     if result is None:
-        print("No valid picks available.", file=sys.stderr)
+        print(f"No pick — skipping today (streak holds at {streak}).", file=sys.stderr)
         return False
 
     if result.locked:

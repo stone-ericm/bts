@@ -147,11 +147,12 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo("\n  (--dry-run: not saving or posting)")
         return
 
-    # Step 2: Apply strategy
-    result = select_pick(predictions, date, picks_path)
+    # Step 2: Apply strategy (streak-aware thresholds)
+    streak = load_streak(picks_path)
+    result = select_pick(predictions, date, picks_path, streak=streak)
 
     if result is None:
-        click.echo("No valid picks available.")
+        click.echo(f"No pick — top prediction below skip threshold or no valid picks. Streak holds at {streak}.")
         return
 
     if result.locked:

@@ -59,5 +59,11 @@ ALL_STRATEGIES: dict[str, Strategy] = {
     "skip-aggressive": Strategy(name="skip-aggressive", skip_threshold=0.82, double_threshold=0.65),
     "sprint": Strategy(name="sprint", double_threshold=0.50),
     "streak-aware": Strategy(name="streak-aware", streak_config=_STREAK_AWARE_CONFIG),
-    "combined": Strategy(name="combined", streak_config=_STREAK_AWARE_CONFIG),
+    "combined": Strategy(name="combined", streak_config=(
+        (9, 0.80, 0.55),     # skip bad days + aggressive doubling
+        (15, 0.80, 0.60),    # saver phase
+        (30, 0.80, 0.65),    # mid — selective doubling
+        (45, 0.80, 0.65),    # lockdown — keep doubling (counter-intuitive but optimal)
+        (56, 0.80, None),    # sprint — singles only, don't risk near-win
+    )),
 }
