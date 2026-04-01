@@ -13,20 +13,22 @@ Automate the daily BTS workflow: run the model twice daily, post picks to Bluesk
 
 ## What Needs Automating
 
-### Densest Bucket + Override Strategy
+### Densest Bucket + Asymmetric Override Strategy
 
-Pick from whichever time window has the most games that day, UNLESS a pick from any window exceeds 78% P(game hit) — in which case, take it regardless of window. Validated at 86.9% avg P@1 across 6 seasons (2020-2025), +1.6% over pure densest bucket.
+Pick from whichever time window has the most games (the "densest bucket"). The densest window's top pick needs no threshold — it's the default. Picks from non-densest windows must exceed 78% P(game hit) to override. Validated at 86.9% avg P@1 across 6 seasons (2020-2025).
 
 Three time windows:
 - **Early**: before 4pm ET (day games, getaway days)
 - **Prime**: 4-8pm ET (bulk of schedule — densest ~90% of days)
 - **West**: 8pm+ ET (west coast)
 
-**Two-run schedule:**
-- **11:00 AM ET**: Check early games. Lock a pick ONLY if the early window is densest AND the best pick exceeds 80% P(game hit). Otherwise this run is informational.
-- **4:00 PM ET**: Main run. Identify the densest window (usually prime). Lock the best pick from that window. Post to Bluesky.
+**Three-run schedule:**
 
-On the ~6 days/season with no prime games, the densest bucket naturally falls to early or west — no fallback logic needed.
+- **11:00 AM ET**: Early lineups confirmed. If early is densest → lock top pick. If not, check if any early pick >78% → override. Otherwise wait.
+
+- **4:00 PM ET**: Prime lineups confirmed. If prime is densest (usual case) → lock top prime pick, no threshold needed. If a non-prime pick >78% beats it → override. If the top pick is from west (projected lineups) → tentatively pick, re-confirm at 7:30pm.
+
+- **7:30 PM ET**: West lineups confirmed. If we tentatively picked west at 4pm → re-run with confirmed lineups, update if pick changes. If west is densest and nothing locked yet → lock top pick.
 
 Game time distribution (2025 season, ET):
 ```
@@ -37,13 +39,12 @@ Game time distribution (2025 season, ET):
 10pm+:   129 games (west coast)
 ```
 
-**Why not three runs?** Backtesting showed "always wait for west coast" underperforms prime-only (81.1% vs 85.1%). The west pool is smaller, producing noisier picks. The 7:30pm run adds complexity without improving accuracy.
-
 ### Bluesky Posting
 
-- Post after the **4pm run** (the main run)
-- Only post once per day — don't post intermediate picks that might change
-- Exception: if the 11am run locks an early game pick (>80%, densest bucket is early), post then
+- Post after the pick is **locked** (densest window with confirmed lineups, or override >78%)
+- Only post once per day — don't post tentative picks that might change at 7:30pm
+- Exception: if the 11am run locks an early game pick, post then (game starts soon)
+- Catch-up posting: if a pick was locked but never posted, post at the next run
 - Never delete posts without human approval
 
 ### Notifications

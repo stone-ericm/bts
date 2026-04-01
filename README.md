@@ -224,7 +224,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-03-31
 # Check yesterday's results and update streak
 UV_CACHE_DIR=/tmp/uv-cache uv run bts check-results --date 2026-03-30
 
-# Install cron jobs (11am + 4pm ET predictions, 1am results check)
+# Install cron jobs (11am + 4pm + 7:30pm ET predictions, 1am results check)
 bash scripts/cron-setup.sh install
 ```
 

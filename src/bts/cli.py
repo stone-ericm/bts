@@ -255,10 +255,19 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
                 click.echo(f"  Bluesky catch-up post failed: {e}", err=True)
         return
 
-    # Step 5: Densest bucket + override strategy
-    # Pick from the window with the most games, UNLESS a pick from any window
-    # exceeds the override threshold (78%). Validated at 86.9% avg P@1 across
-    # 6 seasons (2020-2025).
+    # Step 5: Densest bucket + asymmetric override strategy
+    #
+    # Rule: pick from the densest window (most games) by default.
+    # Non-densest picks must exceed 78% to override. Densest picks need no threshold.
+    #
+    # Chronologically across the 3 daily runs (11am/4pm/7:30pm):
+    # - Each run identifies the densest window from games NOT YET STARTED
+    # - If the top pick is from the densest window → lock it (no threshold)
+    # - If the top pick is from a non-densest window AND >78% → override, lock it
+    # - If the top pick is from a non-densest window with projected lineups
+    #   (e.g., west coast at 4pm) → tentatively pick, re-confirm at next run
+    #
+    # Validated at 86.9% avg P@1 across 6 seasons (2020-2025).
     OVERRIDE_THRESHOLD = 0.78
     valid = available[available["p_game_hit"].notna()]
     if valid.empty:
@@ -284,14 +293,23 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, dry_run: bool
         densest_name = max(buckets, key=lambda k: len(buckets[k]))
         densest = buckets[densest_name]
 
-        # Check for override: any pick from any window above threshold?
-        override_pick = valid[valid["p_game_hit"] > OVERRIDE_THRESHOLD]
-        if len(override_pick) > 0 and override_pick.iloc[0]["p_game_hit"] > (densest.iloc[0]["p_game_hit"] if len(densest) > 0 else 0):
-            click.echo(f"  Override: {override_pick.iloc[0]['batter_name']} ({override_pick.iloc[0]['p_game_hit']:.1%}) "
-                        f"beats densest bucket ({densest_name})")
-            valid = valid  # Use full pool — the override pick is already ranked #1
-        elif len(densest) > 0:
-            click.echo(f"  Densest window: {densest_name} ({len(densest)} batters)")
+        # Top pick overall
+        top_overall = valid.iloc[0]
+        top_window = "early" if top_overall["_et_hour"] < 16 else ("prime" if top_overall["_et_hour"] < 20 else "west")
+
+        if top_window == densest_name:
+            # Top pick is from the densest window — take it, no threshold needed
+            click.echo(f"  Densest window: {densest_name} ({len(densest)} batters) — top pick is here")
+            valid = densest
+        elif top_overall["p_game_hit"] > OVERRIDE_THRESHOLD:
+            # Top pick is from a non-densest window but exceeds override threshold
+            click.echo(f"  Override: {top_overall['batter_name']} ({top_overall['p_game_hit']:.1%}) "
+                        f"from {top_window} beats densest ({densest_name})")
+            # Keep full pool — the override pick is already ranked #1
+        else:
+            # Top pick is from a non-densest window and below threshold — use densest instead
+            click.echo(f"  Densest window: {densest_name} ({len(densest)} batters) — "
+                        f"top pick ({top_window}, {top_overall['p_game_hit']:.1%}) below {OVERRIDE_THRESHOLD:.0%} threshold")
             valid = densest
 
     best_row = valid.iloc[0]
