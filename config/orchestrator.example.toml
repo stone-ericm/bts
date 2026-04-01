@@ -1,0 +1,27 @@
+# config/orchestrator.example.toml
+# Copy to ~/.bts-orchestrator.toml on Pi5 and adjust paths.
+
+[orchestrator]
+picks_dir = "/home/stonehengee/projects/bts/data/picks"
+
+[bluesky]
+dm_recipient = "stonehengee.bsky.social"
+
+[[tiers]]
+name = "mac"
+ssh_host = "macbook-pro.local"
+bts_dir = "/Users/stone/projects/bts"
+timeout_min = 5
+
+[[tiers]]
+name = "alienware"
+ssh_host = "alienware"
+bts_dir = "/c/Users/stone/projects/bts"
+timeout_min = 10
+
+# Uncomment when cloud VPS is set up:
+# [[tiers]]
+# name = "cloud"
+# ssh_host = "bts-cloud"
+# bts_dir = "/home/bts/projects/bts"
+# timeout_min = 15
