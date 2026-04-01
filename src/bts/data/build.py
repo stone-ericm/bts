@@ -265,7 +265,7 @@ def build_season(
         # Skip weather sidecar files
         if json_path.stem.endswith("_weather"):
             continue
-        feed = json.loads(json_path.read_text())
+        feed = json.loads(json_path.read_text(encoding="utf-8"))
 
         # Filter by game type
         game_info = feed.get("gameData", {}).get("game", {})
@@ -290,7 +290,7 @@ def build_season(
         # Merge weather sidecar if present
         weather_path = json_path.parent / f"{json_path.stem}_weather.json"
         if weather_path.exists():
-            weather = json.loads(weather_path.read_text())
+            weather = json.loads(weather_path.read_text(encoding="utf-8"))
             for row in rows:
                 row["atm_pressure"] = weather.get("surface_pressure")
                 row["humidity"] = weather.get("relative_humidity")

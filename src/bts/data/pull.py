@@ -134,7 +134,7 @@ def enrich_weather(season_dir: Path, delay: float = 0.3) -> int:
         if weather_path.exists():
             continue
 
-        feed = json.loads(game_path.read_text())
+        feed = json.loads(game_path.read_text(encoding="utf-8"))
         game_data = feed.get("gameData", {})
 
         coords = (
@@ -171,7 +171,7 @@ def enrich_weather(season_dir: Path, delay: float = 0.3) -> int:
                 "dewpoint": sum(dewpoints) / len(dewpoints) if dewpoints else None,
             }
 
-            weather_path.write_text(json.dumps(weather_data))
+            weather_path.write_text(json.dumps(weather_data), encoding="utf-8")
             count += 1
 
             if delay > 0:
