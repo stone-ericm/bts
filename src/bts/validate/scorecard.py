@@ -55,7 +55,7 @@ def _precision_at_k_flat(df: pd.DataFrame, k_values: list[int]) -> dict[int, flo
         top_k = df[df["rank"] <= k]
         if top_k.empty:
             continue
-        # Skip if all days have fewer than k rows (except K=1, always allowed)
+        # Skip K values where no day has enough candidates (profiles have top-10 only)
         if k > 1 and (top_k.groupby("date").size() < k).all():
             continue
         daily_precision = top_k.groupby("date")["actual_hit"].mean()
@@ -99,7 +99,7 @@ def compute_miss_analysis(profiles_df: pd.DataFrame) -> dict:
 
     mean_p_hit_on_hit = float(
         rank1[rank1["date"].isin(hit_dates)]["p_game_hit"].mean()
-    ) if len(hit_dates) > 0 else float("nan")
+    ) if len(hit_dates) > 0 else None
 
     return {
         "n_miss_days": n_miss_days,
@@ -253,19 +253,24 @@ def compute_full_scorecard(
     # Exact P(57) via absorbing Markov chain
     p_57_exact: float | None = None
     p_57_mdp: float | None = None
+
+    bins = None
     try:
         bins = compute_bins(df)
-        strategy = ALL_STRATEGIES["combined"]
-        p_57_exact = exact_p57(strategy, bins, season_length=season_length)
     except Exception:
         pass
 
-    try:
-        if p_57_exact is not None:  # bins computed successfully above
+    if bins is not None:
+        try:
+            strategy = ALL_STRATEGIES["combined"]
+            p_57_exact = exact_p57(strategy, bins, season_length=season_length)
+        except Exception:
+            pass
+        try:
             mdp_sol = solve_mdp(bins, season_length=season_length)
             p_57_mdp = mdp_sol.optimal_p57
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),

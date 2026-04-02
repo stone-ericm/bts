@@ -19,7 +19,7 @@ def validate():
 
 
 @validate.command()
-@click.option("--profiles-dir", default="data/simulation", type=click.Path(),
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
               help="Directory with backtest_*.parquet files")
 @click.option("--mc-trials", default=10_000, type=int,
               help="Monte Carlo trials for streak simulation")
