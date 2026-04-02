@@ -6,6 +6,11 @@ calibration, and streak simulation metrics.
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -189,3 +194,226 @@ def compute_streak_metrics(
         "p_57_monte_carlo": mc_result.p_57,
         "longest_replay_streak": replay_result.max_streak,
     }
+
+
+# ---------------------------------------------------------------------------
+# Full scorecard aggregation
+# ---------------------------------------------------------------------------
+
+def compute_full_scorecard(
+    profiles_df: pd.DataFrame,
+    mc_trials: int = 10_000,
+    season_length: int = 180,
+) -> dict:
+    """Compute the complete BTS validation scorecard.
+
+    Calls all 4 scoring functions and adds metadata, exact P(57) via
+    absorbing Markov chain, and MDP-optimal P(57).
+
+    Args:
+        profiles_df: DataFrame with columns [date, rank, batter_id,
+            p_game_hit, actual_hit, n_pas]. May have a 'season' column;
+            if absent, season is inferred from the year of the date column.
+        mc_trials: Monte Carlo trials for streak simulation.
+        season_length: Days per simulated season.
+
+    Returns:
+        Dict suitable for JSON serialization (see save_scorecard for
+        numpy type handling).
+    """
+    from bts.simulate.quality_bins import compute_bins
+    from bts.simulate.exact import exact_p57
+    from bts.simulate.mdp import solve_mdp
+    from bts.simulate.strategies import ALL_STRATEGIES
+
+    df = profiles_df.copy()
+
+    # Ensure season column exists (infer from date year if absent)
+    if "season" not in df.columns:
+        df["season"] = pd.to_datetime(df["date"]).dt.year
+
+    n_days = int(df["date"].nunique())
+    n_rows = len(df)
+
+    # Core metrics
+    precision = compute_precision_at_k(df)
+    precision_by_season = compute_precision_at_k(df, by_season=True)
+    miss_analysis = compute_miss_analysis(df)
+    calibration = compute_calibration(df)
+    streak_metrics = compute_streak_metrics(
+        df, n_trials=mc_trials, season_length=season_length
+    )
+
+    # Summarize P@1 per season for quick comparison
+    p_at_1_by_season: dict[int, float] = {}
+    for season_key, season_precision in precision_by_season.items():
+        if 1 in season_precision:
+            p_at_1_by_season[int(season_key)] = season_precision[1]
+
+    # Exact P(57) via absorbing Markov chain
+    p_57_exact: float | None = None
+    p_57_mdp: float | None = None
+    try:
+        bins = compute_bins(df)
+        strategy = ALL_STRATEGIES["combined"]
+        p_57_exact = exact_p57(strategy, bins, season_length=season_length)
+    except Exception:
+        pass
+
+    try:
+        if p_57_exact is not None:  # bins computed successfully above
+            mdp_sol = solve_mdp(bins, season_length=season_length)
+            p_57_mdp = mdp_sol.optimal_p57
+    except Exception:
+        pass
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "n_days": n_days,
+        "n_rows": n_rows,
+        "mc_trials": mc_trials,
+        "season_length": season_length,
+        "precision": precision,
+        "precision_by_season": precision_by_season,
+        "p_at_1_by_season": p_at_1_by_season,
+        "miss_analysis": miss_analysis,
+        "calibration": calibration,
+        "streak_metrics": streak_metrics,
+        "p_57_exact": p_57_exact,
+        "p_57_mdp": p_57_mdp,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+
+def _json_default(obj: Any) -> Any:
+    """Custom JSON serializer for numpy types."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def save_scorecard(scorecard: dict, path: str | Path) -> Path:
+    """Serialize scorecard to JSON and write to disk.
+
+    Handles numpy scalar types (np.integer, np.floating) and arrays.
+    Creates parent directories as needed.
+
+    Args:
+        scorecard: Dict returned by compute_full_scorecard (or any dict
+            containing numpy types).
+        path: Output file path (string or Path).
+
+    Returns:
+        Path object pointing to the written file.
+    """
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(scorecard, indent=2, default=_json_default))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Diff / comparison
+# ---------------------------------------------------------------------------
+
+def _diff_numeric(baseline_val: Any, variant_val: Any) -> dict | None:
+    """Return {baseline, variant, delta} if both values are numeric, else None."""
+    if baseline_val is None or variant_val is None:
+        return None
+    try:
+        b = float(baseline_val)
+        v = float(variant_val)
+        return {"baseline": b, "variant": v, "delta": v - b}
+    except (TypeError, ValueError):
+        return None
+
+
+def diff_scorecards(baseline: dict, variant: dict) -> dict:
+    """Compute numeric deltas between two scorecards.
+
+    For each comparable numeric field, produces a dict with keys
+    {baseline, variant, delta}.
+
+    Sections diffed:
+    - precision (K → float)
+    - p_at_1_by_season (season → float)
+    - miss_analysis (field → scalar)
+    - streak_metrics (field → scalar)
+    - p_57_exact (scalar)
+    - p_57_mdp (scalar)
+
+    Args:
+        baseline: Reference scorecard dict.
+        variant: New scorecard dict to compare against.
+
+    Returns:
+        Dict of diffs (fields with no numeric counterpart are omitted).
+    """
+    result: dict = {}
+
+    # precision: {k: float}
+    b_prec = baseline.get("precision", {})
+    v_prec = variant.get("precision", {})
+    if b_prec and v_prec:
+        prec_diff: dict = {}
+        for k in b_prec:
+            if k in v_prec:
+                d = _diff_numeric(b_prec[k], v_prec[k])
+                if d is not None:
+                    prec_diff[k] = d
+        if prec_diff:
+            result["precision"] = prec_diff
+
+    # p_at_1_by_season: {season: float}
+    b_p1s = baseline.get("p_at_1_by_season", {})
+    v_p1s = variant.get("p_at_1_by_season", {})
+    if b_p1s and v_p1s:
+        p1s_diff: dict = {}
+        for season in b_p1s:
+            if season in v_p1s:
+                d = _diff_numeric(b_p1s[season], v_p1s[season])
+                if d is not None:
+                    p1s_diff[season] = d
+        if p1s_diff:
+            result["p_at_1_by_season"] = p1s_diff
+
+    # miss_analysis: flat dict of scalars
+    b_ma = baseline.get("miss_analysis", {})
+    v_ma = variant.get("miss_analysis", {})
+    if b_ma and v_ma:
+        ma_diff: dict = {}
+        for field in b_ma:
+            if field in v_ma:
+                d = _diff_numeric(b_ma[field], v_ma[field])
+                if d is not None:
+                    ma_diff[field] = d
+        if ma_diff:
+            result["miss_analysis"] = ma_diff
+
+    # streak_metrics: flat dict of scalars
+    b_sm = baseline.get("streak_metrics", {})
+    v_sm = variant.get("streak_metrics", {})
+    if b_sm and v_sm:
+        sm_diff: dict = {}
+        for field in b_sm:
+            if field in v_sm:
+                d = _diff_numeric(b_sm[field], v_sm[field])
+                if d is not None:
+                    sm_diff[field] = d
+        if sm_diff:
+            result["streak_metrics"] = sm_diff
+
+    # Top-level scalar fields
+    for field in ("p_57_exact", "p_57_mdp"):
+        d = _diff_numeric(baseline.get(field), variant.get(field))
+        if d is not None:
+            result[field] = d
+
+    return result
