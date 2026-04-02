@@ -39,15 +39,18 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate solve --save-policy data/models/m
 
 # Exact P(57) for any strategy (no Monte Carlo noise)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate exact --strategy combined
+
+# Multi-metric scorecard (baseline comparison)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts validate scorecard --diff data/validation/scorecard_baseline.json
 ```
 
 ## Architecture
 See `ARCHITECTURE.md` for full details. Key points:
 - PA-level LightGBM → game-level probability aggregation
-- 13 baseline features + 9 Statcast features, all provably leak-free (date-level shift(1))
+- 14 baseline features + 9 Statcast features, all provably leak-free (date-level shift(1))
 - 12-model blend: baseline + single-Statcast variants. `--no-blend` for single model.
 - **MDP-optimal strategy**: auto-loads `data/models/mdp_policy.npz` for skip/single/double decisions. Falls back to heuristic if absent.
-- **Phase-aware bins**: early season (Mar-Jul) vs late (Aug-Sep) — model degrades late
+- **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15
 - Projected lineup fallback for morning predictions
 - Train on 2019+ data (2017-18 hurts)
