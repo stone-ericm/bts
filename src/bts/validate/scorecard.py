@@ -50,14 +50,9 @@ def _precision_at_k_flat(df: pd.DataFrame, k_values: list[int]) -> dict[int, flo
         top_k = df[df["rank"] <= k]
         if top_k.empty:
             continue
-        # Check that at least one day actually has k rows
-        max_per_day = top_k.groupby("date").size().max()
-        if max_per_day < k and k > 1:
-            # K exceeds the pool on every day — skip this K
-            # Allow K=1 always; for larger K, skip if no day reaches K
-            daily_sizes = top_k.groupby("date").size()
-            if (daily_sizes < k).all():
-                continue
+        # Skip if all days have fewer than k rows (except K=1, always allowed)
+        if k > 1 and (top_k.groupby("date").size() < k).all():
+            continue
         daily_precision = top_k.groupby("date")["actual_hit"].mean()
         result[k] = float(daily_precision.mean())
     return result
@@ -95,7 +90,7 @@ def compute_miss_analysis(profiles_df: pd.DataFrame) -> dict:
 
     mean_p_hit_on_miss = float(
         rank1[rank1["date"].isin(miss_dates)]["p_game_hit"].mean()
-    ) if n_miss_days > 0 else float("nan")
+    ) if n_miss_days > 0 else None
 
     mean_p_hit_on_hit = float(
         rank1[rank1["date"].isin(hit_dates)]["p_game_hit"].mean()
@@ -188,7 +183,7 @@ def compute_streak_metrics(
 
     return {
         "mean_max_streak": float(np.mean(streaks)),
-        "median_max_streak": int(np.median(streaks)),
+        "median_max_streak": mc_result.median_streak,
         "p90_max_streak": int(np.percentile(streaks, 90)),
         "p99_max_streak": int(np.percentile(streaks, 99)),
         "p_57_monte_carlo": mc_result.p_57,
