@@ -125,12 +125,6 @@ def render_page():
         logo_img = f'<img src="{logo}" class="team-logo" alt="{team}">' if logo else ""
 
         double = p.get("double_down")
-        double_str = ""
-        if double:
-            d_team = double.get("team", "?")
-            d_logo = team_logo_url(d_team)
-            d_logo_img = f'<img src="{d_logo}" class="team-logo-sm" alt="{d_team}">' if d_logo else ""
-            double_str = f'{d_logo_img} <span class="double">{double.get("batter_name", "?")} ({double.get("p_game_hit", 0):.1%})</span>'
 
         if date == today:
             row_class = "today"
@@ -147,8 +141,26 @@ def render_page():
             <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
             <td class="matchup-cell">vs {pitcher}</td>
             <td class="pct-cell">{pct:.1%}</td>
-            <td class="double-cell">{double_str}</td>
             <td class="flags-cell">{flags_str}</td>
+        </tr>"""
+
+        if double:
+            d_name = double.get("batter_name", "?")
+            d_team = double.get("team", "?")
+            d_pitcher = double.get("pitcher_name", "?")
+            d_pct = double.get("p_game_hit", 0)
+            d_flags = double.get("flags", [])
+            d_flags_str = ", ".join(d_flags) if isinstance(d_flags, list) else str(d_flags)
+            d_logo = team_logo_url(d_team)
+            d_logo_img = f'<img src="{d_logo}" class="team-logo" alt="{d_team}">' if d_logo else ""
+            pick_rows += f"""
+        <tr class="{row_class} double-row">
+            <td class="result-cell"><span class="double-plus">+</span></td>
+            <td class="date-cell"></td>
+            <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
+            <td class="matchup-cell">vs {d_pitcher}</td>
+            <td class="pct-cell">{d_pct:.1%}</td>
+            <td class="flags-cell">{d_flags_str}</td>
         </tr>"""
 
     # Build Bluesky posts as official embeds
@@ -178,15 +190,45 @@ def render_page():
     hero = ""
     if today_pick:
         tp = today_pick["pick"]
+        dd = today_pick.get("double_down")
         t_logo = team_logo_url(tp.get("team", ""), size=72)
         t_logo_img = f'<img src="{t_logo}" class="hero-logo" alt="{tp.get("team", "")}">' if t_logo else ""
-        hero = f"""
+        label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
+        if dd:
+            d_logo = team_logo_url(dd.get("team", ""), size=72)
+            d_logo_img = f'<img src="{d_logo}" class="hero-logo" alt="{dd.get("team", "")}">' if d_logo else ""
+            p_both = tp.get('p_game_hit', 0) * dd.get('p_game_hit', 0)
+            hero = f"""
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
             </div>
             <div class="hero-right">
-                <div class="hero-label">TODAY'S PICK</div>
+                <div class="hero-label">{label}</div>
+                <div class="hero-name">{tp.get('batter_name', '?')}</div>
+                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')}</div>
+            </div>
+            <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
+        </div>
+        <div class="hero hero-double">
+            <div class="hero-left">
+                {d_logo_img}
+            </div>
+            <div class="hero-right">
+                <div class="hero-label">DOUBLE DOWN · P(BOTH) {p_both:.1%}</div>
+                <div class="hero-name">{dd.get('batter_name', '?')}</div>
+                <div class="hero-detail">{dd.get('team', '?')} vs {dd.get('pitcher_name', '?')}</div>
+            </div>
+            <div class="hero-pct">{dd.get('p_game_hit', 0):.1%}</div>
+        </div>"""
+        else:
+            hero = f"""
+        <div class="hero">
+            <div class="hero-left">
+                {t_logo_img}
+            </div>
+            <div class="hero-right">
+                <div class="hero-label">{label}</div>
                 <div class="hero-name">{tp.get('batter_name', '?')}</div>
                 <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')}</div>
             </div>
@@ -255,6 +297,7 @@ def render_page():
         .hero-detail {{ color: #666; font-size: 0.95em; }}
         .hero-pct {{ font-size: 2.2em; font-weight: 800; color: #D50032;
                      flex-shrink: 0; }}
+        .hero-double {{ margin-top: -8px; border-top: none; border-left-color: #041E42; }}
 
         .section-header {{ color: #041E42; font-size: 0.75em; text-transform: uppercase;
                            letter-spacing: 2px; font-weight: 700; margin: 28px 0 12px;
@@ -278,19 +321,18 @@ def render_page():
         table {{ table-layout: fixed; }}
         col.col-result {{ width: 36px; }}
         col.col-date {{ width: 95px; }}
-        col.col-batter {{ width: 26%; }}
-        col.col-matchup {{ width: 20%; }}
+        col.col-batter {{ width: 30%; }}
+        col.col-matchup {{ width: 28%; }}
         col.col-pct {{ width: 65px; }}
-        col.col-double {{ width: 20%; }}
-        col.col-flags {{ width: 75px; }}
+        col.col-flags {{ width: 85px; }}
 
         .team-logo {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }}
-        .team-logo-sm {{ width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }}
         .batter-cell strong {{ color: #041E42; }}
-        .batter-cell, .matchup-cell, .double-cell {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+        .batter-cell, .matchup-cell {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
         .matchup-cell {{ color: #666; }}
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
-        .double {{ color: #D50032; font-weight: 600; }}
+        .double-row td {{ border-top: none; padding-top: 2px; }}
+        .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
         .flags-cell {{ color: #999; font-size: 0.8em; }}
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
         .result-cell {{ text-align: center; font-size: 1.1em; }}
@@ -313,7 +355,7 @@ def render_page():
             .hero {{ flex-direction: column; text-align: center; }}
             .hero-pct {{ margin-top: 10px; }}
             .header {{ flex-direction: column; gap: 12px; }}
-            .flags-cell, .double-cell {{ display: none; }}
+            .flags-cell {{ display: none; }}
         }}
     </style>
 </head>
@@ -347,9 +389,9 @@ def render_page():
         <table>
             <colgroup>
                 <col class="col-result"><col class="col-date"><col class="col-batter">
-                <col class="col-matchup"><col class="col-pct"><col class="col-double"><col class="col-flags">
+                <col class="col-matchup"><col class="col-pct"><col class="col-flags">
             </colgroup>
-            <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Double</th><th>Flags</th></tr>
+            <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Flags</th></tr>
             {pick_rows}
         </table>
 
