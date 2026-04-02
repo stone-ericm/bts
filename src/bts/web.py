@@ -15,8 +15,11 @@ from pathlib import Path
 from urllib.request import urlopen, Request
 
 
+from zoneinfo import ZoneInfo
+
 PICKS_DIR = Path("data/picks")
 PORT = 3003
+ET = ZoneInfo("America/New_York")
 
 # MLB team abbreviation -> team ID (for logo URLs)
 TEAM_IDS = {
@@ -27,6 +30,17 @@ TEAM_IDS = {
     "PHI": 143, "PIT": 134, "SD": 135, "SEA": 136, "SF": 137,
     "STL": 138, "TB": 139, "TEX": 140, "TOR": 141, "WSH": 120,
 }
+
+
+def _format_game_time(iso_utc: str) -> str:
+    """Convert ISO UTC game time to '7:10 PM ET' format."""
+    if not iso_utc:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_utc).astimezone(ET)
+        return dt.strftime("%-I:%M %p ET")
+    except (ValueError, TypeError):
+        return ""
 
 
 def team_logo_url(abbrev, size=40):
@@ -193,10 +207,12 @@ def render_page():
         dd = today_pick.get("double_down")
         t_logo = team_logo_url(tp.get("team", ""), size=72)
         t_logo_img = f'<img src="{t_logo}" class="hero-logo" alt="{tp.get("team", "")}">' if t_logo else ""
+        t_time = _format_game_time(tp.get("game_time", ""))
         label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
         if dd:
             d_logo = team_logo_url(dd.get("team", ""), size=72)
             d_logo_img = f'<img src="{d_logo}" class="hero-logo" alt="{dd.get("team", "")}">' if d_logo else ""
+            d_time = _format_game_time(dd.get("game_time", ""))
             p_both = tp.get('p_game_hit', 0) * dd.get('p_game_hit', 0)
             hero = f"""
         <div class="hero">
@@ -206,7 +222,7 @@ def render_page():
             <div class="hero-right">
                 <div class="hero-label">{label}</div>
                 <div class="hero-name">{tp.get('batter_name', '?')}</div>
-                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')}</div>
+                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
             </div>
             <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
         </div>
@@ -217,7 +233,7 @@ def render_page():
             <div class="hero-right">
                 <div class="hero-label">DOUBLE DOWN · P(BOTH) {p_both:.1%}</div>
                 <div class="hero-name">{dd.get('batter_name', '?')}</div>
-                <div class="hero-detail">{dd.get('team', '?')} vs {dd.get('pitcher_name', '?')}</div>
+                <div class="hero-detail">{dd.get('team', '?')} vs {dd.get('pitcher_name', '?')} · {d_time}</div>
             </div>
             <div class="hero-pct">{dd.get('p_game_hit', 0):.1%}</div>
         </div>"""
@@ -230,7 +246,7 @@ def render_page():
             <div class="hero-right">
                 <div class="hero-label">{label}</div>
                 <div class="hero-name">{tp.get('batter_name', '?')}</div>
-                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')}</div>
+                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
             </div>
             <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
         </div>"""
