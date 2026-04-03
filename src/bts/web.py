@@ -124,9 +124,6 @@ def render_page():
         team = pick.get("team", "?")
         pitcher = pick.get("pitcher_name", "?")
         pct = pick.get("p_game_hit", 0)
-        flags = pick.get("flags", [])
-        flags_str = ", ".join(flags) if isinstance(flags, list) else str(flags)
-
         result = p.get("result")
         if result == "hit":
             result_html = '<span class="result-hit">&#10003;</span>'
@@ -137,6 +134,14 @@ def render_page():
 
         logo = team_logo_url(team)
         logo_img = f'<img src="{logo}" class="team-logo" alt="{team}">' if logo else ""
+
+        # Lineup status emoji
+        if result in ("suspended", "unresolved"):
+            lineup_icon = '<span title="Void">&#9888;&#65039;</span>'
+        elif pick.get("projected_lineup"):
+            lineup_icon = '<span title="Projected">&#128203;</span>'
+        else:
+            lineup_icon = '<span title="Confirmed">&#9989;</span>'
 
         double = p.get("double_down")
 
@@ -155,7 +160,7 @@ def render_page():
             <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
             <td class="matchup-cell">vs {pitcher}</td>
             <td class="pct-cell">{pct:.1%}</td>
-            <td class="flags-cell">{flags_str}</td>
+            <td class="lineup-cell">{lineup_icon}</td>
         </tr>"""
 
         if double:
@@ -163,10 +168,14 @@ def render_page():
             d_team = double.get("team", "?")
             d_pitcher = double.get("pitcher_name", "?")
             d_pct = double.get("p_game_hit", 0)
-            d_flags = double.get("flags", [])
-            d_flags_str = ", ".join(d_flags) if isinstance(d_flags, list) else str(d_flags)
             d_logo = team_logo_url(d_team)
             d_logo_img = f'<img src="{d_logo}" class="team-logo" alt="{d_team}">' if d_logo else ""
+            if result in ("suspended", "unresolved"):
+                d_lineup_icon = '<span title="Void">&#9888;&#65039;</span>'
+            elif double.get("projected_lineup"):
+                d_lineup_icon = '<span title="Projected">&#128203;</span>'
+            else:
+                d_lineup_icon = '<span title="Confirmed">&#9989;</span>'
             pick_rows += f"""
         <tr class="{row_class} double-row">
             <td class="result-cell"><span class="double-plus">+</span></td>
@@ -174,7 +183,7 @@ def render_page():
             <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
             <td class="matchup-cell">vs {d_pitcher}</td>
             <td class="pct-cell">{d_pct:.1%}</td>
-            <td class="flags-cell">{d_flags_str}</td>
+            <td class="lineup-cell">{d_lineup_icon}</td>
         </tr>"""
 
     # Build Bluesky posts as official embeds
@@ -348,7 +357,7 @@ def render_page():
         col.col-batter {{ width: 30%; }}
         col.col-matchup {{ width: 28%; }}
         col.col-pct {{ width: 65px; }}
-        col.col-flags {{ width: 85px; }}
+        col.col-lineup {{ width: 50px; }}
 
         .team-logo {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }}
         .batter-cell strong {{ color: #041E42; }}
@@ -357,7 +366,7 @@ def render_page():
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
         .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
-        .flags-cell {{ color: #999; font-size: 0.8em; }}
+        .lineup-cell {{ text-align: center; font-size: 1.1em; }}
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
         .result-cell {{ text-align: center; font-size: 1.1em; }}
         .result-hit {{ color: #2e7d32; font-weight: 800; }}
@@ -413,9 +422,9 @@ def render_page():
         <table>
             <colgroup>
                 <col class="col-result"><col class="col-date"><col class="col-batter">
-                <col class="col-matchup"><col class="col-pct"><col class="col-flags">
+                <col class="col-matchup"><col class="col-pct"><col class="col-lineup">
             </colgroup>
-            <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Flags</th></tr>
+            <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Lineup</th></tr>
             {pick_rows}
         </table>
 
