@@ -176,3 +176,55 @@ class TestSchedulerState:
         from bts.scheduler import load_state
 
         assert load_state("2026-04-03", tmp_path) is None
+
+
+class TestSchedulerRun:
+    @patch("bts.scheduler.check_confirmed_lineups")
+    def test_skips_run_when_no_new_lineups(self, mock_lineups, tmp_path):
+        from bts.scheduler import run_single_check
+
+        mock_lineups.return_value = {100: False}
+
+        result = run_single_check(
+            date="2026-04-03",
+            all_game_pks=[100],
+            confirmed_game_pks=set(),
+            config={"orchestrator": {"picks_dir": str(tmp_path)}, "tiers": []},
+            early_lock_gap=0.03,
+        )
+        assert result["skipped"] is True
+        assert result["new_lineups"] == 0
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.strategy.get_game_statuses", return_value={100: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_triggers_prediction_on_new_lineup(
+        self, _mdp, _statuses, mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+
+        mock_lineups.return_value = {100: True}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Test", "batter_id": 1, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 2,
+                "game_pk": 100, "game_time": "2026-04-03T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.82, "flags": "",
+            }]),
+            "mac",
+        )
+
+        result = run_single_check(
+            date="2026-04-03",
+            all_game_pks=[100],
+            confirmed_game_pks=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+        assert result["skipped"] is False
+        assert result["new_lineups"] == 1

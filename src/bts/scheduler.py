@@ -199,3 +199,70 @@ def count_new_confirmations(
             previously_confirmed.add(pk)
             new_count += 1
     return new_count
+
+
+def _now_et() -> datetime:
+    """Current time in ET. Extracted for testability."""
+    return datetime.now(ET)
+
+
+def run_single_check(
+    date: str,
+    all_game_pks: list[int],
+    confirmed_game_pks: set[int],
+    config: dict,
+    early_lock_gap: float,
+) -> dict:
+    """Run a single lineup check cycle.
+
+    1. Check for new confirmed lineups.
+    2. If new confirmations, run prediction cascade.
+    3. Evaluate should_lock().
+
+    Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
+             "pick_result": PickResult | None}.
+    """
+    from bts.orchestrator import run_and_pick
+    from bts.picks import save_pick
+    from bts.strategy import should_lock
+
+    new_count = count_new_confirmations(all_game_pks, confirmed_game_pks)
+
+    if new_count == 0:
+        return {"skipped": True, "new_lineups": 0, "should_post": False, "pick_result": None}
+
+    print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
+
+    predictions, pick_result, tier = run_and_pick(config, date)
+
+    if predictions is None or pick_result is None:
+        return {"skipped": False, "new_lineups": new_count, "should_post": False,
+                "pick_result": pick_result}
+
+    if pick_result.locked:
+        return {"skipped": False, "new_lineups": new_count, "should_post": False,
+                "pick_result": pick_result}
+
+    # Save candidate pick
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    save_pick(pick_result.daily, picks_dir)
+
+    # Check if we should lock
+    pick_data = {
+        "p_game_hit": pick_result.daily.pick.p_game_hit,
+        "projected_lineup": pick_result.daily.pick.projected_lineup,
+        "game_pk": pick_result.daily.pick.game_pk,
+    }
+    all_pick_data = []
+    for _, row in predictions.iterrows():
+        if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
+            all_pick_data.append({
+                "p_game_hit": float(row["p_game_hit"]),
+                "projected_lineup": "PROJECTED" in str(row.get("flags", "")),
+                "game_pk": int(row["game_pk"]),
+            })
+
+    do_post = should_lock(pick_data, all_pick_data, early_lock_gap)
+
+    return {"skipped": False, "new_lineups": new_count, "should_post": do_post,
+            "pick_result": pick_result}
