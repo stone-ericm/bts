@@ -180,10 +180,12 @@ class TestSchedulerState:
 
 class TestSchedulerRun:
     @patch("bts.scheduler.check_confirmed_lineups")
-    def test_skips_run_when_no_new_lineups(self, mock_lineups, tmp_path):
+    @patch("bts.orchestrator.run_cascade")
+    def test_runs_predictions_even_with_no_new_lineups(self, mock_cascade, mock_lineups, tmp_path):
         from bts.scheduler import run_single_check
 
         mock_lineups.return_value = {100: False}
+        mock_cascade.return_value = (None, None)
 
         result = run_single_check(
             date="2026-04-03",
@@ -192,8 +194,9 @@ class TestSchedulerRun:
             config={"orchestrator": {"picks_dir": str(tmp_path)}, "tiers": []},
             early_lock_gap=0.03,
         )
-        assert result["skipped"] is True
+        assert result["skipped"] is False
         assert result["new_lineups"] == 0
+        mock_cascade.assert_called_once()
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.orchestrator.run_cascade")

@@ -215,9 +215,9 @@ def run_single_check(
 ) -> dict:
     """Run a single lineup check cycle.
 
-    1. Check for new confirmed lineups.
-    2. If new confirmations, run prediction cascade.
-    3. Evaluate should_lock().
+    Always runs the prediction cascade — the pipeline determines
+    projected vs confirmed per-batter. Updates confirmed_game_pks
+    for state tracking (but doesn't gate predictions on it).
 
     Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
              "pick_result": PickResult | None}.
@@ -227,9 +227,6 @@ def run_single_check(
     from bts.strategy import should_lock
 
     new_count = count_new_confirmations(all_game_pks, confirmed_game_pks)
-
-    if new_count == 0:
-        return {"skipped": True, "new_lineups": 0, "should_post": False, "pick_result": None}
 
     print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
 
