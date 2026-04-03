@@ -295,6 +295,34 @@ def poll_game_result(game_pk: int) -> str:
     return "unknown"
 
 
+def _check_hits_midgame(daily, date: str) -> list[bool | None]:
+    """Check if picked batters have hits in a live or final game.
+
+    Returns list of True/False/None per pick (primary + optional double).
+    None = batter not yet in boxscore or no AB yet.
+    """
+    from bts.picks import API_BASE
+    results = []
+    for pick in [daily.pick] + ([daily.double_down] if daily.double_down else []):
+        try:
+            resp = json.loads(retry_urlopen(
+                f"{API_BASE}/api/v1.1/game/{pick.game_pk}/feed/live",
+                timeout=15,
+            ).read())
+            for side in ("away", "home"):
+                players = resp["liveData"]["boxscore"]["teams"][side]["players"]
+                key = f"ID{pick.batter_id}"
+                if key in players:
+                    hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
+                    results.append(hits > 0)
+                    break
+            else:
+                results.append(None)
+        except Exception:
+            results.append(None)
+    return results
+
+
 def run_result_polling(
     game_pk: int,
     date: str,
@@ -302,17 +330,18 @@ def run_result_polling(
     poll_interval_min: int = 15,
     cap_hour_et: int = 5,
 ) -> str:
-    """Poll a game until it reaches a terminal state.
+    """Poll for pick results, checking for hits mid-game.
 
-    Returns the final status: "final", "suspended", or "unresolved".
-    On "final", runs check-results logic to update streak.
+    Posts reply as soon as all picks have hits (early exit) or when
+    game goes Final/Suspended. Returns "final", "suspended", or "unresolved".
     """
     from bts.picks import load_pick, check_hit, update_streak, save_pick
+
+    early_replied = False
 
     while True:
         now = _now_et()
         if now.hour >= cap_hour_et and now.hour < 10:
-            # Past the cap — give up
             print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
                   file=sys.stderr)
             daily = load_pick(date, picks_dir)
@@ -321,13 +350,39 @@ def run_result_polling(
                 save_pick(daily, picks_dir)
             return "unresolved"
 
+        daily = load_pick(date, picks_dir)
+        if not daily:
+            return "unresolved"
+
         status = poll_game_result(game_pk)
         print(f"  [{now.strftime('%H:%M ET')}] Game {game_pk}: {status}", file=sys.stderr)
 
+        # Check for mid-game hits (even if game is still live)
+        if not early_replied and status in ("live", "final"):
+            hit_checks = _check_hits_midgame(daily, date)
+            n_picks = 1 + (1 if daily.double_down else 0)
+            confirmed_hits = [h for h in hit_checks[:n_picks] if h is True]
+
+            if len(confirmed_hits) == n_picks:
+                # All picks have hits — post early reply
+                new_streak = update_streak([True] * n_picks, picks_dir)
+                daily.result = "hit"
+                save_pick(daily, picks_dir)
+                print(f"  All picks have hits! Streak: {new_streak}.", file=sys.stderr)
+
+                if daily.bluesky_uri:
+                    try:
+                        from bts.posting import format_result_reply, reply_to_bluesky
+                        reply_text = format_result_reply("hit", new_streak)
+                        reply_uri = reply_to_bluesky(reply_text, daily.bluesky_uri)
+                        print(f"  Result reply posted (mid-game): {reply_uri}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"  Result reply failed: {e}", file=sys.stderr)
+                early_replied = True
+
         if status == "final":
-            # Run check-results logic
-            daily = load_pick(date, picks_dir)
-            if daily:
+            if not early_replied:
+                # Game over, haven't replied yet — do final check
                 primary_result = check_hit(
                     daily.pick.game_pk, daily.pick.batter_id,
                     batter_name=daily.pick.batter_name,
@@ -353,7 +408,6 @@ def run_result_polling(
                 save_pick(daily, picks_dir)
                 print(f"  Result: {daily.result}. Streak: {new_streak}.", file=sys.stderr)
 
-                # Reply to original Bluesky post with result
                 if daily.bluesky_uri:
                     try:
                         from bts.posting import format_result_reply, reply_to_bluesky
@@ -366,7 +420,7 @@ def run_result_polling(
 
         if status == "suspended":
             daily = load_pick(date, picks_dir)
-            if daily:
+            if daily and not early_replied:
                 daily.result = "suspended"
                 save_pick(daily, picks_dir)
             return "suspended"
@@ -565,18 +619,18 @@ def run_day(
     except Exception as e:
         print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
 
-    # 8. Result polling (wait until 1am ET, then poll)
+    # 8. Result polling (start 10 min after game start, check for hits mid-game)
     if state.pick_locked:
         daily = load_pick(date, picks_dir)
         if daily and daily.result is None:
+            # Wait until game_start + 10 minutes
+            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
+            poll_start = game_et + timedelta(minutes=10)
             now = _now_et()
-            target_1am = now.replace(hour=1, minute=0, second=0, microsecond=0)
-            if now.hour >= 1:
-                target_1am += timedelta(days=1)
-            wait = (target_1am - now).total_seconds()
-            if wait > 0:
-                print(f"  Waiting until 1am ET for result check ({wait / 3600:.1f}h)...",
-                      file=sys.stderr)
+            if now < poll_start:
+                wait = (poll_start - now).total_seconds()
+                print(f"  Waiting until {poll_start.strftime('%H:%M ET')} "
+                      f"(game start + 10min, {wait / 60:.0f} min)...", file=sys.stderr)
                 time.sleep(wait)
 
             game_pk = daily.pick.game_pk

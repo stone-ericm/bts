@@ -242,3 +242,76 @@ def check_hit(game_pk: int, batter_id: int, batter_name: str | None = None,
                     return result
 
     return None
+
+
+def reconcile_results(
+    picks_dir: Path,
+    lookback_days: int = 8,
+) -> list[dict]:
+    """Re-check recent picks against current boxscore data.
+
+    Catches scoring changes (hit -> error) that happened after the original
+    check-results. Returns list of corrections made.
+    """
+    from datetime import date as date_cls, timedelta as td
+    today = date_cls.today()
+    corrections = []
+
+    for i in range(1, lookback_days + 1):
+        d = (today - td(days=i)).isoformat()
+        daily = load_pick(d, picks_dir)
+        if not daily or daily.result not in ("hit", "miss"):
+            continue
+
+        # Re-check primary pick
+        primary = check_hit(
+            daily.pick.game_pk, daily.pick.batter_id,
+            batter_name=daily.pick.batter_name,
+            date=d, team=daily.pick.team,
+        )
+        if primary is None:
+            continue
+
+        results = [primary]
+        if daily.double_down:
+            double = check_hit(
+                daily.double_down.game_pk, daily.double_down.batter_id,
+                batter_name=daily.double_down.batter_name,
+                date=d, team=daily.double_down.team,
+            )
+            if double is not None:
+                results.append(double)
+
+        current_result = "hit" if all(results) else "miss"
+        if current_result != daily.result:
+            corrections.append({
+                "date": d,
+                "batter": daily.pick.batter_name,
+                "old_result": daily.result,
+                "new_result": current_result,
+            })
+            daily.result = current_result
+            save_pick(daily, picks_dir)
+
+    # If any corrections, recalculate streak from scratch
+    if corrections:
+        streak = 0
+        dates = sorted(picks_dir.glob("*.json"))
+        for f in reversed(dates):
+            if f.stem in ("streak", "automation"):
+                continue
+            try:
+                data = json.loads(f.read_text())
+            except Exception:
+                continue
+            r = data.get("result")
+            if r == "hit":
+                dd = data.get("double_down")
+                streak += 2 if dd else 1
+            elif r == "miss":
+                break
+            else:
+                break
+        save_streak(streak, picks_dir)
+
+    return corrections

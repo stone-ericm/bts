@@ -585,3 +585,29 @@ def check_results(date: str, picks_dir: str):
             click.echo(f"  Result reply posted: {reply_uri}")
         except Exception as e:
             click.echo(f"  Result reply failed: {e}", err=True)
+
+
+@cli.command(name="reconcile")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+@click.option("--lookback", default=8, type=int, help="Days to look back (default: 8)")
+def reconcile(picks_dir: str, lookback: int):
+    """Re-check recent picks for scoring changes (hit overturned to error).
+
+    Looks back 8 days by default. If a result changed, updates the pick file,
+    recalculates the streak, and reports corrections.
+    """
+    from bts.picks import reconcile_results, load_streak
+
+    picks_path = Path(picks_dir)
+    click.echo(f"Reconciling last {lookback} days of picks...")
+    corrections = reconcile_results(picks_path, lookback_days=lookback)
+
+    if not corrections:
+        streak = load_streak(picks_path)
+        click.echo(f"No scoring changes detected. Streak: {streak}")
+    else:
+        streak = load_streak(picks_path)
+        click.echo(f"CORRECTIONS FOUND ({len(corrections)}):")
+        for c in corrections:
+            click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")
+        click.echo(f"Streak recalculated: {streak}")

@@ -341,3 +341,48 @@ class TestGetGameStatusesExtended:
             {"dates": []}
         ).encode()
         assert get_game_statuses_detailed("2026-04-01") == {}
+
+
+class TestReconcileResults:
+    def test_no_corrections_when_results_match(self, tmp_path):
+        from bts.picks import reconcile_results, save_pick, save_streak, DailyPick, Pick
+
+        pick = Pick(
+            batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
+            pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
+            projected_lineup=False, game_pk=100, game_time="2026-04-02T23:00:00Z",
+        )
+        daily = DailyPick(
+            date="2026-04-02", run_time="2026-04-02T20:00:00Z",
+            pick=pick, double_down=None, runner_up=None,
+            result="hit",
+        )
+        save_pick(daily, tmp_path)
+        save_streak(1, tmp_path)
+
+        with patch("bts.picks.check_hit", return_value=True):
+            corrections = reconcile_results(tmp_path, lookback_days=8)
+        assert corrections == []
+
+    def test_corrects_hit_to_miss(self, tmp_path):
+        from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
+
+        pick = Pick(
+            batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
+            pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
+            projected_lineup=False, game_pk=100, game_time="2026-04-02T23:00:00Z",
+        )
+        daily = DailyPick(
+            date="2026-04-02", run_time="2026-04-02T20:00:00Z",
+            pick=pick, double_down=None, runner_up=None,
+            result="hit",
+        )
+        save_pick(daily, tmp_path)
+        save_streak(1, tmp_path)
+
+        with patch("bts.picks.check_hit", return_value=False):
+            corrections = reconcile_results(tmp_path, lookback_days=8)
+        assert len(corrections) == 1
+        assert corrections[0]["old_result"] == "hit"
+        assert corrections[0]["new_result"] == "miss"
+        assert load_streak(tmp_path) == 0
