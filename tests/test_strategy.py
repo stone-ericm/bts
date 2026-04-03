@@ -245,3 +245,46 @@ class TestSelectPick:
         result = select_pick(preds, "2026-04-01", tmp_path)
 
         assert result is None
+
+
+class TestShouldLock:
+    def test_locks_when_all_confirmed(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.82, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.82, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.79, "projected_lineup": False, "game_pk": 200},
+        ]
+        assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is True
+
+    def test_locks_when_gap_exceeds_threshold(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.80, "projected_lineup": True, "game_pk": 200},
+        ]
+        # Gap is 0.05, threshold is 0.03 — lock
+        assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is True
+
+    def test_waits_when_gap_below_threshold(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.83, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.83, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.82, "projected_lineup": True, "game_pk": 200},
+        ]
+        # Gap is 0.01, threshold is 0.03 — wait
+        assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is False
+
+    def test_waits_when_top_pick_is_projected(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.85, "projected_lineup": True, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.85, "projected_lineup": True, "game_pk": 100},
+        ]
+        assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is False

@@ -138,6 +138,35 @@ def _apply_densest_bucket(valid: pd.DataFrame) -> pd.DataFrame:
         return buckets[densest_name]
 
 
+def should_lock(
+    top_pick: dict,
+    all_picks: list[dict],
+    early_lock_gap: float,
+) -> bool:
+    """Decide if the current top pick should be locked (posted to Bluesky).
+
+    Locks when:
+    1. The top pick has a confirmed (not projected) lineup, AND
+    2. Either all picks have confirmed lineups, OR the gap between
+       the top pick and the best projected-lineup pick exceeds early_lock_gap.
+    """
+    if top_pick.get("projected_lineup", True):
+        return False
+
+    # Find the best projected-lineup pick (excluding the top pick's game)
+    best_projected = None
+    for p in all_picks:
+        if p.get("projected_lineup", False) and p["game_pk"] != top_pick["game_pk"]:
+            if best_projected is None or p["p_game_hit"] > best_projected["p_game_hit"]:
+                best_projected = p
+
+    if best_projected is None:
+        # All confirmed — safe to lock
+        return True
+
+    return (top_pick["p_game_hit"] - best_projected["p_game_hit"]) >= early_lock_gap
+
+
 def select_pick(
     predictions: pd.DataFrame,
     date: str,
