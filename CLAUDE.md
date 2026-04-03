@@ -6,6 +6,10 @@ UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model   # Mac/Alienware (full)
 UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
+
+# Scheduler (Pi5 — replaces 3x/day cron)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
 ```
 
 ## Required Prefixes
@@ -52,6 +56,7 @@ See `ARCHITECTURE.md` for full details. Key points:
 - **MDP-optimal strategy**: auto-loads `data/models/mdp_policy.npz` for skip/single/double decisions. Falls back to heuristic if absent.
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15
+- **Scheduler daemon** (`scheduler.py`): replaces fixed 11am/4pm/7:30pm cron with dynamic game_time-45min lineup checks; confirmation-based posting via `early_lock_gap`; 1am cron kept as safety-net fallback
 - Projected lineup fallback for morning predictions
 - Train on 2019+ data (2017-18 hurts)
 - Starter/reliever PA split in aggregation

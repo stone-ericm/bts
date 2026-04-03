@@ -97,12 +97,13 @@ Tested and rejected after empirical validation:
 Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 handles decisions and posting.
 
 ```
-┌──────────────────────────────────────────────┐
-│  Pi5 (Orchestrator)                          │
-│  Cron: 11am / 4pm / 7:30pm / 1am ET         │
-│  bts orchestrate --date X --config ~/.toml   │
-│  Owns: pick strategy, Bluesky, streak, DMs   │
-└────────┬──────────┬──────────┬───────────────┘
+┌──────────────────────────────────────────────────┐
+│  Pi5 (Scheduler Daemon)                          │
+│  bts schedule --config ~/.bts-orchestrator.toml  │
+│  Dynamic: game_time - 45min lineup checks        │
+│  Owns: lineup monitoring, pick strategy,         │
+│        Bluesky posting, result polling            │
+└────────┬──────────┬──────────┬───────────────────┘
          │ SSH      │ SSH      │ SSH
    ┌─────▼──┐  ┌────▼─────┐  ┌▼──────────┐
    │  Mac   │  │Alienware │  │ Cloud VPS │
@@ -111,9 +112,17 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
    Each: bts predict-json --date X → JSON to stdout
 ```
 
+**Daily lifecycle (scheduler daemon):**
+- Morning init: loads game schedule for the day, plans lineup-check windows
+- `game_time - 45min`: triggers lineup checks; re-polls if projected lineups still pending
+- `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based)
+- Result polling: checks for game results after scheduled end times; updates streak state
+- 1am cron remains as a safety-net `bts check-results` fallback (not replaced by scheduler)
+
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
 - `orchestrator.py` — SSH cascade, TOML config, calls strategy + posting. `bts orchestrate` CLI command.
+- `scheduler.py` — Long-running daemon replacing fixed 11am/4pm/7:30pm cron runs. Dynamically schedules lineup checks relative to game start times. `bts schedule` CLI command.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
 - `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
