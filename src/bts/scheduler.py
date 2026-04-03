@@ -120,3 +120,49 @@ def compute_wakeup_time(
         return early_wake
 
     return today_et
+
+
+def check_confirmed_lineups(game_pks: list[int]) -> dict[int, bool]:
+    """Check which games have confirmed lineups posted.
+
+    A lineup is confirmed if the boxscore has players with battingOrder set.
+    Returns {game_pk: has_confirmed_lineup}.
+    """
+    results = {}
+    for pk in game_pks:
+        try:
+            resp = json.loads(retry_urlopen(
+                f"{API_BASE}/api/v1.1/game/{pk}/feed/live",
+                timeout=15,
+            ).read())
+            has_lineup = False
+            for side in ("away", "home"):
+                players = resp["liveData"]["boxscore"]["teams"][side]["players"]
+                for pid, pdata in players.items():
+                    if pdata.get("battingOrder"):
+                        has_lineup = True
+                        break
+                if has_lineup:
+                    break
+            results[pk] = has_lineup
+        except Exception:
+            results[pk] = False
+
+    return results
+
+
+def count_new_confirmations(
+    game_pks: list[int],
+    previously_confirmed: set[int],
+) -> int:
+    """Check for new lineup confirmations since last check.
+
+    Updates previously_confirmed in place. Returns count of newly confirmed games.
+    """
+    statuses = check_confirmed_lineups(game_pks)
+    new_count = 0
+    for pk, confirmed in statuses.items():
+        if confirmed and pk not in previously_confirmed:
+            previously_confirmed.add(pk)
+            new_count += 1
+    return new_count

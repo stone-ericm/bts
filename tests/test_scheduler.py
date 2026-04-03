@@ -92,3 +92,57 @@ class TestComputeWakeUpTime:
         wakeup = compute_wakeup_time(games, default_hour_et=10, early_buffer_min=60)
         assert wakeup.hour == 5
         assert wakeup.minute == 10
+
+
+class TestCheckConfirmedLineups:
+    @patch("bts.scheduler.retry_urlopen")
+    def test_detects_confirmed_lineup(self, mock_urlopen):
+        from bts.scheduler import check_confirmed_lineups
+
+        feed = {
+            "liveData": {"boxscore": {"teams": {
+                "away": {"players": {
+                    "ID123": {"battingOrder": "100", "person": {"fullName": "A"}},
+                    "ID456": {"battingOrder": "200", "person": {"fullName": "B"}},
+                }},
+                "home": {"players": {
+                    "ID789": {"battingOrder": "100", "person": {"fullName": "C"}},
+                }},
+            }}},
+        }
+        mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
+
+        result = check_confirmed_lineups([111])
+        assert result == {111: True}
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_detects_no_lineup(self, mock_urlopen):
+        from bts.scheduler import check_confirmed_lineups
+
+        feed = {
+            "liveData": {"boxscore": {"teams": {
+                "away": {"players": {}},
+                "home": {"players": {}},
+            }}},
+        }
+        mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
+
+        result = check_confirmed_lineups([111])
+        assert result == {111: False}
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_counts_new_confirmations(self, mock_urlopen):
+        from bts.scheduler import count_new_confirmations
+
+        feed_confirmed = {
+            "liveData": {"boxscore": {"teams": {
+                "away": {"players": {"ID1": {"battingOrder": "100", "person": {"fullName": "A"}}}},
+                "home": {"players": {"ID2": {"battingOrder": "100", "person": {"fullName": "B"}}}},
+            }}},
+        }
+        mock_urlopen.return_value.read.return_value = json.dumps(feed_confirmed).encode()
+
+        previously_confirmed = set()
+        new_count = count_new_confirmations([111], previously_confirmed)
+        assert new_count == 1
+        assert 111 in previously_confirmed
