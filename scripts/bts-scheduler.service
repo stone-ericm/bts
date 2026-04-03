@@ -1,0 +1,18 @@
+[Unit]
+Description=BTS Dynamic Lineup Scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stonehengee
+WorkingDirectory=/home/stonehengee/projects/bts
+Environment=UV_CACHE_DIR=/tmp/uv-cache
+Environment=PATH=/home/stonehengee/.local/bin:/home/stonehengee/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/stonehengee/projects/bts/.env
+ExecStart=/home/stonehengee/.local/bin/uv run bts schedule --config /home/stonehengee/.bts-orchestrator.toml
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,28 @@
+[orchestrator]
+picks_dir = "data/picks"
+
+[bluesky]
+dm_recipient = "did:plc:your-did-here"
+
+[scheduler]
+early_lock_gap = 0.03
+lineup_check_offset_min = 45
+cluster_min = 10
+doubleheader_recheck_min = 15
+results_poll_interval_min = 15
+results_cap_hour_et = 5
+default_init_hour_et = 10
+early_game_buffer_min = 60
+
+[[tiers]]
+name = "mac"
+ssh_host = "mac"
+bts_dir = "/Users/stone/projects/bts"
+timeout_min = 5
+
+[[tiers]]
+name = "alienware"
+ssh_host = "alienware"
+bts_dir = "C:\\Users\\stone\\projects\\bts"
+timeout_min = 10
+platform = "windows"
