@@ -143,6 +143,13 @@ def render_page():
         else:
             lineup_icon = '<span title="Confirmed">&#9989;</span>'
 
+        # Non-lineup flags (IL return, opener, debut pitcher)
+        flags = pick.get("flags", [])
+        if isinstance(flags, str):
+            flags = [f.strip() for f in flags.split(",") if f.strip()]
+        other_flags = [f for f in flags if "PROJECTED" not in f]
+        notes_html = f'<span class="notes-dot" title="{", ".join(other_flags)}">&#9679;</span>' if other_flags else ""
+
         double = p.get("double_down")
 
         if date == today:
@@ -160,7 +167,7 @@ def render_page():
             <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
             <td class="matchup-cell">vs {pitcher}</td>
             <td class="pct-cell">{pct:.1%}</td>
-            <td class="lineup-cell">{lineup_icon}</td>
+            <td class="lineup-cell">{lineup_icon} {notes_html}</td>
         </tr>"""
 
         if double:
@@ -176,6 +183,11 @@ def render_page():
                 d_lineup_icon = '<span title="Projected">&#128203;</span>'
             else:
                 d_lineup_icon = '<span title="Confirmed">&#9989;</span>'
+            d_flags = double.get("flags", [])
+            if isinstance(d_flags, str):
+                d_flags = [f.strip() for f in d_flags.split(",") if f.strip()]
+            d_other_flags = [f for f in d_flags if "PROJECTED" not in f]
+            d_notes_html = f'<span class="notes-dot" title="{", ".join(d_other_flags)}">&#9679;</span>' if d_other_flags else ""
             pick_rows += f"""
         <tr class="{row_class} double-row">
             <td class="result-cell"><span class="double-plus">+</span></td>
@@ -183,7 +195,7 @@ def render_page():
             <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
             <td class="matchup-cell">vs {d_pitcher}</td>
             <td class="pct-cell">{d_pct:.1%}</td>
-            <td class="lineup-cell">{d_lineup_icon}</td>
+            <td class="lineup-cell">{d_lineup_icon} {d_notes_html}</td>
         </tr>"""
 
     # Build Bluesky posts as official embeds
@@ -367,6 +379,7 @@ def render_page():
         .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
         .lineup-cell {{ text-align: center; font-size: 1.1em; }}
+        .notes-dot {{ color: #f57c00; font-size: 0.6em; cursor: help; vertical-align: super; }}
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
         .result-cell {{ text-align: center; font-size: 1.1em; }}
         .result-hit {{ color: #2e7d32; font-weight: 800; }}
