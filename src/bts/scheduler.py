@@ -479,6 +479,8 @@ def run_day(
                 daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
                 daily.double_down.batter_name if daily.double_down else None,
                 daily.double_down.p_game_hit if daily.double_down else None,
+                daily.double_down.team if daily.double_down else None,
+                daily.double_down.pitcher_name if daily.double_down else None,
             )
             try:
                 uri = post_to_bluesky(text)

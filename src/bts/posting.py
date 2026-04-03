@@ -21,13 +21,19 @@ def format_post(
     streak: int,
     double: str | None = None,
     double_p_game: float | None = None,
+    double_team: str | None = None,
+    double_pitcher: str | None = None,
 ) -> str:
     """Format Bluesky post text for a BTS pick."""
     if double and double_p_game is not None:
         p_both = p_game * double_p_game
+        d_team = f" ({double_team})" if double_team else ""
+        d_vs = f" vs {double_pitcher}" if double_pitcher else ""
         return (
-            f"Today's picks: {batter} ({team}) + {double}\n"
-            f"vs {pitcher} | P(both): {p_both:.1%}\n\n"
+            f"Today's picks (double down):\n"
+            f"{batter} ({team}) vs {pitcher} — {p_game:.1%}\n"
+            f"{double}{d_team}{d_vs} — {double_p_game:.1%}\n"
+            f"P(both): {p_both:.1%}\n\n"
             f"Streak: {streak}"
         )
     return (

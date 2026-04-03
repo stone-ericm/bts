@@ -19,15 +19,28 @@ class TestFormatPost:
             "Streak: 3"
         )
 
-    def test_double_down(self):
+    def test_double_down_with_full_info(self):
+        text = format_post(
+            batter="Jacob Wilson", team="ATH", pitcher="Jose Suarez",
+            p_game=0.763, streak=3,
+            double="Shohei Ohtani", double_p_game=0.741,
+            double_team="LAD", double_pitcher="Max Scherzer",
+        )
+        assert "Today's picks (double down):" in text
+        assert "Jacob Wilson (ATH) vs Jose Suarez — 76.3%" in text
+        assert "Shohei Ohtani (LAD) vs Max Scherzer — 74.1%" in text
+        assert "P(both): 56.5%" in text
+        assert "Streak: 3" in text
+
+    def test_double_down_without_extra_info(self):
         text = format_post(
             batter="Jacob Wilson", team="ATH", pitcher="Jose Suarez",
             p_game=0.763, streak=3,
             double="Shohei Ohtani", double_p_game=0.741,
         )
-        assert "Today's picks: Jacob Wilson (ATH) + Shohei Ohtani" in text
+        assert "Today's picks (double down):" in text
+        assert "Shohei Ohtani" in text
         assert "P(both): 56.5%" in text
-        assert "Streak: 3" in text
 
     def test_streak_zero(self):
         text = format_post(

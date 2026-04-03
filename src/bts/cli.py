@@ -348,6 +348,8 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, streak,
                 result.daily.double_down.batter_name if result.daily.double_down else None,
                 result.daily.double_down.p_game_hit if result.daily.double_down else None,
+                result.daily.double_down.team if result.daily.double_down else None,
+                result.daily.double_down.pitcher_name if result.daily.double_down else None,
             )
             try:
                 uri = post_to_bluesky(text)
@@ -379,6 +381,8 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
             daily.pick.p_game_hit, streak,
             daily.double_down.batter_name if daily.double_down else None,
             daily.double_down.p_game_hit if daily.double_down else None,
+            daily.double_down.team if daily.double_down else None,
+            daily.double_down.pitcher_name if daily.double_down else None,
         )
         try:
             uri = post_to_bluesky(text)
