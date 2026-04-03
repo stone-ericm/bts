@@ -210,19 +210,19 @@ def render_page():
         t_time = _format_game_time(tp.get("game_time", ""))
         is_locked = today_pick.get("bluesky_posted", False)
         lock_badge = '<span class="lock-badge locked">LOCKED</span>' if is_locked else '<span class="lock-badge pending">PENDING</span>'
-        label = ("TODAY'S PICKS" if dd else "TODAY'S PICK") + f" {lock_badge}"
+        label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
         if dd:
             d_logo = team_logo_url(dd.get("team", ""), size=72)
             d_logo_img = f'<img src="{d_logo}" class="hero-logo" alt="{dd.get("team", "")}">' if d_logo else ""
             d_time = _format_game_time(dd.get("game_time", ""))
             p_both = tp.get('p_game_hit', 0) * dd.get('p_game_hit', 0)
             hero = f"""
+        <div class="hero-status">{label} {lock_badge}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
             </div>
             <div class="hero-right">
-                <div class="hero-label">{label}</div>
                 <div class="hero-name">{tp.get('batter_name', '?')}</div>
                 <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
             </div>
@@ -241,12 +241,12 @@ def render_page():
         </div>"""
         else:
             hero = f"""
+        <div class="hero-status">{label} {lock_badge}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
             </div>
             <div class="hero-right">
-                <div class="hero-label">{label}</div>
                 <div class="hero-name">{tp.get('batter_name', '?')}</div>
                 <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
             </div>
@@ -316,6 +316,8 @@ def render_page():
         .hero-pct {{ font-size: 2.2em; font-weight: 800; color: #D50032;
                      flex-shrink: 0; }}
         .hero-double {{ margin-top: -8px; border-top: none; border-left-color: #041E42; }}
+        .hero-status {{ color: #D50032; font-size: 0.7em; text-transform: uppercase;
+                       letter-spacing: 3px; font-weight: 700; margin: 20px 0 8px; }}
         .lock-badge {{ font-size: 0.75em; padding: 2px 8px; border-radius: 4px;
                        letter-spacing: 1px; vertical-align: middle; margin-left: 8px; }}
         .lock-badge.locked {{ background: #2e7d32; color: #fff; }}
