@@ -17,7 +17,7 @@ A long-running process on Pi5 (`bts schedule`) that manages the full daily lifec
 
 **Daily lifecycle:**
 
-1. **Morning init (~10am ET)**: Fetch today's MLB schedule. Extract all game start times. Group games into time buckets (Early < 4pm, Prime 4-8pm, West >= 8pm).
+1. **Morning init**: Fetch today's MLB schedule. Extract all game start times. Group games into time buckets (Early < 4pm, Prime 4-8pm, West >= 8pm). Default start is ~10am ET, but see **International Games** section below for earlier wake-ups.
 
 2. **Compute run times**: For each game, schedule a lineup check at `game_time - 45 minutes`. Cluster checks that fall within 10 minutes of each other into a single run (e.g., 7:05pm and 7:10pm games both trigger one check at ~6:20pm).
 
@@ -56,6 +56,16 @@ Doubleheader game 2 has a fluid start time that shifts based on game 1's length.
 
 **Handling**: After the initial scheduled check, if game 2's lineup is not yet confirmed, re-check every 15 minutes until a confirmed lineup appears or the game starts. The scheduler detects doubleheader game 2 by checking for two games with the same team on the same date.
 
+### International Games
+
+Games in Japan/Korea start as early as ~6am ET. London games are typically ~1pm ET. Mexico City games align with US Central time (no issue). The MLB schedule API lists these by calendar date — a Tokyo game at 6:10am ET on March 18 is a March 18 game in BTS.
+
+**Problem**: The 10am ET default start is too late for Asia-timezone games. Lineups for these games are typically posted the night before in US time.
+
+**Handling — next-day lookahead**: During the check-results phase (~1am ET), the scheduler fetches tomorrow's schedule. If any game starts before 10am ET, it sets its own wake-up time to `earliest_game_time - 60 minutes`. On a Tokyo day (6:10am ET first pitch), the scheduler would start at ~5:10am ET. On a normal day, 10am ET is the default.
+
+**Implementation**: The scheduler's systemd service runs continuously (or restarts daily). The wake-up time is written to the state file during the check-results phase. On startup, the scheduler reads its target init time and sleeps until then.
+
 ### Check-Results Polling
 
 After the pick is locked, the scheduler transitions to result-checking mode:
@@ -83,7 +93,7 @@ Same as current behavior: if all SSH tiers fail, send a Bluesky DM notification.
 | **`picks.py`** | Add `suspended` and `unresolved` result types. |
 | **Cron (Pi5)** | Replace 3 fixed prediction runs with one: start scheduler at ~10am ET (or run as a systemd service). Keep 1am check-results as a backup (scheduler handles it, but cron is a safety net). |
 | **Pi5 systemd** | New `bts-scheduler.service` unit. |
-| **Config** | Add to `~/.bts-orchestrator.toml`: `early_lock_gap` (float), `lineup_check_offset_min` (default 45), `doubleheader_recheck_interval_min` (default 15), `results_poll_interval_min` (default 15), `results_cap_hour_et` (default 5). |
+| **Config** | Add to `~/.bts-orchestrator.toml`: `early_lock_gap` (float), `lineup_check_offset_min` (default 45), `doubleheader_recheck_interval_min` (default 15), `results_poll_interval_min` (default 15), `results_cap_hour_et` (default 5), `default_init_hour_et` (default 10), `early_game_buffer_min` (default 60). |
 
 ## What Stays the Same
 
