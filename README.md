@@ -38,14 +38,14 @@ Season  Training data    P@1 (model)   P@1 (with strategy)
 
 At ~87% P@1, raw prediction accuracy alone gives ~0.9% P(57) per season. But P(57) is dominated by **play strategy**, not model accuracy — the exponential nature of p^57 means small improvements in effective per-play accuracy compound massively.
 
-A reachability MDP (103K states, backward induction) finds the provably optimal strategy: **P(57) = 6.15%** per season (~1 in 16), a 6.8x improvement over the baseline with zero model changes. Over 30 years of playing BTS, this gives an **86% chance of hitting 57 at least once**.
+A reachability MDP (103K states, backward induction) finds the provably optimal strategy: **P(57) = 6.66%** per season (~1 in 15), a 7.4x improvement over the baseline with zero model changes. Over 30 years of playing BTS, this gives an **88% chance of hitting 57 at least once**.
 
 Key strategy insights (Monte Carlo validated on 912 daily profiles across 5 seasons):
 - Skip days when top pick confidence is low — raises effective per-play accuracy ~86.5% → ~89%
 - Double selectively through streak 0-45 — reduces total days at risk
 - Stop doubling at streak 46+ — don't risk a catastrophic near-win reset
 - Adapt to days remaining in season — play aggressively early, conservatively late
-- Model degrades in Aug-Sep (Q3: 90% → 84%) — phase-aware bins capture this
+- Model degrades in September specifically (85% → 83%) — phase-aware bins (Sept-only late phase) capture this
 
 ## The Story
 
@@ -110,7 +110,7 @@ Not all game times are equal. Backtesting across 6 seasons showed that picking f
 
 The override: if any pick from any window exceeds **78% P(game hit)**, take it regardless of which window is densest. These high-confidence picks hit 87%+ of the time and shouldn't be missed just because they're in a smaller window.
 
-This strategy runs via a **two-run daily schedule** (11am + 4pm ET), with the 4pm run as the primary pick. It improved average P@1 from 85.3% (pure densest) to 86.9%.
+This strategy is now managed by a **dynamic lineup scheduler** (`bts schedule`) that checks lineups 45 minutes before each game's start time, only committing to a pick when confirmed lineups show the top pick's advantage exceeds a configurable gap threshold (`early_lock_gap=0.03`, derived from backtesting: 92.8% accuracy when locking early). It improved average P@1 from 85.3% (pure densest) to 86.9%.
 
 ## Architecture
 
@@ -168,7 +168,7 @@ These features don't improve the single model, but each adds diversity to the bl
 
 The play strategy is determined by a reachability MDP that finds the provably optimal action (skip/single/double) for every state of (streak, days_remaining, saver_available, quality_bin). The state space is 57 × 181 × 2 × 5 = 103K states, solved in seconds via backward induction.
 
-**Quality bins**: Days are classified into 5 equal-frequency quintiles by top-pick confidence. Each bin has empirically measured P(hit) and P(both hit). Phase-aware bins use separate distributions for early season (Mar-Jul) vs late (Aug-Sep), capturing the model's degradation in September.
+**Quality bins**: Days are classified into 5 equal-frequency quintiles by top-pick confidence. Each bin has empirically measured P(hit) and P(both hit). Phase-aware bins use separate distributions for early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`), capturing the model's degradation in September specifically (Aug P@1 is closer to early-season than Sept).
 
 **Streak saver**: BTS gives one free miss when streak is 10-15. The MDP and production code track saver state and factor it into decisions.
 
@@ -233,7 +233,16 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts data pull --start 2019-03-20 --end 2025-10
 # Build PA Parquet
 UV_CACHE_DIR=/tmp/uv-cache uv run bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
 
-# Daily automation (predict, apply MDP strategy, save pick, post to Bluesky)
+# Dynamic lineup scheduler (Pi5 — replaces fixed cron runs)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
+
+# Preview scheduler plan without executing
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
+
+# Orchestrate via SSH cascade (manual single-run alternative)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts orchestrate --date 2026-04-01 --config ~/.bts-orchestrator.toml
+
+# Local prediction (Mac — predict, apply MDP strategy, save pick, post to Bluesky)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01
 
 # Preview without saving/posting
@@ -270,9 +279,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate exact --strategy combined
 9. **Real data isn't always better than a proxy.** Savant's calibrated catcher framing (static, prior-season) lost to our expanding proxy that updates every game. Adaptive beats precise-but-stale.
 10. **The market doesn't know more than the model.** Vegas player prop odds didn't improve P@1 — the market and our model look at the same fundamentals.
 11. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation (6 seasons) is essential — 2-season results are unreliable.
-12. **Strategy >> model improvements for P(57).** MDP-optimal play strategy improved P(57) from 0.90% to 6.15% (6.8x) with zero model changes. The exponential nature of p^57 means small per-play accuracy gains from skipping bad days compound massively.
+12. **Strategy >> model improvements for P(57).** MDP-optimal play strategy improved P(57) from 0.90% to 6.66% (7.4x) with zero model changes. The exponential nature of p^57 means small per-play accuracy gains from skipping bad days compound massively.
 13. **Anti-correlated doubling is a dead end.** Rank-1 and rank-2 outcomes are independent (r=-0.018). P(both hit) = P1 × P2 is correct — no correlation to exploit.
-14. **Model degrades late-season.** Q3 hit rate drops from 90% (Mar-Jul) to 84% (Aug-Sep). Phase-aware quality bins in the MDP capture this, adding +1.3% P(57).
+14. **Model degrades in September specifically.** Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware quality bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +0.5% P(57).
 
 ## References
 

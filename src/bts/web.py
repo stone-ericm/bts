@@ -255,8 +255,8 @@ def render_page():
         <div class="hero">
             <div class="hero-right">
                 <div class="hero-label">TODAY'S PICK</div>
-                <div class="hero-name">Coming at 11 AM</div>
-                <div class="hero-detail">Pi5 orchestrator runs at 11am, 4pm, and 7:30pm ET</div>
+                <div class="hero-name">Waiting for lineups</div>
+                <div class="hero-detail">Scheduler checks lineups 45 min before each game</div>
             </div>
         </div>"""
 
