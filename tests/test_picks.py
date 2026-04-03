@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak, load_saver_available
 from bts.picks import pick_from_row
-from bts.picks import get_game_statuses, check_hit
+from bts.picks import get_game_statuses, get_game_statuses_detailed, check_hit
 
 
 def _sample_pick(**overrides):
@@ -292,3 +292,52 @@ class TestCheckHit:
         ).encode()
         # Batter 700363 not in boxscore (only 999999 is)
         assert check_hit(778899, 700363) is None
+
+
+class TestGetGameStatusesExtended:
+    @patch("bts.picks.retry_urlopen")
+    def test_returns_detailed_status_map(self, mock_urlopen):
+        mock_urlopen.return_value.read.return_value = json.dumps(
+            _mock_schedule_response([
+                {"gamePk": 100, "status": {"abstractGameCode": "P", "detailedState": "Scheduled"}},
+                {"gamePk": 200, "status": {"abstractGameCode": "L", "detailedState": "In Progress"}},
+                {"gamePk": 300, "status": {"abstractGameCode": "F", "detailedState": "Final"}},
+            ])
+        ).encode()
+
+        result = get_game_statuses_detailed("2026-04-01")
+        assert result == {
+            100: {"abstract": "P", "detailed": "Scheduled"},
+            200: {"abstract": "L", "detailed": "In Progress"},
+            300: {"abstract": "F", "detailed": "Final"},
+        }
+
+    @patch("bts.picks.retry_urlopen")
+    def test_suspended_game_detected(self, mock_urlopen):
+        mock_urlopen.return_value.read.return_value = json.dumps(
+            _mock_schedule_response([
+                {"gamePk": 400, "status": {"abstractGameCode": "F", "detailedState": "Suspended"}},
+            ])
+        ).encode()
+
+        result = get_game_statuses_detailed("2026-04-01")
+        assert result[400]["abstract"] == "F"
+        assert result[400]["detailed"] == "Suspended"
+
+    @patch("bts.picks.retry_urlopen")
+    def test_missing_detailed_state_defaults_to_empty(self, mock_urlopen):
+        mock_urlopen.return_value.read.return_value = json.dumps(
+            _mock_schedule_response([
+                {"gamePk": 500, "status": {"abstractGameCode": "P"}},
+            ])
+        ).encode()
+
+        result = get_game_statuses_detailed("2026-04-01")
+        assert result[500] == {"abstract": "P", "detailed": ""}
+
+    @patch("bts.picks.retry_urlopen")
+    def test_empty_schedule(self, mock_urlopen):
+        mock_urlopen.return_value.read.return_value = json.dumps(
+            {"dates": []}
+        ).encode()
+        assert get_game_statuses_detailed("2026-04-01") == {}

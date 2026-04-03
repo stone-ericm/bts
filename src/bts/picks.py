@@ -34,7 +34,7 @@ class DailyPick:
     runner_up: dict | None  # {"batter_name": str, "p_game_hit": float}
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
-    result: str | None = None  # "hit", "miss", or None (pending)
+    result: str | None = None  # "hit", "miss", "suspended", "unresolved", or None (pending)
 
 
 def pick_from_row(row) -> Pick:
@@ -153,6 +153,27 @@ def get_game_statuses(date: str) -> dict[int, str]:
     for d in resp.get("dates", []):
         for g in d.get("games", []):
             statuses[g["gamePk"]] = g["status"]["abstractGameCode"]
+    return statuses
+
+
+def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
+    """Get detailed game statuses for all games on a date.
+
+    Returns {game_pk: {"abstract": code, "detailed": state}} where:
+        abstract: P = Preview, L = Live, F = Final
+        detailed: e.g. "Suspended", "Delayed Start", "Final", "In Progress"
+    """
+    resp = json.loads(retry_urlopen(
+        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
+        timeout=15,
+    ).read())
+    statuses = {}
+    for d in resp.get("dates", []):
+        for g in d.get("games", []):
+            statuses[g["gamePk"]] = {
+                "abstract": g["status"]["abstractGameCode"],
+                "detailed": g["status"].get("detailedState", ""),
+            }
     return statuses
 
 
