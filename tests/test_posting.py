@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 from zoneinfo import ZoneInfo
-from bts.posting import format_post, should_post_now, get_bluesky_password
+from bts.posting import format_post, format_result_reply, should_post_now, get_bluesky_password
 
 ET = ZoneInfo("America/New_York")
 
@@ -101,3 +101,15 @@ class TestGetBlueskyPassword:
     def test_raises_when_no_password_found(self, mock_run):
         with pytest.raises(RuntimeError, match="not found"):
             get_bluesky_password()
+
+
+class TestFormatResultReply:
+    def test_hit_reply(self):
+        text = format_result_reply("hit", 7)
+        assert "\u2705" in text
+        assert "Streak: 7" in text
+
+    def test_miss_reply(self):
+        text = format_result_reply("miss", 0)
+        assert "\u274c" in text
+        assert "Streak reset to 0" in text

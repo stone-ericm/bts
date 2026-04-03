@@ -135,6 +135,65 @@ def post_to_bluesky(text: str) -> str:
     return resp["uri"]
 
 
+def resolve_post_cid(uri: str) -> str:
+    """Resolve a Bluesky post URI to its CID.
+
+    Uses getPostThread to fetch the CID for an at:// URI.
+    """
+    encoded = uri.replace("://", "%3A%2F%2F").replace("/", "%2F")
+    url = f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri={uri}&depth=0"
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    resp = json.loads(retry_urlopen(req, timeout=15).read())
+    return resp["thread"]["post"]["cid"]
+
+
+def reply_to_bluesky(text: str, parent_uri: str) -> str:
+    """Post a reply to an existing Bluesky post. Returns reply URI."""
+    password = get_bluesky_password()
+
+    # Authenticate
+    auth_data = json.dumps({
+        "identifier": "beatthestreakbot.bsky.social",
+        "password": password,
+    }).encode()
+    req = Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                  data=auth_data, headers={"Content-Type": "application/json"})
+    session = json.loads(retry_urlopen(req, timeout=15).read())
+
+    # Resolve parent CID
+    parent_cid = resolve_post_cid(parent_uri)
+
+    # Post reply
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    ref = {"uri": parent_uri, "cid": parent_cid}
+    record = {
+        "repo": session["did"],
+        "collection": "app.bsky.feed.post",
+        "record": {
+            "$type": "app.bsky.feed.post",
+            "text": text,
+            "createdAt": now,
+            "reply": {"root": ref, "parent": ref},
+        },
+    }
+    req = Request(
+        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        data=json.dumps(record).encode(),
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {session['accessJwt']}"},
+    )
+    resp = json.loads(retry_urlopen(req, timeout=15).read())
+    return resp["uri"]
+
+
+def format_result_reply(result: str, streak: int) -> str:
+    """Format the result reply text."""
+    if result == "hit":
+        return f"\u2705 Streak: {streak}"
+    else:
+        return f"\u274c Streak reset to 0"
+
+
 def _now_et() -> datetime:
     """Return current time in ET. Extracted for testability."""
     return datetime.now(ET)

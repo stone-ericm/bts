@@ -348,10 +348,20 @@ def run_result_polling(
                     if double_result is not None:
                         results.append(double_result)
 
-                update_streak(results, picks_dir)
+                new_streak = update_streak(results, picks_dir)
                 daily.result = "hit" if all(results) else "miss"
                 save_pick(daily, picks_dir)
-                print(f"  Result: {daily.result}. Streak updated.", file=sys.stderr)
+                print(f"  Result: {daily.result}. Streak: {new_streak}.", file=sys.stderr)
+
+                # Reply to original Bluesky post with result
+                if daily.bluesky_uri:
+                    try:
+                        from bts.posting import format_result_reply, reply_to_bluesky
+                        reply_text = format_result_reply(daily.result, new_streak)
+                        reply_uri = reply_to_bluesky(reply_text, daily.bluesky_uri)
+                        print(f"  Result reply posted: {reply_uri}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"  Result reply failed: {e}", file=sys.stderr)
             return "final"
 
         if status == "suspended":

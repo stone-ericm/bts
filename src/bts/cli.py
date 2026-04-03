@@ -575,3 +575,13 @@ def check_results(date: str, picks_dir: str):
         if len(results) > 1 and not results[1]:
             miss_names.append(daily.double_down.batter_name)
         click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
+
+    # Reply to original Bluesky post with result
+    if daily.bluesky_uri:
+        from bts.posting import format_result_reply, reply_to_bluesky
+        reply_text = format_result_reply(daily.result, new_streak)
+        try:
+            reply_uri = reply_to_bluesky(reply_text, daily.bluesky_uri)
+            click.echo(f"  Result reply posted: {reply_uri}")
+        except Exception as e:
+            click.echo(f"  Result reply failed: {e}", err=True)
