@@ -33,9 +33,9 @@ def simulate_day(day_df: pd.DataFrame, gap_threshold: float) -> dict:
 
     return {
         "would_lock_early": gap >= gap_threshold,
-        "early_pick": top["batter_name"],
-        "final_pick": top["batter_name"],
-        "early_hit": bool(top.get("is_hit", False)),
+        "early_pick": int(top["batter_id"]),
+        "final_pick": int(top["batter_id"]),
+        "early_hit": bool(top.get("actual_hit", False)),
         "gap": gap,
     }
 
