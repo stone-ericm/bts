@@ -266,3 +266,100 @@ def run_single_check(
 
     return {"skipped": False, "new_lineups": new_count, "should_post": do_post,
             "pick_result": pick_result}
+
+
+def poll_game_result(game_pk: int) -> str:
+    """Check a game's current status.
+
+    Returns one of: "final", "live", "suspended", "preview", "unknown".
+    """
+    try:
+        resp = json.loads(retry_urlopen(
+            f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
+            timeout=15,
+        ).read())
+    except Exception:
+        return "unknown"
+
+    abstract = resp["gameData"]["status"]["abstractGameCode"]
+    detailed = resp["gameData"]["status"].get("detailedState", "")
+
+    if abstract == "F":
+        return "final"
+    if "suspend" in detailed.lower():
+        return "suspended"
+    if abstract == "L":
+        return "live"
+    if abstract == "P":
+        return "preview"
+    return "unknown"
+
+
+def run_result_polling(
+    game_pk: int,
+    date: str,
+    picks_dir: Path,
+    poll_interval_min: int = 15,
+    cap_hour_et: int = 5,
+) -> str:
+    """Poll a game until it reaches a terminal state.
+
+    Returns the final status: "final", "suspended", or "unresolved".
+    On "final", runs check-results logic to update streak.
+    """
+    from bts.picks import load_pick, check_hit, update_streak, save_pick
+
+    while True:
+        now = _now_et()
+        if now.hour >= cap_hour_et and now.hour < 10:
+            # Past the cap — give up
+            print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
+                  file=sys.stderr)
+            daily = load_pick(date, picks_dir)
+            if daily:
+                daily.result = "unresolved"
+                save_pick(daily, picks_dir)
+            return "unresolved"
+
+        status = poll_game_result(game_pk)
+        print(f"  [{now.strftime('%H:%M ET')}] Game {game_pk}: {status}", file=sys.stderr)
+
+        if status == "final":
+            # Run check-results logic
+            daily = load_pick(date, picks_dir)
+            if daily:
+                primary_result = check_hit(
+                    daily.pick.game_pk, daily.pick.batter_id,
+                    batter_name=daily.pick.batter_name,
+                    date=date, team=daily.pick.team,
+                )
+                if primary_result is None:
+                    daily.result = "unresolved"
+                    save_pick(daily, picks_dir)
+                    return "unresolved"
+
+                results = [primary_result]
+                if daily.double_down:
+                    double_result = check_hit(
+                        daily.double_down.game_pk, daily.double_down.batter_id,
+                        batter_name=daily.double_down.batter_name,
+                        date=date, team=daily.double_down.team,
+                    )
+                    if double_result is not None:
+                        results.append(double_result)
+
+                update_streak(results, picks_dir)
+                daily.result = "hit" if all(results) else "miss"
+                save_pick(daily, picks_dir)
+                print(f"  Result: {daily.result}. Streak updated.", file=sys.stderr)
+            return "final"
+
+        if status == "suspended":
+            daily = load_pick(date, picks_dir)
+            if daily:
+                daily.result = "suspended"
+                save_pick(daily, picks_dir)
+            return "suspended"
+
+        # Still live — wait and retry
+        time.sleep(poll_interval_min * 60)

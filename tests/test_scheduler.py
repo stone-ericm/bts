@@ -228,3 +228,47 @@ class TestSchedulerRun:
         )
         assert result["skipped"] is False
         assert result["new_lineups"] == 1
+
+
+class TestPollResults:
+    @patch("bts.scheduler.retry_urlopen")
+    def test_returns_final(self, mock_urlopen):
+        from bts.scheduler import poll_game_result
+
+        mock_urlopen.return_value.read.return_value = json.dumps({
+            "gameData": {"status": {
+                "abstractGameCode": "F",
+                "detailedState": "Final",
+            }},
+        }).encode()
+
+        status = poll_game_result(12345)
+        assert status == "final"
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_returns_live(self, mock_urlopen):
+        from bts.scheduler import poll_game_result
+
+        mock_urlopen.return_value.read.return_value = json.dumps({
+            "gameData": {"status": {
+                "abstractGameCode": "L",
+                "detailedState": "In Progress",
+            }},
+        }).encode()
+
+        status = poll_game_result(12345)
+        assert status == "live"
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_returns_suspended(self, mock_urlopen):
+        from bts.scheduler import poll_game_result
+
+        mock_urlopen.return_value.read.return_value = json.dumps({
+            "gameData": {"status": {
+                "abstractGameCode": "L",
+                "detailedState": "Suspended",
+            }},
+        }).encode()
+
+        status = poll_game_result(12345)
+        assert status == "suspended"
