@@ -146,3 +146,33 @@ class TestCheckConfirmedLineups:
         new_count = count_new_confirmations([111], previously_confirmed)
         assert new_count == 1
         assert 111 in previously_confirmed
+
+
+class TestSchedulerState:
+    def test_save_and_load_roundtrip(self, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, load_state
+
+        state = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[{"game_pk": 100, "game_time_et": "2026-04-03T19:05:00-04:00",
+                     "lineup_confirmed": False, "is_doubleheader_game2": False}],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=False,
+            pick_locked_at=None,
+            result_status=None,
+            next_wakeup=None,
+        )
+        save_state(state, tmp_path)
+
+        loaded = load_state("2026-04-03", tmp_path)
+        assert loaded is not None
+        assert loaded.date == "2026-04-03"
+        assert len(loaded.games) == 1
+        assert loaded.pick_locked is False
+
+    def test_load_returns_none_when_missing(self, tmp_path):
+        from bts.scheduler import load_state
+
+        assert load_state("2026-04-03", tmp_path) is None

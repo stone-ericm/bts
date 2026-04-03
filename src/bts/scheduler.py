@@ -8,6 +8,7 @@ and commits picks only when confirmed lineup + gap threshold met.
 import json
 import sys
 import time
+from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, date as date_type
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -149,6 +150,38 @@ def check_confirmed_lineups(game_pks: list[int]) -> dict[int, bool]:
             results[pk] = False
 
     return results
+
+
+@dataclass
+class SchedulerState:
+    """Daily scheduler state, persisted to JSON."""
+    date: str
+    schedule_fetched_at: str
+    games: list[dict]  # [{game_pk, game_time_et, lineup_confirmed, is_doubleheader_game2}]
+    confirmed_game_pks: list[int]
+    runs_completed: list[dict]  # [{time, new_lineups, skipped}]
+    pick_locked: bool
+    pick_locked_at: str | None
+    result_status: str | None  # "final", "suspended", "unresolved", None
+    next_wakeup: str | None  # ISO for next day's wake-up
+
+
+def save_state(state: SchedulerState, picks_dir: Path) -> Path:
+    """Save scheduler state to JSON."""
+    date_dir = picks_dir / state.date
+    date_dir.mkdir(parents=True, exist_ok=True)
+    path = date_dir / "scheduler_state.json"
+    path.write_text(json.dumps(asdict(state), indent=2))
+    return path
+
+
+def load_state(date: str, picks_dir: Path) -> SchedulerState | None:
+    """Load scheduler state from JSON. Returns None if not found."""
+    path = picks_dir / date / "scheduler_state.json"
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text())
+    return SchedulerState(**data)
 
 
 def count_new_confirmations(
