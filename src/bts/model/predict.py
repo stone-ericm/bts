@@ -253,15 +253,25 @@ def _fetch_prior_lineup(team_id: int) -> list[dict]:
         for side_name in ["away", "home"]:
             side = bs["teams"][side_name]
             players = side.get("players", {})
-            lineup = []
+            all_batters = []
             for key, player in players.items():
                 bo = player.get("battingOrder")
                 if bo and int(bo) <= 900:
-                    lineup.append({
+                    all_batters.append({
                         "batter_id": player["person"]["id"],
                         "batter_name": player["person"]["fullName"],
                         "lineup": int(bo) // 100,
+                        "_raw_bo": int(bo),
                     })
+            # Deduplicate: keep only the original starter per position
+            # (lowest battingOrder — starters are 100,200,...,900; subs are 101,201,...)
+            seen_pos = {}
+            for b in sorted(all_batters, key=lambda x: x["_raw_bo"]):
+                if b["lineup"] not in seen_pos:
+                    seen_pos[b["lineup"]] = b
+            lineup = list(seen_pos.values())
+            for b in lineup:
+                del b["_raw_bo"]
             if lineup:
                 # Verify this is the right team by checking team ID
                 side_team_id = feed["gameData"]["teams"][side_name]["id"]
