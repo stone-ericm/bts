@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=stonehengee
+# Note: No User= directive — this is a user-level service (~/.config/systemd/user/)
 WorkingDirectory=/home/stonehengee/projects/bts
 Environment=UV_CACHE_DIR=/tmp/uv-cache
 Environment=PATH=/home/stonehengee/.local/bin:/home/stonehengee/.cargo/bin:/usr/local/bin:/usr/bin:/bin
