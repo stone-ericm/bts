@@ -208,7 +208,9 @@ def render_page():
         t_logo = team_logo_url(tp.get("team", ""), size=72)
         t_logo_img = f'<img src="{t_logo}" class="hero-logo" alt="{tp.get("team", "")}">' if t_logo else ""
         t_time = _format_game_time(tp.get("game_time", ""))
-        label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
+        is_locked = today_pick.get("bluesky_posted", False)
+        lock_badge = '<span class="lock-badge locked">LOCKED</span>' if is_locked else '<span class="lock-badge pending">PENDING</span>'
+        label = ("TODAY'S PICKS" if dd else "TODAY'S PICK") + f" {lock_badge}"
         if dd:
             d_logo = team_logo_url(dd.get("team", ""), size=72)
             d_logo_img = f'<img src="{d_logo}" class="hero-logo" alt="{dd.get("team", "")}">' if d_logo else ""
@@ -314,6 +316,10 @@ def render_page():
         .hero-pct {{ font-size: 2.2em; font-weight: 800; color: #D50032;
                      flex-shrink: 0; }}
         .hero-double {{ margin-top: -8px; border-top: none; border-left-color: #041E42; }}
+        .lock-badge {{ font-size: 0.75em; padding: 2px 8px; border-radius: 4px;
+                       letter-spacing: 1px; vertical-align: middle; margin-left: 8px; }}
+        .lock-badge.locked {{ background: #2e7d32; color: #fff; }}
+        .lock-badge.pending {{ background: #f57c00; color: #fff; }}
 
         .section-header {{ color: #041E42; font-size: 0.75em; text-transform: uppercase;
                            letter-spacing: 2px; font-weight: 700; margin: 28px 0 12px;
