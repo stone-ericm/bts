@@ -272,3 +272,35 @@ class TestPollResults:
 
         status = poll_game_result(12345)
         assert status == "suspended"
+
+
+class TestRunDay:
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    def test_dry_run_shows_schedule(
+        self, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
+        tmp_path, capsys
+    ):
+        from bts.scheduler import run_day
+
+        mock_schedule.return_value = [
+            _game(100, "13:10"),
+            _game(200, "19:05"),
+            _game(300, "19:10"),
+        ]
+        # Set time past all checks so loop exits immediately
+        mock_now.return_value = datetime(2026, 4, 3, 22, 0, tzinfo=ET)
+
+        run_day(
+            date="2026-04-03",
+            config={"orchestrator": {"picks_dir": str(tmp_path)}, "tiers": [],
+                    "scheduler": {"early_lock_gap": 0.03, "lineup_check_offset_min": 45,
+                                  "cluster_min": 10, "doubleheader_recheck_min": 15,
+                                  "results_poll_interval_min": 15, "results_cap_hour_et": 5}},
+            dry_run=True,
+        )
+        # Should not have called run_single_check in dry_run mode
+        mock_check.assert_not_called()

@@ -363,3 +363,216 @@ def run_result_polling(
 
         # Still live — wait and retry
         time.sleep(poll_interval_min * 60)
+
+
+def run_day(
+    date: str,
+    config: dict,
+    dry_run: bool = False,
+) -> None:
+    """Run the scheduler for a single day.
+
+    Orchestrates the full daily lifecycle:
+    1. Fetch MLB schedule
+    2. Compute lineup check times (game_time - offset)
+    3. Sleep between checks, run predictions when lineups confirm
+    4. Post to Bluesky when lock conditions met
+    5. Fallback posting if close to first pitch
+    6. Doubleheader game 2 re-checks
+    7. Next-day lookahead for wake-up time
+    8. Result polling after games finish
+    """
+    from bts.picks import save_pick, load_streak, load_pick
+    from bts.posting import format_post, format_skip_post, post_to_bluesky
+
+    sched_config = config.get("scheduler", {})
+    offset_min = sched_config.get("lineup_check_offset_min", 45)
+    cluster_min = sched_config.get("cluster_min", 10)
+    dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
+    early_lock_gap = sched_config.get("early_lock_gap", 0.03)
+    poll_interval_min = sched_config.get("results_poll_interval_min", 15)
+    cap_hour_et = sched_config.get("results_cap_hour_et", 5)
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+
+    # 1. Fetch schedule
+    print(f"[{_now_et().strftime('%H:%M ET')}] Fetching schedule for {date}...", file=sys.stderr)
+    games = fetch_schedule(date)
+    if not games:
+        print(f"No games scheduled for {date}.", file=sys.stderr)
+        return
+
+    all_game_pks = [g["gamePk"] for g in games]
+    dh_game2s = detect_doubleheader_game2s(games)
+
+    # 2. Compute run times
+    runs = compute_run_times(games, offset_min=offset_min, cluster_min=cluster_min)
+
+    print(f"  {len(games)} games, {len(runs)} scheduled checks:", file=sys.stderr)
+    for r in runs:
+        print(f"    {r['time_et'].strftime('%H:%M ET')} — {len(r['game_pks'])} game(s)", file=sys.stderr)
+    if dh_game2s:
+        print(f"  Doubleheader game 2s (fluid time): {dh_game2s}", file=sys.stderr)
+
+    if dry_run:
+        print("  (--dry-run: not executing checks)", file=sys.stderr)
+        return
+
+    # 3. Initialize state
+    confirmed_pks: set[int] = set()
+    state = SchedulerState(
+        date=date,
+        schedule_fetched_at=_now_et().isoformat(),
+        games=[{
+            "game_pk": g["gamePk"],
+            "game_time_et": _game_time_et(g).isoformat(),
+            "lineup_confirmed": False,
+            "is_doubleheader_game2": g["gamePk"] in dh_game2s,
+        } for g in games],
+        confirmed_game_pks=[],
+        runs_completed=[],
+        pick_locked=False,
+        pick_locked_at=None,
+        result_status=None,
+        next_wakeup=None,
+    )
+    save_state(state, picks_dir)
+
+    # 4. Main loop — sleep until each check time, then run
+    for run_info in runs:
+        target = run_info["time_et"]
+        now = _now_et()
+
+        if now < target:
+            wait_secs = (target - now).total_seconds()
+            print(f"  Sleeping until {target.strftime('%H:%M ET')} "
+                  f"({wait_secs / 60:.0f} min)...", file=sys.stderr)
+            time.sleep(wait_secs)
+
+        now = _now_et()
+        if now < target:
+            continue
+
+        print(f"\n[{_now_et().strftime('%H:%M ET')}] Running lineup check...", file=sys.stderr)
+        result = run_single_check(
+            date=date,
+            all_game_pks=all_game_pks,
+            confirmed_game_pks=confirmed_pks,
+            config=config,
+            early_lock_gap=early_lock_gap,
+        )
+
+        state.runs_completed.append({
+            "time": _now_et().isoformat(),
+            "new_lineups": result["new_lineups"],
+            "skipped": result["skipped"],
+        })
+        state.confirmed_game_pks = list(confirmed_pks)
+        for g in state.games:
+            g["lineup_confirmed"] = g["game_pk"] in confirmed_pks
+        save_state(state, picks_dir)
+
+        if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
+            daily = result["pick_result"].daily
+            streak = load_streak(picks_dir)
+            text = format_post(
+                daily.pick.batter_name, daily.pick.team,
+                daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+                daily.double_down.batter_name if daily.double_down else None,
+                daily.double_down.p_game_hit if daily.double_down else None,
+            )
+            try:
+                uri = post_to_bluesky(text)
+                daily.bluesky_posted = True
+                daily.bluesky_uri = uri
+                save_pick(daily, picks_dir)
+                state.pick_locked = True
+                state.pick_locked_at = _now_et().isoformat()
+                save_state(state, picks_dir)
+                print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
+            except Exception as e:
+                print(f"  Bluesky post failed: {e}", file=sys.stderr)
+
+        if state.pick_locked:
+            print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
+            break
+
+    # 5. Fallback — if not yet locked, check for deadline
+    if not state.pick_locked:
+        daily = load_pick(date, picks_dir)
+        if daily and not daily.bluesky_posted:
+            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
+            now = _now_et()
+            mins_to_game = (game_et - now).total_seconds() / 60
+            if mins_to_game <= 15:
+                print(f"  FALLBACK — 15min to first pitch, posting on projected data.",
+                      file=sys.stderr)
+                streak = load_streak(picks_dir)
+                text = format_post(
+                    daily.pick.batter_name, daily.pick.team,
+                    daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+                    daily.double_down.batter_name if daily.double_down else None,
+                    daily.double_down.p_game_hit if daily.double_down else None,
+                )
+                try:
+                    uri = post_to_bluesky(text)
+                    daily.bluesky_posted = True
+                    daily.bluesky_uri = uri
+                    save_pick(daily, picks_dir)
+                    state.pick_locked = True
+                    state.pick_locked_at = _now_et().isoformat()
+                    save_state(state, picks_dir)
+                except Exception as e:
+                    print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+
+    # 6. Doubleheader game 2 re-checks
+    for pk in dh_game2s:
+        if pk in confirmed_pks:
+            continue
+        if state.pick_locked:
+            break
+        print(f"  DH game 2 ({pk}): re-checking every {dh_recheck_min}min...", file=sys.stderr)
+        for _ in range(10):
+            time.sleep(dh_recheck_min * 60)
+            new = count_new_confirmations([pk], confirmed_pks)
+            if new > 0:
+                print(f"  DH game 2 ({pk}): lineup confirmed.", file=sys.stderr)
+                break
+
+    # 7. Next-day lookahead for wake-up time
+    tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    try:
+        tomorrow_games = fetch_schedule(tomorrow)
+        wakeup = compute_wakeup_time(
+            tomorrow_games,
+            default_hour_et=sched_config.get("default_init_hour_et", 10),
+            early_buffer_min=sched_config.get("early_game_buffer_min", 60),
+        )
+        state.next_wakeup = wakeup.isoformat()
+        save_state(state, picks_dir)
+        print(f"  Tomorrow's wake-up: {wakeup.strftime('%H:%M ET')}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
+
+    # 8. Result polling (wait until 1am ET, then poll)
+    if state.pick_locked:
+        daily = load_pick(date, picks_dir)
+        if daily and daily.result is None:
+            now = _now_et()
+            target_1am = now.replace(hour=1, minute=0, second=0, microsecond=0)
+            if now.hour >= 1:
+                target_1am += timedelta(days=1)
+            wait = (target_1am - now).total_seconds()
+            if wait > 0:
+                print(f"  Waiting until 1am ET for result check ({wait / 3600:.1f}h)...",
+                      file=sys.stderr)
+                time.sleep(wait)
+
+            game_pk = daily.pick.game_pk
+            status = run_result_polling(
+                game_pk, date, picks_dir,
+                poll_interval_min=poll_interval_min,
+                cap_hour_et=cap_hour_et,
+            )
+            state.result_status = status
+            save_state(state, picks_dir)
+            print(f"  Day complete. Result: {status}", file=sys.stderr)

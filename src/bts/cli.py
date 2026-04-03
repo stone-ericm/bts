@@ -472,6 +472,29 @@ def orchestrate(date: str, config_path: str):
         raise SystemExit(1)
 
 
+@cli.command()
+@click.option("--date", default=None, help="Date to schedule (YYYY-MM-DD, default: today)")
+@click.option("--config", "config_path", required=True,
+              type=click.Path(exists=True), help="Orchestrator config TOML file")
+@click.option("--dry-run", is_flag=True, help="Show schedule without executing")
+def schedule(date: str | None, config_path: str, dry_run: bool):
+    """Run the dynamic lineup scheduler for a day.
+
+    Fetches the MLB schedule, computes lineup check times (game_time - 45min),
+    sleeps between checks, runs predictions when new lineups confirm, and
+    posts to Bluesky when lock conditions are met.
+    """
+    from datetime import datetime, timezone
+    from bts.orchestrator import load_config
+    from bts.scheduler import run_day
+
+    if date is None:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    config = load_config(Path(config_path))
+    run_day(date=date, config=config, dry_run=dry_run)
+
+
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
