@@ -137,3 +137,28 @@ timeout_min = 10
         assert config["tiers"][0]["name"] == "mac"
         assert config["orchestrator"]["picks_dir"] == "/home/bts/data/picks"
         assert config["bluesky"]["dm_recipient"] == "stonehengee.bsky.social"
+
+
+class TestRunAndPick:
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    @patch("bts.strategy._mdp_action", return_value="single")
+    def test_returns_predictions_and_result(self, _mdp, _statuses, mock_cascade, tmp_path):
+        import pandas as pd
+        from bts.orchestrator import run_and_pick
+
+        mock_cascade.return_value = (
+            pd.DataFrame(json.loads(SAMPLE_PREDICTIONS)),
+            "mac",
+        )
+        config = {
+            "orchestrator": {"picks_dir": str(tmp_path)},
+            "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+        }
+        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+
+        assert predictions is not None
+        assert len(predictions) == 1
+        assert tier == "mac"
+        assert pick_result is not None
+        assert pick_result.daily.pick.batter_name == "Jacob Wilson"

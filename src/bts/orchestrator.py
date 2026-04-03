@@ -96,6 +96,31 @@ def run_cascade(
     return None, None
 
 
+def run_and_pick(
+    config: dict,
+    date: str,
+) -> tuple[pd.DataFrame | None, "PickResult | None", str | None]:
+    """Run cascade and apply strategy. No posting, no DMs.
+
+    Returns (predictions, pick_result, tier_name).
+    predictions is None if all tiers fail.
+    pick_result is None if skip or no games.
+    """
+    from bts.picks import load_streak
+    from bts.strategy import select_pick
+
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+
+    predictions, tier_name = run_cascade(config["tiers"], date)
+    if predictions is None or predictions.empty:
+        return predictions, None, tier_name
+
+    streak = load_streak(picks_dir)
+    result = select_pick(predictions, date, picks_dir, streak=streak)
+
+    return predictions, result, tier_name
+
+
 def orchestrate(config_path: Path, date: str) -> bool:
     """Run the full orchestration: cascade -> strategy -> save -> post.
 
@@ -104,14 +129,12 @@ def orchestrate(config_path: Path, date: str) -> bool:
     from bts.dm import send_dm
     from bts.picks import save_pick, load_streak
     from bts.posting import format_post, format_skip_post, post_to_bluesky, should_post_now
-    from bts.strategy import select_pick
 
     config = load_config(config_path)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     dm_recipient = config["bluesky"]["dm_recipient"]
 
-    # Run cascade
-    predictions, tier_name = run_cascade(config["tiers"], date)
+    predictions, result, tier_name = run_and_pick(config, date)
 
     if predictions is None:
         msg = f"BTS {date}: All compute tiers failed. No pick made."
@@ -127,11 +150,8 @@ def orchestrate(config_path: Path, date: str) -> bool:
         print(f"No games found for {date}.", file=sys.stderr)
         return False
 
-    # Apply strategy (streak-aware thresholds)
-    streak = load_streak(picks_dir)
-    result = select_pick(predictions, date, picks_dir, streak=streak)
-
     if result is None:
+        streak = load_streak(picks_dir)
         top = predictions.iloc[0] if not predictions.empty else None
         if top is not None:
             print(f"Skipping — {top['batter_name']} at {top['p_game_hit']:.1%} "
