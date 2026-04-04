@@ -199,29 +199,30 @@ def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = Non
     return None
 
 
-def check_hit(game_pk: int, batter_id: int, batter_name: str | None = None,
+def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = None,
               date: str | None = None, team: str | None = None) -> bool | None:
     """Check if a batter got a hit in a game.
 
     Returns True (hit), False (no hit), or None (game not final OR batter
     not found in boxscore, e.g. scratched).
 
-    If game_pk lookup fails and date+team are provided, finds the correct
-    game for that team on that date and retries.
+    If game_pk is None or batter not found, falls back to searching all
+    Final games on the given date.
     """
-    resp = json.loads(retry_urlopen(
-        f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
-        timeout=15,
-    ).read())
-    status = resp["gameData"]["status"]["abstractGameCode"]
-    if status != "F":
-        return None
+    if game_pk is not None:
+        resp = json.loads(retry_urlopen(
+            f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
+            timeout=15,
+        ).read())
+        status = resp["gameData"]["status"]["abstractGameCode"]
+        if status != "F":
+            return None
 
-    result = _check_hit_in_game(resp, batter_id, batter_name)
-    if result is not None:
-        return result
+        result = _check_hit_in_game(resp, batter_id, batter_name)
+        if result is not None:
+            return result
 
-    # Batter not found — try every other Final game on that date
+    # Batter not found (or no game_pk) — try every Final game on that date
     if date:
         sched = json.loads(retry_urlopen(
             f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",

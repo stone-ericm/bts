@@ -293,6 +293,28 @@ class TestCheckHit:
         # Batter 700363 not in boxscore (only 999999 is)
         assert check_hit(778899, 700363) is None
 
+    @patch("bts.picks.retry_urlopen")
+    def test_none_game_pk_falls_back_to_date_search(self, mock_urlopen):
+        """Picks with game_pk=None (pre-scheduler) use date-based search."""
+        schedule_resp = _mock_schedule_response([
+            {"gamePk": 500, "status": {"abstractGameCode": "F"}},
+        ])
+        feed_resp = _mock_feed_response(batter_id=700363, hits=1, status_code="F")
+
+        def side_effect(url, timeout=15):
+            assert "game/None" not in url, "Should not call API with None game_pk"
+            data = schedule_resp if "schedule" in url else feed_resp
+            m = MagicMock()
+            m.read.return_value = json.dumps(data).encode()
+            return m
+
+        mock_urlopen.side_effect = side_effect
+        assert check_hit(None, 700363, date="2026-03-30") is True
+
+    def test_none_game_pk_no_date_returns_none(self):
+        """game_pk=None with no date should return None without API calls."""
+        assert check_hit(None, 700363) is None
+
 
 class TestGetGameStatusesExtended:
     @patch("bts.picks.retry_urlopen")
