@@ -109,13 +109,15 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
    │  Mac   │  │Alienware │  │ Cloud VPS │
    │ (unix) │  │(windows) │  │  (TBD)    │
    └────────┘  └──────────┘  └───────────┘
-   Each: bts predict-json --date X → JSON to stdout
+   Each: git pull -q && bts predict-json --date X → JSON to stdout
 ```
 
 **Daily lifecycle (scheduler daemon):**
 - Morning init: loads game schedule for the day, plans lineup-check windows
 - `game_time - 45min`: runs full prediction cascade at each check (no skip optimization — pipeline determines projected vs confirmed per-batter)
-- `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based)
+- Short-circuit: if existing pick is already locked (game started or posted to Bluesky), skips the expensive SSH cascade entirely
+- `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based). Gap check excludes batters from non-Preview games (started, finished, postponed).
+- Logging: each check logs the selected pick, probability, should_lock decision, and gap vs best projected pick. Pick name/probability recorded in `scheduler_state.json` for audit trail.
 - Result polling: starts `game_start + 10min`, checks boxscore every 15min. Posts reply (✅/❌ + streak) as soon as all picks have hits (mid-game early exit) or game goes Final.
 - `bts reconcile`: 8-day lookback for scoring changes (hit overturned to error). Recalculates streak from scratch if corrections found. Cron at 2am ET.
 - 1am cron remains as a safety-net `bts check-results` fallback (updates local pick file only — does NOT post to Bluesky; scheduler owns all posting)
@@ -123,9 +125,9 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
 - `orchestrator.py` — SSH cascade, TOML config, calls strategy + posting. `bts orchestrate` CLI command.
-- `scheduler.py` — Long-running daemon replacing fixed 11am/4pm/7:30pm cron runs. Dynamically schedules lineup checks relative to game start times. `bts schedule` CLI command.
+- `scheduler.py` — Long-running daemon replacing fixed 11am/4pm/7:30pm cron runs. Dynamically schedules lineup checks relative to game start times. Short-circuits when pick is locked. Logs pick decisions. `bts schedule` CLI command.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
-- `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
+- `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr. Workers auto-pull from git before running.
 
 **Config:** `~/.bts-orchestrator.toml` on Pi5. Each tier has `ssh_host`, `bts_dir`, `timeout_min`, optional `platform = "windows"`.
 
@@ -193,3 +195,4 @@ walk_forward_evaluate(df, test_season=2025)            # Walk-forward P@K
 9. **Anti-correlated doubling is a dead end**: rank-1 and rank-2 outcomes are independent (r=-0.018). P(both) = P1 × P2 is correct.
 10. **Model degrades in September specifically**: Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +1.8% P(57).
 11. **Competitive validation (2026-04-02)**: 14 items tested against r/beatthestreak community. PA aggregation makes lineup position redundant. Vegas implied run totals add no signal. Miss days are random. Our streak distribution beats community's best model by 14-21%.
+12. **Any function receiving the full prediction DataFrame must filter by game status**: Predictions include batters from all scheduled games (started, postponed, etc). Functions like `should_lock` that compare against projected picks must exclude non-Preview games, or postponed/finished games will pollute the comparison.
