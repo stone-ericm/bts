@@ -287,6 +287,47 @@ class TestSchedulerRun:
         # the gap (0.82 - 0.80 = 0.02 < 0.03) would block locking.
         # With the fix, only game 100's picks remain — all confirmed → lock.
         assert result["should_post"] is True
+        assert result["pick_name"] == "Díaz"
+        assert result["pick_p"] is not None
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.picks.get_game_statuses", return_value={100: "L"})
+    def test_short_circuits_when_pick_locked(self, _statuses, mock_lineups, tmp_path):
+        """Skip the expensive SSH cascade when pick is already locked."""
+        from bts.scheduler import run_single_check
+        from bts.picks import Pick, DailyPick, save_pick
+
+        mock_lineups.return_value = {100: True}
+
+        # Pre-save a pick whose game has started (status L)
+        existing = DailyPick(
+            date="2026-04-04",
+            run_time="2026-04-04T22:00:00+00:00",
+            pick=Pick(
+                batter_name="Díaz", batter_id=1, team="TB",
+                lineup_position=1, pitcher_name="Abel", pitcher_id=2,
+                p_game_hit=0.72, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-04T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[100],
+            confirmed_game_pks=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["pick_result"].locked is True
+        assert result["pick_name"] == "Díaz"
+        # No cascade should have been attempted — check_confirmed_lineups
+        # was called but run_cascade was NOT (not even imported/mocked)
 
 
 class TestPollResults:

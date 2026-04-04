@@ -159,7 +159,7 @@ class SchedulerState:
     schedule_fetched_at: str
     games: list[dict]  # [{game_pk, game_time_et, lineup_confirmed, is_doubleheader_game2}]
     confirmed_game_pks: list[int]
-    runs_completed: list[dict]  # [{time, new_lineups, skipped}]
+    runs_completed: list[dict]  # [{time, new_lineups, skipped, pick_name, pick_p}]
     pick_locked: bool
     pick_locked_at: str | None
     result_status: str | None  # "final", "suspended", "unresolved", None
@@ -215,18 +215,30 @@ def run_single_check(
 ) -> dict:
     """Run a single lineup check cycle.
 
-    Always runs the prediction cascade — the pipeline determines
-    projected vs confirmed per-batter. Updates confirmed_game_pks
-    for state tracking (but doesn't gate predictions on it).
+    Short-circuits if the pick is already locked (game started or posted).
+    Otherwise runs the prediction cascade and applies strategy.
 
     Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
-             "pick_result": PickResult | None}.
+             "pick_result": PickResult | None, "pick_name": str | None,
+             "pick_p": float | None}.
     """
     from bts.orchestrator import run_and_pick
-    from bts.picks import save_pick, get_game_statuses
-    from bts.strategy import should_lock
+    from bts.picks import save_pick, get_game_statuses, load_pick
+    from bts.strategy import should_lock, PickResult
 
     new_count = count_new_confirmations(all_game_pks, confirmed_game_pks)
+
+    # Short-circuit: if pick is already locked, skip the expensive cascade
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    existing = load_pick(date, picks_dir)
+    if existing:
+        statuses = get_game_statuses(date)
+        if statuses.get(existing.pick.game_pk) != "P" or existing.bluesky_posted:
+            print(f"  Pick already locked — skipping cascade.", file=sys.stderr)
+            return {"skipped": False, "new_lineups": new_count, "should_post": False,
+                    "pick_result": PickResult(daily=existing, locked=True),
+                    "pick_name": existing.pick.batter_name,
+                    "pick_p": existing.pick.p_game_hit}
 
     print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
 
@@ -234,14 +246,18 @@ def run_single_check(
 
     if predictions is None or pick_result is None:
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
-                "pick_result": pick_result}
+                "pick_result": pick_result, "pick_name": None, "pick_p": None}
 
     if pick_result.locked:
+        print(f"  Pick locked: {pick_result.daily.pick.batter_name} "
+              f"({pick_result.daily.pick.team}) {pick_result.daily.pick.p_game_hit:.1%}",
+              file=sys.stderr)
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
-                "pick_result": pick_result}
+                "pick_result": pick_result,
+                "pick_name": pick_result.daily.pick.batter_name,
+                "pick_p": pick_result.daily.pick.p_game_hit}
 
     # Save candidate pick
-    picks_dir = Path(config["orchestrator"]["picks_dir"])
     save_pick(pick_result.daily, picks_dir)
 
     # Check if we should lock — only consider picks from pickable games
@@ -252,21 +268,36 @@ def run_single_check(
         "game_pk": pick_result.daily.pick.game_pk,
     }
     all_pick_data = []
+    best_projected = None
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
             game_pk = int(row["game_pk"])
             if statuses.get(game_pk) != "P":
                 continue
+            is_proj = "PROJECTED" in str(row.get("flags", ""))
             all_pick_data.append({
                 "p_game_hit": float(row["p_game_hit"]),
-                "projected_lineup": "PROJECTED" in str(row.get("flags", "")),
+                "projected_lineup": is_proj,
                 "game_pk": game_pk,
             })
+            if is_proj and game_pk != pick_data["game_pk"]:
+                if best_projected is None or float(row["p_game_hit"]) > best_projected:
+                    best_projected = float(row["p_game_hit"])
 
     do_post = should_lock(pick_data, all_pick_data, early_lock_gap)
 
+    # Log the decision
+    pick = pick_result.daily.pick
+    gap_info = ""
+    if best_projected is not None:
+        gap = pick.p_game_hit - best_projected
+        gap_info = f", gap={gap:.1%} vs projected {best_projected:.1%}"
+    print(f"  Pick: {pick.batter_name} ({pick.team}) {pick.p_game_hit:.1%}"
+          f"{gap_info} → should_lock={do_post}", file=sys.stderr)
+
     return {"skipped": False, "new_lineups": new_count, "should_post": do_post,
-            "pick_result": pick_result}
+            "pick_result": pick_result,
+            "pick_name": pick.batter_name, "pick_p": pick.p_game_hit}
 
 
 def poll_game_result(game_pk: int) -> str:
@@ -530,6 +561,8 @@ def run_day(
             "time": _now_et().isoformat(),
             "new_lineups": result["new_lineups"],
             "skipped": result["skipped"],
+            "pick_name": result.get("pick_name"),
+            "pick_p": round(result["pick_p"], 4) if result.get("pick_p") else None,
         })
         state.confirmed_game_pks = list(confirmed_pks)
         for g in state.games:
