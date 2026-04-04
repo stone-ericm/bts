@@ -114,9 +114,10 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
 
 **Daily lifecycle (scheduler daemon):**
 - Morning init: loads game schedule for the day, plans lineup-check windows
-- `game_time - 45min`: triggers lineup checks; re-polls if projected lineups still pending
+- `game_time - 45min`: runs full prediction cascade at each check (no skip optimization — pipeline determines projected vs confirmed per-batter)
 - `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based)
-- Result polling: checks for game results after scheduled end times; updates streak state
+- Result polling: starts `game_start + 10min`, checks boxscore every 15min. Posts reply (✅/❌ + streak) as soon as all picks have hits (mid-game early exit) or game goes Final.
+- `bts reconcile`: 8-day lookback for scoring changes (hit overturned to error). Recalculates streak from scratch if corrections found. Cron at 2am ET.
 - 1am cron remains as a safety-net `bts check-results` fallback (not replaced by scheduler)
 
 **Key modules:**
