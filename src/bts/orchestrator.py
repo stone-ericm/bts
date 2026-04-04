@@ -30,12 +30,14 @@ def ssh_predict(
     if platform == "windows":
         cmd = (
             f"cd /d {bts_dir} && "
+            f"git pull -q origin main && "
             f"%USERPROFILE%\\.local\\bin\\uv run bts predict-json --date {date}"
         )
     else:
         cmd = (
             f"export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH && "
             f"cd {bts_dir} && "
+            f"git pull -q origin main && "
             f"UV_CACHE_DIR=/tmp/uv-cache uv run bts predict-json --date {date}"
         )
     try:
