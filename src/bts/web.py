@@ -148,7 +148,7 @@ def render_page():
         if isinstance(flags, str):
             flags = [f.strip() for f in flags.split(",") if f.strip()]
         other_flags = [f for f in flags if "PROJECTED" not in f]
-        notes_html = f'<span class="notes-dot" title="{", ".join(other_flags)}">&#9679;</span>' if other_flags else ""
+        notes_html = f'<span class="notes-dot" data-tip="{", ".join(other_flags)}">&#9679;</span>' if other_flags else ""
 
         double = p.get("double_down")
 
@@ -187,7 +187,7 @@ def render_page():
             if isinstance(d_flags, str):
                 d_flags = [f.strip() for f in d_flags.split(",") if f.strip()]
             d_other_flags = [f for f in d_flags if "PROJECTED" not in f]
-            d_notes_html = f'<span class="notes-dot" title="{", ".join(d_other_flags)}">&#9679;</span>' if d_other_flags else ""
+            d_notes_html = f'<span class="notes-dot" data-tip="{", ".join(d_other_flags)}">&#9679;</span>' if d_other_flags else ""
             pick_rows += f"""
         <tr class="{row_class} double-row">
             <td class="result-cell"><span class="double-plus">+</span></td>
@@ -349,7 +349,7 @@ def render_page():
                            padding-bottom: 8px; border-bottom: 2px solid #ddd; }}
 
         table {{ width: 100%; border-collapse: collapse; background: #fff;
-                 border-radius: 8px; overflow: hidden;
+                 border-radius: 8px; overflow: visible;
                  box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
         th {{ text-align: left; color: #041E42; font-size: 0.7em; text-transform: uppercase;
               letter-spacing: 1px; font-weight: 700; padding: 10px 8px;
@@ -378,8 +378,13 @@ def render_page():
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
         .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
-        .lineup-cell {{ text-align: center; font-size: 1.1em; }}
-        .notes-dot {{ color: #f57c00; font-size: 0.6em; cursor: help; vertical-align: super; }}
+        .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; }}
+        .notes-dot {{ color: #f57c00; font-size: 0.7em; cursor: help; vertical-align: super;
+                      position: relative; padding: 2px 4px; }}
+        .notes-dot:hover::after {{ content: attr(data-tip); position: absolute; bottom: 100%;
+                      right: 0; background: #333; color: #fff;
+                      font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap;
+                      z-index: 10; pointer-events: none; }}
         .date-cell {{ color: #888; font-variant-numeric: tabular-nums; }}
         .result-cell {{ text-align: center; font-size: 1.1em; }}
         .result-hit {{ color: #2e7d32; font-weight: 800; }}
