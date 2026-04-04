@@ -203,9 +203,10 @@ class TestSchedulerRun:
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.orchestrator.run_cascade")
     @patch("bts.strategy.get_game_statuses", return_value={100: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "P"})
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_triggers_prediction_on_new_lineup(
-        self, _mdp, _statuses, mock_cascade, mock_lineups, tmp_path
+        self, _mdp, _sched_statuses, _strat_statuses, mock_cascade, mock_lineups, tmp_path
     ):
         import pandas as pd
         from bts.scheduler import run_single_check
@@ -233,6 +234,59 @@ class TestSchedulerRun:
         )
         assert result["skipped"] is False
         assert result["new_lineups"] == 1
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "F"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "F"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_should_lock_excludes_postponed_games(
+        self, _mdp, _sched_statuses, _strat_statuses, mock_cascade, mock_lineups, tmp_path
+    ):
+        """Projected picks from postponed/finished games shouldn't block locking.
+
+        Reproduces the 2026-04-04 bug: CHC@CLE was postponed (status=F) but its
+        projected batters prevented should_lock from returning True because
+        the gap was under early_lock_gap.
+        """
+        import pandas as pd
+        from bts.scheduler import run_single_check
+
+        mock_lineups.return_value = {100: True, 200: True}
+        mock_cascade.return_value = (
+            pd.DataFrame([
+                {
+                    "batter_name": "Díaz", "batter_id": 1, "team": "TB",
+                    "lineup": 1, "pitcher_name": "Abel", "pitcher_id": 2,
+                    "game_pk": 100, "game_time": "2026-04-04T23:10:00Z",
+                    "p_hit_pa": 0.30, "p_game_hit": 0.82, "flags": "",
+                },
+                {
+                    "batter_name": "Kwan", "batter_id": 3, "team": "CLE",
+                    "lineup": 1, "pitcher_name": "Imanaga", "pitcher_id": 4,
+                    "game_pk": 200, "game_time": "2026-04-04T23:15:00Z",
+                    "p_hit_pa": 0.27, "p_game_hit": 0.80, "flags": "PROJECTED lineup",
+                },
+            ]),
+            "mac",
+        )
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[100, 200],
+            confirmed_game_pks=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        # Game 200 is Final (postponed) — its projected batter (Kwan, 0.80)
+        # should be excluded from the should_lock gap check. Without the fix,
+        # the gap (0.82 - 0.80 = 0.02 < 0.03) would block locking.
+        # With the fix, only game 100's picks remain — all confirmed → lock.
+        assert result["should_post"] is True
 
 
 class TestPollResults:

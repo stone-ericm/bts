@@ -223,7 +223,7 @@ def run_single_check(
              "pick_result": PickResult | None}.
     """
     from bts.orchestrator import run_and_pick
-    from bts.picks import save_pick
+    from bts.picks import save_pick, get_game_statuses
     from bts.strategy import should_lock
 
     new_count = count_new_confirmations(all_game_pks, confirmed_game_pks)
@@ -244,7 +244,8 @@ def run_single_check(
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     save_pick(pick_result.daily, picks_dir)
 
-    # Check if we should lock
+    # Check if we should lock — only consider picks from pickable games
+    statuses = get_game_statuses(date)
     pick_data = {
         "p_game_hit": pick_result.daily.pick.p_game_hit,
         "projected_lineup": pick_result.daily.pick.projected_lineup,
@@ -253,10 +254,13 @@ def run_single_check(
     all_pick_data = []
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
+            game_pk = int(row["game_pk"])
+            if statuses.get(game_pk) != "P":
+                continue
             all_pick_data.append({
                 "p_game_hit": float(row["p_game_hit"]),
                 "projected_lineup": "PROJECTED" in str(row.get("flags", "")),
-                "game_pk": int(row["game_pk"]),
+                "game_pk": game_pk,
             })
 
     do_post = should_lock(pick_data, all_pick_data, early_lock_gap)
