@@ -9,9 +9,11 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 
-def _game(game_pk: int, time_et: str, team_away: str = "NYM", team_home: str = "ATL"):
+def _game(game_pk: int, time_et: str, team_away: str = "NYM", team_home: str = "ATL",
+          date: str | None = None):
     """Build a mock MLB schedule game entry."""
-    et_dt = datetime.strptime(f"2026-04-03 {time_et}", "%Y-%m-%d %H:%M").replace(tzinfo=ET)
+    date = date or datetime.now(ET).strftime("%Y-%m-%d")
+    et_dt = datetime.strptime(f"{date} {time_et}", "%Y-%m-%d %H:%M").replace(tzinfo=ET)
     utc_iso = et_dt.astimezone(ZoneInfo("UTC")).isoformat().replace("+00:00", "Z")
     return {
         "gamePk": game_pk,
@@ -290,9 +292,9 @@ class TestRunDay:
         from bts.scheduler import run_day
 
         mock_schedule.return_value = [
-            _game(100, "13:10"),
-            _game(200, "19:05"),
-            _game(300, "19:10"),
+            _game(100, "13:10", date="2026-04-03"),
+            _game(200, "19:05", date="2026-04-03"),
+            _game(300, "19:10", date="2026-04-03"),
         ]
         # Set time past all checks so loop exits immediately
         mock_now.return_value = datetime(2026, 4, 3, 22, 0, tzinfo=ET)
