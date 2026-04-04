@@ -536,6 +536,13 @@ def run_day(
             g["lineup_confirmed"] = g["game_pk"] in confirmed_pks
         save_state(state, picks_dir)
 
+        if result["pick_result"] and result["pick_result"].locked:
+            state.pick_locked = True
+            state.pick_locked_at = _now_et().isoformat()
+            save_state(state, picks_dir)
+            print(f"  Pick already locked (game started or previously posted).",
+                  file=sys.stderr)
+
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
             streak = load_streak(picks_dir)
