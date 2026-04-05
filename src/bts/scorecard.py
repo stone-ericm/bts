@@ -244,15 +244,23 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
 
     for play in all_plays:
         about = play.get("about", {})
-        if not about.get("isComplete", False):
-            continue
         batter_id = play.get("matchup", {}).get("batter", {}).get("id")
         if batter_id not in batter_ids:
             continue
         if batter_id not in batter_pas:
             batter_pas[batter_id] = []
             batter_first_play[batter_id] = play
-        batter_pas[batter_id].append(_extract_pa(play))
+        if about.get("isComplete", False):
+            batter_pas[batter_id].append(_extract_pa(play))
+        else:
+            # In-progress PA — extract what we have so far
+            pa = _extract_pa(play)
+            pa["in_progress"] = True
+            pa["result"] = "AB"
+            pa["is_hit"] = False
+            pa["is_out"] = False
+            pa["out_number"] = None
+            batter_pas[batter_id].append(pa)
 
     # Build batter list enriched with boxscore info.
     # Iterate over all requested batter_ids so batters with 0 completed PAs still appear.

@@ -103,6 +103,13 @@ def fetch_bluesky_posts(limit=5):
         return []
 
 
+def _ordinal(n: int) -> str:
+    """Convert integer to ordinal: 1 -> '1st', 2 -> '2nd', etc."""
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}{['th', 'st', 'nd', 'rd'][n % 10] if n % 10 < 4 else 'th'}"
+
+
 def _render_pitch_grid(pitches: list[dict]) -> str:
     """Render a 2-column numbered pitch grid as HTML."""
     if not pitches:
@@ -171,8 +178,12 @@ def _render_diamond(pa: dict) -> str:
     runner_end_positions = set()
     for rm in pa.get("runners", []):
         end = rm.get("end")
-        if end and not rm.get("is_out", False):
+        is_out = rm.get("is_out", False)
+        if end and not is_out:
             runner_end_positions.add(end)
+        # Scoring runner: end can be None when runner scored (common on HRs)
+        if not is_out and end is None and rm.get("start") is not None:
+            runner_end_positions.add("score")
 
     # Did the batter reach base?
     batter_reached = is_hit or event_type in (
@@ -201,6 +212,8 @@ def _render_diamond(pa: dict) -> str:
         reached = set()
         if batter_reached:
             reached.add("1B")
+        if event_type == "home_run":
+            reached.update(["1B", "2B", "3B"])
         for pos in runner_end_positions:
             if pos == "2B":
                 reached.update(["1B", "2B"])
@@ -285,9 +298,26 @@ def _render_pa_cell(pa: dict | None, estimated_inning: str = "") -> str:
         if estimated_inning:
             inner = (
                 f'<div style="font-size:9px;color:#bbb;margin-top:4px;">'
-                f'~{estimated_inning}</div>'
+                f'{estimated_inning}</div>'
             )
         return f'<td style="{style}">{inner}</td>'
+
+    # In-progress PA — batter currently at bat
+    if pa.get("in_progress"):
+        pitches = pa.get("pitches", [])
+        pitch_grid_html = _render_pitch_grid(pitches)
+        count = f"{sum(1 for p in pitches if not p.get('is_strike'))}-{sum(1 for p in pitches if p.get('is_strike'))}"
+        td_style = (
+            "border:2px solid #f59e0b;vertical-align:top;padding:4px;"
+            "width:100px;min-width:100px;background:rgba(245,158,11,0.06);"
+            "position:relative;animation:pulse-border 2s ease-in-out infinite;"
+        )
+        inner = f"""<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div><span style="font-size:13px;font-weight:700;color:#f59e0b;">AB</span>
+    <div style="font-size:9px;color:#999;margin-top:1px;">{count}</div></div>
+    <div>{pitch_grid_html}</div>
+</div>"""
+        return f'<td style="{td_style}">{inner}</td>'
 
     is_hit = pa.get("is_hit", False)
     result = pa.get("result", "?")
@@ -423,7 +453,12 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
             if i < len(pas):
                 row_cells += _render_pa_cell(pas[i])
             else:
-                est = f"PA {i+1}" if i == len(pas) else ""
+                # Estimate which inning this PA would occur in.
+                # Each batter gets ~1 PA per 9 batters through the order.
+                # First upcoming PA: current completed PAs + 1 → inning ≈ (pa_num) * 2 - 1
+                pa_num = i + 1
+                est_inning = pa_num * 2 - 1 if pa_num <= 5 else pa_num * 2
+                est = f"~{_ordinal(est_inning)}" if i == len(pas) else ""
                 row_cells += _render_pa_cell(None, estimated_inning=est)
 
         slash_html = (
@@ -837,6 +872,11 @@ def render_page():
 
         .footer {{ color: #999; font-size: 0.75em; margin-top: 30px; text-align: center;
                    padding-top: 20px; border-top: 1px solid #ddd; }}
+
+        @keyframes pulse-border {{
+            0%, 100% {{ border-color: #f59e0b; }}
+            50% {{ border-color: rgba(245,158,11,0.3); }}
+        }}
 
         @media (max-width: 640px) {{
             .hero {{ flex-direction: column; text-align: center; }}
