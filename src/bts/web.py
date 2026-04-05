@@ -900,12 +900,14 @@ def render_page():
     var sc = document.getElementById("scorecard");
     if (!sc) return;
     var timer = setInterval(function() {{
-        fetch("/api/live?date=" + date)
-            .then(function(r) {{ return r.json(); }})
-            .then(function(data) {{
-                if (data.game_status === "F") clearInterval(timer);
-                if (data.game_status === "P" || !data.game_status) return;
-                location.reload();
+        fetch("/api/live-html?date=" + date)
+            .then(function(r) {{ return r.text(); }})
+            .then(function(html) {{
+                if (!html || html.length < 10) return;
+                sc.outerHTML = html;
+                sc = document.getElementById("scorecard");
+                if (!sc) clearInterval(timer);
+                if (html.indexOf("FINAL") > -1) clearInterval(timer);
             }})
             .catch(function() {{}});
     }}, 30000);
@@ -922,6 +924,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/live":
             self._handle_api_live(parse_qs(parsed.query))
+        elif parsed.path == "/api/live-html":
+            self._handle_api_live_html(parse_qs(parsed.query))
         else:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -967,6 +971,48 @@ class Handler(BaseHTTPRequestHandler):
             self._json_response({"game_status": None, "error": "feed unavailable"})
             return
         self._json_response(result)
+
+    def _handle_api_live_html(self, params):
+        """Return rendered scorecard HTML fragment for live polling."""
+        from bts.scorecard import fetch_live_scorecard, merge_scorecards
+        date = params.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
+        pick_path = PICKS_DIR / f"{date}.json"
+        if not pick_path.exists():
+            self._html_response("")
+            return
+        pick_data = json.loads(pick_path.read_text())
+        pick = pick_data.get("pick", {})
+        primary_game_pk = pick.get("game_pk")
+        if not primary_game_pk:
+            self._html_response("")
+            return
+        dd = pick_data.get("double_down")
+        dd_game_pk = dd.get("game_pk") if dd else None
+        if dd_game_pk and dd_game_pk != primary_game_pk:
+            primary_ids = {pick.get("batter_id")}
+            primary_ids.discard(None)
+            dd_ids = {dd.get("batter_id")}
+            dd_ids.discard(None)
+            scorecard_data = merge_scorecards(
+                fetch_live_scorecard(primary_game_pk, primary_ids),
+                fetch_live_scorecard(dd_game_pk, dd_ids),
+            )
+        else:
+            batter_ids = {pick.get("batter_id")}
+            if dd:
+                batter_ids.add(dd.get("batter_id"))
+            batter_ids.discard(None)
+            scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
+        html = render_scorecard_section(scorecard_data)
+        self._html_response(html)
+
+    def _html_response(self, html):
+        body = html.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _json_response(self, data):
         body = json.dumps(data).encode()
