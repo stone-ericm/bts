@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 from bts.data.schema import HIT_EVENTS
+from bts.util import retry_urlopen
+
+API_BASE = "https://statsapi.mlb.com"
 
 _RESULT_MAP = {
     "single": "1B",
@@ -296,3 +301,24 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         "score": score,
         "batters": batters,
     }
+
+
+# ---------------------------------------------------------------------------
+# Network layer
+# ---------------------------------------------------------------------------
+
+
+def fetch_live_scorecard(game_pk: int, batter_ids: set[int]) -> dict | None:
+    """Fetch game feed and extract PA data for specific batters.
+
+    Returns structured scorecard dict, or None on any error.
+    """
+    try:
+        resp = retry_urlopen(
+            f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
+            timeout=15,
+        )
+        feed = json.loads(resp.read())
+        return extract_batter_pas(feed, batter_ids)
+    except Exception:
+        return None

@@ -2,7 +2,8 @@
 import json
 import copy
 import pytest
-from bts.scorecard import format_result_code, extract_batter_pas
+from unittest.mock import patch
+from bts.scorecard import format_result_code, extract_batter_pas, fetch_live_scorecard
 
 
 # Minimal game feed fixture — one PA for batter 650490 (Diaz)
@@ -213,3 +214,21 @@ class TestExtractBatterPas:
         assert result["score"] == {"away": 1, "home": 0}
         assert result["away_team"] == "TB"
         assert result["home_team"] == "MIN"
+
+
+class TestFetchLiveScorecard:
+    @patch("bts.scorecard.retry_urlopen")
+    def test_fetches_and_extracts(self, mock_urlopen):
+        mock_urlopen.return_value.read.return_value = json.dumps(SAMPLE_FEED).encode()
+
+        result = fetch_live_scorecard(823730, {650490})
+        assert result["game_status"] == "L"
+        assert len(result["batters"]) == 1
+        assert result["batters"][0]["name"] == "Yandy Diaz"
+        mock_urlopen.assert_called_once()
+
+    @patch("bts.scorecard.retry_urlopen")
+    def test_returns_none_on_error(self, mock_urlopen):
+        mock_urlopen.side_effect = Exception("network error")
+        result = fetch_live_scorecard(823730, {650490})
+        assert result is None
