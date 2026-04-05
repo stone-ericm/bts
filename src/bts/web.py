@@ -401,6 +401,14 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
         for i in range(num_pa_cols)
     )
 
+    # Sticky column styles for horizontal scroll
+    sticky_num = "position:sticky;left:0;z-index:2;background:#f8f9fa;"
+    sticky_name = "position:sticky;left:28px;z-index:2;background:#f8f9fa;"
+    sticky_pos = "position:sticky;left:148px;z-index:2;background:#f8f9fa;border-right:2px solid #ddd;"
+    sticky_num_td = "position:sticky;left:0;z-index:1;background:#fff;"
+    sticky_name_td = "position:sticky;left:28px;z-index:1;background:#fff;"
+    sticky_pos_td = "position:sticky;left:148px;z-index:1;background:#fff;border-right:2px solid #ddd;"
+
     # Build batter rows
     batter_rows_html = ""
     for batter in batters:
@@ -464,14 +472,6 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
         f'background:{banner_bg};color:{banner_color};font-size:12px;font-weight:600;">'
         f'{banner_text}</div>'
     )
-
-    # Sticky column styles for horizontal scroll
-    sticky_num = "position:sticky;left:0;z-index:2;background:#f8f9fa;"
-    sticky_name = "position:sticky;left:28px;z-index:2;background:#f8f9fa;"
-    sticky_pos = "position:sticky;left:148px;z-index:2;background:#f8f9fa;border-right:2px solid #ddd;"
-    sticky_num_td = "position:sticky;left:0;z-index:1;background:#fff;"
-    sticky_name_td = "position:sticky;left:28px;z-index:1;background:#fff;"
-    sticky_pos_td = "position:sticky;left:148px;z-index:1;background:#fff;border-right:2px solid #ddd;"
 
     table_html = f"""<div style="overflow-x:auto;">
 <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;
