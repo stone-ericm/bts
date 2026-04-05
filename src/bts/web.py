@@ -103,6 +103,403 @@ def fetch_bluesky_posts(limit=5):
         return []
 
 
+def _render_pitch_grid(pitches: list[dict]) -> str:
+    """Render a 2-column numbered pitch grid as HTML."""
+    if not pitches:
+        return ""
+    items = ""
+    last_idx = len(pitches) - 1
+    for i, p in enumerate(pitches):
+        call = p.get("call", "?")
+        is_strike = p.get("is_strike", False)
+        num = p.get("number", i + 1)
+        is_last = i == last_idx
+        is_foul = call in ("F", "T")  # foul, foul tip
+        in_play = call in ("X", "D")
+
+        if is_strike or in_play:
+            color = "#c41e3a"
+        else:
+            color = "#aaa"
+
+        style = f"color:{color};"
+        border_style = "border:1px solid #c41e3a;" if is_foul else "border:1px solid transparent;"
+        weight = "font-weight:700;" if (is_last or in_play) else ""
+        transform = "display:inline-block;transform:scaleX(-1);" if call == "Ч" else ""
+
+        items += (
+            f'<span style="font-size:9px;{style}{border_style}{weight}{transform}'
+            f'padding:1px 2px;border-radius:2px;white-space:nowrap;">'
+            f'{num}:{call}</span>'
+        )
+
+    # Wrap in a small flex container (2-col grid via wrapping)
+    return (
+        '<div style="display:flex;flex-wrap:wrap;gap:1px 3px;'
+        'justify-content:flex-end;max-width:72px;">'
+        + items
+        + "</div>"
+    )
+
+
+def _render_diamond(pa: dict) -> str:
+    """Render a 36x36 SVG baseball diamond for a completed PA."""
+    # Coordinate mapping: MLB coordX/coordY are 0-250, map to SVG 4-36
+    def _map(v, lo=4, hi=36):
+        if v is None:
+            return None
+        return lo + (v / 250.0) * (hi - lo)
+
+    hit_traj = pa.get("hit_trajectory") or {}
+    coord_x = hit_traj.get("x")
+    coord_y = hit_traj.get("y")
+    is_hit = pa.get("is_hit", False)
+    event_type = pa.get("event_type", "")
+
+    # Base positions in SVG space (diamond rotated 45°)
+    # Home=bottom, 1B=right, 2B=top, 3B=left (centered in 40px viewBox)
+    cx, cy = 20, 20  # center
+    r = 11  # radius from center to bases
+    bases = {
+        "1B": (cx + r, cy),
+        "2B": (cx, cy - r),
+        "3B": (cx - r, cy),
+        "home": (cx, cy + r),
+    }
+
+    # Determine which bases are occupied after this PA
+    runner_end_positions = set()
+    for rm in pa.get("runners", []):
+        end = rm.get("end")
+        if end and not rm.get("is_out", False):
+            runner_end_positions.add(end)
+
+    # Did the batter reach base?
+    batter_reached = is_hit or event_type in (
+        "walk", "hit_by_pitch", "intent_walk", "catcher_interf",
+        "field_error",
+    )
+
+    # Draw diamond outline
+    pts = " ".join(
+        f"{bases[b][0]},{bases[b][1]}"
+        for b in ("home", "1B", "2B", "3B")
+    )
+    svg = (
+        f'<svg width="36" height="36" viewBox="4 4 32 32" '
+        f'xmlns="http://www.w3.org/2000/svg" style="display:block;">'
+        # Background
+        f'<rect x="4" y="4" width="32" height="32" fill="none"/>'
+        # Diamond outline
+        f'<polygon points="{pts}" fill="none" stroke="#ccc" stroke-width="1"/>'
+    )
+
+    # Basepath lines for runner advancement
+    base_order = ["home", "1B", "2B", "3B", "home"]
+    if batter_reached:
+        # Draw path segments for each base the runners reached
+        reached = set()
+        if batter_reached:
+            reached.add("1B")
+        for pos in runner_end_positions:
+            if pos == "2B":
+                reached.update(["1B", "2B"])
+            elif pos == "3B":
+                reached.update(["1B", "2B", "3B"])
+            elif pos == "score":
+                reached.update(["1B", "2B", "3B"])
+
+        for i in range(len(base_order) - 1):
+            b1, b2 = base_order[i], base_order[i + 1]
+            if b1 in reached or b2 == "home":
+                x1, y1 = bases[b1]
+                x2, y2 = bases[b2]
+                if b1 in reached:
+                    svg += (
+                        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
+                        f'stroke="#16a34a" stroke-width="1.5" opacity="0.5"/>'
+                    )
+
+    # Draw base squares (rotated 45° — diamonds)
+    base_size = 3
+    for base_name, (bx, by) in bases.items():
+        if base_name == "home":
+            filled = not batter_reached
+            fill = "#999" if filled else "none"
+            stroke = "#999"
+            # Draw home plate as a small polygon
+            svg += (
+                f'<polygon points="{bx},{by-3} {bx+2.5},{by-1} {bx+2.5},{by+2} '
+                f'{bx-2.5},{by+2} {bx-2.5},{by-1}" '
+                f'fill="{fill}" stroke="{stroke}" stroke-width="0.8"/>'
+            )
+        else:
+            is_occupied = base_name in runner_end_positions
+            if is_occupied and is_hit:
+                fill = "#16a34a"
+            elif is_occupied:
+                fill = "#333"
+            else:
+                fill = "none"
+            # Rotated square (diamond shape)
+            svg += (
+                f'<rect x="{bx - base_size}" y="{by - base_size}" '
+                f'width="{base_size*2}" height="{base_size*2}" '
+                f'fill="{fill}" stroke="#999" stroke-width="0.8" '
+                f'transform="rotate(45,{bx},{by})"/>'
+            )
+
+    # Trajectory line from home to hit coordinates
+    if coord_x is not None and coord_y is not None:
+        # MLB coordY increases downward from top of image, origin near plate
+        # coordY=200 ≈ home plate area, coordY=0 ≈ outfield
+        # Map: x 0-250 → SVG 4-36; y 0-250 → SVG 36-4 (inverted)
+        tx = 4 + (coord_x / 250.0) * 32
+        ty = 36 - (coord_y / 250.0) * 32
+        color = "#16a34a" if is_hit else "#c41e3a"
+        hx, hy = bases["home"]
+        svg += (
+            f'<line x1="{hx:.1f}" y1="{hy:.1f}" x2="{tx:.1f}" y2="{ty:.1f}" '
+            f'stroke="{color}" stroke-width="1" stroke-dasharray="2,1" opacity="0.8"/>'
+        )
+        # Hit marker dot
+        svg += (
+            f'<circle cx="{tx:.1f}" cy="{ty:.1f}" r="1.5" '
+            f'fill="{color}" opacity="0.9"/>'
+        )
+
+    svg += "</svg>"
+    return svg
+
+
+def _render_pa_cell(pa: dict | None, estimated_inning: str = "") -> str:
+    """Render a single plate appearance as a <td> element."""
+    if pa is None:
+        # Upcoming PA placeholder
+        style = (
+            "border:1px dashed #ccc;color:#bbb;font-size:10px;"
+            "vertical-align:top;padding:4px;width:100px;min-width:100px;"
+            "text-align:center;"
+        )
+        inner = ""
+        if estimated_inning:
+            inner = (
+                f'<div style="font-size:9px;color:#bbb;margin-top:4px;">'
+                f'~{estimated_inning}</div>'
+            )
+        return f'<td style="{style}">{inner}</td>'
+
+    is_hit = pa.get("is_hit", False)
+    result = pa.get("result", "?")
+    out_number = pa.get("out_number")
+    rbi = pa.get("rbi", 0)
+    pitches = pa.get("pitches", [])
+
+    bg = "rgba(34,197,94,0.08)" if is_hit else "transparent"
+    result_color = "#16a34a" if is_hit else "#333"
+
+    td_style = (
+        f"border:1px solid #eee;vertical-align:top;padding:4px;"
+        f"width:100px;min-width:100px;background:{bg};"
+        f"position:relative;"
+    )
+
+    # Backwards К for called third strike
+    is_backwards_k = result == "\u042f"  # Cyrillic Я used as backwards K
+    result_display = result
+    result_transform = ""
+    if is_backwards_k:
+        result_display = "K"
+        result_transform = "display:inline-block;transform:scaleX(-1);"
+
+    result_html = (
+        f'<span style="font-size:13px;font-weight:700;color:{result_color};'
+        f'{result_transform}">{result_display}</span>'
+    )
+
+    pitch_grid_html = _render_pitch_grid(pitches)
+    diamond_html = _render_diamond(pa)
+
+    # Out number: circled in MLB red
+    out_html = ""
+    if out_number is not None:
+        out_html = (
+            f'<span style="display:inline-flex;align-items:center;justify-content:center;'
+            f'width:14px;height:14px;border-radius:50%;border:1.5px solid #c41e3a;'
+            f'color:#c41e3a;font-size:9px;font-weight:700;">{out_number}</span>'
+        )
+
+    # RBI dots
+    rbi_html = ""
+    if rbi and rbi > 0:
+        dots = "".join(
+            f'<span style="display:inline-block;width:6px;height:6px;'
+            f'border-radius:50%;background:#16a34a;margin-right:1px;"></span>'
+            for _ in range(min(rbi, 4))
+        )
+        rbi_html = f'<div style="margin-top:2px;">{dots}</div>'
+
+    # Layout: top row (result left, pitch grid right), bottom row (out+rbi left, diamond right)
+    inner = f"""<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:2px;">
+    <div>{result_html}</div>
+    <div>{pitch_grid_html}</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:2px;">
+    <div>
+        {out_html}
+        {rbi_html}
+    </div>
+    <div>{diamond_html}</div>
+</div>"""
+
+    return f'<td style="{td_style}">{inner}</td>'
+
+
+def render_scorecard_section(scorecard_data: dict | None) -> str:
+    """Render the full live scorecard HTML section."""
+    if not scorecard_data:
+        return ""
+
+    game_status = scorecard_data.get("game_status")
+    if game_status not in ("L", "F"):
+        return ""
+
+    inning = scorecard_data.get("inning", "")
+    away_team = scorecard_data.get("away_team", "")
+    home_team = scorecard_data.get("home_team", "")
+    score = scorecard_data.get("score", {})
+    batters = scorecard_data.get("batters", [])
+
+    away_runs = score.get("away", 0)
+    home_runs = score.get("home", 0)
+    # score_label is set by merge_scorecards() when picks are in different games
+    score_str = scorecard_data.get("score_label") or f"{away_team} {away_runs} – {home_runs} {home_team}"
+
+    live_badge = ""
+    if game_status == "L":
+        live_badge = (
+            '<span style="background:#c41e3a;color:#fff;font-size:9px;'
+            'font-weight:700;padding:2px 6px;border-radius:3px;'
+            'letter-spacing:1px;margin-right:8px;vertical-align:middle;">'
+            'LIVE</span>'
+        )
+    elif game_status == "F":
+        live_badge = (
+            '<span style="background:#666;color:#fff;font-size:9px;'
+            'font-weight:700;padding:2px 6px;border-radius:3px;'
+            'letter-spacing:1px;margin-right:8px;vertical-align:middle;">'
+            'FINAL</span>'
+        )
+
+    inning_display = f" &middot; {inning}" if inning and game_status == "L" else ""
+
+    # Build table header: # | BATTERS | POS | up to 5 PA columns
+    max_pas = max((len(b.get("pas", [])) for b in batters), default=0)
+    num_pa_cols = max(5, max_pas)
+    pa_headers = "".join(
+        f'<th style="width:100px;text-align:center;padding:6px 4px;">PA {i+1}</th>'
+        for i in range(num_pa_cols)
+    )
+
+    # Build batter rows
+    batter_rows_html = ""
+    for batter in batters:
+        name = batter.get("name", "")
+        position = batter.get("position", "")
+        lineup_pos = batter.get("lineup_position", "")
+        slash = batter.get("slash_line", "")
+        pas = batter.get("pas", [])
+
+        row_cells = ""
+        for i in range(num_pa_cols):
+            if i < len(pas):
+                row_cells += _render_pa_cell(pas[i])
+            else:
+                est = f"PA {i+1}" if i == len(pas) else ""
+                row_cells += _render_pa_cell(None, estimated_inning=est)
+
+        slash_html = (
+            f'<div style="font-size:9px;color:#888;margin-top:1px;">{slash}</div>'
+            if slash else ""
+        )
+
+        batter_rows_html += f"""<tr style="border-bottom:1px solid #eee;">
+    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:28px;">{lineup_pos}</td>
+    <td style="padding:6px 8px;min-width:120px;">
+        <div style="font-size:13px;font-weight:600;color:#041E42;">{name}</div>
+        {slash_html}
+    </td>
+    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:40px;">{position}</td>
+    {row_cells}
+</tr>"""
+
+    # BTS status banner
+    all_hits = all(any(pa.get("is_hit") for pa in b.get("pas", [])) for b in batters) if batters else False
+    any_hits = any(any(pa.get("is_hit") for pa in b.get("pas", [])) for b in batters)
+    has_pas = any(b.get("pas") for b in batters)
+
+    if all_hits:
+        banner_bg = "#d4edda"
+        banner_color = "#155724"
+        banner_text = "HIT! BTS pick successful" + (" — both batters!" if len(batters) > 1 else "")
+    elif game_status == "F" and not all_hits:
+        banner_bg = "#f8d7da"
+        banner_color = "#721c24"
+        banner_text = "Final — pick missed"
+    elif any_hits and game_status == "L":
+        banner_bg = "#fff3cd"
+        banner_color = "#856404"
+        banner_text = "Hit recorded — waiting on remaining batter"
+    elif has_pas:
+        banner_bg = "#e2e3e5"
+        banner_color = "#495057"
+        banner_text = "Game in progress — no hits yet"
+    else:
+        banner_bg = "#e2e3e5"
+        banner_color = "#495057"
+        banner_text = "Waiting for first plate appearance"
+
+    banner_html = (
+        f'<div style="margin-top:8px;padding:8px 12px;border-radius:6px;'
+        f'background:{banner_bg};color:{banner_color};font-size:12px;font-weight:600;">'
+        f'{banner_text}</div>'
+    )
+
+    table_html = f"""<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;
+overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
+    <colgroup>
+        <col style="width:28px">
+        <col style="min-width:120px">
+        <col style="width:40px">
+    </colgroup>
+    <thead>
+        <tr style="background:#f8f9fa;border-bottom:2px solid #ddd;">
+            <th style="padding:6px 8px;text-align:center;font-size:10px;color:#041E42;
+                text-transform:uppercase;letter-spacing:1px;">#</th>
+            <th style="padding:6px 8px;text-align:left;font-size:10px;color:#041E42;
+                text-transform:uppercase;letter-spacing:1px;">Batter</th>
+            <th style="padding:6px 8px;text-align:center;font-size:10px;color:#041E42;
+                text-transform:uppercase;letter-spacing:1px;">Pos</th>
+            {pa_headers}
+        </tr>
+    </thead>
+    <tbody>
+        {batter_rows_html}
+    </tbody>
+</table>
+</div>"""
+
+    return f"""<div id="scorecard">
+<div class="section-header" style="display:flex;align-items:center;">
+    {live_badge}
+    <span>{score_str}{inning_display}</span>
+</div>
+{table_html}
+{banner_html}
+</div>"""
+
+
 def render_page():
     picks = load_all_picks()
     streak = load_streak()
@@ -283,6 +680,37 @@ def render_page():
             </div>
         </div>"""
 
+    # Live scorecard (between hero and pick history)
+    scorecard_html = ""
+    if today_pick:
+        tp = today_pick["pick"]
+        primary_game_pk = tp.get("game_pk")
+        if primary_game_pk:
+            dd = today_pick.get("double_down")
+            dd_game_pk = dd.get("game_pk") if dd else None
+
+            from bts.scorecard import fetch_live_scorecard, merge_scorecards
+
+            if dd_game_pk and dd_game_pk != primary_game_pk:
+                # Double-down is in a different game — fetch both and merge
+                primary_ids = {tp.get("batter_id")}
+                primary_ids.discard(None)
+                dd_ids = {dd.get("batter_id")}
+                dd_ids.discard(None)
+                scorecard_data = merge_scorecards(
+                    fetch_live_scorecard(primary_game_pk, primary_ids),
+                    fetch_live_scorecard(dd_game_pk, dd_ids),
+                )
+            else:
+                # Same game (or no double-down) — fetch once with both batter IDs
+                batter_ids = {tp.get("batter_id")}
+                if dd:
+                    batter_ids.add(dd.get("batter_id"))
+                batter_ids.discard(None)
+                scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
+
+            scorecard_html = render_scorecard_section(scorecard_data)
+
     # MLB logo SVG (silhouette batter)
     mlb_logo = '<img src="https://www.mlbstatic.com/team-logos/league-on-dark/1.svg" class="mlb-logo" alt="MLB">'
 
@@ -436,6 +864,8 @@ def render_page():
 
         {hero}
 
+        {scorecard_html}
+
         <div class="section-header">Pick History</div>
         <table>
             <colgroup>
@@ -456,19 +886,90 @@ def render_page():
         </div>
     </div>
     <script src="https://embed.bsky.app/static/embed.js" async charset="utf-8"></script>
+    <script>
+(function() {{
+    var date = "{today}";
+    var sc = document.getElementById("scorecard");
+    if (!sc) return;
+    var timer = setInterval(function() {{
+        fetch("/api/live?date=" + date)
+            .then(function(r) {{ return r.json(); }})
+            .then(function(data) {{
+                if (data.game_status === "F") clearInterval(timer);
+                if (data.game_status === "P" || !data.game_status) return;
+                location.reload();
+            }})
+            .catch(function() {{}});
+    }}, 30000);
+}})();
+    </script>
 </body>
 </html>"""
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/api/live":
+            self._handle_api_live(parse_qs(parsed.query))
+        else:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(render_page().encode())
+
+    def _handle_api_live(self, params):
+        """Return live scorecard JSON for today's picked batters."""
+        from bts.scorecard import fetch_live_scorecard, merge_scorecards
+        date = params.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
+        pick_path = PICKS_DIR / f"{date}.json"
+        if not pick_path.exists():
+            self._json_response({"game_status": None})
+            return
+        pick_data = json.loads(pick_path.read_text())
+        pick = pick_data.get("pick", {})
+        primary_game_pk = pick.get("game_pk")
+        if not primary_game_pk:
+            self._json_response({"game_status": None})
+            return
+        dd = pick_data.get("double_down")
+        dd_game_pk = dd.get("game_pk") if dd else None
+
+        if dd_game_pk and dd_game_pk != primary_game_pk:
+            # Double-down is in a different game — fetch both and merge
+            primary_ids = {pick.get("batter_id")}
+            primary_ids.discard(None)
+            dd_ids = {dd.get("batter_id")}
+            dd_ids.discard(None)
+            result = merge_scorecards(
+                fetch_live_scorecard(primary_game_pk, primary_ids),
+                fetch_live_scorecard(dd_game_pk, dd_ids),
+            )
+        else:
+            # Same game (or no double-down) — fetch once with both batter IDs
+            batter_ids = {pick.get("batter_id")}
+            if dd:
+                batter_ids.add(dd.get("batter_id"))
+            batter_ids.discard(None)
+            result = fetch_live_scorecard(primary_game_pk, batter_ids)
+
+        if result is None:
+            self._json_response({"game_status": None, "error": "feed unavailable"})
+            return
+        self._json_response(result)
+
+    def _json_response(self, data):
+        body = json.dumps(data).encode()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(render_page().encode())
+        self.wfile.write(body)
 
     def log_message(self, format, *args):
-        pass  # Suppress logs
+        pass
 
 
 def main():
