@@ -77,7 +77,7 @@ def _extract_fielder_position(runners: list[dict]) -> int | None:
     Checks f_fielded_ball first (fly outs, unassisted), then f_assist
     (assisted groundouts like 5-3, 6-3, 4-3).
     """
-    for credit_type in ("f_fielded_ball", "f_assist"):
+    for credit_type in ("f_fielded_ball", "f_assist", "f_putout"):
         for runner in runners:
             for credit in runner.get("credits", []):
                 if credit.get("credit") == credit_type:

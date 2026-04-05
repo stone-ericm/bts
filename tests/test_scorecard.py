@@ -186,9 +186,24 @@ class TestExtractFielderPosition:
         ]}]
         assert _extract_fielder_position(runners) == 4
 
+    def test_putout_only_flyout(self):
+        """Fly out with only f_putout credit (no f_fielded_ball)."""
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [{"credit": "f_putout", "position": {"code": "8"}}]}]
+        assert _extract_fielder_position(runners) == 8
+
+    def test_assist_preferred_over_putout(self):
+        """Groundout 6-3: f_assist (6) should win over f_putout (3)."""
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [
+            {"credit": "f_assist", "position": {"code": "6"}},
+            {"credit": "f_putout", "position": {"code": "3"}},
+        ]}]
+        assert _extract_fielder_position(runners) == 6
+
     def test_no_credits(self):
         from bts.scorecard import _extract_fielder_position
-        runners = [{"credits": [{"credit": "f_putout", "position": {"code": "3"}}]}]
+        runners = [{"credits": []}]
         assert _extract_fielder_position(runners) is None
 
 
