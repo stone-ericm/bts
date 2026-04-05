@@ -112,7 +112,8 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
    Each: git pull -q && bts predict-json --date X → JSON to stdout
 ```
 
-**Daily lifecycle (scheduler daemon):**
+**Daily lifecycle (scheduler daemon, `Restart=always` + `RestartSec=300`):**
+- The scheduler is a single-day daemon: handles one day's games then exits cleanly. Systemd restarts it after 5 min, and it picks up the next day's schedule via `datetime.now(UTC)`.
 - Morning init: loads game schedule for the day, plans lineup-check windows
 - `game_time - 45min`: runs full prediction cascade at each check (no skip optimization — pipeline determines projected vs confirmed per-batter)
 - Short-circuit: if existing pick is already locked (game started or posted to Bluesky), skips the expensive SSH cascade entirely
