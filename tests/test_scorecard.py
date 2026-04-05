@@ -3,7 +3,7 @@ import json
 import copy
 import pytest
 from unittest.mock import patch
-from bts.scorecard import format_result_code, extract_batter_pas, fetch_live_scorecard
+from bts.scorecard import format_result_code, extract_batter_pas, fetch_live_scorecard, merge_scorecards
 
 
 # Minimal game feed fixture — one PA for batter 650490 (Diaz)
@@ -214,6 +214,131 @@ class TestExtractBatterPas:
         assert result["score"] == {"away": 1, "home": 0}
         assert result["away_team"] == "TB"
         assert result["home_team"] == "MIN"
+
+
+class TestMergeScorecard:
+    def test_merge_two_scorecards(self):
+        sc1 = {
+            "game_status": "L",
+            "inning": "Top 4th",
+            "score": {"away": 1, "home": 0},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [{"name": "Diaz", "batter_id": 1, "pas": []}],
+        }
+        sc2 = {
+            "game_status": "L",
+            "inning": "Bot 3rd",
+            "score": {"away": 2, "home": 1},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [{"name": "Turner", "batter_id": 2, "pas": []}],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert len(merged["batters"]) == 2
+        names = {b["name"] for b in merged["batters"]}
+        assert names == {"Diaz", "Turner"}
+
+    def test_merge_none_first(self):
+        sc = {"game_status": "L", "batters": [{"name": "X"}]}
+        assert merge_scorecards(None, sc) == sc
+
+    def test_merge_none_second(self):
+        sc = {"game_status": "L", "batters": [{"name": "X"}]}
+        assert merge_scorecards(sc, None) == sc
+
+    def test_merge_score_label_set(self):
+        sc1 = {
+            "game_status": "L",
+            "inning": "Top 2nd",
+            "score": {"away": 0, "home": 1},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [],
+        }
+        sc2 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 3, "home": 2},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert "score_label" in merged
+        assert "TB" in merged["score_label"]
+        assert "PHI" in merged["score_label"]
+
+    def test_merge_uses_more_advanced_status(self):
+        """When sc2 is Final and sc1 is Live, merged should reflect Final."""
+        sc1 = {
+            "game_status": "L",
+            "inning": "Top 5th",
+            "score": {"away": 1, "home": 0},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [],
+        }
+        sc2 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 4, "home": 2},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged["game_status"] == "F"
+
+    def test_merge_keeps_primary_status_when_ahead(self):
+        """When sc1 is Final and sc2 is Live, merged keeps Final from sc1."""
+        sc1 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 4, "home": 2},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [],
+        }
+        sc2 = {
+            "game_status": "L",
+            "inning": "Top 5th",
+            "score": {"away": 1, "home": 0},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged["game_status"] == "F"
+
+
+class TestBatterWithZeroPas:
+    def test_batter_appears_with_no_pas(self):
+        """Batter in boxscore but no completed PAs should still appear."""
+        feed = copy.deepcopy(SAMPLE_FEED)
+        feed["liveData"]["plays"]["allPlays"] = []  # No plays at all
+        result = extract_batter_pas(feed, {650490})
+        assert len(result["batters"]) == 1
+        assert result["batters"][0]["name"] == "Yandy Diaz"
+        assert result["batters"][0]["pas"] == []
+
+    def test_batter_not_in_boxscore_excluded(self):
+        """Requested batter ID not in boxscore should not appear (e.g. wrong game)."""
+        feed = copy.deepcopy(SAMPLE_FEED)
+        feed["liveData"]["plays"]["allPlays"] = []
+        result = extract_batter_pas(feed, {999999})
+        assert len(result["batters"]) == 0
+
+    def test_zero_pa_batter_has_correct_fields(self):
+        """Batter with 0 PAs should still carry boxscore info (slash line, position)."""
+        feed = copy.deepcopy(SAMPLE_FEED)
+        feed["liveData"]["plays"]["allPlays"] = []
+        result = extract_batter_pas(feed, {650490})
+        batter = result["batters"][0]
+        assert batter["position"] == "DH"
+        assert batter["lineup_position"] == 2
+        assert batter["slash_line"] == ".419/.486/.645"
+        assert batter["batting_hand"] == ""  # No plays, so no bat-side data
 
 
 class TestFetchLiveScorecard:

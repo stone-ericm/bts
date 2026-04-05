@@ -372,7 +372,8 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
 
     away_runs = score.get("away", 0)
     home_runs = score.get("home", 0)
-    score_str = f"{away_team} {away_runs} – {home_runs} {home_team}"
+    # score_label is set by merge_scorecards() when picks are in different games
+    score_str = scorecard_data.get("score_label") or f"{away_team} {away_runs} – {home_runs} {home_team}"
 
     live_badge = ""
     if game_status == "L":
@@ -683,15 +684,31 @@ def render_page():
     scorecard_html = ""
     if today_pick:
         tp = today_pick["pick"]
-        game_pk = tp.get("game_pk")
-        if game_pk:
-            batter_ids = {tp.get("batter_id")}
+        primary_game_pk = tp.get("game_pk")
+        if primary_game_pk:
             dd = today_pick.get("double_down")
-            if dd:
-                batter_ids.add(dd.get("batter_id"))
-            batter_ids.discard(None)
-            from bts.scorecard import fetch_live_scorecard
-            scorecard_data = fetch_live_scorecard(game_pk, batter_ids)
+            dd_game_pk = dd.get("game_pk") if dd else None
+
+            from bts.scorecard import fetch_live_scorecard, merge_scorecards
+
+            if dd_game_pk and dd_game_pk != primary_game_pk:
+                # Double-down is in a different game — fetch both and merge
+                primary_ids = {tp.get("batter_id")}
+                primary_ids.discard(None)
+                dd_ids = {dd.get("batter_id")}
+                dd_ids.discard(None)
+                scorecard_data = merge_scorecards(
+                    fetch_live_scorecard(primary_game_pk, primary_ids),
+                    fetch_live_scorecard(dd_game_pk, dd_ids),
+                )
+            else:
+                # Same game (or no double-down) — fetch once with both batter IDs
+                batter_ids = {tp.get("batter_id")}
+                if dd:
+                    batter_ids.add(dd.get("batter_id"))
+                batter_ids.discard(None)
+                scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
+
             scorecard_html = render_scorecard_section(scorecard_data)
 
     # MLB logo SVG (silhouette batter)
@@ -905,7 +922,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _handle_api_live(self, params):
         """Return live scorecard JSON for today's picked batters."""
-        from bts.scorecard import fetch_live_scorecard
+        from bts.scorecard import fetch_live_scorecard, merge_scorecards
         date = params.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
         pick_path = PICKS_DIR / f"{date}.json"
         if not pick_path.exists():
@@ -913,16 +930,31 @@ class Handler(BaseHTTPRequestHandler):
             return
         pick_data = json.loads(pick_path.read_text())
         pick = pick_data.get("pick", {})
-        game_pk = pick.get("game_pk")
-        if not game_pk:
+        primary_game_pk = pick.get("game_pk")
+        if not primary_game_pk:
             self._json_response({"game_status": None})
             return
-        batter_ids = {pick.get("batter_id")}
         dd = pick_data.get("double_down")
-        if dd:
-            batter_ids.add(dd.get("batter_id"))
-        batter_ids.discard(None)
-        result = fetch_live_scorecard(game_pk, batter_ids)
+        dd_game_pk = dd.get("game_pk") if dd else None
+
+        if dd_game_pk and dd_game_pk != primary_game_pk:
+            # Double-down is in a different game — fetch both and merge
+            primary_ids = {pick.get("batter_id")}
+            primary_ids.discard(None)
+            dd_ids = {dd.get("batter_id")}
+            dd_ids.discard(None)
+            result = merge_scorecards(
+                fetch_live_scorecard(primary_game_pk, primary_ids),
+                fetch_live_scorecard(dd_game_pk, dd_ids),
+            )
+        else:
+            # Same game (or no double-down) — fetch once with both batter IDs
+            batter_ids = {pick.get("batter_id")}
+            if dd:
+                batter_ids.add(dd.get("batter_id"))
+            batter_ids.discard(None)
+            result = fetch_live_scorecard(primary_game_pk, batter_ids)
+
         if result is None:
             self._json_response({"game_status": None, "error": "feed unavailable"})
             return

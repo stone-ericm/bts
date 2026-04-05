@@ -254,10 +254,14 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
             batter_first_play[batter_id] = play
         batter_pas[batter_id].append(_extract_pa(play))
 
-    # Build batter list enriched with boxscore info
+    # Build batter list enriched with boxscore info.
+    # Iterate over all requested batter_ids so batters with 0 completed PAs still appear.
     batters = []
-    for batter_id, pas in batter_pas.items():
+    for batter_id in batter_ids:
         player_entry = player_lookup.get(batter_id, {})
+        # Skip batters not in the boxscore at all (wrong game, DNP, etc.)
+        if not player_entry:
+            continue
         person = player_entry.get("person", {})
         stats_batting = player_entry.get("stats", {}).get("batting", {})
 
@@ -275,8 +279,9 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         position = player_entry.get("position", {}).get("abbreviation", "")
         name = person.get("fullName", "")
 
-        first_play = batter_first_play[batter_id]
-        bat_side = first_play.get("matchup", {}).get("batSide", {}).get("code", "")
+        # bat_side from first completed play; fall back to empty string if no PAs yet
+        first_play = batter_first_play.get(batter_id)
+        bat_side = first_play.get("matchup", {}).get("batSide", {}).get("code", "") if first_play else ""
 
         batters.append(
             {
@@ -286,7 +291,7 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
                 "lineup_position": lineup_position,
                 "batting_hand": bat_side,
                 "slash_line": slash_line,
-                "pas": pas,
+                "pas": batter_pas.get(batter_id, []),
             }
         )
 
@@ -301,6 +306,45 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         "score": score,
         "batters": batters,
     }
+
+
+# ---------------------------------------------------------------------------
+# Merge helper (different-game double-downs)
+# ---------------------------------------------------------------------------
+
+
+def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
+    """Merge scorecard data from two different games.
+
+    Used when the primary pick and double-down are in different games.
+    The merged result carries batters from both games. Game status is
+    set to whichever game is further along (Live > Preview, Final > Live).
+    A combined score label is stored for display.
+    """
+    if sc1 is None:
+        return sc2
+    if sc2 is None:
+        return sc1
+
+    merged = dict(sc1)
+    merged["batters"] = list(sc1.get("batters", [])) + list(sc2.get("batters", []))
+
+    # Use the more advanced game status (F > L > P)
+    status_priority = {"F": 0, "L": 1, "P": 2}
+    if status_priority.get(sc2["game_status"], 3) < status_priority.get(sc1["game_status"], 3):
+        merged["game_status"] = sc2["game_status"]
+        merged["inning"] = sc2.get("inning", "")
+
+    # Show both scores as a combined label for the header
+    s1 = sc1.get("score", {})
+    s2 = sc2.get("score", {})
+    merged["score_label"] = (
+        f"{sc1.get('away_team', '?')} {s1.get('away', 0)}-{s1.get('home', 0)} {sc1.get('home_team', '?')}"
+        f" | "
+        f"{sc2.get('away_team', '?')} {s2.get('away', 0)}-{s2.get('home', 0)} {sc2.get('home_team', '?')}"
+    )
+
+    return merged
 
 
 # ---------------------------------------------------------------------------
