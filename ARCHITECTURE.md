@@ -120,7 +120,7 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
 - Logging: each check logs the selected pick, probability, should_lock decision, and gap vs best projected pick. Pick name/probability recorded in `scheduler_state.json` for audit trail.
 - Result polling: starts `game_start + 10min`, checks boxscore every 15min. Posts reply (✅/❌ + streak) as soon as all picks have hits (mid-game early exit) or game goes Final.
 - `bts reconcile`: 8-day lookback for scoring changes (hit overturned to error). Recalculates streak from scratch if corrections found. Cron at 2am ET.
-- 1am cron remains as a safety-net `bts check-results` fallback (updates local pick file only — does NOT post to Bluesky; scheduler owns all posting)
+- 1am cron remains as a safety-net `bts check-results` fallback. Skips when scheduler has already set result ("hit"/"miss") to avoid double-counting streak. Does NOT post to Bluesky; scheduler owns all posting.
 
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
