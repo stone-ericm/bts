@@ -208,6 +208,27 @@ class TestBtsCheckResults:
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 3
 
+    def test_check_results_skips_already_resolved(self, tmp_path):
+        """Scheduler already set result — check-results should not double-count streak."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        daily = _sample_daily(result="hit")
+        save_pick(daily, picks_dir)
+        save_streak(2, picks_dir)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Already resolved" in result.output
+        # Streak must NOT be incremented
+        from bts.picks import load_streak
+        assert load_streak(picks_dir) == 2
+
     def test_check_results_no_pick_found(self, tmp_path):
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()

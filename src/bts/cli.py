@@ -517,6 +517,11 @@ def check_results(date: str, picks_dir: str):
         click.echo(f"No pick found for {date}.")
         return
 
+    # Skip if scheduler already resolved this pick (avoid double-counting streak)
+    if daily.result in ("hit", "miss"):
+        click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
+        return
+
     # Check primary pick
     click.echo(f"Checking {daily.pick.batter_name} (game {daily.pick.game_pk})...")
     try:
