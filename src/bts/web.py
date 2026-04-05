@@ -424,12 +424,12 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
         )
 
         batter_rows_html += f"""<tr style="border-bottom:1px solid #eee;">
-    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:28px;">{lineup_pos}</td>
-    <td style="padding:6px 8px;min-width:120px;">
+    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:28px;{sticky_num_td}">{lineup_pos}</td>
+    <td style="padding:6px 8px;min-width:120px;{sticky_name_td}">
         <div style="font-size:13px;font-weight:600;color:#041E42;">{name}</div>
         {slash_html}
     </td>
-    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:40px;">{position}</td>
+    <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:40px;{sticky_pos_td}">{position}</td>
     {row_cells}
 </tr>"""
 
@@ -465,6 +465,14 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
         f'{banner_text}</div>'
     )
 
+    # Sticky column styles for horizontal scroll
+    sticky_num = "position:sticky;left:0;z-index:2;background:#f8f9fa;"
+    sticky_name = "position:sticky;left:28px;z-index:2;background:#f8f9fa;"
+    sticky_pos = "position:sticky;left:148px;z-index:2;background:#f8f9fa;border-right:2px solid #ddd;"
+    sticky_num_td = "position:sticky;left:0;z-index:1;background:#fff;"
+    sticky_name_td = "position:sticky;left:28px;z-index:1;background:#fff;"
+    sticky_pos_td = "position:sticky;left:148px;z-index:1;background:#fff;border-right:2px solid #ddd;"
+
     table_html = f"""<div style="overflow-x:auto;">
 <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;
 overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
@@ -476,11 +484,11 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
     <thead>
         <tr style="background:#f8f9fa;border-bottom:2px solid #ddd;">
             <th style="padding:6px 8px;text-align:center;font-size:10px;color:#041E42;
-                text-transform:uppercase;letter-spacing:1px;">#</th>
+                text-transform:uppercase;letter-spacing:1px;{sticky_num}">#</th>
             <th style="padding:6px 8px;text-align:left;font-size:10px;color:#041E42;
-                text-transform:uppercase;letter-spacing:1px;">Batter</th>
+                text-transform:uppercase;letter-spacing:1px;{sticky_name}">Batter</th>
             <th style="padding:6px 8px;text-align:center;font-size:10px;color:#041E42;
-                text-transform:uppercase;letter-spacing:1px;">Pos</th>
+                text-transform:uppercase;letter-spacing:1px;{sticky_pos}">Pos</th>
             {pa_headers}
         </tr>
     </thead>
