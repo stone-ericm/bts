@@ -161,6 +161,37 @@ class TestFormatResultCode:
         assert format_result_code("field_error", "field_error", None, None, None) == "E"
 
 
+class TestExtractFielderPosition:
+    """Test _extract_fielder_position with different credit types."""
+
+    def test_fielded_ball_credit(self):
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [{"credit": "f_fielded_ball", "position": {"code": "9"}}]}]
+        assert _extract_fielder_position(runners) == 9
+
+    def test_assist_credit_groundout(self):
+        """Assisted groundout 5-3: f_assist on 5, f_putout on 3."""
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [
+            {"credit": "f_assist", "position": {"code": "5"}},
+            {"credit": "f_putout", "position": {"code": "3"}},
+        ]}]
+        assert _extract_fielder_position(runners) == 5
+
+    def test_fielded_ball_preferred_over_assist(self):
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [
+            {"credit": "f_assist", "position": {"code": "6"}},
+            {"credit": "f_fielded_ball", "position": {"code": "4"}},
+        ]}]
+        assert _extract_fielder_position(runners) == 4
+
+    def test_no_credits(self):
+        from bts.scorecard import _extract_fielder_position
+        runners = [{"credits": [{"credit": "f_putout", "position": {"code": "3"}}]}]
+        assert _extract_fielder_position(runners) is None
+
+
 class TestExtractBatterPas:
     def test_extracts_single_pa(self):
         result = extract_batter_pas(SAMPLE_FEED, {650490})

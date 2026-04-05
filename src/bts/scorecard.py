@@ -72,16 +72,21 @@ def _ordinal(n: int) -> str:
 # ---------------------------------------------------------------------------
 
 def _extract_fielder_position(runners: list[dict]) -> int | None:
-    """Return the position code of the first f_fielded_ball credit across all runners."""
-    for runner in runners:
-        for credit in runner.get("credits", []):
-            if credit.get("credit") == "f_fielded_ball":
-                pos_code = credit.get("position", {}).get("code")
-                if pos_code is not None:
-                    try:
-                        return int(pos_code)
-                    except (ValueError, TypeError):
-                        return None
+    """Return the position code of the fielder who initiated the play.
+
+    Checks f_fielded_ball first (fly outs, unassisted), then f_assist
+    (assisted groundouts like 5-3, 6-3, 4-3).
+    """
+    for credit_type in ("f_fielded_ball", "f_assist"):
+        for runner in runners:
+            for credit in runner.get("credits", []):
+                if credit.get("credit") == credit_type:
+                    pos_code = credit.get("position", {}).get("code")
+                    if pos_code is not None:
+                        try:
+                            return int(pos_code)
+                        except (ValueError, TypeError):
+                            pass
     return None
 
 
