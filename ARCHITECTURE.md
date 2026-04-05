@@ -173,6 +173,25 @@ CLI: `bts validate scorecard [--save path] [--diff baseline.json]`
 Baseline scorecard at `data/validation/scorecard_baseline.json` (2026-04-02).
 Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation/`.
 
+## Dashboard
+
+LAN-only web dashboard at `http://pi5:3003`. Single-file Python server using `http.server` (no framework). Serves MLB-themed HTML with inline CSS.
+
+**Key modules:**
+- `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live` and `/api/live-html` endpoints
+- `scorecard.py` — Data extraction from MLB game feed for live scorecard (38 tests)
+
+**Live scorecard (during games):**
+- Caught-looking style: pitch grids, SVG diamond with baserunning, trajectory lines
+- Shows only picked batters' plate appearances
+- `/api/live-html` returns server-rendered HTML fragment; JS polls every 30s and swaps `outerHTML` (no page flash)
+- Handles different-game double-downs via `merge_scorecards`
+- In-progress PA: pulsing amber border with current pitch count
+- Green tint only on hits (single/double/triple/HR), not walks/HBP
+- Sticky batter columns (#/name/POS) on horizontal scroll for 7+ PA games
+
+**Lifecycle:** Scorecard appears when game is Live, stays through Final, hidden pre-game.
+
 ## Pipeline
 
 ```
