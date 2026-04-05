@@ -180,7 +180,7 @@ LAN-only web dashboard at `http://pi5:3003`. Single-file Python server using `ht
 
 **Key modules:**
 - `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live` and `/api/live-html` endpoints
-- `scorecard.py` — Data extraction from MLB game feed for live scorecard (38 tests)
+- `scorecard.py` — Data extraction from MLB game feed for live scorecard (44 tests)
 
 **Live scorecard (during games):**
 - Caught-looking style: pitch grids, SVG diamond with baserunning, trajectory lines
