@@ -616,15 +616,16 @@ def run_day(
             next_checks = [r["time_et"] for r in runs[run_idx + 1:]]
             has_earlier_check = any(t <= fallback_deadline for t in next_checks)
 
-            if not has_earlier_check and now < fallback_deadline:
-                wait = (fallback_deadline - now).total_seconds()
-                print(f"  Pick's game at {pick_game_et.strftime('%H:%M ET')}, "
-                      f"no check before then — fallback at "
-                      f"{fallback_deadline.strftime('%H:%M ET')} ({wait / 60:.0f} min)...",
-                      file=sys.stderr)
-                time.sleep(wait)
+            if not has_earlier_check:
+                if now < fallback_deadline:
+                    wait = (fallback_deadline - now).total_seconds()
+                    print(f"  Pick's game at {pick_game_et.strftime('%H:%M ET')}, "
+                          f"no check before then — fallback at "
+                          f"{fallback_deadline.strftime('%H:%M ET')} "
+                          f"({wait / 60:.0f} min)...", file=sys.stderr)
+                    time.sleep(wait)
 
-                # Force-post current pick
+                # Force-post current pick (waited to deadline, or past it)
                 daily = load_pick(date, picks_dir)
                 if daily and not daily.bluesky_posted:
                     print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
