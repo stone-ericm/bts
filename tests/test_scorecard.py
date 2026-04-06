@@ -315,8 +315,9 @@ class TestMergeScorecard:
         assert "TB" in merged["score_label"]
         assert "PHI" in merged["score_label"]
 
-    def test_merge_uses_more_advanced_status(self):
-        """When sc2 is Final and sc1 is Live, merged should reflect Final."""
+    def test_merge_uses_least_advanced_status(self):
+        """When sc2 is Final and sc1 is Live, merged should stay Live
+        (only Final when ALL games are done)."""
         sc1 = {
             "game_status": "L",
             "inning": "Top 5th",
@@ -334,10 +335,10 @@ class TestMergeScorecard:
             "batters": [],
         }
         merged = merge_scorecards(sc1, sc2)
-        assert merged["game_status"] == "F"
+        assert merged["game_status"] == "L"
 
-    def test_merge_keeps_primary_status_when_ahead(self):
-        """When sc1 is Final and sc2 is Live, merged keeps Final from sc1."""
+    def test_merge_stays_live_when_one_game_finished(self):
+        """When sc1 is Final and sc2 is Live, merged stays Live."""
         sc1 = {
             "game_status": "F",
             "inning": "",
@@ -350,6 +351,27 @@ class TestMergeScorecard:
             "game_status": "L",
             "inning": "Top 5th",
             "score": {"away": 1, "home": 0},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged["game_status"] == "L"
+
+    def test_merge_final_when_both_final(self):
+        """Only Final when ALL games are done."""
+        sc1 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 4, "home": 2},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [],
+        }
+        sc2 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 3, "home": 1},
             "away_team": "PHI",
             "home_team": "COL",
             "batters": [],

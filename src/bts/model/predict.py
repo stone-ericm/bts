@@ -424,6 +424,7 @@ def predict(
         return pd.DataFrame()
 
     # Build features for each slot
+    known_pitchers = set(df["pitcher_id"])
     rows = []
     for slot in slots:
         row = {}
@@ -478,7 +479,11 @@ def predict(
                 flags.append(f"OPENER ({opener_info['avg_ip_approx']}ip avg)")
 
         if is_debut:
-            flags.append("DEBUT pitcher (using league avg)")
+            has_history = slot["pitcher_id"] in known_pitchers
+            if has_history:
+                flags.append("LIMITED pitcher data (using league avg)")
+            else:
+                flags.append("DEBUT pitcher (using league avg)")
 
         if slot.get("projected"):
             flags.append("PROJECTED lineup")

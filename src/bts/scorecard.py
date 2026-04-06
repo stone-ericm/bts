@@ -342,9 +342,9 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
     merged = dict(sc1)
     merged["batters"] = list(sc1.get("batters", [])) + list(sc2.get("batters", []))
 
-    # Use the more advanced game status (F > L > P)
+    # Use the least advanced game status — only Final when ALL games are Final
     status_priority = {"F": 0, "L": 1, "P": 2}
-    if status_priority.get(sc2["game_status"], 3) < status_priority.get(sc1["game_status"], 3):
+    if status_priority.get(sc2["game_status"], 3) > status_priority.get(sc1["game_status"], 3):
         merged["game_status"] = sc2["game_status"]
         merged["inning"] = sc2.get("inning", "")
 
