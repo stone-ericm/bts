@@ -404,3 +404,91 @@ class TestRunDay:
         )
         # Should not have called run_single_check in dry_run mode
         mock_check.assert_not_called()
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    def test_fallback_fires_when_pick_game_before_next_check(
+        self, mock_post, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
+        tmp_path, capsys
+    ):
+        """When the top pick plays in the earliest game and should_lock=False,
+        the scheduler should wake up at game_time - 15min to force-post,
+        rather than sleeping until the next cluster check.
+
+        Reproduces the 2026-04-06 bug: Hoerner (CHC, 4:10 PM game) was the top
+        pick at 3:25 PM with 0% gap, but the scheduler slept until 5:25 PM.
+        """
+        from bts.scheduler import run_day
+        from bts.picks import Pick, DailyPick, save_pick
+
+        # Two game clusters: early (16:10 ET) and late (19:05 ET)
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],  # tomorrow's schedule
+        ]
+
+        # Pre-save the candidate pick (game 100, 16:10 ET)
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+
+        # Mock check returns should_post=False (gap=0%)
+        from bts.strategy import PickResult
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+
+        # Time is fixed at 15:29 — past the first check (15:25)
+        # but well before the second check (18:20)
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_post.return_value = "at://did:example/post/1"
+        mock_poll.return_value = "final"
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [],
+                "scheduler": {
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        # Verify: posted to Bluesky via fallback
+        mock_post.assert_called_once()
+
+        # Verify: only one prediction check ran (15:25, not 18:20)
+        assert mock_check.call_count == 1
+
+        # Verify: slept for the fallback window (~26 min = 1560 sec)
+        # First sleep is to reach 15:25 (but now=15:29 > target, so no sleep there).
+        # The fallback sleep should be game_time - 15min - now = 15:55 - 15:29 = 26 min.
+        sleep_args = [call.args[0] for call in mock_sleep.call_args_list]
+        fallback_sleep = [s for s in sleep_args if 1500 < s < 1700]
+        assert len(fallback_sleep) == 1, f"Expected one ~26min sleep, got: {sleep_args}"
+
+        captured = capsys.readouterr()
+        assert "FALLBACK" in captured.err
+        assert "LOCKED" in captured.err

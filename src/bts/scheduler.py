@@ -603,6 +603,57 @@ def run_day(
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
             break
 
+        # If pick's game starts before next scheduled check, wake up to force-post
+        if not state.pick_locked and result.get("pick_result") and result["pick_result"].daily:
+            pick_game_et = datetime.fromisoformat(
+                result["pick_result"].daily.pick.game_time
+            ).astimezone(ET)
+            fallback_deadline = pick_game_et - timedelta(minutes=15)
+            now = _now_et()
+
+            # Is there a later check that fires before the deadline?
+            run_idx = runs.index(run_info)
+            next_checks = [r["time_et"] for r in runs[run_idx + 1:]]
+            has_earlier_check = any(t <= fallback_deadline for t in next_checks)
+
+            if not has_earlier_check and now < fallback_deadline:
+                wait = (fallback_deadline - now).total_seconds()
+                print(f"  Pick's game at {pick_game_et.strftime('%H:%M ET')}, "
+                      f"no check before then — fallback at "
+                      f"{fallback_deadline.strftime('%H:%M ET')} ({wait / 60:.0f} min)...",
+                      file=sys.stderr)
+                time.sleep(wait)
+
+                # Force-post current pick
+                daily = load_pick(date, picks_dir)
+                if daily and not daily.bluesky_posted:
+                    print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
+                    streak = load_streak(picks_dir)
+                    text = format_post(
+                        daily.pick.batter_name, daily.pick.team,
+                        daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+                        daily.double_down.batter_name if daily.double_down else None,
+                        daily.double_down.p_game_hit if daily.double_down else None,
+                        daily.double_down.team if daily.double_down else None,
+                        daily.double_down.pitcher_name if daily.double_down else None,
+                    )
+                    try:
+                        uri = post_to_bluesky(text)
+                        daily.bluesky_posted = True
+                        daily.bluesky_uri = uri
+                        save_pick(daily, picks_dir)
+                        state.pick_locked = True
+                        state.pick_locked_at = _now_et().isoformat()
+                        save_state(state, picks_dir)
+                        print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
+                              file=sys.stderr)
+                    except Exception as e:
+                        print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+
+                if state.pick_locked:
+                    print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
+                    break
+
     # 5. Fallback — if not yet locked, check for deadline
     if not state.pick_locked:
         daily = load_pick(date, picks_dir)
@@ -619,6 +670,8 @@ def run_day(
                     daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
                     daily.double_down.batter_name if daily.double_down else None,
                     daily.double_down.p_game_hit if daily.double_down else None,
+                    daily.double_down.team if daily.double_down else None,
+                    daily.double_down.pitcher_name if daily.double_down else None,
                 )
                 try:
                     uri = post_to_bluesky(text)
