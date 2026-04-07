@@ -854,7 +854,7 @@ def render_page():
         .matchup-cell {{ color: #666; }}
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
-        .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; }}
+        .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; vertical-align: middle; }}
         .notes-dot {{ color: #f57c00; font-size: 0.7em; cursor: help; vertical-align: middle;
                       position: relative; padding: 2px 4px; }}
         .notes-dot:hover::after {{ content: attr(data-tip); position: absolute; bottom: 100%;
