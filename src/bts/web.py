@@ -635,7 +635,7 @@ def render_page():
             d_other_flags = [f for f in d_flags if "PROJECTED" not in f]
             d_notes_html = f'<span class="notes-dot" data-tip="{", ".join(d_other_flags)}">&#9679;</span>' if d_other_flags else ""
             pick_rows += f"""
-        <tr class="{row_class} double-row">
+        <tr class="{row_class}">
             <td class="result-cell"><span class="double-plus">+</span></td>
             <td class="date-cell"></td>
             <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
@@ -853,7 +853,6 @@ def render_page():
         .batter-cell, .matchup-cell {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
         .matchup-cell {{ color: #666; }}
         .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }}
-        .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
         .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; }}
         .notes-dot {{ color: #f57c00; font-size: 0.7em; cursor: help; vertical-align: middle;
