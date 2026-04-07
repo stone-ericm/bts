@@ -846,7 +846,7 @@ def render_page():
         .batter-cell strong {{ color: #041E42; }}
         .batter-cell, .matchup-cell {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
         .matchup-cell {{ color: #666; }}
-        .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; }}
+        .pct-cell {{ color: #002D72; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }}
         .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
         .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; }}
