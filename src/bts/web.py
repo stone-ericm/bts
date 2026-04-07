@@ -850,7 +850,7 @@ def render_page():
         .double-row td {{ border-top: none; padding-top: 2px; }}
         .double-plus {{ color: #D50032; font-weight: 800; font-size: 1.2em; }}
         .lineup-cell {{ text-align: center; font-size: 1.1em; overflow: visible; position: relative; }}
-        .notes-dot {{ color: #f57c00; font-size: 0.7em; cursor: help; vertical-align: super;
+        .notes-dot {{ color: #f57c00; font-size: 0.7em; cursor: help; vertical-align: middle;
                       position: relative; padding: 2px 4px; }}
         .notes-dot:hover::after {{ content: attr(data-tip); position: absolute; bottom: 100%;
                       right: 0; background: #333; color: #fff;
