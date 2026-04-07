@@ -574,6 +574,9 @@ def render_page():
 
         logo = team_logo_url(team)
         logo_img = f'<img src="{logo}" class="team-logo" alt="{team}">' if logo else ""
+        p_team = pick.get("pitcher_team", "")
+        p_logo = team_logo_url(p_team) if p_team else ""
+        p_logo_img = f'<img src="{p_logo}" class="team-logo" alt="{p_team}"> ' if p_logo else ""
 
         # Lineup status emoji
         if result in ("suspended", "unresolved"):
@@ -605,7 +608,7 @@ def render_page():
             <td class="result-cell">{result_html}</td>
             <td class="date-cell">{date}</td>
             <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
-            <td class="matchup-cell">vs {pitcher}</td>
+            <td class="matchup-cell">vs {p_logo_img}{pitcher}</td>
             <td class="pct-cell">{pct:.1%}</td>
             <td class="lineup-cell">{lineup_icon} {notes_html}</td>
         </tr>"""
@@ -617,6 +620,9 @@ def render_page():
             d_pct = double.get("p_game_hit", 0)
             d_logo = team_logo_url(d_team)
             d_logo_img = f'<img src="{d_logo}" class="team-logo" alt="{d_team}">' if d_logo else ""
+            dp_team = double.get("pitcher_team", "")
+            dp_logo = team_logo_url(dp_team) if dp_team else ""
+            dp_logo_img = f'<img src="{dp_logo}" class="team-logo" alt="{dp_team}"> ' if dp_logo else ""
             if result in ("suspended", "unresolved"):
                 d_lineup_icon = '<span title="Void">&#9888;&#65039;</span>'
             elif double.get("projected_lineup"):
@@ -633,7 +639,7 @@ def render_page():
             <td class="result-cell"><span class="double-plus">+</span></td>
             <td class="date-cell"></td>
             <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
-            <td class="matchup-cell">vs {d_pitcher}</td>
+            <td class="matchup-cell">vs {dp_logo_img}{d_pitcher}</td>
             <td class="pct-cell">{d_pct:.1%}</td>
             <td class="lineup-cell">{d_lineup_icon} {d_notes_html}</td>
         </tr>"""

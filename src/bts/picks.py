@@ -23,6 +23,7 @@ class Pick:
     projected_lineup: bool
     game_pk: int
     game_time: str  # ISO 8601 UTC
+    pitcher_team: str | None = None
 
 
 @dataclass
@@ -53,6 +54,7 @@ def pick_from_row(row) -> Pick:
         projected_lineup="PROJECTED" in flags_str,
         game_pk=int(row["game_pk"]),
         game_time=row["game_time"],
+        pitcher_team=row.get("pitcher_team"),
     )
 
 
@@ -70,6 +72,10 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
     if not path.exists():
         return None
     data = json.loads(path.read_text())
+    # Backfill pitcher_team for picks saved before this field existed
+    data["pick"].setdefault("pitcher_team", None)
+    if data["double_down"]:
+        data["double_down"].setdefault("pitcher_team", None)
     return DailyPick(
         date=data["date"],
         run_time=data["run_time"],

@@ -329,6 +329,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
             for side in ["away", "home"]:
                 opp = "home" if side == "away" else "away"
                 team_abbr = gd["teams"][side]["abbreviation"]
+                opp_team_abbr = gd["teams"][opp]["abbreviation"]
                 team_id = gd["teams"][side]["id"]
                 target_half = "top" if side == "away" else "bottom"
 
@@ -375,6 +376,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         "batter_id": lp["batter_id"],
                         "batter_name": lp["batter_name"],
                         "team": team_abbr,
+                        "pitcher_team": opp_team_abbr,
                         "lineup": lp["lineup"],
                         "pitcher_id": opp_pitcher_id,
                         "pitcher_name": opp_pitcher_name,
