@@ -371,6 +371,12 @@ def run_result_polling(
 
     early_replied = False
 
+    # Determine all game PKs to track (primary + double-down if different game)
+    daily = load_pick(date, picks_dir)
+    all_game_pks = {game_pk}
+    if daily and daily.double_down and daily.double_down.game_pk != game_pk:
+        all_game_pks.add(daily.double_down.game_pk)
+
     while True:
         now = _now_et()
         if now.hour >= cap_hour_et and now.hour < 10:
@@ -386,11 +392,17 @@ def run_result_polling(
         if not daily:
             return "unresolved"
 
-        status = poll_game_result(game_pk)
-        print(f"  [{now.strftime('%H:%M ET')}] Game {game_pk}: {status}", file=sys.stderr)
+        # Check status of ALL games involved in today's picks
+        statuses = {pk: poll_game_result(pk) for pk in all_game_pks}
+        status_summary = ", ".join(f"{pk}: {s}" for pk, s in statuses.items())
+        print(f"  [{now.strftime('%H:%M ET')}] Games: {status_summary}", file=sys.stderr)
 
-        # Check for mid-game hits (even if game is still live)
-        if not early_replied and status in ("live", "final"):
+        any_live_or_final = any(s in ("live", "final") for s in statuses.values())
+        all_final = all(s == "final" for s in statuses.values())
+        any_suspended = any(s == "suspended" for s in statuses.values())
+
+        # Check for mid-game hits (even if games are still live)
+        if not early_replied and any_live_or_final:
             hit_checks = _check_hits_midgame(daily, date)
             n_picks = 1 + (1 if daily.double_down else 0)
             confirmed_hits = [h for h in hit_checks[:n_picks] if h is True]
@@ -412,9 +424,9 @@ def run_result_polling(
                         print(f"  Result reply failed: {e}", file=sys.stderr)
                 early_replied = True
 
-        if status == "final":
+        if all_final:
             if not early_replied:
-                # Game over, haven't replied yet — do final check
+                # All games over, haven't replied yet — do final check
                 primary_result = check_hit(
                     daily.pick.game_pk, daily.pick.batter_id,
                     batter_name=daily.pick.batter_name,
@@ -432,8 +444,11 @@ def run_result_polling(
                         batter_name=daily.double_down.batter_name,
                         date=date, team=daily.double_down.team,
                     )
-                    if double_result is not None:
-                        results.append(double_result)
+                    if double_result is None:
+                        daily.result = "unresolved"
+                        save_pick(daily, picks_dir)
+                        return "unresolved"
+                    results.append(double_result)
 
                 new_streak = update_streak(results, picks_dir)
                 daily.result = "hit" if all(results) else "miss"

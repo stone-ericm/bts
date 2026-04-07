@@ -294,25 +294,25 @@ def reconcile_results(
             daily.result = current_result
             save_pick(daily, picks_dir)
 
-    # If any corrections, recalculate streak from scratch
-    if corrections:
-        streak = 0
-        dates = sorted(picks_dir.glob("*.json"))
-        for f in reversed(dates):
-            if f.stem in ("streak", "automation"):
-                continue
-            try:
-                data = json.loads(f.read_text())
-            except Exception:
-                continue
-            r = data.get("result")
-            if r == "hit":
-                dd = data.get("double_down")
-                streak += 2 if dd else 1
-            elif r == "miss":
-                break
-            else:
-                break
-        save_streak(streak, picks_dir)
+    # Always recalculate streak from scratch — catches both result corrections
+    # and streak increment bugs (e.g., cross-game double-down counted as +1)
+    streak = 0
+    dates = sorted(picks_dir.glob("*.json"))
+    for f in reversed(dates):
+        if f.stem in ("streak", "automation"):
+            continue
+        try:
+            data = json.loads(f.read_text())
+        except Exception:
+            continue
+        r = data.get("result")
+        if r == "hit":
+            dd = data.get("double_down")
+            streak += 2 if dd else 1
+        elif r == "miss":
+            break
+        else:
+            break
+    save_streak(streak, picks_dir)
 
     return corrections
