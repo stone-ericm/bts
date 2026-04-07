@@ -122,10 +122,31 @@ Phase 1: Game-level vs PA-level
     |-- game-level wins --> Phase 3, Phase 4 (Phase 2 skipped)
     |-- PA-level wins   --> Phase 2 --> Phase 3, Phase 4
     |
+Phase 5: Team bullpen composite (after architecture settled)
+    |
 After all phases: re-solve MDP with final quality bins
 ```
 
 Each phase produces a 5-season walk-forward backtest + MDP P(57). Approximately 50 minutes per variant.
+
+## Phase 5: Team Bullpen Composite Feature
+
+**Depends on Phase 1 outcome. Runs after Phases 1-4 are resolved.**
+
+### Problem
+
+The live pipeline uses league-average reliever features for late-inning PAs. This treats all bullpens as identical — a batter facing the Yankees' elite relievers gets the same P(hit) adjustment as one facing the Rockies' bullpen. We have the data to do better.
+
+### What We're Testing
+
+Compute a rolling team bullpen composite: average pitcher_hr, entropy, and Statcast features across each team's recent relievers (identified from roster/usage data).
+
+- **If game-level model won:** Add `opp_bullpen_quality` as a feature. The model learns that facing a strong bullpen reduces P(game hit).
+- **If PA-level model won:** Replace league-average reliever features with team-specific bullpen composite in the starter/reliever split.
+
+### Decision Criteria
+
+Must improve MDP P(57) on 5-season walk-forward. Both-seasons test on P@1.
 
 ## Success Criteria
 
@@ -137,6 +158,5 @@ The final system should have:
 ## Out of Scope
 
 - Changing LGB_PARAMS (hyperparameter tuning was tested and rejected)
-- Adding new feature types (validated feature set is stable)
 - Changing the MDP state space (quality bin count, saver range)
-- Starter/reliever split and PA estimation parameters (these are eliminated if game-level wins, or left as-is if PA-level wins — they're production approximations, not model parameters)
+- Starter/reliever split and PA estimation parameters (eliminated if game-level wins, or left as-is if PA-level wins)
