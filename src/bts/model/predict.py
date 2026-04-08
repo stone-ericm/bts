@@ -169,6 +169,12 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
         "venue_id"
     )["park_factor"].last().to_dict()
 
+    # Team bullpen quality (opposing team's reliever hit rate)
+    if "opp_bullpen_hr_30g" in df.columns and "opp_pitching_team_id" in df.columns:
+        lookups["bullpen"] = df.dropna(subset=["opp_bullpen_hr_30g"]).groupby(
+            "opp_pitching_team_id"
+        )["opp_bullpen_hr_30g"].last().to_dict()
+
     # Batter last played date
     lookups["last_date"] = df.groupby("batter_id")["date"].max().to_dict()
 
@@ -371,12 +377,14 @@ def _fetch_game_slots(date: str) -> list[dict]:
                     if lineup_players:
                         projected_count += 1
 
+                opp_team_id = gd["teams"][opp]["id"]
                 for lp in lineup_players:
                     slot = {
                         "batter_id": lp["batter_id"],
                         "batter_name": lp["batter_name"],
                         "team": team_abbr,
                         "pitcher_team": opp_team_abbr,
+                        "opp_team_id": opp_team_id,
                         "lineup": lp["lineup"],
                         "pitcher_id": opp_pitcher_id,
                         "pitcher_name": opp_pitcher_name,
@@ -463,6 +471,7 @@ def predict(
         # Context
         row["weather_temp"] = slot["weather_temp"]
         row["park_factor"] = lookups["park"].get(slot["venue_id"])
+        row["opp_bullpen_hr_30g"] = lookups.get("bullpen", {}).get(slot.get("opp_team_id"))
 
         # Days rest
         last = lookups["last_date"].get(bid)
