@@ -173,10 +173,14 @@ def select_pick(
         # Heuristic fallback
         if best_row["p_game_hit"] < SKIP_THRESHOLD:
             action = "skip"
-        elif _double_threshold(streak) is not None and len(valid) >= 2:
-            second = valid.iloc[1]
-            p_both = best_row["p_game_hit"] * second["p_game_hit"]
-            action = "double" if p_both >= _double_threshold(streak) else "single"
+        elif _double_threshold(streak) is not None:
+            diff_game_h = valid[valid["game_pk"] != best_row["game_pk"]]
+            if len(diff_game_h) >= 1:
+                second = diff_game_h.iloc[0]
+                p_both = best_row["p_game_hit"] * second["p_game_hit"]
+                action = "double" if p_both >= _double_threshold(streak) else "single"
+            else:
+                action = "single"
         else:
             action = "single"
 
@@ -185,15 +189,16 @@ def select_pick(
 
     new_pick = pick_from_row(best_row)
 
-    # Double-down
+    # Double-down: must be from a different game to avoid correlated outcomes
     double_pick = None
-    if action == "double" and len(valid) >= 2:
-        double_pick = pick_from_row(valid.iloc[1])
+    diff_game = valid[valid["game_pk"] != best_row["game_pk"]]
+    if action == "double" and len(diff_game) >= 1:
+        double_pick = pick_from_row(diff_game.iloc[0])
 
-    # Runner-up
+    # Runner-up (also from different game)
     runner_up = None
-    if len(valid) >= 2:
-        ru = valid.iloc[1]
+    if len(diff_game) >= 1:
+        ru = diff_game.iloc[0]
         runner_up = {"batter_name": ru["batter_name"], "p_game_hit": float(ru["p_game_hit"])}
 
     daily = DailyPick(
