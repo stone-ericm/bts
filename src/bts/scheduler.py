@@ -465,7 +465,7 @@ def run_result_polling(
                         print(f"  Result reply failed: {e}", file=sys.stderr)
             return "final"
 
-        if status == "suspended":
+        if any_suspended:
             daily = load_pick(date, picks_dir)
             if daily and not early_replied:
                 daily.result = "suspended"
