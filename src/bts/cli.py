@@ -251,8 +251,8 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
 def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry_run: bool):
     """Run daily BTS automation: predict, save pick, post to Bluesky.
 
-    Designed to run via cron at 11am, 4pm, and 7:30pm ET.
-    Uses densest-bucket strategy with 78% override threshold.
+    Picks the highest-ranked batter from the 12-model blend.
+    MDP policy determines skip/single/double.
     Use --dry-run to preview rankings without saving or posting.
     """
     import pandas as pd
