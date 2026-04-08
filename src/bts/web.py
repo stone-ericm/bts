@@ -421,7 +421,9 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
             'FINAL</span>'
         )
 
-    inning_display = f" &middot; {inning}" if inning and game_status == "L" else ""
+    # score_label already includes per-game innings for double-downs
+    has_score_label = scorecard_data.get("score_label") is not None
+    inning_display = f" &middot; {inning}" if inning and game_status == "L" and not has_score_label else ""
 
     # Build table header: # | BATTERS | POS | up to 5 PA columns
     max_pas = max((len(b.get("pas", [])) for b in batters), default=0)
