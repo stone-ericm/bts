@@ -23,24 +23,40 @@ from pathlib import Path
 TRAIN_START_YEAR = 2019
 
 
+_probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
+
+
 def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
     """Build game_pk → probable pitcher + team ID lookup from raw feeds.
 
+    Caches to disk and only scans new game feeds on subsequent calls.
     Returns {game_pk: {"away": pitcher_id, "home": pitcher_id,
                         "away_tid": team_id, "home_tid": team_id}}.
     """
+    # Load existing cache
+    lookup = {}
+    if _probable_pitcher_cache_path.exists():
+        try:
+            cached = json.loads(_probable_pitcher_cache_path.read_text())
+            lookup = {int(k): v for k, v in cached.items()}
+        except Exception:
+            pass
+
     raw = Path(raw_dir)
     if not raw.exists():
-        return {}
+        return lookup
 
-    lookup = {}
+    # Scan only files not already in cache
+    new_count = 0
     for season_dir in sorted(raw.iterdir()):
         if not season_dir.is_dir():
             continue
         for f in season_dir.glob("*.json"):
+            pk = int(f.stem)
+            if pk in lookup:
+                continue
             try:
                 d = json.loads(f.read_text())
-                pk = int(f.stem)
                 gd = d.get("gameData", {})
                 teams = gd.get("teams", {})
                 pp = gd.get("probablePitchers", {})
@@ -50,8 +66,17 @@ def _build_probable_pitcher_lookup(raw_dir: str = "data/raw") -> dict:
                     "away_tid": teams.get("away", {}).get("id"),
                     "home_tid": teams.get("home", {}).get("id"),
                 }
+                new_count += 1
             except Exception:
                 continue
+
+    # Save updated cache
+    if new_count > 0:
+        _probable_pitcher_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        _probable_pitcher_cache_path.write_text(
+            json.dumps({str(k): v for k, v in lookup.items()})
+        )
+
     return lookup
 
 
