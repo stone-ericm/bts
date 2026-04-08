@@ -348,14 +348,18 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
         merged["game_status"] = sc2["game_status"]
         merged["inning"] = sc2.get("inning", "")
 
-    # Show both scores as a combined label for the header
+    # Show both scores with innings as a combined label for the header
     s1 = sc1.get("score", {})
     s2 = sc2.get("score", {})
-    merged["score_label"] = (
-        f"{sc1.get('away_team', '?')} {s1.get('away', 0)}-{s1.get('home', 0)} {sc1.get('home_team', '?')}"
-        f" | "
-        f"{sc2.get('away_team', '?')} {s2.get('away', 0)}-{s2.get('home', 0)} {sc2.get('home_team', '?')}"
-    )
+    inn1 = sc1.get("inning", "")
+    inn2 = sc2.get("inning", "")
+    label1 = f"{sc1.get('away_team', '?')} {s1.get('away', 0)}-{s1.get('home', 0)} {sc1.get('home_team', '?')}"
+    label2 = f"{sc2.get('away_team', '?')} {s2.get('away', 0)}-{s2.get('home', 0)} {sc2.get('home_team', '?')}"
+    if inn1:
+        label1 += f" · {inn1}"
+    if inn2:
+        label2 += f" · {inn2}"
+    merged["score_label"] = f"{label1} | {label2}"
 
     return merged
 
