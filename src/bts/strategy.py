@@ -10,7 +10,7 @@ share the same decision logic.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -20,7 +20,6 @@ from bts.picks import (
     load_saver_available,
 )
 
-OVERRIDE_THRESHOLD = 0.78
 
 # --- MDP policy (preferred) ---
 # Loaded once on first use. Falls back to heuristic if not available.
@@ -99,45 +98,6 @@ class PickResult:
     locked: bool = False
 
 
-def _classify_et_hour(game_time_utc: str) -> int:
-    """Convert UTC game time to ET hour (UTC - 4)."""
-    try:
-        utc = datetime.fromisoformat(str(game_time_utc).replace("Z", "+00:00"))
-        return (utc - timedelta(hours=4)).hour
-    except Exception:
-        return 18  # default to prime
-
-
-def _apply_densest_bucket(valid: pd.DataFrame) -> pd.DataFrame:
-    """Apply densest bucket + override strategy.
-
-    Returns the filtered DataFrame to pick from.
-    """
-    if "game_time" not in valid.columns:
-        return valid
-
-    valid = valid.copy()
-    valid["_et_hour"] = valid["game_time"].apply(_classify_et_hour)
-
-    early = valid[valid["_et_hour"] < 16]
-    prime = valid[(valid["_et_hour"] >= 16) & (valid["_et_hour"] < 20)]
-    west = valid[valid["_et_hour"] >= 20]
-
-    buckets = {"early": early, "prime": prime, "west": west}
-    densest_name = max(buckets, key=lambda k: len(buckets[k]))
-
-    top_overall = valid.iloc[0]
-    top_hour = top_overall["_et_hour"]
-    top_window = "early" if top_hour < 16 else ("prime" if top_hour < 20 else "west")
-
-    if top_window == densest_name:
-        return buckets[densest_name]
-    elif top_overall["p_game_hit"] > OVERRIDE_THRESHOLD:
-        return valid  # override — top pick from non-densest beats threshold
-    else:
-        return buckets[densest_name]
-
-
 def should_lock(
     top_pick: dict,
     all_picks: list[dict],
@@ -173,7 +133,7 @@ def select_pick(
     picks_dir: Path,
     streak: int = 0,
 ) -> PickResult | None:
-    """Apply densest bucket + override strategy to predictions.
+    """Select the best pick from available predictions.
 
     Returns PickResult with the selected DailyPick, or None if there's
     nothing to pick (no games, all started, empty predictions).
@@ -203,9 +163,6 @@ def select_pick(
     valid = available[available["p_game_hit"].notna()]
     if valid.empty:
         return None
-
-    # Apply densest bucket + override
-    valid = _apply_densest_bucket(valid)
 
     best_row = valid.iloc[0]
 

@@ -1,4 +1,4 @@
-"""Tests for BTS pick strategy (densest bucket + override)."""
+"""Tests for BTS pick strategy."""
 
 import json
 import pytest
@@ -152,8 +152,8 @@ class TestSelectPick:
     @patch("bts.strategy.get_game_statuses", return_value={
         778899: "P", 778900: "P", 778901: "P", 778902: "P",
     })
-    def test_override_from_non_densest_window(self, mock_statuses, tmp_path):
-        """A non-densest pick above 78% should override the densest window."""
+    def test_picks_highest_p_game_hit_regardless_of_time(self, mock_statuses, tmp_path):
+        """select_pick always picks the highest P(game_hit) batter."""
         from bts.strategy import select_pick
 
         preds = _predictions([
@@ -169,32 +169,6 @@ class TestSelectPick:
         result = select_pick(preds, "2026-04-01", tmp_path)
 
         assert result.daily.pick.batter_name == "Early Star"
-
-    @patch("bts.strategy.get_game_statuses", return_value={
-        778899: "P", 778900: "P", 778901: "P", 778902: "P",
-    })
-    def test_no_override_below_threshold(self, mock_statuses, tmp_path):
-        """A non-densest pick below 78% override should not override.
-
-        The densest window top pick (0.82) is above skip threshold, so
-        the day is playable. The non-densest pick (0.77) is below the
-        override threshold (0.78), so densest window is used.
-        """
-        from bts.strategy import select_pick
-
-        preds = _predictions([
-            {"batter_name": "Early OK", "p_game_hit": 0.77,
-             "game_pk": 778899, "game_time": "2026-04-01T17:10:00Z"},
-            {"batter_name": "Prime 1", "p_game_hit": 0.82,
-             "game_pk": 778900, "game_time": "2026-04-01T23:10:00Z"},
-            {"batter_name": "Prime 2", "p_game_hit": 0.81,
-             "game_pk": 778901, "game_time": "2026-04-01T23:40:00Z"},
-            {"batter_name": "Prime 3", "p_game_hit": 0.80,
-             "game_pk": 778902, "game_time": "2026-04-02T00:10:00Z"},
-        ])
-        result = select_pick(preds, "2026-04-01", tmp_path)
-
-        assert result.daily.pick.batter_name == "Prime 1"
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_skip_below_threshold(self, mock_statuses, tmp_path):
