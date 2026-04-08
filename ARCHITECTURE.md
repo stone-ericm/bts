@@ -20,7 +20,7 @@ Validated results (walk-forward, provably leak-free):
 - **Filters**: Regular season only (no spring training, postseason, exhibitions, 7-inning COVID doubleheaders)
 - **Storage**: Raw JSON (`data/raw/{season}/{gamePk}.json`) → PA Parquet (`data/processed/pa_{season}.parquet`)
 
-## Features (14, provably leak-free)
+## Features (15, provably leak-free)
 
 All features use date-level shift(1) — only data from dates strictly before the prediction date.
 Verified by nuclear test: 260/260 manual spot checks passed.
@@ -40,6 +40,7 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 | weather_temp | Context | Game temperature from feed |
 | park_factor | Expanding | Venue hit rate / league avg (expanding normalization) |
 | pitcher_catcher_framing | Expanding | Catcher framing proxy (expanding strike rate) |
+| opp_bullpen_hr_30g | Rolling | Opposing team's reliever hit rate (30-day, via probable pitcher ID) |
 | days_rest | Context | Days since batter's last game |
 
 ### Dropped features (tested and rejected)
@@ -54,7 +55,7 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 
 - **Algorithm**: LightGBM (default hyperparameters — robust to tuning)
 - **Training**: PA-level binary classification (hit / no-hit)
-- **12-model blend**: Each model uses baseline 13 features + one Statcast feature variant. Predictions averaged across models for ranking. Improves P@1 from 85.1% to 86.2% avg by better tie-breaking between near-equivalent top picks.
+- **12-model blend**: Each model uses baseline 15 features + one Statcast feature variant. Predictions averaged across models for ranking. Improves P@1 by better tie-breaking between near-equivalent top picks.
 - **Blend validated**: Window size (7-60d) doesn't matter. 12 models is the sweet spot — fewer loses diversity, more dilutes signal. Different architectures (DT, LR) hurt.
 - **MLP ensemble**: Tested, no improvement — trees handle our interaction features better
 - **Calibration**: Underconfident at top (predicts 82%, actual 90%), but calibration methods hurt P@K
@@ -124,7 +125,7 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
 - 1am cron remains as a safety-net `bts check-results` fallback. Skips when scheduler has already set result ("hit"/"miss") to avoid double-counting streak. Does NOT post to Bluesky; scheduler owns all posting.
 
 **Key modules:**
-- `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
+- `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Double-down must be from a different game. Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
 - `orchestrator.py` — SSH cascade, TOML config, calls strategy + posting. `bts orchestrate` CLI command.
 - `scheduler.py` — Long-running daemon replacing fixed 11am/4pm/7:30pm cron runs. Dynamically schedules lineup checks relative to game start times. Short-circuits when pick is locked. Logs pick decisions. `bts schedule` CLI command.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
@@ -149,9 +150,10 @@ src/bts/simulate/
     cli.py              — bts simulate {backtest, run, solve, exact}
 ```
 
-**MDP-optimal strategy (P(57) = 6.66%, phase-aware):**
+**MDP-optimal strategy (P(57) = 8.91%, phase-aware, different-game doubles):**
 - Phase-aware bins: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
-- Aug P@1 (85.2%) is closer to early-season than Sept (83.1%) — old 60d cutoff over-penalized August
+- **Different-game doubles**: double-down must be from a different game_pk than primary pick (avoids correlated outcomes — 39.7% of days had same-game doubles). +59% P(57) vs same-game.
+- **No densest bucket**: pure blend ranking, no time-window filtering (removed 2026-04-08, was hurting P(57) by 8%)
 - At low streaks with many days left: play aggressively, double everything (even Q1)
 - At high streaks: skip all but Q4-Q5, stop doubling at streak 46+
 - Streak saver tracked: consumed on first miss at streak 10-15
@@ -198,21 +200,23 @@ LAN-only web dashboard at `http://pi5:3003`. Single-file Python server using `ht
 ```
 bts data pull --start 2019-03-20 --end 2025-10-01    # Raw JSON from MLB API
 bts data build --seasons 2019,...,2025                 # PA-level Parquet
-compute_all_features(df)                               # 13 temporal features
+compute_all_features(df)                               # 15 temporal features
 walk_forward_evaluate(df, test_season=2025)            # Walk-forward P@K
 ```
 
 ## Key Learnings
 
-1. **PA-level > game-level**: 2x more training data, lineup position emerges naturally
+1. **PA-level >> game-level**: Game-level modeling collapses to ~75% P@1 (tested 2026-04-07). PA-level works because the aggregation `1-prod(1-p)` is a better probability model than LightGBM learning P(game_hit) directly, even though all features are date-level.
 2. **Leakage is invisible**: Three separate leakage bugs found and fixed (static features, K-Means clusters, doubleheader shift). Each looked correct until tested.
 3. **Feature selection is fragile**: Results flip when leakage is present vs absent. Always validate on held-out season.
 4. **More data helps, to a point**: 2019+ is optimal. 2017-18 hurts. Expanding features need volume but the model needs relevance.
 5. **YAGNI applies to ML**: 13 features beat 18. Simpler models with clean features beat complex models with noisy ones.
 6. **Blend diversity > model complexity**: 12 LightGBM variants with different feature subsets beat any single model, hyperparameter tuning, different architectures, or adaptive selection. The power is in tie-breaking via diverse votes, not in individual model quality.
 7. **Year-to-year instability is fundamental**: Features that help one season hurt the next. Only the blend consistently improves both test seasons.
-8. **Strategy >> model improvements for P(57)**: MDP-optimal play strategy improved P(57) from 0.90% to 6.66% (7.4x) with zero model changes. Skip bad days, double selectively through lockdown, stop doubling at 46+, adapt to days remaining in season. The exponential nature of streaks (p^57) means small accuracy gains from strategy compound massively.
-9. **Anti-correlated doubling is a dead end**: rank-1 and rank-2 outcomes are independent (r=-0.018). P(both) = P1 × P2 is correct.
-10. **Model degrades in September specifically**: Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +1.8% P(57).
-11. **Competitive validation (2026-04-02)**: 14 items tested against r/beatthestreak community. PA aggregation makes lineup position redundant. Vegas implied run totals add no signal. Miss days are random. Our streak distribution beats community's best model by 14-21%.
-12. **Any function receiving the full prediction DataFrame must filter by game status**: Predictions include batters from all scheduled games (started, postponed, etc). Functions like `should_lock` that compare against projected picks must exclude non-Preview games, or postponed/finished games will pollute the comparison.
+8. **Strategy >> model improvements for P(57)**: MDP-optimal play strategy improved P(57) from 0.90% to 8.91% (9.9x) with minimal model changes. Skip bad days, double selectively (different-game only), adapt to days remaining. The exponential nature of streaks (p^57) means small accuracy gains from strategy compound massively.
+9. **Same-game doubles hurt P(57)**: rank-1 and rank-2 in the same game have correlated outcomes (same pitcher). Forcing different-game doubles improved P(57) by +59%. 39.7% of days had same-game doubles before the fix.
+10. **Quick eval overstates improvements**: Static train-test (train once, predict all days) consistently shows larger gains than walk-forward (retrain every 7 days). Min_periods sweep: +2.7% quick → +0.8% walk-forward. Always validate with walk-forward before shipping.
+11. **Bullpen composite polarizes quality bins**: Adding opp_bullpen_hr_30g slightly hurt average P@1 (-0.2%) but improved P(57) by +18% because Q5 (best days) jumped from 89.6% → 92.3%. The MDP exploits stronger peaks through more confident doubling.
+12. **Model degrades in September specifically**: Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +1.8% P(57).
+13. **Competitive validation (2026-04-02)**: 14 items tested against r/beatthestreak community. PA aggregation makes lineup position redundant. Vegas implied run totals add no signal. Miss days are random. Our streak distribution beats community's best model by 14-21%.
+14. **Any function receiving the full prediction DataFrame must filter by game status**: Predictions include batters from all scheduled games (started, postponed, etc). Functions like `should_lock` that compare against projected picks must exclude non-Preview games, or postponed/finished games will pollute the comparison.
