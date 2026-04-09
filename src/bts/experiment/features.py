@@ -324,48 +324,45 @@ class VennABERSExperiment(ExperimentDef):
     def modify_strategy(self, profiles_df, quality_bins):
         from sklearn.isotonic import IsotonicRegression
 
-        df = profiles_df.copy()
+        df = profiles_df.copy().reset_index(drop=True)
+        df["date"] = pd.to_datetime(df["date"])
         rank1 = df[df["rank"] == 1].copy()
         if len(rank1) < 50:
             return df, quality_bins
 
-        # Sort by date for temporal split (use first half for calibration)
+        # Use earliest 30% of dates for calibration training (no leakage)
         rank1 = rank1.sort_values("date")
-        split = len(rank1) // 2
+        split = len(rank1) // 3
         cal = rank1.iloc[:split]
 
         if len(cal) < 20:
             return df, quality_bins
 
-        # Two isotonic regressions: one assuming hit=0 for new point, one hit=1
         ir0 = IsotonicRegression(out_of_bounds="clip")
         ir1 = IsotonicRegression(out_of_bounds="clip")
 
         cal_y = cal["actual_hit"].values
         cal_p = cal["p_game_hit"].values
 
-        # ir0: append (p, 0) — pessimistic; ir1: append (p, 1) — optimistic
-        # Standard Venn-ABERS pattern: fit on cal data + the test point with each label
-        # Simplified: fit on calibration data only and use as bounds
         ir0.fit(cal_p, cal_y)
-        # For ir1, slightly bias upward by adding hit-only pseudo-counts
         cal_y_optimistic = np.minimum(cal_y + 0.1, 1.0)
         ir1.fit(cal_p, cal_y_optimistic)
 
-        # Compute width per profile
-        all_p = df["p_game_hit"].values
+        # Compute width per profile vectorized
+        all_p = df["p_game_hit"].values.astype(float)
         p0 = ir0.predict(all_p)
         p1 = ir1.predict(all_p)
         width = np.abs(p1 - p0)
 
-        # Penalize wide-interval predictions
         # Narrow intervals get full credit; wide intervals get downscored
-        max_width = max(width.max(), 1e-6)
+        max_width = max(float(width.max()), 1e-6)
         confidence = 1.0 - (width / max_width) * 0.3  # max 30% downweight
-        df["p_game_hit"] = df["p_game_hit"] * confidence
+        new_p = all_p * confidence
+        new_p = np.where(np.isnan(new_p), all_p, new_p)
+        df["p_game_hit"] = new_p
 
         # Re-rank within each day
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
         df["rank"] = df.groupby("date").cumcount() + 1
 
         try:
@@ -401,18 +398,26 @@ class QuantileQ10Experiment(ExperimentDef):
 
     def modify_strategy(self, profiles_df, quality_bins):
         # Use q10 as a skip signal: when q10 is below threshold, downweight pick
-        df = profiles_df.copy()
+        df = profiles_df.copy().reset_index(drop=True)
         if "m_quantile_q10" not in df.columns:
             return df, quality_bins
 
-        # Conservative skip: if q10 < 0.6, downgrade the prediction
-        # This mimics quantile-gated skip
-        q10 = df["m_quantile_q10"].fillna(df["p_game_hit"])
-        # Penalize predictions where q10 is low (uncertainty signal)
-        df["p_game_hit"] = df["p_game_hit"] * (0.5 + 0.5 * np.clip(q10 / 0.7, 0.0, 1.0))
+        # Vectorized: where q10 missing, leave p_game_hit unchanged
+        q10 = df["m_quantile_q10"].values.astype(float)
+        original_p = df["p_game_hit"].values.astype(float)
+
+        confidence = np.where(
+            np.isnan(q10),
+            1.0,
+            0.5 + 0.5 * np.clip(q10 / 0.7, 0.0, 1.0),
+        )
+        new_p = original_p * confidence
+        # Guard against any NaN propagation
+        new_p = np.where(np.isnan(new_p), original_p, new_p)
+        df["p_game_hit"] = new_p
 
         # Re-rank within each day
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
         df["rank"] = df.groupby("date").cumcount() + 1
 
         try:

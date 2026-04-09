@@ -29,37 +29,53 @@ class FWLSExperiment(ExperimentDef):
         return True
 
     def modify_strategy(self, profiles_df, quality_bins):
+        """Train ridge meta-learner with temporal cross-fitting (no leakage).
+
+        For each day d, train ridge on rank-1 picks from days [0, d-1] only,
+        then apply to day d's profiles. After warmup, recalibrate weekly.
+        """
         from sklearn.linear_model import Ridge
 
-        df = profiles_df.copy()
+        df = profiles_df.copy().reset_index(drop=True)
+        df["date"] = pd.to_datetime(df["date"])
         m_cols = _per_model_columns(df)
         if not m_cols or len(df) < 100:
             return df, quality_bins
 
-        # Train ridge meta-learner on per-model predictions → actual outcome
-        # Use rank-1 picks across all days as the training set
-        train_df = df[m_cols + ["actual_hit"]].dropna()
-        if len(train_df) < 50:
+        rank1 = df[df["rank"] == 1].sort_values("date").copy()
+        sorted_dates = sorted(df["date"].unique())
+        warmup = 30
+        if len(sorted_dates) < warmup + 10:
             return df, quality_bins
 
-        X = train_df[m_cols].values
-        y = train_df["actual_hit"].values
-        meta = Ridge(alpha=1.0, positive=True)
-        meta.fit(X, y)
+        recalibrate_every = 7
+        meta = None
+        new_p = df["p_game_hit"].values.copy()
+        m_matrix = df[m_cols].fillna(0.5).values
 
-        # Apply meta-learner to all profiles, replacing p_game_hit
-        full_X = df[m_cols].fillna(df[m_cols].mean())
-        new_p = meta.predict(full_X.values)
-        # Clip to [0, 1] since ridge can extrapolate
-        new_p = np.clip(new_p, 0.0, 0.9999)
+        for i, date in enumerate(sorted_dates):
+            if i < warmup:
+                continue
+            if meta is None or i % recalibrate_every == 0:
+                prior_rank1 = rank1[rank1["date"] < date]
+                if len(prior_rank1) < 30:
+                    continue
+                X_train = prior_rank1[m_cols].fillna(0.5).values
+                y_train = prior_rank1["actual_hit"].values
+                meta = Ridge(alpha=1.0, positive=True)
+                meta.fit(X_train, y_train)
+
+            day_mask = (df["date"] == date).values
+            if day_mask.any() and meta is not None:
+                preds = meta.predict(m_matrix[day_mask])
+                new_p[day_mask] = np.clip(preds, 0.0, 0.9999)
 
         df["p_game_hit"] = new_p
 
-        # Re-rank within each day after recomputing scores
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        # Re-rank within each day
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
         df["rank"] = df.groupby("date").cumcount() + 1
 
-        # Recompute quality bins
         try:
             from bts.simulate.quality_bins import compute_bins
             new_bins = compute_bins(df)
@@ -84,7 +100,7 @@ class FixedShareHedgeExperiment(ExperimentDef):
         return True
 
     def modify_strategy(self, profiles_df, quality_bins):
-        df = profiles_df.copy()
+        df = profiles_df.copy().reset_index(drop=True)
         m_cols = _per_model_columns(df)
         if not m_cols:
             return df, quality_bins
@@ -94,47 +110,48 @@ class FixedShareHedgeExperiment(ExperimentDef):
         eta = 0.5  # learning rate
         alpha_share = 0.05  # mixing rate
 
-        # Iterate days in order, tracking per-model weights
+        # Build per-day weights by iterating days in order
         rank1 = df[df["rank"] == 1].sort_values("date").copy()
         weights = np.ones(n_models) / n_models
 
         per_day_weights: dict = {}
         for _, row in rank1.iterrows():
             per_day_weights[row["date"]] = weights.copy()
-            # Compute per-model loss on this day's actual outcome
-            preds = np.array([row[c] if pd.notna(row[c]) else 0.5 for c in m_cols])
+            preds = np.array([
+                row[c] if pd.notna(row[c]) else 0.5 for c in m_cols
+            ], dtype=float)
             y = float(row["actual_hit"])
-            losses = (preds - y) ** 2  # squared loss
+            losses = (preds - y) ** 2
 
-            # Hedge update
             new_w = weights * np.exp(-eta * losses)
             new_w = new_w / new_w.sum()
-
-            # Fixed-Share mixing
             uniform = np.ones(n_models) / n_models
             weights = (1 - alpha_share) * new_w + alpha_share * uniform
 
-        # Recompute p_game_hit using the time-varying weights
-        new_p_values = []
-        for _, row in df.iterrows():
-            d = row["date"]
-            if d not in per_day_weights:
-                # Use initial uniform weights
-                w = np.ones(n_models) / n_models
-            else:
-                w = per_day_weights[d]
-            preds = np.array([row[c] if pd.notna(row[c]) else np.nan for c in m_cols])
-            valid = ~np.isnan(preds)
+        # Vectorized recompute of p_game_hit using time-varying weights
+        # Build a (n_days, n_models) weight matrix indexed by row's date
+        date_to_weight_idx = {d: i for i, d in enumerate(per_day_weights.keys())}
+        weight_matrix = np.array(list(per_day_weights.values()))  # (D, M)
+        uniform = np.ones(n_models) / n_models
+
+        m_matrix = df[m_cols].fillna(np.nan).values  # (N, M)
+        new_p = np.full(len(df), np.nan)
+
+        for i, d in enumerate(df["date"].values):
+            w = weight_matrix[date_to_weight_idx[d]] if d in date_to_weight_idx else uniform
+            row_preds = m_matrix[i]
+            valid = ~np.isnan(row_preds)
             if valid.any():
                 w_valid = w[valid] / w[valid].sum()
-                new_p_values.append(float(np.dot(preds[valid], w_valid)))
-            else:
-                new_p_values.append(row["p_game_hit"])
+                new_p[i] = float(np.dot(row_preds[valid], w_valid))
 
-        df["p_game_hit"] = new_p_values
+        # Fall back to original p_game_hit where weighted average is NaN
+        original_p = df["p_game_hit"].values
+        new_p = np.where(np.isnan(new_p), original_p, new_p)
+        df["p_game_hit"] = new_p
 
         # Re-rank within each day
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
         df["rank"] = df.groupby("date").cumcount() + 1
 
         try:

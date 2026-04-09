@@ -53,7 +53,8 @@ def test_evaluate_pass_fail_both_seasons_improve():
             "2024": {"baseline": 0.849, "variant": 0.855, "delta": 0.006},
             "2025": {"baseline": 0.859, "variant": 0.865, "delta": 0.006},
         },
-        "p_57_mdp": {"baseline": 0.0891, "variant": 0.0920, "delta": 0.0029},
+        "streak_metrics": {"mean_max_streak": {"delta": 0.5}},
+        "p_57_exact": {"delta": 0.001},
     }
     passed, reason = evaluate_pass_fail(diff)
     assert passed is True
@@ -66,32 +67,48 @@ def test_evaluate_pass_fail_one_season_drops():
             "2024": {"baseline": 0.849, "variant": 0.840, "delta": -0.009},
             "2025": {"baseline": 0.859, "variant": 0.865, "delta": 0.006},
         },
-        "p_57_mdp": {"baseline": 0.0891, "variant": 0.0920, "delta": 0.0029},
+        "streak_metrics": {"mean_max_streak": {"delta": 0.5}},
+        "p_57_exact": {"delta": 0.001},
     }
     passed, reason = evaluate_pass_fail(diff)
     assert passed is False
 
 
-def test_evaluate_pass_fail_neutral_p1_but_p57_improves():
+def test_evaluate_pass_fail_neutral_p1_but_streak_and_exact_improve():
     diff = {
         "p_at_1_by_season": {
             "2024": {"baseline": 0.849, "variant": 0.848, "delta": -0.001},
             "2025": {"baseline": 0.859, "variant": 0.857, "delta": -0.002},
         },
-        "p_57_mdp": {"baseline": 0.0891, "variant": 0.0950, "delta": 0.0059},
+        "streak_metrics": {"mean_max_streak": {"delta": 0.8}},
+        "p_57_exact": {"delta": 0.0015},
     }
     passed, reason = evaluate_pass_fail(diff)
     assert passed is True
-    assert "p(57)" in reason.lower()
+    assert "neutral" in reason.lower()
 
 
-def test_evaluate_pass_fail_neutral_p1_but_p57_drops():
+def test_evaluate_pass_fail_neutral_p1_but_streak_drops():
     diff = {
         "p_at_1_by_season": {
             "2024": {"baseline": 0.849, "variant": 0.848, "delta": -0.001},
             "2025": {"baseline": 0.859, "variant": 0.857, "delta": -0.002},
         },
-        "p_57_mdp": {"baseline": 0.0891, "variant": 0.0880, "delta": -0.0011},
+        "streak_metrics": {"mean_max_streak": {"delta": -0.5}},
+        "p_57_exact": {"delta": 0.0015},
+    }
+    passed, reason = evaluate_pass_fail(diff)
+    assert passed is False
+
+
+def test_evaluate_pass_fail_neutral_p1_but_exact_p57_drops():
+    diff = {
+        "p_at_1_by_season": {
+            "2024": {"baseline": 0.849, "variant": 0.848, "delta": -0.001},
+            "2025": {"baseline": 0.859, "variant": 0.857, "delta": -0.002},
+        },
+        "streak_metrics": {"mean_max_streak": {"delta": 0.5}},
+        "p_57_exact": {"delta": -0.001},
     }
     passed, reason = evaluate_pass_fail(diff)
     assert passed is False
@@ -100,11 +117,12 @@ def test_evaluate_pass_fail_neutral_p1_but_p57_drops():
 # --- Phase 2 tests ---
 
 def test_sort_winners_by_p57():
+    """Sorts passing experiments by mean_max_streak delta (despite the name)."""
     results = [
-        {"name": "a", "passed": True, "diff": {"p_57_mdp": {"delta": 0.005}}},
-        {"name": "b", "passed": True, "diff": {"p_57_mdp": {"delta": 0.012}}},
-        {"name": "c", "passed": False, "diff": {"p_57_mdp": {"delta": 0.020}}},
-        {"name": "d", "passed": True, "diff": {"p_57_mdp": {"delta": 0.001}}},
+        {"name": "a", "passed": True, "diff": {"streak_metrics": {"mean_max_streak": {"delta": 0.5}}}},
+        {"name": "b", "passed": True, "diff": {"streak_metrics": {"mean_max_streak": {"delta": 1.2}}}},
+        {"name": "c", "passed": False, "diff": {"streak_metrics": {"mean_max_streak": {"delta": 2.0}}}},
+        {"name": "d", "passed": True, "diff": {"streak_metrics": {"mean_max_streak": {"delta": 0.1}}}},
     ]
     winners = sort_winners_by_p57(results)
     assert len(winners) == 3  # c is excluded (not passed)

@@ -76,15 +76,23 @@ NEUTRAL_THRESHOLD = -0.003
 def evaluate_pass_fail(diff: dict) -> tuple[bool, str]:
     """Evaluate whether an experiment passes screening.
 
+    Uses a composite metric instead of MDP P(57), which has been shown
+    to have ~80% coefficient of variation under tiny prediction noise
+    (bin-boundary artifacts). The replacement metrics are much more
+    stable: mean_max_streak (3% CoV), P99 streak (4% CoV), exact P(57)
+    (27% CoV).
+
     Pass if EITHER:
-    1. P@1 improves on both 2024 AND 2025
-    2. P@1 neutral on both (drop <= 0.3pp) AND MDP P(57) improves
+    1. P@1 improves on BOTH 2024 AND 2025 (strict ranking improvement)
+    2. P@1 neutral on both (drop <= 0.3pp) AND streak metrics improve:
+       - mean_max_streak >= 0 (neutral or up)
+       - exact P(57) > 0 (strictly improved)
 
     Returns:
         (passed, reason) tuple.
     """
     p1_by_season = diff.get("p_at_1_by_season", {})
-    p57_diff = diff.get("p_57_mdp", {})
+    streak_diff = diff.get("streak_metrics", {})
 
     season_deltas = {}
     for season_key, d in p1_by_season.items():
@@ -95,13 +103,25 @@ def evaluate_pass_fail(diff: dict) -> tuple[bool, str]:
 
     all_improve = all(d > 0 for d in season_deltas.values())
     all_neutral = all(d >= NEUTRAL_THRESHOLD for d in season_deltas.values())
-    p57_improves = p57_diff.get("delta", 0) > 0
 
     if all_improve:
         return True, "P@1 improves on both seasons"
-    if all_neutral and p57_improves:
-        return True, "P@1 neutral, P(57) improves"
-    return False, f"P@1 deltas: {season_deltas}, P(57) delta: {p57_diff.get('delta', 'N/A')}"
+
+    # Composite secondary check: streak metrics under fixed strategy
+    mean_streak_delta = streak_diff.get("mean_max_streak", {}).get("delta", 0) or 0
+    exact_p57_delta = (diff.get("p_57_exact", {}) or {}).get("delta", 0) or 0
+
+    if all_neutral and mean_streak_delta >= 0 and exact_p57_delta > 0:
+        return True, (
+            f"P@1 neutral, mean_streak {mean_streak_delta:+.2f}, "
+            f"exact P(57) {exact_p57_delta:+.4f}"
+        )
+
+    return False, (
+        f"P@1 deltas: {season_deltas}, "
+        f"mean_streak: {mean_streak_delta:+.2f}, "
+        f"exact P(57): {exact_p57_delta:+.4f}"
+    )
 
 
 def run_single_screening(
@@ -232,11 +252,16 @@ def run_screening(
 # ---------------------------------------------------------------------------
 
 def sort_winners_by_p57(results: list[dict]) -> list[dict]:
-    """Filter to passing experiments and sort by P(57) improvement descending."""
+    """Filter to passing experiments and sort by mean max streak delta.
+
+    Despite the historical name, sorts by mean_max_streak (the most stable
+    metric) rather than MDP P(57) (which is unreliable, ~80% CoV under noise).
+    """
     winners = [r for r in results if r.get("passed")]
     return sorted(
         winners,
-        key=lambda r: r.get("diff", {}).get("p_57_mdp", {}).get("delta", 0),
+        key=lambda r: r.get("diff", {}).get("streak_metrics", {}).get(
+            "mean_max_streak", {}).get("delta", 0),
         reverse=True,
     )
 
