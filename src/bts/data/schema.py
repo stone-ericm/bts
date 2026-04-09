@@ -1,5 +1,7 @@
 """PA table schema definitions and event constants."""
 
+import hashlib
+
 HIT_EVENTS = frozenset({"single", "double", "triple", "home_run"})
 
 PA_ENDING_EVENTS = frozenset({
@@ -61,3 +63,9 @@ PA_COLUMNS = [
     "atm_pressure",
     "humidity",
 ]
+
+# Auto-derived schema version. Any change to PA_COLUMNS (addition, removal,
+# rename, reorder) produces a new version. Workers compare their expected
+# SCHEMA_VERSION against the one in R2 manifest.json and refuse to load
+# parquets on mismatch. This makes schema drift detectable at sync time.
+SCHEMA_VERSION = hashlib.sha256("\n".join(PA_COLUMNS).encode()).hexdigest()[:12]
