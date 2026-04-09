@@ -120,7 +120,6 @@ def run_collection_tick(
     """Poll games that still need confirmation. Updates state in place.
 
     Skips games where both sides are already confirmed (no work to do).
-    Skips games where first pitch has already passed (too late to matter).
     """
     for game_pk, entry in list(state.games.items()):
         if entry.first_away_confirmed_utc and entry.first_home_confirmed_utc:
