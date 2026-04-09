@@ -1,10 +1,16 @@
 """Tests for lineup collection polling logic."""
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
 
-from bts.data.lineup_collect import poll_game_lineup, LineupPollResult
+from bts.data.lineup_collect import (
+    CollectionState,
+    LineupPollResult,
+    poll_game_lineup,
+)
 
 
 def test_poll_returns_no_lineup_when_battingorder_empty():
@@ -66,3 +72,51 @@ def test_poll_returns_both_false_on_api_error():
     assert result.game_pk == 12345
     assert result.away_confirmed is False
     assert result.home_confirmed is False
+
+
+def test_collection_state_records_first_confirmation():
+    state = CollectionState(date="2026-04-10")
+    now = datetime(2026, 4, 10, 17, 30, tzinfo=timezone.utc)
+
+    state.record_poll(
+        game_pk=12345,
+        game_time_et="2026-04-10T19:05:00-04:00",
+        poll_time_utc=now,
+        away_confirmed=True,
+        home_confirmed=False,
+    )
+
+    entry = state.games[12345]
+    assert entry.first_away_confirmed_utc == now.isoformat()
+    assert entry.first_home_confirmed_utc is None
+    assert entry.poll_count == 1
+
+
+def test_collection_state_does_not_overwrite_first_confirmation():
+    state = CollectionState(date="2026-04-10")
+    first = datetime(2026, 4, 10, 17, 30, tzinfo=timezone.utc)
+    second = datetime(2026, 4, 10, 17, 35, tzinfo=timezone.utc)
+
+    state.record_poll(12345, "2026-04-10T19:05:00-04:00", first, True, False)
+    state.record_poll(12345, "2026-04-10T19:05:00-04:00", second, True, True)
+
+    entry = state.games[12345]
+    assert entry.first_away_confirmed_utc == first.isoformat()
+    assert entry.first_home_confirmed_utc == second.isoformat()
+    assert entry.poll_count == 2
+
+
+def test_collection_state_serializes_to_jsonl(tmp_path: Path):
+    state = CollectionState(date="2026-04-10")
+    now = datetime(2026, 4, 10, 17, 30, tzinfo=timezone.utc)
+    state.record_poll(12345, "2026-04-10T19:05:00-04:00", now, True, True)
+
+    state.write_jsonl(tmp_path)
+
+    out_file = tmp_path / "2026-04-10.jsonl"
+    assert out_file.exists()
+    line = json.loads(out_file.read_text().strip())
+    assert line["game_pk"] == 12345
+    assert line["first_away_confirmed_utc"] == now.isoformat()
+    assert line["first_home_confirmed_utc"] == now.isoformat()
+    assert line["poll_count"] == 1
