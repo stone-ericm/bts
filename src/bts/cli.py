@@ -244,7 +244,8 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
 
 @data.command(name="collect-lineup-times")
 @click.option("--date", default=None, help="Date (YYYY-MM-DD, default today ET)")
-@click.option("--out-dir", default="data/lineup_posting_times", type=click.Path())
+@click.option("--out-dir", default="data/lineup_posting_times", type=click.Path(),
+              help="Output directory for JSONL state files")
 def data_collect_lineup_times(date, out_dir):
     """Poll MLB API once for lineup confirmation times on the given date.
 

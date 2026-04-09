@@ -170,6 +170,9 @@ def _load_or_create_state(date: str, out_dir: Path) -> CollectionState:
         if not line.strip():
             continue
         row = json.loads(line)
+        # Rehydrate entries directly (not via record_poll) — we're restoring persisted
+        # state, not recording new poll events, so we don't want to touch poll_count
+        # or sticky-first logic.
         state.games[row["game_pk"]] = GameCollectionEntry(
             game_pk=row["game_pk"],
             game_time_et=row["game_time_et"],
