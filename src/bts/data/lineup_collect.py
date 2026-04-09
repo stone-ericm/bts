@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from bts.picks import API_BASE
-from bts.scheduler import fetch_schedule, _game_time_et
+from bts.scheduler import fetch_schedule, game_time_et
 from bts.util import retry_urlopen
 
 
@@ -151,7 +151,7 @@ def collect_for_date(date: str, out_dir: Path) -> CollectionState:
         if game_pk not in state.games:
             state.games[game_pk] = GameCollectionEntry(
                 game_pk=game_pk,
-                game_time_et=_game_time_et(g).isoformat(),
+                game_time_et=game_time_et(g).isoformat(),
             )
 
     run_collection_tick(state, now_utc=datetime.now(timezone.utc))
