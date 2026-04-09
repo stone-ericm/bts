@@ -111,3 +111,25 @@ class CollectionState:
             }))
         out_path.write_text("\n".join(lines) + "\n" if lines else "")
         return out_path
+
+
+def run_collection_tick(
+    state: CollectionState,
+    now_utc: datetime,
+) -> None:
+    """Poll games that still need confirmation. Updates state in place.
+
+    Skips games where both sides are already confirmed (no work to do).
+    Skips games where first pitch has already passed (too late to matter).
+    """
+    for game_pk, entry in list(state.games.items()):
+        if entry.first_away_confirmed_utc and entry.first_home_confirmed_utc:
+            continue
+        result = poll_game_lineup(game_pk)
+        state.record_poll(
+            game_pk=game_pk,
+            game_time_et=entry.game_time_et,
+            poll_time_utc=now_utc,
+            away_confirmed=result.away_confirmed,
+            home_confirmed=result.home_confirmed,
+        )

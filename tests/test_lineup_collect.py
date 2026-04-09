@@ -8,8 +8,10 @@ import pytest
 
 from bts.data.lineup_collect import (
     CollectionState,
+    GameCollectionEntry,
     LineupPollResult,
     poll_game_lineup,
+    run_collection_tick,
 )
 
 
@@ -120,3 +122,29 @@ def test_collection_state_serializes_to_jsonl(tmp_path: Path):
     assert line["first_away_confirmed_utc"] == now.isoformat()
     assert line["first_home_confirmed_utc"] == now.isoformat()
     assert line["poll_count"] == 1
+
+
+def test_run_collection_tick_polls_only_games_needing_confirmation():
+    state = CollectionState(date="2026-04-10")
+    now_confirmed = datetime(2026, 4, 10, 17, 30, tzinfo=timezone.utc)
+    # Game 1 already has both sides confirmed from a previous tick
+    state.record_poll(1, "2026-04-10T19:05:00-04:00", now_confirmed, True, True)
+    # Game 2 needs confirmation
+    state.games[2] = GameCollectionEntry(
+        game_pk=2,
+        game_time_et="2026-04-10T19:10:00-04:00",
+    )
+
+    mock_poll = MagicMock()
+    mock_poll.return_value = LineupPollResult(game_pk=2, away_confirmed=True, home_confirmed=False)
+
+    now = datetime(2026, 4, 10, 17, 45, tzinfo=timezone.utc)
+    with patch("bts.data.lineup_collect.poll_game_lineup", mock_poll):
+        run_collection_tick(state, now_utc=now)
+
+    # Game 1 should NOT be polled (both confirmed)
+    # Game 2 should be polled once
+    assert mock_poll.call_count == 1
+    mock_poll.assert_called_with(2)
+    # Game 2 now has away confirmed
+    assert state.games[2].first_away_confirmed_utc == now.isoformat()
