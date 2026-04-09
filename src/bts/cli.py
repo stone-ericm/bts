@@ -269,6 +269,39 @@ def data_collect_lineup_times(date, out_dir):
     click.echo(f"{date}: {n_both}/{len(state.games)} games fully confirmed")
 
 
+@data.command(name="analyze-lineup-times")
+@click.option("--in-dir", default="data/lineup_posting_times", type=click.Path())
+@click.option("--from-date", required=True, help="Start date (YYYY-MM-DD)")
+@click.option("--to-date", required=True, help="End date (YYYY-MM-DD)")
+def data_analyze_lineup_times(in_dir, from_date, to_date):
+    """Report lineup-posting-time distribution for a date range.
+
+    Prints percentiles and a short histogram-style summary. Use to inform
+    scheduler timing configuration (lineup_check_offset_min, fallback_deadline_min).
+    """
+    from pathlib import Path
+    from bts.data.lineup_analyze import load_samples_from_jsonl, compute_distribution
+
+    samples = load_samples_from_jsonl(Path(in_dir), from_date, to_date)
+    dist = compute_distribution(samples)
+
+    click.echo(f"Lineup posting time distribution ({from_date} to {to_date})")
+    click.echo(f"  n = {dist.n} samples")
+    if dist.n == 0:
+        click.echo("  (no samples — check data/lineup_posting_times/ has data for this range)")
+        return
+    click.echo(f"  mean   = {dist.mean:.0f} min before first pitch")
+    click.echo(f"  p10    = {dist.p10:.0f}")
+    click.echo(f"  p25    = {dist.p25:.0f}")
+    click.echo(f"  p50    = {dist.p50:.0f}")
+    click.echo(f"  p75    = {dist.p75:.0f}")
+    click.echo(f"  p90    = {dist.p90:.0f}")
+    click.echo(f"  p95    = {dist.p95:.0f}")
+    click.echo(f"  p99    = {dist.p99:.0f}")
+    click.echo("")
+    click.echo("Interpretation:")
+    click.echo(f"  To capture p95 of lineups at lock time, use lineup_check_offset_min >= {int(dist.p95) + 5}")
+    click.echo(f"  For fallback_deadline_min, accept up to p90 ({int(dist.p90)}) loss of confirmed data")
 
 
 @cli.command()

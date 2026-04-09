@@ -4,6 +4,7 @@ Reads files written by `bts data collect-lineup-times` and computes
 statistics on how many minutes before first pitch each lineup was
 confirmed. Used to inform scheduler timing configuration.
 """
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -71,3 +72,34 @@ def compute_distribution(samples: Iterable[int]) -> Distribution:
         mean=sum(data) / n,
         minutes=data,
     )
+
+
+def load_samples_from_jsonl(
+    in_dir: Path,
+    from_date: str,
+    to_date: str,
+) -> list[int]:
+    """Load all lineup-time samples from JSONL files in a date range.
+
+    Reads both first_away_confirmed_utc and first_home_confirmed_utc per
+    game as separate samples. Skips nulls. Returns a list of
+    minutes-before-first-pitch integers ready to feed into compute_distribution.
+    """
+    samples: list[int] = []
+    for jsonl in sorted(in_dir.glob("*.jsonl")):
+        date_str = jsonl.stem
+        if date_str < from_date or date_str > to_date:
+            continue
+        for line in jsonl.read_text().splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            game_time_et = row["game_time_et"]
+            for field in ("first_away_confirmed_utc", "first_home_confirmed_utc"):
+                confirmed = row.get(field)
+                if confirmed is None:
+                    continue
+                samples.append(
+                    compute_minutes_before_first_pitch(confirmed, game_time_et)
+                )
+    return samples
