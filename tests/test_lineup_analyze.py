@@ -103,3 +103,48 @@ def test_load_samples_respects_date_range(tmp_path: Path):
     from bts.data.lineup_analyze import load_samples_from_jsonl
     samples = load_samples_from_jsonl(tmp_path, from_date="2026-04-10", to_date="2026-04-10")
     assert samples == [75, 75]  # Only 2026-04-10's two sides
+
+
+def test_backfill_from_scheduler_state(tmp_path: Path):
+    # Fake Pi5 scheduler state: two runs on one day
+    picks_dir = tmp_path / "picks"
+    date_dir = picks_dir / "2026-04-05"
+    date_dir.mkdir(parents=True)
+    scheduler_state = {
+        "date": "2026-04-05",
+        "games": [
+            {"game_pk": 1, "game_time_et": "2026-04-05T19:05:00-04:00",
+             "lineup_confirmed": True, "is_doubleheader_game2": False},
+            {"game_pk": 2, "game_time_et": "2026-04-05T19:10:00-04:00",
+             "lineup_confirmed": True, "is_doubleheader_game2": False},
+        ],
+        "confirmed_game_pks": [1, 2],
+        "runs_completed": [
+            {"time": "2026-04-05T18:20:00-04:00", "new_lineups": 1, "skipped": False,
+             "pick_name": None, "pick_p": None},  # 45 min before 19:05 ET
+            {"time": "2026-04-05T18:25:00-04:00", "new_lineups": 1, "skipped": False,
+             "pick_name": None, "pick_p": None},  # 40 min before 19:05 ET
+        ],
+        "pick_locked": True,
+        "pick_locked_at": "2026-04-05T18:25:00-04:00",
+        "result_status": "final",
+        "next_wakeup": None,
+        "schedule_fetched_at": "2026-04-05T10:00:00-04:00",
+    }
+    (date_dir / "scheduler_state.json").write_text(json.dumps(scheduler_state))
+
+    from bts.data.lineup_analyze import backfill_from_scheduler_state
+    samples = backfill_from_scheduler_state(picks_dir)
+
+    # Two runs, each with 1 new_lineup → 2 samples
+    # First run 45 min before first pitch (of game 1 at 19:05)
+    # Second run 40 min before
+    assert len(samples) == 2
+    assert sorted(samples) == [40, 45]
+
+
+def test_backfill_returns_empty_when_no_state(tmp_path: Path):
+    picks_dir = tmp_path / "empty"
+    picks_dir.mkdir()
+    from bts.data.lineup_analyze import backfill_from_scheduler_state
+    assert backfill_from_scheduler_state(picks_dir) == []

@@ -304,6 +304,25 @@ def data_analyze_lineup_times(in_dir, from_date, to_date):
     click.echo(f"  For fallback_deadline_min, accept up to p90 ({int(dist.p90)}) loss of confirmed data")
 
 
+@data.command(name="backfill-lineup-times")
+@click.option("--picks-dir", default="data/picks", type=click.Path(exists=True))
+def data_backfill_lineup_times(picks_dir):
+    """Extract coarse lineup-time samples from existing Pi5 scheduler state.
+
+    Coarse (5-15 min resolution) but real data to bootstrap the distribution
+    analysis before the collection script has accumulated a week of data.
+    Combine output with results from 'bts data analyze-lineup-times'.
+    """
+    from pathlib import Path
+    from bts.data.lineup_analyze import backfill_from_scheduler_state, compute_distribution
+
+    samples = backfill_from_scheduler_state(Path(picks_dir))
+    dist = compute_distribution(samples)
+    click.echo(f"Bootstrap from Pi5 scheduler state: n={dist.n}")
+    if dist.n:
+        click.echo(f"  p50={dist.p50:.0f}, p90={dist.p90:.0f}, p95={dist.p95:.0f}")
+
+
 @cli.command()
 @click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")

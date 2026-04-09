@@ -103,3 +103,42 @@ def load_samples_from_jsonl(
                     compute_minutes_before_first_pitch(confirmed, game_time_et)
                 )
     return samples
+
+
+def backfill_from_scheduler_state(picks_dir: Path) -> list[int]:
+    """Extract coarse lineup-time samples from existing Pi5 scheduler state.
+
+    This is a bootstrap data source for the forward-looking collection.
+    Each completed run in scheduler_state.json records a timestamp and
+    'new_lineups' count. We attribute each new confirmation to that
+    run's time minus first_pitch of the earliest game, producing
+    coarse (5-15 min resolution) samples.
+
+    Returns minutes-before-first-pitch integers.
+    """
+    samples: list[int] = []
+    for date_dir in sorted(picks_dir.iterdir()):
+        if not date_dir.is_dir():
+            continue
+        state_file = date_dir / "scheduler_state.json"
+        if not state_file.exists():
+            continue
+        state = json.loads(state_file.read_text())
+
+        # Earliest game of the day is first pitch
+        game_times = [g["game_time_et"] for g in state.get("games", [])]
+        if not game_times:
+            continue
+        earliest_game_et = min(game_times)
+        game_dt = datetime.fromisoformat(earliest_game_et)
+
+        for run in state.get("runs_completed", []):
+            n_new = run.get("new_lineups", 0)
+            if n_new <= 0:
+                continue
+            run_dt = datetime.fromisoformat(run["time"])
+            minutes_before = round((game_dt - run_dt).total_seconds() / 60)
+            # Attribute the minutes to each new confirmation
+            samples.extend([minutes_before] * n_new)
+
+    return samples
