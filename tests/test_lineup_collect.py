@@ -168,6 +168,30 @@ def test_collect_for_date_initializes_state_from_schedule(tmp_path):
     assert (tmp_path / "2026-04-10.jsonl").exists()
 
 
+def test_collect_for_date_updates_game_time_on_reschedule(tmp_path):
+    """Rain delay: if MLB pushes a game later, we track the new time."""
+    # First schedule: game at 19:05
+    schedule_v1 = [{"gamePk": 1, "gameDate": "2026-04-10T23:05:00Z"}]
+    # Second schedule: same game, now at 22:05 (3-hour rain delay)
+    schedule_v2 = [{"gamePk": 1, "gameDate": "2026-04-11T02:05:00Z"}]
+
+    # First run
+    with patch("bts.data.lineup_collect.fetch_schedule", return_value=schedule_v1), \
+         patch("bts.data.lineup_collect.poll_game_lineup",
+               return_value=LineupPollResult(game_pk=1, away_confirmed=False, home_confirmed=False)):
+        collect_for_date(date="2026-04-10", out_dir=tmp_path)
+
+    # Second run with rescheduled game
+    with patch("bts.data.lineup_collect.fetch_schedule", return_value=schedule_v2), \
+         patch("bts.data.lineup_collect.poll_game_lineup",
+               return_value=LineupPollResult(game_pk=1, away_confirmed=False, home_confirmed=False)):
+        state = collect_for_date(date="2026-04-10", out_dir=tmp_path)
+
+    # game_time_et reflects the NEW time (converted to ET via game_time_et function)
+    # 2026-04-11T02:05:00Z → 2026-04-10T22:05:00-04:00
+    assert "2026-04-10T22:05:00" in state.games[1].game_time_et
+
+
 def test_collect_for_date_is_idempotent_across_runs(tmp_path):
     fake_schedule = [
         {"gamePk": 1, "gameDate": "2026-04-10T23:05:00Z"},

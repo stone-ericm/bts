@@ -148,11 +148,17 @@ def collect_for_date(date: str, out_dir: Path) -> CollectionState:
     games = fetch_schedule(date)
     for g in games:
         game_pk = g["gamePk"]
+        current_game_time_et = game_time_et(g).isoformat()
         if game_pk not in state.games:
             state.games[game_pk] = GameCollectionEntry(
                 game_pk=game_pk,
-                game_time_et=game_time_et(g).isoformat(),
+                game_time_et=current_game_time_et,
             )
+        else:
+            # Track schedule updates (rain delays, rescheduling) — the lineup
+            # confirmation time stays frozen, but game_time_et should reflect
+            # reality so downstream analysis uses the actual first pitch.
+            state.games[game_pk].game_time_et = current_game_time_et
 
     run_collection_tick(state, now_utc=datetime.now(timezone.utc))
     state.write_jsonl(out_dir)
