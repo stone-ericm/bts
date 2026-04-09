@@ -10,6 +10,7 @@ from bts.data.lineup_collect import (
     CollectionState,
     GameCollectionEntry,
     LineupPollResult,
+    collect_for_date,
     poll_game_lineup,
     run_collection_tick,
 )
@@ -148,3 +149,20 @@ def test_run_collection_tick_polls_only_games_needing_confirmation():
     mock_poll.assert_called_with(2)
     # Game 2 now has away confirmed
     assert state.games[2].first_away_confirmed_utc == now.isoformat()
+
+
+def test_collect_for_date_initializes_state_from_schedule(tmp_path):
+    fake_schedule = [
+        {"gamePk": 1, "gameDate": "2026-04-10T23:05:00Z"},
+        {"gamePk": 2, "gameDate": "2026-04-10T23:10:00Z"},
+    ]
+    with patch("bts.data.lineup_collect.fetch_schedule", return_value=fake_schedule), \
+         patch("bts.data.lineup_collect.poll_game_lineup") as mock_poll:
+        mock_poll.return_value = LineupPollResult(game_pk=1, away_confirmed=False, home_confirmed=False)
+        state = collect_for_date(date="2026-04-10", out_dir=tmp_path)
+
+    assert set(state.games.keys()) == {1, 2}
+    # Each game was polled once (one tick only in this test)
+    assert mock_poll.call_count == 2
+    # JSONL should exist even if nothing confirmed
+    assert (tmp_path / "2026-04-10.jsonl").exists()

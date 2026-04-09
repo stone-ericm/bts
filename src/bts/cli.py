@@ -242,6 +242,32 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
         click.echo(f"  {count} games enriched.")
 
 
+@data.command(name="collect-lineup-times")
+@click.option("--date", default=None, help="Date (YYYY-MM-DD, default today ET)")
+@click.option("--out-dir", default="data/lineup_posting_times", type=click.Path())
+def data_collect_lineup_times(date, out_dir):
+    """Poll MLB API once for lineup confirmation times on the given date.
+
+    Designed to be called every 5 minutes via systemd timer or cron.
+    Each call is a single poll pass across all games that still need
+    confirmation. JSONL file is updated in place with accumulating data.
+    """
+    from datetime import datetime
+    from pathlib import Path
+    from zoneinfo import ZoneInfo
+    from bts.data.lineup_collect import collect_for_date
+
+    if date is None:
+        date = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+
+    state = collect_for_date(date=date, out_dir=Path(out_dir))
+    n_both = sum(
+        1 for g in state.games.values()
+        if g.first_away_confirmed_utc and g.first_home_confirmed_utc
+    )
+    click.echo(f"{date}: {n_both}/{len(state.games)} games fully confirmed")
+
+
 
 
 @cli.command()

@@ -6,11 +6,12 @@ confirmed lineups (battingOrder populated for at least one player).
 """
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from bts.picks import API_BASE
+from bts.scheduler import fetch_schedule, _game_time_et
 from bts.util import retry_urlopen
 
 
@@ -132,3 +133,48 @@ def run_collection_tick(
             away_confirmed=result.away_confirmed,
             home_confirmed=result.home_confirmed,
         )
+
+
+def collect_for_date(date: str, out_dir: Path) -> CollectionState:
+    """Run one collection pass for all games on a given date.
+
+    Initializes state from the MLB schedule, polls each game exactly once,
+    and writes the current state to JSONL before returning. This function
+    is designed to be called repeatedly by a cron/timer (every 5 minutes),
+    accumulating more confirmations with each call.
+    """
+    state = _load_or_create_state(date, out_dir)
+
+    games = fetch_schedule(date)
+    for g in games:
+        game_pk = g["gamePk"]
+        if game_pk not in state.games:
+            state.games[game_pk] = GameCollectionEntry(
+                game_pk=game_pk,
+                game_time_et=_game_time_et(g).isoformat(),
+            )
+
+    run_collection_tick(state, now_utc=datetime.now(timezone.utc))
+    state.write_jsonl(out_dir)
+    return state
+
+
+def _load_or_create_state(date: str, out_dir: Path) -> CollectionState:
+    """Reload existing JSONL if present so re-runs are incremental."""
+    state = CollectionState(date=date)
+    existing = out_dir / f"{date}.jsonl"
+    if not existing.exists():
+        return state
+
+    for line in existing.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        state.games[row["game_pk"]] = GameCollectionEntry(
+            game_pk=row["game_pk"],
+            game_time_et=row["game_time_et"],
+            first_away_confirmed_utc=row.get("first_away_confirmed_utc"),
+            first_home_confirmed_utc=row.get("first_home_confirmed_utc"),
+            poll_count=row.get("poll_count", 0),
+        )
+    return state
