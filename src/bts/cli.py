@@ -242,6 +242,85 @@ def enrich_weather_cmd(data_dir: str, seasons: str, delay: float):
         click.echo(f"  {count} games enriched.")
 
 
+@data.command(name="collect-lineup-times")
+@click.option("--date", default=None, help="Date (YYYY-MM-DD, default today ET)")
+@click.option("--out-dir", default="data/lineup_posting_times", type=click.Path(),
+              help="Output directory for JSONL state files")
+def data_collect_lineup_times(date, out_dir):
+    """Poll MLB API once for lineup confirmation times on the given date.
+
+    Designed to be called every 5 minutes via systemd timer or cron.
+    Each call is a single poll pass across all games that still need
+    confirmation. JSONL file is updated in place with accumulating data.
+    """
+    from datetime import datetime
+    from pathlib import Path
+    from zoneinfo import ZoneInfo
+    from bts.data.lineup_collect import collect_for_date
+
+    if date is None:
+        date = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+
+    state = collect_for_date(date=date, out_dir=Path(out_dir))
+    n_both = sum(
+        1 for g in state.games.values()
+        if g.first_away_confirmed_utc and g.first_home_confirmed_utc
+    )
+    click.echo(f"{date}: {n_both}/{len(state.games)} games fully confirmed")
+
+
+@data.command(name="analyze-lineup-times")
+@click.option("--in-dir", default="data/lineup_posting_times", type=click.Path())
+@click.option("--from-date", required=True, help="Start date (YYYY-MM-DD)")
+@click.option("--to-date", required=True, help="End date (YYYY-MM-DD)")
+def data_analyze_lineup_times(in_dir, from_date, to_date):
+    """Report lineup-posting-time distribution for a date range.
+
+    Prints percentiles and a short histogram-style summary. Use to inform
+    scheduler timing configuration (lineup_check_offset_min, fallback_deadline_min).
+    """
+    from pathlib import Path
+    from bts.data.lineup_analyze import load_samples_from_jsonl, compute_distribution
+
+    samples = load_samples_from_jsonl(Path(in_dir), from_date, to_date)
+    dist = compute_distribution(samples)
+
+    click.echo(f"Lineup posting time distribution ({from_date} to {to_date})")
+    click.echo(f"  n = {dist.n} samples")
+    if dist.n == 0:
+        click.echo("  (no samples — check data/lineup_posting_times/ has data for this range)")
+        return
+    click.echo(f"  mean   = {dist.mean:.0f} min before first pitch")
+    click.echo(f"  p10    = {dist.p10:.0f}")
+    click.echo(f"  p25    = {dist.p25:.0f}")
+    click.echo(f"  p50    = {dist.p50:.0f}")
+    click.echo(f"  p75    = {dist.p75:.0f}")
+    click.echo(f"  p90    = {dist.p90:.0f}")
+    click.echo(f"  p95    = {dist.p95:.0f}")
+    click.echo(f"  p99    = {dist.p99:.0f}")
+    click.echo("")
+    click.echo("Interpretation:")
+    click.echo(f"  To capture p95 of lineups at lock time, use lineup_check_offset_min >= {int(dist.p95) + 5}")
+    click.echo(f"  For fallback_deadline_min, accept up to p90 ({int(dist.p90)}) loss of confirmed data")
+
+
+@data.command(name="backfill-lineup-times")
+@click.option("--picks-dir", default="data/picks", type=click.Path(exists=True))
+def data_backfill_lineup_times(picks_dir):
+    """Extract coarse lineup-time samples from existing Pi5 scheduler state.
+
+    Coarse (5-15 min resolution) but real data to bootstrap the distribution
+    analysis before the collection script has accumulated a week of data.
+    Combine output with results from 'bts data analyze-lineup-times'.
+    """
+    from pathlib import Path
+    from bts.data.lineup_analyze import backfill_from_scheduler_state, compute_distribution
+
+    samples = backfill_from_scheduler_state(Path(picks_dir))
+    dist = compute_distribution(samples)
+    click.echo(f"Bootstrap from Pi5 scheduler state: n={dist.n}")
+    if dist.n:
+        click.echo(f"  p50={dist.p50:.0f}, p90={dist.p90:.0f}, p95={dist.p95:.0f}")
 
 
 @cli.command()

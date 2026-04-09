@@ -32,7 +32,7 @@ def fetch_schedule(date: str) -> list[dict]:
     return games
 
 
-def _game_time_et(game: dict) -> datetime:
+def game_time_et(game: dict) -> datetime:
     """Extract game time as ET datetime."""
     utc = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00"))
     return utc.astimezone(ET)
@@ -56,7 +56,7 @@ def compute_run_times(
 
     checks = []
     for g in games:
-        et = _game_time_et(g)
+        et = game_time_et(g)
         check_time = et - timedelta(minutes=offset_min)
         checks.append({"time_et": check_time, "game_pk": g["gamePk"]})
 
@@ -92,7 +92,7 @@ def detect_doubleheader_game2s(games: list[dict]) -> set[int]:
     game2s = set()
     for key, team_g in team_games.items():
         if len(team_g) >= 2:
-            team_g.sort(key=lambda x: _game_time_et(x))
+            team_g.sort(key=lambda x: game_time_et(x))
             for g in team_g[1:]:
                 game2s.add(g["gamePk"])
 
@@ -114,7 +114,7 @@ def compute_wakeup_time(
     if not games:
         return today_et
 
-    earliest = min(_game_time_et(g) for g in games)
+    earliest = min(game_time_et(g) for g in games)
     early_wake = earliest - timedelta(minutes=early_buffer_min)
 
     if early_wake < today_et:
@@ -535,7 +535,7 @@ def run_day(
         schedule_fetched_at=_now_et().isoformat(),
         games=[{
             "game_pk": g["gamePk"],
-            "game_time_et": _game_time_et(g).isoformat(),
+            "game_time_et": game_time_et(g).isoformat(),
             "lineup_confirmed": False,
             "is_doubleheader_game2": g["gamePk"] in dh_game2s,
         } for g in games],

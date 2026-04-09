@@ -406,7 +406,6 @@ def run_collection_tick(
     """Poll games that still need confirmation. Updates state in place.
 
     Skips games where both sides are already confirmed (no work to do).
-    Skips games where first pitch has already passed (too late to matter).
     """
     for game_pk, entry in list(state.games.items()):
         if entry.first_away_confirmed_utc and entry.first_home_confirmed_utc:
@@ -637,7 +636,7 @@ def test_compute_distribution_percentiles():
     samples = [30, 45, 60, 70, 80, 90, 100, 110, 115, 120]
     dist = compute_distribution(samples)
     assert dist.n == 10
-    assert dist.p10 == pytest.approx(36, abs=1)
+    assert dist.p10 == pytest.approx(44, abs=1)
     assert dist.p50 == pytest.approx(85, abs=1)
     assert dist.p90 == pytest.approx(116, abs=1)
     assert dist.p95 == pytest.approx(118, abs=1)
@@ -959,13 +958,13 @@ def test_backfill_from_scheduler_state(tmp_path: Path):
         ],
         "confirmed_game_pks": [1, 2],
         "runs_completed": [
-            {"time": "2026-04-05T22:20:00-04:00", "new_lineups": 1, "skipped": False,
+            {"time": "2026-04-05T18:20:00-04:00", "new_lineups": 1, "skipped": False,
              "pick_name": None, "pick_p": None},  # 45 min before 19:05 ET
-            {"time": "2026-04-05T22:25:00-04:00", "new_lineups": 1, "skipped": False,
+            {"time": "2026-04-05T18:25:00-04:00", "new_lineups": 1, "skipped": False,
              "pick_name": None, "pick_p": None},  # 40 min before 19:05 ET
         ],
         "pick_locked": True,
-        "pick_locked_at": "2026-04-05T22:25:00-04:00",
+        "pick_locked_at": "2026-04-05T18:25:00-04:00",
         "result_status": "final",
         "next_wakeup": None,
             "schedule_fetched_at": "2026-04-05T10:00:00-04:00",
