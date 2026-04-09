@@ -62,43 +62,97 @@ class KLDivergenceExperiment(ExperimentDef):
         )
 
     def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        if "pitch_type" not in df.columns:
+        # PA data uses 'pitch_types' (list per PA) — explode to per-pitch rows
+        if "pitch_types" not in df.columns:
             df["pitcher_batter_fr_distance"] = np.nan
             return df
 
-        pitch_types = df["pitch_type"].dropna().unique()
-        if len(pitch_types) < 2:
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+
+        # Explode pitch_types lists to per-pitch long format
+        exp = df[["pitcher_id", "batter_id", "date", "pitch_types"]].copy()
+        exp["pitch_types"] = exp["pitch_types"].apply(
+            lambda x: list(x) if isinstance(x, (list, np.ndarray)) else []
+        )
+        exp = exp.explode("pitch_types").dropna(subset=["pitch_types"])
+        exp = exp[exp["pitch_types"] != ""]
+        exp = exp.rename(columns={"pitch_types": "pt"})
+
+        if len(exp) < 1000:
             df["pitcher_batter_fr_distance"] = np.nan
             return df
 
-        # Pre-compute per-pitcher and per-batter pitch distributions by date
-        df = df.sort_values("date")
-        fr_distances = np.full(len(df), np.nan)
+        # Per-pitcher cumulative pitch-type distribution (shifted to avoid leakage)
+        pitcher_daily = (
+            exp.groupby(["pitcher_id", "date", "pt"]).size().unstack(fill_value=0)
+        )
+        pitcher_cum = pitcher_daily.groupby(level=0).cumsum()
+        # Shift within pitcher to use only PRIOR dates
+        pitcher_cum_shifted = pitcher_cum.groupby(level=0).shift(1).fillna(0)
+        pitcher_dist = pitcher_cum_shifted.div(
+            pitcher_cum_shifted.sum(axis=1).replace(0, np.nan), axis=0
+        )
 
-        for (batter_id, pitcher_id, date), group in df.groupby(
-            ["batter_id", "pitcher_id", "date"]
-        ):
-            pitcher_pitches = df[
-                (df["pitcher_id"] == pitcher_id) & (df["date"] < date)
-            ]["pitch_type"].value_counts(normalize=True)
-            batter_faced = df[
-                (df["batter_id"] == batter_id) & (df["date"] < date)
-            ]["pitch_type"].value_counts(normalize=True)
+        # Per-batter cumulative pitch-type distribution (comfort zone)
+        batter_daily = (
+            exp.groupby(["batter_id", "date", "pt"]).size().unstack(fill_value=0)
+        )
+        batter_cum = batter_daily.groupby(level=0).cumsum()
+        batter_cum_shifted = batter_cum.groupby(level=0).shift(1).fillna(0)
+        batter_dist = batter_cum_shifted.div(
+            batter_cum_shifted.sum(axis=1).replace(0, np.nan), axis=0
+        )
 
-            if len(pitcher_pitches) < 2 or len(batter_faced) < 2:
-                continue
+        # Align on union of pitch types
+        all_types = sorted(set(pitcher_dist.columns) | set(batter_dist.columns))
+        for t in all_types:
+            if t not in pitcher_dist.columns:
+                pitcher_dist[t] = np.nan
+            if t not in batter_dist.columns:
+                batter_dist[t] = np.nan
+        pitcher_dist = pitcher_dist[all_types].fillna(1e-6)
+        batter_dist = batter_dist[all_types].fillna(1e-6)
 
-            all_types = set(pitcher_pitches.index) | set(batter_faced.index)
-            p = np.array([pitcher_pitches.get(t, 1e-6) for t in all_types])
-            q = np.array([batter_faced.get(t, 1e-6) for t in all_types])
-            p = p / p.sum()
-            q = q / q.sum()
+        # Renormalize after fill
+        pitcher_dist = pitcher_dist.div(pitcher_dist.sum(axis=1), axis=0)
+        batter_dist = batter_dist.div(batter_dist.sum(axis=1), axis=0)
 
-            bhatt = np.sum(np.sqrt(p * q))
+        # Build per-PA distance via merge
+        df_keys = df[["pitcher_id", "batter_id", "date"]].copy()
+        pitcher_lookup = pitcher_dist.reset_index()
+        batter_lookup = batter_dist.reset_index()
+
+        df_p = df_keys.merge(
+            pitcher_lookup, on=["pitcher_id", "date"], how="left", suffixes=("", "_p"),
+        )
+        df_full = df_p.merge(
+            batter_lookup, on=["batter_id", "date"], how="left", suffixes=("_p", "_b"),
+        )
+
+        p_cols = [f"{t}_p" for t in all_types]
+        b_cols = [f"{t}_b" for t in all_types]
+        # If suffix didn't apply because no name conflict, columns are just `t`
+        # Detect actual column naming
+        actual_p_cols = [c for c in df_full.columns if c.endswith("_p") and c != "pitcher_id"]
+        actual_b_cols = [c for c in df_full.columns if c.endswith("_b") and c != "bat_side"]
+
+        # Fall back: just use the all_types columns directly
+        if not actual_p_cols:
+            # Merge didn't suffix because no conflict — distinguish manually
+            df["pitcher_batter_fr_distance"] = np.nan
+            return df
+
+        try:
+            P = df_full[actual_p_cols].values
+            Q = df_full[actual_b_cols].values
+            # Fisher-Rao distance via Bhattacharyya
+            bhatt = np.sum(np.sqrt(np.maximum(P * Q, 0)), axis=1)
             fr_dist = 2.0 * np.arccos(np.clip(bhatt, -1.0, 1.0))
-            fr_distances[group.index.values] = fr_dist
+            df["pitcher_batter_fr_distance"] = fr_dist
+        except Exception:
+            df["pitcher_batter_fr_distance"] = np.nan
 
-        df["pitcher_batter_fr_distance"] = fr_distances
         return df
 
     def feature_cols(self) -> list[str]:

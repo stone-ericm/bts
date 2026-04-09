@@ -114,27 +114,53 @@ def run_single_screening(
 ) -> dict:
     """Run a single Phase 1 experiment: walk-forward → scorecard → diff → pass/fail.
 
+    Calls all 4 experiment hooks:
+      1. modify_features (if touches_features)
+      2. modify_blend_configs (always)
+      3. modify_training_params (always)
+      4. modify_strategy (after walk-forward, before scorecard)
+
     Returns dict with keys: scorecard, diff, passed, reason, name.
     """
+    from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
     from bts.simulate.backtest_blend import blend_walk_forward
+    from bts.simulate.quality_bins import compute_bins
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards, save_scorecard
 
     print(f"\n[Phase 1] {experiment.name}: {experiment.description}", file=sys.stderr)
 
-    # Apply feature modifications if needed
+    # 1. Apply feature modifications if needed
     df = pa_df
     if experiment.touches_features():
         print(f"  Recomputing features for {experiment.name}...", file=sys.stderr)
         df = experiment.modify_features(df.copy())
 
+    # 2. Apply blend config modifications
+    blend_configs = experiment.modify_blend_configs(list(BLEND_CONFIGS))
+
+    # 3. Apply training param modifications
+    lgb_params = experiment.modify_training_params(dict(LGB_PARAMS))
+
     # Run walk-forward for each test season
     all_profiles = []
     for season in test_seasons:
-        profiles = blend_walk_forward(df, season, retrain_every=retrain_every)
+        profiles = blend_walk_forward(
+            df, season,
+            retrain_every=retrain_every,
+            blend_configs=blend_configs,
+            lgb_params=lgb_params,
+        )
         profiles["season"] = season
         all_profiles.append(profiles)
 
     combined_profiles = pd.concat(all_profiles, ignore_index=True)
+
+    # 4. Apply strategy modifications (calibration, copula, etc.)
+    try:
+        baseline_bins = compute_bins(combined_profiles)
+    except Exception:
+        baseline_bins = None
+    combined_profiles, _ = experiment.modify_strategy(combined_profiles, baseline_bins)
 
     # Compute scorecard and diff
     scorecard = compute_full_scorecard(combined_profiles)

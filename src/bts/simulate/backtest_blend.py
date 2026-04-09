@@ -16,14 +16,25 @@ def blend_walk_forward(
     test_season: int,
     retrain_every: int = 7,
     top_n: int = 10,
+    blend_configs: list | None = None,
+    lgb_params: dict | None = None,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
     For each game day in the test season:
-    1. Train all 12 blend models on data before that day (retrained periodically)
+    1. Train all N blend models on data before that day (retrained periodically)
     2. Predict P(hit|PA) with each model, average for blend ranking
     3. Aggregate to game-level P(>=1 hit) per batter
     4. Save top-N batters with blend p_game_hit and actual_hit
+
+    Args:
+        df: Feature-enriched PA DataFrame.
+        test_season: Season to evaluate on.
+        retrain_every: Retrain models every N days.
+        top_n: Number of top-ranked batters to save per day.
+        blend_configs: List of (name, cols) or (name, cols, extra_params) tuples.
+            Defaults to BLEND_CONFIGS. 3-tuple allows per-model objective overrides.
+        lgb_params: LightGBM training parameters. Defaults to LGB_PARAMS.
 
     Returns DataFrame with PROFILE_COLUMNS.
     """
@@ -32,6 +43,11 @@ def blend_walk_forward(
     import lightgbm as lgb
     from bts.features.compute import FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
     from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
+
+    if blend_configs is None:
+        blend_configs = BLEND_CONFIGS
+    if lgb_params is None:
+        lgb_params = LGB_PARAMS
 
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
@@ -44,7 +60,7 @@ def blend_walk_forward(
 
     print(f"Blend walk-forward: {len(test_dates)} test days, "
           f"train pool: {len(train_pool):,} PAs, "
-          f"{len(BLEND_CONFIGS)} models", file=sys.stderr)
+          f"{len(blend_configs)} models", file=sys.stderr)
 
     all_profiles = []
     blend = None
@@ -58,10 +74,17 @@ def blend_walk_forward(
             train_y = available["is_hit"]
 
             blend = {}
-            for name, cols in BLEND_CONFIGS:
+            for config in blend_configs:
+                if len(config) == 2:
+                    name, cols = config
+                    extra_params = {}
+                else:
+                    name, cols, extra_params = config
+
+                merged_params = {**lgb_params, **extra_params}
                 train_X = available[cols]
                 mask = train_X.notna().any(axis=1)
-                model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
+                model = lgb.LGBMClassifier(**merged_params, random_state=42)
                 model.fit(train_X[mask], train_y[mask])
                 blend[name] = (model, cols)
 
