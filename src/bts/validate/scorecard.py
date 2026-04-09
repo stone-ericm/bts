@@ -377,13 +377,20 @@ def diff_scorecards(baseline: dict, variant: dict) -> dict:
             result["precision"] = prec_diff
 
     # p_at_1_by_season: {season: float}
+    # JSON serialization converts int → str, so look up with both types and
+    # preserve the original baseline key type in the output.
     b_p1s = baseline.get("p_at_1_by_season", {})
     v_p1s = variant.get("p_at_1_by_season", {})
     if b_p1s and v_p1s:
+        # Build str→value lookup for variant to handle int/str mismatches
+        v_p1s_by_str = {str(k): v for k, v in v_p1s.items()}
         p1s_diff: dict = {}
-        for season in b_p1s:
-            if season in v_p1s:
-                d = _diff_numeric(b_p1s[season], v_p1s[season])
+        for season, b_val in b_p1s.items():
+            v_val = v_p1s.get(season)
+            if v_val is None:
+                v_val = v_p1s_by_str.get(str(season))
+            if v_val is not None:
+                d = _diff_numeric(b_val, v_val)
                 if d is not None:
                     p1s_diff[season] = d
         if p1s_diff:
