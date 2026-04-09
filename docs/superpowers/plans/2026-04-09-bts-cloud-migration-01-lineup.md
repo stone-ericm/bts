@@ -636,7 +636,7 @@ def test_compute_distribution_percentiles():
     samples = [30, 45, 60, 70, 80, 90, 100, 110, 115, 120]
     dist = compute_distribution(samples)
     assert dist.n == 10
-    assert dist.p10 == pytest.approx(36, abs=1)
+    assert dist.p10 == pytest.approx(44, abs=1)
     assert dist.p50 == pytest.approx(85, abs=1)
     assert dist.p90 == pytest.approx(116, abs=1)
     assert dist.p95 == pytest.approx(118, abs=1)
