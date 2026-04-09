@@ -11,6 +11,9 @@ def cli():
 from bts.simulate.cli import simulate
 cli.add_command(simulate)
 
+from bts.experiment.cli import experiment
+cli.add_command(experiment)
+
 
 @cli.group()
 def validate():
