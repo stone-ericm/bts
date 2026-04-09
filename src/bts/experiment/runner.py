@@ -129,17 +129,37 @@ def run_single_screening(
 
     print(f"\n[Phase 1] {experiment.name}: {experiment.description}", file=sys.stderr)
 
+    from bts.features.compute import FEATURE_COLS
+
     # 1. Apply feature modifications if needed
     df = pa_df
     if experiment.touches_features():
         print(f"  Recomputing features for {experiment.name}...", file=sys.stderr)
         df = experiment.modify_features(df.copy())
 
-    # 2. Apply blend config modifications
-    blend_configs = experiment.modify_blend_configs(list(BLEND_CONFIGS))
+    # 2. Apply blend config modifications.
+    # If experiment overrides feature_cols(), rewrite each existing blend
+    # config's base features to use the experiment's feature set, preserving
+    # any per-config additional features (e.g., Statcast variants).
+    new_base_features = experiment.feature_cols()
+    if new_base_features is not None:
+        rewritten = []
+        for config in BLEND_CONFIGS:
+            name, cols = config[0], config[1]
+            extras = [c for c in cols if c not in FEATURE_COLS]
+            new_cols = list(new_base_features) + extras
+            if len(config) == 3:
+                rewritten.append((name, new_cols, config[2]))
+            else:
+                rewritten.append((name, new_cols))
+        blend_configs = experiment.modify_blend_configs(rewritten)
+    else:
+        blend_configs = experiment.modify_blend_configs(list(BLEND_CONFIGS))
 
     # 3. Apply training param modifications
     lgb_params = experiment.modify_training_params(dict(LGB_PARAMS))
+
+    capture_per_model = experiment.requires_per_model_capture()
 
     # Run walk-forward for each test season
     all_profiles = []
@@ -149,6 +169,7 @@ def run_single_screening(
             retrain_every=retrain_every,
             blend_configs=blend_configs,
             lgb_params=lgb_params,
+            capture_per_model=capture_per_model,
         )
         profiles["season"] = season
         all_profiles.append(profiles)

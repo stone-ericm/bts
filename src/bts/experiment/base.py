@@ -62,3 +62,11 @@ class ExperimentDef:
             type(self).modify_features is not ExperimentDef.modify_features
             or type(self).feature_cols is not ExperimentDef.feature_cols
         )
+
+    def requires_per_model_capture(self) -> bool:
+        """Whether this experiment needs per-model predictions captured.
+
+        Override and return True for FWLS, Hedge, and other meta-learning
+        experiments that operate on individual blend member outputs.
+        """
+        return False

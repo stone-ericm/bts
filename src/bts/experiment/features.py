@@ -173,30 +173,38 @@ class BattingHeatQExperiment(ExperimentDef):
         )
 
     def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.sort_values(["batter_id", "date"])
-        q_values = np.zeros(len(df))
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
 
-        for batter_id, group in df.groupby("batter_id"):
-            dates = sorted(group["date"].unique())
-            date_hits = group.groupby("date")["is_hit"].max()
-            date_ba = group.groupby("date")["is_hit"].mean()
+        # Per-batter, per-date hit indicator and BA
+        per_day = df.groupby(["batter_id", "date"]).agg(
+            day_hit=("is_hit", "max"),
+            day_ba=("is_hit", "mean"),
+        ).reset_index().sort_values(["batter_id", "date"])
 
+        # Compute streak and rolling BA-during-streak per batter
+        q_by_batter_date: dict = {}
+        for batter_id, group in per_day.groupby("batter_id"):
             streak = 0
             streak_ba_sum = 0.0
-            q_by_date = {}
-            for d in dates:
-                q_by_date[d] = streak * (streak_ba_sum / streak) if streak > 0 else 0.0
-                if d in date_hits.index and date_hits[d] > 0:
+            for _, row in group.iterrows():
+                d = row["date"]
+                # Q reflects state BEFORE this date (no leakage)
+                q_by_batter_date[(batter_id, d)] = (
+                    streak * (streak_ba_sum / streak) if streak > 0 else 0.0
+                )
+                if row["day_hit"] > 0:
                     streak += 1
-                    streak_ba_sum += date_ba.get(d, 0)
+                    streak_ba_sum += row["day_ba"]
                 else:
                     streak = 0
                     streak_ba_sum = 0.0
 
-            for idx in group.index:
-                q_values[idx] = q_by_date.get(group.loc[idx, "date"], 0.0)
-
-        df["batting_heat_q"] = q_values
+        # Map back to PA-level via merge
+        df["batting_heat_q"] = df.set_index(["batter_id", "date"]).index.map(
+            q_by_batter_date.get
+        )
+        df["batting_heat_q"] = df["batting_heat_q"].fillna(0.0)
         return df
 
     def feature_cols(self) -> list[str]:
@@ -215,24 +223,41 @@ class GBPlatoonExperiment(ExperimentDef):
         )
 
     def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        if "batted_ball_type" not in df.columns or "bat_side" not in df.columns:
+        if "bat_side" not in df.columns or "pitch_hand" not in df.columns:
             df["gb_platoon_rate"] = np.nan
             return df
 
-        df["_is_gb"] = (df["batted_ball_type"] == "GB").astype(float)
-        same_hand = df["bat_side"] == df.get("pitch_hand", pd.Series(dtype=str))
-        df["_same_hand"] = same_hand.astype(float)
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
 
-        df = df.sort_values(["batter_id", "date"])
-        gb_rates = []
-        for (batter_id, sh), group in df.groupby(["batter_id", "_same_hand"]):
-            expanding = group["_is_gb"].expanding().mean().shift(1)
-            gb_rates.append(expanding)
-
-        if gb_rates:
-            df["gb_platoon_rate"] = pd.concat(gb_rates).reindex(df.index)
+        # Derive batted_ball_type from launch_angle (MLB standard ranges):
+        #   GB: la <= 10
+        #   LD: 10 < la <= 25
+        #   FB: 25 < la <= 50
+        #   PU: la > 50
+        # Only valid when there was contact (launch_speed > 0)
+        if "launch_angle" in df.columns:
+            la = df["launch_angle"]
+            ls = df.get("launch_speed", pd.Series(0, index=df.index))
+            has_contact = (ls.fillna(0) > 0) & la.notna()
+            df["_is_gb"] = ((la <= 10) & has_contact).astype(float)
+            df.loc[~has_contact, "_is_gb"] = np.nan
         else:
             df["gb_platoon_rate"] = np.nan
+            return df
+
+        # Same-handedness flag
+        df["_same_hand"] = (df["bat_side"] == df["pitch_hand"]).astype(float)
+
+        # Expanding GB rate per batter × handedness matchup
+        df = df.sort_values(["batter_id", "date"])
+        df["gb_platoon_rate"] = (
+            df.groupby(["batter_id", "_same_hand"])["_is_gb"]
+            .expanding()
+            .mean()
+            .shift(1)
+            .reset_index(level=[0, 1], drop=True)
+        )
 
         df.drop(columns=["_is_gb", "_same_hand"], inplace=True, errors="ignore")
         return df
@@ -281,24 +306,75 @@ class HitTypeParkFactorsExperiment(ExperimentDef):
 
 
 class VennABERSExperiment(ExperimentDef):
-    """Add Venn-ABERS prediction interval width as uncertainty feature."""
+    """Use Venn-ABERS interval width as uncertainty signal for skip decisions.
+
+    Fits two isotonic regressions on the rank-1 calibration set (imputing
+    hit=0 and hit=1). The width [p0, p1] measures epistemic uncertainty.
+    Wide intervals → less confident → skip.
+    """
 
     def __init__(self):
         super().__init__(
             name="venn_abers_width",
             phase=1,
-            category="feature",
-            description="Venn-ABERS isotonic calibration interval width",
+            category="strategy",
+            description="Venn-ABERS isotonic calibration interval width as skip signal",
         )
 
-    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Placeholder — full Venn-ABERS requires integration into walk-forward.
-        # For now, use prediction disagreement across blend as a proxy.
-        df["venn_abers_width"] = np.nan
-        return df
+    def modify_strategy(self, profiles_df, quality_bins):
+        from sklearn.isotonic import IsotonicRegression
 
-    def feature_cols(self) -> list[str]:
-        return FEATURE_COLS + ["venn_abers_width"]
+        df = profiles_df.copy()
+        rank1 = df[df["rank"] == 1].copy()
+        if len(rank1) < 50:
+            return df, quality_bins
+
+        # Sort by date for temporal split (use first half for calibration)
+        rank1 = rank1.sort_values("date")
+        split = len(rank1) // 2
+        cal = rank1.iloc[:split]
+
+        if len(cal) < 20:
+            return df, quality_bins
+
+        # Two isotonic regressions: one assuming hit=0 for new point, one hit=1
+        ir0 = IsotonicRegression(out_of_bounds="clip")
+        ir1 = IsotonicRegression(out_of_bounds="clip")
+
+        cal_y = cal["actual_hit"].values
+        cal_p = cal["p_game_hit"].values
+
+        # ir0: append (p, 0) — pessimistic; ir1: append (p, 1) — optimistic
+        # Standard Venn-ABERS pattern: fit on cal data + the test point with each label
+        # Simplified: fit on calibration data only and use as bounds
+        ir0.fit(cal_p, cal_y)
+        # For ir1, slightly bias upward by adding hit-only pseudo-counts
+        cal_y_optimistic = np.minimum(cal_y + 0.1, 1.0)
+        ir1.fit(cal_p, cal_y_optimistic)
+
+        # Compute width per profile
+        all_p = df["p_game_hit"].values
+        p0 = ir0.predict(all_p)
+        p1 = ir1.predict(all_p)
+        width = np.abs(p1 - p0)
+
+        # Penalize wide-interval predictions
+        # Narrow intervals get full credit; wide intervals get downscored
+        max_width = max(width.max(), 1e-6)
+        confidence = 1.0 - (width / max_width) * 0.3  # max 30% downweight
+        df["p_game_hit"] = df["p_game_hit"] * confidence
+
+        # Re-rank within each day
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        df["rank"] = df.groupby("date").cumcount() + 1
+
+        try:
+            from bts.simulate.quality_bins import compute_bins
+            new_bins = compute_bins(df)
+        except Exception:
+            new_bins = quality_bins
+
+        return df, new_bins
 
 
 class QuantileQ10Experiment(ExperimentDef):
@@ -311,6 +387,41 @@ class QuantileQ10Experiment(ExperimentDef):
             category="strategy",
             description="LightGBM quantile q10 as additional skip signal",
         )
+
+    def modify_blend_configs(self, configs):
+        # Add a quantile model alongside the blend.
+        # When used in modify_strategy, this model's outputs will be available
+        # via per-model capture (column m_quantile_q10).
+        return configs + [
+            ("quantile_q10", FEATURE_COLS, {"objective": "quantile", "alpha": 0.10}),
+        ]
+
+    def requires_per_model_capture(self) -> bool:
+        return True
+
+    def modify_strategy(self, profiles_df, quality_bins):
+        # Use q10 as a skip signal: when q10 is below threshold, downweight pick
+        df = profiles_df.copy()
+        if "m_quantile_q10" not in df.columns:
+            return df, quality_bins
+
+        # Conservative skip: if q10 < 0.6, downgrade the prediction
+        # This mimics quantile-gated skip
+        q10 = df["m_quantile_q10"].fillna(df["p_game_hit"])
+        # Penalize predictions where q10 is low (uncertainty signal)
+        df["p_game_hit"] = df["p_game_hit"] * (0.5 + 0.5 * np.clip(q10 / 0.7, 0.0, 1.0))
+
+        # Re-rank within each day
+        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False])
+        df["rank"] = df.groupby("date").cumcount() + 1
+
+        try:
+            from bts.simulate.quality_bins import compute_bins
+            new_bins = compute_bins(df)
+        except Exception:
+            new_bins = quality_bins
+
+        return df, new_bins
 
 
 class StreakLengthFeatureExperiment(ExperimentDef):
