@@ -166,3 +166,28 @@ def test_collect_for_date_initializes_state_from_schedule(tmp_path):
     assert mock_poll.call_count == 2
     # JSONL should exist even if nothing confirmed
     assert (tmp_path / "2026-04-10.jsonl").exists()
+
+
+def test_collect_for_date_is_idempotent_across_runs(tmp_path):
+    fake_schedule = [
+        {"gamePk": 1, "gameDate": "2026-04-10T23:05:00Z"},
+        {"gamePk": 2, "gameDate": "2026-04-10T23:10:00Z"},
+    ]
+
+    def mock_poll_side_effect(game_pk):
+        if game_pk == 1:
+            return LineupPollResult(game_pk=1, away_confirmed=True, home_confirmed=True)
+        return LineupPollResult(game_pk=2, away_confirmed=False, home_confirmed=False)
+
+    with patch("bts.data.lineup_collect.fetch_schedule", return_value=fake_schedule), \
+         patch("bts.data.lineup_collect.poll_game_lineup", side_effect=mock_poll_side_effect):
+        collect_for_date(date="2026-04-10", out_dir=tmp_path)
+        state = collect_for_date(date="2026-04-10", out_dir=tmp_path)
+
+    # Game 1 was fully confirmed on run 1, so run_collection_tick should skip it on run 2
+    assert state.games[1].poll_count == 1
+    # Game 2 stayed unconfirmed, so it should be polled on both runs
+    assert state.games[2].poll_count == 2
+    # Sticky-first confirmation preserved through JSONL round-trip
+    assert state.games[1].first_away_confirmed_utc is not None
+    assert state.games[1].first_home_confirmed_utc is not None
