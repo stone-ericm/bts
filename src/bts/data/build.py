@@ -6,7 +6,30 @@ from pathlib import Path
 
 import pandas as pd
 
-from bts.data.schema import HIT_EVENTS, PA_ENDING_EVENTS
+from bts.data.schema import HIT_EVENTS, PA_COLUMNS, PA_ENDING_EVENTS
+
+
+def assert_columns_match_schema(df):
+    """Assert that a DataFrame's columns exactly match PA_COLUMNS.
+
+    Fails loudly with a specific diff if not. This is the schema
+    guard that prevents silent drift: any change to build logic
+    that affects the parquet's columns MUST also update PA_COLUMNS
+    in src/bts/data/schema.py or this assert fires.
+    """
+    actual = set(df.columns)
+    expected = set(PA_COLUMNS)
+    if actual == expected:
+        return
+    missing = sorted(expected - actual)
+    extra = sorted(actual - expected)
+    raise RuntimeError(
+        f"Schema drift in build_season:\n"
+        f"  missing columns: {missing}\n"
+        f"  extra columns: {extra}\n"
+        f"Update PA_COLUMNS in src/bts/data/schema.py to match "
+        f"the new schema, which will also update SCHEMA_VERSION."
+    )
 
 
 def _parse_wind(wind_str: str) -> tuple[int | None, str | None]:
@@ -298,6 +321,8 @@ def build_season(
         all_rows.extend(rows)
 
     df = pd.DataFrame(all_rows)
+    assert_columns_match_schema(df)
+    df = df[PA_COLUMNS]  # Enforce deterministic column order
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path, index=False)
     return df
