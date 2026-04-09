@@ -98,7 +98,11 @@ class CollectionState:
         entry.poll_count += 1
 
     def write_jsonl(self, out_dir: Path) -> Path:
-        """Write all known entries to {date}.jsonl (one JSON object per line)."""
+        """Write all known entries to {date}.jsonl (one JSON object per line).
+
+        Writes atomically via temp file + rename so crashes mid-write can't
+        leave a truncated file that breaks the next rehydration.
+        """
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{self.date}.jsonl"
         lines = []
@@ -110,7 +114,9 @@ class CollectionState:
                 "first_home_confirmed_utc": entry.first_home_confirmed_utc,
                 "poll_count": entry.poll_count,
             }))
-        out_path.write_text("\n".join(lines) + "\n" if lines else "")
+        tmp_path = out_path.with_suffix(".jsonl.tmp")
+        tmp_path.write_text("\n".join(lines) + "\n" if lines else "")
+        tmp_path.replace(out_path)
         return out_path
 
 
