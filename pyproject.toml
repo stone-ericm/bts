@@ -31,4 +31,5 @@ addopts = "-v"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "moto[s3]",
 ]
