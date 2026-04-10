@@ -38,33 +38,4 @@ log "Building current-season parquet"
 UV_CACHE_DIR=/tmp/uv-cache uv run bts data build \
     || log "WARNING: data build failed (will retry on next cron)"
 
-# Write default orchestrator config if not present
-if [ ! -f /data/orchestrator.toml ]; then
-    log "Writing default orchestrator config"
-    cat > /data/orchestrator.toml <<'EOF'
-[orchestrator]
-picks_dir = "/data/picks"
-heartbeat_path = "/data/.heartbeat"
-
-[bluesky]
-dm_recipient = "did:plc:replace-me"
-
-[scheduler]
-lineup_check_offset_min = 60
-fallback_deadline_min = 35
-missed_pick_alert_min = 30
-early_lock_gap = 0.03
-cluster_min = 10
-doubleheader_recheck_min = 15
-results_poll_interval_min = 15
-results_cap_hour_et = 5
-default_init_hour_et = 10
-early_game_buffer_min = 60
-
-[[tiers]]
-name = "local"
-type = "local"
-EOF
-fi
-
 log "Bootstrap complete"

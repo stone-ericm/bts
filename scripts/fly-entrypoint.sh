@@ -50,6 +50,36 @@ else
     log "Parquets present on volume — skipping bootstrap"
 fi
 
+# --- 2b. Ensure orchestrator config exists (independent of bootstrap) ---
+if [ ! -f /data/orchestrator.toml ]; then
+    log "Writing default orchestrator config"
+    cat > /data/orchestrator.toml <<'TOML'
+[orchestrator]
+picks_dir = "/data/picks"
+heartbeat_path = "/data/.heartbeat"
+
+[bluesky]
+dm_recipient = "did:plc:replace-me"
+
+[scheduler]
+lineup_check_offset_min = 60
+fallback_deadline_min = 35
+missed_pick_alert_min = 30
+early_lock_gap = 0.03
+cluster_min = 10
+doubleheader_recheck_min = 15
+results_poll_interval_min = 15
+results_cap_hour_et = 5
+default_init_hour_et = 10
+early_game_buffer_min = 60
+shadow_mode = true
+
+[[tiers]]
+name = "local"
+type = "local"
+TOML
+fi
+
 # --- 3. Dashboard in background ---
 # web.py uses BTS_HEARTBEAT_PATH env var and listens on 0.0.0.0:3003
 log "Starting dashboard on 0.0.0.0:3003"
