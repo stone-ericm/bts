@@ -853,3 +853,37 @@ def state_regenerate(snapshot, handle, out_picks_dir):
     click.echo("Regeneration complete:")
     for k, v in summary.items():
         click.echo(f"  {k}: {v}")
+
+
+@state.command(name="verify")
+@click.option("--live-dir", default="data/picks", type=click.Path(exists=True))
+@click.option("--snapshot", default="data/state/initial-state.json",
+              type=click.Path(exists=True))
+@click.option("--handle", default="beatthestreakbot.bsky.social")
+def state_verify(live_dir, snapshot, handle):
+    """Regenerate state to a temp dir and diff against live state.
+
+    Run periodically as a drift check. Exits 0 if clean, 1 if drift found.
+    """
+    import tempfile
+    from pathlib import Path
+    from bts.state.regenerate import regenerate
+    from bts.state.verify import diff_pick_files
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp) / "picks"
+        summary = regenerate(
+            snapshot_path=Path(snapshot),
+            bluesky_handle=handle,
+            out_picks_dir=tmp_path,
+        )
+        report = diff_pick_files(Path(live_dir), tmp_path)
+
+    if report.is_clean:
+        click.echo(f"Drift check CLEAN. {summary['snapshot_picks']} snapshot + {summary['bluesky_picks']} Bluesky picks.")
+        return
+
+    click.echo("Drift detected:", err=True)
+    for issue in report.issues:
+        click.echo(f"  - {issue}", err=True)
+    raise SystemExit(1)
