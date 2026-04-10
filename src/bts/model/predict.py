@@ -650,9 +650,17 @@ def run_pipeline(
     # end up as object dtype despite pd.to_numeric in compute.py, because
     # the merge/concat path can re-introduce object dtype from NaN handling.
     all_feature_cols = set(FEATURE_COLS) | set(STATCAST_COLS)
+    coerced = []
     for col in all_feature_cols:
         if col in df.columns and df[col].dtype == object:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+            coerced.append(col)
+    if coerced:
+        print(f"  Coerced {len(coerced)} object-dtype cols to numeric: {coerced}", file=sys.stderr)
+    # Final check: flag any remaining object-dtype feature columns
+    remaining = [c for c in all_feature_cols if c in df.columns and df[c].dtype == object]
+    if remaining:
+        print(f"  WARNING: {len(remaining)} feature cols still object after coercion: {remaining}", file=sys.stderr)
 
     if cached_blend:
         model = cached_blend.pop("_model")
