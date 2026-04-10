@@ -43,7 +43,7 @@ primary_region = "iad"
   tls_skip_verify = false
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = "performance"
   cpus = 2
   memory_mb = 8192
 
