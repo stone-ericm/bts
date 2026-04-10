@@ -43,6 +43,16 @@ fi
 
 # --- 2. Cold bootstrap if needed ---
 cd /app
+
+# --- 2a. Symlink /app/data dirs to the persistent volume ---
+# Must happen on EVERY boot because the Docker image recreates /app/data/
+# as real directories, destroying any symlinks from previous runs.
+log "Linking data dirs to volume"
+for dir in processed models picks raw lineup_posting_times; do
+    rm -rf "/app/data/$dir"
+    ln -sf "/data/$dir" "/app/data/$dir"
+done
+
 if [ ! -f /data/processed/pa_2026.parquet ]; then
     log "No parquets on volume — running cold bootstrap"
     ./scripts/fly-bootstrap.sh
