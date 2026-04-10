@@ -794,3 +794,37 @@ def reconcile(picks_dir: str, lookback: int):
         for c in corrections:
             click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")
         click.echo(f"Streak recalculated: {streak}")
+
+
+@cli.group()
+def state():
+    """State management: export / regenerate / verify BTS state."""
+
+
+@state.command(name="export")
+@click.option("--picks-dir", default="data/picks", type=click.Path(exists=True))
+@click.option("--to", "output_path", default="data/state/initial-state.json", type=click.Path())
+def state_export(picks_dir, output_path):
+    """Export current state to a committable snapshot file.
+
+    Refuses to run if any pick in picks-dir is unresolved. Used at
+    the moment of cloud migration cutover to freeze pre-migration history.
+    """
+    from pathlib import Path
+    from bts.state.export import export_initial_state, UnresolvedPickError
+
+    try:
+        snapshot = export_initial_state(
+            picks_dir=Path(picks_dir),
+            output_path=Path(output_path),
+        )
+    except UnresolvedPickError as e:
+        click.echo(str(e), err=True)
+        raise SystemExit(2)
+
+    click.echo(
+        f"Exported {len(snapshot['historical_picks'])} picks to {output_path}\n"
+        f"  cutoff_date: {snapshot['cutoff_date']}\n"
+        f"  streak_at_cutoff: {snapshot['streak_at_cutoff']}\n"
+        f"  saver_available: {snapshot['saver_available']}"
+    )
