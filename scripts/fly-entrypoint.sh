@@ -70,7 +70,7 @@ picks_dir = "/data/picks"
 heartbeat_path = "/data/.heartbeat"
 
 [bluesky]
-dm_recipient = "did:plc:replace-me"
+dm_recipient = "stonehengee.bsky.social"
 
 [scheduler]
 lineup_check_offset_min = 60
