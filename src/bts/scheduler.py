@@ -502,6 +502,9 @@ def run_day(
     from bts.posting import format_post, format_skip_post, post_to_bluesky
 
     sched_config = config.get("scheduler", {})
+    shadow_mode = sched_config.get("shadow_mode", False)
+    if shadow_mode:
+        print("  [SHADOW MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
     offset_min = sched_config.get("lineup_check_offset_min", 45)
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
@@ -609,25 +612,33 @@ def run_day(
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
             streak = load_streak(picks_dir)
-            text = format_post(
-                daily.pick.batter_name, daily.pick.team,
-                daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                daily.double_down.batter_name if daily.double_down else None,
-                daily.double_down.p_game_hit if daily.double_down else None,
-                daily.double_down.team if daily.double_down else None,
-                daily.double_down.pitcher_name if daily.double_down else None,
-            )
-            try:
-                uri = post_to_bluesky(text)
-                daily.bluesky_posted = True
-                daily.bluesky_uri = uri
+            if shadow_mode:
                 save_pick(daily, picks_dir)
                 state.pick_locked = True
                 state.pick_locked_at = _now_et().isoformat()
                 save_state(state, picks_dir)
-                print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
-            except Exception as e:
-                print(f"  Bluesky post failed: {e}", file=sys.stderr)
+                print(f"  [SHADOW] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
+                      f"{daily.pick.p_game_hit:.1%} — NOT posted (shadow mode)", file=sys.stderr)
+            else:
+                text = format_post(
+                    daily.pick.batter_name, daily.pick.team,
+                    daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+                    daily.double_down.batter_name if daily.double_down else None,
+                    daily.double_down.p_game_hit if daily.double_down else None,
+                    daily.double_down.team if daily.double_down else None,
+                    daily.double_down.pitcher_name if daily.double_down else None,
+                )
+                try:
+                    uri = post_to_bluesky(text)
+                    daily.bluesky_posted = True
+                    daily.bluesky_uri = uri
+                    save_pick(daily, picks_dir)
+                    state.pick_locked = True
+                    state.pick_locked_at = _now_et().isoformat()
+                    save_state(state, picks_dir)
+                    print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
+                except Exception as e:
+                    print(f"  Bluesky post failed: {e}", file=sys.stderr)
 
         if state.pick_locked:
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
@@ -664,7 +675,55 @@ def run_day(
                 # Force-post current pick (waited to deadline, or past it)
                 daily = load_pick(date, picks_dir)
                 if daily and not daily.bluesky_posted:
-                    print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
+                    if shadow_mode:
+                        state.pick_locked = True
+                        state.pick_locked_at = _now_et().isoformat()
+                        save_state(state, picks_dir)
+                        print(f"  [SHADOW] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
+                    else:
+                        print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
+                        streak = load_streak(picks_dir)
+                        text = format_post(
+                            daily.pick.batter_name, daily.pick.team,
+                            daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+                            daily.double_down.batter_name if daily.double_down else None,
+                            daily.double_down.p_game_hit if daily.double_down else None,
+                            daily.double_down.team if daily.double_down else None,
+                            daily.double_down.pitcher_name if daily.double_down else None,
+                        )
+                        try:
+                            uri = post_to_bluesky(text)
+                            daily.bluesky_posted = True
+                            daily.bluesky_uri = uri
+                            save_pick(daily, picks_dir)
+                            state.pick_locked = True
+                            state.pick_locked_at = _now_et().isoformat()
+                            save_state(state, picks_dir)
+                            print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
+                                  file=sys.stderr)
+                        except Exception as e:
+                            print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+
+                if state.pick_locked:
+                    print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
+                    break
+
+    # 5. Fallback — if not yet locked, check for deadline
+    if not state.pick_locked:
+        daily = load_pick(date, picks_dir)
+        if daily and not daily.bluesky_posted:
+            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
+            now = _now_et()
+            mins_to_game = (game_et - now).total_seconds() / 60
+            if mins_to_game <= fallback_deadline_min:
+                if shadow_mode:
+                    state.pick_locked = True
+                    state.pick_locked_at = _now_et().isoformat()
+                    save_state(state, picks_dir)
+                    print(f"  [SHADOW] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
+                else:
+                    print(f"  FALLBACK — {fallback_deadline_min}min to first pitch, posting on projected data.",
+                          file=sys.stderr)
                     streak = load_streak(picks_dir)
                     text = format_post(
                         daily.pick.batter_name, daily.pick.team,
@@ -682,44 +741,8 @@ def run_day(
                         state.pick_locked = True
                         state.pick_locked_at = _now_et().isoformat()
                         save_state(state, picks_dir)
-                        print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
-                              file=sys.stderr)
                     except Exception as e:
                         print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
-
-                if state.pick_locked:
-                    print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
-                    break
-
-    # 5. Fallback — if not yet locked, check for deadline
-    if not state.pick_locked:
-        daily = load_pick(date, picks_dir)
-        if daily and not daily.bluesky_posted:
-            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
-            now = _now_et()
-            mins_to_game = (game_et - now).total_seconds() / 60
-            if mins_to_game <= fallback_deadline_min:
-                print(f"  FALLBACK — {fallback_deadline_min}min to first pitch, posting on projected data.",
-                      file=sys.stderr)
-                streak = load_streak(picks_dir)
-                text = format_post(
-                    daily.pick.batter_name, daily.pick.team,
-                    daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                    daily.double_down.batter_name if daily.double_down else None,
-                    daily.double_down.p_game_hit if daily.double_down else None,
-                    daily.double_down.team if daily.double_down else None,
-                    daily.double_down.pitcher_name if daily.double_down else None,
-                )
-                try:
-                    uri = post_to_bluesky(text)
-                    daily.bluesky_posted = True
-                    daily.bluesky_uri = uri
-                    save_pick(daily, picks_dir)
-                    state.pick_locked = True
-                    state.pick_locked_at = _now_et().isoformat()
-                    save_state(state, picks_dir)
-                except Exception as e:
-                    print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:
