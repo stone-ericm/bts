@@ -43,6 +43,19 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 | opp_bullpen_hr_30g | Rolling | Opposing team's reliever hit rate (30-day, via probable pitcher ID) |
 | days_rest | Context | Days since batter's last game |
 
+### Context features (4, shadow model — CONTEXT_COLS)
+
+Always computed by `compute_all_features()` but only used by the shadow model (via `feature_cols_override` param). After 30-day evaluation, may graduate to FEATURE_COLS.
+
+| Feature | Type | Description |
+|---------|------|-------------|
+| ump_hr_30g | Rolling | Hit rate per HP umpire, 30-day window |
+| wind_out_cf | Context | Signed wind vector (direction score × speed) |
+| batter_hard_contact_30g | Rolling | Hard-contact rate from categorical hardness column |
+| is_indoor | Context | Binary: dome/closed/retractable roof |
+
+Shadow picks saved to `{date}.shadow.json`. Report: `bts shadow-report`.
+
 ### Dropped features (tested and rejected)
 - **lineup_position**: Double-counts with PA aggregation (helps with leaky features, hurts or neutral with clean)
 - **is_home**: Noise at PA level
@@ -95,22 +108,21 @@ Tested and rejected after empirical validation:
 
 ## Orchestration
 
-Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 handles decisions and posting.
+Fly.io (`bts-mlb`) runs scheduler, dashboard, and cron in a single container. Pi5 remains authoritative during Phase 2 shadow validation.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Pi5 (Scheduler Daemon)                          │
-│  bts schedule --config ~/.bts-orchestrator.toml  │
-│  Dynamic: game_time - 45min lineup checks        │
-│  Owns: lineup monitoring, pick strategy,         │
-│        Bluesky posting, result polling            │
-└────────┬──────────┬──────────┬───────────────────┘
-         │ SSH      │ SSH      │ SSH
-   ┌─────▼──┐  ┌────▼─────┐  ┌▼──────────┐
-   │  Mac   │  │Alienware │  │ Cloud VPS │
-   │ (unix) │  │(windows) │  │  (TBD)    │
-   └────────┘  └──────────┘  └───────────┘
-   Each: git pull -q && bts predict-json --date X → JSON to stdout
+│  Fly.io bts-mlb (performance-2x, 16 GB, IAD)    │
+│  fly-entrypoint.sh starts:                       │
+│  1. Tailscale (joins tailnet as bts-fly)         │
+│  2. Dashboard (port 3003, Tailscale-only)        │
+│  3. Cron loop (nightly data pull, check-results) │
+│  4. Scheduler daemon (foreground)                │
+│                                                  │
+│  Data: /data volume (50 GB, persists deploys)    │
+│  Config: /data/orchestrator.toml                 │
+│  Backup: R2 bucket bts-backup-data               │
+└──────────────────────────────────────────────────┘
 ```
 
 **Daily lifecycle (scheduler daemon, `Restart=always` + `RestartSec=300`):**
@@ -126,12 +138,12 @@ Pi5 orchestrates daily predictions via SSH cascade. Workers run the model; Pi5 h
 
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Double-down must be from a different game. Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
-- `orchestrator.py` — SSH cascade, TOML config, calls strategy + posting. `bts orchestrate` CLI command.
-- `scheduler.py` — Long-running daemon replacing fixed 11am/4pm/7:30pm cron runs. Dynamically schedules lineup checks relative to game start times. Short-circuits when pick is locked. Logs pick decisions. `bts schedule` CLI command.
+- `orchestrator.py` — Local prediction (`predict_local`) + shadow prediction (`predict_local_shadow`). TOML config, calls strategy + posting. Shadow uses `feature_cols_override` with separate model cache (`blend_{date}_shadow.pkl`).
+- `scheduler.py` — Long-running daemon. Dynamic lineup checks at `game_time - 45min`. Short-circuits when pick is locked. Shadow model runs after production lock (`_run_shadow_prediction`). `bts schedule` CLI command.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
-- `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr. Workers auto-pull from git before running.
+- `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
-**Config:** `~/.bts-orchestrator.toml` on Pi5. Each tier has `ssh_host`, `bts_dir`, `timeout_min`, optional `platform = "windows"`.
+**Config:** `/data/orchestrator.toml` on Fly volume. `shadow_mode = true` (no Bluesky posting), `shadow_model = true` (context stack). Tiers: local only on Fly.
 
 **LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
 

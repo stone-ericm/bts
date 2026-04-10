@@ -51,8 +51,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts validate scorecard --diff data/validation/
 ## Architecture
 See `ARCHITECTURE.md` for full details. Key points:
 - PA-level LightGBM → game-level probability aggregation
-- 14 baseline features + 9 Statcast features, all provably leak-free (date-level shift(1))
+- 15 baseline features (FEATURE_COLS) + 4 shadow context features (CONTEXT_COLS) + 9 Statcast features, all provably leak-free (date-level shift(1))
 - 12-model blend: baseline + single-Statcast variants. `--no-blend` for single model.
+- **Shadow model**: `CONTEXT_COLS` (ump_hr, wind, hardness, indoor) run alongside production via `feature_cols_override`. Picks saved to `{date}.shadow.json`. Report: `bts shadow-report`
 - **MDP-optimal strategy**: auto-loads `data/models/mdp_policy.npz` for skip/single/double decisions. Falls back to heuristic if absent.
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15
