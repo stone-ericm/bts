@@ -154,6 +154,18 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
         "pitcher_id"
     )["pitcher_entropy_30g"].last().to_dict()
 
+    # Batter context features (shadow model)
+    if "batter_hard_contact_30g" in df.columns:
+        lookups["batter"]["batter_hard_contact_30g"] = df.dropna(
+            subset=["batter_hard_contact_30g"]
+        ).groupby("batter_id")["batter_hard_contact_30g"].last().to_dict()
+
+    # Umpire hit rate (shadow model)
+    if "ump_hr_30g" in df.columns and "hp_umpire_id" in df.columns:
+        lookups["umpire_hr"] = df.dropna(subset=["ump_hr_30g"]).groupby(
+            "hp_umpire_id"
+        )["ump_hr_30g"].last().to_dict()
+
     # Batter Statcast features
     batter_statcast_cols = ["batter_barrel_rate_30g", "batter_hard_hit_rate_30g",
                             "batter_sweet_spot_rate_30g", "batter_avg_ev_30g",
@@ -333,8 +345,21 @@ def _fetch_game_slots(date: str) -> list[dict]:
 
             gd = feed["gameData"]
             venue_id = gd["venue"]["id"]
-            temp_str = gd.get("weather", {}).get("temp")
+            weather = gd.get("weather", {})
+            temp_str = weather.get("temp")
             temp = int(temp_str) if temp_str else None
+            wind_dir = weather.get("wind", "")  # e.g. "12 mph, Out To CF"
+            wind_speed_str = weather.get("wind", "").split(" mph")[0] if "mph" in weather.get("wind", "") else None
+            wind_speed = float(wind_speed_str) if wind_speed_str else 0.0
+            # Parse wind direction from the "speed mph, Direction" format
+            wind_direction = wind_dir.split(", ", 1)[1] if ", " in wind_dir else ""
+            roof_type = gd.get("venue", {}).get("fieldInfo", {}).get("roofType", "")
+            # HP umpire
+            hp_umpire_id = None
+            for official in gd.get("officials", []):
+                if official.get("officialType") == "Home Plate":
+                    hp_umpire_id = official.get("official", {}).get("id")
+                    break
             boxscore = feed["liveData"]["boxscore"]
             plays = feed["liveData"]["plays"]["allPlays"]
 
@@ -405,6 +430,10 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         "pitcher_hand": opp_pitcher_hand,
                         "venue_id": venue_id,
                         "weather_temp": temp,
+                        "weather_wind_dir": wind_direction,
+                        "weather_wind_speed": wind_speed,
+                        "roof_type": roof_type,
+                        "hp_umpire_id": hp_umpire_id,
                         "game_pk": pk,
                         "game_time": game_time,
                         "status": status,
@@ -489,6 +518,27 @@ def predict(
         row["weather_temp"] = slot["weather_temp"]
         row["park_factor"] = lookups["park"].get(slot["venue_id"])
         row["opp_bullpen_hr_30g"] = lookups.get("bullpen", {}).get(slot.get("opp_team_id"))
+
+        # Context features (shadow model) — always populated so shadow blend can use them
+        row["batter_hard_contact_30g"] = lookups["batter"].get("batter_hard_contact_30g", {}).get(bid)
+        row["ump_hr_30g"] = lookups.get("umpire_hr", {}).get(slot.get("hp_umpire_id"))
+        # Wind vector: compute from slot weather data (same logic as compute.py)
+        wind_dir_str = str(slot.get("weather_wind_dir", "")).lower()
+        wind_spd = float(slot.get("weather_wind_speed", 0) or 0)
+        if "out to cf" in wind_dir_str or "out to center" in wind_dir_str:
+            dir_score = 1.0
+        elif "in from cf" in wind_dir_str or "in from center" in wind_dir_str:
+            dir_score = -1.0
+        elif "out to lf" in wind_dir_str or "out to rf" in wind_dir_str:
+            dir_score = 0.5
+        elif "in from lf" in wind_dir_str or "in from rf" in wind_dir_str:
+            dir_score = -0.5
+        else:
+            dir_score = 0.0
+        row["wind_out_cf"] = dir_score * wind_spd
+        # Indoor flag
+        rt = str(slot.get("roof_type", "")).lower()
+        row["is_indoor"] = 1 if rt in ("dome", "closed", "retractable") else 0
 
         # Days rest
         last = lookups["last_date"].get(bid)
