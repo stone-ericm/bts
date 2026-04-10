@@ -254,3 +254,68 @@ def test_sync_from_r2_rejects_non_main_branch(mock_bucket, tmp_path):
             models_dir=tmp_path / "m",
             expected_schema_version="ok",
         )
+
+
+def test_verify_manifest_reports_age(mock_bucket):
+    client = R2Client.from_env()
+    manifest = {
+        "version": 1,
+        "schema_version": "ok",
+        "git_branch": "main",
+        "git_sha": "abc",
+        "updated_at": "2026-04-09T00:00:00+00:00",
+        "files": {},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json", Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import verify_manifest
+    report = verify_manifest(client=client, expected_schema_version="ok")
+    assert report["branch"] == "main"
+    assert report["schema_version_match"] is True
+    assert "age_hours" in report
+
+
+def test_verify_manifest_flags_stale(mock_bucket):
+    client = R2Client.from_env()
+    # Manifest from several days ago
+    manifest = {
+        "version": 1,
+        "schema_version": "ok",
+        "git_branch": "main",
+        "git_sha": "abc",
+        "updated_at": "2025-01-01T00:00:00+00:00",
+        "files": {},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json", Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import verify_manifest
+    report = verify_manifest(client=client, expected_schema_version="ok", stale_hours=24)
+    assert report["stale"] is True
+
+
+def test_archive_historical_raw(tmp_path, mock_bucket):
+    # Create a fake raw directory with historical seasons
+    raw_dir = tmp_path / "raw"
+    for season in [2017, 2018, 2019]:
+        season_dir = raw_dir / str(season)
+        season_dir.mkdir(parents=True)
+        (season_dir / "game1.json").write_text(f'{{"season": {season}}}')
+
+    # Current season — should be excluded
+    current = raw_dir / "2026"
+    current.mkdir()
+    (current / "game2.json").write_text('{"season": 2026}')
+
+    client = R2Client.from_env()
+    from bts.data.sync import archive_historical_raw
+
+    archive_historical_raw(
+        client=client,
+        raw_dir=raw_dir,
+        tarball_key="raw-archive-2017-2025.tar.gz",
+        exclude_seasons={2026},
+    )
+
+    # Verify the tarball exists in R2
+    obj = mock_bucket.get_object(Bucket="test-bucket", Key="raw-archive-2017-2025.tar.gz")
+    assert obj["ContentLength"] > 0

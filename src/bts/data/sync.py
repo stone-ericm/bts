@@ -271,3 +271,88 @@ def sync_from_r2(
             )
 
     return manifest
+
+
+import io
+import tarfile
+
+
+def verify_manifest(
+    client: R2Client,
+    expected_schema_version: Optional[str] = None,
+    stale_hours: int = 48,
+) -> dict:
+    """Read-only check of R2 manifest state. Returns a report dict.
+
+    Used by `bts data verify-manifest` CLI and by the tripwire mode that
+    runs periodically. Does not modify any local or remote state.
+    """
+    from bts.data.schema import SCHEMA_VERSION
+
+    manifest = read_manifest(client)
+    if manifest is None:
+        return {"exists": False, "stale": True}
+
+    expected = expected_schema_version or SCHEMA_VERSION
+    updated_at_str = manifest.get("updated_at")
+    age_hours: Optional[float] = None
+    stale = False
+    if updated_at_str:
+        updated_at = datetime.fromisoformat(updated_at_str)
+        age_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+        age_hours = age_seconds / 3600
+        stale = age_hours > stale_hours
+
+    return {
+        "exists": True,
+        "branch": manifest.get("git_branch"),
+        "git_sha": manifest.get("git_sha"),
+        "schema_version": manifest.get("schema_version"),
+        "schema_version_match": manifest.get("schema_version") == expected,
+        "updated_at": updated_at_str,
+        "updated_by": manifest.get("updated_by"),
+        "age_hours": age_hours,
+        "stale": stale,
+        "n_files": len(manifest.get("files", {})),
+    }
+
+
+def archive_historical_raw(
+    client: R2Client,
+    raw_dir: Path,
+    tarball_key: str,
+    exclude_seasons: set[int],
+) -> None:
+    """Build a tarball of historical raw JSON seasons and upload to R2.
+
+    Excludes current season (passed explicitly) so the archive is a
+    stable snapshot of historical data that rarely needs refresh.
+    """
+    print(f"Building tarball of historical raw data from {raw_dir}...", file=sys.stderr)
+
+    # Use a temp file on disk (safer than in-memory for large archives)
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        with tarfile.open(tmp_path, "w:gz") as tar:
+            for season_dir in sorted(raw_dir.iterdir()):
+                if not season_dir.is_dir():
+                    continue
+                try:
+                    season = int(season_dir.name)
+                except ValueError:
+                    continue
+                if season in exclude_seasons:
+                    print(f"  skip season {season} (excluded)", file=sys.stderr)
+                    continue
+                print(f"  add season {season}", file=sys.stderr)
+                tar.add(season_dir, arcname=season_dir.name)
+
+        size_mb = tmp_path.stat().st_size / 1e6
+        print(f"Uploading {tarball_key} ({size_mb:.1f} MB) to R2...", file=sys.stderr)
+        client.upload_file(tmp_path, tarball_key)
+        print("  done", file=sys.stderr)
+    finally:
+        tmp_path.unlink(missing_ok=True)
