@@ -251,6 +251,27 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
     return None
 
 
+def save_pick_shadow(pick_data, shadow_dir, source: str) -> Path:
+    """Save a pick record to the shadow directory (not authoritative).
+
+    Shadow dirs are used during Phase 2 of the cloud migration to
+    compare Fly's output against Pi5's real state without affecting
+    production. source is 'fly' or 'pi5' to distinguish writers.
+    """
+    shadow_dir = Path(shadow_dir)
+    date = pick_data["date"] if isinstance(pick_data, dict) else pick_data.date
+    date_dir = shadow_dir / date
+    date_dir.mkdir(parents=True, exist_ok=True)
+
+    out_path = date_dir / f"{source}.json"
+    if isinstance(pick_data, dict):
+        payload = pick_data
+    else:
+        payload = pick_data.__dict__ if hasattr(pick_data, "__dict__") else dict(pick_data)
+    out_path.write_text(json.dumps(payload, indent=2, default=str))
+    return out_path
+
+
 def reconcile_results(
     picks_dir: Path,
     lookback_days: int = 8,
