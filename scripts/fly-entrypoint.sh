@@ -17,8 +17,8 @@ log "Starting BTS Fly entrypoint"
 # --- 1. Tailscale ---
 if [ -n "${TS_AUTHKEY:-}" ]; then
     log "Starting Tailscale daemon"
-    mkdir -p /var/lib/tailscale
-    tailscaled --state=/var/lib/tailscale/tailscaled.state \
+    mkdir -p /data/tailscale
+    tailscaled --state=/data/tailscale/tailscaled.state \
                --socket=/var/run/tailscale/tailscaled.sock &
     TAILSCALED_PID=$!
 
