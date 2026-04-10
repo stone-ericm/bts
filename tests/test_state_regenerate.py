@@ -111,3 +111,79 @@ def test_parse_unrecognized_post_returns_none():
     text = "random promotional content, not a pick"
     parsed = parse_pick_from_post(text)
     assert parsed is None
+
+
+from bts.state.regenerate import (
+    parse_result_from_reply,
+    reconstruct_pick_timeline,
+    Timeline,
+    HistoricalPickRecord,
+)
+
+
+def test_parse_result_reply_hit():
+    from bts.posting import format_result_reply
+    text = format_result_reply("hit", 3)
+    parsed = parse_result_from_reply(text)
+    assert parsed.is_result is True
+    assert parsed.result == "hit"
+    assert parsed.streak_after == 3
+
+
+def test_parse_result_reply_miss():
+    from bts.posting import format_result_reply
+    text = format_result_reply("miss", 0)
+    parsed = parse_result_from_reply(text)
+    assert parsed.is_result is True
+    assert parsed.result == "miss"
+    assert parsed.streak_after == 0
+
+
+def test_parse_result_reply_not_a_result():
+    parsed = parse_result_from_reply("Random reply text")
+    assert parsed.is_result is False
+
+
+def test_reconstruct_timeline_alternates_picks_and_results():
+    posts = [
+        ParsedPost(uri="at://p1", created_at="2026-04-01T12:00:00Z",
+                   text="pick A", is_reply=False,
+                   batter_name="A", team="NYY"),
+        ParsedPost(uri="at://r1", created_at="2026-04-01T23:00:00Z",
+                   text="hit reply", is_reply=True,
+                   is_result=True, result="hit", streak_after=1),
+        ParsedPost(uri="at://p2", created_at="2026-04-02T12:00:00Z",
+                   text="pick B", is_reply=False,
+                   batter_name="B", team="BOS"),
+        ParsedPost(uri="at://r2", created_at="2026-04-02T23:00:00Z",
+                   text="miss reply", is_reply=True,
+                   is_result=True, result="miss", streak_after=0),
+    ]
+
+    timeline = reconstruct_pick_timeline(posts)
+    assert len(timeline.pick_records) == 2
+    assert timeline.pick_records[0].date == "2026-04-01"
+    assert timeline.pick_records[0].batter_name == "A"
+    assert timeline.pick_records[0].result == "hit"
+    assert timeline.pick_records[0].bluesky_uri == "at://p1"
+    assert timeline.final_streak == 0
+    assert timeline.pick_records[1].result == "miss"
+
+
+def test_reconstruct_timeline_handles_unresolved_last_day():
+    posts = [
+        ParsedPost(uri="at://p1", created_at="2026-04-01T12:00:00Z",
+                   text="pick A", is_reply=False,
+                   batter_name="A", team="NYY"),
+        ParsedPost(uri="at://r1", created_at="2026-04-01T23:00:00Z",
+                   text="hit", is_reply=True,
+                   is_result=True, result="hit", streak_after=1),
+        ParsedPost(uri="at://p2", created_at="2026-04-02T12:00:00Z",
+                   text="pick B", is_reply=False,
+                   batter_name="B", team="BOS"),
+        # No reply for p2 — still in progress or regeneration runs mid-day
+    ]
+    timeline = reconstruct_pick_timeline(posts)
+    assert len(timeline.pick_records) == 2
+    assert timeline.pick_records[1].result is None
+    assert timeline.final_streak == 1  # Last known resolved streak

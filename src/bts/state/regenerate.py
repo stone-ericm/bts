@@ -200,3 +200,133 @@ def parse_pick_from_post(text: str) -> Optional[ParsedPost]:
         parsed.streak_at_time = int(streak_match.group("streak"))
 
     return parsed
+
+
+# Regex for result replies. Based on real format_result_reply() output:
+#   hit:  "\u2705 Streak: N"
+#   miss: "\u274c Streak reset to 0"
+# Use the emoji prefix to detect and the rest to extract details.
+_HIT_EMOJI = "\u2705"   # white check mark
+_MISS_EMOJI = "\u274c"  # cross mark
+_STREAK_NUM_RE = re.compile(r"Streak[:\s]+(\d+)", re.IGNORECASE)
+_STREAK_RESET_RE = re.compile(r"reset to (\d+)", re.IGNORECASE)
+
+
+def parse_result_from_reply(text: str) -> ParsedPost:
+    """Parse a Bluesky reply post as a BTS result announcement.
+
+    Returns a ParsedPost with is_result=False if the text doesn't look
+    like a BTS result reply.
+    """
+    is_hit = _HIT_EMOJI in text
+    is_miss = _MISS_EMOJI in text
+    if not (is_hit or is_miss):
+        return ParsedPost(uri="", created_at="", text=text, is_reply=True, is_result=False)
+
+    result = "hit" if is_hit and not is_miss else "miss"
+
+    # Extract streak number — try both "Streak: N" and "reset to N" variants
+    streak_after = None
+    m = _STREAK_NUM_RE.search(text)
+    if m:
+        streak_after = int(m.group(1))
+    else:
+        m = _STREAK_RESET_RE.search(text)
+        if m:
+            streak_after = int(m.group(1))
+
+    return ParsedPost(
+        uri="", created_at="", text=text, is_reply=True,
+        is_result=True,
+        result=result,
+        streak_after=streak_after,
+    )
+
+
+@dataclass
+class HistoricalPickRecord:
+    """A pick + its result as reconstructed from Bluesky."""
+    date: str
+    batter_name: str
+    team: str
+    is_double_down: bool
+    double_down_batter: Optional[str]
+    double_down_team: Optional[str]
+    bluesky_uri: str
+    result: Optional[str]
+    streak_after: Optional[int]
+
+
+@dataclass
+class Timeline:
+    """Full reconstructed timeline from Bluesky."""
+    pick_records: list[HistoricalPickRecord] = field(default_factory=list)
+    final_streak: int = 0
+    saver_available_at_end: bool = True
+
+
+def _date_from_created_at(created_at: str) -> str:
+    """Extract YYYY-MM-DD from an ISO timestamp."""
+    return created_at[:10]
+
+
+def reconstruct_pick_timeline(posts: list[ParsedPost]) -> Timeline:
+    """Walk posts chronologically to reconstruct pick history + streak.
+
+    Posts must be sorted oldest-first. Pairs pick posts with their result
+    replies based on date proximity (result for day D is the first reply
+    seen after the pick for day D with an is_result=True payload).
+    """
+    # Parse reply text where we haven't already
+    for p in posts:
+        if p.is_reply and not p.is_result:
+            parsed = parse_result_from_reply(p.text)
+            p.is_result = parsed.is_result
+            p.result = parsed.result
+            p.streak_after = parsed.streak_after
+
+    records_by_date: dict[str, HistoricalPickRecord] = {}
+    timeline_order: list[str] = []
+
+    for post in posts:
+        date = _date_from_created_at(post.created_at)
+        if not post.is_reply:
+            # Pick post
+            if post.is_skip or post.batter_name is None:
+                continue
+            if date not in records_by_date:
+                records_by_date[date] = HistoricalPickRecord(
+                    date=date,
+                    batter_name=post.batter_name,
+                    team=post.team or "",
+                    is_double_down=post.is_double_down,
+                    double_down_batter=post.double_down_batter,
+                    double_down_team=post.double_down_team,
+                    bluesky_uri=post.uri,
+                    result=None,
+                    streak_after=None,
+                )
+                timeline_order.append(date)
+        elif post.is_result:
+            # Reply post carrying a result; attribute to most recent unresolved record
+            for date_key in reversed(timeline_order):
+                record = records_by_date[date_key]
+                if record.result is None:
+                    record.result = post.result
+                    record.streak_after = post.streak_after
+                    break
+
+    pick_records = [records_by_date[d] for d in timeline_order]
+
+    # Last known resolved streak is the final_streak
+    final_streak = 0
+    for r in reversed(pick_records):
+        if r.streak_after is not None:
+            final_streak = r.streak_after
+            break
+
+    return Timeline(
+        pick_records=pick_records,
+        final_streak=final_streak,
+        saver_available_at_end=True,  # Conservative default; Task 5 refines
+    )
