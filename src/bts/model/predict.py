@@ -9,26 +9,36 @@ import lightgbm as lgb
 from pathlib import Path
 from urllib.request import urlopen
 
-from bts.features.compute import compute_all_features, FEATURE_COLS, STATCAST_COLS, TRAIN_START_YEAR
+from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
 
 API_BASE = "https://statsapi.mlb.com"
 
-# 12-model blend: baseline + single-Statcast variants + combos.
-# Validated at 86.2% avg P@1 across 2024-2025 (vs 85.1% single model).
-BLEND_CONFIGS = [
-    ("baseline", FEATURE_COLS),
-    ("barrel", FEATURE_COLS + ["batter_barrel_rate_30g"]),
-    ("hard_hit", FEATURE_COLS + ["batter_hard_hit_rate_30g"]),
-    ("sweet_spot", FEATURE_COLS + ["batter_sweet_spot_rate_30g"]),
-    ("avg_ev", FEATURE_COLS + ["batter_avg_ev_30g"]),
-    ("velo", FEATURE_COLS + ["pitcher_avg_velo_30g"]),
-    ("spin", FEATURE_COLS + ["pitcher_avg_spin_30g"]),
-    ("extension", FEATURE_COLS + ["pitcher_avg_extension_30g"]),
-    ("break", FEATURE_COLS + ["pitcher_break_total_30g"]),
-    ("velo_faced", FEATURE_COLS + ["batter_avg_velo_faced_30g"]),
-    ("best_two", FEATURE_COLS + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
-    ("all_statcast", FEATURE_COLS + STATCAST_COLS),
-]
+def _build_blend_configs(base_feature_cols: list[str] | None = None) -> list[tuple[str, list[str]]]:
+    """Build the 12-model blend config list.
+
+    When base_feature_cols is None, uses FEATURE_COLS (production).
+    When provided (e.g., FEATURE_COLS + CONTEXT_COLS), substitutes
+    the base for shadow model training.
+    """
+    base = base_feature_cols or FEATURE_COLS
+    return [
+        ("baseline", base),
+        ("barrel", base + ["batter_barrel_rate_30g"]),
+        ("hard_hit", base + ["batter_hard_hit_rate_30g"]),
+        ("sweet_spot", base + ["batter_sweet_spot_rate_30g"]),
+        ("avg_ev", base + ["batter_avg_ev_30g"]),
+        ("velo", base + ["pitcher_avg_velo_30g"]),
+        ("spin", base + ["pitcher_avg_spin_30g"]),
+        ("extension", base + ["pitcher_avg_extension_30g"]),
+        ("break", base + ["pitcher_break_total_30g"]),
+        ("velo_faced", base + ["batter_avg_velo_faced_30g"]),
+        ("best_two", base + ["batter_sweet_spot_rate_30g", "pitcher_avg_extension_30g"]),
+        ("all_statcast", base + STATCAST_COLS),
+    ]
+
+
+# Module-level constant for backward compat (used by train_model, coercion loop)
+BLEND_CONFIGS = _build_blend_configs()
 
 LGB_PARAMS = dict(
     n_estimators=200, max_depth=6, learning_rate=0.05, num_leaves=31,
@@ -44,10 +54,11 @@ OPENER_MIN_APPEARANCES = 5
 IL_RETURN_DAYS_THRESHOLD = 7
 
 
-def train_model(df: pd.DataFrame) -> lgb.LGBMClassifier:
+def train_model(df: pd.DataFrame, feature_cols: list[str] | None = None) -> lgb.LGBMClassifier:
     """Train single LightGBM on historical PA data (2019+)."""
+    cols = feature_cols or FEATURE_COLS
     train = df[df["season"] >= TRAIN_START_YEAR]
-    train_X = train[FEATURE_COLS]
+    train_X = train[cols]
     train_y = train["is_hit"]
     mask = train_X.notna().any(axis=1)
 
@@ -56,16 +67,19 @@ def train_model(df: pd.DataFrame) -> lgb.LGBMClassifier:
     return model
 
 
-def train_blend(df: pd.DataFrame) -> dict:
+def train_blend(df: pd.DataFrame, base_feature_cols: list[str] | None = None) -> dict:
     """Train 12-model blend on historical PA data (2019+).
 
     Returns dict of {name: (model, feature_cols)} for each blend variant.
+    When base_feature_cols is provided, uses it instead of FEATURE_COLS
+    as the base for all blend configs (shadow model).
     """
+    configs = _build_blend_configs(base_feature_cols)
     train = df[df["season"] >= TRAIN_START_YEAR]
     train_y = train["is_hit"]
     blend = {}
 
-    for name, cols in BLEND_CONFIGS:
+    for name, cols in configs:
         train_X = train[cols]
         mask = train_X.notna().any(axis=1)
         model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
@@ -412,6 +426,7 @@ def predict(
     lookups: dict,
     check_openers: bool = True,
     blend: dict | None = None,
+    feature_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """Generate ranked BTS picks for a date.
 
@@ -423,6 +438,8 @@ def predict(
         check_openers: Whether to flag likely openers
         blend: Optional dict from train_blend. If provided, uses 12-model
             blend for ranking instead of single model.
+        feature_cols: Feature columns for single-model prediction. Defaults
+            to FEATURE_COLS when not provided.
 
     Returns:
         DataFrame of picks sorted by P(game hit), with flags for edge cases.
@@ -505,13 +522,14 @@ def predict(
 
     # --- Single-model prediction (used for display and as fallback) ---
     # Ensure numeric dtypes (lookups can produce mixed object columns).
-    # Must cover BOTH FEATURE_COLS and STATCAST_COLS because the blend
-    # models use FEATURE_COLS + individual Statcast features.
-    for col in set(FEATURE_COLS) | set(STATCAST_COLS):
+    # Must cover BOTH base feature cols and STATCAST_COLS because the blend
+    # models use base_cols + individual Statcast features.
+    base_cols = feature_cols or FEATURE_COLS
+    for col in set(base_cols) | set(STATCAST_COLS):
         if col in pred_df.columns:
             pred_df[col] = pd.to_numeric(pred_df[col], errors="coerce")
 
-    feat_df = pred_df[FEATURE_COLS]
+    feat_df = pred_df[base_cols]
     valid = feat_df.notna().any(axis=1)
     pred_df.loc[valid, "p_hit_vs_starter"] = model.predict_proba(feat_df[valid])[:, 1]
 
@@ -619,6 +637,7 @@ def run_pipeline(
     cached_blend: dict | None = None,
     save_blend_path=None,
     refresh_data: bool = True,
+    feature_cols_override: list[str] | None = None,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
@@ -651,7 +670,8 @@ def run_pipeline(
     # platforms (Fly with pyarrow-rebuilt parquets), computed features can
     # end up as object dtype despite pd.to_numeric in compute.py, because
     # the merge/concat path can re-introduce object dtype from NaN handling.
-    all_feature_cols = set(FEATURE_COLS) | set(STATCAST_COLS)
+    base_cols = feature_cols_override or FEATURE_COLS
+    all_feature_cols = set(base_cols) | set(STATCAST_COLS)
     coerced = []
     for col in all_feature_cols:
         if col in df.columns and df[col].dtype == object:
@@ -668,8 +688,8 @@ def run_pipeline(
         model = cached_blend.pop("_model")
         blend = cached_blend
     else:
-        model = train_model(df)
-        blend = train_blend(df)
+        model = train_model(df, feature_cols=feature_cols_override)
+        blend = train_blend(df, base_feature_cols=feature_cols_override)
         if save_blend_path:
             to_save = {**blend, "_model": model}
             save_blend(to_save, save_blend_path)
@@ -680,4 +700,5 @@ def run_pipeline(
         date, df, model, lookups,
         check_openers=check_openers,
         blend=blend,
+        feature_cols=feature_cols_override,
     )
