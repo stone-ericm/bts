@@ -9,6 +9,7 @@ Usage:
 """
 
 import json
+import os
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -17,7 +18,10 @@ from urllib.request import urlopen, Request
 
 from zoneinfo import ZoneInfo
 
+from bts.heartbeat import read_heartbeat, is_heartbeat_fresh
+
 PICKS_DIR = Path("data/picks")
+HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PORT = 3003
 ET = ZoneInfo("America/New_York")
 
@@ -964,12 +968,44 @@ def render_page():
 </html>"""
 
 
+def health_check(heartbeat_path: Path = None) -> tuple[int, dict]:
+    """Check scheduler health via heartbeat file.
+
+    Returns (status_code, response_dict).  Pure function so it can be
+    tested without spinning up an HTTP server.
+    """
+    if heartbeat_path is None:
+        heartbeat_path = HEARTBEAT_PATH
+
+    hb = read_heartbeat(heartbeat_path)
+    if hb is None:
+        return 503, {"status": "stale", "reason": "no heartbeat file"}
+
+    fresh = is_heartbeat_fresh(heartbeat_path, max_age_sec=180)
+    if not fresh:
+        return 503, {
+            "status": "stale",
+            "last_heartbeat": hb.get("timestamp", "unknown"),
+            "scheduler_state": hb.get("state"),
+        }
+
+    return 200, {
+        "status": "ok",
+        "last_heartbeat": hb.get("timestamp"),
+        "scheduler_state": hb.get("state"),
+        "sleeping_until": hb.get("sleeping_until"),
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         from urllib.parse import urlparse, parse_qs
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/live":
+        if parsed.path == "/health":
+            status_code, data = health_check()
+            self._json_response(data, status_code=status_code)
+        elif parsed.path == "/api/live":
             self._handle_api_live(parse_qs(parsed.query))
         elif parsed.path == "/api/live-html":
             self._handle_api_live_html(parse_qs(parsed.query))
@@ -1061,9 +1097,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _json_response(self, data):
+    def _json_response(self, data, status_code=200):
         body = json.dumps(data).encode()
-        self.send_response(200)
+        self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
