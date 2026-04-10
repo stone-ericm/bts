@@ -194,6 +194,25 @@ def sync_to_r2(
     if lookup.exists():
         process_file(lookup, "models/probable_pitcher_lookup.json")
 
+    # Safety guard: never silently wipe the manifest. If the new manifest
+    # has fewer than half the files the prior manifest had, something is
+    # wrong (wrong CWD, failed build, accidental rm). Refuse unless the
+    # caller explicitly opts into deletion.
+    prior_count = len(current_manifest.get("files", {}))
+    new_count = len(new_files)
+    print(
+        f"  manifest: {prior_count} → {new_count} files",
+        file=sys.stderr,
+    )
+    if prior_count > 0 and new_count < prior_count / 2:
+        raise RuntimeError(
+            f"Refusing to sync: new manifest would have {new_count} files, "
+            f"prior had {prior_count}. This likely means sync_to_r2 was run "
+            f"from the wrong directory or local files are missing. "
+            f"If this is intentional (e.g., you're decommissioning old data), "
+            f"delete the R2 manifest manually first."
+        )
+
     new_manifest = {
         "version": MANIFEST_VERSION,
         "updated_at": now_iso(),
@@ -227,6 +246,13 @@ def sync_from_r2(
     manifest = read_manifest(client)
     if manifest is None:
         raise RuntimeError("R2 manifest.json not found — nothing to sync")
+
+    manifest_version = manifest.get("version", 1)
+    if manifest_version > MANIFEST_VERSION:
+        raise RuntimeError(
+            f"R2 manifest version {manifest_version} is newer than "
+            f"supported ({MANIFEST_VERSION}). Upgrade bts code to read this manifest."
+        )
 
     if manifest.get("git_branch") != "main":
         raise RuntimeError(
@@ -292,18 +318,24 @@ def verify_manifest(
     if manifest is None:
         return {"exists": False, "stale": True}
 
+    manifest_version = manifest.get("version", 1)
+    version_supported = manifest_version <= MANIFEST_VERSION
+
     expected = expected_schema_version or SCHEMA_VERSION
     updated_at_str = manifest.get("updated_at")
     age_hours: Optional[float] = None
-    stale = False
     if updated_at_str:
         updated_at = datetime.fromisoformat(updated_at_str)
         age_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
         age_hours = age_seconds / 3600
         stale = age_hours > stale_hours
+    else:
+        stale = True  # Undated manifest treated as stale
 
     return {
         "exists": True,
+        "version": manifest_version,
+        "version_supported": version_supported,
         "branch": manifest.get("git_branch"),
         "git_sha": manifest.get("git_sha"),
         "schema_version": manifest.get("schema_version"),

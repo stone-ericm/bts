@@ -293,6 +293,53 @@ def test_verify_manifest_flags_stale(mock_bucket):
     assert report["stale"] is True
 
 
+def test_sync_to_r2_refuses_to_wipe_manifest(mock_bucket, tmp_path):
+    """Guard: sync_to_r2 refuses if new manifest has < half the prior files."""
+    processed = tmp_path / "processed"
+    models = tmp_path / "models"
+    processed.mkdir()
+    models.mkdir()
+    # Write 4 fake parquets
+    for yr in [2023, 2024, 2025, 2026]:
+        (processed / f"pa_{yr}.parquet").write_bytes(f"data-{yr}".encode())
+
+    from bts.data.sync import sync_to_r2
+    client = R2Client.from_env()
+    # First sync establishes a baseline manifest with 4 entries
+    sync_to_r2(client=client, processed_dir=processed, models_dir=models)
+
+    # Simulate wrong-cwd: point at an empty directory
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    empty_models = tmp_path / "empty_models"
+    empty_models.mkdir()
+
+    with pytest.raises(RuntimeError, match="Refusing to sync"):
+        sync_to_r2(client=client, processed_dir=empty, models_dir=empty_models)
+
+
+def test_sync_from_r2_rejects_newer_manifest_version(mock_bucket, tmp_path):
+    client = R2Client.from_env()
+    manifest = {
+        "version": 999,  # Pretend future version
+        "schema_version": "ok",
+        "git_branch": "main",
+        "git_sha": "xyz",
+        "files": {},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json",
+                           Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import sync_from_r2
+    with pytest.raises(RuntimeError, match="newer than supported"):
+        sync_from_r2(
+            client=client,
+            processed_dir=tmp_path / "p",
+            models_dir=tmp_path / "m",
+            expected_schema_version="ok",
+        )
+
+
 def test_archive_historical_raw(tmp_path, mock_bucket):
     # Create a fake raw directory with historical seasons
     raw_dir = tmp_path / "raw"
