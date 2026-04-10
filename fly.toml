@@ -2,7 +2,7 @@
 # Deploy with: flyctl deploy --remote-only
 # Or via GitHub Actions on push to main
 
-app = "bts"
+app = "bts-mlb"
 primary_region = "iad"
 
 [build]
