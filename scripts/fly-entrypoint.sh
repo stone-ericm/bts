@@ -45,9 +45,10 @@ fi
 cd /app
 
 # --- 2a. Symlink /app/data dirs to the persistent volume ---
-# Must happen on EVERY boot because the Docker image recreates /app/data/
-# as real directories, destroying any symlinks from previous runs.
+# Must happen on EVERY boot because the Docker image may not include
+# these dirs, and deploys can overwrite symlinks with real directories.
 log "Linking data dirs to volume"
+mkdir -p /app/data
 for dir in processed models picks raw lineup_posting_times; do
     rm -rf "/app/data/$dir"
     ln -sf "/data/$dir" "/app/data/$dir"
