@@ -227,3 +227,78 @@ def test_saver_consumed_on_first_miss_at_streak_10():
     # Saver consumed — no longer available
     assert timeline.saver_available_at_end is False
     assert timeline.final_streak == 10
+
+
+def test_regenerate_composes_snapshot_and_bluesky(tmp_path: Path):
+    """Regeneration should produce state files using snapshot + Bluesky data."""
+    # Initial snapshot file
+    snapshot = {
+        "version": 1,
+        "exported_at": "2026-04-01T00:00:00Z",
+        "cutoff_date": "2026-03-31",
+        "streak_at_cutoff": 5,
+        "saver_available": True,
+        "historical_picks": [
+            {
+                "date": "2026-03-31",
+                "pick": {
+                    "batter_name": "Aaron Judge",
+                    "batter_id": 100, "team": "NYY",
+                    "pitcher_name": "X", "pitcher_id": 200,
+                    "game_pk": 111, "game_time": "2026-03-31T19:05:00-04:00",
+                    "p_game_hit": 0.85,
+                },
+                "double_down": None,
+                "result": "hit",
+                "bluesky_posted": True,
+                "bluesky_uri": "at://old/post",
+            },
+        ],
+    }
+    snapshot_path = tmp_path / "initial-state.json"
+    snapshot_path.write_text(json.dumps(snapshot))
+
+    # Bluesky timeline from 2026-04-01 onward
+    timeline = Timeline(
+        pick_records=[
+            HistoricalPickRecord(
+                date="2026-04-01",
+                batter_name="Nico Hoerner",
+                team="CHC",
+                is_double_down=False,
+                double_down_batter=None,
+                double_down_team=None,
+                bluesky_uri="at://new/post",
+                result="hit",
+                streak_after=6,
+            ),
+        ],
+        final_streak=6,
+        saver_available_at_end=True,
+    )
+
+    from bts.state.regenerate import compose_state_from_snapshot_and_timeline
+
+    out_dir = tmp_path / "regenerated"
+    compose_state_from_snapshot_and_timeline(
+        snapshot_path=snapshot_path,
+        timeline=timeline,
+        out_picks_dir=out_dir,
+    )
+
+    # Pre-cutoff pick file
+    old_pick = json.loads((out_dir / "2026-03-31.json").read_text())
+    assert old_pick["pick"]["batter_name"] == "Aaron Judge"
+    assert old_pick["result"] == "hit"
+    assert old_pick["bluesky_uri"] == "at://old/post"
+
+    # Post-cutoff pick file
+    new_pick = json.loads((out_dir / "2026-04-01.json").read_text())
+    assert new_pick["pick"]["batter_name"] == "Nico Hoerner"
+    assert new_pick["result"] == "hit"
+    assert new_pick["bluesky_uri"] == "at://new/post"
+
+    # Streak file
+    streak = json.loads((out_dir / "streak.json").read_text())
+    assert streak["current"] == 6
+    assert streak["saver_available"] is True

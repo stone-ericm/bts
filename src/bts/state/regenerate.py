@@ -12,9 +12,11 @@ The unit tests deliberately import the formatters and feed real output to the
 parser so that drift between the two halves of the round-trip is caught
 immediately.
 """
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable, Optional
 
 
@@ -349,3 +351,97 @@ def reconstruct_pick_timeline(posts: list[ParsedPost]) -> Timeline:
         final_streak=final_streak,
         saver_available_at_end=saver_available,
     )
+
+
+def compose_state_from_snapshot_and_timeline(
+    snapshot_path: Path,
+    timeline: Timeline,
+    out_picks_dir: Path,
+) -> None:
+    """Write pick files + streak.json from a snapshot + Bluesky timeline.
+
+    Pre-cutoff records come from the committed initial snapshot; post-cutoff
+    records come from the Bluesky timeline. Writes pick files to
+    out_picks_dir/{date}.json in the format the scheduler expects.
+    """
+    out_picks_dir.mkdir(parents=True, exist_ok=True)
+
+    snapshot = json.loads(snapshot_path.read_text())
+
+    # Write historical picks from snapshot
+    for hist in snapshot.get("historical_picks", []):
+        pick_file = _hist_to_pick_file(hist)
+        out_path = out_picks_dir / f"{hist['date']}.json"
+        out_path.write_text(json.dumps(pick_file, indent=2))
+
+    # Write picks from Bluesky timeline (post-cutoff)
+    cutoff = snapshot.get("cutoff_date", "0000-00-00")
+    for record in timeline.pick_records:
+        if record.date <= cutoff:
+            continue  # Snapshot already wrote this
+        pick_file = _record_to_pick_file(record)
+        out_path = out_picks_dir / f"{record.date}.json"
+        out_path.write_text(json.dumps(pick_file, indent=2))
+
+    # Streak file: prefer the timeline's final_streak, fall back to snapshot
+    streak_data = {
+        "current": (timeline.final_streak
+                    if timeline.pick_records
+                    else snapshot.get("streak_at_cutoff", 0)),
+        "saver_available": (timeline.saver_available_at_end
+                            if timeline.pick_records
+                            else snapshot.get("saver_available", True)),
+    }
+    (out_picks_dir / "streak.json").write_text(json.dumps(streak_data, indent=2))
+
+
+def _hist_to_pick_file(hist: dict) -> dict:
+    """Convert a snapshot historical record back to a pick file shape."""
+    return {
+        "date": hist["date"],
+        "run_time": hist.get("run_time", f"{hist['date']}T12:00:00+00:00"),
+        "pick": hist["pick"],
+        "double_down": hist.get("double_down"),
+        "runner_up": None,
+        "bluesky_posted": hist.get("bluesky_posted", True),
+        "bluesky_uri": hist.get("bluesky_uri"),
+        "result": hist.get("result"),
+    }
+
+
+def _record_to_pick_file(record: HistoricalPickRecord) -> dict:
+    """Convert a regenerated HistoricalPickRecord to a pick file shape.
+
+    Note: some fields (batter_id, pitcher info, p_game_hit) cannot be
+    recovered from Bluesky alone and are left as None. A follow-up
+    pass could use the MLB API to backfill batter_id from name+team+date.
+    """
+    return {
+        "date": record.date,
+        "run_time": f"{record.date}T12:00:00+00:00",
+        "pick": {
+            "batter_name": record.batter_name,
+            "batter_id": None,
+            "team": record.team,
+            "pitcher_name": None,
+            "pitcher_id": None,
+            "game_pk": None,
+            "game_time": None,
+            "p_game_hit": None,
+            "p_hit_pa": None,
+            "projected_lineup": False,
+        },
+        "double_down": {
+            "batter_name": record.double_down_batter,
+            "batter_id": None,
+            "team": record.double_down_team,
+            "pitcher_name": None, "pitcher_id": None,
+            "game_pk": None, "game_time": None,
+            "p_game_hit": None, "p_hit_pa": None,
+            "projected_lineup": False,
+        } if record.is_double_down else None,
+        "runner_up": None,
+        "bluesky_posted": True,
+        "bluesky_uri": record.bluesky_uri,
+        "result": record.result,
+    }
