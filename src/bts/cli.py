@@ -794,3 +794,96 @@ def reconcile(picks_dir: str, lookback: int):
         for c in corrections:
             click.echo(f"  {c['date']}: {c['batter']} — {c['old_result']} -> {c['new_result']}")
         click.echo(f"Streak recalculated: {streak}")
+
+
+@cli.group()
+def state():
+    """State management: export / regenerate / verify BTS state."""
+
+
+@state.command(name="export")
+@click.option("--picks-dir", default="data/picks", type=click.Path(exists=True))
+@click.option("--to", "output_path", default="data/state/initial-state.json", type=click.Path())
+def state_export(picks_dir, output_path):
+    """Export current state to a committable snapshot file.
+
+    Refuses to run if any pick in picks-dir is unresolved. Used at
+    the moment of cloud migration cutover to freeze pre-migration history.
+    """
+    from pathlib import Path
+    from bts.state.export import export_initial_state, UnresolvedPickError
+
+    try:
+        snapshot = export_initial_state(
+            picks_dir=Path(picks_dir),
+            output_path=Path(output_path),
+        )
+    except UnresolvedPickError as e:
+        click.echo(str(e), err=True)
+        raise SystemExit(2)
+
+    click.echo(
+        f"Exported {len(snapshot['historical_picks'])} picks to {output_path}\n"
+        f"  cutoff_date: {snapshot['cutoff_date']}\n"
+        f"  streak_at_cutoff: {snapshot['streak_at_cutoff']}\n"
+        f"  saver_available: {snapshot['saver_available']}"
+    )
+
+
+@state.command(name="regenerate")
+@click.option("--snapshot", default="data/state/initial-state.json",
+              type=click.Path(exists=True))
+@click.option("--handle", default="beatthestreakbot.bsky.social")
+@click.option("--out-picks-dir", default="data/picks", type=click.Path())
+def state_regenerate(snapshot, handle, out_picks_dir):
+    """Rebuild BTS state from committed snapshot + Bluesky post history.
+
+    Used for disaster recovery when the Fly volume is lost or during
+    migration between providers. Post-cutoff data comes from Bluesky;
+    pre-cutoff data comes from the committed initial snapshot.
+    """
+    from pathlib import Path
+    from bts.state.regenerate import regenerate
+
+    summary = regenerate(
+        snapshot_path=Path(snapshot),
+        bluesky_handle=handle,
+        out_picks_dir=Path(out_picks_dir),
+    )
+    click.echo("Regeneration complete:")
+    for k, v in summary.items():
+        click.echo(f"  {k}: {v}")
+
+
+@state.command(name="verify")
+@click.option("--live-dir", default="data/picks", type=click.Path(exists=True))
+@click.option("--snapshot", default="data/state/initial-state.json",
+              type=click.Path(exists=True))
+@click.option("--handle", default="beatthestreakbot.bsky.social")
+def state_verify(live_dir, snapshot, handle):
+    """Regenerate state to a temp dir and diff against live state.
+
+    Run periodically as a drift check. Exits 0 if clean, 1 if drift found.
+    """
+    import tempfile
+    from pathlib import Path
+    from bts.state.regenerate import regenerate
+    from bts.state.verify import diff_pick_files
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp) / "picks"
+        summary = regenerate(
+            snapshot_path=Path(snapshot),
+            bluesky_handle=handle,
+            out_picks_dir=tmp_path,
+        )
+        report = diff_pick_files(Path(live_dir), tmp_path)
+
+    if report.is_clean:
+        click.echo(f"Drift check CLEAN. {summary['snapshot_picks']} snapshot + {summary['bluesky_picks']} Bluesky picks.")
+        return
+
+    click.echo("Drift detected:", err=True)
+    for issue in report.issues:
+        click.echo(f"  - {issue}", err=True)
+    raise SystemExit(1)
