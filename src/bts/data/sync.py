@@ -273,7 +273,6 @@ def sync_from_r2(
     return manifest
 
 
-import io
 import tarfile
 
 
