@@ -752,6 +752,19 @@ def check_results(date: str, picks_dir: str):
     daily.result = "hit" if all(results) else "miss"
     save_pick(daily, picks_path)
 
+    # Check shadow pick result if shadow file exists
+    from bts.picks import load_shadow_pick, save_shadow_pick
+    shadow = load_shadow_pick(date, picks_path)
+    if shadow and shadow.result is None:
+        shadow_hit = check_hit(
+            shadow.pick.game_pk, shadow.pick.batter_id,
+            batter_name=shadow.pick.batter_name, date=date, team=shadow.pick.team,
+        )
+        if shadow_hit is not None:
+            shadow.result = "hit" if shadow_hit else "miss"
+            save_shadow_pick(shadow, picks_path)
+            click.echo(f"  Shadow: {shadow.pick.batter_name} — {'HIT' if shadow_hit else 'MISS'}")
+
     # Report
     if all(results):
         hit_names = [daily.pick.batter_name]

@@ -745,6 +745,8 @@ def run_day(
                             print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
 
                 if state.pick_locked:
+                    if shadow_model_enabled and daily:
+                        _run_shadow_prediction(config, date, daily.pick.batter_name)
                     print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
                     break
 
@@ -783,6 +785,9 @@ def run_day(
                         save_state(state, picks_dir)
                     except Exception as e:
                         print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+
+        if state.pick_locked and shadow_model_enabled and daily:
+            _run_shadow_prediction(config, date, daily.pick.batter_name)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:
