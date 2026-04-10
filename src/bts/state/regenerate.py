@@ -385,9 +385,9 @@ def compose_state_from_snapshot_and_timeline(
 
     # Streak file: prefer the timeline's final_streak, fall back to snapshot
     streak_data = {
-        "current": (timeline.final_streak
-                    if timeline.pick_records
-                    else snapshot.get("streak_at_cutoff", 0)),
+        "streak": (timeline.final_streak
+                   if timeline.pick_records
+                   else snapshot.get("streak_at_cutoff", 0)),
         "saver_available": (timeline.saver_available_at_end
                             if timeline.pick_records
                             else snapshot.get("saver_available", True)),
@@ -396,12 +396,22 @@ def compose_state_from_snapshot_and_timeline(
 
 
 def _hist_to_pick_file(hist: dict) -> dict:
-    """Convert a snapshot historical record back to a pick file shape."""
+    """Convert a snapshot historical record back to a pick file shape.
+
+    Backfills any Pick fields that may be missing from older snapshots
+    so load_pick() can construct a valid DailyPick.
+    """
+    pick = hist["pick"]
+    if pick is not None:
+        pick = _backfill_pick_fields(pick, hist["date"])
+    dd = hist.get("double_down")
+    if dd is not None:
+        dd = _backfill_pick_fields(dd, hist["date"])
     return {
         "date": hist["date"],
         "run_time": hist.get("run_time", f"{hist['date']}T12:00:00+00:00"),
-        "pick": hist["pick"],
-        "double_down": hist.get("double_down"),
+        "pick": pick,
+        "double_down": dd,
         "runner_up": None,
         "bluesky_posted": hist.get("bluesky_posted", True),
         "bluesky_uri": hist.get("bluesky_uri"),
@@ -409,36 +419,66 @@ def _hist_to_pick_file(hist: dict) -> dict:
     }
 
 
+def _backfill_pick_fields(pick: dict, date: str) -> dict:
+    """Ensure all Pick dataclass fields are present with sensible defaults."""
+    pick.setdefault("lineup_position", 0)
+    pick.setdefault("flags", [])
+    pick.setdefault("projected_lineup", False)
+    pick.setdefault("pitcher_team", None)
+    # Ensure batter_id is an int for Pick(**data) — older snapshots may have None
+    if pick.get("batter_id") is None:
+        pick["batter_id"] = 0
+    if pick.get("pitcher_name") is None:
+        pick["pitcher_name"] = "Unknown"
+    if pick.get("p_game_hit") is None:
+        pick["p_game_hit"] = 0.0
+    if pick.get("game_pk") is None:
+        pick["game_pk"] = 0
+    if pick.get("game_time") is None:
+        pick["game_time"] = f"{date}T19:00:00+00:00"
+    return pick
+
+
 def _record_to_pick_file(record: HistoricalPickRecord) -> dict:
     """Convert a regenerated HistoricalPickRecord to a pick file shape.
 
     Note: some fields (batter_id, pitcher info, p_game_hit) cannot be
-    recovered from Bluesky alone and are left as None. A follow-up
+    recovered from Bluesky alone and are left as None/0/[]. A follow-up
     pass could use the MLB API to backfill batter_id from name+team+date.
+
+    All Pick dataclass fields are included so load_pick() can construct
+    a valid DailyPick without crashing.
     """
     return {
         "date": record.date,
         "run_time": f"{record.date}T12:00:00+00:00",
         "pick": {
             "batter_name": record.batter_name,
-            "batter_id": None,
+            "batter_id": 0,
             "team": record.team,
-            "pitcher_name": None,
+            "lineup_position": 0,
+            "pitcher_name": "Unknown",
             "pitcher_id": None,
-            "game_pk": None,
-            "game_time": None,
-            "p_game_hit": None,
-            "p_hit_pa": None,
+            "p_game_hit": 0.0,
+            "flags": [],
             "projected_lineup": False,
+            "game_pk": 0,
+            "game_time": f"{record.date}T19:00:00+00:00",
+            "pitcher_team": None,
         },
         "double_down": {
             "batter_name": record.double_down_batter,
-            "batter_id": None,
-            "team": record.double_down_team,
-            "pitcher_name": None, "pitcher_id": None,
-            "game_pk": None, "game_time": None,
-            "p_game_hit": None, "p_hit_pa": None,
+            "batter_id": 0,
+            "team": record.double_down_team or "",
+            "lineup_position": 0,
+            "pitcher_name": "Unknown",
+            "pitcher_id": None,
+            "p_game_hit": 0.0,
+            "flags": [],
             "projected_lineup": False,
+            "game_pk": 0,
+            "game_time": f"{record.date}T19:00:00+00:00",
+            "pitcher_team": None,
         } if record.is_double_down else None,
         "runner_up": None,
         "bluesky_posted": True,

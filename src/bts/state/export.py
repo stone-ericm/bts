@@ -61,7 +61,7 @@ def export_initial_state(picks_dir: Path, output_path: Path) -> dict:
         "version": EXPORT_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "cutoff_date": cutoff_date,
-        "streak_at_cutoff": streak_data.get("current", 0),
+        "streak_at_cutoff": streak_data.get("streak", 0),
         "saver_available": streak_data.get("saver_available", True),
         "historical_picks": historical,
     }
@@ -92,16 +92,20 @@ def _pick_to_historical(pick_data: dict) -> dict:
 
 
 def _project_pick(pick: dict | None) -> dict | None:
-    """Extract the minimum fields to reconstruct a pick."""
+    """Extract all Pick fields so the result is loadable by load_pick()."""
     if pick is None:
         return None
     return {
         "batter_name": pick["batter_name"],
         "batter_id": pick["batter_id"],
         "team": pick["team"],
+        "lineup_position": pick.get("lineup_position", 0),
         "pitcher_name": pick["pitcher_name"],
-        "pitcher_id": pick["pitcher_id"],
+        "pitcher_id": pick.get("pitcher_id"),
+        "p_game_hit": pick["p_game_hit"],
+        "flags": pick.get("flags", []),
+        "projected_lineup": pick.get("projected_lineup", False),
         "game_pk": pick["game_pk"],
         "game_time": pick["game_time"],
-        "p_game_hit": pick["p_game_hit"],
+        "pitcher_team": pick.get("pitcher_team"),
     }

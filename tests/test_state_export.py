@@ -50,7 +50,7 @@ def test_export_refuses_when_unresolved(tmp_path: Path):
     _write_pick(picks_dir, "2026-04-02", None)  # Unresolved
     _write_pick(picks_dir, "2026-04-03", "hit")
 
-    (picks_dir / "streak.json").write_text('{"current": 2, "saver_available": true}')
+    (picks_dir / "streak.json").write_text('{"streak": 2, "saver_available": true}')
 
     out_path = tmp_path / "initial-state.json"
     with pytest.raises(UnresolvedPickError, match="2026-04-02"):
@@ -63,7 +63,7 @@ def test_export_succeeds_when_all_resolved(tmp_path: Path):
     _write_pick(picks_dir, "2026-04-01", "hit")
     _write_pick(picks_dir, "2026-04-02", "miss")
     _write_pick(picks_dir, "2026-04-03", "hit")
-    (picks_dir / "streak.json").write_text('{"current": 1, "saver_available": true}')
+    (picks_dir / "streak.json").write_text('{"streak": 1, "saver_available": true}')
 
     out_path = tmp_path / "initial-state.json"
     export_initial_state(picks_dir=picks_dir, output_path=out_path)
@@ -81,7 +81,7 @@ def test_export_excludes_non_date_files(tmp_path: Path):
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
     _write_pick(picks_dir, "2026-04-01", "hit")
-    (picks_dir / "streak.json").write_text('{"current": 1, "saver_available": false}')
+    (picks_dir / "streak.json").write_text('{"streak": 1, "saver_available": false}')
     (picks_dir / "notes.txt").write_text("not a pick")
     (picks_dir / "orchestrator.log").write_text("log data")
 
@@ -97,7 +97,7 @@ def test_export_includes_bluesky_uri(tmp_path: Path):
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
     _write_pick(picks_dir, "2026-04-01", "hit")
-    (picks_dir / "streak.json").write_text('{"current": 1, "saver_available": false}')
+    (picks_dir / "streak.json").write_text('{"streak": 1, "saver_available": false}')
 
     out_path = tmp_path / "initial-state.json"
     export_initial_state(picks_dir=picks_dir, output_path=out_path)

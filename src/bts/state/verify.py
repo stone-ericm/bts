@@ -64,10 +64,15 @@ def diff_pick_files(live_dir: Path, regenerated_dir: Path) -> DriftReport:
     try:
         live_streak = json.loads((live_dir / "streak.json").read_text())
         regen_streak = json.loads((regenerated_dir / "streak.json").read_text())
-        if live_streak.get("current") != regen_streak.get("current"):
+        if live_streak.get("streak") != regen_streak.get("streak"):
             report.issues.append(
-                f"streak mismatch: live={live_streak.get('current')}, "
-                f"regen={regen_streak.get('current')}"
+                f"streak mismatch: live={live_streak.get('streak')}, "
+                f"regen={regen_streak.get('streak')}"
+            )
+        if live_streak.get("saver_available") != regen_streak.get("saver_available"):
+            report.issues.append(
+                f"saver_available mismatch: live={live_streak.get('saver_available')}, "
+                f"regen={regen_streak.get('saver_available')}"
             )
     except FileNotFoundError as e:
         report.issues.append(f"streak file missing: {e}")

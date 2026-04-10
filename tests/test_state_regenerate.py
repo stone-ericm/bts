@@ -300,5 +300,135 @@ def test_regenerate_composes_snapshot_and_bluesky(tmp_path: Path):
 
     # Streak file
     streak = json.loads((out_dir / "streak.json").read_text())
-    assert streak["current"] == 6
+    assert streak["streak"] == 6
     assert streak["saver_available"] is True
+
+
+def test_regenerated_pick_files_are_loadable_by_load_pick(tmp_path: Path):
+    """Integration test: regenerated files must work with load_pick().
+
+    Both snapshot-originated (pre-cutoff) and Bluesky-originated (post-cutoff)
+    pick files must be parseable into a valid DailyPick with Pick sub-objects.
+    """
+    from bts.picks import load_pick
+    from bts.state.regenerate import compose_state_from_snapshot_and_timeline
+
+    snapshot = {
+        "version": 1,
+        "cutoff_date": "2026-04-01",
+        "streak_at_cutoff": 1,
+        "saver_available": True,
+        "historical_picks": [{
+            "date": "2026-04-01",
+            "pick": {
+                "batter_name": "Snapshot Batter",
+                "batter_id": 100,
+                "team": "NYY",
+                "lineup_position": 3,
+                "pitcher_name": "Pitcher",
+                "pitcher_id": 200,
+                "p_game_hit": 0.85,
+                "flags": [],
+                "projected_lineup": False,
+                "game_pk": 999,
+                "game_time": "2026-04-01T19:05:00-04:00",
+                "pitcher_team": "BOS",
+            },
+            "double_down": None,
+            "result": "hit",
+            "bluesky_posted": True,
+            "bluesky_uri": "at://test/snapshot-post",
+        }],
+    }
+    snapshot_path = tmp_path / "snapshot.json"
+    snapshot_path.write_text(json.dumps(snapshot))
+
+    # Post-cutoff: Bluesky-originated pick (minimal info)
+    timeline = Timeline(
+        pick_records=[
+            HistoricalPickRecord(
+                date="2026-04-02",
+                batter_name="Bluesky Batter",
+                team="CHC",
+                is_double_down=False,
+                double_down_batter=None,
+                double_down_team=None,
+                bluesky_uri="at://test/bluesky-post",
+                result="hit",
+                streak_after=2,
+            ),
+        ],
+        final_streak=2,
+        saver_available_at_end=True,
+    )
+
+    out_dir = tmp_path / "picks"
+    compose_state_from_snapshot_and_timeline(
+        snapshot_path=snapshot_path,
+        timeline=timeline,
+        out_picks_dir=out_dir,
+    )
+
+    # Snapshot-originated pick: load_pick must not crash
+    snap_pick = load_pick("2026-04-01", out_dir)
+    assert snap_pick is not None
+    assert snap_pick.pick.batter_name == "Snapshot Batter"
+    assert snap_pick.pick.lineup_position == 3
+    assert snap_pick.pick.pitcher_team == "BOS"
+
+    # Bluesky-originated pick: load_pick must not crash
+    bs_pick = load_pick("2026-04-02", out_dir)
+    assert bs_pick is not None
+    assert bs_pick.pick.batter_name == "Bluesky Batter"
+    assert bs_pick.pick.team == "CHC"
+    assert bs_pick.pick.lineup_position == 0  # backfilled default
+    assert bs_pick.pick.flags == []
+    assert bs_pick.result == "hit"
+
+
+def test_regenerated_snapshot_without_new_fields_still_loadable(tmp_path: Path):
+    """Older snapshots missing lineup_position/flags/pitcher_team are backfilled."""
+    from bts.picks import load_pick
+    from bts.state.regenerate import compose_state_from_snapshot_and_timeline
+
+    # Snapshot with a pick missing the newer fields
+    snapshot = {
+        "version": 1,
+        "cutoff_date": "2026-04-01",
+        "streak_at_cutoff": 1,
+        "saver_available": True,
+        "historical_picks": [{
+            "date": "2026-04-01",
+            "pick": {
+                "batter_name": "Legacy Batter",
+                "batter_id": 100,
+                "team": "NYY",
+                "pitcher_name": "Pitcher",
+                "pitcher_id": 200,
+                "game_pk": 999,
+                "game_time": "2026-04-01T19:05:00-04:00",
+                "p_game_hit": 0.85,
+                # No lineup_position, flags, projected_lineup, pitcher_team
+            },
+            "double_down": None,
+            "result": "hit",
+            "bluesky_posted": True,
+            "bluesky_uri": "at://test/old-post",
+        }],
+    }
+    snapshot_path = tmp_path / "snapshot.json"
+    snapshot_path.write_text(json.dumps(snapshot))
+
+    out_dir = tmp_path / "picks"
+    compose_state_from_snapshot_and_timeline(
+        snapshot_path=snapshot_path,
+        timeline=Timeline(),
+        out_picks_dir=out_dir,
+    )
+
+    pick = load_pick("2026-04-01", out_dir)
+    assert pick is not None
+    assert pick.pick.batter_name == "Legacy Batter"
+    assert pick.pick.lineup_position == 0
+    assert pick.pick.flags == []
+    assert pick.pick.pitcher_team is None
