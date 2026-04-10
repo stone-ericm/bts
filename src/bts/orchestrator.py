@@ -73,6 +73,39 @@ def ssh_predict(
     return pd.DataFrame(data)
 
 
+def predict_local(
+    date: str,
+    data_dir: str = "data/processed",
+    models_dir: str = "data/models",
+) -> pd.DataFrame | None:
+    """Run predictions locally in-process (no SSH cascade).
+
+    Used when the scheduler runs on the same machine as the data and models
+    (i.e., on the Fly cloud VM). Returns None on any failure, matching
+    ssh_predict's contract.
+    """
+    from bts.model.predict import run_pipeline, load_blend
+    from pathlib import Path
+
+    models_path = Path(models_dir)
+    cache_path = models_path / f"blend_{date}.pkl"
+    cached_blend = None
+    if cache_path.exists():
+        print(f"  [local] Loading cached model from {cache_path}", file=sys.stderr)
+        cached_blend = load_blend(cache_path)
+
+    try:
+        predictions = run_pipeline(
+            date, data_dir,
+            cached_blend=cached_blend,
+            save_blend_path=cache_path if not cached_blend else None,
+        )
+        return predictions
+    except Exception as e:
+        print(f"  [local] Prediction failed: {e}", file=sys.stderr)
+        return None
+
+
 def run_cascade(
     tiers: list[dict],
     date: str,
@@ -83,14 +116,23 @@ def run_cascade(
     """
     for tier in tiers:
         name = tier["name"]
-        print(f"Trying {name}...", file=sys.stderr)
-        df = ssh_predict(
-            tier["ssh_host"],
-            tier["bts_dir"],
-            date,
-            timeout_sec=tier["timeout_min"] * 60,
-            platform=tier.get("platform", "unix"),
-        )
+        tier_type = tier.get("type", "ssh")  # Default ssh for backward compat
+        print(f"Trying {name} ({tier_type})...", file=sys.stderr)
+
+        if tier_type == "local":
+            df = predict_local(date=date)
+        elif tier_type == "ssh":
+            df = ssh_predict(
+                tier["ssh_host"],
+                tier["bts_dir"],
+                date,
+                timeout_sec=tier["timeout_min"] * 60,
+                platform=tier.get("platform", "unix"),
+            )
+        else:
+            print(f"  [{name}] Unknown tier type: {tier_type}", file=sys.stderr)
+            continue
+
         if df is not None:
             print(f"  [{name}] Success — {len(df)} predictions", file=sys.stderr)
             return df, name
