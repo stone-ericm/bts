@@ -106,6 +106,42 @@ def predict_local(
         return None
 
 
+def predict_local_shadow(
+    date: str,
+    data_dir: str = "data/processed",
+    models_dir: str = "data/models",
+) -> pd.DataFrame | None:
+    """Run shadow predictions locally with context_stack features.
+
+    Same as predict_local but uses FEATURE_COLS + CONTEXT_COLS.
+    Gets its own model cache (blend_{date}_shadow.pkl).
+    """
+    from bts.model.predict import run_pipeline, load_blend
+    from bts.features.compute import FEATURE_COLS, CONTEXT_COLS
+    from pathlib import Path
+
+    shadow_cols = FEATURE_COLS + CONTEXT_COLS
+    models_path = Path(models_dir)
+    cache_path = models_path / f"blend_{date}_shadow.pkl"
+    cached_blend = None
+    if cache_path.exists():
+        print(f"  [shadow] Loading cached shadow model from {cache_path}", file=sys.stderr)
+        cached_blend = load_blend(cache_path)
+
+    try:
+        predictions = run_pipeline(
+            date, data_dir,
+            cached_blend=cached_blend,
+            save_blend_path=cache_path if not cached_blend else None,
+            refresh_data=False,  # data already refreshed by production run
+            feature_cols_override=shadow_cols,
+        )
+        return predictions
+    except Exception as e:
+        print(f"  [shadow] Shadow prediction failed: {e}", file=sys.stderr)
+        return None
+
+
 def run_cascade(
     tiers: list[dict],
     date: str,

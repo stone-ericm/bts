@@ -16,6 +16,9 @@ from zoneinfo import ZoneInfo
 from bts.util import retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState
+from bts.orchestrator import predict_local_shadow
+from bts.picks import save_shadow_pick
+from bts.strategy import select_pick
 
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
@@ -301,6 +304,36 @@ def run_single_check(
             "pick_name": pick.batter_name, "pick_p": pick.p_game_hit}
 
 
+def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -> None:
+    """Run shadow model prediction and save result. Never raises."""
+    from bts.picks import load_streak
+
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+
+    try:
+        predictions = predict_local_shadow(date)
+        if predictions is None:
+            print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
+            return
+
+        streak = load_streak(picks_dir)
+        result = select_pick(predictions, date, picks_dir, streak=streak)
+        if result is None or result.daily is None:
+            print("  [SHADOW MODEL] Skip (below threshold).", file=sys.stderr)
+            return
+
+        save_shadow_pick(result.daily, picks_dir)
+        shadow_name = result.daily.pick.batter_name
+        shadow_team = result.daily.pick.team
+        shadow_p = result.daily.pick.p_game_hit
+        agreed = shadow_name == production_pick_name
+        tag = "AGREES" if agreed else f"DISAGREES (prod: {production_pick_name})"
+        print(f"  [SHADOW MODEL] {shadow_name} ({shadow_team}) "
+              f"{shadow_p:.1%} — {tag}", file=sys.stderr)
+    except Exception as e:
+        print(f"  [SHADOW MODEL] Failed: {e}", file=sys.stderr)
+
+
 def poll_game_result(game_pk: int) -> str:
     """Check a game's current status.
 
@@ -505,6 +538,9 @@ def run_day(
     shadow_mode = sched_config.get("shadow_mode", False)
     if shadow_mode:
         print("  [SHADOW MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
+    shadow_model_enabled = sched_config.get("shadow_model", False)
+    if shadow_model_enabled:
+        print("  [SHADOW MODEL] Context stack shadow model enabled.", file=sys.stderr)
     offset_min = sched_config.get("lineup_check_offset_min", 45)
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
@@ -641,6 +677,10 @@ def run_day(
                     print(f"  Bluesky post failed: {e}", file=sys.stderr)
 
         if state.pick_locked:
+            # Run shadow model if enabled (after production pick is resolved)
+            if shadow_model_enabled and result.get("pick_result") and result["pick_result"].daily:
+                prod_name = result["pick_result"].daily.pick.batter_name
+                _run_shadow_prediction(config, date, prod_name)
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
             break
 
