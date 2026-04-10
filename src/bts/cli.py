@@ -796,6 +796,85 @@ def reconcile(picks_dir: str, lookback: int):
         click.echo(f"Streak recalculated: {streak}")
 
 
+@cli.command(name="shadow-report")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+def shadow_report(picks_dir: str):
+    """Compare shadow model picks against production picks.
+
+    Reads {date}.json and {date}.shadow.json pairs from the picks directory.
+    Reports agreement rate, disagreement details, and P@1 for both models.
+    """
+    import json as _json
+    from pathlib import Path
+
+    picks_path = Path(picks_dir)
+    shadow_files = sorted(picks_path.glob("*.shadow.json"))
+
+    if not shadow_files:
+        click.echo("No shadow pick pairs found.")
+        return
+
+    pairs = []
+    for sf in shadow_files:
+        date = sf.name.replace(".shadow.json", "")
+        prod_file = picks_path / f"{date}.json"
+        if not prod_file.exists():
+            continue
+        prod = _json.loads(prod_file.read_text())
+        shadow = _json.loads(sf.read_text())
+        pairs.append((date, prod, shadow))
+
+    if not pairs:
+        click.echo("No shadow pick pairs found (shadow files exist but no matching production files).")
+        return
+
+    agrees = 0
+    disagrees = []
+    prod_hits = 0
+    shadow_hits = 0
+    resolved = 0
+
+    for date, prod, shadow in pairs:
+        prod_name = prod["pick"]["batter_name"]
+        shadow_name = shadow["pick"]["batter_name"]
+        prod_result = prod.get("result")
+
+        if prod_name == shadow_name:
+            agrees += 1
+        else:
+            disagrees.append((date, prod_name, prod.get("pick", {}).get("p_game_hit"),
+                              shadow_name, shadow.get("pick", {}).get("p_game_hit"),
+                              prod_result))
+
+        if prod_result in ("hit", "miss"):
+            resolved += 1
+            if prod_result == "hit":
+                prod_hits += 1
+            if prod_name == shadow_name:
+                if prod_result == "hit":
+                    shadow_hits += 1
+
+    total = len(pairs)
+    pct = agrees / total * 100
+
+    click.echo(f"Shadow Model Report ({total} days, {30 - total} remaining to threshold)")
+    click.echo(f"{'='*60}")
+    click.echo(f"Agreement rate: {agrees}/{total} ({pct:.1f}%)")
+    if resolved > 0:
+        click.echo(f"Production P@1: {prod_hits}/{resolved} ({prod_hits/resolved*100:.1f}%)")
+    click.echo()
+
+    if disagrees:
+        click.echo(f"Disagreements ({len(disagrees)} days):")
+        click.echo(f"{'Date':<12} {'Production':<20} {'Shadow':<20} {'Result'}")
+        click.echo(f"{'-'*12} {'-'*20} {'-'*20} {'-'*8}")
+        for date, pn, pp, sn, sp, res in disagrees:
+            pp_str = f"{pp:.1%}" if pp else "?"
+            sp_str = f"{sp:.1%}" if sp else "?"
+            res_str = res or "pending"
+            click.echo(f"{date:<12} {pn:<15} {pp_str:<4}  {sn:<15} {sp_str:<4}  {res_str}")
+
+
 @cli.group()
 def state():
     """State management: export / regenerate / verify BTS state."""
