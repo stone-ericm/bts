@@ -27,13 +27,18 @@ WORKDIR /app
 
 # Copy dependency files first for caching
 COPY pyproject.toml uv.lock ./
+# Install deps only (skip local package — src/ not copied yet)
 RUN --mount=type=cache,target=/tmp/uv-cache \
-    UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model --frozen --no-dev --no-editable
+    UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model --frozen --no-dev --no-editable --no-install-project
 
 # Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
 COPY scripts/fly-entrypoint.sh scripts/fly-cron-loop.sh scripts/fly-bootstrap.sh ./scripts/
+
+# Now install the local package (deps already cached from above)
+RUN --mount=type=cache,target=/tmp/uv-cache \
+    UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model --frozen --no-dev --no-editable
 
 RUN chmod +x scripts/fly-entrypoint.sh scripts/fly-cron-loop.sh scripts/fly-bootstrap.sh
 
