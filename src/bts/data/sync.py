@@ -194,6 +194,11 @@ def sync_to_r2(
     if lookup.exists():
         process_file(lookup, "models/probable_pitcher_lookup.json")
 
+    # MDP policy (optional — strategy falls back to heuristic without it)
+    mdp_policy = models_dir / "mdp_policy.npz"
+    if mdp_policy.exists():
+        process_file(mdp_policy, "models/mdp_policy.npz")
+
     # Safety guard: never silently wipe the manifest. If the new manifest
     # has fewer than half the files the prior manifest had, something is
     # wrong (wrong CWD, failed build, accidental rm). Refuse unless the

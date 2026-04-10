@@ -192,7 +192,14 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # --- Batter Statcast batted ball features (date-level) ---
-    df["is_barrel"] = df.apply(lambda r: _is_barrel(r["launch_speed"], r["launch_angle"]), axis=1)
+    # Vectorized barrel classification — avoids df.apply(axis=1) which is
+    # catastrophically slow on 1.5M rows (30+ min on cloud VMs).
+    ev = df["launch_speed"]
+    la = df["launch_angle"]
+    bonus = (np.minimum(ev, 116) - 98) * 2
+    la_min = np.maximum(8.0, 26.0 - bonus)
+    la_max = np.minimum(50.0, 30.0 + bonus)
+    df["is_barrel"] = ev.notna() & la.notna() & (ev >= 98) & (la >= la_min) & (la <= la_max)
     df["is_hard_hit"] = df["launch_speed"].notna() & (df["launch_speed"] >= 95)
     df["is_sweet_spot"] = df["launch_angle"].notna() & (df["launch_angle"] >= 8) & (df["launch_angle"] <= 32)
     df["has_batted_ball"] = df["launch_speed"].notna()
@@ -292,8 +299,12 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     df["pa_avg_velo"] = pd.to_numeric(df["pitch_speeds"].apply(_mean_of_list), errors="coerce")
     df["pa_avg_spin"] = pd.to_numeric(df["pitch_spin_rates"].apply(_mean_of_list), errors="coerce")
     df["pa_avg_extension"] = pd.to_numeric(df["pitch_extensions"].apply(_mean_of_list), errors="coerce")
-    df["pa_total_break"] = pd.to_numeric(df.apply(
-        lambda r: _total_break(r.get("pitch_break_vertical", []), r.get("pitch_break_horizontal", [])), axis=1
+    # List comprehension over zipped columns is ~5-10x faster than
+    # df.apply(axis=1) which creates a Series per row.
+    df["pa_total_break"] = pd.to_numeric(pd.Series(
+        [_total_break(v, h) for v, h in zip(
+            df["pitch_break_vertical"].values, df["pitch_break_horizontal"].values)],
+        index=df.index,
     ), errors="coerce")
 
     date_pitch_stats = df.groupby(["pitcher_id", "date"]).agg(
@@ -387,13 +398,6 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     # Probable pitcher data comes from raw game feeds.
     probable_pitchers = _build_probable_pitcher_lookup()
     if probable_pitchers:
-        # Determine pitcher's team: if batter is_home, pitcher is away team
-        df["_probable_pid"] = df["game_pk"].map(
-            lambda pk: probable_pitchers.get(pk, {}).get("away")
-            if not df.loc[df["game_pk"] == pk, "is_home"].iloc[0]
-            else probable_pitchers.get(pk, {}).get("home")
-            if pk in probable_pitchers else None
-        )
         # Vectorized: build per-row probable pitcher ID
         away_prob = df["game_pk"].map(lambda pk: probable_pitchers.get(pk, {}).get("away"))
         home_prob = df["game_pk"].map(lambda pk: probable_pitchers.get(pk, {}).get("home"))
