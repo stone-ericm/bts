@@ -49,3 +49,4 @@ primary_region = "iad"
 
 [deploy]
   strategy = "immediate"
+# Fly app: bts-mlb
