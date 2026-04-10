@@ -285,12 +285,16 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # --- Pitcher Statcast features (date-level) ---
-    df["pa_avg_velo"] = df["pitch_speeds"].apply(_mean_of_list)
-    df["pa_avg_spin"] = df["pitch_spin_rates"].apply(_mean_of_list)
-    df["pa_avg_extension"] = df["pitch_extensions"].apply(_mean_of_list)
-    df["pa_total_break"] = df.apply(
+    # Force float64 dtype on computed per-PA stats. When pyarrow reads nested
+    # list columns (pitch_speeds, etc.) with mixed None/array values, pandas
+    # may infer object dtype from .apply() even though all results are numeric.
+    # LightGBM rejects object-dtype columns, so we coerce here defensively.
+    df["pa_avg_velo"] = pd.to_numeric(df["pitch_speeds"].apply(_mean_of_list), errors="coerce")
+    df["pa_avg_spin"] = pd.to_numeric(df["pitch_spin_rates"].apply(_mean_of_list), errors="coerce")
+    df["pa_avg_extension"] = pd.to_numeric(df["pitch_extensions"].apply(_mean_of_list), errors="coerce")
+    df["pa_total_break"] = pd.to_numeric(df.apply(
         lambda r: _total_break(r.get("pitch_break_vertical", []), r.get("pitch_break_horizontal", [])), axis=1
-    )
+    ), errors="coerce")
 
     date_pitch_stats = df.groupby(["pitcher_id", "date"]).agg(
         avg_velo=("pa_avg_velo", "mean"),
