@@ -506,6 +506,8 @@ def run_day(
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
     early_lock_gap = sched_config.get("early_lock_gap", 0.03)
+    fallback_deadline_min = sched_config.get("fallback_deadline_min", 15)
+    missed_pick_alert_min = sched_config.get("missed_pick_alert_min", 10)
     poll_interval_min = sched_config.get("results_poll_interval_min", 15)
     cap_hour_et = sched_config.get("results_cap_hour_et", 5)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -636,7 +638,7 @@ def run_day(
             pick_game_et = datetime.fromisoformat(
                 result["pick_result"].daily.pick.game_time
             ).astimezone(ET)
-            fallback_deadline = pick_game_et - timedelta(minutes=15)
+            fallback_deadline = pick_game_et - timedelta(minutes=fallback_deadline_min)
             now = _now_et()
 
             # Is there a later check that fires before the deadline?
@@ -696,8 +698,8 @@ def run_day(
             game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
             now = _now_et()
             mins_to_game = (game_et - now).total_seconds() / 60
-            if mins_to_game <= 15:
-                print(f"  FALLBACK — 15min to first pitch, posting on projected data.",
+            if mins_to_game <= fallback_deadline_min:
+                print(f"  FALLBACK — {fallback_deadline_min}min to first pitch, posting on projected data.",
                       file=sys.stderr)
                 streak = load_streak(picks_dir)
                 text = format_post(
