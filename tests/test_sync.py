@@ -1,4 +1,5 @@
 """Tests for R2 sync module using moto to mock S3."""
+import hashlib
 import json
 import os
 
@@ -24,6 +25,7 @@ from bts.data.sync import (
     read_manifest,
     write_manifest_atomic,
     DEFAULT_MANIFEST_KEY,
+    now_iso,
 )
 
 
@@ -160,3 +162,95 @@ def test_sync_to_r2_skips_unchanged_files(mock_bucket, tmp_path, monkeypatch):
     # Second sync with no changes should preserve original uploaded_at
     manifest2 = sync_to_r2(client=client, processed_dir=processed_dir, models_dir=models_dir)
     assert manifest2["files"]["parquets/pa_2026.parquet"]["uploaded_at"] == first_uploaded_at
+
+
+def test_sync_from_r2_downloads_and_verifies_checksums(mock_bucket, tmp_path):
+    # Populate R2 with a known parquet and a manifest
+    client = R2Client.from_env()
+    processed_dir = tmp_path / "processed"
+    models_dir = tmp_path / "models"
+    processed_dir.mkdir()
+    models_dir.mkdir()
+
+    # Upload directly via mock_bucket to avoid using sync_to_r2
+    fake_parquet = b"fake-parquet-bytes"
+    expected_sha = hashlib.sha256(fake_parquet).hexdigest()
+    mock_bucket.put_object(
+        Bucket="test-bucket",
+        Key="parquets/pa_2026.parquet",
+        Body=fake_parquet,
+    )
+
+    manifest = {
+        "version": 1,
+        "updated_at": now_iso(),
+        "updated_by": "test",
+        "git_sha": "abc",
+        "git_branch": "main",
+        "schema_version": "must-match",
+        "files": {
+            "parquets/pa_2026.parquet": {
+                "sha256": expected_sha,
+                "size": len(fake_parquet),
+                "uploaded_at": now_iso(),
+            },
+        },
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json", Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import sync_from_r2
+    sync_from_r2(
+        client=client,
+        processed_dir=processed_dir,
+        models_dir=models_dir,
+        expected_schema_version="must-match",
+    )
+
+    downloaded = processed_dir / "pa_2026.parquet"
+    assert downloaded.exists()
+    assert downloaded.read_bytes() == fake_parquet
+
+
+def test_sync_from_r2_rejects_schema_version_mismatch(mock_bucket, tmp_path):
+    client = R2Client.from_env()
+
+    manifest = {
+        "version": 1,
+        "schema_version": "old-version",
+        "git_sha": "xyz",
+        "git_branch": "main",
+        "files": {},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json", Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import sync_from_r2
+
+    with pytest.raises(RuntimeError, match="Schema version mismatch"):
+        sync_from_r2(
+            client=client,
+            processed_dir=tmp_path / "p",
+            models_dir=tmp_path / "m",
+            expected_schema_version="new-version",
+        )
+
+
+def test_sync_from_r2_rejects_non_main_branch(mock_bucket, tmp_path):
+    client = R2Client.from_env()
+
+    manifest = {
+        "version": 1,
+        "schema_version": "ok",
+        "git_sha": "xyz",
+        "git_branch": "feature/experiment",
+        "files": {},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json", Body=json.dumps(manifest).encode())
+
+    from bts.data.sync import sync_from_r2
+    with pytest.raises(RuntimeError, match="not on main branch"):
+        sync_from_r2(
+            client=client,
+            processed_dir=tmp_path / "p",
+            models_dir=tmp_path / "m",
+            expected_schema_version="ok",
+        )

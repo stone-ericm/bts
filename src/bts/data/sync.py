@@ -205,3 +205,69 @@ def sync_to_r2(
     }
     write_manifest_atomic(client, new_manifest)
     return new_manifest
+
+
+def sync_from_r2(
+    client: R2Client,
+    processed_dir: Path,
+    models_dir: Path,
+    expected_schema_version: Optional[str] = None,
+) -> dict:
+    """Download files from R2 whose local hash differs from the manifest.
+
+    Verifies pre- and post-download:
+    - Manifest branch must be 'main' (refuses to load experiment data)
+    - Manifest schema_version must match expected (refuses on drift)
+    - Every downloaded file must match its declared SHA-256
+
+    Returns the manifest that was used.
+    """
+    from bts.data.schema import SCHEMA_VERSION
+
+    manifest = read_manifest(client)
+    if manifest is None:
+        raise RuntimeError("R2 manifest.json not found — nothing to sync")
+
+    if manifest.get("git_branch") != "main":
+        raise RuntimeError(
+            f"R2 manifest is from branch '{manifest.get('git_branch')}', "
+            f"not on main branch. Refusing to sync experiment data."
+        )
+
+    expected = expected_schema_version or SCHEMA_VERSION
+    if manifest.get("schema_version") != expected:
+        raise RuntimeError(
+            f"Schema version mismatch: worker expects {expected}, "
+            f"R2 manifest has {manifest.get('schema_version')}. "
+            f"The producer at git_sha {manifest.get('git_sha', 'unknown')} is "
+            f"out of sync with the current code. Fix: on the producer, run "
+            f"'bts data build && bts data sync-to-r2'."
+        )
+
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    for key, meta in manifest["files"].items():
+        if key.startswith("parquets/"):
+            dest = processed_dir / key[len("parquets/"):]
+        elif key.startswith("models/"):
+            dest = models_dir / key[len("models/"):]
+        else:
+            print(f"  skip unknown key {key}", file=sys.stderr)
+            continue
+
+        if dest.exists() and sha256_file(dest) == meta["sha256"]:
+            print(f"  skip {key} (already local)", file=sys.stderr)
+            continue
+
+        print(f"  download {key} ({meta['size'] / 1e6:.1f} MB)", file=sys.stderr)
+        client.download_file(key=key, dest=dest)
+
+        actual = sha256_file(dest)
+        if actual != meta["sha256"]:
+            dest.unlink()
+            raise RuntimeError(
+                f"Checksum mismatch for {key}: expected {meta['sha256']}, got {actual}"
+            )
+
+    return manifest
