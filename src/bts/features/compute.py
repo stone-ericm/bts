@@ -438,6 +438,71 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df["opp_bullpen_hr_30g"] = np.nan
 
+    # --- Context features (4) — always computed, used by shadow model ---
+
+    # Umpire hit rate: rolling 30-day hit rate per home-plate umpire
+    if "hp_umpire_id" in df.columns:
+        ump_daily = df.groupby(["hp_umpire_id", "date"]).agg(
+            ump_hits=("is_hit", "sum"), ump_pas=("is_hit", "count"),
+        ).reset_index().sort_values(["hp_umpire_id", "date"])
+        ump_daily["ump_hr"] = ump_daily["ump_hits"] / ump_daily["ump_pas"]
+        ump_daily["ump_hr_30g"] = (
+            ump_daily.groupby("hp_umpire_id")["ump_hr"]
+            .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
+        )
+        df = df.merge(
+            ump_daily[["hp_umpire_id", "date", "ump_hr_30g"]]
+            .drop_duplicates(subset=["hp_umpire_id", "date"]),
+            on=["hp_umpire_id", "date"], how="left",
+        )
+    else:
+        df["ump_hr_30g"] = np.nan
+
+    # Wind vector: signed scalar (positive = blowing out to CF, helps hitters)
+    if "weather_wind_dir" in df.columns and "weather_wind_speed" in df.columns:
+        direction = df["weather_wind_dir"].astype(str).str.lower()
+        speed = pd.to_numeric(df["weather_wind_speed"], errors="coerce").fillna(0)
+        direction_score = np.where(
+            direction.str.contains("out to cf|out to center"), 1.0,
+            np.where(
+                direction.str.contains("in from cf|in from center"), -1.0,
+                np.where(
+                    direction.str.contains("out to lf|out to l f|out to rf|out to r f"), 0.5,
+                    np.where(
+                        direction.str.contains("in from lf|in from rf"), -0.5,
+                        0.0,
+                    ),
+                ),
+            ),
+        )
+        df["wind_out_cf"] = direction_score * speed
+    else:
+        df["wind_out_cf"] = np.nan
+
+    # Batter hard-contact rate: rolling 30-day from categorical hardness column
+    if "hardness" in df.columns:
+        is_hard = (df["hardness"].astype(str).str.lower() == "hard").astype(float)
+        is_hard = is_hard.where(df["hardness"].notna(), np.nan)
+        df["_is_hard"] = is_hard
+        df = df.sort_values(["batter_id", "date"])
+        df["batter_hard_contact_30g"] = (
+            df.groupby("batter_id")["_is_hard"]
+            .rolling(window=120, min_periods=10)
+            .mean()
+            .reset_index(level=0, drop=True)
+            .shift(1)
+        )
+        df.drop(columns=["_is_hard"], inplace=True)
+    else:
+        df["batter_hard_contact_30g"] = np.nan
+
+    # Indoor flag: binary for dome/closed/retractable roofs
+    if "roof_type" in df.columns:
+        rt = df["roof_type"].astype(str).str.lower()
+        df["is_indoor"] = rt.isin(["dome", "closed", "retractable"]).astype(int)
+    else:
+        df["is_indoor"] = 0
+
     # === Merge everything back to PA level ===
 
     # Batter date-level features → PA level (one-to-many: date → PAs on that date)
@@ -525,6 +590,16 @@ FEATURE_COLS = [
     "weather_temp",
     "park_factor",
     "days_rest",
+]
+
+# Context features (4) — computed alongside baseline features but only used
+# by the shadow model (via feature_cols_override). Graduates to FEATURE_COLS
+# after 30-day shadow validation.
+CONTEXT_COLS = [
+    "ump_hr_30g",
+    "wind_out_cf",
+    "batter_hard_contact_30g",
+    "is_indoor",
 ]
 
 # Statcast features (9) — computed from game feed pitchData/hitData.
