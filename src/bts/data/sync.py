@@ -135,3 +135,73 @@ def _current_git_branch() -> str:
         ).decode().strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
+
+
+def sync_to_r2(
+    client: R2Client,
+    processed_dir: Path,
+    models_dir: Path,
+) -> dict:
+    """Upload changed local files to R2 and write an updated manifest.
+
+    Compares SHA-256 of each eligible local file against the current
+    manifest's entry. Only files whose hash differs are uploaded.
+    Unchanged files keep their original uploaded_at timestamp.
+    Writes the manifest last, atomically (tmp + copy + delete).
+
+    Eligible files:
+    - data/processed/pa_*.parquet
+    - data/models/probable_pitcher_lookup.json (if present)
+
+    Returns the new manifest (the exact one written to R2).
+    """
+    from bts.data.schema import SCHEMA_VERSION
+
+    current_manifest = read_manifest(client) or {"files": {}}
+
+    new_files: dict[str, dict] = {}
+
+    def process_file(local_path: Path, key: str):
+        if not local_path.exists():
+            return
+        local_sha = sha256_file(local_path)
+        size = local_path.stat().st_size
+        prior = current_manifest["files"].get(key)
+
+        if prior and prior.get("sha256") == local_sha:
+            # Unchanged — keep original uploaded_at for accurate age tracking
+            new_files[key] = {
+                "sha256": local_sha,
+                "size": size,
+                "uploaded_at": prior["uploaded_at"],
+            }
+            print(f"  skip {key} (unchanged)", file=sys.stderr)
+        else:
+            print(f"  upload {key} ({size / 1e6:.1f} MB)", file=sys.stderr)
+            client.upload_file(local_path, key)
+            new_files[key] = {
+                "sha256": local_sha,
+                "size": size,
+                "uploaded_at": now_iso(),
+            }
+
+    # Parquets
+    for parquet in sorted(processed_dir.glob("pa_*.parquet")):
+        process_file(parquet, f"parquets/{parquet.name}")
+
+    # Probable pitcher lookup (optional)
+    lookup = models_dir / "probable_pitcher_lookup.json"
+    if lookup.exists():
+        process_file(lookup, "models/probable_pitcher_lookup.json")
+
+    new_manifest = {
+        "version": MANIFEST_VERSION,
+        "updated_at": now_iso(),
+        "updated_by": socket.gethostname(),
+        "git_sha": _current_git_sha(),
+        "git_branch": _current_git_branch(),
+        "schema_version": SCHEMA_VERSION,
+        "files": new_files,
+    }
+    write_manifest_atomic(client, new_manifest)
+    return new_manifest

@@ -107,3 +107,56 @@ def test_write_manifest_atomic_cleans_up_tmp(mock_bucket, tmp_path):
     keys = {obj["Key"] for obj in objs.get("Contents", [])}
     assert DEFAULT_MANIFEST_KEY in keys
     assert f"{DEFAULT_MANIFEST_KEY}.tmp" not in keys
+
+
+def test_sync_to_r2_uploads_parquets_and_writes_manifest(mock_bucket, tmp_path, monkeypatch):
+    # Create fake local parquets and lookup
+    processed_dir = tmp_path / "processed"
+    models_dir = tmp_path / "models"
+    processed_dir.mkdir()
+    models_dir.mkdir()
+
+    (processed_dir / "pa_2017.parquet").write_bytes(b"fake-2017-data")
+    (processed_dir / "pa_2026.parquet").write_bytes(b"fake-2026-data")
+    (models_dir / "probable_pitcher_lookup.json").write_text('{"a": 1}')
+
+    from bts.data.sync import sync_to_r2
+    client = R2Client.from_env()
+    manifest = sync_to_r2(
+        client=client,
+        processed_dir=processed_dir,
+        models_dir=models_dir,
+    )
+
+    assert manifest["version"] == 1
+    assert "parquets/pa_2017.parquet" in manifest["files"]
+    assert "parquets/pa_2026.parquet" in manifest["files"]
+    assert "models/probable_pitcher_lookup.json" in manifest["files"]
+    assert manifest["schema_version"]  # Non-empty
+
+    # Verify files are actually in the bucket
+    s3 = mock_bucket
+    obj = s3.get_object(Bucket="test-bucket", Key="parquets/pa_2017.parquet")
+    assert obj["Body"].read() == b"fake-2017-data"
+
+
+def test_sync_to_r2_skips_unchanged_files(mock_bucket, tmp_path, monkeypatch):
+    processed_dir = tmp_path / "processed"
+    models_dir = tmp_path / "models"
+    processed_dir.mkdir()
+    models_dir.mkdir()
+
+    parquet_path = processed_dir / "pa_2026.parquet"
+    parquet_path.write_bytes(b"same-data")
+    (models_dir / "probable_pitcher_lookup.json").write_text('{"a": 1}')
+
+    from bts.data.sync import sync_to_r2
+    client = R2Client.from_env()
+
+    # First sync uploads everything
+    manifest1 = sync_to_r2(client=client, processed_dir=processed_dir, models_dir=models_dir)
+    first_uploaded_at = manifest1["files"]["parquets/pa_2026.parquet"]["uploaded_at"]
+
+    # Second sync with no changes should preserve original uploaded_at
+    manifest2 = sync_to_r2(client=client, processed_dir=processed_dir, models_dir=models_dir)
+    assert manifest2["files"]["parquets/pa_2026.parquet"]["uploaded_at"] == first_uploaded_at
