@@ -504,8 +504,10 @@ def predict(
     pred_df = pd.DataFrame(rows)
 
     # --- Single-model prediction (used for display and as fallback) ---
-    # Ensure numeric dtypes (lookups can produce mixed object columns)
-    for col in FEATURE_COLS:
+    # Ensure numeric dtypes (lookups can produce mixed object columns).
+    # Must cover BOTH FEATURE_COLS and STATCAST_COLS because the blend
+    # models use FEATURE_COLS + individual Statcast features.
+    for col in set(FEATURE_COLS) | set(STATCAST_COLS):
         if col in pred_df.columns:
             pred_df[col] = pd.to_numeric(pred_df[col], errors="coerce")
 
