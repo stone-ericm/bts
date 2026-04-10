@@ -66,6 +66,30 @@ def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     return path
 
 
+def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
+    """Save shadow model pick to {date}.shadow.json."""
+    picks_dir.mkdir(parents=True, exist_ok=True)
+    path = picks_dir / f"{daily.date}.shadow.json"
+    path.write_text(json.dumps(asdict(daily), indent=2))
+    return path
+
+
+def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
+    """Load shadow model pick. Returns None if not found."""
+    path = picks_dir / f"{date}.shadow.json"
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text())
+    data["pick"].setdefault("pitcher_team", None)
+    pick = Pick(**data["pick"])
+    dd = Pick(**data["double_down"]) if data.get("double_down") else None
+    return DailyPick(
+        date=data["date"], run_time=data["run_time"], pick=pick,
+        double_down=dd, runner_up=data.get("runner_up"),
+        bluesky_posted=False, bluesky_uri=None, result=data.get("result"),
+    )
+
+
 def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
     """Load daily pick from JSON file. Returns None if not found."""
     path = picks_dir / f"{date}.json"
