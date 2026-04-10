@@ -645,6 +645,15 @@ def run_pipeline(
     df = compute_all_features(df)
     df["date"] = pd.to_datetime(df["date"])
 
+    # Ensure all feature columns are numeric before training. On some
+    # platforms (Fly with pyarrow-rebuilt parquets), computed features can
+    # end up as object dtype despite pd.to_numeric in compute.py, because
+    # the merge/concat path can re-introduce object dtype from NaN handling.
+    all_feature_cols = set(FEATURE_COLS) | set(STATCAST_COLS)
+    for col in all_feature_cols:
+        if col in df.columns and df[col].dtype == object:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
     if cached_blend:
         model = cached_blend.pop("_model")
         blend = cached_blend
