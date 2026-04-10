@@ -325,8 +325,27 @@ def reconstruct_pick_timeline(posts: list[ParsedPost]) -> Timeline:
             final_streak = r.streak_after
             break
 
+    # Saver: available until first miss at streak 10-15 (per MDP rules).
+    # Walk through pick_records chronologically. On a miss, determine the
+    # streak just before that miss; if it was in the saver phase [10, 15],
+    # the saver was consumed.
+    saver_available = True
+    for idx, r in enumerate(pick_records):
+        if r.result != "miss":
+            continue
+        # Determine streak just before this miss by looking at the previous record's streak_after
+        streak_before = 0
+        for prior in reversed(pick_records[:idx]):
+            if prior.streak_after is not None:
+                streak_before = prior.streak_after
+                break
+        # Saver consumed if streak_before in [10, 15] — MDP saver phase
+        if 10 <= streak_before <= 15:
+            saver_available = False
+            break
+
     return Timeline(
         pick_records=pick_records,
         final_streak=final_streak,
-        saver_available_at_end=True,  # Conservative default; Task 5 refines
+        saver_available_at_end=saver_available,
     )

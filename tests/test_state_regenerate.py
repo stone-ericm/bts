@@ -187,3 +187,43 @@ def test_reconstruct_timeline_handles_unresolved_last_day():
     assert len(timeline.pick_records) == 2
     assert timeline.pick_records[1].result is None
     assert timeline.final_streak == 1  # Last known resolved streak
+
+
+def test_saver_consumed_on_first_miss_at_streak_10():
+    """Saver fires on first miss at streak 10-15 per MDP rules."""
+    posts = [
+        # Build up to streak 10
+        *[
+            ParsedPost(
+                uri=f"at://p{i}", created_at=f"2026-04-{i:02d}T12:00:00Z",
+                text=f"pick {i}", is_reply=False,
+                batter_name=f"B{i}", team="NYY",
+            )
+            for i in range(1, 11)
+        ],
+        *[
+            ParsedPost(
+                uri=f"at://r{i}", created_at=f"2026-04-{i:02d}T23:00:00Z",
+                text=f"hit {i}", is_reply=True,
+                is_result=True, result="hit", streak_after=i,
+            )
+            for i in range(1, 11)
+        ],
+    ]
+    # Sort by timestamp
+    posts.sort(key=lambda p: p.created_at)
+
+    # Day 11 = miss at streak 10 — saver should fire, streak stays at 10
+    posts += [
+        ParsedPost(uri="at://p11", created_at="2026-04-11T12:00:00Z",
+                   text="pick 11", is_reply=False,
+                   batter_name="B11", team="NYY"),
+        ParsedPost(uri="at://r11", created_at="2026-04-11T23:00:00Z",
+                   text="MISS — Streak: 10 (saver used)", is_reply=True,
+                   is_result=True, result="miss", streak_after=10),
+    ]
+
+    timeline = reconstruct_pick_timeline(posts)
+    # Saver consumed — no longer available
+    assert timeline.saver_available_at_end is False
+    assert timeline.final_streak == 10
