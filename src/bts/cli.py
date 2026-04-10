@@ -828,3 +828,28 @@ def state_export(picks_dir, output_path):
         f"  streak_at_cutoff: {snapshot['streak_at_cutoff']}\n"
         f"  saver_available: {snapshot['saver_available']}"
     )
+
+
+@state.command(name="regenerate")
+@click.option("--snapshot", default="data/state/initial-state.json",
+              type=click.Path(exists=True))
+@click.option("--handle", default="beatthestreakbot.bsky.social")
+@click.option("--out-picks-dir", default="data/picks", type=click.Path())
+def state_regenerate(snapshot, handle, out_picks_dir):
+    """Rebuild BTS state from committed snapshot + Bluesky post history.
+
+    Used for disaster recovery when the Fly volume is lost or during
+    migration between providers. Post-cutoff data comes from Bluesky;
+    pre-cutoff data comes from the committed initial snapshot.
+    """
+    from pathlib import Path
+    from bts.state.regenerate import regenerate
+
+    summary = regenerate(
+        snapshot_path=Path(snapshot),
+        bluesky_handle=handle,
+        out_picks_dir=Path(out_picks_dir),
+    )
+    click.echo("Regeneration complete:")
+    for k, v in summary.items():
+        click.echo(f"  {k}: {v}")

@@ -445,3 +445,48 @@ def _record_to_pick_file(record: HistoricalPickRecord) -> dict:
         "bluesky_uri": record.bluesky_uri,
         "result": record.result,
     }
+
+
+def regenerate(
+    snapshot_path: Path,
+    bluesky_handle: str,
+    out_picks_dir: Path,
+) -> dict:
+    """Full regeneration: fetch Bluesky, compose with snapshot, write pick files.
+
+    Returns a summary dict with counts of regenerated picks and the
+    final streak.
+    """
+    snapshot = json.loads(snapshot_path.read_text())
+    cutoff = snapshot.get("cutoff_date", "0000-00-00")
+
+    posts = fetch_bluesky_posts(handle=bluesky_handle, from_date=cutoff)
+
+    # Parse pick posts (non-reply) through parse_pick_from_post
+    parsed_posts: list[ParsedPost] = []
+    for p in posts:
+        if p.is_reply:
+            parsed_posts.append(p)
+            continue
+        pick_parse = parse_pick_from_post(p.text)
+        if pick_parse is None:
+            continue
+        pick_parse.uri = p.uri
+        pick_parse.created_at = p.created_at
+        pick_parse.is_reply = False
+        parsed_posts.append(pick_parse)
+
+    timeline = reconstruct_pick_timeline(parsed_posts)
+    compose_state_from_snapshot_and_timeline(
+        snapshot_path=snapshot_path,
+        timeline=timeline,
+        out_picks_dir=out_picks_dir,
+    )
+
+    return {
+        "snapshot_cutoff": cutoff,
+        "snapshot_picks": len(snapshot.get("historical_picks", [])),
+        "bluesky_picks": len(timeline.pick_records),
+        "final_streak": timeline.final_streak,
+        "saver_available": timeline.saver_available_at_end,
+    }
