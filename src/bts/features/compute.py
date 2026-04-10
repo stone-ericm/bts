@@ -359,12 +359,7 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     # of strike zone. Higher called-strike rate on these = better catcher framing.
     # Uses pitcher_id as proxy (captures team-level effect). Expanding with shift(1).
     # NOTE: Savant prior-season framing (static) tested worse than this expanding proxy.
-    def _borderline_csr(row):
-        calls = row.get("pitch_calls")
-        px = row.get("pitch_px")
-        pz = row.get("pitch_pz")
-        sz_top = row.get("sz_top")
-        sz_bottom = row.get("sz_bottom")
+    def _borderline_csr_direct(calls, px, pz, sz_top, sz_bottom):
         if not isinstance(calls, (list, np.ndarray)) or len(calls) == 0:
             return np.nan
         if px is None or pz is None:
@@ -380,7 +375,14 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
                     called_strikes += 1
         return called_strikes / borderline if borderline > 0 else np.nan
 
-    df["pa_borderline_csr"] = df.apply(_borderline_csr, axis=1)
+    # List comprehension avoids df.apply(axis=1) per-row Series overhead.
+    df["pa_borderline_csr"] = [
+        _borderline_csr_direct(calls, px, pz, st, sb)
+        for calls, px, pz, st, sb in zip(
+            df["pitch_calls"].values, df["pitch_px"].values, df["pitch_pz"].values,
+            df["sz_top"].values, df["sz_bottom"].values,
+        )
+    ]
     date_framing = df.groupby(["pitcher_id", "date"])["pa_borderline_csr"].mean().reset_index()
     date_framing.columns = ["pitcher_id", "date", "date_csr"]
     date_framing = date_framing.sort_values(["pitcher_id", "date"])
