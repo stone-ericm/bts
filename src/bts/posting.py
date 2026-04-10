@@ -58,12 +58,43 @@ def format_skip_post(
 
 
 def get_bluesky_password() -> str:
-    """Get Bluesky app password from macOS Keychain or environment variable.
+    """Get the Bluesky app password.
 
-    Tries macOS keychain first, then falls back to BTS_BLUESKY_PASSWORD env var.
-    Raises RuntimeError if no password is found.
+    Priority order:
+    1. BTS_BLUESKY_APP_PASSWORD env var (new canonical name)
+    2. BTS_BLUESKY_PASSWORD env var (legacy posting name)
+    3. BTS_BLUESKY_DM_PASSWORD env var (legacy DM name)
+    4. macOS keychain 'bluesky-bts-app-password-dm'
+    5. macOS keychain 'bluesky-bts-app-password' (legacy)
     """
-    # Try macOS keychain first
+    # 1. New canonical env var
+    pwd = os.environ.get("BTS_BLUESKY_APP_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 2. Legacy posting env var
+    pwd = os.environ.get("BTS_BLUESKY_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 3. Legacy DM env var
+    pwd = os.environ.get("BTS_BLUESKY_DM_PASSWORD")
+    if pwd:
+        return pwd
+
+    # 4. macOS keychain (new canonical)
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "claude-cli",
+             "-s", "bluesky-bts-app-password-dm", "-w"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+
+    # 5. macOS keychain (legacy)
     try:
         result = subprocess.run(
             ["security", "find-generic-password", "-a", "claude-cli",
@@ -73,15 +104,11 @@ def get_bluesky_password() -> str:
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
     except FileNotFoundError:
-        pass  # Not on macOS
-
-    # Fallback to environment variable
-    password = os.environ.get("BTS_BLUESKY_PASSWORD")
-    if password:
-        return password
+        pass
 
     raise RuntimeError(
-        "Bluesky app password not found. Set BTS_BLUESKY_PASSWORD or add to macOS keychain."
+        "Bluesky app password not found. Set BTS_BLUESKY_APP_PASSWORD "
+        "or add to macOS keychain."
     )
 
 

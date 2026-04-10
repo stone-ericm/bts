@@ -1,8 +1,6 @@
 """Bluesky DM notifications for BTS orchestrator failures."""
 
 import json
-import os
-import subprocess
 from urllib.error import HTTPError
 from urllib.request import Request
 
@@ -13,30 +11,18 @@ CHAT_HOST = "https://api.bsky.chat/xrpc"
 BOT_HANDLE = "beatthestreakbot.bsky.social"
 
 
-def get_dm_password() -> str:
-    """Get Bluesky DM app password from keychain or environment.
+def get_bluesky_dm_password() -> str:
+    """Alias for posting.get_bluesky_password -- same password, different context.
 
-    Uses the DM-scoped password (separate from posting password).
+    Kept as a separate function name for call-site clarity. DM and posting
+    use the same app password since consolidation.
     """
-    try:
-        result = subprocess.run(
-            ["security", "find-generic-password", "-a", "claude-cli",
-             "-s", "bluesky-bts-app-password-dm", "-w"],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except FileNotFoundError:
-        pass
+    from bts.posting import get_bluesky_password
+    return get_bluesky_password()
 
-    password = os.environ.get("BTS_BLUESKY_DM_PASSWORD")
-    if password:
-        return password
 
-    raise RuntimeError(
-        "DM password not found. Set BTS_BLUESKY_DM_PASSWORD or add "
-        "bluesky-bts-app-password-dm to keychain."
-    )
+# Backward compat alias
+get_dm_password = get_bluesky_dm_password
 
 
 def send_dm(recipient_handle: str, text: str) -> str:
