@@ -462,6 +462,270 @@ class StreakLengthFeatureExperiment(ExperimentDef):
         return FEATURE_COLS + ["batter_streak_length"]
 
 
+# ============================================================================
+# Dormant column experiments — features from PA columns we already collect
+# but never turned into model features.
+# ============================================================================
+
+
+def _rolling_rate_by_group(
+    df: pd.DataFrame,
+    group_col: str,
+    target_col: str,
+    window: int,
+    feature_name: str,
+) -> pd.DataFrame:
+    """Compute per-group rolling mean of target, shifted by 1 to prevent leakage.
+
+    Helper for "rolling hit rate per umpire/catcher" type features.
+    Aggregates per-(group, date) first, then rolls.
+    """
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+
+    # Daily aggregate per group
+    daily = df.groupby([group_col, "date"]).agg(
+        rate=(target_col, "mean"),
+        count=(target_col, "count"),
+    ).reset_index().sort_values([group_col, "date"])
+
+    # Weighted rolling mean: sum of hits / sum of PAs over window days
+    # Using expanding with shift(1) and window limit
+    result_rows = []
+    for g, group in daily.groupby(group_col):
+        group = group.sort_values("date")
+        # Rolling window by calendar days — approximate with N rows
+        group["_rolling_hits"] = (group["rate"] * group["count"]).rolling(
+            window, min_periods=1
+        ).sum()
+        group["_rolling_count"] = group["count"].rolling(window, min_periods=1).sum()
+        group[feature_name] = (group["_rolling_hits"] / group["_rolling_count"]).shift(1)
+        result_rows.append(group[[group_col, "date", feature_name]])
+
+    lookup = pd.concat(result_rows, ignore_index=True)
+    df = df.merge(lookup, on=[group_col, "date"], how="left")
+    return df
+
+
+class UmpireHitRateExperiment(ExperimentDef):
+    """Rolling 30-day hit rate allowed per home-plate umpire.
+
+    92 unique umpires. Research suggests umpire strike zone varies by 45%+
+    in K rate between strictest and most lenient. This hasn't been tested
+    as a direct model feature.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="umpire_hit_rate",
+            phase=1,
+            category="feature",
+            description="Rolling 30-day hit rate per HP umpire",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "hp_umpire_id" not in df.columns:
+            df["ump_hr_30g"] = np.nan
+            return df
+        return _rolling_rate_by_group(
+            df, "hp_umpire_id", "is_hit", window=30, feature_name="ump_hr_30g"
+        )
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["ump_hr_30g"]
+
+
+class CatcherHitRateExperiment(ExperimentDef):
+    """Rolling 30-day hit rate allowed per fielding catcher.
+
+    Goes beyond the existing pitcher_catcher_framing proxy by capturing the
+    catcher's direct impact on hit rate allowed (includes framing + blocking
+    + pitch calling). 107 unique catchers.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="catcher_hit_rate",
+            phase=1,
+            category="feature",
+            description="Rolling 30-day hit rate per fielding catcher",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "fielding_catcher_id" not in df.columns:
+            df["catcher_hr_30g"] = np.nan
+            return df
+        return _rolling_rate_by_group(
+            df, "fielding_catcher_id", "is_hit", window=30, feature_name="catcher_hr_30g"
+        )
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["catcher_hr_30g"]
+
+
+class WindVectorExperiment(ExperimentDef):
+    """Wind direction × speed as a signed scalar (positive = blowing out to CF).
+
+    Research: wind blowing out to CF at 10+ mph adds +22 BA points; wind in
+    at 10+ mph subtracts 17 points. Current model has raw weather_temp but
+    not wind, and weather_wind_dir is a text field that needs parsing.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="wind_vector",
+            phase=1,
+            category="feature",
+            description="Wind direction * speed (positive = blowing out to CF)",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "weather_wind_dir" not in df.columns or "weather_wind_speed" not in df.columns:
+            df["wind_out_cf"] = np.nan
+            return df
+
+        direction = df["weather_wind_dir"].astype(str).str.lower()
+        speed = pd.to_numeric(df["weather_wind_speed"], errors="coerce").fillna(0)
+
+        # Score direction from -1 (blowing in to CF) to +1 (blowing out to CF)
+        # CF-out wind boosts hitters; CF-in wind suppresses.
+        direction_score = np.where(
+            direction.str.contains("out to cf|out to center"), 1.0,
+            np.where(
+                direction.str.contains("in from cf|in from center"), -1.0,
+                np.where(
+                    direction.str.contains("out to lf|out to l f|out to rf|out to r f"), 0.5,
+                    np.where(
+                        direction.str.contains("in from lf|in from rf"), -0.5,
+                        0.0,  # L-to-R, R-to-L, calm, none, etc.
+                    ),
+                ),
+            ),
+        )
+        df["wind_out_cf"] = direction_score * speed
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["wind_out_cf"]
+
+
+class BatterTrajectoryMixExperiment(ExperimentDef):
+    """Rolling batter line drive rate (trajectory == 'line_drive') over 30 days.
+
+    Line drive rate is one of the strongest predictors of BABIP at the batter
+    level. 68% of PAs have trajectory data (missing on walks, strikeouts, etc).
+    Different from existing batter_gb_hit_rate which is a GB-conditional rate.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="batter_ld_rate",
+            phase=1,
+            category="feature",
+            description="Rolling 30-day line drive rate per batter",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "trajectory" not in df.columns:
+            df["batter_ld_rate_30g"] = np.nan
+            return df
+
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+        # Line drive indicator: 1 if trajectory is line_drive, 0 if any other contact,
+        # NaN if no contact (walk, strikeout, HBP)
+        traj = df["trajectory"].astype(str).str.lower()
+        is_ld = traj.str.contains("line_drive").astype(float)
+        is_ld = is_ld.where(df["trajectory"].notna(), np.nan)
+        df["_is_ld"] = is_ld
+
+        # Per-batter rolling rate with shift(1)
+        df = df.sort_values(["batter_id", "date"])
+        df["batter_ld_rate_30g"] = (
+            df.groupby("batter_id")["_is_ld"]
+            .rolling(window=30 * 4, min_periods=10)  # ~4 PA/game × 30 games
+            .mean()
+            .reset_index(level=0, drop=True)
+            .shift(1)
+        )
+        df.drop(columns=["_is_ld"], inplace=True)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["batter_ld_rate_30g"]
+
+
+class BatterHardnessRateExperiment(ExperimentDef):
+    """Rolling batter hard-hit rate from the categorical `hardness` column.
+
+    Different from Statcast barrel_rate (which uses EV+LA): hardness is a
+    scouting-derived 3-tier classification (hard/medium/soft) that's more
+    stable and has better pre-2015 coverage. 68% populated.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="batter_hardness",
+            phase=1,
+            category="feature",
+            description="Rolling 30-day hard-contact rate per batter",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "hardness" not in df.columns:
+            df["batter_hard_contact_30g"] = np.nan
+            return df
+
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+        is_hard = (df["hardness"].astype(str).str.lower() == "hard").astype(float)
+        is_hard = is_hard.where(df["hardness"].notna(), np.nan)
+        df["_is_hard"] = is_hard
+
+        df = df.sort_values(["batter_id", "date"])
+        df["batter_hard_contact_30g"] = (
+            df.groupby("batter_id")["_is_hard"]
+            .rolling(window=30 * 4, min_periods=10)
+            .mean()
+            .reset_index(level=0, drop=True)
+            .shift(1)
+        )
+        df.drop(columns=["_is_hard"], inplace=True)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["batter_hard_contact_30g"]
+
+
+class RoofTypeExperiment(ExperimentDef):
+    """Binary indicator for indoor (dome or closed retractable) vs outdoor play.
+
+    Indoor games have no wind/temperature effects and smaller variance in
+    ball carry. Only a few parks qualify (Tampa, Toronto, Arizona, Houston,
+    Milwaukee, Minnesota, Seattle).
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="roof_indoor",
+            phase=1,
+            category="feature",
+            description="Binary flag: indoor (dome or closed) vs outdoor",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "roof_type" not in df.columns:
+            df["is_indoor"] = 0
+            return df
+        rt = df["roof_type"].astype(str).str.lower()
+        df = df.copy()
+        df["is_indoor"] = rt.isin(["dome", "closed", "retractable"]).astype(int)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["is_indoor"]
+
+
 register(EBShrinkageExperiment())
 register(KLDivergenceExperiment())
 register(BattingHeatQExperiment())
@@ -470,3 +734,10 @@ register(HitTypeParkFactorsExperiment())
 register(VennABERSExperiment())
 register(QuantileQ10Experiment())
 register(StreakLengthFeatureExperiment())
+# Dormant column experiments
+register(UmpireHitRateExperiment())
+register(CatcherHitRateExperiment())
+register(WindVectorExperiment())
+register(BatterTrajectoryMixExperiment())
+register(BatterHardnessRateExperiment())
+register(RoofTypeExperiment())
