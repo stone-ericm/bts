@@ -9,22 +9,22 @@ from bts.dm import send_dm, get_dm_password
 
 
 class TestGetDmPassword:
-    @patch("subprocess.run")
+    @patch("bts.posting.subprocess.run")
     def test_keychain_success(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="test-password\n")
         assert get_dm_password() == "test-password"
 
-    @patch("subprocess.run")
+    @patch("bts.posting.subprocess.run")
     def test_env_fallback(self, mock_run):
         mock_run.return_value = MagicMock(returncode=1, stdout="")
         with patch.dict("os.environ", {"BTS_BLUESKY_DM_PASSWORD": "env-pw"}):
             assert get_dm_password() == "env-pw"
 
-    @patch("subprocess.run")
+    @patch("bts.posting.subprocess.run")
     def test_raises_when_not_found(self, mock_run):
         mock_run.return_value = MagicMock(returncode=1, stdout="")
         with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(RuntimeError, match="DM password not found"):
+            with pytest.raises(RuntimeError, match="Bluesky app password not found"):
                 get_dm_password()
 
 
