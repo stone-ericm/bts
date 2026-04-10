@@ -6,8 +6,11 @@ state from authoritative external sources. Pre-cutoff state comes from
 the committed initial-state.json snapshot.
 
 The heart of this module is a post parser that must handle the human-readable
-format produced by src/bts/posting.py's format_post() function. If that
-format changes, this parser must be updated in lockstep.
+format produced by src/bts/posting.py's format_post() and format_skip_post()
+functions. If those formats change, this parser must be updated in lockstep.
+The unit tests deliberately import the formatters and feed real output to the
+parser so that drift between the two halves of the round-trip is caught
+immediately.
 """
 import re
 from dataclasses import dataclass, field
@@ -89,17 +92,57 @@ def fetch_bluesky_posts(
     return parsed
 
 
-# Regex patterns for post format (see src/bts/posting.py format_post)
+# Regex patterns for post format (see src/bts/posting.py format_post / format_skip_post).
+#
+# Real format examples:
+#
+#   Single pick:
+#     Today's pick: Nico Hoerner (CHC)
+#     vs Test Pitcher | 78.3%
+#
+#     Streak: 2
+#
+#   Double down:
+#     Today's picks (double down):
+#     Jose Altuve (HOU) vs Pitcher A — 82.0%
+#     Kyle Tucker (HOU) vs Pitcher B — 80.0%
+#     P(both): 65.6%
+#
+#     Streak: 5
+#
+#   Skip:
+#     Sitting today out. Top pick: Top Batter (NYY) at 76.5% — below our threshold.
+#
+#     Streak holds at 3.
+#
+# The double-down second line may omit the team and/or pitcher (e.g.
+# "Kyle Tucker — 80.0%"), so the team group is optional in _DOUBLE_RE.
 _PICK_RE = re.compile(
-    r"Today's BTS pick:\s*(?P<name>[^(]+?)\s*\((?P<team>[A-Z]{2,3})\)",
-    re.MULTILINE,
+    r"Today's pick:\s*(?P<name>.+?)\s*\((?P<team>[A-Za-z]{2,4})\)",
 )
-_DOUBLE_RE = re.compile(
-    r"Double down:\s*(?P<name>[^(]+?)\s*\((?P<team>[A-Z]{2,3})\)",
-    re.MULTILINE,
+_DOUBLE_HEADER_RE = re.compile(r"Today's picks \(double down\):")
+# First batter line of a double-down post. Anchored to the line after the header.
+_DOUBLE_FIRST_RE = re.compile(
+    r"Today's picks \(double down\):\s*\n"
+    r"(?P<name>.+?)\s*\((?P<team>[A-Za-z]{2,4})\)\s*(?:vs\s+\S.*?)?\s*[—-]\s*\d",
 )
-_SKIP_RE = re.compile(r"SKIP", re.IGNORECASE)
-_STREAK_RE = re.compile(r"Streak[:\s]+(?P<streak>\d+)", re.IGNORECASE)
+# Second batter line — team is optional. We anchor on the line that ends with a percentage
+# and is followed (eventually) by "P(both):".
+_DOUBLE_SECOND_RE = re.compile(
+    r"Today's picks \(double down\):\s*\n"
+    r".+?\n"
+    r"(?P<name>.+?)(?:\s*\((?P<team>[A-Za-z]{2,4})\))?(?:\s*vs\s+\S.*?)?\s*[—-]\s*\d.*?%\s*\n"
+    r"P\(both\):",
+    re.DOTALL,
+)
+_SKIP_RE = re.compile(
+    r"Sitting today out\.\s*Top pick:\s*(?P<name>.+?)\s*\((?P<team>[A-Za-z]{2,4})\)",
+)
+# Matches both "Streak: 5" (active pick) and "Streak holds at 3" (skip post).
+_STREAK_RE = re.compile(
+    r"Streak(?:\s+holds\s+at)?[:\s]+(?P<streak>\d+)",
+    re.IGNORECASE,
+)
 
 
 def parse_pick_from_post(text: str) -> Optional[ParsedPost]:
@@ -108,12 +151,40 @@ def parse_pick_from_post(text: str) -> Optional[ParsedPost]:
     Returns None if the post doesn't look like a BTS pick. Returns a
     ParsedPost with is_skip=True if it's a skip announcement.
     """
-    if _SKIP_RE.search(text) and "Today's BTS pick" in text:
-        return ParsedPost(
+    # Skip post: "Sitting today out. Top pick: <name> (<team>) ..."
+    skip_match = _SKIP_RE.search(text)
+    if skip_match:
+        parsed = ParsedPost(
             uri="", created_at="", text=text, is_reply=False,
             is_skip=True,
+            batter_name=skip_match.group("name").strip(),
+            team=skip_match.group("team").strip(),
         )
+        streak_match = _STREAK_RE.search(text)
+        if streak_match:
+            parsed.streak_at_time = int(streak_match.group("streak"))
+        return parsed
 
+    # Double-down post: header on first line, two batter lines, P(both), Streak.
+    if _DOUBLE_HEADER_RE.search(text):
+        first = _DOUBLE_FIRST_RE.search(text)
+        second = _DOUBLE_SECOND_RE.search(text)
+        if first is None or second is None:
+            return None
+        parsed = ParsedPost(
+            uri="", created_at="", text=text, is_reply=False,
+            batter_name=first.group("name").strip(),
+            team=first.group("team").strip(),
+            is_double_down=True,
+            double_down_batter=second.group("name").strip(),
+            double_down_team=(second.group("team") or "").strip() or None,
+        )
+        streak_match = _STREAK_RE.search(text)
+        if streak_match:
+            parsed.streak_at_time = int(streak_match.group("streak"))
+        return parsed
+
+    # Single-pick post.
     match = _PICK_RE.search(text)
     if not match:
         return None
@@ -123,12 +194,6 @@ def parse_pick_from_post(text: str) -> Optional[ParsedPost]:
         batter_name=match.group("name").strip(),
         team=match.group("team").strip(),
     )
-
-    double_match = _DOUBLE_RE.search(text)
-    if double_match:
-        parsed.is_double_down = True
-        parsed.double_down_batter = double_match.group("name").strip()
-        parsed.double_down_team = double_match.group("team").strip()
 
     streak_match = _STREAK_RE.search(text)
     if streak_match:

@@ -1,10 +1,16 @@
-"""Tests for bts state regenerate."""
+"""Tests for bts state regenerate.
+
+These tests deliberately import the real formatters from bts.posting and feed
+their output through the parser. That guarantees the parser tracks any future
+change to the post format instead of drifting against fictional fixtures.
+"""
 import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
 
+from bts.posting import format_post, format_skip_post
 from bts.state.regenerate import (
     fetch_bluesky_posts,
     parse_pick_from_post,
@@ -49,33 +55,56 @@ def test_fetch_bluesky_posts_returns_posts_in_order():
 
 
 def test_parse_pick_post_extracts_single_pick():
-    text = "Today's BTS pick: Nico Hoerner (CHC) vs RHP Test Pitcher — 78.3% 🎯\n\nStreak: 2"
+    # Use the real formatter so the parser is exercised against production text.
+    text = format_post("Nico Hoerner", "CHC", "Test Pitcher", 0.783, streak=2)
     parsed = parse_pick_from_post(text)
     assert parsed is not None
     assert parsed.batter_name == "Nico Hoerner"
     assert parsed.team == "CHC"
+    assert parsed.is_skip is False
     assert parsed.is_double_down is False
     assert parsed.double_down_batter is None
+    assert parsed.streak_at_time == 2
 
 
 def test_parse_pick_post_extracts_double_down():
-    text = (
-        "Today's BTS pick: Jose Altuve (HOU) vs RHP Pitcher A — 82.0% 🎯\n"
-        "Double down: Kyle Tucker (HOU) vs Pitcher B — 80.0%\n\n"
-        "Streak: 5"
+    text = format_post(
+        "Jose Altuve", "HOU", "Pitcher A", 0.82, streak=5,
+        double="Kyle Tucker", double_p_game=0.80,
+        double_team="HOU", double_pitcher="Pitcher B",
     )
     parsed = parse_pick_from_post(text)
     assert parsed is not None
     assert parsed.batter_name == "Jose Altuve"
+    assert parsed.team == "HOU"
     assert parsed.is_double_down is True
     assert parsed.double_down_batter == "Kyle Tucker"
+    assert parsed.double_down_team == "HOU"
+    assert parsed.streak_at_time == 5
+
+
+def test_parse_double_down_without_second_team():
+    # The formatter omits the team parens on the second line if double_team is None.
+    text = format_post(
+        "Jose Altuve", "HOU", "Pitcher A", 0.82, streak=5,
+        double="Kyle Tucker", double_p_game=0.80,
+    )
+    parsed = parse_pick_from_post(text)
+    assert parsed is not None
+    assert parsed.is_double_down is True
+    assert parsed.batter_name == "Jose Altuve"
+    assert parsed.double_down_batter == "Kyle Tucker"
+    assert parsed.double_down_team is None
 
 
 def test_parse_skip_post():
-    text = "Today's BTS pick: SKIP — top prob 76.5%, below 80% threshold. Streak holds at 3."
+    text = format_skip_post("Top Batter", "NYY", 0.765, streak=3)
     parsed = parse_pick_from_post(text)
     assert parsed is not None
     assert parsed.is_skip is True
+    assert parsed.batter_name == "Top Batter"
+    assert parsed.team == "NYY"
+    assert parsed.streak_at_time == 3
 
 
 def test_parse_unrecognized_post_returns_none():
