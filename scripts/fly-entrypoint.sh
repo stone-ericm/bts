@@ -56,7 +56,7 @@ done
 
 if [ ! -f /data/processed/pa_2026.parquet ]; then
     log "No parquets on volume — running cold bootstrap"
-    ./scripts/fly-bootstrap.sh
+    ./scripts/fly-bootstrap.sh || { log "FATAL: bootstrap failed"; exit 1; }
 else
     log "Parquets present on volume — skipping bootstrap"
 fi
@@ -84,6 +84,7 @@ results_cap_hour_et = 5
 default_init_hour_et = 10
 early_game_buffer_min = 60
 shadow_mode = true
+shadow_model = true
 
 [[tiers]]
 name = "local"
