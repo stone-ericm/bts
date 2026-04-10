@@ -323,6 +323,79 @@ def data_backfill_lineup_times(picks_dir):
         click.echo(f"  p50={dist.p50:.0f}, p90={dist.p90:.0f}, p95={dist.p95:.0f}")
 
 
+@data.command(name="sync-to-r2")
+def data_sync_to_r2():
+    """Upload local parquets + lookup cache to R2, atomically updating manifest."""
+    from pathlib import Path
+    from bts.data.sync import R2Client, sync_to_r2
+
+    client = R2Client.from_env()
+    manifest = sync_to_r2(
+        client=client,
+        processed_dir=Path("data/processed"),
+        models_dir=Path("data/models"),
+    )
+    click.echo(f"Sync complete: {len(manifest['files'])} files, schema={manifest['schema_version']}")
+
+
+@data.command(name="sync-from-r2")
+def data_sync_from_r2():
+    """Download parquets + lookup cache from R2, verifying checksums."""
+    from pathlib import Path
+    from bts.data.sync import R2Client, sync_from_r2
+
+    client = R2Client.from_env()
+    manifest = sync_from_r2(
+        client=client,
+        processed_dir=Path("data/processed"),
+        models_dir=Path("data/models"),
+    )
+    click.echo(
+        f"Sync complete: {len(manifest['files'])} files, "
+        f"git_sha={manifest.get('git_sha', 'unknown')[:12]}"
+    )
+
+
+@data.command(name="verify-manifest")
+def data_verify_manifest():
+    """Check R2 manifest state without modifying anything (tripwire mode)."""
+    from bts.data.sync import R2Client, verify_manifest
+
+    client = R2Client.from_env()
+    report = verify_manifest(client)
+    if not report["exists"]:
+        click.echo("Manifest not found in R2.", err=True)
+        raise SystemExit(2)
+    click.echo(f"branch:         {report['branch']}")
+    click.echo(f"git_sha:        {report['git_sha']}")
+    click.echo(f"schema_version: {report['schema_version']} "
+               f"{'OK' if report['schema_version_match'] else 'MISMATCH'}")
+    click.echo(f"updated_at:     {report['updated_at']} ({report['age_hours']:.1f}h ago)")
+    click.echo(f"n_files:        {report['n_files']}")
+    click.echo(f"stale:          {report['stale']}")
+    if report['stale'] or not report['schema_version_match']:
+        raise SystemExit(1)
+
+
+@data.command(name="archive-historical-raw")
+@click.option("--raw-dir", default="data/raw", type=click.Path(exists=True))
+@click.option("--exclude-season", multiple=True, type=int, default=[2026])
+@click.option("--tarball-key", default="raw-archive-2017-2025.tar.gz")
+def data_archive_historical_raw(raw_dir, exclude_season, tarball_key):
+    """One-shot: tar historical raw JSON and upload to R2 as cold archive."""
+    from pathlib import Path
+    from bts.data.sync import R2Client, archive_historical_raw
+
+    client = R2Client.from_env()
+    archive_historical_raw(
+        client=client,
+        raw_dir=Path(raw_dir),
+        tarball_key=tarball_key,
+        exclude_seasons=set(exclude_season),
+    )
+    click.echo(f"Archive uploaded: {tarball_key}")
+
+
 @cli.command()
 @click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")
