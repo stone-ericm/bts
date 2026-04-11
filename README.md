@@ -14,11 +14,12 @@ Walk-forward backtested, provably leak-free, validated across 6 MLB seasons:
 
 | Metric | BTS v2 | SOTA (Garnett 2026) |
 |--------|--------|---------------------|
-| P@1 (daily best pick) | **86.9% avg** (6 seasons) | ~85% |
+| P@1 (daily best pick) | **86.2% avg** (2024-2025) | ~85% |
 | P@100 (top 100 picks) | 91.0% | 85% |
 | P@500 (depth of signal) | 87.2% | 77% |
+| MDP P(57) | **8.91%** (1 in 11.2 seasons) | — |
 
-The 86.9% P@1 uses a densest-bucket timing strategy with 78% override threshold, 14-feature model with catcher framing, and 12-model blend — validated across all 6 test seasons (2020-2025).
+15-feature model with catcher framing + team bullpen composite, 12-model blend, MDP-optimal strategy with different-game doubling. Validated across 6 test seasons (2020-2025).
 
 ### Multi-season validation
 
@@ -32,17 +33,15 @@ Season  Training data    P@1 (model)   P@1 (with strategy)
 2025    2019-24          87.0%         86.4%
 ```
 
-"With strategy" includes the densest-bucket timing + 78% override, which lifts the weaker seasons (2024: 81.6% → 86.5%) at the cost of slightly moderating the strongest ones.
-
 ### What this means for BTS
 
-At ~87% P@1, raw prediction accuracy alone gives ~0.9% P(57) per season. But P(57) is dominated by **play strategy**, not model accuracy — the exponential nature of p^57 means small improvements in effective per-play accuracy compound massively.
+At ~86% P@1, raw prediction accuracy alone gives ~0.9% P(57) per season. But P(57) is dominated by **play strategy**, not model accuracy — the exponential nature of p^57 means small improvements in effective per-play accuracy compound massively.
 
-A reachability MDP (103K states, backward induction) finds the provably optimal strategy: **P(57) = 6.66%** per season (~1 in 15), a 7.4x improvement over the baseline with zero model changes. Over 30 years of playing BTS, this gives an **88% chance of hitting 57 at least once**.
+A reachability MDP (103K states, backward induction) finds the provably optimal strategy: **P(57) = 8.91%** per season (~1 in 11.2), or **94% chance of hitting 57 over 30 years of play**. This is a 10x improvement over the baseline with zero model changes.
 
 Key strategy insights (Monte Carlo validated on 912 daily profiles across 5 seasons):
-- Skip days when top pick confidence is low — raises effective per-play accuracy ~86.5% → ~89%
-- Double selectively through streak 0-45 — reduces total days at risk
+- Skip days when top pick confidence is low — raises effective per-play accuracy ~86% → ~89%
+- Double selectively with different-game doubles only — avoids correlated outcomes (+59% P(57) vs same-game)
 - Stop doubling at streak 46+ — don't risk a catastrophic near-win reset
 - Adapt to days remaining in season — play aggressively early, conservatively late
 - Model degrades in September specifically (85% → 83%) — phase-aware bins (Sept-only late phase) capture this
@@ -98,29 +97,27 @@ After ~40 experiments testing features, models, and blends, catcher framing was 
 
 The insight: every PA involves three people (batter, pitcher, catcher), but the model only knew about two. A catcher who frames well steals called strikes on borderline pitches, shifting counts against the batter. The effect is massive — 11 WAR spread across MLB catchers (SABR research). We compute a proxy from the called-strike rate on borderline pitches (|pX| 0.5-1.2 or near zone edges) per pitcher, expanding with temporal shift.
 
-Adding catcher framing improved average P@1 from 85.1% to 87.0% — a larger gain than the 12-model blend (86.2%) or any other feature tested.
+Adding catcher framing improved average P@1 from 85.1% to 87.0% — a larger gain than the 12-model blend or any other feature tested.
 
 ### The 12-model blend
 
 Year-to-year instability is a fundamental challenge: features that improve P@1 on one season often hurt the next. ~40 experiments confirmed this pattern. The 12-model blend (each using baseline features plus one Statcast-derived feature) improves P@1 through tie-breaking diversity. When the model's #1 pick goes hitless, the #2 pick gets a hit 84-88% of the time — the blend's diverse votes break these ties better than any single model.
 
-### Densest bucket + override timing strategy
+### Dynamic lineup scheduler
 
-Not all game times are equal. Backtesting across 6 seasons showed that picking from the **densest time window** (the one with the most games) produces the best results. More games = more options = higher expected best pick.
+A **dynamic lineup scheduler** (`bts schedule`) checks lineups 45 minutes before each game's start time, running the full prediction pipeline as lineups are confirmed throughout the day. It commits to a pick when confirmed lineups show the top pick's advantage exceeds a configurable gap threshold (`early_lock_gap=0.03`, derived from backtesting: 92.8% accuracy when locking early vs 85.4% waiting).
 
-The override: if any pick from any window exceeds **78% P(game hit)**, take it regardless of which window is densest. These high-confidence picks hit 87%+ of the time and shouldn't be missed just because they're in a smaller window.
-
-This strategy is now managed by a **dynamic lineup scheduler** (`bts schedule`) that checks lineups 45 minutes before each game's start time, only committing to a pick when confirmed lineups show the top pick's advantage exceeds a configurable gap threshold (`early_lock_gap=0.03`, derived from backtesting: 92.8% accuracy when locking early). It improved average P@1 from 85.3% (pure densest) to 86.9%.
+The scheduler runs on Fly.io as a single-day daemon — handles one day's games, then exits and restarts for the next day. Overnight, a preview pick for tomorrow is generated using projected lineups so the dashboard is never blank.
 
 ## Architecture
 
 Two-stage PA-level model with daily automation:
 
 ```
-MLB Stats API -> raw JSON -> PA-level Parquet -> 14 features + blend -> LightGBM -> P(hit|PA) -> P(>=1 hit|game) -> densest bucket + override -> pick
+MLB Stats API -> raw JSON -> PA-level Parquet -> 15 features + blend -> LightGBM -> P(hit|PA) -> P(>=1 hit|game) -> MDP strategy -> pick
 ```
 
-### Core features (14)
+### Core features (15)
 
 | Feature | Type | What it captures |
 |---------|------|-----------------|
@@ -132,6 +129,7 @@ MLB Stats API -> raw JSON -> PA-level Parquet -> 14 features + blend -> LightGBM
 | pitcher_hr_30g | Rolling | Pitcher quality |
 | pitcher_entropy_30g | Rolling | Arsenal diversity (harder to hit) |
 | pitcher_catcher_framing | Expanding | Opposing catcher's borderline called-strike rate (framing proxy) |
+| opp_bullpen_hr_30g | Rolling | Opposing team's reliever hit rate (via probable pitcher ID) |
 | weather_temp | Context | Temperature affects ball flight |
 | park_factor | Expanding | Venue effect on hit rates |
 | days_rest | Context | Rust after time off |
@@ -140,7 +138,7 @@ Every feature is provably temporal — only data from dates strictly before the 
 
 ### Statcast features (9, used by blend variants)
 
-Extracted from game feed hitData and pitchData. Each appears in one blend model alongside the 13 baseline features.
+Extracted from game feed hitData and pitchData. Each appears in one blend model alongside the 15 baseline features.
 
 | Feature | Type | What it captures |
 |---------|------|-----------------|
@@ -233,23 +231,23 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts data pull --start 2019-03-20 --end 2025-10
 # Build PA Parquet
 UV_CACHE_DIR=/tmp/uv-cache uv run bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
 
-# Dynamic lineup scheduler (Pi5 — replaces fixed cron runs)
-UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
+# Dynamic lineup scheduler (Fly.io production)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config /data/orchestrator.toml
 
-# Preview scheduler plan without executing
-UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
-
-# Orchestrate via SSH cascade (manual single-run alternative)
-UV_CACHE_DIR=/tmp/uv-cache uv run bts orchestrate --date 2026-04-01 --config ~/.bts-orchestrator.toml
-
-# Local prediction (Mac — predict, apply MDP strategy, save pick, post to Bluesky)
+# Local prediction (predict, apply MDP strategy, save pick, post to Bluesky)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01
 
 # Preview without saving/posting
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 
+# Preview pick for tomorrow (saves projected pick, no posting)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts preview
+
 # Check yesterday's results and update streak (with saver tracking)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts check-results --date 2026-03-31
+
+# Shadow model comparison report
+UV_CACHE_DIR=/tmp/uv-cache uv run bts shadow-report
 
 # --- Strategy simulation ---
 
@@ -274,12 +272,12 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate exact --strategy combined
 4. **Year-to-year instability is fundamental.** Features that help one season hurt the next. Only the blend consistently improves both test seasons.
 5. **Blend diversity > model complexity.** 12 LightGBM variants with different feature subsets beat any single model, hyperparameter tuning, different architectures, or adaptive selection. The power is in tie-breaking via diverse votes.
 6. **The model's problem is ranking, not prediction.** When the top pick misses, #2 gets a hit 84-88% of the time. The model knows who's good — it struggles with who's best *today*.
-7. **Simpler models with clean features beat complex models with noisy ones.** 13 features > 18. Default hyperparameters are robust to tuning.
-8. **Timing strategy matters as much as the model.** Picking from the densest time window with a high-confidence override added +1.6% P@1 — more than most feature experiments.
+7. **Simpler models with clean features beat complex models with noisy ones.** 15 features > 18. Default hyperparameters are robust to tuning.
+8. **Lineup confirmation timing matters.** Locking picks when confirmed lineups show a clear leader (early_lock_gap) beats waiting for all lineups — 92.8% accuracy vs 85.4%.
 9. **Real data isn't always better than a proxy.** Savant's calibrated catcher framing (static, prior-season) lost to our expanding proxy that updates every game. Adaptive beats precise-but-stale.
 10. **The market doesn't know more than the model.** Vegas player prop odds didn't improve P@1 — the market and our model look at the same fundamentals.
 11. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation (6 seasons) is essential — 2-season results are unreliable.
-12. **Strategy >> model improvements for P(57).** MDP-optimal play strategy improved P(57) from 0.90% to 6.66% (7.4x) with zero model changes. The exponential nature of p^57 means small per-play accuracy gains from skipping bad days compound massively.
+12. **Strategy >> model improvements for P(57).** MDP-optimal play strategy improved P(57) from 0.90% to 8.91% (10x) with zero model changes. The exponential nature of p^57 means small per-play accuracy gains from skipping bad days compound massively.
 13. **Anti-correlated doubling is a dead end.** Rank-1 and rank-2 outcomes are independent (r=-0.018). P(both hit) = P1 × P2 is correct — no correlation to exploit.
 14. **Model degrades in September specifically.** Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware quality bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +0.5% P(57).
 
