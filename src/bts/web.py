@@ -832,6 +832,30 @@ def render_page():
             lock_badge = '<span class="lock-badge locked">LOCKED</span>'
         else:
             lock_badge = '<span class="lock-badge pending">PENDING</span>'
+        # Pick lock time: 5 min before earliest picked game
+        lock_time_html = ""
+        if not is_locked and not today_pick.get("result"):
+            game_times = [tp.get("game_time", "")]
+            if dd:
+                game_times.append(dd.get("game_time", ""))
+            earliest = None
+            for gt in game_times:
+                if not gt:
+                    continue
+                try:
+                    gdt = datetime.fromisoformat(gt.replace("Z", "+00:00"))
+                    if earliest is None or gdt < earliest:
+                        earliest = gdt
+                except (ValueError, TypeError):
+                    pass
+            if earliest:
+                lock_dt = earliest - timedelta(minutes=5)
+                lock_str = lock_dt.strftime("%-I:%M %p ET").replace(" 0", " ")
+                lock_time_html = (
+                    f'<span style="font-size:11px;color:#888;font-weight:400;'
+                    f'margin-left:auto;">Pick Lock: {lock_str}</span>'
+                )
+
         label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
         if dd:
             d_logo = team_logo_url(dd.get("team", ""), size=72)
@@ -839,7 +863,7 @@ def render_page():
             d_time = _format_game_time(dd.get("game_time", ""))
             p_both = tp.get('p_game_hit', 0) * dd.get('p_game_hit', 0)
             hero = f"""
-        <div class="hero-status">{label} {lock_badge}</div>
+        <div class="hero-status" style="display:flex;align-items:center;">{label} {lock_badge}{lock_time_html}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
@@ -863,7 +887,7 @@ def render_page():
         </div>"""
         else:
             hero = f"""
-        <div class="hero-status">{label} {lock_badge}</div>
+        <div class="hero-status" style="display:flex;align-items:center;">{label} {lock_badge}{lock_time_html}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
