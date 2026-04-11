@@ -25,6 +25,7 @@ jobs:
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
+            git config --global --add safe.directory /home/bts/projects/bts
             cd /home/bts/projects/bts
             git pull --ff-only
             systemctl restart bts-scheduler bts-dashboard
