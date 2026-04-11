@@ -581,6 +581,77 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo("  Not posting yet (game not within 3h, not evening run)")
 
 
+@cli.command()
+@click.option("--date", help="Date to preview (YYYY-MM-DD). Defaults to tomorrow.")
+@click.option("--data-dir", default="data/processed", type=click.Path())
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.option("--models-dir", default="data/models", type=click.Path())
+def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
+    """Save a preliminary pick for tomorrow using projected lineups.
+
+    Runs the full prediction pipeline and saves the pick to disk,
+    but never posts to Bluesky. The scheduler will re-evaluate and
+    overwrite when confirmed lineups are available.
+
+    Designed to run from the overnight cron (after 3am data refresh)
+    so the dashboard shows a pending pick instead of blank.
+    """
+    from datetime import datetime, timedelta, timezone
+    from bts.model.predict import run_pipeline, load_blend
+    from bts.picks import save_pick, load_pick, load_streak
+    from bts.strategy import select_pick
+
+    if date is None:
+        tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
+        date = tomorrow.strftime("%Y-%m-%d")
+
+    picks_path = Path(picks_dir)
+    models_path = Path(models_dir)
+
+    # Don't overwrite a pick that already has a result or was posted
+    existing = load_pick(date, picks_path)
+    if existing and (existing.result or existing.bluesky_posted):
+        click.echo(f"Pick for {date} already resolved or posted — skipping preview.")
+        return
+
+    click.echo(f"[preview] Running predictions for {date}...")
+    cache_path = models_path / f"blend_{date}.pkl"
+    cached_blend = None
+    if cache_path.exists():
+        cached_blend = load_blend(cache_path)
+
+    try:
+        predictions = run_pipeline(
+            date, data_dir,
+            cached_blend=cached_blend,
+            save_blend_path=cache_path if not cached_blend else None,
+        )
+    except Exception as e:
+        click.echo(f"[preview] Failed: {e}", err=True)
+        return
+
+    if predictions.empty:
+        click.echo(f"[preview] No games found for {date}.")
+        return
+
+    streak = load_streak(picks_path)
+    result = select_pick(predictions, date, picks_path, streak=streak)
+
+    if result is None:
+        top = predictions.iloc[0]
+        click.echo(f"[preview] Skip day — {top['batter_name']} at {top['p_game_hit']:.1%} below threshold.")
+        return
+
+    daily = result.daily
+    save_pick(daily, picks_path)
+    click.echo(f"[preview] {daily.pick.batter_name} ({daily.pick.team}) "
+               f"{daily.pick.p_game_hit:.1%} vs {daily.pick.pitcher_name}")
+    if daily.double_down:
+        click.echo(f"[preview] + {daily.double_down.batter_name} ({daily.double_down.team}) "
+                   f"{daily.double_down.p_game_hit:.1%}")
+    click.echo(f"[preview] Saved to {picks_path / f'{date}.json'} (PROJECTED — scheduler will re-evaluate)")
+
+
 @cli.command(name="predict-json")
 @click.option("--date", required=True, help="Date to predict (YYYY-MM-DD)")
 @click.option("--data-dir", default="data/processed", type=click.Path(), help="Processed data directory")

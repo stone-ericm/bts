@@ -33,11 +33,13 @@ while true; do
         uv run bts reconcile || log "reconcile failed"
     fi
 
-    # 03:00 ET data pull + build + sync-to-r2
+    # 03:00 ET data pull + build + sync-to-r2 + tomorrow's preview pick
     if [ "$HOUR" = "03" ] && [ "$MIN" = "00" ]; then
         log "Running nightly data refresh"
         uv run bts data pull && uv run bts data build && uv run bts data sync-to-r2 \
             || log "data refresh failed"
+        log "Generating preview pick for tomorrow"
+        uv run bts preview || log "preview pick failed"
     fi
 
     # Every 5 min: lineup time collection
