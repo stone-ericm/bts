@@ -585,7 +585,7 @@ def _render_game_tags(scorecards: list[dict | None]) -> str:
         return ""
     return (
         '<div style="display:flex;gap:8px;justify-content:center;'
-        'margin:8px 0 4px;">' + "".join(tags) + '</div>'
+        'margin:8px 0 16px;">' + "".join(tags) + '</div>'
     )
 
 
@@ -712,6 +712,58 @@ def render_page():
             <div class="post-date">{created}</div>
             <div class="post-text">{text}</div>
         </div>"""
+
+    # Shadow model indicator
+    shadow_html = ""
+    shadow_files = sorted(PICKS_DIR.glob("*.shadow.json"))
+    if shadow_files:
+        s_total = 0
+        s_agrees = 0
+        s_disagrees_detail = []
+        for sf in shadow_files:
+            date_str = sf.name.replace(".shadow.json", "")
+            prod_file = PICKS_DIR / f"{date_str}.json"
+            if not prod_file.exists():
+                continue
+            try:
+                sp = json.loads(sf.read_text())
+                pp = json.loads(prod_file.read_text())
+                s_total += 1
+                sname = sp["pick"]["batter_name"]
+                pname = pp["pick"]["batter_name"]
+                if sname == pname:
+                    s_agrees += 1
+                else:
+                    s_disagrees_detail.append((date_str, pname, sname))
+            except Exception:
+                continue
+        if s_total > 0:
+            pct = s_agrees / s_total * 100
+            days_left = max(0, 30 - s_total)
+            dot = "&#9679;"
+            if pct >= 80:
+                dot_color = "#2d6a4f"
+            elif pct >= 60:
+                dot_color = "#e9c46a"
+            else:
+                dot_color = "#c41e3a"
+            disagree_str = ""
+            if s_disagrees_detail:
+                last = s_disagrees_detail[-1]
+                disagree_str = (
+                    f' <span style="color:#888;">· Last diff: {last[0]} '
+                    f'({last[1]} → {last[2]})</span>'
+                )
+            shadow_html = (
+                f'<div style="margin:12px 0;padding:8px 14px;background:#f8f9fa;'
+                f'border-radius:6px;font-size:11px;color:#666;display:flex;'
+                f'align-items:center;gap:6px;">'
+                f'<span style="color:{dot_color};font-size:8px;">{dot}</span>'
+                f'<span style="font-weight:600;color:#444;">Shadow Model</span>'
+                f' {s_agrees}/{s_total} agree ({pct:.0f}%) · {days_left}d to eval'
+                f'{disagree_str}'
+                f'</div>'
+            )
 
     # Today's pick hero
     hero = ""
@@ -994,6 +1046,8 @@ def render_page():
             <tr><th></th><th>Date</th><th>Batter</th><th>Matchup</th><th>P(Hit)</th><th>Lineup</th></tr>
             {pick_rows}
         </table>
+
+        {shadow_html}
 
         <div class="section-header">Bluesky Posts</div>
         <div class="posts">
