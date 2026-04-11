@@ -852,8 +852,8 @@ def render_page():
                 except (ValueError, TypeError):
                     pass
             if earliest:
-                lock_dt = earliest - timedelta(minutes=5)
-                lock_str = lock_dt.strftime("%-I:%M %p ET").replace(" 0", " ")
+                lock_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
+                lock_str = lock_dt.strftime("%-I:%M %p ET")
                 lock_time_html = (
                     f'<span style="font-size:11px;color:#888;font-weight:400;'
                     f'margin-left:auto;">Pick Lock: {lock_str}</span>'
