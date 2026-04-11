@@ -58,7 +58,7 @@ def load_all_picks():
     """Load all pick files, sorted by date descending."""
     picks = []
     for f in sorted(PICKS_DIR.glob("*.json"), reverse=True):
-        if f.stem in ("streak", "automation"):
+        if f.stem in ("streak", "automation") or f.name.endswith(".shadow.json"):
             continue
         try:
             data = json.loads(f.read_text())
@@ -549,6 +549,50 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
 </div>"""
 
 
+def _render_game_tags(scorecards: list[dict | None]) -> str:
+    """Render compact game status tags between hero picks and scorecard."""
+    tags = []
+    for sc in scorecards:
+        if sc is None:
+            continue
+        away = sc.get("away_team", "?")
+        home = sc.get("home_team", "?")
+        score = sc.get("score", {})
+        status = sc.get("game_status", "P")
+        inning = sc.get("inning", "")
+
+        away_r = score.get("away", 0)
+        home_r = score.get("home", 0)
+        score_str = f"{away} {away_r} – {home_r} {home}"
+
+        if status == "F":
+            badge = ('<span style="background:#666;color:#fff;font-size:9px;'
+                     'font-weight:700;padding:2px 5px;border-radius:3px;'
+                     'letter-spacing:.5px;">FINAL</span>')
+        elif status == "L":
+            badge = (f'<span style="background:#c41e3a;color:#fff;font-size:9px;'
+                     f'font-weight:700;padding:2px 5px;border-radius:3px;'
+                     f'letter-spacing:.5px;">{inning}</span>')
+        else:
+            badge = ('<span style="background:#e0e0e0;color:#666;font-size:9px;'
+                     'font-weight:700;padding:2px 5px;border-radius:3px;'
+                     'letter-spacing:.5px;">PRE</span>')
+
+        tags.append(
+            f'<div style="display:inline-flex;align-items:center;gap:6px;'
+            f'padding:4px 10px;background:#fff;border-radius:6px;'
+            f'font-size:13px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06);">'
+            f'{badge} {score_str}</div>'
+        )
+
+    if not tags:
+        return ""
+    return (
+        '<div style="display:flex;gap:8px;justify-content:center;'
+        'margin:8px 0 4px;">' + "".join(tags) + '</div>'
+    )
+
+
 def render_page():
     picks = load_all_picks()
     streak = load_streak()
@@ -681,8 +725,24 @@ def render_page():
         t_logo = team_logo_url(tp.get("team", ""), size=72)
         t_logo_img = f'<img src="{t_logo}" class="hero-logo" alt="{tp.get("team", "")}">' if t_logo else ""
         t_time = _format_game_time(tp.get("game_time", ""))
-        is_locked = today_pick.get("bluesky_posted", False)
-        lock_badge = '<span class="lock-badge locked">LOCKED</span>' if is_locked else '<span class="lock-badge pending">PENDING</span>'
+        # Pick is locked if posted, result is in, or game has started
+        is_locked = today_pick.get("bluesky_posted", False) or today_pick.get("result") is not None
+        if not is_locked:
+            game_time_str = tp.get("game_time", "")
+            if game_time_str:
+                try:
+                    game_dt = datetime.fromisoformat(game_time_str.replace("Z", "+00:00"))
+                    is_locked = datetime.now(game_dt.tzinfo) > game_dt
+                except (ValueError, TypeError):
+                    pass
+        if today_pick.get("result") == "hit":
+            lock_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
+        elif today_pick.get("result") == "miss":
+            lock_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
+        elif is_locked:
+            lock_badge = '<span class="lock-badge locked">LOCKED</span>'
+        else:
+            lock_badge = '<span class="lock-badge pending">PENDING</span>'
         label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
         if dd:
             d_logo = team_logo_url(dd.get("team", ""), size=72)
@@ -737,6 +797,7 @@ def render_page():
 
     # Live scorecard (between hero and pick history)
     scorecard_html = ""
+    game_tags_html = ""
     if today_pick:
         tp = today_pick["pick"]
         primary_game_pk = tp.get("game_pk")
@@ -752,10 +813,10 @@ def render_page():
                 primary_ids.discard(None)
                 dd_ids = {dd.get("batter_id")}
                 dd_ids.discard(None)
-                scorecard_data = merge_scorecards(
-                    fetch_live_scorecard(primary_game_pk, primary_ids),
-                    fetch_live_scorecard(dd_game_pk, dd_ids),
-                )
+                sc1 = fetch_live_scorecard(primary_game_pk, primary_ids)
+                sc2 = fetch_live_scorecard(dd_game_pk, dd_ids)
+                scorecard_data = merge_scorecards(sc1, sc2)
+                game_tags_html = _render_game_tags([sc1, sc2])
             else:
                 # Same game (or no double-down) — fetch once with both batter IDs
                 batter_ids = {tp.get("batter_id")}
@@ -763,6 +824,7 @@ def render_page():
                     batter_ids.add(dd.get("batter_id"))
                 batter_ids.discard(None)
                 scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
+                game_tags_html = _render_game_tags([scorecard_data])
 
             scorecard_html = render_scorecard_section(scorecard_data)
 
@@ -922,6 +984,8 @@ def render_page():
         </div>
 
         {hero}
+
+        {game_tags_html}
 
         {scorecard_html}
 
