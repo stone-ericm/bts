@@ -1120,7 +1120,7 @@ def render_page():
         </div>
 
         <div class="footer">
-            Updated {datetime.now().strftime('%Y-%m-%d %H:%M ET')} · LAN only · Not affiliated with MLB
+            Updated {datetime.now().strftime('%Y-%m-%d %H:%M ET')} · Tailscale only · Not affiliated with MLB
         </div>
     </div>
     <script src="https://embed.bsky.app/static/embed.js" async charset="utf-8"></script>
