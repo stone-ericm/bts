@@ -1,0 +1,31 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'config/**'
+      - 'scripts/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 204.168.243.169
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd /home/bts/projects/bts
+            git pull --ff-only
+            systemctl restart bts-scheduler bts-dashboard
+            echo "Deployed $(git rev-parse --short HEAD)"
