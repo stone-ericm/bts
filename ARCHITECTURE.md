@@ -108,19 +108,20 @@ Tested and rejected after empirical validation:
 
 ## Orchestration
 
-Fly.io (`bts-mlb`) runs scheduler, dashboard, and cron in a single container. Pi5 remains authoritative during Phase 2 shadow validation.
+Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Fly.io bts-mlb (performance-2x, 16 GB, IAD)    │
-│  fly-entrypoint.sh starts:                       │
-│  1. Tailscale (joins tailnet as bts-fly)         │
-│  2. Dashboard (port 3003, Tailscale-only)        │
-│  3. Cron loop (nightly data pull, check-results) │
-│  4. Scheduler daemon (foreground)                │
+│  Hetzner CPX42 (8 vCPU, 16 GB, Helsinki)         │
+│  systemd services:                               │
+│  - bts-scheduler.service (Restart=always)        │
+│  - bts-dashboard.service (port 3003, Tailscale)  │
+│  - crontab (check-results, reconcile, data       │
+│    refresh, preview pick, lineup collection,     │
+│    healthchecks ping)                            │
 │                                                  │
-│  Data: /data volume (50 GB, persists deploys)    │
-│  Config: /data/orchestrator.toml                 │
+│  Tailscale: bts-hetzner (stable identity)        │
+│  Deploy: GHA SSH → git pull + systemctl restart  │
 │  Backup: R2 bucket bts-backup-data               │
 └──────────────────────────────────────────────────┘
 ```
@@ -143,7 +144,7 @@ Fly.io (`bts-mlb`) runs scheduler, dashboard, and cron in a single container. Pi
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
 - `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
-**Config:** `/data/orchestrator.toml` on Fly volume. `shadow_mode = true` (no Bluesky posting), `shadow_model = true` (context stack). Tiers: local only on Fly.
+**Config:** `~/.bts-orchestrator.toml` on Hetzner. `shadow_mode = true` (no Bluesky posting), `shadow_model = true` (context stack). Tiers: local only.
 
 **LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
 
