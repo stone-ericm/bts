@@ -604,6 +604,9 @@ def render_page():
     # Build pick rows
     pick_rows = ""
     for p in picks[:30]:
+        # Skip future dates (preview picks for tomorrow)
+        if p.get("date", "") > today:
+            continue
         pick = p.get("pick", {})
         date = p.get("date", "?")
         name = pick.get("batter_name", "?")
