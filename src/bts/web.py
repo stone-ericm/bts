@@ -641,12 +641,12 @@ def render_page():
 
         double = p.get("double_down")
 
-        if date == today:
-            row_class = "today"
-        elif result == "hit":
+        if result == "hit":
             row_class = "row-hit"
         elif result == "miss":
             row_class = "row-miss"
+        elif date == today:
+            row_class = "today"
         else:
             row_class = ""
         pick_rows += f"""
