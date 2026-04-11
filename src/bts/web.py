@@ -540,10 +540,6 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
 </div>"""
 
     return f"""<div id="scorecard">
-<div class="section-header" style="display:flex;align-items:center;">
-    {live_badge}
-    <span>{score_str}{inning_display}</span>
-</div>
 {table_html}
 {banner_html}
 </div>"""
