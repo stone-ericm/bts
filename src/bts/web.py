@@ -719,6 +719,10 @@ def render_page():
     if shadow_files:
         s_total = 0
         s_agrees = 0
+        prod_hits = 0
+        prod_resolved = 0
+        shadow_hits = 0
+        shadow_resolved = 0
         s_disagrees_detail = []
         for sf in shadow_files:
             date_str = sf.name.replace(".shadow.json", "")
@@ -731,37 +735,74 @@ def render_page():
                 s_total += 1
                 sname = sp["pick"]["batter_name"]
                 pname = pp["pick"]["batter_name"]
+                prod_result = pp.get("result")
+                shadow_result = sp.get("result")
                 if sname == pname:
                     s_agrees += 1
                 else:
-                    s_disagrees_detail.append((date_str, pname, sname))
+                    s_disagrees_detail.append((date_str, pname, sname, prod_result, shadow_result))
+                # Track P@1 for both models
+                if prod_result in ("hit", "miss"):
+                    prod_resolved += 1
+                    if prod_result == "hit":
+                        prod_hits += 1
+                if shadow_result in ("hit", "miss"):
+                    shadow_resolved += 1
+                    if shadow_result == "hit":
+                        shadow_hits += 1
             except Exception:
                 continue
         if s_total > 0:
             pct = s_agrees / s_total * 100
             days_left = max(0, 30 - s_total)
             dot = "&#9679;"
-            if pct >= 80:
+
+            # Performance comparison
+            perf_str = ""
+            if prod_resolved > 0 and shadow_resolved > 0:
+                prod_p1 = prod_hits / prod_resolved * 100
+                shadow_p1 = shadow_hits / shadow_resolved * 100
+                diff = shadow_p1 - prod_p1
+                if abs(diff) < 1:
+                    perf_str = f' · P@1: shadow {shadow_p1:.0f}% = prod {prod_p1:.0f}%'
+                    dot_color = "#2d6a4f"
+                elif diff > 0:
+                    perf_str = f' · P@1: shadow {shadow_p1:.0f}% &gt; prod {prod_p1:.0f}% (+{diff:.0f}pp)'
+                    dot_color = "#2d6a4f"
+                else:
+                    perf_str = f' · P@1: shadow {shadow_p1:.0f}% &lt; prod {prod_p1:.0f}% ({diff:.0f}pp)'
+                    dot_color = "#c41e3a"
+            elif pct >= 80:
                 dot_color = "#2d6a4f"
             elif pct >= 60:
                 dot_color = "#e9c46a"
             else:
                 dot_color = "#c41e3a"
+
+            # Disagreement head-to-head
             disagree_str = ""
-            if s_disagrees_detail:
-                last = s_disagrees_detail[-1]
-                disagree_str = (
-                    f' <span style="color:#888;">· Last diff: {last[0]} '
-                    f'({last[1]} → {last[2]})</span>'
-                )
+            resolved_disagrees = [(d, pn, sn, pr, sr) for d, pn, sn, pr, sr in s_disagrees_detail
+                                  if pr in ("hit", "miss") and sr in ("hit", "miss")]
+            if resolved_disagrees:
+                prod_wins = sum(1 for _, _, _, pr, sr in resolved_disagrees if pr == "hit" and sr != "hit")
+                shadow_wins = sum(1 for _, _, _, pr, sr in resolved_disagrees if sr == "hit" and pr != "hit")
+                both_hit = sum(1 for _, _, _, pr, sr in resolved_disagrees if pr == "hit" and sr == "hit")
+                disagree_str = f' · Splits: shadow {shadow_wins}–{prod_wins} prod'
+                if both_hit:
+                    disagree_str += f' ({both_hit} both hit)'
+            elif s_disagrees_detail:
+                n_pending = len(s_disagrees_detail) - len(resolved_disagrees)
+                if n_pending:
+                    disagree_str = f' · {n_pending} split{"s" if n_pending > 1 else ""} pending'
+
             shadow_html = (
                 f'<div style="margin:12px 0;padding:8px 14px;background:#f8f9fa;'
                 f'border-radius:6px;font-size:11px;color:#666;display:flex;'
-                f'align-items:center;gap:6px;">'
+                f'align-items:center;gap:6px;flex-wrap:wrap;">'
                 f'<span style="color:{dot_color};font-size:8px;">{dot}</span>'
                 f'<span style="font-weight:600;color:#444;">Shadow Model</span>'
                 f' {s_agrees}/{s_total} agree ({pct:.0f}%) · {days_left}d to eval'
-                f'{disagree_str}'
+                f'{perf_str}{disagree_str}'
                 f'</div>'
             )
 
