@@ -367,15 +367,17 @@ class TestGetGameStatusesExtended:
 
 class TestReconcileResults:
     def test_no_corrections_when_results_match(self, tmp_path):
+        from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_pick, save_streak, DailyPick, Pick
 
+        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
         pick = Pick(
             batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
             pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
-            projected_lineup=False, game_pk=100, game_time="2026-04-02T23:00:00Z",
+            projected_lineup=False, game_pk=100, game_time=f"{yesterday}T23:00:00Z",
         )
         daily = DailyPick(
-            date="2026-04-02", run_time="2026-04-02T20:00:00Z",
+            date=yesterday, run_time=f"{yesterday}T20:00:00Z",
             pick=pick, double_down=None, runner_up=None,
             result="hit",
         )
@@ -387,15 +389,18 @@ class TestReconcileResults:
         assert corrections == []
 
     def test_corrects_hit_to_miss(self, tmp_path):
+        from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
 
+        # Use yesterday's date so it's always within the 8-day lookback window
+        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
         pick = Pick(
             batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
             pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
-            projected_lineup=False, game_pk=100, game_time="2026-04-02T23:00:00Z",
+            projected_lineup=False, game_pk=100, game_time=f"{yesterday}T23:00:00Z",
         )
         daily = DailyPick(
-            date="2026-04-02", run_time="2026-04-02T20:00:00Z",
+            date=yesterday, run_time=f"{yesterday}T20:00:00Z",
             pick=pick, double_down=None, runner_up=None,
             result="hit",
         )
