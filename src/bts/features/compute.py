@@ -10,6 +10,7 @@ dates strictly before D. This is enforced by:
 """
 
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,23 @@ from pathlib import Path
 # Features are still computed from ALL available history (expanding features
 # benefit from more data), but the model should be trained on 2019+ PAs.
 TRAIN_START_YEAR = 2019
+
+# League PA hit rate prior (measured from 2021-2025 pa_*.parquet, range .218-.222).
+LEAGUE_PA_HIT_RATE_PRIOR = 0.2195
+
+# Experiment 1 (rookie shrinkage, 2026-04-12): pseudocount shrinkage of the
+# 30g/60g/120g batter hit-rate features toward a fixed league prior. Gated by
+# BTS_SHRINKAGE_K env var; 0 → baseline (original day-level rolling mean).
+SHRINKAGE_K = int(os.environ.get("BTS_SHRINKAGE_K", "0"))
+
+# Experiment 2 (career-rate shrinkage, 2026-04-12): pseudocount shrinkage of
+# the 30g/60g/120g batter hit-rate features toward each batter's OWN
+# cumulative career rate (falling back to league prior for rookies with no
+# prior history). This stabilizes early-season readings without pulling
+# veterans toward league mean. Gated by BTS_CAREER_SHRINKAGE_K env var;
+# 0 → baseline. Mutually exclusive with SHRINKAGE_K at code level — if both
+# are set, CAREER_SHRINKAGE_K takes precedence.
+CAREER_SHRINKAGE_K = int(os.environ.get("BTS_CAREER_SHRINKAGE_K", "0"))
 
 
 _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
@@ -127,12 +145,75 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index().sort_values(["batter_id", "date"])
 
     # --- Batter rolling hit rates (date-level, shift by date) ---
-    for w in [7, 30, 60, 120]:
-        col = f"batter_hr_{w}g"
-        batter_dates[col] = (
-            batter_dates.groupby("batter_id")["date_hit_rate"]
-            .transform(lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean())
+    # 7g window is always the unshrunken rolling mean — it captures recent
+    # form, not true-talent level, so shrinkage toward any prior would
+    # defeat the point.
+    batter_dates["batter_hr_7g"] = (
+        batter_dates.groupby("batter_id")["date_hit_rate"]
+        .transform(lambda x: x.shift(1).rolling(7, min_periods=3).mean())
+    )
+
+    if CAREER_SHRINKAGE_K > 0:
+        # Experiment 2: career-rate shrinkage. Pulls each batter's 30/60/120g
+        # rolling rate toward their own cumulative career rate (falling back
+        # to league prior for batters with no prior PAs).
+        #
+        # career_hits[t] = sum of hits across all dates < t (shift-1 expanding)
+        # career_pas[t]  = sum of PAs  across all dates < t
+        # For each window w:
+        #   shrunk = (rolling_pas_w × rolling_rate_w + K × career_rate) / (rolling_pas_w + K)
+        # rolling_rate_w here is the PA-weighted rate (sum_hits_w / sum_pas_w),
+        # not the day-level mean — that's strictly more accurate and also
+        # what lets us weight by PAs in the Bayesian blend.
+        career_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+            lambda x: x.shift(1).expanding(min_periods=1).sum()
+        ).fillna(0)
+        career_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+            lambda x: x.shift(1).expanding(min_periods=1).sum()
+        ).fillna(0)
+        career_rate = np.where(
+            career_pas > 0,
+            career_hits / career_pas.replace(0, np.nan),
+            LEAGUE_PA_HIT_RATE_PRIOR,
         )
+        career_rate = pd.Series(career_rate, index=batter_dates.index).fillna(
+            LEAGUE_PA_HIT_RATE_PRIOR
+        )
+
+        K = CAREER_SHRINKAGE_K
+        for w in [30, 60, 120]:
+            rolling_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            rolling_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            batter_dates[f"batter_hr_{w}g"] = (
+                (rolling_hits + K * career_rate) / (rolling_pas + K)
+            )
+    elif SHRINKAGE_K > 0:
+        # Experiment 1: PA-weighted rolling + pseudocount shrinkage toward a
+        # fixed league prior. Simpler than Exp2; same effect on rookies but
+        # pulls veterans toward league mean instead of their own career rate.
+        for w in [30, 60, 120]:
+            rolling_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            rolling_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            batter_dates[f"batter_hr_{w}g"] = (
+                (rolling_hits + SHRINKAGE_K * LEAGUE_PA_HIT_RATE_PRIOR)
+                / (rolling_pas + SHRINKAGE_K)
+            )
+    else:
+        # Baseline: day-level rolling mean with hard min_periods cutoff.
+        for w in [30, 60, 120]:
+            col = f"batter_hr_{w}g"
+            batter_dates[col] = (
+                batter_dates.groupby("batter_id")["date_hit_rate"]
+                .transform(lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean())
+            )
 
     # --- Batter rolling whiff rate ---
     def _whiff_rate(calls):
