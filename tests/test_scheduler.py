@@ -593,3 +593,117 @@ class TestEarliestPickGameEt:
         )
         result = _earliest_pick_game_et(daily)
         assert result.hour == 13 and result.minute == 37
+
+
+class TestRefreshPickAtFallback:
+    """_refresh_pick_at_fallback re-runs predictions right before the fallback
+    posts, so late-arriving lineups (e.g., PHI lineup posted 10 min before its
+    13:35 first pitch) can swap in a better pick than the one cached from the
+    last scheduled check.
+
+    Regression: 2026-04-12 Sunday slate locked Donovan (SEA) from the 13:19 ET
+    cached prediction, but by the 13:40 ET fallback fire, PHI's lineup had
+    confirmed and Trea Turner (0.7426) would have been a better primary. The
+    fallback just reposted the cached 13:19 pick without refreshing, leaving
+    Turner on the table.
+    """
+
+    def _daily(self, batter_name="Old Batter", batter_id=1001, p=0.70,
+               game_pk=778899):
+        from bts.picks import DailyPick, Pick
+        return DailyPick(
+            date="2026-04-12",
+            run_time="2026-04-12T17:19:00+00:00",
+            pick=Pick(
+                batter_name=batter_name, batter_id=batter_id, team="SEA",
+                lineup_position=1, pitcher_name="Opener", pitcher_id=9999,
+                p_game_hit=p, flags=[], projected_lineup=False,
+                game_pk=game_pk, game_time="2026-04-12T20:10:00Z",
+                pitcher_team="HOU",
+            ),
+            double_down=None, runner_up=None,
+        )
+
+    def test_swaps_to_fresh_pick_when_refresh_returns_different_batter(self, tmp_path):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult
+
+        cached = self._daily(batter_name="Old Batter", batter_id=1001, p=0.70)
+        fresh_daily = self._daily(batter_name="Trea Turner", batter_id=2002, p=0.74)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+
+        config = {"orchestrator": {"picks_dir": str(tmp_path)}}
+
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_result, "local")):
+            result = _refresh_pick_at_fallback(config, "2026-04-12", cached)
+
+        assert result.pick.batter_name == "Trea Turner"
+        assert result.pick.batter_id == 2002
+        assert result.pick.p_game_hit == 0.74
+
+    def test_logs_when_pick_changes(self, tmp_path, capsys):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult
+
+        cached = self._daily(batter_name="Brendan Donovan", batter_id=680977, p=0.7169)
+        fresh_daily = self._daily(batter_name="Trea Turner", batter_id=607208, p=0.7426)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_result, "local")):
+            _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        err = capsys.readouterr().err
+        assert "CHANGED" in err
+        assert "Brendan Donovan" in err
+        assert "Trea Turner" in err
+
+    def test_keeps_cached_when_fresh_pick_matches(self, tmp_path, capsys):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult
+
+        cached = self._daily(batter_name="Same Batter", batter_id=5, p=0.70)
+        fresh_daily = self._daily(batter_name="Same Batter", batter_id=5, p=0.71)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_result, "local")):
+            result = _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        err = capsys.readouterr().err
+        assert "unchanged" in err.lower()
+        assert result.pick.batter_id == 5
+
+    def test_falls_back_to_cached_on_exception(self, tmp_path):
+        from bts.scheduler import _refresh_pick_at_fallback
+
+        cached = self._daily(batter_name="Cached", batter_id=1, p=0.70)
+
+        with patch("bts.scheduler.run_and_pick",
+                   side_effect=RuntimeError("cascade failed")):
+            result = _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        assert result is cached
+
+    def test_falls_back_to_cached_when_pick_result_is_none(self, tmp_path):
+        from bts.scheduler import _refresh_pick_at_fallback
+
+        cached = self._daily()
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, None, "local")):
+            result = _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        assert result is cached

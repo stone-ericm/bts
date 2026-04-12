@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 from bts.util import retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState
-from bts.orchestrator import predict_local_shadow
+from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
 from bts.strategy import select_pick
 
@@ -362,6 +362,51 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
               f"{shadow_p:.1%} — {tag}", file=sys.stderr)
     except Exception as e:
         print(f"  [SHADOW MODEL] Failed: {e}", file=sys.stderr)
+
+
+def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
+    """Re-run predictions right before the fallback post so any late-arriving
+    lineups can update the pick. If the refreshed pick differs from the cached
+    one, log the swap and persist the fresh daily to disk before posting.
+
+    Returns the DailyPick to post. Falls back to ``cached_daily`` on any error
+    (cascade failure, empty predictions, locked result) so the fallback path
+    stays robust — we always have *something* to post if the loop reaches here.
+    """
+    from bts.picks import save_pick
+
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+
+    try:
+        _, pick_result, _ = run_and_pick(config, date)
+    except Exception as e:
+        print(f"  FALLBACK REFRESH: re-predict failed ({e}), using cached pick",
+              file=sys.stderr)
+        return cached_daily
+
+    if pick_result is None or pick_result.daily is None:
+        print("  FALLBACK REFRESH: no fresh pick available, using cached",
+              file=sys.stderr)
+        return cached_daily
+
+    fresh = pick_result.daily
+
+    if cached_daily and fresh.pick.batter_id != cached_daily.pick.batter_id:
+        print(
+            f"  FALLBACK REFRESH: pick CHANGED "
+            f"{cached_daily.pick.batter_name} ({cached_daily.pick.p_game_hit:.1%}) "
+            f"→ {fresh.pick.batter_name} ({fresh.pick.p_game_hit:.1%})",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"  FALLBACK REFRESH: pick unchanged "
+            f"({fresh.pick.batter_name} {fresh.pick.p_game_hit:.1%})",
+            file=sys.stderr,
+        )
+
+    save_pick(fresh, picks_dir)
+    return fresh
 
 
 def poll_game_result(game_pk: int) -> str:
@@ -746,9 +791,12 @@ def run_day(
                     time.sleep(wait)
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
 
-                # Force-post current pick (waited to deadline, or past it)
+                # Force-post current pick (waited to deadline, or past it).
+                # Re-run predictions first in case late-arriving lineups
+                # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
                 if daily and not daily.bluesky_posted:
+                    daily = _refresh_pick_at_fallback(config, date, daily)
                     if private_mode:
                         state.pick_locked = True
                         state.pick_locked_at = _now_et().isoformat()
@@ -793,6 +841,9 @@ def run_day(
             now = _now_et()
             mins_to_game = (earliest_game_et - now).total_seconds() / 60
             if mins_to_game <= fallback_deadline_min:
+                # Re-run predictions first in case late-arriving lineups
+                # changed the top pick since the last scheduled check.
+                daily = _refresh_pick_at_fallback(config, date, daily)
                 if private_mode:
                     state.pick_locked = True
                     state.pick_locked_at = _now_et().isoformat()
