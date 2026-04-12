@@ -132,23 +132,30 @@ def select_pick(
     date: str,
     picks_dir: Path,
     streak: int = 0,
+    for_shadow: bool = False,
 ) -> PickResult | None:
     """Select the best pick from available predictions.
 
     Returns PickResult with the selected DailyPick, or None if there's
     nothing to pick (no games, all started, empty predictions).
+
+    When ``for_shadow=True``, the production-lock short-circuit is bypassed
+    so the shadow model always computes its own pick from its own predictions.
+    (Without this, shadow calls made after production locks would silently
+    return production's DailyPick and corrupt {date}.shadow.json.)
     """
     if predictions.empty:
         return None
 
-    current = load_pick(date, picks_dir)
     statuses = get_game_statuses(date)
 
-    # Check if current pick is locked
-    if current and (
-        statuses.get(current.pick.game_pk) != "P" or current.bluesky_posted
-    ):
-        return PickResult(daily=current, locked=True)
+    current = None
+    if not for_shadow:
+        current = load_pick(date, picks_dir)
+        if current and (
+            statuses.get(current.pick.game_pk) != "P" or current.bluesky_posted
+        ):
+            return PickResult(daily=current, locked=True)
 
     # Filter to games not yet started
     not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")

@@ -347,7 +347,7 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             return
 
         streak = load_streak(picks_dir)
-        result = select_pick(predictions, date, picks_dir, streak=streak)
+        result = select_pick(predictions, date, picks_dir, streak=streak, for_shadow=True)
         if result is None or result.daily is None:
             print("  [SHADOW MODEL] Skip (below threshold).", file=sys.stderr)
             return

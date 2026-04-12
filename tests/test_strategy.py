@@ -127,6 +127,49 @@ class TestSelectPick:
 
         assert result.locked
 
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    def test_for_shadow_ignores_locked_production(self, mock_statuses, tmp_path):
+        """When called with for_shadow=True, select_pick must NOT short-circuit
+        on production's lock state — the shadow model must always compute its
+        own pick from its own predictions, even when production is already
+        locked and posted.
+
+        Regression: previously, the shadow path's select_pick call would load
+        the production pick file, see bluesky_posted=True, and return the
+        production DailyPick. The shadow predictions were silently discarded
+        and {date}.shadow.json became a copy of {date}.json.
+        """
+        from bts.strategy import select_pick
+
+        # Production is LOCKED with bluesky_posted=True and game still in "P"
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Production Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+            bluesky_posted=True, bluesky_uri="at://did:plc:test/post/123",
+        )
+        save_pick(existing, tmp_path)
+
+        # Shadow predictions: completely different top batter in a different game
+        preds = _predictions([
+            {"batter_name": "Shadow Top", "p_game_hit": 0.82, "game_pk": 778900},
+            {"batter_name": "Shadow Second", "p_game_hit": 0.79, "game_pk": 778899},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path, for_shadow=True)
+
+        assert result is not None
+        assert result.locked is False
+        assert result.daily.pick.batter_name == "Shadow Top"
+        assert result.daily.pick.p_game_hit == 0.82
+        assert result.daily.bluesky_posted is False
+        assert result.daily.bluesky_uri is None
+
     @patch("bts.strategy.get_game_statuses", return_value={778899: "F"})
     def test_all_games_started_no_prior_pick(self, mock_statuses, tmp_path):
         from bts.strategy import select_pick
