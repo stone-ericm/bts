@@ -860,17 +860,28 @@ def render_page():
             except (ValueError, TypeError):
                 pass
         is_locked = pick_locked_state or posted or result is not None or game_started
+        # Two badges stacked: top = LOCKED/PENDING (or HIT/MISS once the game is over),
+        # bottom = POSTED/NOT POSTED. Posted state is hidden once the game has resolved.
         if result == "hit":
-            lock_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
+            status_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
+            posted_badge = ""
         elif result == "miss":
-            lock_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
+            status_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
+            posted_badge = ""
         else:
             if is_locked:
-                lock_badge = '<span class="lock-badge locked">LOCKED</span>'
+                status_badge = '<span class="lock-badge locked">LOCKED</span>'
             else:
-                lock_badge = '<span class="lock-badge pending">PENDING</span>'
+                status_badge = '<span class="lock-badge pending">PENDING</span>'
             if posted:
-                lock_badge += ' <span class="lock-badge posted">POSTED</span>'
+                posted_badge = '<span class="lock-badge posted">POSTED</span>'
+            else:
+                posted_badge = '<span class="lock-badge not-posted">NOT POSTED</span>'
+        lock_badge = (
+            f'<span style="display:inline-flex;flex-direction:column;'
+            f'gap:4px;margin-left:8px;align-items:flex-start;vertical-align:middle;">'
+            f'{status_badge}{posted_badge}</span>'
+        )
         # Two times rendered when the pick is still pending:
         #   - "Expected lock"   = scheduler's fallback deadline (earliest_game − fallback_deadline_min).
         #     Matches what the bot will actually do if no new lineups arrive.
@@ -902,10 +913,12 @@ def render_page():
                 expected_str = expected_dt.strftime("%-I:%M %p ET")
                 deadline_str = deadline_dt.strftime("%-I:%M %p ET")
                 lock_time_html = (
-                    f'<span style="font-size:11px;color:#888;font-weight:400;'
-                    f'margin-left:auto;">Expected lock: {expected_str} '
-                    f'<span style="color:#ccc;">·</span> '
-                    f'Lock in before: {deadline_str}</span>'
+                    f'<span style="display:inline-flex;flex-direction:column;'
+                    f'align-items:flex-end;gap:2px;font-size:11px;color:#888;'
+                    f'font-weight:400;margin-left:auto;">'
+                    f'<span>Expected lock: {expected_str}</span>'
+                    f'<span>Lock in before: {deadline_str}</span>'
+                    f'</span>'
                 )
 
         label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
@@ -1054,6 +1067,9 @@ def render_page():
         .lock-badge.locked {{ background: #2e7d32; color: #fff; }}
         .lock-badge.pending {{ background: #f57c00; color: #fff; }}
         .lock-badge.posted {{ background: #1185fe; color: #fff; }}
+        .lock-badge.not-posted {{ background: transparent; color: #888;
+                                  border: 1px solid #ccc;
+                                  padding: 1px 7px; }}
 
         .section-header {{ color: #041E42; font-size: 0.75em; text-transform: uppercase;
                            letter-spacing: 2px; font-weight: 700; margin: 28px 0 12px;
