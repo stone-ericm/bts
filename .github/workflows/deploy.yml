@@ -9,6 +9,7 @@ on:
       - 'scripts/**'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.github/workflows/deploy.yml'
 
 concurrency:
   group: deploy
@@ -28,5 +29,13 @@ jobs:
             git config --global --add safe.directory /home/bts/projects/bts
             cd /home/bts/projects/bts
             git pull --ff-only
+            # Self-heal: legacy system-level units (created before April 11)
+            # race the canonical user-level units. Remove if present.
+            if [ -f /etc/systemd/system/bts-scheduler.service ]; then
+              systemctl disable --now bts-scheduler.service bts-dashboard.service 2>/dev/null || true
+              rm -f /etc/systemd/system/bts-scheduler.service /etc/systemd/system/bts-dashboard.service
+              systemctl daemon-reload
+              pkill -u bts -f 'uv run bts schedule' 2>/dev/null || true
+            fi
             sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
             echo "Deployed $(git rev-parse --short HEAD)"
