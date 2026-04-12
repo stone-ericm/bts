@@ -492,3 +492,58 @@ class TestRunDay:
         captured = capsys.readouterr()
         assert "FALLBACK" in captured.err
         assert "LOCKED" in captured.err
+
+
+class TestEarliestPickGameEt:
+    """The fallback deadline must use the earlier of primary + double-down
+    game times, since the BTS app rejects submissions once the FIRST game
+    has started — not the primary's game.
+    """
+
+    def _daily(self, primary_game_time: str, double_game_time: str | None = None):
+        from bts.picks import Pick, DailyPick
+        primary = Pick(
+            batter_name="A", batter_id=1, team="BOS", lineup_position=1,
+            pitcher_name="P1", pitcher_id=10, p_game_hit=0.7, flags=[],
+            projected_lineup=False, game_pk=100, game_time=primary_game_time,
+        )
+        double = None
+        if double_game_time:
+            double = Pick(
+                batter_name="B", batter_id=2, team="MIN", lineup_position=2,
+                pitcher_name="P2", pitcher_id=20, p_game_hit=0.7, flags=[],
+                projected_lineup=False, game_pk=200, game_time=double_game_time,
+            )
+        return DailyPick(
+            date="2026-04-12", run_time="2026-04-12T15:00:00+00:00",
+            pick=primary, double_down=double, runner_up=None,
+        )
+
+    def test_returns_primary_when_no_double_down(self):
+        from bts.scheduler import _earliest_pick_game_et
+        daily = self._daily(primary_game_time="2026-04-12T18:15:00Z")
+        result = _earliest_pick_game_et(daily)
+        assert result.hour == 14 and result.minute == 15  # 18:15 UTC = 14:15 ET
+
+    def test_returns_primary_when_primary_is_earlier(self):
+        from bts.scheduler import _earliest_pick_game_et
+        daily = self._daily(
+            primary_game_time="2026-04-12T17:37:00Z",  # 13:37 ET
+            double_game_time="2026-04-12T18:15:00Z",   # 14:15 ET
+        )
+        result = _earliest_pick_game_et(daily)
+        assert result.hour == 13 and result.minute == 37
+
+    def test_returns_double_down_when_double_is_earlier(self):
+        """Bug repro: the 2026-04-12 morning had Roman Anthony (14:15 game) as
+        primary and Luke Keaschall (13:37 game) as double-down. The scheduler
+        was using the primary's game time, putting fallback at 13:40 ET — three
+        minutes after Luke's 13:37 game started, missing the BTS deadline.
+        """
+        from bts.scheduler import _earliest_pick_game_et
+        daily = self._daily(
+            primary_game_time="2026-04-12T18:15:00Z",  # 14:15 ET (later)
+            double_game_time="2026-04-12T17:37:00Z",   # 13:37 ET (earlier)
+        )
+        result = _earliest_pick_game_et(daily)
+        assert result.hour == 13 and result.minute == 37

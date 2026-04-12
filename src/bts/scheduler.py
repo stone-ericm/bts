@@ -210,6 +210,22 @@ def _now_et() -> datetime:
     return datetime.now(ET)
 
 
+def _earliest_pick_game_et(daily) -> datetime:
+    """Return the earliest game start time among primary and double-down picks (ET).
+
+    BTS-app deadline = first game in the slate to start, since the user has to
+    submit BOTH picks before either game begins. The fallback-post deadline must
+    therefore use this earlier time, NOT the primary pick's game time, in cases
+    where the double-down's game starts first.
+    """
+    times = [datetime.fromisoformat(daily.pick.game_time).astimezone(ET)]
+    if daily.double_down:
+        times.append(
+            datetime.fromisoformat(daily.double_down.game_time).astimezone(ET)
+        )
+    return min(times)
+
+
 def run_single_check(
     date: str,
     all_game_pks: list[int],
@@ -684,12 +700,12 @@ def run_day(
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
             break
 
-        # If pick's game starts before next scheduled check, wake up to force-post
+        # If the earliest game in the slate starts before the next scheduled
+        # check, wake up to force-post. Use earliest of primary + double-down
+        # because BTS app rejects submissions once the FIRST game has started.
         if not state.pick_locked and result.get("pick_result") and result["pick_result"].daily:
-            pick_game_et = datetime.fromisoformat(
-                result["pick_result"].daily.pick.game_time
-            ).astimezone(ET)
-            fallback_deadline = pick_game_et - timedelta(minutes=fallback_deadline_min)
+            earliest_game_et = _earliest_pick_game_et(result["pick_result"].daily)
+            fallback_deadline = earliest_game_et - timedelta(minutes=fallback_deadline_min)
             now = _now_et()
 
             # Is there a later check that fires before the deadline?
@@ -705,7 +721,7 @@ def run_day(
                         sleeping_until=fallback_deadline.astimezone(UTC),
                     )
                     wait = (fallback_deadline - now).total_seconds()
-                    print(f"  Pick's game at {pick_game_et.strftime('%H:%M ET')}, "
+                    print(f"  Earliest pick game at {earliest_game_et.strftime('%H:%M ET')}, "
                           f"no check before then — fallback at "
                           f"{fallback_deadline.strftime('%H:%M ET')} "
                           f"({wait / 60:.0f} min)...", file=sys.stderr)
@@ -750,13 +766,14 @@ def run_day(
                     print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
                     break
 
-    # 5. Fallback — if not yet locked, check for deadline
+    # 5. Fallback — if not yet locked, check for deadline (use earliest of
+    # primary + double-down so we never miss the BTS submission window).
     if not state.pick_locked:
         daily = load_pick(date, picks_dir)
         if daily and not daily.bluesky_posted:
-            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
+            earliest_game_et = _earliest_pick_game_et(daily)
             now = _now_et()
-            mins_to_game = (game_et - now).total_seconds() / 60
+            mins_to_game = (earliest_game_et - now).total_seconds() / 60
             if mins_to_game <= fallback_deadline_min:
                 if private_mode:
                     state.pick_locked = True
