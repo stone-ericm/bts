@@ -75,7 +75,13 @@ def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
 
 
 def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
-    """Load shadow model pick. Returns None if not found."""
+    """Load shadow model pick. Returns None if not found.
+
+    Honors the file's bluesky_posted/bluesky_uri fields verbatim so any
+    corruption (e.g., shadow pipeline accidentally writing production data)
+    stays visible on disk rather than being silently masked on save-back.
+    In normal operation a shadow file should always have bluesky_posted=False.
+    """
     path = picks_dir / f"{date}.shadow.json"
     if not path.exists():
         return None
@@ -86,7 +92,9 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
     return DailyPick(
         date=data["date"], run_time=data["run_time"], pick=pick,
         double_down=dd, runner_up=data.get("runner_up"),
-        bluesky_posted=False, bluesky_uri=None, result=data.get("result"),
+        bluesky_posted=data.get("bluesky_posted", False),
+        bluesky_uri=data.get("bluesky_uri"),
+        result=data.get("result"),
     )
 
 

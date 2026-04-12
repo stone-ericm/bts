@@ -47,3 +47,37 @@ class TestLoadShadowPick:
 
     def test_load_missing_returns_none(self, tmp_path):
         assert load_shadow_pick("2026-04-10", tmp_path) is None
+
+    def test_load_preserves_bluesky_posted(self, tmp_path):
+        """load_shadow_pick must honor the file's bluesky_posted field.
+
+        Previously this function force-zeroed bluesky_posted and bluesky_uri,
+        which masked a silent corruption bug: when the scheduler's shadow
+        pipeline accidentally wrote production's DailyPick (with
+        bluesky_posted=true) to the shadow file, the next load would overwrite
+        those fields to false on save-back, hiding the corruption from the
+        30-day shadow eval. Honest loads make corruption visible.
+        """
+        # Simulate a corrupted shadow file with bluesky_posted=true on disk
+        corrupted = {
+            "date": "2026-04-12",
+            "run_time": "2026-04-12T17:19:41.741015+00:00",
+            "pick": {
+                "batter_name": "Brendan Donovan", "batter_id": 680977,
+                "team": "SEA", "lineup_position": 1,
+                "pitcher_name": "Cody Bolton", "pitcher_id": 675989,
+                "p_game_hit": 0.7169, "flags": ["OPENER"],
+                "projected_lineup": False, "game_pk": 823154,
+                "game_time": "2026-04-12T20:10:00Z", "pitcher_team": "HOU",
+            },
+            "double_down": None, "runner_up": None,
+            "bluesky_posted": True,
+            "bluesky_uri": "at://did:plc:test/post/corrupt",
+            "result": None,
+        }
+        (tmp_path / "2026-04-12.shadow.json").write_text(json.dumps(corrupted))
+
+        loaded = load_shadow_pick("2026-04-12", tmp_path)
+        assert loaded is not None
+        assert loaded.bluesky_posted is True
+        assert loaded.bluesky_uri == "at://did:plc:test/post/corrupt"
