@@ -1001,9 +1001,10 @@ def state_export(picks_dir, output_path):
 def state_regenerate(snapshot, handle, out_picks_dir):
     """Rebuild BTS state from committed snapshot + Bluesky post history.
 
-    Used for disaster recovery when the Fly volume is lost or during
-    migration between providers. Post-cutoff data comes from Bluesky;
-    pre-cutoff data comes from the committed initial snapshot.
+    Used for disaster recovery when production picks are lost (e.g.
+    server rebuild) or during migration between providers. Post-cutoff
+    data comes from Bluesky; pre-cutoff data comes from the committed
+    initial snapshot.
     """
     from pathlib import Path
     from bts.state.regenerate import regenerate

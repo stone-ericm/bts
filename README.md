@@ -107,7 +107,7 @@ Year-to-year instability is a fundamental challenge: features that improve P@1 o
 
 A **dynamic lineup scheduler** (`bts schedule`) checks lineups 45 minutes before each game's start time, running the full prediction pipeline as lineups are confirmed throughout the day. It commits to a pick when confirmed lineups show the top pick's advantage exceeds a configurable gap threshold (`early_lock_gap=0.03`, derived from backtesting: 92.8% accuracy when locking early vs 85.4% waiting).
 
-The scheduler runs on Fly.io as a single-day daemon — handles one day's games, then exits and restarts for the next day. Overnight, a preview pick for tomorrow is generated using projected lineups so the dashboard is never blank.
+The scheduler runs on a Hetzner CPX42 VPS as a long-lived `systemd --user` service. Each morning at 3 AM ET an overnight cron generates a preliminary pick for the day using projected lineups so the dashboard is never blank, then the scheduler re-evaluates as real lineups confirm.
 
 ## Architecture
 
@@ -231,8 +231,8 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts data pull --start 2019-03-20 --end 2025-10
 # Build PA Parquet
 UV_CACHE_DIR=/tmp/uv-cache uv run bts data build --seasons 2019,2020,2021,2022,2023,2024,2025
 
-# Dynamic lineup scheduler (Fly.io production)
-UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config /data/orchestrator.toml
+# Dynamic lineup scheduler (Hetzner production)
+UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 
 # Local prediction (predict, apply MDP strategy, save pick, post to Bluesky)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01

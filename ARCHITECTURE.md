@@ -144,7 +144,7 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
 - `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
-**Config:** `~/.bts-orchestrator.toml` on Hetzner. `shadow_mode = true` (no Bluesky posting), `shadow_model = true` (context stack). Tiers: local only.
+**Config:** `~/.bts-orchestrator.toml` on Hetzner. `shadow_mode = false` (Bluesky posting live), `shadow_model = true` (context stack runs alongside production for the 30-day eval). Tiers: local only.
 
 **LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
 
