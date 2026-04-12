@@ -330,8 +330,10 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
     """Merge scorecard data from two different games.
 
     Used when the primary pick and double-down are in different games.
-    The merged result carries batters from both games. Game status is
-    set to whichever game is further along (Live > Preview, Final > Live).
+    The merged result carries batters from both games. Game status picks
+    the most "watchable" state: Live wins over Final wins over Preview.
+    This means the scorecard renders whenever at least one game is in
+    progress, and shows Final only when BOTH games are done.
     A combined score label is stored for display.
     """
     if sc1 is None:
@@ -342,9 +344,9 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
     merged = dict(sc1)
     merged["batters"] = list(sc1.get("batters", [])) + list(sc2.get("batters", []))
 
-    # Use the least advanced game status — only Final when ALL games are Final
-    status_priority = {"F": 0, "L": 1, "P": 2}
-    if status_priority.get(sc2["game_status"], 3) > status_priority.get(sc1["game_status"], 3):
+    # Prefer Live > Final > Preview — scorecard renders when any game is live
+    status_priority = {"P": 0, "F": 1, "L": 2}
+    if status_priority.get(sc2["game_status"], 0) > status_priority.get(sc1["game_status"], 0):
         merged["game_status"] = sc2["game_status"]
         merged["inning"] = sc2.get("inning", "")
 

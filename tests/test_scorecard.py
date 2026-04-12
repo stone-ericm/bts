@@ -379,6 +379,72 @@ class TestMergeScorecard:
         merged = merge_scorecards(sc1, sc2)
         assert merged["game_status"] == "F"
 
+    def test_merge_live_beats_preview_when_primary_preview(self):
+        """When primary is Preview (pre-game) and double-down is Live,
+        the merged status must be Live so the scorecard actually renders.
+
+        Regression for 2026-04-12: primary was Donovan (SEA 16:10 ET, still
+        P) and double-down was Anthony (BOS 14:15 ET, already L). The
+        merge used "least advanced" priority which picked P, and
+        render_scorecard_section returned empty because its guard requires
+        game_status in (L, F). The dashboard showed no scorecard during
+        Anthony's live game.
+        """
+        sc_primary = {
+            "game_status": "P",
+            "inning": "",
+            "score": {"away": 0, "home": 0},
+            "away_team": "HOU",
+            "home_team": "SEA",
+            "batters": [{"name": "Donovan", "batter_id": 1, "pas": []}],
+        }
+        sc_dd = {
+            "game_status": "L",
+            "inning": "Bot 2nd",
+            "score": {"away": 1, "home": 3},
+            "away_team": "BOS",
+            "home_team": "STL",
+            "batters": [{"name": "Anthony", "batter_id": 2, "pas": []}],
+        }
+        merged = merge_scorecards(sc_primary, sc_dd)
+        assert merged["game_status"] == "L"
+        assert merged["inning"] == "Bot 2nd"
+
+    def test_merge_live_beats_preview_when_dd_preview(self):
+        """Mirror of the regression above: primary Live, double-down Preview."""
+        sc_primary = {
+            "game_status": "L",
+            "inning": "Top 3rd",
+            "score": {"away": 1, "home": 0},
+            "away_team": "BOS",
+            "home_team": "STL",
+            "batters": [{"name": "Anthony", "batter_id": 1, "pas": []}],
+        }
+        sc_dd = {
+            "game_status": "P",
+            "inning": "",
+            "score": {"away": 0, "home": 0},
+            "away_team": "HOU",
+            "home_team": "SEA",
+            "batters": [{"name": "Donovan", "batter_id": 2, "pas": []}],
+        }
+        merged = merge_scorecards(sc_primary, sc_dd)
+        assert merged["game_status"] == "L"
+        assert merged["inning"] == "Top 3rd"
+
+    def test_merge_stays_preview_when_both_preview(self):
+        """Both games pre-game: merged stays P (no scorecard to render yet)."""
+        sc1 = {
+            "game_status": "P", "inning": "", "score": {"away": 0, "home": 0},
+            "away_team": "A", "home_team": "B", "batters": [],
+        }
+        sc2 = {
+            "game_status": "P", "inning": "", "score": {"away": 0, "home": 0},
+            "away_team": "C", "home_team": "D", "batters": [],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged["game_status"] == "P"
+
 
 class TestBatterWithZeroPas:
     def test_batter_appears_with_no_pas(self):
