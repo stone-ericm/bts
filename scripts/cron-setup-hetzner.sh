@@ -28,10 +28,16 @@ MARKER="# BTS-HETZNER"
 PREFIX="cd $BTS_DIR && set -a && . ./.env && set +a &&"
 YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
 
+# 3am chain ordering: data pull -> build -> preview -> sync-to-r2.
+# preview is the user-facing deliverable (drives the morning dashboard); R2
+# sync is nice-to-have backup. Wrapping the bts commands in a subshell so the
+# log redirect captures ALL of their output (without it, sh's redirect only
+# binds to the last command). The `;` between preview and sync-to-r2 means a
+# sync failure (e.g. R2 outage) does not block preview from running.
 CRON_LINES="$MARKER
 0 1 * * * $PREFIX $UV_BIN run bts check-results --date $YESTERDAY >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
-0 3 * * * $PREFIX $UV_BIN run bts data pull && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts data sync-to-r2 && $UV_BIN run bts preview >> $LOG_DIR/cron.log 2>&1 $MARKER
+0 3 * * * $PREFIX ($UV_BIN run bts data pull && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER"
 
