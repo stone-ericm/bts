@@ -566,7 +566,14 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
 </table>
 </div>"""
 
+    header_html = (
+        f'<div style="margin-bottom:8px;font-size:13px;color:#041E42;'
+        f'font-weight:600;display:flex;align-items:center;">'
+        f'{live_badge}<span>{score_str}{inning_display}</span></div>'
+    )
+
     return f"""<div id="scorecard">
+{header_html}
 {table_html}
 {banner_html}
 </div>"""

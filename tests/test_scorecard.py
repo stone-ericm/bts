@@ -446,6 +446,64 @@ class TestMergeScorecard:
         assert merged["game_status"] == "P"
 
 
+class TestRenderScorecardHeader:
+    """render_scorecard_section must include a header with LIVE/FINAL badge
+    and the combined score label. Without this, the #scorecard div polled
+    every 30s lacks any live status indicator — the only badges on the
+    dashboard come from _render_game_tags above the scorecard, and those
+    aren't in the polling payload so they go stale after page load.
+    """
+
+    def _basic_scorecard(self, game_status, score_label=None):
+        return {
+            "game_status": game_status,
+            "inning": "Bot 3rd" if game_status == "L" else "",
+            "away_team": "BOS",
+            "home_team": "STL",
+            "score": {"away": 1, "home": 3},
+            "score_label": score_label,
+            "batters": [
+                {"name": "Anthony", "batter_id": 1, "lineup_position": 1,
+                 "position": "RF", "slash_line": ".280/.350/.450", "pas": []},
+            ],
+        }
+
+    def test_live_badge_present_when_game_live(self):
+        from bts.web import render_scorecard_section
+        html = render_scorecard_section(self._basic_scorecard("L"))
+        assert "LIVE" in html
+        assert "FINAL" not in html
+
+    def test_final_badge_present_when_game_final(self):
+        from bts.web import render_scorecard_section
+        html = render_scorecard_section(self._basic_scorecard("F"))
+        assert "FINAL" in html
+        assert "LIVE" not in html
+
+    def test_score_label_rendered_for_double_down(self):
+        """When score_label is set (double-down across games), it should
+        appear in the header verbatim so the polling payload shows both
+        scores + innings."""
+        from bts.web import render_scorecard_section
+        label = "HOU 0-0 SEA · Top 1st | BOS 3-1 STL · Bot 3rd"
+        html = render_scorecard_section(self._basic_scorecard("L", score_label=label))
+        assert label in html
+
+    def test_single_game_score_fallback(self):
+        """When no score_label (single pick), header should show the basic
+        away/home score line."""
+        from bts.web import render_scorecard_section
+        html = render_scorecard_section(self._basic_scorecard("L"))
+        # away team + runs + home team should all be in the header
+        assert "BOS" in html
+        assert "STL" in html
+
+    def test_preview_status_still_returns_empty(self):
+        """Status P must continue to return empty — no scorecard to render."""
+        from bts.web import render_scorecard_section
+        assert render_scorecard_section(self._basic_scorecard("P")) == ""
+
+
 class TestBatterWithZeroPas:
     def test_batter_appears_with_no_pas(self):
         """Batter in boxscore but no completed PAs should still appear."""
