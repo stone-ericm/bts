@@ -1,12 +1,12 @@
-"""Tests for scheduler shadow mode."""
+"""Tests for scheduler private mode (no Bluesky posting, picks side-saved)."""
 import json
 from pathlib import Path
 
 import pytest
 
 
-def test_shadow_mode_writes_to_shadow_dir(tmp_path):
-    """In shadow mode, picks are written to data/shadow/{date}/ not data/picks/."""
+def test_private_mode_writes_to_shadow_dir(tmp_path):
+    """In private mode, picks are written to data/shadow/{date}/ not data/picks/."""
     from bts.picks import save_pick_shadow
 
     shadow_dir = tmp_path / "shadow"

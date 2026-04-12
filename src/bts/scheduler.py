@@ -535,9 +535,9 @@ def run_day(
     from bts.posting import format_post, format_skip_post, post_to_bluesky
 
     sched_config = config.get("scheduler", {})
-    shadow_mode = sched_config.get("shadow_mode", False)
-    if shadow_mode:
-        print("  [SHADOW MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
+    private_mode = sched_config.get("private_mode", False)
+    if private_mode:
+        print("  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
     shadow_model_enabled = sched_config.get("shadow_model", False)
     if shadow_model_enabled:
         print("  [SHADOW MODEL] Context stack shadow model enabled.", file=sys.stderr)
@@ -648,13 +648,13 @@ def run_day(
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
             streak = load_streak(picks_dir)
-            if shadow_mode:
+            if private_mode:
                 save_pick(daily, picks_dir)
                 state.pick_locked = True
                 state.pick_locked_at = _now_et().isoformat()
                 save_state(state, picks_dir)
-                print(f"  [SHADOW] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
-                      f"{daily.pick.p_game_hit:.1%} — NOT posted (shadow mode)", file=sys.stderr)
+                print(f"  [PRIVATE] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
+                      f"{daily.pick.p_game_hit:.1%} — NOT posted (private mode)", file=sys.stderr)
             else:
                 text = format_post(
                     daily.pick.batter_name, daily.pick.team,
@@ -715,11 +715,11 @@ def run_day(
                 # Force-post current pick (waited to deadline, or past it)
                 daily = load_pick(date, picks_dir)
                 if daily and not daily.bluesky_posted:
-                    if shadow_mode:
+                    if private_mode:
                         state.pick_locked = True
                         state.pick_locked_at = _now_et().isoformat()
                         save_state(state, picks_dir)
-                        print(f"  [SHADOW] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
+                        print(f"  [PRIVATE] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
                     else:
                         print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
                         streak = load_streak(picks_dir)
@@ -758,11 +758,11 @@ def run_day(
             now = _now_et()
             mins_to_game = (game_et - now).total_seconds() / 60
             if mins_to_game <= fallback_deadline_min:
-                if shadow_mode:
+                if private_mode:
                     state.pick_locked = True
                     state.pick_locked_at = _now_et().isoformat()
                     save_state(state, picks_dir)
-                    print(f"  [SHADOW] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
+                    print(f"  [PRIVATE] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
                 else:
                     print(f"  FALLBACK — {fallback_deadline_min}min to first pitch, posting on projected data.",
                           file=sys.stderr)
