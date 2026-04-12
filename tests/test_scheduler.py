@@ -98,7 +98,7 @@ class TestComputeWakeUpTime:
 
 class TestCheckConfirmedLineups:
     @patch("bts.scheduler.retry_urlopen")
-    def test_detects_confirmed_lineup(self, mock_urlopen):
+    def test_detects_both_sides_confirmed(self, mock_urlopen):
         from bts.scheduler import check_confirmed_lineups
 
         feed = {
@@ -115,7 +115,24 @@ class TestCheckConfirmedLineups:
         mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
 
         result = check_confirmed_lineups([111])
-        assert result == {111: True}
+        assert result == {111: {"home", "away"}}
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_detects_only_away_confirmed(self, mock_urlopen):
+        from bts.scheduler import check_confirmed_lineups
+
+        feed = {
+            "liveData": {"boxscore": {"teams": {
+                "away": {"players": {
+                    "ID123": {"battingOrder": "100", "person": {"fullName": "A"}},
+                }},
+                "home": {"players": {}},
+            }}},
+        }
+        mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
+
+        result = check_confirmed_lineups([111])
+        assert result == {111: {"away"}}
 
     @patch("bts.scheduler.retry_urlopen")
     def test_detects_no_lineup(self, mock_urlopen):
@@ -130,10 +147,10 @@ class TestCheckConfirmedLineups:
         mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
 
         result = check_confirmed_lineups([111])
-        assert result == {111: False}
+        assert result == {111: set()}
 
     @patch("bts.scheduler.retry_urlopen")
-    def test_counts_new_confirmations(self, mock_urlopen):
+    def test_counts_both_sides_as_two(self, mock_urlopen):
         from bts.scheduler import count_new_confirmations
 
         feed_confirmed = {
@@ -144,10 +161,36 @@ class TestCheckConfirmedLineups:
         }
         mock_urlopen.return_value.read.return_value = json.dumps(feed_confirmed).encode()
 
-        previously_confirmed = set()
+        previously_confirmed: set[tuple[int, str]] = set()
         new_count = count_new_confirmations([111], previously_confirmed)
-        assert new_count == 1
-        assert 111 in previously_confirmed
+        assert new_count == 2  # both sides just confirmed
+        assert (111, "home") in previously_confirmed
+        assert (111, "away") in previously_confirmed
+
+    @patch("bts.scheduler.retry_urlopen")
+    def test_counts_second_side_as_new_confirmation(self, mock_urlopen):
+        """Regression test: game had one side confirmed, then gets the other.
+        The old game-level tracking returned 0 new confirmations, hiding that
+        the prediction inputs had changed. Now we count the second side as +1.
+        """
+        from bts.scheduler import count_new_confirmations
+
+        # Initial state: away side already confirmed from a previous check
+        previously_confirmed: set[tuple[int, str]] = {(111, "away")}
+
+        # Now the home side has posted its lineup too
+        feed = {
+            "liveData": {"boxscore": {"teams": {
+                "away": {"players": {"ID1": {"battingOrder": "100", "person": {"fullName": "A"}}}},
+                "home": {"players": {"ID2": {"battingOrder": "100", "person": {"fullName": "B"}}}},
+            }}},
+        }
+        mock_urlopen.return_value.read.return_value = json.dumps(feed).encode()
+
+        new_count = count_new_confirmations([111], previously_confirmed)
+        assert new_count == 1  # only the home side is new
+        assert (111, "home") in previously_confirmed
+        assert (111, "away") in previously_confirmed  # still there
 
 
 class TestSchedulerState:
@@ -186,13 +229,13 @@ class TestSchedulerRun:
     def test_runs_predictions_even_with_no_new_lineups(self, mock_cascade, mock_lineups, tmp_path):
         from bts.scheduler import run_single_check
 
-        mock_lineups.return_value = {100: False}
+        mock_lineups.return_value = {100: set()}
         mock_cascade.return_value = (None, None)
 
         result = run_single_check(
             date="2026-04-03",
             all_game_pks=[100],
-            confirmed_game_pks=set(),
+            confirmed_sides=set(),
             config={"orchestrator": {"picks_dir": str(tmp_path)}, "tiers": []},
             early_lock_gap=0.03,
         )
@@ -211,7 +254,7 @@ class TestSchedulerRun:
         import pandas as pd
         from bts.scheduler import run_single_check
 
-        mock_lineups.return_value = {100: True}
+        mock_lineups.return_value = {100: {"home", "away"}}
         mock_cascade.return_value = (
             pd.DataFrame([{
                 "batter_name": "Test", "batter_id": 1, "team": "NYM",
@@ -225,7 +268,7 @@ class TestSchedulerRun:
         result = run_single_check(
             date="2026-04-03",
             all_game_pks=[100],
-            confirmed_game_pks=set(),
+            confirmed_sides=set(),
             config={
                 "orchestrator": {"picks_dir": str(tmp_path)},
                 "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
@@ -233,7 +276,10 @@ class TestSchedulerRun:
             early_lock_gap=0.03,
         )
         assert result["skipped"] is False
-        assert result["new_lineups"] == 1
+        # Both sides of game 100 just confirmed → 2 new team-level confirmations.
+        # (Previously this was game-level and returned 1; now it reflects the
+        # actual granularity the prediction pipeline sees.)
+        assert result["new_lineups"] == 2
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.orchestrator.run_cascade")
@@ -252,7 +298,7 @@ class TestSchedulerRun:
         import pandas as pd
         from bts.scheduler import run_single_check
 
-        mock_lineups.return_value = {100: True, 200: True}
+        mock_lineups.return_value = {100: {"home", "away"}, 200: {"home", "away"}}
         mock_cascade.return_value = (
             pd.DataFrame([
                 {
@@ -274,7 +320,7 @@ class TestSchedulerRun:
         result = run_single_check(
             date="2026-04-04",
             all_game_pks=[100, 200],
-            confirmed_game_pks=set(),
+            confirmed_sides=set(),
             config={
                 "orchestrator": {"picks_dir": str(tmp_path)},
                 "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
@@ -297,7 +343,7 @@ class TestSchedulerRun:
         from bts.scheduler import run_single_check
         from bts.picks import Pick, DailyPick, save_pick
 
-        mock_lineups.return_value = {100: True}
+        mock_lineups.return_value = {100: {"home", "away"}}
 
         # Pre-save a pick whose game has started (status L)
         existing = DailyPick(
@@ -316,7 +362,7 @@ class TestSchedulerRun:
         result = run_single_check(
             date="2026-04-04",
             all_game_pks=[100],
-            confirmed_game_pks=set(),
+            confirmed_sides=set(),
             config={
                 "orchestrator": {"picks_dir": str(tmp_path)},
                 "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],

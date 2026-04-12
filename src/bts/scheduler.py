@@ -127,31 +127,34 @@ def compute_wakeup_time(
     return today_et
 
 
-def check_confirmed_lineups(game_pks: list[int]) -> dict[int, bool]:
-    """Check which games have confirmed lineups posted.
+def check_confirmed_lineups(game_pks: list[int]) -> dict[int, set[str]]:
+    """Check which teams in which games have confirmed lineups posted.
 
-    A lineup is confirmed if the boxscore has players with battingOrder set.
-    Returns {game_pk: has_confirmed_lineup}.
+    A team's lineup is confirmed when any of its players have `battingOrder`
+    set in the boxscore. Returns `{game_pk: {confirmed_sides}}` where the
+    value is a subset of `{"home", "away"}` (empty set = no lineups yet).
+
+    Team-level tracking matters: the prediction pipeline uses per-side data,
+    so a game that flips from one confirmed side to two still represents
+    new information even though the game was already "seen" at game level.
     """
-    results = {}
+    results: dict[int, set[str]] = {}
     for pk in game_pks:
+        confirmed_sides: set[str] = set()
         try:
             resp = json.loads(retry_urlopen(
                 f"{API_BASE}/api/v1.1/game/{pk}/feed/live",
                 timeout=15,
             ).read())
-            has_lineup = False
             for side in ("away", "home"):
                 players = resp["liveData"]["boxscore"]["teams"][side]["players"]
                 for pid, pdata in players.items():
                     if pdata.get("battingOrder"):
-                        has_lineup = True
+                        confirmed_sides.add(side)
                         break
-                if has_lineup:
-                    break
-            results[pk] = has_lineup
         except Exception:
-            results[pk] = False
+            pass
+        results[pk] = confirmed_sides
 
     return results
 
@@ -190,18 +193,25 @@ def load_state(date: str, picks_dir: Path) -> SchedulerState | None:
 
 def count_new_confirmations(
     game_pks: list[int],
-    previously_confirmed: set[int],
+    previously_confirmed: set[tuple[int, str]],
 ) -> int:
-    """Check for new lineup confirmations since last check.
+    """Check for new lineup confirmations since last check (team-level).
 
-    Updates previously_confirmed in place. Returns count of newly confirmed games.
+    `previously_confirmed` is a set of `(game_pk, side)` tuples. Updates it
+    in place with any newly confirmed sides and returns the count of new
+    entries. Game-level counting would hide the case where one team in a
+    game is already confirmed but the other side only just posted — that
+    still represents new information for the prediction pipeline, so we
+    track sides independently.
     """
     statuses = check_confirmed_lineups(game_pks)
     new_count = 0
-    for pk, confirmed in statuses.items():
-        if confirmed and pk not in previously_confirmed:
-            previously_confirmed.add(pk)
-            new_count += 1
+    for pk, sides in statuses.items():
+        for side in sides:
+            key = (pk, side)
+            if key not in previously_confirmed:
+                previously_confirmed.add(key)
+                new_count += 1
     return new_count
 
 
@@ -229,7 +239,7 @@ def _earliest_pick_game_et(daily) -> datetime:
 def run_single_check(
     date: str,
     all_game_pks: list[int],
-    confirmed_game_pks: set[int],
+    confirmed_sides: set[tuple[int, str]],
     config: dict,
     early_lock_gap: float,
 ) -> dict:
@@ -237,6 +247,10 @@ def run_single_check(
 
     Short-circuits if the pick is already locked (game started or posted).
     Otherwise runs the prediction cascade and applies strategy.
+
+    `confirmed_sides` is a mutable set of `(game_pk, side)` tuples tracking
+    team-level confirmations across runs; `count_new_confirmations` updates
+    it in place.
 
     Returns {"skipped": bool, "new_lineups": int, "should_post": bool,
              "pick_result": PickResult | None, "pick_name": str | None,
@@ -246,7 +260,7 @@ def run_single_check(
     from bts.picks import save_pick, get_game_statuses, load_pick
     from bts.strategy import should_lock, PickResult
 
-    new_count = count_new_confirmations(all_game_pks, confirmed_game_pks)
+    new_count = count_new_confirmations(all_game_pks, confirmed_sides)
 
     # Short-circuit: if pick is already locked, skip the expensive cascade
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -593,7 +607,10 @@ def run_day(
         return
 
     # 3. Initialize state
-    confirmed_pks: set[int] = set()
+    # Team-level confirmation tracking: set of (game_pk, side) tuples. A game
+    # with one side confirmed differs from a game with both sides confirmed,
+    # and the prediction pipeline notices — so we count both independently.
+    confirmed_sides: set[tuple[int, str]] = set()
     state = SchedulerState(
         date=date,
         schedule_fetched_at=_now_et().isoformat(),
@@ -637,7 +654,7 @@ def run_day(
         result = run_single_check(
             date=date,
             all_game_pks=all_game_pks,
-            confirmed_game_pks=confirmed_pks,
+            confirmed_sides=confirmed_sides,
             config=config,
             early_lock_gap=early_lock_gap,
         )
@@ -649,9 +666,10 @@ def run_day(
             "pick_name": result.get("pick_name"),
             "pick_p": round(result["pick_p"], 4) if result.get("pick_p") else None,
         })
-        state.confirmed_game_pks = list(confirmed_pks)
+        confirmed_game_pks_derived = {pk for pk, _ in confirmed_sides}
+        state.confirmed_game_pks = sorted(confirmed_game_pks_derived)
         for g in state.games:
-            g["lineup_confirmed"] = g["game_pk"] in confirmed_pks
+            g["lineup_confirmed"] = g["game_pk"] in confirmed_game_pks_derived
         save_state(state, picks_dir)
 
         if result["pick_result"] and result["pick_result"].locked:
@@ -808,14 +826,14 @@ def run_day(
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:
-        if pk in confirmed_pks:
+        if any(cs_pk == pk for cs_pk, _ in confirmed_sides):
             continue
         if state.pick_locked:
             break
         print(f"  DH game 2 ({pk}): re-checking every {dh_recheck_min}min...", file=sys.stderr)
         for _ in range(10):
             time.sleep(dh_recheck_min * 60)
-            new = count_new_confirmations([pk], confirmed_pks)
+            new = count_new_confirmations([pk], confirmed_sides)
             if new > 0:
                 print(f"  DH game 2 ({pk}): lineup confirmed.", file=sys.stderr)
                 break
