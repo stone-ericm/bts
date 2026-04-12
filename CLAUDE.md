@@ -7,9 +7,13 @@ UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 
-# Scheduler (Pi5 — replaces 3x/day cron)
+# Scheduler (Hetzner production — systemd --user unit)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
+
+# Hetzner cron setup (reproducible install of cron jobs)
+bash scripts/cron-setup-hetzner.sh show      # dry-run
+bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
 
 ## Required Prefixes
@@ -58,6 +62,8 @@ See `ARCHITECTURE.md` for full details. Key points:
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15
 - **Scheduler daemon** (`scheduler.py`): replaces fixed 11am/4pm/7:30pm cron with dynamic game_time-45min lineup checks; confirmation-based posting via `early_lock_gap`; 1am cron kept as safety-net fallback
+- **`private_mode`** config flag (renamed from `shadow_mode` 2026-04-12) — when `true`, picks save but never post to Bluesky. Don't confuse with `shadow_model` (runs the context stack model alongside production for eval).
+- **Fallback deadline** uses `_earliest_pick_game_et(daily)` — earliest of primary + double-down game times, not primary alone. Fixes the case where double-down is in an earlier game than primary.
 - Projected lineup fallback for morning predictions
 - Train on 2019+ data (2017-18 hurts)
 - Starter/reliever PA split in aggregation
