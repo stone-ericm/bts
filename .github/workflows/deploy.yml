@@ -28,5 +28,5 @@ jobs:
             git config --global --add safe.directory /home/bts/projects/bts
             cd /home/bts/projects/bts
             git pull --ff-only
-            systemctl restart bts-scheduler bts-dashboard
+            sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
             echo "Deployed $(git rev-parse --short HEAD)"
