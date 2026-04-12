@@ -75,6 +75,17 @@ def load_streak():
     return 0
 
 
+def load_scheduler_state(date_str: str) -> dict:
+    """Read scheduler_state.json for a given date. Returns {} if missing/unreadable."""
+    state_path = PICKS_DIR / date_str / "scheduler_state.json"
+    if not state_path.exists():
+        return {}
+    try:
+        return json.loads(state_path.read_text())
+    except Exception:
+        return {}
+
+
 def _at_uri_to_web_url(at_uri, handle="beatthestreakbot.bsky.social"):
     """Convert at://did:plc:xxx/app.bsky.feed.post/rkey to bsky.app URL."""
     parts = at_uri.split("/")
@@ -817,24 +828,33 @@ def render_page():
         t_logo = team_logo_url(tp.get("team", ""), size=72)
         t_logo_img = f'<img src="{t_logo}" class="hero-logo" alt="{tp.get("team", "")}">' if t_logo else ""
         t_time = _format_game_time(tp.get("game_time", ""))
-        # Pick is locked if posted, result is in, or game has started
-        is_locked = today_pick.get("bluesky_posted", False) or today_pick.get("result") is not None
-        if not is_locked:
-            game_time_str = tp.get("game_time", "")
-            if game_time_str:
-                try:
-                    game_dt = datetime.fromisoformat(game_time_str.replace("Z", "+00:00"))
-                    is_locked = datetime.now(game_dt.tzinfo) > game_dt
-                except (ValueError, TypeError):
-                    pass
-        if today_pick.get("result") == "hit":
+        # LOCKED derives from scheduler state.pick_locked (truth source);
+        # falls back to game-started for resilience when state file is missing.
+        # POSTED is independent — derives from bluesky_posted on the pick file.
+        sched_state = load_scheduler_state(today)
+        posted = today_pick.get("bluesky_posted", False)
+        result = today_pick.get("result")
+        pick_locked_state = sched_state.get("pick_locked", False)
+        game_started = False
+        game_time_str = tp.get("game_time", "")
+        if game_time_str:
+            try:
+                game_dt = datetime.fromisoformat(game_time_str.replace("Z", "+00:00"))
+                game_started = datetime.now(game_dt.tzinfo) > game_dt
+            except (ValueError, TypeError):
+                pass
+        is_locked = pick_locked_state or posted or result is not None or game_started
+        if result == "hit":
             lock_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
-        elif today_pick.get("result") == "miss":
+        elif result == "miss":
             lock_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
-        elif is_locked:
-            lock_badge = '<span class="lock-badge locked">LOCKED</span>'
         else:
-            lock_badge = '<span class="lock-badge pending">PENDING</span>'
+            if is_locked:
+                lock_badge = '<span class="lock-badge locked">LOCKED</span>'
+            else:
+                lock_badge = '<span class="lock-badge pending">PENDING</span>'
+            if posted:
+                lock_badge += ' <span class="lock-badge posted">POSTED</span>'
         # Pick lock time: 5 min before earliest picked game
         lock_time_html = ""
         if not is_locked and not today_pick.get("result"):
@@ -1004,6 +1024,7 @@ def render_page():
                        letter-spacing: 1px; vertical-align: middle; margin-left: 8px; }}
         .lock-badge.locked {{ background: #2e7d32; color: #fff; }}
         .lock-badge.pending {{ background: #f57c00; color: #fff; }}
+        .lock-badge.posted {{ background: #1185fe; color: #fff; }}
 
         .section-header {{ color: #041E42; font-size: 0.75em; text-transform: uppercase;
                            letter-spacing: 2px; font-weight: 700; margin: 28px 0 12px;
