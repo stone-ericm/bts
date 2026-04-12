@@ -79,3 +79,24 @@ def test_load_scheduler_state_malformed_returns_empty(monkeypatch, tmp_path):
     (date_dir / "scheduler_state.json").write_text("not json {{{")
 
     assert bts.web.load_scheduler_state("2026-04-12") == {}
+
+
+def test_load_orchestrator_config_returns_dict(monkeypatch, tmp_path):
+    """Valid TOML at ~/.bts-orchestrator.toml should be parsed."""
+    import bts.web
+    fake_home = tmp_path
+    monkeypatch.setattr("pathlib.Path.home", lambda: fake_home)
+    (fake_home / ".bts-orchestrator.toml").write_text(
+        '[scheduler]\nfallback_deadline_min = 42\n'
+    )
+
+    cfg = bts.web.load_orchestrator_config()
+    assert cfg["scheduler"]["fallback_deadline_min"] == 42
+
+
+def test_load_orchestrator_config_missing_returns_empty(monkeypatch, tmp_path):
+    """Missing config file should return empty dict, not raise."""
+    import bts.web
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+
+    assert bts.web.load_orchestrator_config() == {}

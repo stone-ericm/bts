@@ -86,6 +86,22 @@ def load_scheduler_state(date_str: str) -> dict:
         return {}
 
 
+def load_orchestrator_config() -> dict:
+    """Read ~/.bts-orchestrator.toml. Returns {} if missing/unreadable.
+
+    Used so the dashboard's expected-lock time matches whatever
+    fallback_deadline_min the live scheduler is actually using.
+    """
+    config_path = Path.home() / ".bts-orchestrator.toml"
+    if not config_path.exists():
+        return {}
+    try:
+        import tomllib
+        return tomllib.loads(config_path.read_text())
+    except Exception:
+        return {}
+
+
 def _at_uri_to_web_url(at_uri, handle="beatthestreakbot.bsky.social"):
     """Convert at://did:plc:xxx/app.bsky.feed.post/rkey to bsky.app URL."""
     parts = at_uri.split("/")
@@ -855,7 +871,11 @@ def render_page():
                 lock_badge = '<span class="lock-badge pending">PENDING</span>'
             if posted:
                 lock_badge += ' <span class="lock-badge posted">POSTED</span>'
-        # Pick lock time: 5 min before earliest picked game
+        # Two times rendered when the pick is still pending:
+        #   - "Expected lock"   = scheduler's fallback deadline (earliest_game − fallback_deadline_min).
+        #     Matches what the bot will actually do if no new lineups arrive.
+        #   - "Lock in before"  = MLB BTS app deadline (earliest_game − 5 min).
+        #     The latest the user can copy these picks into the BTS game.
         lock_time_html = ""
         if not is_locked and not today_pick.get("result"):
             game_times = [tp.get("game_time", "")]
@@ -872,11 +892,20 @@ def render_page():
                 except (ValueError, TypeError):
                     pass
             if earliest:
-                lock_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
-                lock_str = lock_dt.strftime("%-I:%M %p ET")
+                fallback_min = (
+                    load_orchestrator_config()
+                    .get("scheduler", {})
+                    .get("fallback_deadline_min", 35)
+                )
+                expected_dt = (earliest - timedelta(minutes=fallback_min)).astimezone(ET)
+                deadline_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
+                expected_str = expected_dt.strftime("%-I:%M %p ET")
+                deadline_str = deadline_dt.strftime("%-I:%M %p ET")
                 lock_time_html = (
                     f'<span style="font-size:11px;color:#888;font-weight:400;'
-                    f'margin-left:auto;">Pick Lock: {lock_str}</span>'
+                    f'margin-left:auto;">Expected lock: {expected_str} '
+                    f'<span style="color:#ccc;">·</span> '
+                    f'Lock in before: {deadline_str}</span>'
                 )
 
         label = "TODAY'S PICKS" if dd else "TODAY'S PICK"
