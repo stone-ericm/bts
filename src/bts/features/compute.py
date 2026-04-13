@@ -484,9 +484,11 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         is_hard = (df["hardness"].astype(str).str.lower() == "hard").astype(float)
         is_hard = is_hard.where(df["hardness"].notna(), np.nan)
         df["_is_hard"] = is_hard
-        df = df.sort_values(["batter_id", "date"])
+        # Sort a *view* — mutating df's row order silently breaks LightGBM
+        # bagging reproducibility (subsample=0.8 picks rows by index).
+        sorted_view = df.sort_values(["batter_id", "date"])
         df["batter_hard_contact_30g"] = (
-            df.groupby("batter_id")["_is_hard"]
+            sorted_view.groupby("batter_id")["_is_hard"]
             .rolling(window=120, min_periods=10)
             .mean()
             .reset_index(level=0, drop=True)

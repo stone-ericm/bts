@@ -100,6 +100,19 @@ class TestBatterHardContact:
             assert valid.min() >= 0.0
             assert valid.max() <= 1.0
 
+    def test_does_not_sort_df_by_batter_id(self):
+        # Regression: compute_all_features previously sorted df by batter_id
+        # inside the hard-contact rolling block. LightGBM's subsample=0.8 with
+        # random_state=42 picks rows by index, so a reordered training frame
+        # silently picked different rows and produced a ~1pp P@1 regression.
+        # Bisect closed at 30ed4fa on 2026-04-13.
+        df = _make_pa_df(50)
+        out = compute_all_features(df)
+        assert not out["batter_id"].is_monotonic_increasing, (
+            "compute_all_features output is sorted by batter_id — this "
+            "scrambles LightGBM bagging picks and breaks reproducibility"
+        )
+
 
 class TestIsIndoor:
     def test_column_present(self):
