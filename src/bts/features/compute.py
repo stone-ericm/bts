@@ -40,6 +40,15 @@ SHRINKAGE_K = int(os.environ.get("BTS_SHRINKAGE_K", "0"))
 # are set, CAREER_SHRINKAGE_K takes precedence.
 CAREER_SHRINKAGE_K = int(os.environ.get("BTS_CAREER_SHRINKAGE_K", "0"))
 
+# Experiment 1b (rookie-gated shrinkage, 2026-04-12): ONLY apply shrinkage
+# to batters with career_pas < ROOKIE_THRESHOLD. Veterans (>=100 career PAs)
+# get the original baseline rolling mean untouched. Narrowly targets the
+# rookie-overrating failure mode without corrupting veteran signal.
+# Gated by BTS_ROOKIE_GATE_K env var; 0 → baseline. Takes precedence over
+# both SHRINKAGE_K and CAREER_SHRINKAGE_K when set.
+ROOKIE_GATE_K = int(os.environ.get("BTS_ROOKIE_GATE_K", "0"))
+ROOKIE_THRESHOLD_PAS = int(os.environ.get("BTS_ROOKIE_THRESHOLD_PAS", "100"))
+
 
 _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
 
@@ -153,7 +162,39 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         .transform(lambda x: x.shift(1).rolling(7, min_periods=3).mean())
     )
 
-    if CAREER_SHRINKAGE_K > 0:
+    if ROOKIE_GATE_K > 0:
+        # Experiment 1b: rookie-gated shrinkage. Veterans (career_pas >=
+        # ROOKIE_THRESHOLD_PAS) get the original baseline rolling mean with
+        # no modification. Only rookies (career_pas < threshold) get the
+        # PA-weighted rolling + league-prior shrinkage. Targets the rookie
+        # overrating failure mode without corrupting veteran signal that
+        # Exp1 and Exp2 both destroyed.
+        career_pas_gate = batter_dates.groupby("batter_id")["date_pas"].transform(
+            lambda x: x.shift(1).expanding(min_periods=1).sum()
+        ).fillna(0)
+        is_rookie = career_pas_gate < ROOKIE_THRESHOLD_PAS
+
+        for w in [30, 60, 120]:
+            # Baseline: day-level rolling mean (unchanged)
+            baseline_col = batter_dates.groupby("batter_id")["date_hit_rate"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean()
+            )
+            # Shrunken (for rookies): PA-weighted rolling + league-prior pseudocount
+            rolling_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            rolling_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            shrunken_col = (
+                (rolling_hits + ROOKIE_GATE_K * LEAGUE_PA_HIT_RATE_PRIOR)
+                / (rolling_pas + ROOKIE_GATE_K)
+            )
+            # Dispatch: shrunken for rookies, baseline for veterans
+            batter_dates[f"batter_hr_{w}g"] = np.where(
+                is_rookie, shrunken_col, baseline_col
+            )
+    elif CAREER_SHRINKAGE_K > 0:
         # Experiment 2: career-rate shrinkage. Pulls each batter's 30/60/120g
         # rolling rate toward their own cumulative career rate (falling back
         # to league prior for batters with no prior PAs).
