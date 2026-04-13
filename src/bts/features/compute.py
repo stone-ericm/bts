@@ -10,6 +10,7 @@ dates strictly before D. This is enforced by:
 """
 
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,16 @@ from pathlib import Path
 # Features are still computed from ALL available history (expanding features
 # benefit from more data), but the model should be trained on 2019+ PAs.
 TRAIN_START_YEAR = 2019
+
+# Rookie-gated shrinkage on 30/60/120g batter hit-rate features. Batters with
+# fewer than ROOKIE_THRESHOLD_PAS lifetime PAs get pulled toward LEAGUE_PA_HIT_RATE_PRIOR
+# via pseudocount shrinkage with strength K. Veterans are untouched.
+# Set BTS_ROOKIE_GATE_K=0 to revert to the unshrunken baseline.
+# (Prior "shipped" claim of +3.65pp P(57) MDP was measured on the buggy pre-
+# row-order-fix pipeline and is being re-verified on the fixed pipeline.)
+ROOKIE_GATE_K = int(os.environ.get("BTS_ROOKIE_GATE_K", "20"))
+ROOKIE_THRESHOLD_PAS = 100
+LEAGUE_PA_HIT_RATE_PRIOR = 0.2195  # measured from 2021-2025 pa_*.parquet
 
 
 _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
@@ -127,12 +138,48 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index().sort_values(["batter_id", "date"])
 
     # --- Batter rolling hit rates (date-level, shift by date) ---
-    for w in [7, 30, 60, 120]:
-        col = f"batter_hr_{w}g"
-        batter_dates[col] = (
-            batter_dates.groupby("batter_id")["date_hit_rate"]
-            .transform(lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean())
-        )
+    # 7g window is always the unshrunken rolling mean — it captures recent
+    # form, not true-talent level, so shrinkage toward league prior would
+    # defeat the point.
+    batter_dates["batter_hr_7g"] = (
+        batter_dates.groupby("batter_id")["date_hit_rate"]
+        .transform(lambda x: x.shift(1).rolling(7, min_periods=3).mean())
+    )
+
+    if ROOKIE_GATE_K > 0:
+        # Rookie-gated shrinkage. Rookies (career_pas < ROOKIE_THRESHOLD_PAS)
+        # get PA-weighted rolling + league-prior pseudocount. Veterans get
+        # the original baseline rolling mean untouched.
+        career_pas_gate = batter_dates.groupby("batter_id")["date_pas"].transform(
+            lambda x: x.shift(1).expanding(min_periods=1).sum()
+        ).fillna(0)
+        is_rookie = career_pas_gate < ROOKIE_THRESHOLD_PAS
+
+        for w in [30, 60, 120]:
+            baseline_col = batter_dates.groupby("batter_id")["date_hit_rate"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean()
+            )
+            rolling_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            rolling_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            shrunken_col = (
+                (rolling_hits + ROOKIE_GATE_K * LEAGUE_PA_HIT_RATE_PRIOR)
+                / (rolling_pas + ROOKIE_GATE_K)
+            )
+            batter_dates[f"batter_hr_{w}g"] = np.where(
+                is_rookie, shrunken_col, baseline_col
+            )
+    else:
+        # Baseline: day-level rolling mean with hard min_periods cutoff.
+        for w in [30, 60, 120]:
+            col = f"batter_hr_{w}g"
+            batter_dates[col] = (
+                batter_dates.groupby("batter_id")["date_hit_rate"]
+                .transform(lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean())
+            )
 
     # --- Batter rolling whiff rate ---
     def _whiff_rate(calls):
