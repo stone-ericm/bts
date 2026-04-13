@@ -49,6 +49,17 @@ CAREER_SHRINKAGE_K = int(os.environ.get("BTS_CAREER_SHRINKAGE_K", "0"))
 ROOKIE_GATE_K = int(os.environ.get("BTS_ROOKIE_GATE_K", "0"))
 ROOKIE_THRESHOLD_PAS = int(os.environ.get("BTS_ROOKIE_THRESHOLD_PAS", "100"))
 
+# Experiment 1c (monotone-add shrinkage, 2026-04-12): add NEW feature
+# columns (batter_hr_{30,60,120}g_shrunk) alongside the existing baseline
+# columns without modifying them. LightGBM can use the shrunken versions
+# via tree splits if they help, or ignore them if they don't. Avoids the
+# training-set perturbation that made Exp1/Exp1b's year-by-year results
+# indistinguishable from retraining noise.
+# Gated by BTS_MONOTONE_SHRINKAGE_K env var; 0 → baseline (no new columns).
+# Takes highest precedence — if any of K1/K2/K1b/KMono are set, the
+# highest-precedence one wins.
+MONOTONE_SHRINKAGE_K = int(os.environ.get("BTS_MONOTONE_SHRINKAGE_K", "0"))
+
 
 _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
 
@@ -254,6 +265,26 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
             batter_dates[col] = (
                 batter_dates.groupby("batter_id")["date_hit_rate"]
                 .transform(lambda x: x.shift(1).rolling(w, min_periods=max(3, w // 4)).mean())
+            )
+
+    if MONOTONE_SHRINKAGE_K > 0:
+        # Experiment 1c: ADD shrunken variants of the 30/60/120g features
+        # as NEW columns alongside the existing baseline columns. The
+        # existing batter_hr_{w}g columns are NOT modified — LightGBM can
+        # use the shrunken versions via tree splits if they add signal,
+        # or ignore them if they don't. Avoids the training-set
+        # perturbation failure mode of Exp1/1b/2.
+        K_mono = MONOTONE_SHRINKAGE_K
+        for w in [30, 60, 120]:
+            rolling_hits = batter_dates.groupby("batter_id")["date_hits"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            rolling_pas = batter_dates.groupby("batter_id")["date_pas"].transform(
+                lambda x: x.shift(1).rolling(w, min_periods=1).sum()
+            ).fillna(0)
+            batter_dates[f"batter_hr_{w}g_shrunk"] = (
+                (rolling_hits + K_mono * LEAGUE_PA_HIT_RATE_PRIOR)
+                / (rolling_pas + K_mono)
             )
 
     # --- Batter rolling whiff rate ---
@@ -713,6 +744,17 @@ FEATURE_COLS = [
     "park_factor",
     "days_rest",
 ]
+
+# Experiment 1c: when MONOTONE_SHRINKAGE_K > 0, append the shrunken-variant
+# columns to FEATURE_COLS. LightGBM sees both the baseline and shrunken
+# versions and picks whichever helps its splits. This avoids the
+# training-perturbation failure mode of the in-place shrinkage experiments.
+if MONOTONE_SHRINKAGE_K > 0:
+    FEATURE_COLS = FEATURE_COLS + [
+        "batter_hr_30g_shrunk",
+        "batter_hr_60g_shrunk",
+        "batter_hr_120g_shrunk",
+    ]
 
 # Context features (4) — computed alongside baseline features but only used
 # by the shadow model (via feature_cols_override). Graduates to FEATURE_COLS
