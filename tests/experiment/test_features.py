@@ -8,6 +8,8 @@ from bts.experiment.features import (
     GBPlatoonExperiment,
     HitTypeParkFactorsExperiment,
     StreakLengthFeatureExperiment,
+    UmpireHitRateExperiment,
+    CatcherHitRateExperiment,
 )
 from bts.features.compute import FEATURE_COLS
 
@@ -76,3 +78,42 @@ def test_streak_length_feature(mini_pa_df):
     assert "batter_streak_length" in exp.feature_cols()
     # All streak values should be non-negative integers
     assert (result["batter_streak_length"] >= 0).all()
+
+
+def test_umpire_hit_rate_replaces_existing_column(mini_pa_df):
+    """Regression: baseline compute_all_features adds ump_hr_30g (a CONTEXT_COL),
+    so the experiment must replace rather than merge-and-collide. Without the fix,
+    df.merge produced ump_hr_30g_x / ump_hr_30g_y suffixes and training failed with
+    KeyError on the expected column name."""
+    df = mini_pa_df.copy()
+    df["hp_umpire_id"] = 7000 + (df["game_pk"] % 3)
+    df["ump_hr_30g"] = 0.42  # baseline-computed value
+    exp = UmpireHitRateExperiment()
+    result = exp.modify_features(df)
+    assert "ump_hr_30g" in result.columns
+    assert "ump_hr_30g_x" not in result.columns
+    assert "ump_hr_30g_y" not in result.columns
+    # feature_cols() must select cleanly
+    cols = [c for c in exp.feature_cols() if c in result.columns]
+    _ = result[cols]
+
+
+def test_umpire_hit_rate_missing_umpire_id(mini_pa_df):
+    """When hp_umpire_id is missing, experiment still returns a df with ump_hr_30g
+    populated with NaN so downstream training can select the column."""
+    exp = UmpireHitRateExperiment()
+    result = exp.modify_features(mini_pa_df.copy())
+    assert "ump_hr_30g" in result.columns
+    assert result["ump_hr_30g"].isna().all()
+
+
+def test_catcher_hit_rate_adds_column(mini_pa_df):
+    """Parallel case: catcher_hr_30g is not in baseline FEATURE_COLS or CONTEXT_COLS,
+    so the merge path is the primary path. This verifies the shared helper works
+    when there's no collision."""
+    df = mini_pa_df.copy()
+    df["fielding_catcher_id"] = 8000 + (df["game_pk"] % 3)
+    exp = CatcherHitRateExperiment()
+    result = exp.modify_features(df)
+    assert "catcher_hr_30g" in result.columns
+    assert "catcher_hr_30g_x" not in result.columns

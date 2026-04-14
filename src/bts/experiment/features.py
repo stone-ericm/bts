@@ -503,6 +503,8 @@ def _rolling_rate_by_group(
         result_rows.append(group[[group_col, "date", feature_name]])
 
     lookup = pd.concat(result_rows, ignore_index=True)
+    if feature_name in df.columns:
+        df = df.drop(columns=[feature_name])
     df = df.merge(lookup, on=[group_col, "date"], how="left")
     return df
 
