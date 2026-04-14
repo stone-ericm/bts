@@ -11,8 +11,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-11T23:18:50.177829Z"
-exclude-newer-span = "P3D"
+exclude-newer = "2026-04-12T04:00:00Z"
 
 [[package]]
 name = "annotated-types"

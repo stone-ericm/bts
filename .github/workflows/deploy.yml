@@ -26,9 +26,11 @@ jobs:
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            git config --global --add safe.directory /home/bts/projects/bts
+            set -e
             cd /home/bts/projects/bts
-            git pull --ff-only
+            sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
+            sudo -Hu bts git pull --ff-only
+            sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
             # Self-heal: legacy system-level units (created before April 11)
             # race the canonical user-level units. Remove if present.
             if [ -f /etc/systemd/system/bts-scheduler.service ]; then
@@ -38,4 +40,4 @@ jobs:
               pkill -u bts -f 'uv run bts schedule' 2>/dev/null || true
             fi
             sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-            echo "Deployed $(git rev-parse --short HEAD)"
+            echo "Deployed $(sudo -Hu bts git rev-parse --short HEAD)"

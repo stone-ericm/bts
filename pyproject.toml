@@ -35,3 +35,10 @@ dev = [
     "pytest>=8.0",
     "moto[s3]",
 ]
+
+[tool.uv]
+# Project-level pin for the resolver's exclude-newer window. Using an absolute
+# date (not "N days") so Mac and Hetzner produce byte-identical uv.lock files;
+# a relative window would embed different wall-clock timestamps on each env.
+# Update this line manually when refreshing the supply-chain-defense window.
+exclude-newer = "2026-04-11"
