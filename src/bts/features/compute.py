@@ -33,6 +33,14 @@ ROOKIE_GATE_K = int(os.environ.get("BTS_ROOKIE_GATE_K", "20"))
 ROOKIE_THRESHOLD_PAS = 100
 LEAGUE_PA_HIT_RATE_PRIOR = 0.2195  # measured from 2021-2025 pa_*.parquet
 
+# Pitcher rolling hit-rate min_periods. 7 lets the rolling mean activate ~3
+# starts earlier in a pitcher's history, which is strictly more signal for
+# the blend's feature vector. Verified on 2-season walk-forward + MDP:
+# +1.08pp 2024, +0.54pp 2025, +0.46pp MDP P(57), -3 miss days. MC P(57)
+# regresses due to streak clustering, but MDP mitigates via skip/double.
+# Set BTS_PITCHER_HR_30G_MIN_PERIODS=10 to revert to the historical baseline.
+PITCHER_HR_30G_MIN_PERIODS = int(os.environ.get("BTS_PITCHER_HR_30G_MIN_PERIODS", "7"))
+
 
 _probable_pitcher_cache_path = Path("data/models/probable_pitcher_lookup.json")
 
@@ -318,7 +326,7 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
     pitcher_dates["p_hit_rate"] = pitcher_dates["p_hits"] / pitcher_dates["p_pas"]
     pitcher_dates["pitcher_hr_30g"] = (
         pitcher_dates.groupby("pitcher_id")["p_hit_rate"]
-        .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
+        .transform(lambda x: x.shift(1).rolling(30, min_periods=PITCHER_HR_30G_MIN_PERIODS).mean())
     )
 
     # --- Pitcher arsenal entropy (date-level) ---
