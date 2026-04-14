@@ -55,7 +55,13 @@ class XENDCGExperiment(ExperimentDef):
 
 
 class VRExExperiment(ExperimentDef):
-    """V-REx: penalize cross-season loss variance via iterative reweighting."""
+    """V-REx: penalize cross-season loss variance via iterative reweighting.
+
+    Registers a 13th blend member whose training path checks for ``vrex_beta``
+    in the blend config's ``extra_params`` (see ``backtest_blend.py``). The
+    training hook is keyed off extras, not global lgb_params, so this must go
+    through ``modify_blend_configs`` rather than ``modify_training_params``.
+    """
 
     def __init__(self):
         super().__init__(
@@ -65,8 +71,10 @@ class VRExExperiment(ExperimentDef):
             description="V-REx season reweighting to reduce year-to-year instability",
         )
 
-    def modify_training_params(self, params: dict) -> dict:
-        return {**params, "vrex_beta": 10.0, "vrex_rounds": 5}
+    def modify_blend_configs(self, configs):
+        return configs + [
+            ("vrex", FEATURE_COLS, {"vrex_beta": 10.0, "vrex_rounds": 5})
+        ]
 
 
 register(LambdaRankExperiment())

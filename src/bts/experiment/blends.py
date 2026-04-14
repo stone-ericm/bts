@@ -164,7 +164,16 @@ class FixedShareHedgeExperiment(ExperimentDef):
 
 
 class CopulaDoublesExperiment(ExperimentDef):
-    """Gaussian copula for double-down joint probability."""
+    """Gaussian copula for double-down joint probability.
+
+    BROKEN — this experiment mutates ``quality_bins`` in ``modify_strategy``,
+    but the runner discards the returned bins and ``compute_full_scorecard``
+    rebuilds its own bins from the unchanged profiles DataFrame (see
+    ``scorecard.py`` around the ``compute_bins`` call). Result: zero effect at
+    the scorecard layer. Unregistered until the scorecard is refactored to
+    accept pre-computed bins, or the experiment is restructured to mutate the
+    profiles DataFrame directly.
+    """
 
     def __init__(self):
         super().__init__(
@@ -218,4 +227,4 @@ class CopulaDoublesExperiment(ExperimentDef):
 
 register(FWLSExperiment())
 register(FixedShareHedgeExperiment())
-register(CopulaDoublesExperiment())
+# CopulaDoublesExperiment intentionally NOT registered — see class docstring.

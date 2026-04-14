@@ -44,3 +44,13 @@ def test_list_experiments_by_category():
 def test_list_experiments_no_filter():
     all_exps = list_experiments()
     assert isinstance(all_exps, list)
+
+
+def test_stub_experiments_unregistered():
+    """quantile_gated_skip is a stub (identity modify_strategy) and copula_doubles
+    mutates quality_bins the runner discards. Both are intentionally unregistered
+    so they don't appear as misleading 0pp "FAIL" entries in Phase 1 re-screens."""
+    from bts.experiment.registry import load_all_experiments, EXPERIMENTS
+    load_all_experiments()
+    assert "quantile_gated_skip" not in EXPERIMENTS
+    assert "copula_doubles" not in EXPERIMENTS

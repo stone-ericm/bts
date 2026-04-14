@@ -5,8 +5,7 @@ from bts.experiment.registry import load_all_experiments, list_experiments, EXPE
 
 def test_load_all_experiments_populates_registry():
     load_all_experiments()
-    # 5 diagnostics + 8 features + 4 models + 3 blends + 2 strategies = 22
-    assert len(EXPERIMENTS) >= 22, f"Expected >= 22, got {len(EXPERIMENTS)}: {sorted(EXPERIMENTS.keys())}"
+    assert len(EXPERIMENTS) >= 20, f"Expected >= 20, got {len(EXPERIMENTS)}: {sorted(EXPERIMENTS.keys())}"
 
     # Phase 0
     diags = list_experiments(phase=0)
@@ -25,7 +24,6 @@ def test_load_all_experiments_populates_registry():
     assert "decision_calibration" in names
     assert "kl_divergence" in names
     assert "catboost" in names
-    assert "copula_doubles" in names
 
 
 def test_all_experiments_have_required_fields():

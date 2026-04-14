@@ -32,10 +32,16 @@ def test_xendcg_adds_blend_member():
     assert "xendcg" in names
 
 
-def test_vrex_modifies_training_params():
+def test_vrex_adds_blend_member_with_extra_params():
+    """VRExExperiment must route through modify_blend_configs so that
+    vrex_beta lands in the per-config extra_params dict. The training
+    dispatch in backtest_blend.py checks extras, not global lgb_params."""
     exp = VRExExperiment()
-    params = {"n_estimators": 200, "max_depth": 6}
-    new_params = exp.modify_training_params(params)
-    assert "vrex_beta" in new_params
-    assert new_params["vrex_beta"] == 10.0
-    assert new_params["n_estimators"] == 200  # original preserved
+    configs = list(BLEND_CONFIGS)
+    new_configs = exp.modify_blend_configs(configs)
+    assert len(new_configs) == len(configs) + 1
+    name, cols, extras = new_configs[-1]
+    assert name == "vrex"
+    assert "vrex_beta" in extras
+    assert extras["vrex_beta"] == 10.0
+    assert extras["vrex_rounds"] == 5

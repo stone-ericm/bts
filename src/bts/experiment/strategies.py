@@ -80,7 +80,12 @@ class DecisionCalibrationExperiment(ExperimentDef):
 
 
 class QuantileGatedSkipExperiment(ExperimentDef):
-    """Use quantile q10 as conservative skip gate."""
+    """Use quantile q10 as conservative skip gate.
+
+    STUB — modify_strategy returns inputs unchanged. Unregistered until a
+    real implementation lands; running as-is produces misleading 0pp deltas
+    across the full scorecard (see 2026-04-14 Phase 1 re-screen audit).
+    """
 
     def __init__(self):
         super().__init__(
@@ -95,4 +100,4 @@ class QuantileGatedSkipExperiment(ExperimentDef):
 
 
 register(DecisionCalibrationExperiment())
-register(QuantileGatedSkipExperiment())
+# QuantileGatedSkipExperiment intentionally NOT registered — see docstring.
