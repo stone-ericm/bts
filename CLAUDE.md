@@ -3,7 +3,7 @@
 ## Quick Start
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model   # Mac/Alienware (full)
-UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)
+UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)  [Pi5 BTS DECOMMISSIONED 2026-04-14]
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 
@@ -15,6 +15,14 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 bash scripts/cron-setup-hetzner.sh show      # dry-run
 bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
+
+## Deployment
+- **`git push origin main` auto-deploys to bts-mlb** via GitHub Actions. Watch for paths `src/**`, `config/**`, `scripts/**`, `pyproject.toml`, `uv.lock`, `.github/workflows/deploy.yml`. Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
+- See `/Users/stone/.claude/projects/-Users-stone/memory/reference_bts_deploy_workflow.md` for details.
+
+## Feature computation env vars (set in production via `.env` or systemd unit; defaults in code)
+- `BTS_ROOKIE_GATE_K` (default `20`): rookie shrinkage strength. Rookies (career PAs < 100) get PA-weighted rolling + pseudocount shrinkage toward 0.2195 league prior on `batter_hr_{30,60,120}g`. Veterans untouched. Set to `0` to revert.
+- `BTS_PITCHER_HR_30G_MIN_PERIODS` (default `7`): rolling-window min_periods for `pitcher_hr_30g`. Shipped 2026-04-14 after +0.81pp avg P@1 + +0.46pp MDP P(57) on walk-forward. Set to `10` to revert to historical baseline.
 
 ## Required Prefixes
 - All `uv` commands: `UV_CACHE_DIR=/tmp/uv-cache`

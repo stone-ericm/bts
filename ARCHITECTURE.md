@@ -27,15 +27,15 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 
 | Feature | Type | Description |
 |---------|------|-------------|
-| batter_hr_7g | Rolling | Hit rate, last 7 game-dates |
-| batter_hr_30g | Rolling | Hit rate, last 30 game-dates |
-| batter_hr_60g | Rolling | Hit rate, last 60 game-dates |
-| batter_hr_120g | Rolling | Hit rate, last 120 game-dates |
+| batter_hr_7g | Rolling | Hit rate, last 7 game-dates. Never shrunk — captures recent form. |
+| batter_hr_30g | Rolling + rookie shrinkage | Hit rate, last 30 game-dates. Rookies (career PAs < 100) get PA-weighted rolling + pseudocount shrinkage toward 0.2195 league prior, K=20 (env `BTS_ROOKIE_GATE_K`). Veterans unchanged. |
+| batter_hr_60g | Rolling + rookie shrinkage | Same as 30g, 60-day window. |
+| batter_hr_120g | Rolling + rookie shrinkage | Same as 30g, 120-day window. |
 | batter_whiff_60g | Rolling | Whiff rate (swinging strikes / swings) |
 | batter_count_tendency_30g | Rolling | Avg (balls - strikes) at PA end |
 | batter_gb_hit_rate | Expanding | Ground ball hit rate (speed proxy) |
 | platoon_hr | Expanding | Hit rate by batter × pitcher handedness |
-| pitcher_hr_30g | Rolling | Pitcher's hit rate allowed |
+| pitcher_hr_30g | Rolling | Pitcher's hit rate allowed, 30-day window, `min_periods=7` (env `BTS_PITCHER_HR_30G_MIN_PERIODS`, shipped 2026-04-14 from historical 10). Lets feature activate ~3 starts earlier in a pitcher's career. |
 | pitcher_entropy_30g | Rolling | Shannon entropy of pitch type distribution |
 | weather_temp | Context | Game temperature from feed |
 | park_factor | Expanding | Venue hit rate / league avg (expanding normalization) |
