@@ -27,6 +27,10 @@ MARKER="# BTS-HETZNER"
 # Common prefix: cd, load .env via dot (POSIX), guard exports
 PREFIX="cd $BTS_DIR && set -a && . ./.env && set +a &&"
 YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
+# bts data pull requires --start/--end. A 7-day backfill window catches any
+# late MLB scoring corrections without re-downloading the full season.
+DATA_PULL_START='$(date -d "7 days ago" +\%Y-\%m-\%d)'
+DATA_PULL_END='$(date +\%Y-\%m-\%d)'
 
 # 3am chain ordering: data pull -> build -> preview -> sync-to-r2.
 # preview is the user-facing deliverable (drives the morning dashboard); R2
@@ -37,7 +41,7 @@ YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
 CRON_LINES="$MARKER
 0 1 * * * $PREFIX $UV_BIN run bts check-results --date $YESTERDAY >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
-0 3 * * * $PREFIX ($UV_BIN run bts data pull && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2) >> $LOG_DIR/cron.log 2>&1 $MARKER
+0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER"
 
