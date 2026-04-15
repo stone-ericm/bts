@@ -728,6 +728,216 @@ class RoofTypeExperiment(ExperimentDef):
         return FEATURE_COLS + ["is_indoor"]
 
 
+class HeatDomeBinaryExperiment(ExperimentDef):
+    """Binary heat_dome flag at temp >= 90°F."""
+
+    def __init__(self):
+        super().__init__(
+            name="heat_dome",
+            phase=1,
+            category="feature",
+            description="Binary weather_temp >= 90 heat indicator",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "weather_temp" not in df.columns:
+            df["heat_dome"] = 0.0
+            return df
+        df["heat_dome"] = (df["weather_temp"].astype(float) >= 90).astype(float)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["heat_dome"]
+
+
+class HeatDome95Experiment(ExperimentDef):
+    """Tighter heat_dome at temp >= 95°F (matches the observed raw-miss-rate spike)."""
+
+    def __init__(self):
+        super().__init__(
+            name="heat_dome_95",
+            phase=1,
+            category="feature",
+            description="Binary weather_temp >= 95 heat indicator",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "weather_temp" not in df.columns:
+            df["heat_dome_95"] = 0.0
+            return df
+        df["heat_dome_95"] = (df["weather_temp"].astype(float) >= 95).astype(float)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["heat_dome_95"]
+
+
+class HeatIndexLinearExperiment(ExperimentDef):
+    """Continuous heat activation above 85°F: max(0, temp - 85)."""
+
+    def __init__(self):
+        super().__init__(
+            name="heat_index_linear",
+            phase=1,
+            category="feature",
+            description="Continuous max(0, weather_temp - 85)",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "weather_temp" not in df.columns:
+            df["heat_index_linear"] = 0.0
+            return df
+        df["heat_index_linear"] = np.maximum(0.0, df["weather_temp"].astype(float) - 85.0)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["heat_index_linear"]
+
+
+class HeatIndexSquaredExperiment(ExperimentDef):
+    """Convex heat penalty above 85°F: max(0, temp - 85)^2."""
+
+    def __init__(self):
+        super().__init__(
+            name="heat_index_squared",
+            phase=1,
+            category="feature",
+            description="Convex max(0, weather_temp - 85)^2",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "weather_temp" not in df.columns:
+            df["heat_index_squared"] = 0.0
+            return df
+        df["heat_index_squared"] = np.maximum(0.0, df["weather_temp"].astype(float) - 85.0) ** 2
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["heat_index_squared"]
+
+
+class BatterPitcherMatchupExperiment(ExperimentDef):
+    """Historical (batter, pitcher) hit rate with Bayesian shrinkage.
+
+    For each PA, compute the empirical hit rate for that specific
+    (batter_id, pitcher_id) pair across all PRIOR encounters, shrunk toward
+    the league prior using pseudocount K. Sparse pairings fall back to the
+    prior; frequent pairings express their actual history.
+
+    Aggregates per (batter, pitcher, date) first so same-day multi-PA rows
+    share the same prior-day stat (no within-day leakage).
+    """
+
+    PRIOR_RATE = 0.2195
+    K = 10
+
+    def __init__(self):
+        super().__init__(
+            name="batter_pitcher_matchup",
+            phase=1,
+            category="feature",
+            description="Bayesian-shrunk historical hit rate per (batter, pitcher) pair",
+        )
+
+    def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        required = ("batter_id", "pitcher_id", "is_hit", "date")
+        if not all(c in df.columns for c in required):
+            df = df.copy()
+            df["batter_pitcher_shrunk_hr"] = self.PRIOR_RATE
+            return df
+
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+
+        daily = (
+            df.groupby(["batter_id", "pitcher_id", "date"])
+            .agg(day_hits=("is_hit", "sum"), day_pas=("is_hit", "count"))
+            .reset_index()
+            .sort_values(["batter_id", "pitcher_id", "date"])
+        )
+
+        daily["cum_hits_prior"] = (
+            daily.groupby(["batter_id", "pitcher_id"])["day_hits"]
+            .transform(lambda s: s.cumsum().shift(1).fillna(0))
+        )
+        daily["cum_pas_prior"] = (
+            daily.groupby(["batter_id", "pitcher_id"])["day_pas"]
+            .transform(lambda s: s.cumsum().shift(1).fillna(0))
+        )
+        daily["batter_pitcher_shrunk_hr"] = (
+            (self.PRIOR_RATE * self.K + daily["cum_hits_prior"])
+            / (self.K + daily["cum_pas_prior"])
+        )
+
+        df = df.merge(
+            daily[["batter_id", "pitcher_id", "date", "batter_pitcher_shrunk_hr"]],
+            on=["batter_id", "pitcher_id", "date"],
+            how="left",
+        )
+        df["batter_pitcher_shrunk_hr"] = df["batter_pitcher_shrunk_hr"].fillna(self.PRIOR_RATE)
+        return df
+
+    def feature_cols(self) -> list[str]:
+        return FEATURE_COLS + ["batter_pitcher_shrunk_hr"]
+
+
+# --- Statcast "fixed addition" experiments ---
+#
+# The 9 Statcast features are already computed by compute_all_features as part
+# of STATCAST_COLS, but only used in the 12-model blend as per-variant additions
+# (one Statcast feature per model). The historical "add all 9 as fixed features"
+# test was rejected. Here we re-test each feature INDIVIDUALLY as a fixed
+# addition to FEATURE_COLS, which isolates each one's effect under multi-seed
+# evaluation in Phase 2b.
+_STATCAST_FEATURES_TO_TEST = [
+    "batter_barrel_rate_30g",
+    "batter_hard_hit_rate_30g",
+    "batter_sweet_spot_rate_30g",
+    "batter_avg_ev_30g",
+    "pitcher_avg_velo_30g",
+    "pitcher_avg_spin_30g",
+    "pitcher_avg_extension_30g",
+    "pitcher_break_total_30g",
+    "batter_avg_velo_faced_30g",
+]
+
+
+def _make_statcast_add_experiment(feature: str) -> type:
+    """Factory: produce an ExperimentDef subclass that adds one Statcast feature to FEATURE_COLS."""
+    short = feature.replace("_30g", "")
+    exp_name = f"statcast_add_{short}"
+
+    class _StatcastAddExperiment(ExperimentDef):
+        def __init__(self):
+            super().__init__(
+                name=exp_name,
+                phase=1,
+                category="feature",
+                description=f"Promote {feature} from blend-variant to fixed FEATURE_COLS baseline",
+            )
+
+        def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+            # Feature is already computed by compute_all_features; no-op here.
+            return df
+
+        def feature_cols(self) -> list[str]:
+            return FEATURE_COLS + [feature]
+
+    class_name = "StatcastAdd_" + short
+    _StatcastAddExperiment.__name__ = class_name
+    _StatcastAddExperiment.__qualname__ = class_name
+    return _StatcastAddExperiment
+
+
+_STATCAST_EXPERIMENT_CLASSES = [
+    _make_statcast_add_experiment(f) for f in _STATCAST_FEATURES_TO_TEST
+]
+
+
 register(EBShrinkageExperiment())
 register(KLDivergenceExperiment())
 register(BattingHeatQExperiment())
@@ -743,3 +953,11 @@ register(WindVectorExperiment())
 register(BatterTrajectoryMixExperiment())
 register(BatterHardnessRateExperiment())
 register(RoofTypeExperiment())
+# Phase 2b (post-2026-04-14 audit) — multi-seed retest of historical rejects
+register(HeatDomeBinaryExperiment())
+register(HeatDome95Experiment())
+register(HeatIndexLinearExperiment())
+register(HeatIndexSquaredExperiment())
+register(BatterPitcherMatchupExperiment())
+for _cls in _STATCAST_EXPERIMENT_CLASSES:
+    register(_cls())
