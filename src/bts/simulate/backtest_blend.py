@@ -12,10 +12,21 @@ Supports multiple model engines and objectives via 3-tuple blend configs:
   (name, cols, {"vrex_beta": 10.0})         — V-REx season reweighting
 """
 
+import os
 import sys
 from pathlib import Path
 
 PROFILE_COLUMNS = ["date", "rank", "batter_id", "p_game_hit", "actual_hit", "n_pas"]
+
+
+def _rs() -> int:
+    """Training random_state, overridable via BTS_LGBM_RANDOM_STATE env var.
+
+    Defaults to 42 to preserve determinism of the shipped pipeline. Set the
+    env var to a different integer to run seed-variance experiments without
+    code edits.
+    """
+    return int(os.environ.get("BTS_LGBM_RANDOM_STATE", 42))
 
 # Objectives that require batter-day grouping (ranker training)
 RANKER_OBJECTIVES = {"lambdarank", "rank_xendcg"}
@@ -73,7 +84,7 @@ def _train_ranker(
 
     # LGBMRanker has different params from LGBMClassifier
     ranker_params = {k: v for k, v in merged_params.items() if k not in ("scale_pos_weight",)}
-    model = lgb.LGBMRanker(**ranker_params, random_state=42)
+    model = lgb.LGBMRanker(**ranker_params, random_state=_rs())
     model.fit(bd_clean[cols], bd_clean["is_hit"], group=groups)
     return model
 
@@ -193,7 +204,7 @@ def _train_vrex_lgbm(
 
     model = None
     for r in range(n_rounds):
-        model = lgb.LGBMClassifier(**lgb_only_params, random_state=42)
+        model = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
         model.fit(X, y, sample_weight=weights)
 
         # Compute per-season loss
@@ -234,7 +245,7 @@ def _train_lgbm_classifier(
         k: v for k, v in merged_params.items()
         if not k.startswith("vrex_") and k != "engine" and k != "has_time"
     }
-    model = lgb.LGBMClassifier(**lgb_only_params, random_state=42)
+    model = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
     model.fit(train_X[mask], train_y[mask])
     return model
 
@@ -270,7 +281,7 @@ def _train_lgbm_regressor(
         k: v for k, v in merged_params.items()
         if not k.startswith("vrex_") and k != "engine" and k != "has_time"
     }
-    model = lgb.LGBMRegressor(**lgb_only_params, random_state=42)
+    model = lgb.LGBMRegressor(**lgb_only_params, random_state=_rs())
     model.fit(train_X[mask], train_y[mask])
     return model
 
