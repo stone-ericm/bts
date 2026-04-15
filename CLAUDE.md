@@ -22,7 +22,8 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 
 ## Feature computation env vars (set in production via `.env` or systemd unit; defaults in code)
 - `BTS_ROOKIE_GATE_K` (default `20`): rookie shrinkage strength. Rookies (career PAs < 100) get PA-weighted rolling + pseudocount shrinkage toward 0.2195 league prior on `batter_hr_{30,60,120}g`. Veterans untouched. Set to `0` to revert.
-- `BTS_PITCHER_HR_30G_MIN_PERIODS` (default `7`): rolling-window min_periods for `pitcher_hr_30g`. Shipped 2026-04-14 after +0.81pp avg P@1 + +0.46pp MDP P(57) on walk-forward. Set to `10` to revert to historical baseline.
+- `BTS_PITCHER_HR_30G_MIN_PERIODS` (default `7`): rolling-window min_periods for `pitcher_hr_30g`. Shipped 2026-04-14 after +0.81pp avg P@1 + +0.46pp MDP P(57) on walk-forward (seed=42 measurement — pending multi-seed re-validation). Set to `10` to revert.
+- `BTS_LGBM_RANDOM_STATE` (default `42`): LightGBM `random_state` for all 4 training paths (classifier, ranker, regressor, V-REx). Defaults to 42 for backward-compat with shipped policy. Used by multi-seed audit workflows to measure cross-seed variance without code edits. **IMPORTANT: seed=42 was discovered to be a statistical outlier on 2026-04-14 — all historical single-seed experiment deltas are suspect until multi-seed audit completes.**
 
 ## Required Prefixes
 - All `uv` commands: `UV_CACHE_DIR=/tmp/uv-cache`
