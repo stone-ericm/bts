@@ -9,11 +9,17 @@ NOTE: game_time is not available in the PA parquet files (no column exists).
       for game_time, or can filter by bucket rank rather than actual game time.
 """
 
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+
+def _lgb_seed() -> int:
+    # Matches bts.simulate.backtest_blend._rs() — same env var, same default.
+    return int(os.environ.get("BTS_LGBM_RANDOM_STATE", 42))
 
 
 def load_data(data_dir: str = "data/processed") -> pd.DataFrame:
@@ -174,7 +180,7 @@ def _run_season(
                 avail_cols = [c for c in cols if c in available.columns]
                 train_X = available[avail_cols]
                 mask = train_X.notna().any(axis=1)
-                model = lgb.LGBMClassifier(**lgb_params, random_state=42)
+                model = lgb.LGBMClassifier(**lgb_params, random_state=_lgb_seed())
                 model.fit(train_X[mask], train_y[mask])
                 blend[name] = (model, avail_cols)
 
