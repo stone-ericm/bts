@@ -886,7 +886,9 @@ def shadow_report(picks_dir: str):
     """Compare shadow model picks against production picks.
 
     Reads {date}.json and {date}.shadow.json pairs from the picks directory.
-    Reports agreement rate, disagreement details, and P@1 for both models.
+    Reports agreement rate, disagreement details, and production's day-level
+    hit rate (the DD-aware streak-advancing rate, not true top-1 P@1 — a
+    double-down day only counts as "hit" when BOTH picks hit).
     """
     import json as _json
     from pathlib import Path
@@ -945,7 +947,10 @@ def shadow_report(picks_dir: str):
     click.echo(f"{'='*60}")
     click.echo(f"Agreement rate: {agrees}/{total} ({pct:.1f}%)")
     if resolved > 0:
-        click.echo(f"Production P@1: {prod_hits}/{resolved} ({prod_hits/resolved*100:.1f}%)")
+        click.echo(
+            f"Production day hit rate (DD-aware): "
+            f"{prod_hits}/{resolved} ({prod_hits/resolved*100:.1f}%)"
+        )
     click.echo()
 
     if disagrees:
