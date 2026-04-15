@@ -413,3 +413,91 @@ class TestReconcileResults:
         assert corrections[0]["old_result"] == "hit"
         assert corrections[0]["new_result"] == "miss"
         assert load_streak(tmp_path) == 0
+
+    def test_preview_pick_for_tomorrow_does_not_break_streak_walk(self, tmp_path):
+        """Regression for 2026-04-15 streak-reset bug.
+
+        When ``bts preview`` pre-generates tomorrow's pick, the file exists
+        with ``result=None`` before any games are played. The reconcile
+        backward-walk previously hit that file first and broke the loop,
+        resetting streak to 0 on every 2am reconcile run — wiping out the
+        previous day's win. This test verifies that a today-or-later pick
+        file with no result is SKIPPED, not treated as a break condition.
+        """
+        from datetime import date as date_cls, timedelta
+        from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
+
+        today_iso = date_cls.today().isoformat()
+        yesterday_iso = (date_cls.today() - timedelta(days=1)).isoformat()
+
+        # Yesterday: a hit + double-down (streak should become +2)
+        yest_pick = Pick(
+            batter_name="YestPrimary", batter_id=100, team="NYM", lineup_position=1,
+            pitcher_name="P1", pitcher_id=200, p_game_hit=0.80, flags=[],
+            projected_lineup=False, game_pk=1000, game_time=f"{yesterday_iso}T23:00:00Z",
+        )
+        yest_dd = Pick(
+            batter_name="YestDouble", batter_id=101, team="CLE", lineup_position=2,
+            pitcher_name="P2", pitcher_id=201, p_game_hit=0.78, flags=[],
+            projected_lineup=False, game_pk=1001, game_time=f"{yesterday_iso}T23:00:00Z",
+        )
+        save_pick(DailyPick(
+            date=yesterday_iso, run_time=f"{yesterday_iso}T20:00:00Z",
+            pick=yest_pick, double_down=yest_dd, runner_up=None, result="hit",
+        ), tmp_path)
+
+        # Today: pre-generated preview pick, no result yet
+        today_pick = Pick(
+            batter_name="TodayPrimary", batter_id=200, team="ATL", lineup_position=1,
+            pitcher_name="P3", pitcher_id=300, p_game_hit=0.76, flags=[],
+            projected_lineup=True, game_pk=2000, game_time=f"{today_iso}T23:00:00Z",
+        )
+        save_pick(DailyPick(
+            date=today_iso, run_time=f"{today_iso}T16:05:00Z",
+            pick=today_pick, double_down=None, runner_up=None, result=None,
+        ), tmp_path)
+
+        save_streak(2, tmp_path)  # pre-existing state from before reconcile
+
+        with patch("bts.picks.check_hit", return_value=True):
+            corrections = reconcile_results(tmp_path, lookback_days=8)
+
+        # The today preview file must not reset the streak; the walk should
+        # skip it and pick up yesterday's hit + dd for +2.
+        assert load_streak(tmp_path) == 2, (
+            f"Today's preview pick with result=None broke the backward walk "
+            f"and reset streak. Expected 2, got {load_streak(tmp_path)}."
+        )
+
+    def test_shadow_pick_files_are_ignored_in_streak_walk(self, tmp_path):
+        """Shadow pick files (stem like '2026-04-14.shadow') should not
+        participate in streak counting — they're a separate evaluation track.
+        """
+        from datetime import date as date_cls, timedelta
+        from bts.picks import reconcile_results, save_streak, load_streak
+
+        yesterday_iso = (date_cls.today() - timedelta(days=1)).isoformat()
+
+        # Main pick file — hit
+        main = {
+            "date": yesterday_iso, "run_time": f"{yesterday_iso}T20:00:00Z",
+            "pick": {"batter_name": "M", "batter_id": 1, "team": "T", "lineup_position": 1,
+                     "pitcher_name": "P", "pitcher_id": 2, "p_game_hit": 0.8,
+                     "flags": [], "projected_lineup": False, "game_pk": 1,
+                     "game_time": f"{yesterday_iso}T23:00:00Z"},
+            "double_down": None, "runner_up": None, "result": "hit",
+        }
+        (tmp_path / f"{yesterday_iso}.json").write_text(json.dumps(main))
+
+        # Shadow pick file with result=None (would previously break the walk)
+        shadow = {**main, "result": None}
+        (tmp_path / f"{yesterday_iso}.shadow.json").write_text(json.dumps(shadow))
+
+        save_streak(0, tmp_path)
+
+        with patch("bts.picks.check_hit", return_value=True):
+            reconcile_results(tmp_path, lookback_days=8)
+
+        assert load_streak(tmp_path) == 1, (
+            f"Shadow file broke the walk. Expected 1, got {load_streak(tmp_path)}."
+        )

@@ -1,9 +1,12 @@
 """Pick persistence, streak tracking, and MLB API helpers for BTS automation."""
 
 import json
+import re
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
+
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 from bts.util import retry_urlopen
 
@@ -354,11 +357,19 @@ def reconcile_results(
             save_pick(daily, picks_dir)
 
     # Always recalculate streak from scratch — catches both result corrections
-    # and streak increment bugs (e.g., cross-game double-down counted as +1)
+    # and streak increment bugs (e.g., cross-game double-down counted as +1).
+    # Only iterate strict YYYY-MM-DD files so streak.json, automation.json, and
+    # *.shadow.json are all skipped automatically. Also skip any pick file dated
+    # today or later: `bts preview` pre-generates tomorrow's pick before games
+    # are played, so its result=None doesn't mean "miss" — it means "not played
+    # yet" and we must not let it break the backward walk.
+    today_iso = date_cls.today().isoformat()
     streak = 0
     dates = sorted(picks_dir.glob("*.json"))
     for f in reversed(dates):
-        if f.stem in ("streak", "automation"):
+        if not _ISO_DATE_RE.match(f.stem):
+            continue
+        if f.stem >= today_iso:
             continue
         try:
             data = json.loads(f.read_text())
