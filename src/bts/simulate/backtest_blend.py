@@ -371,6 +371,10 @@ def blend_walk_forward(
                     extra_params = {}
                 else:
                     name, cols, extra_params = config
+                # Dedupe: experiments that extend FEATURE_COLS with a feature
+                # already used by a blend variant (statcast_add_*) would otherwise
+                # produce duplicate column names, which LightGBM rejects.
+                cols = list(dict.fromkeys(cols))
 
                 merged_params = {**lgb_params, **extra_params}
 
