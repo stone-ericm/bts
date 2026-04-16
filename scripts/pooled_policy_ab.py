@@ -20,6 +20,7 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -37,9 +38,9 @@ from bts.simulate.pooled_policy import (
 )
 
 
-PROD_POLICY_PATH = Path("data/models/mdp_policy.npz")
-POOLED_POLICY_PATH = Path("data/models/mdp_policy_pooled_v1.npz")
-PROFILES_ROOT = Path("data/hetzner_results/pooled_bins_run")
+DEFAULT_PROD_POLICY_PATH = Path("data/models/mdp_policy.npz")
+DEFAULT_POOLED_POLICY_PATH = Path("data/models/mdp_policy_pooled_v1.npz")
+DEFAULT_PROFILES_ROOT = Path("data/hetzner_results/pooled_bins_run")
 
 SEASON_LENGTH = 180
 LATE_PHASE_DAYS = 30
@@ -68,8 +69,19 @@ def seed_bins_for(profiles: pd.DataFrame, late_phase_days: int, n_bins: int):
 
 
 def main() -> None:
-    all_seed_dirs = sorted(PROFILES_ROOT.glob("*/simulation_seed*"))
-    print(f"Found {len(all_seed_dirs)} seed dirs under {PROFILES_ROOT}")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--profiles-root", type=Path, default=DEFAULT_PROFILES_ROOT,
+                    help="Directory containing per-box subdirs with simulation_seed* children")
+    ap.add_argument("--prod-policy", type=Path, default=DEFAULT_PROD_POLICY_PATH,
+                    help="Production policy .npz to compare against")
+    ap.add_argument("--pooled-policy", type=Path, default=DEFAULT_POOLED_POLICY_PATH,
+                    help="Candidate pooled policy .npz to evaluate")
+    ap.add_argument("--out", type=Path, default=Path("data/validation/pooled_policy_ab.json"),
+                    help="Output JSON path")
+    args = ap.parse_args()
+
+    all_seed_dirs = sorted(args.profiles_root.glob("*/simulation_seed*"))
+    print(f"Found {len(all_seed_dirs)} seed dirs under {args.profiles_root}")
 
     # Load all profiles once, tagged with seed
     all_profiles = load_pooled_profiles(all_seed_dirs)
@@ -78,8 +90,8 @@ def main() -> None:
     print(f"Seeds: {seeds}")
 
     # Load production + pooled policies
-    prod_table, prod_boundaries, prod_season_length = load_mdp_solution_from_npz(PROD_POLICY_PATH)
-    pool_table, pool_boundaries, pool_season_length = load_mdp_solution_from_npz(POOLED_POLICY_PATH)
+    prod_table, prod_boundaries, prod_season_length = load_mdp_solution_from_npz(args.prod_policy)
+    pool_table, pool_boundaries, pool_season_length = load_mdp_solution_from_npz(args.pooled_policy)
     print(f"\nProduction policy: season_length={prod_season_length}, "
           f"boundaries={[round(b, 4) for b in prod_boundaries]}, shape={prod_table.shape}")
     print(f"Pooled policy:     season_length={pool_season_length}, "
@@ -179,7 +191,7 @@ def main() -> None:
               f"on held-out seeds. Don't ship yet.")
 
     # Save results
-    out_json = Path("data/validation/pooled_policy_ab.json")
+    out_json = args.out
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps({
         "within_pool": within_results,

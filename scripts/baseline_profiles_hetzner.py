@@ -48,8 +48,10 @@ from audit_driver import (  # type: ignore  # local helper reuse
     HetznerProvider,
     LOCAL_BTS,
     SSH_OPTS,
+    VultrProvider,
     distribute_seeds,
     log,
+    make_provider,
     provision_one,
     spinup,
     ssh_run,
@@ -82,16 +84,31 @@ def provision_with_scripts(box: Box) -> tuple[str, str]:
     return (name, "ready+scripts")
 
 
-# Non-overlapping with audit_driver.DEFAULT_SEEDS; chosen deterministically.
+# First block = the original 16 seeds used for Track B (2026-04-15 afternoon).
+# Second block = next 16 seeds used for Track C (the rigor expansion tonight).
+# They are non-overlapping so the expanded sample is actually N=32, not N=16
+# with duplicates. All 32 are also non-overlapping with audit_driver.DEFAULT_SEEDS.
 DEFAULT_SEEDS = [
     1, 7, 42, 137, 1024, 8192, 65536, 524288, 999983,
     2041769, 2273360, 3167584, 3911096, 6426836, 6762547, 6992150,
 ]
+EXTENDED_SEEDS = [
+    11, 23, 73, 199, 2048, 16384, 131072, 1048576, 999979,
+    4083538, 4546720, 6335168, 7822192, 12853672, 13525094, 13984300,
+]
 
 
-def launch_baseline_queue(box: Box, seeds: list[int]) -> tuple[str, int, str]:
-    """Shell-script queue that runs rebuild_policy.py once per seed and
+def launch_baseline_queue(
+    box: Box,
+    seeds: list[int],
+    script_rel_path: str = "scripts/rebuild_policy.py",
+) -> tuple[str, int, str]:
+    """Shell-script queue that runs `script_rel_path` once per seed and
     captures data/simulation into a per-seed directory.
+
+    `script_rel_path` is relative to /root/projects/bts. Default is
+    rebuild_policy.py (walk_forward_backtest path); pass
+    "scripts/rebuild_policy_blend.py" for the blend_walk_forward cross-path.
 
     Uses absolute paths to avoid any cwd drift. Emits per-seed progress to
     /root/baseline.log and a final /root/baseline.done marker on completion.
@@ -111,7 +128,7 @@ for SEED in {seed_list_str}; do
   mkdir -p {BTS}/data/simulation
   cd {BTS}
   BTS_LGBM_RANDOM_STATE=$SEED {ENV} \\
-    uv run python scripts/rebuild_policy.py >> /root/baseline.log 2>&1
+    uv run python {script_rel_path} >> /root/baseline.log 2>&1
   rc=$?
   mv {BTS}/data/simulation {BTS}/data/simulation_seed$SEED
   echo "=== seed=$SEED done at $(date) rc=$rc ===" >> /root/baseline.log
@@ -186,10 +203,17 @@ def retrieve_baseline(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--provider", choices=["hetzner", "vultr"], default="hetzner",
+                    help="Cloud provider (hetzner or vultr)")
     ap.add_argument("--boxes", type=int, default=4,
-                    help="Max Hetzner CPX51 boxes to request (graceful if fewer)")
+                    help="Max cloud boxes to request (graceful if fewer)")
     ap.add_argument("--seeds", type=int, default=16,
-                    help="Number of seeds to run (first N from DEFAULT_SEEDS)")
+                    help="Number of seeds to run (from the chosen seed block)")
+    ap.add_argument("--seed-block", choices=["default", "extended"], default="default",
+                    help="Which seed block to use (default = seeds 1-16, extended = next 16)")
+    ap.add_argument("--script", default="scripts/rebuild_policy.py",
+                    help="Script to run per-seed (relative to project root); "
+                         "use scripts/rebuild_policy_blend.py for blend_walk_forward cross-path")
     ap.add_argument("--label", default="bts-pooled",
                     help="Box name prefix")
     ap.add_argument("--out", type=Path,
@@ -201,11 +225,13 @@ def main() -> None:
                     help="Hard cap on total runtime")
     args = ap.parse_args()
 
-    seeds = DEFAULT_SEEDS[: args.seeds]
-    log(f"Baseline-only run: {len(seeds)} seeds on up to {args.boxes} Hetzner boxes")
+    seed_pool = DEFAULT_SEEDS if args.seed_block == "default" else EXTENDED_SEEDS
+    seeds = seed_pool[: args.seeds]
+    log(f"Baseline run: {len(seeds)} seeds ({args.seed_block}) on up to {args.boxes} "
+        f"{args.provider} boxes using {args.script}")
     log(f"  seeds: {seeds}")
 
-    provider = HetznerProvider()
+    provider = make_provider(args.provider)
     args.out.mkdir(parents=True, exist_ok=True)
 
     boxes: list[Box] = []
@@ -232,9 +258,12 @@ def main() -> None:
         for nm, sl in queues.items():
             log(f"  {nm}: {sl}")
 
-        log("Launching baseline queues...")
+        log(f"Launching baseline queues (script={args.script})...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-            futures = [ex.submit(launch_baseline_queue, b, queues[b.name]) for b in boxes]
+            futures = [
+                ex.submit(launch_baseline_queue, b, queues[b.name], args.script)
+                for b in boxes
+            ]
             for fut in concurrent.futures.as_completed(futures):
                 nm, rc, out = fut.result()
                 log(f"  [{nm}] rc={rc}  {out}")
