@@ -11,3 +11,6 @@ dist/
 .pytest_cache/
 .worktrees/
 .superpowers/
+
+# Modal POC artifacts (not part of the production pipeline)
+modal_audit/
