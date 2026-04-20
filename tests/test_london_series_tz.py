@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from bts.scheduler import compute_wakeup_time, resolve_fallback_deadline_min
+from bts.scheduler import resolve_fallback_deadline_min
 
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
