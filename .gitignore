@@ -3,6 +3,7 @@ data/processed/
 data/models/
 data/picks/
 data/external/odds/
+data/.heartbeat*
 __pycache__/
 *.pyc
 .venv/
