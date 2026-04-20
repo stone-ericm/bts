@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from bts.util import retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState
+from bts.sd_notify import notify_ready, notify_watchdog
 from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
 from bts.strategy import select_pick
@@ -520,6 +521,7 @@ def run_result_polling(
         if heartbeat_path:
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING,
                            extra={"phase": "result_polling"})
+            notify_watchdog()
         now = _now_et()
         if now.hour >= cap_hour_et and now.hour < 10:
             print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
@@ -658,6 +660,8 @@ def run_day(
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+    notify_ready()
+    notify_watchdog()
 
     # 1. Fetch schedule
     print(f"[{_now_et().strftime('%H:%M ET')}] Fetching schedule for {date}...", file=sys.stderr)
@@ -716,11 +720,13 @@ def run_day(
                 state=HeartbeatState.SLEEPING,
                 sleeping_until=target.astimezone(UTC),
             )
+            notify_watchdog()
             wait_secs = (target - now).total_seconds()
             print(f"  Sleeping until {target.strftime('%H:%M ET')} "
                   f"({wait_secs / 60:.0f} min)...", file=sys.stderr)
             time.sleep(wait_secs)
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+            notify_watchdog()
 
         now = _now_et()
         if now < target:
@@ -820,6 +826,7 @@ def run_day(
                         state=HeartbeatState.SLEEPING,
                         sleeping_until=fallback_deadline.astimezone(UTC),
                     )
+                    notify_watchdog()
                     wait = (fallback_deadline - now).total_seconds()
                     print(f"  Earliest pick game at {earliest_game_et.strftime('%H:%M ET')}, "
                           f"no check before then — fallback at "
@@ -827,6 +834,7 @@ def run_day(
                           f"({wait / 60:.0f} min)...", file=sys.stderr)
                     time.sleep(wait)
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+                    notify_watchdog()
 
                 # Force-post current pick (waited to deadline, or past it).
                 # Re-run predictions first in case late-arriving lineups
@@ -961,11 +969,13 @@ def run_day(
                     state=HeartbeatState.SLEEPING,
                     sleeping_until=poll_start.astimezone(UTC),
                 )
+                notify_watchdog()
                 wait = (poll_start - now).total_seconds()
                 print(f"  Waiting until {poll_start.strftime('%H:%M ET')} "
                       f"(game start + 10min, {wait / 60:.0f} min)...", file=sys.stderr)
                 time.sleep(wait)
                 write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+                notify_watchdog()
 
             game_pk = daily.pick.game_pk
             status = run_result_polling(
@@ -979,3 +989,4 @@ def run_day(
             print(f"  Day complete. Result: {status}", file=sys.stderr)
 
     write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
+    notify_watchdog()
