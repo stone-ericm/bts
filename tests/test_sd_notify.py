@@ -47,3 +47,18 @@ def test_bad_socket_path_does_not_raise(monkeypatch):
     swallows the OSError — this is a fire-and-forget primitive."""
     monkeypatch.setenv("NOTIFY_SOCKET", "/nonexistent/socket/path.sock")
     notify_raw("WATCHDOG=1")  # must not raise
+
+
+def test_non_encodable_message_does_not_raise(monkeypatch, tmp_path):
+    """notify_raw with a non-ASCII-surrogate message must not raise
+    UnicodeEncodeError — it's fire-and-forget."""
+    sock_path = str(tmp_path / "notify.sock")
+    srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    srv.bind(sock_path)
+    srv.settimeout(2)
+    try:
+        monkeypatch.setenv("NOTIFY_SOCKET", sock_path)
+        # Surrogate pairs are not UTF-8 encodable — .encode() raises
+        notify_raw("WATCHDOG=1\ud800")  # must not raise
+    finally:
+        srv.close()

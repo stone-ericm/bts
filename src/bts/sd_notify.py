@@ -14,7 +14,12 @@ import socket
 
 
 def notify_raw(message: str) -> None:
-    """Send a raw sd_notify message to $NOTIFY_SOCKET. No-op if unset or unreachable."""
+    """Send a raw sd_notify message to $NOTIFY_SOCKET. No-op if unset or unreachable.
+
+    Fire-and-forget: catches any exception (OSError for socket failures,
+    UnicodeEncodeError for non-ASCII input, etc.) so the notify path can
+    never take down the daemon.
+    """
     sock_path = os.environ.get("NOTIFY_SOCKET")
     if not sock_path:
         return
@@ -24,7 +29,7 @@ def notify_raw(message: str) -> None:
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     try:
         sock.sendto(message.encode(), sock_path)
-    except OSError:
+    except Exception:
         # fire-and-forget — heartbeat file + external cron watcher still cover us
         pass
     finally:
