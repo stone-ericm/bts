@@ -6,7 +6,6 @@ Usage:
 
 Returns:
     Exit code 0 if fresh. Exit code 1 + POST to hc-ping /fail if stale.
-    Exit code 2 on internal error (unreadable heartbeat file etc).
 
 Integration: invoke from cron like
     */5 * * * * cd /home/bts/projects/bts && /home/bts/.local/bin/uv run \\
@@ -19,18 +18,18 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.error
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
-ET = ZoneInfo("America/New_York")
-
+# State strings must match bts.heartbeat.HeartbeatState constants.
+# If those change, update here in lockstep.
 # State -> staleness thresholds (seconds)
 RUNNING_MAX_AGE = 5 * 60          # running: fresh = timestamp age < 5 min
 WAITING_MAX_AGE = 10 * 60         # waiting_for_games: 10 min
 SLEEPING_OVERRUN = 10 * 60        # sleeping: if past sleeping_until, fresh = <10 min overshoot
-IDLE_END_HOUR_ET = 1              # idle_end_of_day state is stale after 01:00 ET next day
+IDLE_END_MAX_AGE = 90 * 60        # idle_end_of_day is a brief transitional state; stale if stuck >90 min
 
 
 def is_stale(
@@ -81,11 +80,8 @@ def is_stale(
         return False, "fresh sleeping"
 
     if state == "idle_end_of_day":
-        ts_et = ts.astimezone(ET)
-        now_et = now.astimezone(ET)
-        cutoff = ts_et.replace(hour=IDLE_END_HOUR_ET, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        if now_et > cutoff:
-            return True, f"idle_end_of_day past {IDLE_END_HOUR_ET:02d}:00 ET cutoff"
+        if age_s > IDLE_END_MAX_AGE:
+            return True, f"idle_end_of_day stuck {age_s:.0f}s (>{IDLE_END_MAX_AGE}s)"
         return False, "fresh idle_end_of_day"
 
     return True, f"unknown state: {state}"
@@ -97,8 +93,8 @@ def ping(url: str, suffix: str = "") -> None:
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             r.read()
-    except Exception as e:
-        print(f"  ping failed: {e}", file=sys.stderr)
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        print(f"ping failed: {e}", file=sys.stderr)
 
 
 def main():
@@ -107,6 +103,9 @@ def main():
     ap.add_argument("--ping-url", default=None,
                     help="Healthchecks.io base URL (without /fail suffix)")
     args = ap.parse_args()
+
+    if args.ping_url is None:
+        print("  (no --ping-url provided; alerts disabled)", file=sys.stderr)
 
     stale, reason = is_stale(args.heartbeat_path)
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")

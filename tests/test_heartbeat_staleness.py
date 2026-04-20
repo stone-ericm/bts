@@ -6,8 +6,6 @@ from pathlib import Path
 
 import pytest
 
-import sys
-sys.path.insert(0, "scripts")
 from check_heartbeat import is_stale
 
 
@@ -71,14 +69,60 @@ def test_corrupt_file_is_stale(tmp_path):
     assert stale
 
 
-def test_idle_end_of_day_after_1am_is_stale(tmp_path):
-    """Daemon should transition off idle_end_of_day by 1 AM ET."""
-    from zoneinfo import ZoneInfo
+def test_idle_end_of_day_stale_after_max_age(tmp_path):
+    """idle_end_of_day should be stale after 90 min — it's a brief transitional state."""
     hb_path = tmp_path / "hb.json"
-    # Construct a "now" at 01:30 ET
-    et = ZoneInfo("America/New_York")
-    now = datetime(2026, 4, 21, 1, 30, tzinfo=et).astimezone(timezone.utc)
-    ts = datetime(2026, 4, 20, 23, 30, tzinfo=timezone.utc)  # 2h old
-    _write_hb(hb_path, state="idle_end_of_day", timestamp=ts.isoformat())
+    now = datetime.now(timezone.utc)
+    old = now - timedelta(minutes=95)
+    _write_hb(hb_path, state="idle_end_of_day", timestamp=old.isoformat())
     stale, reason = is_stale(hb_path, now=now)
     assert stale
+    assert "idle_end_of_day" in reason.lower() or "stuck" in reason.lower()
+
+
+def test_idle_end_of_day_fresh_within_max_age(tmp_path):
+    """idle_end_of_day with recent timestamp is still fresh."""
+    hb_path = tmp_path / "hb.json"
+    now = datetime.now(timezone.utc)
+    old = now - timedelta(minutes=30)
+    _write_hb(hb_path, state="idle_end_of_day", timestamp=old.isoformat())
+    stale, _ = is_stale(hb_path, now=now)
+    assert not stale
+
+
+def test_unknown_state_is_stale(tmp_path):
+    """Unknown states (new writer state not yet supported by monitor) trigger stale."""
+    hb_path = tmp_path / "hb.json"
+    now = datetime.now(timezone.utc)
+    _write_hb(hb_path, state="teleporting", timestamp=now.isoformat())
+    stale, reason = is_stale(hb_path, now=now)
+    assert stale
+    assert "unknown" in reason.lower()
+
+
+def test_sleeping_without_wake_target_is_stale(tmp_path):
+    """Malformed sleeping heartbeat (no sleeping_until field) is stale."""
+    hb_path = tmp_path / "hb.json"
+    now = datetime.now(timezone.utc)
+    _write_hb(hb_path, state="sleeping", timestamp=now.isoformat())
+    stale, reason = is_stale(hb_path, now=now)
+    assert stale
+    assert "sleeping_until" in reason.lower()
+
+
+def test_fresh_waiting_for_games(tmp_path):
+    hb_path = tmp_path / "hb.json"
+    now = datetime.now(timezone.utc)
+    _write_hb(hb_path, state="waiting_for_games", timestamp=now.isoformat())
+    stale, _ = is_stale(hb_path, now=now)
+    assert not stale
+
+
+def test_stale_waiting_for_games(tmp_path):
+    hb_path = tmp_path / "hb.json"
+    now = datetime.now(timezone.utc)
+    old = now - timedelta(minutes=15)
+    _write_hb(hb_path, state="waiting_for_games", timestamp=old.isoformat())
+    stale, reason = is_stale(hb_path, now=now)
+    assert stale
+    assert "waiting" in reason.lower()
