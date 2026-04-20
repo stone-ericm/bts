@@ -9,6 +9,7 @@
 #   03:00 — nightly data refresh + sync to R2 + tomorrow's preview pick
 #   */5  — lineup posting time collection
 #   */5  — healthchecks.io ping
+#   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #
 # IMPORTANT: cron's default shell is /bin/sh (= dash on Debian). dash has no
 # `source` builtin — use `. ./.env` instead. Forgetting this kills every
@@ -43,7 +44,8 @@ CRON_LINES="$MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
-*/5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER"
+*/5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER
+*/5 * * * * $PREFIX $UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER"
 
 case "${1:-show}" in
     install)
