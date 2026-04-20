@@ -19,7 +19,6 @@ from urllib.request import urlopen, Request
 from zoneinfo import ZoneInfo
 
 from bts.heartbeat import read_heartbeat, is_heartbeat_fresh
-from bts.scheduler import resolve_fallback_deadline_min
 
 PICKS_DIR = Path("data/picks")
 HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
@@ -911,6 +910,10 @@ def render_page():
                 except (ValueError, TypeError):
                     pass
             if earliest:
+                # Lazy import: bts.scheduler pulls pandas transitively via orchestrator.
+                # Keep dashboard startup cheap by deferring until we actually need it.
+                from bts.scheduler import resolve_fallback_deadline_min
+
                 sched_config = load_orchestrator_config().get("scheduler", {})
                 earliest_game_et = earliest.astimezone(ET)
                 fallback_min = resolve_fallback_deadline_min(
