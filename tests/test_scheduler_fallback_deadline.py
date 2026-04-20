@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 ET = ZoneInfo("America/New_York")
 
 
@@ -64,3 +66,25 @@ def test_morning_game_lock_time_is_25_min_before_pitch():
     m = resolve_fallback_deadline_min(game_et)  # use defaults
     lock = game_et - timedelta(minutes=m)
     assert lock == datetime(2026, 6, 22, 8, 45, tzinfo=ET)
+
+
+def test_rejects_morning_min_greater_than_standard_min():
+    from bts.scheduler import resolve_fallback_deadline_min
+    game_et = datetime(2026, 4, 20, 9, 10, tzinfo=ET)
+    with pytest.raises(ValueError, match="morning_min"):
+        resolve_fallback_deadline_min(
+            game_et,
+            standard_min=20,
+            morning_min=30,   # invalid — morning should be <= standard
+            morning_cutoff_hour=11,
+        )
+
+
+def test_midnight_game_uses_morning_buffer():
+    """A hypothetical midnight-ET start (hour=0) should use morning buffer."""
+    from bts.scheduler import resolve_fallback_deadline_min
+    game_et = datetime(2026, 6, 20, 0, 0, tzinfo=ET)
+    m = resolve_fallback_deadline_min(
+        game_et, standard_min=35, morning_min=25, morning_cutoff_hour=11,
+    )
+    assert m == 25

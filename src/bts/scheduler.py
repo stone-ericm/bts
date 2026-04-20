@@ -128,7 +128,7 @@ def compute_wakeup_time(
 
 
 def resolve_fallback_deadline_min(
-    earliest_game_et: "datetime",
+    earliest_game_et: datetime,
     standard_min: int = 35,
     morning_min: int = 25,
     morning_cutoff_hour: int = 11,
@@ -142,7 +142,15 @@ def resolve_fallback_deadline_min(
 
     Normal-time games (first pitch at or after morning_cutoff_hour) keep
     the standard buffer unchanged.
+
+    Note: Caller is responsible for passing an ET-localized datetime;
+    the function reads `.hour` directly without timezone conversion.
     """
+    if morning_min > standard_min:
+        raise ValueError(
+            f"morning_min ({morning_min}) must be <= standard_min ({standard_min}); "
+            "morning buffer should be shorter, not longer"
+        )
     if earliest_game_et.hour < morning_cutoff_hour:
         return morning_min
     return standard_min
@@ -641,7 +649,7 @@ def run_day(
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
     early_lock_gap = sched_config.get("early_lock_gap", 0.03)
-    fallback_deadline_min_standard = sched_config.get("fallback_deadline_min", 15)
+    fallback_deadline_min_standard = sched_config.get("fallback_deadline_min", 35)
     fallback_deadline_min_morning = sched_config.get("fallback_deadline_min_morning", 25)
     morning_cutoff_hour = sched_config.get("morning_cutoff_hour", 11)
     missed_pick_alert_min = sched_config.get("missed_pick_alert_min", 10)

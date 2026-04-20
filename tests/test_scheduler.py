@@ -516,6 +516,8 @@ class TestRunDay:
                     "lineup_check_offset_min": 45,
                     "cluster_min": 10,
                     "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
                     "results_poll_interval_min": 15,
                     "results_cap_hour_et": 5,
                 },
