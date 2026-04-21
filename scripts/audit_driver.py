@@ -2,8 +2,9 @@
 """Unified multi-seed audit driver for BTS experiment screening.
 
 Replaces the ad-hoc drivers in /tmp/claude/ that bit us on 2026-04-14/15.
-Supports both Hetzner and Vultr as providers via simple dispatch. Handles
-graceful degradation when the requested box count isn't available.
+Supports Hetzner Cloud, Vultr, and Oracle Cloud Infrastructure (OCI) as
+providers via simple dispatch. Handles graceful degradation when the
+requested box count isn't available.
 
 Usage:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit_driver.py \\
@@ -15,6 +16,12 @@ Usage:
         --experiments scripts/audit_experiments.txt \\
         --label hetzner-only-audit
 
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit_driver.py \\
+        --provider oci --boxes 1 --seeds 1 \\
+        --seeds-file scripts/audit_seeds_determinism.txt \\
+        --experiments scripts/audit_experiments.txt \\
+        --label bts-oci-validate
+
 Fixes 4 bugs from the 2026-04-14/15 overnight runs:
     1. rsync paths missing root@{ip}: prefix (Phase 1 profile retrieve)
     2. Silent degradation when boxes < requested (Vultr 3/20 issue)
@@ -22,9 +29,17 @@ Fixes 4 bugs from the 2026-04-14/15 overnight runs:
     4. Relative paths in shell launches (cwd drift ambiguity)
 
 Requires:
-    - hetzner-cloud-token or vultr-api-token in macOS Keychain
+    - Provider credentials (one of):
+        hetzner-cloud-token (macOS Keychain)
+        vultr-api-token (macOS Keychain)
+        ~/.oci/config (via `oci setup config`) OR keychain entries:
+            oci-tenancy-ocid, oci-user-ocid, oci-fingerprint,
+            oci-api-private-key, oci-region
+        plus keychain entry `oci-subnet-ocid` for a public subnet.
     - SSH pubkey at ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub
     - /Users/stone/projects/bts/{src,data/processed,data/models,pyproject.toml,uv.lock}
+    - For --provider oci: `uv add oci` (oci-python-sdk) and a service limit
+      increase for VM.Standard.E5.Flex AMD OCPUs in the home region.
 """
 from __future__ import annotations
 
@@ -53,6 +68,24 @@ ENV = "PATH=/root/.local/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache"
 USER_DATA_RAW = """#cloud-config
 packages: [rsync, git, libgomp1, python3, ca-certificates, curl]
 runcmd:
+  - curl -LsSf https://astral.sh/uv/install.sh -o /tmp/uv-install.sh
+  - env HOME=/root sh /tmp/uv-install.sh
+  - mkdir -p /root/projects/bts/data
+  - touch /root/cloud-init-done
+"""
+
+# OCI Ubuntu images default the SSH key to user `ubuntu`. The driver's
+# SSH calls are hardcoded to `root@{ip}`, so we copy the authorized_keys
+# to root and enable key-only root SSH before touching cloud-init-done.
+USER_DATA_OCI = """#cloud-config
+packages: [rsync, git, libgomp1, python3, ca-certificates, curl]
+runcmd:
+  - mkdir -p /root/.ssh
+  - cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/authorized_keys
+  - chmod 700 /root/.ssh
+  - chmod 600 /root/.ssh/authorized_keys
+  - sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  - systemctl restart ssh
   - curl -LsSf https://astral.sh/uv/install.sh -o /tmp/uv-install.sh
   - env HOME=/root sh /tmp/uv-install.sh
   - mkdir -p /root/projects/bts/data
@@ -253,11 +286,167 @@ class VultrProvider(Provider):
         self._api("DELETE", f"/instances/{box_id}")
 
 
+class OCIProvider(Provider):
+    """Oracle Cloud Infrastructure — AMD EPYC Genoa (Zen 4) flex shapes.
+
+    Same microarchitecture family as Hetzner CPX51 and Vultr vhp-8c, which
+    gives the highest prior that LightGBM output is byte-identical (required
+    for pooling seeds across providers in audits).
+
+    Shape: VM.Standard.E5.Flex @ 8 OCPU / 32 GB. 1 OCPU = 2 vCPU (HT pair)
+    on AMD, so 8 OCPU ≈ 16 vCPU, matching Hetzner CPX51.
+
+    Prerequisites:
+      - `uv add oci` (oci-python-sdk installed)
+      - ~/.oci/config (via `oci setup config`) OR keychain entries:
+        oci-tenancy-ocid, oci-user-ocid, oci-fingerprint,
+        oci-api-private-key, oci-region
+      - Keychain entry `oci-subnet-ocid` pointing to a public subnet in the
+        home region (create via OCI Console → Networking → VCN Wizard).
+      - Service limit increase for VM.Standard.E5.Flex AMD OCPUs — new
+        accounts default to 0 and you can't launch without filing a ticket.
+    """
+    name = "oci"
+    SHAPE = "VM.Standard.E5.Flex"  # AMD EPYC Genoa Zen 4
+    OCPUS = 8.0       # 8 OCPU × 2 vCPU/OCPU = 16 vCPU — matches Hetzner CPX51
+    MEM_GB = 32.0
+
+    def __init__(self):
+        try:
+            import oci
+        except ImportError as e:
+            raise RuntimeError(
+                "OCI provider requires oci-python-sdk. Install with: "
+                "UV_CACHE_DIR=/tmp/uv-cache uv add oci"
+            ) from e
+        self._oci = oci
+
+        config_path = os.path.expanduser("~/.oci/config")
+        if os.path.exists(config_path):
+            self.config = oci.config.from_file(config_path)
+        else:
+            self.config = {
+                "tenancy": _keychain("oci-tenancy-ocid"),
+                "user": _keychain("oci-user-ocid"),
+                "fingerprint": _keychain("oci-fingerprint"),
+                "key_content": _keychain("oci-api-private-key"),
+                "region": _keychain("oci-region"),
+            }
+        oci.config.validate_config(self.config)
+
+        try:
+            self.compartment_id = _keychain("oci-compartment-ocid")
+        except subprocess.CalledProcessError:
+            self.compartment_id = self.config["tenancy"]
+        self.subnet_id = _keychain("oci-subnet-ocid")
+
+        self.compute = oci.core.ComputeClient(self.config)
+        self.network = oci.core.VirtualNetworkClient(self.config)
+        self.identity = oci.identity.IdentityClient(self.config)
+
+        self._image_id: str | None = None
+        self._ad_fallbacks: list[str] = []
+
+    def _resolve_once(self):
+        if self._image_id is not None:
+            return
+        ads = self.identity.list_availability_domains(
+            compartment_id=self.config["tenancy"]
+        ).data
+        if not ads:
+            raise RuntimeError("OCI: no availability domains returned")
+        self._ad_fallbacks = [ad.name for ad in ads]
+
+        images = self.compute.list_images(
+            compartment_id=self.compartment_id,
+            operating_system="Canonical Ubuntu",
+            operating_system_version="24.04",
+            shape=self.SHAPE,
+            sort_by="TIMECREATED",
+            sort_order="DESC",
+        ).data
+        for img in images:
+            lbl = (img.display_name or "").lower()
+            if "aarch64" in lbl or "arm" in lbl:
+                continue
+            self._image_id = img.id
+            break
+        if self._image_id is None:
+            raise RuntimeError("OCI: no Ubuntu 24.04 x86_64 image found for E5.Flex")
+
+    def create(self, label: str) -> Box:
+        self._resolve_once()
+        oci = self._oci
+
+        pub_path = os.path.expanduser("~/.ssh/id_ed25519.pub")
+        if not os.path.exists(pub_path):
+            pub_path = os.path.expanduser("~/.ssh/id_rsa.pub")
+        pubkey = open(pub_path).read().strip()
+        user_data_b64 = base64.b64encode(USER_DATA_OCI.encode()).decode()
+
+        last_err = None
+        for ad in self._ad_fallbacks:
+            try:
+                launch = oci.core.models.LaunchInstanceDetails(
+                    availability_domain=ad,
+                    compartment_id=self.compartment_id,
+                    display_name=label,
+                    shape=self.SHAPE,
+                    shape_config=oci.core.models.LaunchInstanceShapeConfigDetails(
+                        ocpus=self.OCPUS,
+                        memory_in_gbs=self.MEM_GB,
+                    ),
+                    source_details=oci.core.models.InstanceSourceViaImageDetails(
+                        image_id=self._image_id,
+                    ),
+                    create_vnic_details=oci.core.models.CreateVnicDetails(
+                        subnet_id=self.subnet_id,
+                        assign_public_ip=True,
+                    ),
+                    metadata={
+                        "ssh_authorized_keys": pubkey,
+                        "user_data": user_data_b64,
+                    },
+                )
+                inst = self.compute.launch_instance(launch).data
+                return Box(id=inst.id, name=label, ipv4="", region=ad)
+            except oci.exceptions.ServiceError as e:
+                last_err = e
+                # Out-of-capacity → try next AD; quota/auth → bail hard.
+                if "OutOfCapacity" in (e.code or "") or e.status in (500, 503):
+                    continue
+                raise RuntimeError(
+                    f"OCI launch failed: {e.status} {e.code} {str(e)[:200]}"
+                ) from e
+        raise RuntimeError(f"All OCI availability domains exhausted: {last_err}")
+
+    def is_active(self, box_id: str) -> tuple[bool, str]:
+        inst = self.compute.get_instance(box_id).data
+        if inst.lifecycle_state != "RUNNING":
+            return (False, "")
+        atts = self.compute.list_vnic_attachments(
+            compartment_id=self.compartment_id,
+            instance_id=box_id,
+        ).data
+        for att in atts:
+            if att.lifecycle_state != "ATTACHED":
+                continue
+            vnic = self.network.get_vnic(att.vnic_id).data
+            if vnic.public_ip:
+                return (True, vnic.public_ip)
+        return (False, "")
+
+    def delete(self, box_id: str) -> None:
+        self.compute.terminate_instance(box_id, preserve_boot_volume=False)
+
+
 def make_provider(name: str) -> Provider:
     if name == "hetzner":
         return HetznerProvider()
     if name == "vultr":
         return VultrProvider()
+    if name == "oci":
+        return OCIProvider()
     raise ValueError(f"unknown provider: {name}")
 
 
@@ -346,7 +535,7 @@ def provision_one(box: Box) -> tuple[str, str]:
     ]:
         r = subprocess.run(
             ["rsync", "-az", "-e", ssh_arg, src, f"root@{ip}:{dst}"],
-            capture_output=True, text=True, timeout=900,
+            capture_output=True, text=True, timeout=1800,
         )
         if r.returncode != 0:
             return (name, f"rsync_failed: {r.stderr[:200]}")
@@ -506,9 +695,13 @@ DEFAULT_SEEDS = [
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--provider", choices=["hetzner", "vultr"], required=True)
+    ap.add_argument("--provider", choices=["hetzner", "vultr", "oci"], required=True)
     ap.add_argument("--boxes", type=int, required=True, help="Max boxes to request (graceful if provider gives fewer)")
     ap.add_argument("--seeds", type=int, default=20, help="Number of seeds to run (first N from DEFAULT_SEEDS)")
+    ap.add_argument("--seeds-file", type=Path, default=None,
+                    help="Read seed list from file (whitespace or comma separated). Overrides --seeds.")
+    ap.add_argument("--vultr-plan", default=None,
+                    help="Override Vultr plan id (default: first available in VultrProvider.PLAN_FALLBACKS)")
     ap.add_argument("--experiments", type=Path, required=True, help="Path to a file with comma-separated experiment names")
     ap.add_argument("--label", default=None, help="Box name prefix (default: bts-audit-{provider})")
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
@@ -520,7 +713,17 @@ def main():
     if not experiments:
         log("ERROR: experiments file empty")
         sys.exit(1)
-    seeds = DEFAULT_SEEDS[: args.seeds]
+    if args.seeds_file:
+        raw = args.seeds_file.read_text().replace(",", " ").split()
+        seeds = [int(x) for x in raw if x.strip()]
+        log(f"Seeds: {len(seeds)} from {args.seeds_file}")
+    else:
+        seeds = DEFAULT_SEEDS[: args.seeds]
+    if args.vultr_plan and args.provider == "vultr":
+        VultrProvider.PLAN_FALLBACKS = [args.vultr_plan] + [
+            p for p in VultrProvider.PLAN_FALLBACKS if p != args.vultr_plan
+        ]
+        log(f"Vultr plan override: {args.vultr_plan} (falls back to {VultrProvider.PLAN_FALLBACKS[1:]})")
     log(f"Audit: {len(seeds)} seeds × {len(experiments.split(','))} experiments "
         f"on up to {args.boxes} {args.provider} boxes")
 
@@ -541,12 +744,37 @@ def main():
             indent=2,
         ))
 
-        log(f"Provisioning {len(boxes)} boxes (parallel)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-            futures = [ex.submit(provision_one, b) for b in boxes]
+        provision_parallelism = min(3, len(boxes))
+        log(f"Provisioning {len(boxes)} boxes (parallelism={provision_parallelism}, "
+            f"capped to avoid upload-bandwidth saturation)...")
+        ready_boxes: list[Box] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=provision_parallelism) as ex:
+            futures = {ex.submit(provision_one, b): b for b in boxes}
             for fut in concurrent.futures.as_completed(futures):
-                name, status = fut.result()
-                log(f"  [{name}] {status}")
+                b = futures[fut]
+                try:
+                    name, status = fut.result()
+                    log(f"  [{name}] {status}")
+                    if status == "ready":
+                        ready_boxes.append(b)
+                    else:
+                        log(f"  [{name}] NOT READY — dropping from fleet (others continue)")
+                except Exception as e:
+                    log(f"  [{b.name}] provision EXCEPTION: {type(e).__name__}: {str(e)[:200]} — dropping")
+        if not ready_boxes:
+            log("No boxes became ready — aborting before seed launch")
+            return
+        if len(ready_boxes) < len(boxes):
+            log(f"Continuing with {len(ready_boxes)}/{len(boxes)} ready boxes")
+            # Tear down the unready ones now so they don't eat the monthly fee cap.
+            unready = [b for b in boxes if b not in ready_boxes]
+            for b in unready:
+                try:
+                    provider.delete(b.id)
+                    log(f"  released unready {b.name}")
+                except Exception as e:
+                    log(f"  FAILED to release {b.name}: {e}")
+            boxes = ready_boxes
 
         queues = distribute_seeds(boxes, seeds)
         log("Seed distribution:")
