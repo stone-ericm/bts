@@ -1,8 +1,15 @@
 name: Deploy to Hetzner
 
+# Triggers on pushes to `deploy` branch (not `main`).
+# Workflow:
+#   - Commit/push to `main` freely — no deploy side effect
+#   - When ready to ship: `git push origin main:deploy` to trigger deploy
+# Gives explicit human control over when the scheduler restart fires,
+# avoiding disruption of live-game scorecard polling on every code push.
+
 on:
   push:
-    branches: [main]
+    branches: [deploy]
     paths:
       - 'src/**'
       - 'config/**'
@@ -10,6 +17,7 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy
