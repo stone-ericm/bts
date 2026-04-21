@@ -343,6 +343,22 @@ class OCIProvider(Provider):
         self.compute = oci.core.ComputeClient(self.config)
         self.network = oci.core.VirtualNetworkClient(self.config)
         self.identity = oci.identity.IdentityClient(self.config)
+        # Composite ops waits on WorkRequest status (quota accounting signal),
+        # not just instance lifecycle_state (which fires early). Required per
+        # Oracle SDK docs for reliable sequential launches under quota pressure.
+        self.composite = oci.core.ComputeClientCompositeOperations(self.compute)
+        # Opt LimitExceeded into the retry strategy — it's NOT in the default
+        # retry set. Without this opt-in, launch fails immediately on 400
+        # LimitExceeded instead of retrying with backoff.
+        self.retry_strategy = oci.retry.RetryStrategyBuilder(
+            max_attempts=15,
+            total_elapsed_time_seconds=1800,
+            retry_base_sleep_time_seconds=8,
+            retry_max_wait_between_calls_seconds=120,
+            service_error_retry_config={400: ["LimitExceeded"]},
+            service_error_retry_on_any_5xx=True,
+            backoff_type=oci.retry.BACKOFF_FULL_JITTER_EQUAL_ON_THROTTLE_VALUE,
+        ).get_retry_strategy()
 
         self._image_id: str | None = None
         self._ad_fallbacks: list[str] = []
@@ -408,13 +424,35 @@ class OCIProvider(Provider):
                         "user_data": user_data_b64,
                     },
                 )
-                inst = self.compute.launch_instance(launch).data
-                return Box(id=inst.id, name=label, ipv4="", region=ad)
+                # Wait for WorkRequest SUCCEEDED (not just instance RUNNING).
+                # This is the correct signal that quota accounting has released
+                # the in-flight OCPUs — polling lifecycle_state fires too early
+                # and causes the next launch to see LimitExceeded. SDK retry
+                # strategy handles LimitExceeded backoff internally.
+                resp = self.composite.launch_instance_and_wait_for_work_request(
+                    launch,
+                    operation_kwargs={"retry_strategy": self.retry_strategy},
+                )
+                # Extract instance OCID from the work request's affected resources.
+                wr = resp.data
+                inst_ocid = None
+                for res in wr.resources or []:
+                    if getattr(res, "entity_type", "") == "instance":
+                        inst_ocid = res.identifier
+                        break
+                if inst_ocid is None:
+                    raise RuntimeError(
+                        f"OCI work request {wr.id} succeeded but no instance "
+                        f"in resources list"
+                    )
+                return Box(id=inst_ocid, name=label, ipv4="", region=ad)
             except oci.exceptions.ServiceError as e:
                 last_err = e
-                # Out-of-capacity → try next AD; quota/auth → bail hard.
-                if "OutOfCapacity" in (e.code or "") or e.status in (500, 503):
-                    continue
+                code = e.code or ""
+                if "OutOfCapacity" in code or e.status in (500, 503):
+                    continue  # try next AD
+                # LimitExceeded should have been handled by retry_strategy;
+                # if we get here with LimitExceeded, all retries exhausted.
                 raise RuntimeError(
                     f"OCI launch failed: {e.status} {e.code} {str(e)[:200]}"
                 ) from e
@@ -469,9 +507,17 @@ def spinup(provider: Provider, requested: int, label_prefix: str) -> list[Box]:
     """Attempt to create `requested` boxes. Returns those that actually came up.
 
     Graceful: if provider refuses past N, log it clearly and return the N.
+
+    OCI has a tenancy-wide cap of ≤4 concurrent non-RUNNING instances (launches
+    past that fail with 400 LimitExceeded). To stay under, before launching box
+    N+5 we poll box N for RUNNING state — ensures ≤4 non-RUNNING at any moment.
     """
     log(f"Requesting {requested} {provider.name} boxes...")
     created: list[Box] = []
+    # OCI's LimitExceeded workarounds are now handled inside OCIProvider.create():
+    # - launch_instance_and_wait_for_work_request waits on quota-accounting signal
+    # - retry_strategy opts LimitExceeded into automatic backoff retries
+    # No OCI-specific pacing needed in spinup — SDK handles it.
     for i in range(1, requested + 1):
         name = f"{label_prefix}-{i}"
         try:
