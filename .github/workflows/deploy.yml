@@ -27,7 +27,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Deploy via SSH with canary health check + auto-rollback
         uses: appleboy/ssh-action@v1
         with:
           host: 204.168.243.169
@@ -36,6 +36,11 @@ jobs:
           script: |
             set -e
             cd /home/bts/projects/bts
+
+            # Capture pre-deploy SHA for rollback if canary fails.
+            OLD_SHA=$(sudo -Hu bts git rev-parse HEAD)
+            echo "Pre-deploy SHA: $(echo $OLD_SHA | cut -c1-7)"
+
             sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
             sudo -Hu bts git pull --ff-only
             sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
@@ -48,4 +53,54 @@ jobs:
               pkill -u bts -f 'uv run bts schedule' 2>/dev/null || true
             fi
             sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
-            echo "Deployed $(sudo -Hu bts git rev-parse --short HEAD)"
+            NEW_SHA=$(sudo -Hu bts git rev-parse --short HEAD)
+            echo "Deployed $NEW_SHA"
+
+            # Canary: wait for services to stabilize, then check health.
+            # Failures auto-rollback to OLD_SHA + restart.
+            echo "Waiting 30s for services to stabilize..."
+            sleep 30
+
+            set +e
+            FAILED=0
+            FAILURE_REASONS=""
+
+            # Check 1: scheduler service is active
+            if ! sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler; then
+              FAILED=1
+              FAILURE_REASONS="$FAILURE_REASONS\n  - bts-scheduler.service is not active"
+            fi
+
+            # Check 2: dashboard service is active
+            if ! sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-dashboard; then
+              FAILED=1
+              FAILURE_REASONS="$FAILURE_REASONS\n  - bts-dashboard.service is not active"
+            fi
+
+            # Check 3: dashboard HTTP 200
+            if ! curl -sS -m 10 -o /dev/null -w '%{http_code}' http://localhost:3003/ | grep -q '^2'; then
+              FAILED=1
+              FAILURE_REASONS="$FAILURE_REASONS\n  - dashboard HTTP check failed (localhost:3003)"
+            fi
+
+            if [ $FAILED -eq 1 ]; then
+              echo "================================"
+              echo "CANARY FAILED — rolling back to $(echo $OLD_SHA | cut -c1-7)"
+              echo "Reasons:"
+              printf "$FAILURE_REASONS\n"
+              echo "================================"
+              sudo -Hu bts git reset --hard "$OLD_SHA"
+              sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
+              sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user restart bts-scheduler bts-dashboard
+              sleep 15
+              if sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler bts-dashboard; then
+                echo "Rolled back cleanly to $(echo $OLD_SHA | cut -c1-7)"
+              else
+                echo "CRITICAL: rollback also unhealthy — manual intervention required"
+              fi
+              exit 1
+            fi
+
+            echo "================================"
+            echo "CANARY PASSED — $NEW_SHA is live and healthy"
+            echo "================================"
