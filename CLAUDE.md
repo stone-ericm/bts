@@ -20,7 +20,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **Deploys trigger on push to `deploy` branch** (NOT main, since 2026-04-21). Workflow: commit/push to main freely; when ready to ship, `git push origin main:deploy`. Gives explicit control over when scheduler restart fires (avoids disrupting live-game scorecard polling).
 - **Canary + auto-rollback**: after deploy, workflow waits 30s then checks `systemctl is-active bts-scheduler bts-dashboard` + dashboard HTTP. On failure, auto-reverts to pre-deploy SHA + restarts services.
 - **Emergency deploy**: `workflow_dispatch` trigger in the GitHub Actions UI — runs deploy without pushing anything.
-- Watched paths: `src/**`, `config/**`, `scripts/**`, `pyproject.toml`, `uv.lock`, `.github/workflows/deploy.yml`. Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
+- Every push to `deploy` triggers the workflow (no paths filter — `deploy` is a dedicated deploy ref, so any push to it is an intentional deploy). Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
 - See `/Users/stone/.claude/projects/-Users-stone/memory/reference_bts_deploy_workflow.md` for full details.
 
 ## Feature computation env vars (set in production via `.env` or systemd unit; defaults in code)

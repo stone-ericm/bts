@@ -10,13 +10,6 @@ name: Deploy to Hetzner
 on:
   push:
     branches: [deploy]
-    paths:
-      - 'src/**'
-      - 'config/**'
-      - 'scripts/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch: {}
 
 concurrency:
