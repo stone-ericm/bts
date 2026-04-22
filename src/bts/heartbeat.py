@@ -10,9 +10,11 @@ indicates sleeping_until_X so the staleness check knows the scheduler
 is intentionally quiet, not hung.
 """
 import json
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from threading import Event, Thread
+from typing import Iterator, Optional
 
 
 class HeartbeatState:
@@ -88,3 +90,38 @@ def is_heartbeat_fresh(
     ts = datetime.fromisoformat(hb["timestamp"])
     age_sec = (now_utc - ts).total_seconds()
     return age_sec <= max_age_sec
+
+
+@contextmanager
+def heartbeat_watchdog(path: Path, interval_sec: float = 60) -> Iterator[None]:
+    """Refresh the heartbeat periodically while executing the body.
+
+    Spawns a daemon thread that writes a state=RUNNING heartbeat and fires
+    an sd_notify watchdog ping every ``interval_sec`` seconds. The thread
+    stops when the context exits.
+
+    Use to wrap long-running scheduler work (prediction cascades, model
+    fits) that does not naturally emit state-transition heartbeats on its
+    own — keeps the external staleness monitor from false-alerting on
+    routine multi-minute operations.
+    """
+    from bts.sd_notify import notify_watchdog
+
+    stop = Event()
+
+    def _pulse() -> None:
+        while not stop.is_set():
+            try:
+                write_heartbeat(path, state=HeartbeatState.RUNNING)
+                notify_watchdog()
+            except Exception:
+                pass
+            stop.wait(interval_sec)
+
+    thread = Thread(target=_pulse, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=2)

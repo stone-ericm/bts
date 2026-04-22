@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 
 from bts.util import retry_urlopen
 from bts.picks import API_BASE
-from bts.heartbeat import write_heartbeat, HeartbeatState
+from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
 from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
@@ -306,7 +306,9 @@ def run_single_check(
 
     print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
 
-    predictions, pick_result, tier = run_and_pick(config, date)
+    heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
+    with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+        predictions, pick_result, tier = run_and_pick(config, date)
 
     if predictions is None or pick_result is None:
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
@@ -406,9 +408,11 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
     from bts.picks import save_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
+    heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
 
     try:
-        _, pick_result, _ = run_and_pick(config, date)
+        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+            _, pick_result, _ = run_and_pick(config, date)
     except Exception as e:
         print(f"  FALLBACK REFRESH: re-predict failed ({e}), using cached pick",
               file=sys.stderr)
