@@ -213,12 +213,25 @@ class VultrProvider(Provider):
                 "Content-Type": "application/json",
             },
         )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                b = r.read()
-                return json.loads(b) if b else {}
-        except urllib.error.HTTPError as e:
-            raise RuntimeError(f"Vultr HTTP {e.code}: {e.read().decode()[:300]}") from e
+        last_err = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    b = r.read()
+                    return json.loads(b) if b else {}
+            except urllib.error.HTTPError as e:
+                # Retry 5xx transient errors; fail hard on 4xx client errors.
+                if 500 <= e.code < 600 and attempt < 2:
+                    last_err = e
+                    time.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(f"Vultr HTTP {e.code}: {e.read().decode()[:300]}") from e
+            except (TimeoutError, urllib.error.URLError) as e:
+                last_err = e
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+        raise RuntimeError(f"Vultr API failed after 3 attempts: {last_err}") from last_err
 
     def _resolve_once(self):
         if self._os_id is not None:
