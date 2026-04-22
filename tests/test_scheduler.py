@@ -597,6 +597,41 @@ class TestEarliestPickGameEt:
         assert result.hour == 13 and result.minute == 37
 
 
+class TestPollIntervalSleep:
+    """run_result_polling's inter-iteration sleep must keep the heartbeat fresh.
+
+    Regression: 2026-04-22 ~19:05 ET. After ship of b681f8a enabled result-polling
+    for today's Laureano+Henderson day, the scheduler entered a 15-min poll loop
+    with no heartbeat refresh between iterations. Result: every 5-min cron fire
+    of check_heartbeat.py found stale, pinged HC /fail. 12 false-alarm emails
+    over 2 hours before discovery.
+    """
+
+    def test_no_heartbeat_path_still_sleeps(self, tmp_path):
+        from bts.scheduler import _poll_interval_sleep
+        import time as _time
+        t0 = _time.monotonic()
+        _poll_interval_sleep(None, seconds=0.05)
+        assert _time.monotonic() - t0 >= 0.04  # sleep actually ran
+
+    def test_heartbeat_path_refreshes_during_sleep(self, tmp_path):
+        """Heartbeat file timestamp advances during the sleep when a path is given."""
+        from pathlib import Path
+        from bts.heartbeat import HeartbeatState, read_heartbeat, write_heartbeat
+        from bts.scheduler import _poll_interval_sleep
+        import time as _time
+
+        hb = tmp_path / ".heartbeat"
+        write_heartbeat(hb, state=HeartbeatState.RUNNING)
+        initial_ts = read_heartbeat(hb)["timestamp"]
+        _time.sleep(0.01)
+
+        _poll_interval_sleep(hb, seconds=0.25, watchdog_interval_sec=0.05)
+
+        final_ts = read_heartbeat(hb)["timestamp"]
+        assert final_ts > initial_ts
+
+
 class TestComputeResultPollStart:
     """Result-polling start must use the EARLIEST of primary or double-down
     game start + 10 minutes. Primary-only calc makes the scheduler sleep

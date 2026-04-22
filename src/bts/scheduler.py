@@ -277,6 +277,28 @@ def _compute_result_poll_start(daily) -> datetime:
     return _earliest_pick_game_et(daily) + timedelta(minutes=10)
 
 
+def _poll_interval_sleep(
+    heartbeat_path: Path | None,
+    seconds: float,
+    watchdog_interval_sec: float = 60,
+) -> None:
+    """Sleep `seconds` while keeping the heartbeat fresh via heartbeat_watchdog.
+
+    Wraps the inter-iteration pause in `run_result_polling` so the external
+    check_heartbeat monitor does not trip its 5-minute `running` threshold
+    during normal 15-min poll intervals. Without this wrap, every polling
+    cycle produces 2-3 HC /fail pings.
+
+    If `heartbeat_path` is None (e.g., caller that doesn't care about the
+    external monitor), just sleeps plain.
+    """
+    if heartbeat_path is None:
+        time.sleep(seconds)
+        return
+    with heartbeat_watchdog(heartbeat_path, interval_sec=watchdog_interval_sec):
+        time.sleep(seconds)
+
+
 def run_single_check(
     date: str,
     all_game_pks: list[int],
@@ -631,8 +653,9 @@ def run_result_polling(
                 save_pick(daily, picks_dir)
             return "suspended"
 
-        # Still live — wait and retry
-        time.sleep(poll_interval_min * 60)
+        # Still live — wait and retry. Use _poll_interval_sleep so the
+        # external heartbeat monitor stays fresh across the 15-min gap.
+        _poll_interval_sleep(heartbeat_path, poll_interval_min * 60)
 
 
 def run_day(
