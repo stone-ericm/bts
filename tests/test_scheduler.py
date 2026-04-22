@@ -597,6 +597,64 @@ class TestEarliestPickGameEt:
         assert result.hour == 13 and result.minute == 37
 
 
+class TestComputeResultPollStart:
+    """Result-polling start must use the EARLIEST of primary or double-down
+    game start + 10 minutes. Primary-only calc makes the scheduler sleep
+    through the earlier game — missing mid-game result persistence.
+
+    Regression: 2026-04-22 had Laureano (SD, 20:40 ET) primary + Henderson
+    (BAL, 14:10 ET) double-down. Inline primary-only computation put the
+    scheduler asleep until 20:50 ET, through Henderson's full live-game
+    window. Dashboard display was unaffected (fetch_live_scorecard runs
+    independently), but daily.result for Henderson was never persisted
+    mid-game.
+    """
+
+    def _daily(self, primary_game_time: str, double_game_time: str | None = None):
+        from bts.picks import Pick, DailyPick
+        primary = Pick(
+            batter_name="A", batter_id=1, team="BOS", lineup_position=1,
+            pitcher_name="P1", pitcher_id=10, p_game_hit=0.7, flags=[],
+            projected_lineup=False, game_pk=100, game_time=primary_game_time,
+        )
+        double = None
+        if double_game_time:
+            double = Pick(
+                batter_name="B", batter_id=2, team="MIN", lineup_position=2,
+                pitcher_name="P2", pitcher_id=20, p_game_hit=0.7, flags=[],
+                projected_lineup=False, game_pk=200, game_time=double_game_time,
+            )
+        return DailyPick(
+            date="2026-04-22", run_time="2026-04-22T17:00:00+00:00",
+            pick=primary, double_down=double, runner_up=None,
+        )
+
+    def test_no_double_down_uses_primary_plus_10(self):
+        from bts.scheduler import _compute_result_poll_start
+        daily = self._daily(primary_game_time="2026-04-23T00:40:00Z")  # 20:40 ET
+        result = _compute_result_poll_start(daily)
+        assert result.hour == 20 and result.minute == 50
+
+    def test_primary_earlier_uses_primary_plus_10(self):
+        from bts.scheduler import _compute_result_poll_start
+        daily = self._daily(
+            primary_game_time="2026-04-22T17:37:00Z",  # 13:37 ET (primary, earlier)
+            double_game_time="2026-04-22T18:15:00Z",   # 14:15 ET (double, later)
+        )
+        result = _compute_result_poll_start(daily)
+        assert result.hour == 13 and result.minute == 47
+
+    def test_double_down_earlier_uses_double_plus_10(self):
+        """The actual 2026-04-22 prod scenario: Laureano 20:40 + Henderson 14:10."""
+        from bts.scheduler import _compute_result_poll_start
+        daily = self._daily(
+            primary_game_time="2026-04-23T00:40:00Z",  # 20:40 ET (primary, later)
+            double_game_time="2026-04-22T18:10:00Z",   # 14:10 ET (double, earlier)
+        )
+        result = _compute_result_poll_start(daily)
+        assert result.hour == 14 and result.minute == 20
+
+
 class TestRefreshPickAtFallback:
     """_refresh_pick_at_fallback re-runs predictions right before the fallback
     posts, so late-arriving lineups (e.g., PHI lineup posted 10 min before its

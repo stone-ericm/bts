@@ -266,6 +266,17 @@ def _earliest_pick_game_et(daily) -> datetime:
     return min(times)
 
 
+def _compute_result_poll_start(daily) -> datetime:
+    """Return the ET datetime when result polling should start: 10 minutes
+    after the earliest of primary or double-down game start.
+
+    Uses `_earliest_pick_game_et` so a double-down game that starts before the
+    primary doesn't get skipped — `run_result_polling` already handles both
+    game_pks internally, but only if the scheduler wakes in time.
+    """
+    return _earliest_pick_game_et(daily) + timedelta(minutes=10)
+
+
 def run_single_check(
     date: str,
     all_game_pks: list[int],
@@ -963,9 +974,10 @@ def run_day(
     if state.pick_locked:
         daily = load_pick(date, picks_dir)
         if daily and daily.result is None:
-            # Wait until game_start + 10 minutes
-            game_et = datetime.fromisoformat(daily.pick.game_time).astimezone(ET)
-            poll_start = game_et + timedelta(minutes=10)
+            # Wait until earliest pick game (primary or double-down) + 10 min.
+            # run_result_polling tracks both game_pks once it starts, but only
+            # if the scheduler is awake when the earlier game begins.
+            poll_start = _compute_result_poll_start(daily)
             now = _now_et()
             if now < poll_start:
                 write_heartbeat(
