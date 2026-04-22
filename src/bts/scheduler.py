@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from bts.util import retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState
+from bts.sd_notify import notify_ready, notify_watchdog
 from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
 from bts.strategy import select_pick
@@ -125,6 +126,35 @@ def compute_wakeup_time(
         return early_wake
 
     return today_et
+
+
+def resolve_fallback_deadline_min(
+    earliest_game_et: datetime,
+    standard_min: int = 35,
+    morning_min: int = 25,
+    morning_cutoff_hour: int = 11,
+) -> int:
+    """Return fallback_deadline_min adjusted for morning games.
+
+    For games with first pitch strictly before morning_cutoff_hour (in ET),
+    use morning_min instead of standard_min. This gives morning games
+    (London Series, July 4 morning starts) more lineup-wait tolerance
+    before force-picking with projected lineups.
+
+    Normal-time games (first pitch at or after morning_cutoff_hour) keep
+    the standard buffer unchanged.
+
+    Note: Caller is responsible for passing an ET-localized datetime;
+    the function reads `.hour` directly without timezone conversion.
+    """
+    if morning_min > standard_min:
+        raise ValueError(
+            f"morning_min ({morning_min}) must be <= standard_min ({standard_min}); "
+            "morning buffer should be shorter, not longer"
+        )
+    if earliest_game_et.hour < morning_cutoff_hour:
+        return morning_min
+    return standard_min
 
 
 def check_confirmed_lineups(game_pks: list[int]) -> dict[int, set[str]]:
@@ -491,6 +521,7 @@ def run_result_polling(
         if heartbeat_path:
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING,
                            extra={"phase": "result_polling"})
+            notify_watchdog()
         now = _now_et()
         if now.hour >= cap_hour_et and now.hour < 10:
             print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
@@ -620,13 +651,17 @@ def run_day(
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
     early_lock_gap = sched_config.get("early_lock_gap", 0.03)
-    fallback_deadline_min = sched_config.get("fallback_deadline_min", 15)
+    fallback_deadline_min_standard = sched_config.get("fallback_deadline_min", 35)
+    fallback_deadline_min_morning = sched_config.get("fallback_deadline_min_morning", 25)
+    morning_cutoff_hour = sched_config.get("morning_cutoff_hour", 11)
     missed_pick_alert_min = sched_config.get("missed_pick_alert_min", 10)
     poll_interval_min = sched_config.get("results_poll_interval_min", 15)
     cap_hour_et = sched_config.get("results_cap_hour_et", 5)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+    notify_ready()
+    notify_watchdog()
 
     # 1. Fetch schedule
     print(f"[{_now_et().strftime('%H:%M ET')}] Fetching schedule for {date}...", file=sys.stderr)
@@ -685,11 +720,13 @@ def run_day(
                 state=HeartbeatState.SLEEPING,
                 sleeping_until=target.astimezone(UTC),
             )
+            notify_watchdog()
             wait_secs = (target - now).total_seconds()
             print(f"  Sleeping until {target.strftime('%H:%M ET')} "
                   f"({wait_secs / 60:.0f} min)...", file=sys.stderr)
             time.sleep(wait_secs)
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+            notify_watchdog()
 
         now = _now_et()
         if now < target:
@@ -768,7 +805,13 @@ def run_day(
         # because BTS app rejects submissions once the FIRST game has started.
         if not state.pick_locked and result.get("pick_result") and result["pick_result"].daily:
             earliest_game_et = _earliest_pick_game_et(result["pick_result"].daily)
-            fallback_deadline = earliest_game_et - timedelta(minutes=fallback_deadline_min)
+            fallback_min = resolve_fallback_deadline_min(
+                earliest_game_et,
+                standard_min=fallback_deadline_min_standard,
+                morning_min=fallback_deadline_min_morning,
+                morning_cutoff_hour=morning_cutoff_hour,
+            )
+            fallback_deadline = earliest_game_et - timedelta(minutes=fallback_min)
             now = _now_et()
 
             # Is there a later check that fires before the deadline?
@@ -783,6 +826,7 @@ def run_day(
                         state=HeartbeatState.SLEEPING,
                         sleeping_until=fallback_deadline.astimezone(UTC),
                     )
+                    notify_watchdog()
                     wait = (fallback_deadline - now).total_seconds()
                     print(f"  Earliest pick game at {earliest_game_et.strftime('%H:%M ET')}, "
                           f"no check before then — fallback at "
@@ -790,6 +834,7 @@ def run_day(
                           f"({wait / 60:.0f} min)...", file=sys.stderr)
                     time.sleep(wait)
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+                    notify_watchdog()
 
                 # Force-post current pick (waited to deadline, or past it).
                 # Re-run predictions first in case late-arriving lineups
@@ -840,7 +885,13 @@ def run_day(
             earliest_game_et = _earliest_pick_game_et(daily)
             now = _now_et()
             mins_to_game = (earliest_game_et - now).total_seconds() / 60
-            if mins_to_game <= fallback_deadline_min:
+            fallback_min = resolve_fallback_deadline_min(
+                earliest_game_et,
+                standard_min=fallback_deadline_min_standard,
+                morning_min=fallback_deadline_min_morning,
+                morning_cutoff_hour=morning_cutoff_hour,
+            )
+            if mins_to_game <= fallback_min:
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
                 daily = _refresh_pick_at_fallback(config, date, daily)
@@ -850,7 +901,7 @@ def run_day(
                     save_state(state, picks_dir)
                     print(f"  [PRIVATE] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
                 else:
-                    print(f"  FALLBACK — {fallback_deadline_min}min to first pitch, posting on projected data.",
+                    print(f"  FALLBACK — {fallback_min}min to first pitch, posting on projected data.",
                           file=sys.stderr)
                     streak = load_streak(picks_dir)
                     text = format_post(
@@ -918,11 +969,13 @@ def run_day(
                     state=HeartbeatState.SLEEPING,
                     sleeping_until=poll_start.astimezone(UTC),
                 )
+                notify_watchdog()
                 wait = (poll_start - now).total_seconds()
                 print(f"  Waiting until {poll_start.strftime('%H:%M ET')} "
                       f"(game start + 10min, {wait / 60:.0f} min)...", file=sys.stderr)
                 time.sleep(wait)
                 write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+                notify_watchdog()
 
             game_pk = daily.pick.game_pk
             status = run_result_polling(
@@ -936,3 +989,4 @@ def run_day(
             print(f"  Day complete. Result: {status}", file=sys.stderr)
 
     write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
+    notify_watchdog()

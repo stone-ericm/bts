@@ -910,12 +910,19 @@ def render_page():
                 except (ValueError, TypeError):
                     pass
             if earliest:
-                fallback_min = (
-                    load_orchestrator_config()
-                    .get("scheduler", {})
-                    .get("fallback_deadline_min", 35)
+                # Lazy import: bts.scheduler pulls pandas transitively via orchestrator.
+                # Keep dashboard startup cheap by deferring until we actually need it.
+                from bts.scheduler import resolve_fallback_deadline_min
+
+                sched_config = load_orchestrator_config().get("scheduler", {})
+                earliest_game_et = earliest.astimezone(ET)
+                fallback_min = resolve_fallback_deadline_min(
+                    earliest_game_et,
+                    standard_min=sched_config.get("fallback_deadline_min", 35),
+                    morning_min=sched_config.get("fallback_deadline_min_morning", 25),
+                    morning_cutoff_hour=sched_config.get("morning_cutoff_hour", 11),
                 )
-                expected_dt = (earliest - timedelta(minutes=fallback_min)).astimezone(ET)
+                expected_dt = earliest_game_et - timedelta(minutes=fallback_min)
                 deadline_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
                 expected_str = expected_dt.strftime("%-I:%M %p ET")
                 deadline_str = deadline_dt.strftime("%-I:%M %p ET")
