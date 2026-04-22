@@ -125,10 +125,31 @@ class Provider:
 
 
 def _keychain(service: str) -> str:
-    return subprocess.check_output(
-        ["security", "find-generic-password", "-s", service, "-w"],
-        text=True,
-    ).strip()
+    """Fetch a secret by service name, falling back to env var on non-macOS hosts.
+
+    Tries macOS Keychain via `security` first. On Linux (bts-hetzner, Pi5),
+    `security` is absent or errors, so we fall back to an env var named
+    BTS_SECRET_<SERVICE_UPPER_WITH_UNDERSCORES>. Example: service
+    "hetzner-cloud-token" -> env var BTS_SECRET_HETZNER_CLOUD_TOKEN.
+    """
+    try:
+        r = subprocess.run(
+            ["security", "find-generic-password", "-s", service, "-w"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # non-macOS or hung — fall through to env var
+
+    env_name = "BTS_SECRET_" + service.upper().replace("-", "_")
+    val = os.environ.get(env_name)
+    if val:
+        return val
+    raise RuntimeError(
+        f"No secret for {service!r}: tried macOS Keychain (service={service!r}) "
+        f"and env var {env_name!r}"
+    )
 
 
 class HetznerProvider(Provider):
