@@ -312,6 +312,49 @@ def _watchdog_ping_sleep(seconds: float, interval_sec: float = 60) -> None:
         thread.join(timeout=2)
 
 
+def _idle_until_next_wakeup(
+    next_wakeup_iso: str | None, heartbeat_path: Path | None
+) -> None:
+    """Sleep until ``next_wakeup_iso`` to prevent post-work Restart=always thrash.
+
+    After the daily run_day reaches IDLE_END_OF_DAY, it must stay alive until
+    the next day's scheduled wake. Without this sleep, run_day returns, the
+    process exits, and systemd's Restart=always re-launches within 30s — then
+    run_day cycles again in ~3 min because all its post-lock branches
+    short-circuit (pick already locked, results already polled, games already
+    final). Observed live 2026-04-23 post-games: 7 restarts in 25 min before
+    discovery.
+
+    No-op if ``next_wakeup_iso`` is None, malformed, tz-naive, or in the past.
+    """
+    if not next_wakeup_iso:
+        return
+    try:
+        wakeup = datetime.fromisoformat(next_wakeup_iso)
+    except (ValueError, TypeError):
+        return
+    if wakeup.tzinfo is None:
+        return
+    now = datetime.now(UTC)
+    if wakeup <= now:
+        return
+    wait_secs = (wakeup - now).total_seconds()
+    if heartbeat_path:
+        write_heartbeat(
+            heartbeat_path,
+            state=HeartbeatState.SLEEPING,
+            sleeping_until=wakeup.astimezone(UTC),
+        )
+        notify_watchdog()
+    print(
+        f"  Idle until tomorrow's wakeup "
+        f"{wakeup.astimezone(ET).strftime('%H:%M ET')} "
+        f"({wait_secs / 3600:.1f}h)...",
+        file=sys.stderr,
+    )
+    _watchdog_ping_sleep(wait_secs)
+
+
 def _poll_interval_sleep(
     heartbeat_path: Path | None,
     seconds: float,
@@ -1064,3 +1107,8 @@ def run_day(
 
     write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
     notify_watchdog()
+
+    # Stay alive until tomorrow's scheduled wake — returning here would cause
+    # systemd Restart=always to re-launch within 30s and cycle through the
+    # short-circuit post-lock branches every ~3 min overnight.
+    _idle_until_next_wakeup(state.next_wakeup, heartbeat_path)

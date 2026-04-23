@@ -632,6 +632,38 @@ class TestPollIntervalSleep:
         assert final_ts > initial_ts
 
 
+class TestIdleUntilNextWakeup:
+    """After writing IDLE_END_OF_DAY heartbeat at end of run_day, the scheduler
+    must sleep until tomorrow's wakeup instead of returning. Without it, the
+    process exits, systemd Restart=always re-launches, and run_day cycles
+    through its short post-lock logic every ~3 min (observed 2026-04-23 evening
+    post-games: NRestarts grew from 0 → 7 in 25 min).
+    """
+
+    def test_no_sleep_if_next_wakeup_is_none(self, tmp_path):
+        from bts.scheduler import _idle_until_next_wakeup
+        import time as _time
+        t0 = _time.monotonic()
+        _idle_until_next_wakeup(None, tmp_path / ".heartbeat")
+        assert _time.monotonic() - t0 < 0.1
+
+    def test_no_sleep_if_next_wakeup_is_past(self, tmp_path):
+        from bts.scheduler import _idle_until_next_wakeup
+        from datetime import datetime, timedelta, timezone
+        import time as _time
+        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        t0 = _time.monotonic()
+        _idle_until_next_wakeup(past, tmp_path / ".heartbeat")
+        assert _time.monotonic() - t0 < 0.1
+
+    def test_no_sleep_if_malformed_iso(self, tmp_path):
+        from bts.scheduler import _idle_until_next_wakeup
+        import time as _time
+        t0 = _time.monotonic()
+        _idle_until_next_wakeup("not-an-iso-string", tmp_path / ".heartbeat")
+        assert _time.monotonic() - t0 < 0.1
+
+
 class TestWatchdogPingSleep:
     """During SLEEPING-state waits (main-loop between checks, fallback deadline,
     pre-polling wait), the scheduler needs to emit notify_watchdog() pings so
