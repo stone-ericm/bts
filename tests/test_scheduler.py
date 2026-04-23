@@ -632,6 +632,41 @@ class TestPollIntervalSleep:
         assert final_ts > initial_ts
 
 
+class TestWatchdogPingSleep:
+    """During SLEEPING-state waits (main-loop between checks, fallback deadline,
+    pre-polling wait), the scheduler needs to emit notify_watchdog() pings so
+    systemd's WatchdogSec=1800 doesn't SIGABRT-kill it. But it must NOT
+    overwrite the heartbeat file — the pre-sleep heartbeat encodes
+    sleeping_until, which check_heartbeat.py needs for fresh-sleeping logic.
+
+    Regression: 2026-04-23 overnight. The scheduler was watchdog-killed every
+    30min during the idle_end_of_day → 10:00 ET sleep, NRestarts=21.
+    """
+
+    def test_watchdog_ping_sleep_does_not_touch_heartbeat_file(self, tmp_path):
+        from bts.scheduler import _watchdog_ping_sleep
+        from bts.heartbeat import HeartbeatState, read_heartbeat, write_heartbeat
+
+        hb = tmp_path / ".heartbeat"
+        from datetime import datetime, timedelta, timezone
+        wake = datetime.now(timezone.utc) + timedelta(hours=2)
+        write_heartbeat(hb, state=HeartbeatState.SLEEPING, sleeping_until=wake)
+        pre = read_heartbeat(hb)
+        assert pre["state"] == HeartbeatState.SLEEPING
+
+        _watchdog_ping_sleep(seconds=0.15, interval_sec=0.05)
+
+        post = read_heartbeat(hb)
+        assert post == pre  # unchanged — helper did not write
+
+    def test_watchdog_ping_sleep_actually_sleeps(self):
+        from bts.scheduler import _watchdog_ping_sleep
+        import time as _time
+        t0 = _time.monotonic()
+        _watchdog_ping_sleep(seconds=0.1, interval_sec=0.02)
+        assert _time.monotonic() - t0 >= 0.09
+
+
 class TestComputeResultPollStart:
     """Result-polling start must use the EARLIEST of primary or double-down
     game start + 10 minutes. Primary-only calc makes the scheduler sleep

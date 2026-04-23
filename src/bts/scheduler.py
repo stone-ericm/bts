@@ -277,6 +277,41 @@ def _compute_result_poll_start(daily) -> datetime:
     return _earliest_pick_game_et(daily) + timedelta(minutes=10)
 
 
+def _watchdog_ping_sleep(seconds: float, interval_sec: float = 60) -> None:
+    """Sleep `seconds` while pinging notify_watchdog every `interval_sec`.
+
+    Does NOT touch the heartbeat file. Use during SLEEPING-state waits where
+    the pre-sleep heartbeat already encodes state+sleeping_until and the
+    external check_heartbeat monitor relies on that metadata.
+
+    Systemd's WatchdogSec=1800 requires notify_watchdog() at least every
+    30 min; any time.sleep(>1800) in a SLEEPING state will SIGABRT-kill the
+    daemon without these pings. Observed live 2026-04-23 overnight during
+    the idle_end_of_day → next-wake sleep (NRestarts=21 before discovery).
+    """
+    from threading import Event, Thread
+
+    from bts.sd_notify import notify_watchdog
+
+    stop = Event()
+
+    def _pulse() -> None:
+        while not stop.is_set():
+            try:
+                notify_watchdog()
+            except Exception:
+                pass
+            stop.wait(interval_sec)
+
+    thread = Thread(target=_pulse, daemon=True)
+    thread.start()
+    try:
+        time.sleep(seconds)
+    finally:
+        stop.set()
+        thread.join(timeout=2)
+
+
 def _poll_interval_sleep(
     heartbeat_path: Path | None,
     seconds: float,
@@ -762,7 +797,7 @@ def run_day(
             wait_secs = (target - now).total_seconds()
             print(f"  Sleeping until {target.strftime('%H:%M ET')} "
                   f"({wait_secs / 60:.0f} min)...", file=sys.stderr)
-            time.sleep(wait_secs)
+            _watchdog_ping_sleep(wait_secs)
             write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
             notify_watchdog()
 
@@ -870,7 +905,7 @@ def run_day(
                           f"no check before then — fallback at "
                           f"{fallback_deadline.strftime('%H:%M ET')} "
                           f"({wait / 60:.0f} min)...", file=sys.stderr)
-                    time.sleep(wait)
+                    _watchdog_ping_sleep(wait)
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
                     notify_watchdog()
 
@@ -1012,7 +1047,7 @@ def run_day(
                 wait = (poll_start - now).total_seconds()
                 print(f"  Waiting until {poll_start.strftime('%H:%M ET')} "
                       f"(game start + 10min, {wait / 60:.0f} min)...", file=sys.stderr)
-                time.sleep(wait)
+                _watchdog_ping_sleep(wait)
                 write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
                 notify_watchdog()
 
