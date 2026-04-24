@@ -163,3 +163,51 @@ class TestTeardownRetrieved:
         assert provider.deleted == []
         assert selected == 0
         assert deleted == 0
+
+    def test_provider_delete_raises_on_one_box(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        # teardown_all's try/except will swallow this and keep going
+        provider = FakeProvider(raise_on_ids={"2"})
+        results = {"b1": "ok", "b2": "ok", "b3": "ok"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        # selected = 3 (picked all three), deleted = 2 (b2's API call failed)
+        assert provider.deleted == ["1", "3"]
+        assert selected == 3
+        assert deleted == 2
+        joined = "\n".join(captured_log)
+        assert "FAILED to delete b2" in joined
+
+    def test_retrieve_results_none_raises_typeerror(self, boxes):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+
+        with pytest.raises(TypeError):
+            teardown_retrieved(provider, boxes, None)
+
+    def test_stray_key_logged_no_crash(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        # "b99" isn't in boxes — stray key
+        results = {"b1": "ok", "b2": "ok", "b3": "ok", "b99": "ok"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == ["1", "2", "3"]
+        assert selected == 3
+        assert deleted == 3
+        joined = "\n".join(captured_log)
+        assert "unrecognized key" in joined
+        assert "b99" in joined
+
+
+class TestTeardownAllReturn:
+    def test_teardown_all_returns_count_of_successful_deletes(self, boxes, captured_log):
+        from audit_driver import teardown_all
+        provider = FakeProvider(raise_on_ids={"2"})
+
+        deleted = teardown_all(provider, boxes)
+
+        assert deleted == 2  # b1 and b3 succeeded; b2 raised
+        assert provider.deleted == ["1", "3"]
