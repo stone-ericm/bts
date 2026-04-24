@@ -37,6 +37,7 @@ from audit_driver import (
     poll,
     retrieve_one,
     teardown_all,
+    teardown_retrieved,
 )
 
 
@@ -98,6 +99,9 @@ def main():
             log(f"WARNING: {len(missing)} boxes not reachable via provider API: {missing}")
             log("Continuing anyway — poll uses SSH directly, not provider API.")
 
+    retrieve_results: dict[str, str] = {}
+    exit_code = 0
+
     try:
         start = time.time()
         deadline_t = start + args.deadline_hours * 3600
@@ -121,6 +125,7 @@ def main():
             futures = [ex.submit(retrieve_one, b, args.out, queues[b.name]) for b in boxes]
             for fut in concurrent.futures.as_completed(futures):
                 nm, status, errs = fut.result()
+                retrieve_results[nm] = status
                 if errs:
                     log(f"  [{nm}] {status}  errs={errs[:1]}")
                 else:
@@ -131,9 +136,17 @@ def main():
         elif not boxes:
             pass
         else:
-            teardown_all(provider, boxes)
+            selected, deleted = teardown_retrieved(provider, boxes, retrieve_results)
+            preserved = len(boxes) - selected
+            api_failed = selected - deleted
+            log(f"=== TEARDOWN: selected={selected}/{len(boxes)} "
+                f"deleted={deleted} preserved={preserved} api_failed={api_failed} ===")
+            if preserved > 0:
+                exit_code = 1
 
     log("=== AUDIT ATTACH DONE ===")
+    if exit_code:
+        raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":
