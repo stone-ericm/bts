@@ -742,17 +742,69 @@ def retrieve_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, str, 
     return (name, "ok" if not errors else "partial", errors[:3])
 
 
-def teardown_all(provider: Provider, boxes: list[Box]) -> None:
+def teardown_all(provider: Provider, boxes: list[Box]) -> int:
     """Unconditional teardown. Called from finally blocks to guarantee cleanup
     even if the main flow fails. Fixes the 2026-04-14 Hetzner retrieve-cascade
-    bug where partial rsync → no teardown → zombie boxes."""
+    bug where partial rsync → no teardown → zombie boxes.
+
+    Returns the count of boxes whose provider.delete() call did not raise.
+    """
     log("=== TEARDOWN ===")
+    deleted = 0
     for box in boxes:
         try:
             provider.delete(box.id)
             log(f"  deleted {box.name}")
+            deleted += 1
         except Exception as e:
             log(f"  FAILED to delete {box.name}: {e}")
+    return deleted
+
+
+def teardown_retrieved(
+    provider: Provider,
+    boxes: list[Box],
+    retrieve_results: dict[str, str],
+) -> tuple[int, int]:
+    """Tear down only the boxes whose retrieve_results[box.name] == "ok".
+
+    Preserved boxes are logged with name + ipv4 + status for manual recovery.
+    Unrecognized keys in retrieve_results (names that don't match any box in
+    `boxes`) are also logged — signals a caller bug, not a safety concern.
+
+    Returns (selected, deleted):
+      - selected: count of boxes where retrieve_results[name] == "ok"
+                  (i.e., passed the data-integrity gate; handed to teardown_all)
+      - deleted:  count of boxes whose provider.delete() call didn't raise
+                  (inherited from teardown_all; `selected - deleted` = API-failed)
+
+    Callers use `preserved = len(boxes) - selected` to know how many boxes
+    were held back for data-integrity. That's the signal that drives the
+    non-zero exit code.
+
+    Any box name missing from retrieve_results is treated as "not-attempted"
+    and preserved. Default-to-preserve makes the helper safe to call even if
+    the retrieve loop was interrupted partway through.
+    """
+    if retrieve_results is None:
+        raise TypeError("retrieve_results must be a dict, got None")
+
+    box_names = {b.name for b in boxes}
+    for key in retrieve_results:
+        if key not in box_names:
+            log(f"  unrecognized key in retrieve_results: {key} — caller bug?")
+
+    candidates: list[Box] = []
+    for box in boxes:
+        status = retrieve_results.get(box.name)
+        if status == "ok":
+            candidates.append(box)
+        else:
+            status_str = status if status is not None else "not-attempted"
+            log(f"  PRESERVED {box.name} ip={box.ipv4} retrieve_status={status_str}")
+
+    deleted = teardown_all(provider, candidates) if candidates else 0
+    return len(candidates), deleted
 
 
 # ---------------------------------------------------------------------------
