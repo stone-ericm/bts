@@ -19,9 +19,11 @@ from urllib.request import urlopen, Request
 from zoneinfo import ZoneInfo
 
 from bts.heartbeat import read_heartbeat, is_heartbeat_fresh
+from bts.audit_progress import scan_audit_progress
 
 PICKS_DIR = Path("data/picks")
 HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
+PROJECT_ROOT = Path(".")
 PORT = 3003
 ET = ZoneInfo("America/New_York")
 
@@ -1259,6 +1261,50 @@ def health_check(heartbeat_path: Path = None) -> tuple[int, dict]:
     }
 
 
+def audit_progress_response(
+    params: dict,
+    project_root: Path | None = None,
+    scan: callable = None,
+) -> tuple[int, dict]:
+    """Pure response builder for /api/audit-progress. Tested without a server.
+
+    Required params: ``provider`` (vultr|hetzner|oci), ``dir`` (audit output
+    directory name). Optional: ``seeds_file`` (relative to project_root or
+    absolute path). Returns ``(status_code, json_body)``.
+    """
+    root = project_root if project_root is not None else PROJECT_ROOT
+    scanner = scan if scan is not None else scan_audit_progress
+
+    def _first(key: str) -> str | None:
+        v = params.get(key)
+        if isinstance(v, list):
+            return v[0] if v else None
+        return v
+
+    provider = _first("provider")
+    audit_name = _first("dir")
+    seeds_file_raw = _first("seeds_file")
+
+    if not provider or not audit_name:
+        return 400, {"error": "provider and dir are required query params"}
+    if provider not in ("vultr", "hetzner", "oci"):
+        return 400, {"error": f"unknown provider: {provider}"}
+
+    audit_dir = root / "data" / f"{provider}_results" / audit_name
+    if not (audit_dir / "boxes.json").exists():
+        return 404, {"error": f"boxes.json not found at {audit_dir}/boxes.json"}
+
+    seeds_file: Path | None = None
+    if seeds_file_raw:
+        p = Path(seeds_file_raw)
+        seeds_file = p if p.is_absolute() else root / p
+        if not seeds_file.exists():
+            return 404, {"error": f"seeds_file not found: {seeds_file}"}
+
+    result = scanner(audit_dir, seeds_file=seeds_file)
+    return 200, result
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         from urllib.parse import urlparse, parse_qs
@@ -1271,6 +1317,9 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_api_live(parse_qs(parsed.query))
         elif parsed.path == "/api/live-html":
             self._handle_api_live_html(parse_qs(parsed.query))
+        elif parsed.path == "/api/audit-progress":
+            status_code, body = audit_progress_response(parse_qs(parsed.query))
+            self._json_response(body, status_code=status_code)
         else:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
