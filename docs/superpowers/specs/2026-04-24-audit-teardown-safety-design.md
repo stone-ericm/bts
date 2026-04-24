@@ -29,12 +29,14 @@ One new pure helper in `scripts/audit_driver.py`, imported by `audit_attach.py`.
 ```
 audit_driver.py
 ├── retrieve_one(box, out_root, seeds) -> (name, status, errs)       # unchanged
-├── teardown_all(provider, boxes) -> None                            # unchanged — dumb delete loop
-├── teardown_retrieved(provider, boxes, retrieve_results) -> int     # NEW
+├── teardown_all(provider, boxes) -> int                             # changed — now returns count of successful deletes
+├── teardown_retrieved(provider, boxes, retrieve_results)            # NEW
+│     -> tuple[int, int]  (selected, deleted)
 │     ├── filters boxes where retrieve_results[box.name] == "ok"
+│     ├── logs unrecognized keys in retrieve_results (caller-bug signal)
+│     ├── logs preserved boxes with name + ip + status
 │     ├── calls teardown_all on the clean subset
-│     ├── logs skipped boxes with name + ip + status
-│     └── returns count of boxes torn down
+│     └── returns (len(candidates), count_of_successful_deletes)
 └── main() — finally: calls teardown_retrieved                       # changed
 
 audit_attach.py
@@ -49,11 +51,23 @@ def teardown_retrieved(
     provider: Provider,
     boxes: list[Box],
     retrieve_results: dict[str, str],
-) -> int:
+) -> tuple[int, int]:
     """Tear down only the boxes whose retrieve_results[box.name] == "ok".
 
-    Skipped boxes are logged with name + ipv4 + status for manual recovery.
-    Returns the number of boxes successfully torn down.
+    Preserved boxes are logged with name + ipv4 + status for manual recovery.
+    Unrecognized keys in retrieve_results (names that don't match any box in
+    `boxes`) are also logged — signals a caller bug, not a safety concern.
+
+    Returns (selected, deleted):
+      - selected: count of boxes where retrieve_results[name] == "ok"
+                  (i.e., passed the data-integrity gate; handed to teardown_all)
+      - deleted:  count of boxes whose provider.delete() call didn't raise
+                  (inherited from teardown_all, which logs and continues on
+                  per-box API failures; `selected - deleted` = API-failed count)
+
+    Callers use `skipped_for_safety = len(boxes) - selected` to know how many
+    boxes were preserved for data-integrity reasons. This is the signal that
+    drives the non-zero exit code.
 
     Any box name missing from retrieve_results is treated as "not-attempted"
     and preserved. Default-to-preserve makes the helper safe to call even if
@@ -70,6 +84,10 @@ def teardown_retrieved(
 | missing | Preserve; log with `PRESERVED` prefix with status=`"not-attempted"` |
 | any other value (`None`, `True`, unknown string) | Preserve (future-proof: unknown = don't destroy) |
 
+**Additional log lines** (not per-box):
+- Any keys in `retrieve_results` that don't match a box name in `boxes` → single log line `unrecognized key in retrieve_results: <name> — caller bug?` (drains once at helper entry, not per-box)
+- Final teardown summary (from call site, after helper returns): `=== TEARDOWN: selected=N/M deleted=D preserved=P api_failed=F ===`
+
 **Call-site pattern (identical in both main functions):**
 
 ```python
@@ -84,17 +102,21 @@ finally:
     elif not boxes:
         pass
     else:
-        torn = teardown_retrieved(provider, boxes, retrieve_results)
-        skipped = len(boxes) - torn
-        if skipped > 0:
-            log(f"=== TEARDOWN: {torn}/{len(boxes)} torn down, {skipped} preserved ===")
-            exit_code = 1
-        else:
-            log(f"=== TEARDOWN: {torn}/{len(boxes)} torn down ===")
+        selected, deleted = teardown_retrieved(provider, boxes, retrieve_results)
+        preserved = len(boxes) - selected      # held back for data-integrity
+        api_failed = selected - deleted         # picked for teardown but delete() raised
+        log(f"=== TEARDOWN: selected={selected}/{len(boxes)} "
+            f"deleted={deleted} preserved={preserved} api_failed={api_failed} ===")
+        if preserved > 0:
+            exit_code = 1   # data-integrity signal — the primary concern
 
 if exit_code:
     raise SystemExit(exit_code)
 ```
+
+`api_failed` is surfaced in the log but does NOT trigger exit 1 — it's a
+provider/transient concern (Hetzner 500, rate limit), not data-integrity.
+Operator sees it in the log line and can manually retry `provider.delete()`.
 
 ## Data flow — the four cases
 
@@ -146,25 +168,29 @@ def boxes():
     ]
 ```
 
-**Test cases (9):**
+**Test cases (11):**
 
 | # | Scenario | Assert |
 |---|---|---|
-| 1 | All `"ok"` | `deleted == ["1","2","3"]`; returns 3 |
-| 2 | One `"partial"` | `deleted == ["1","3"]`; returns 2; partial box logged with ip + status |
-| 3 | All `"partial"` | `deleted == []`; returns 0; 3 log lines with `PRESERVED` prefix |
-| 4 | Missing key | Missing box preserved; logged as `"not-attempted"` |
-| 5 | Empty `retrieve_results` | All preserved; returns 0 |
-| 6 | Empty `boxes` list | no-op; returns 0 |
-| 7 | Malformed value (`None`, `True`, unknown string) | All preserved |
-| 8 | `provider.delete()` raises on one box | Other boxes still torn down; returns count of successful deletions |
-| 9 | `retrieve_results=None` | `TypeError` raised (explicit guard in helper, not from `.get()` on None) |
+| 1 | All `"ok"` | `fake.deleted == ["1","2","3"]`; returns `(3, 3)` |
+| 2 | One `"partial"` | `fake.deleted == ["1","3"]`; returns `(2, 2)`; partial box logged with ip + status |
+| 3 | All `"partial"` | `fake.deleted == []`; returns `(0, 0)`; 3 log lines with `PRESERVED` prefix |
+| 4 | Missing key | Missing box preserved; logged as `"not-attempted"`; returns `(N-1, N-1)` |
+| 5 | Empty `retrieve_results` | All preserved; returns `(0, 0)` |
+| 6 | Empty `boxes` list | no-op; returns `(0, 0)` |
+| 7 | Malformed value (`None`, `True`, unknown string) | All preserved; returns `(0, 0)` |
+| 8 | `provider.delete()` raises on one of 3 selected boxes | Other 2 still torn down (teardown_all swallows per-box); returns `(3, 2)` — `selected=3, deleted=2` |
+| 9 | `retrieve_results=None` | `TypeError` raised (explicit guard in helper) |
+| 10 | Stray key in `retrieve_results` (name doesn't match any box) | Logged with `"unrecognized key"` prefix; no crash; returns reflect boxes only |
+| 11 | `teardown_all` invoked standalone (not via helper) | Returns an int = count of successful deletes (previously returned None) |
+
+Test #11 verifies the small contract change to `teardown_all` itself.
 
 **Log-content tests**: use `monkeypatch.setattr` to replace `audit_driver.log` with a list-append fake, then assert the captured lines contain the box name + ip + status.
 
 **Integration testing**: not adding. The call-site diff is ~3 lines per main (init dict, populate during loop, swap finally body). Unit tests cover the behavior; next real audit is the integration signal.
 
-**Full suite sanity**: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest` expects 601 + 9 = **610 passing** after the change.
+**Full suite sanity**: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest` expects 601 + 11 = **612 passing** after the change.
 
 ## Out of scope (explicitly deferred)
 
