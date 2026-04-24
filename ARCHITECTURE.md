@@ -198,11 +198,12 @@ Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation
 
 ## Dashboard
 
-LAN-only web dashboard at `http://pi5:3003`. Single-file Python server using `http.server` (no framework). Serves MLB-themed HTML with inline CSS.
+LAN-only web dashboard at `http://bts-hetzner:3003` (tailnet). Single-file Python server using `http.server` (no framework). Serves MLB-themed HTML with inline CSS.
 
 **Key modules:**
-- `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live` and `/api/live-html` endpoints
+- `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live`, `/api/live-html`, `/api/audit-progress`, `/health` endpoints
 - `scorecard.py` — Data extraction from MLB game feed for live scorecard (44 tests)
+- `audit_progress.py` — Live in-flight audit monitor. SSHes each box in `boxes.json`, parses `/root/audit.log` completion markers, aggregates per-box + overall progress. Also reports `ps -u bts` audit_attach process status. CLI entry for pre-deploy smoke testing: `python -m bts.audit_progress --provider vultr --dir <name> --seeds-file <path>`. 25 tests.
 
 **Live scorecard (during games):**
 - Caught-looking style: pitch grids, SVG diamond with baserunning, trajectory lines
@@ -214,6 +215,12 @@ LAN-only web dashboard at `http://pi5:3003`. Single-file Python server using `ht
 - Sticky batter columns (#/name/POS) on horizontal scroll for 7+ PA games
 
 **Lifecycle:** Scorecard appears when game is Live, stays through Final, hidden pre-game.
+
+**Audit progress endpoint (added 2026-04-24):**
+- `GET /api/audit-progress?provider=vultr|hetzner|oci&dir=<audit_dirname>&seeds_file=<path>` — returns JSON with per-box live progress + audit_attach proc status.
+- Why HTTP instead of direct SSH: during a run, `data/<provider>_results/<dir>/` is EMPTY on bts-hetzner — `retrieve_one` only rsyncs at final teardown. Live progress lives in `/root/audit.log` on each box, reachable via the `bts`-user SSH key distributed during provisioning. Exposing as an endpoint means any tailnet caller (laptop, phone) can poll without its own SSH plumbing.
+- Shell helper: `scripts/check_audit_progress.sh` — curl + jq + column, defaults to the current Vultr n=100 run. Env-var overridable for other audits.
+- Response time ~15–20s for a 26-box fleet (parallel SSH via size-8 thread pool).
 
 ## Pipeline
 
