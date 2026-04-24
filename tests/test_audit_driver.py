@@ -35,3 +35,42 @@ class TestKeychainFallback:
 
         with pytest.raises(RuntimeError):
             _keychain(service)
+
+
+# ---------------------------------------------------------------------------
+# teardown_retrieved + teardown_all tests
+# ---------------------------------------------------------------------------
+
+class FakeProvider:
+    """Captures delete() calls instead of hitting a real API."""
+
+    name = "fake"
+
+    def __init__(self, raise_on_ids: set[str] | None = None) -> None:
+        self.deleted: list[str] = []
+        self._raise_on = raise_on_ids or set()
+
+    def delete(self, box_id: str) -> None:
+        if box_id in self._raise_on:
+            raise RuntimeError(f"fake API failure for {box_id}")
+        self.deleted.append(box_id)
+
+
+@pytest.fixture
+def captured_log(monkeypatch):
+    """Replace audit_driver.log with a list-appender; returns the list."""
+    from audit_driver import log as _original_log  # noqa: F401 — force import first
+    import audit_driver
+    captured: list[str] = []
+    monkeypatch.setattr(audit_driver, "log", captured.append)
+    return captured
+
+
+@pytest.fixture
+def boxes():
+    from audit_driver import Box
+    return [
+        Box(id="1", name="b1", ipv4="10.0.0.1", region=""),
+        Box(id="2", name="b2", ipv4="10.0.0.2", region=""),
+        Box(id="3", name="b3", ipv4="10.0.0.3", region=""),
+    ]
