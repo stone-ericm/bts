@@ -14,7 +14,7 @@ from typing import Callable
 
 import pytest
 
-from bts.audit_progress import load_boxes, scan_audit_progress
+from bts.audit_progress import load_boxes, scan_audit_attach_procs, scan_audit_progress
 
 
 SAMPLE_BOXES = [
@@ -211,3 +211,150 @@ class TestScanAuditProgress:
         assert result["overall"]["completed"] == 3
         assert result["overall"]["boxes_done"] == 3
         assert result["overall"]["pct_seeds"] == pytest.approx(100.0)
+
+    def test_audit_attach_absent_when_flag_off(self, audit_dir: Path) -> None:
+        responses = {ip: _mk_run(_running_stdout(0)) for ip in ["10.0.0.1", "10.0.0.2", "10.0.0.3"]}
+        result = scan_audit_progress(
+            audit_dir, ssh_runner=_ssh_runner_from_map(responses)
+        )
+        assert "audit_attach" not in result
+
+    def test_audit_attach_present_when_flag_on(self, audit_dir: Path) -> None:
+        responses = {ip: _mk_run(_running_stdout(0)) for ip in ["10.0.0.1", "10.0.0.2", "10.0.0.3"]}
+        ps_stub = _mk_run(
+            "360944 2-02:05:12 python scripts/audit_attach.py --provider vultr\n"
+            "401234 00:01:12 ps -u bts -o pid,etime,args\n"
+        )
+        result = scan_audit_progress(
+            audit_dir,
+            ssh_runner=_ssh_runner_from_map(responses),
+            include_audit_attach=True,
+            proc_lister=lambda: ps_stub,
+        )
+        assert "audit_attach" in result
+        procs = result["audit_attach"]["procs"]
+        assert len(procs) == 1
+        assert procs[0]["pid"] == 360944
+        assert procs[0]["etime"] == "2-02:05:12"
+        assert "audit_attach" in procs[0]["cmd"]
+
+
+class TestScanAuditAttachProcs:
+    def test_parses_single_audit_attach_proc(self) -> None:
+        stub = _mk_run(
+            "360944 2-02:05:12 python scripts/audit_attach.py --provider vultr\n"
+        )
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert len(procs) == 1
+        assert procs[0] == {
+            "pid": 360944,
+            "etime": "2-02:05:12",
+            "cmd": "python scripts/audit_attach.py --provider vultr",
+        }
+
+    def test_filters_out_non_audit_attach_lines(self) -> None:
+        stub = _mk_run(
+            "  1234 01:02:03 sshd\n"
+            "360944 2-02:05:12 python scripts/audit_attach.py --provider vultr\n"
+            "  5678 00:00:05 bash\n"
+        )
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert len(procs) == 1
+        assert procs[0]["pid"] == 360944
+
+    def test_multiple_audit_attach_procs(self) -> None:
+        stub = _mk_run(
+            "360944 2-02:05:12 python scripts/audit_attach.py --provider vultr\n"
+            "360950 1-14:22:18 python scripts/audit_attach.py --provider hetzner\n"
+        )
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert len(procs) == 2
+        assert {p["pid"] for p in procs} == {360944, 360950}
+
+    def test_ps_failure_returns_empty(self) -> None:
+        stub = _mk_run("", rc=1, stderr="ps: no such user")
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert procs == []
+
+    def test_exception_returns_empty(self) -> None:
+        def raising_lister() -> None:
+            raise FileNotFoundError("ps not found")
+        procs = scan_audit_attach_procs(proc_lister=raising_lister)
+        assert procs == []
+
+    def test_empty_ps_output(self) -> None:
+        stub = _mk_run("")
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert procs == []
+
+    def test_malformed_line_skipped(self) -> None:
+        stub = _mk_run(
+            "not-a-pid 01:02:03 python scripts/audit_attach.py --provider vultr\n"
+            "360944 2-02:05:12 python scripts/audit_attach.py --provider vultr\n"
+        )
+        procs = scan_audit_attach_procs(proc_lister=lambda: stub)
+        assert len(procs) == 1
+        assert procs[0]["pid"] == 360944
+
+
+class TestCli:
+    def test_help_exits_zero(self) -> None:
+        from bts.audit_progress import _cli
+
+        with pytest.raises(SystemExit) as exc:
+            _cli(["--help"])
+        assert exc.value.code == 0
+
+    def test_missing_provider_errors(self) -> None:
+        from bts.audit_progress import _cli
+
+        with pytest.raises(SystemExit) as exc:
+            _cli(["--dir", "x"])
+        assert exc.value.code == 2
+
+    def test_happy_path_invokes_scanner(
+        self, audit_dir: Path, monkeypatch, capsys, tmp_path: Path
+    ) -> None:
+        from bts import audit_progress as mod
+
+        # The audit_dir fixture lives at tmp_path / "audit_ext_n100_v4".
+        # The CLI resolves Path("data") / "<provider>_results" / dirname relative
+        # to CWD, so cd into tmp_path and replicate the expected layout.
+        provider_dir = tmp_path / "data" / "vultr_results"
+        provider_dir.mkdir(parents=True)
+        (provider_dir / "audit_ext_n100_v4").symlink_to(audit_dir)
+        monkeypatch.chdir(tmp_path)
+
+        captured_args: dict = {}
+
+        def fake_scan(ad, seeds_file=None, timeout=20, include_audit_attach=False, **kw):
+            captured_args["audit_dir"] = ad
+            captured_args["include_audit_attach"] = include_audit_attach
+            return {"audit_dir": ad.name, "probe": "ok"}
+
+        monkeypatch.setattr(mod, "scan_audit_progress", fake_scan)
+        rc = mod._cli(["--provider", "vultr", "--dir", "audit_ext_n100_v4"])
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "probe" in out
+        assert captured_args["include_audit_attach"] is True  # default: enabled
+
+    def test_no_audit_attach_flag(self, audit_dir: Path, monkeypatch, tmp_path: Path) -> None:
+        from bts import audit_progress as mod
+
+        provider_dir = tmp_path / "data" / "vultr_results"
+        provider_dir.mkdir(parents=True)
+        (provider_dir / "audit_ext_n100_v4").symlink_to(audit_dir)
+        monkeypatch.chdir(tmp_path)
+
+        captured: dict = {}
+
+        def fake_scan(ad, **kw):
+            captured.update(kw)
+            return {}
+
+        monkeypatch.setattr(mod, "scan_audit_progress", fake_scan)
+        mod._cli(["--provider", "vultr", "--dir", "audit_ext_n100_v4", "--no-audit-attach"])
+
+        assert captured["include_audit_attach"] is False

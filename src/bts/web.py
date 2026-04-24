@@ -1301,7 +1301,7 @@ def audit_progress_response(
         if not seeds_file.exists():
             return 404, {"error": f"seeds_file not found: {seeds_file}"}
 
-    result = scanner(audit_dir, seeds_file=seeds_file)
+    result = scanner(audit_dir, seeds_file=seeds_file, include_audit_attach=True)
     return 200, result
 
 

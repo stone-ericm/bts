@@ -35,9 +35,23 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 0
 fi
 
+# Header + audit_attach block rendered as plain text (no tab alignment needed).
 jq -r '
     "audit: \(.audit_dir)   scanned_at: \(.scanned_at)",
     "",
+    (if .audit_attach then
+        (if (.audit_attach.procs | length) > 0 then
+            "audit_attach procs:",
+            (.audit_attach.procs[] | "  pid=\(.pid)  etime=\(.etime)  \(.cmd[0:100])")
+         else
+            "audit_attach procs: NONE RUNNING (driver exited?)"
+         end),
+         ""
+     else empty end)
+' <<<"${payload}"
+
+# Per-box table: rendered with tab-aligned columns.
+jq -r '
     (["box","state","seeds","last_event"] | @tsv),
     (.boxes[] | [
         .name,
@@ -46,7 +60,11 @@ jq -r '
          then "\(.completed_seeds // 0)/\(.expected_seeds)"
          else "\(.completed_seeds // 0)/?" end),
         (.last_seed_event // "" | .[0:80])
-    ] | @tsv),
+    ] | @tsv)
+' <<<"${payload}" | column -t -s $'\t'
+
+# Overall footer.
+jq -r '
     "",
     "overall: \(.overall.completed)/\(.overall.expected // "?") seeds, \(.overall.boxes_done)/\(.overall.boxes_total) boxes done\(if .overall.pct_seeds != null then " (\(.overall.pct_seeds)%)" else "" end)"
-' <<<"${payload}" | column -t -s $'\t'
+' <<<"${payload}"

@@ -16,8 +16,10 @@ from bts.web import audit_progress_response
 
 def _mk_fake_scan(recorded: list):
     """Return a fake scanner that records its args and returns a stub dict."""
-    def fake(audit_dir: Path, seeds_file: Path | None = None) -> dict:
-        recorded.append({"audit_dir": audit_dir, "seeds_file": seeds_file})
+    def fake(audit_dir: Path, seeds_file: Path | None = None, **kwargs) -> dict:
+        recorded.append(
+            {"audit_dir": audit_dir, "seeds_file": seeds_file, **kwargs}
+        )
         return {
             "audit_dir": audit_dir.name,
             "scanned_at": "2026-04-24T18:00:00+00:00",
@@ -140,3 +142,15 @@ class TestAuditProgressResponse:
         )
         assert status == 200
         assert body["audit_dir"] == "audit_full"
+
+    def test_endpoint_requests_audit_attach(self, tmp_path: Path) -> None:
+        """The HTTP route should request audit_attach visibility by default —
+        that's the value-add over calling the scanner from a notebook."""
+        _setup_audit_dir(tmp_path, "vultr", "audit_ext_n100_v4")
+        recorded: list = []
+        audit_progress_response(
+            {"provider": ["vultr"], "dir": ["audit_ext_n100_v4"]},
+            project_root=tmp_path,
+            scan=_mk_fake_scan(recorded),
+        )
+        assert recorded[0].get("include_audit_attach") is True

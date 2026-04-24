@@ -38,6 +38,7 @@ printf 'LAST:%s\n' "$(tail -1 /root/audit.log 2>/dev/null | head -c 140)"
 
 
 SshRunner = Callable[[str, str, int], subprocess.CompletedProcess]
+ProcLister = Callable[[], subprocess.CompletedProcess]
 
 
 def _default_ssh_runner(ip: str, cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
@@ -47,6 +48,48 @@ def _default_ssh_runner(ip: str, cmd: str, timeout: int = 30) -> subprocess.Comp
         text=True,
         timeout=timeout,
     )
+
+
+def _default_proc_lister() -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["ps", "-u", "bts", "-o", "pid=,etime=,args="],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+
+def scan_audit_attach_procs(proc_lister: Optional[ProcLister] = None) -> list[dict]:
+    """Return a list of currently-running audit_attach processes under user ``bts``.
+
+    Useful companion to the per-box SSH scan: tells you whether the driver
+    that orchestrates polling/retrieve is still alive, and how long it's been
+    running (``etime``). Exceptions are swallowed so a ps failure can't poison
+    the progress scan (e.g. when running on a host where user ``bts`` doesn't
+    exist — typical during local dev).
+    """
+    lister = proc_lister if proc_lister is not None else _default_proc_lister
+    try:
+        r = lister()
+    except Exception:
+        return []
+    if r.returncode != 0:
+        return []
+    procs: list[dict] = []
+    for line in r.stdout.splitlines():
+        stripped = line.strip()
+        if not stripped or "audit_attach" not in stripped:
+            continue
+        parts = stripped.split(None, 2)
+        if len(parts) < 3:
+            continue
+        pid_s, etime, args = parts
+        try:
+            pid = int(pid_s)
+        except ValueError:
+            continue
+        procs.append({"pid": pid, "etime": etime, "cmd": args[:300]})
+    return procs
 
 
 def load_boxes(audit_dir: Path) -> list[dict]:
@@ -150,6 +193,8 @@ def scan_audit_progress(
     ssh_runner: Optional[SshRunner] = None,
     max_workers: int = 8,
     timeout: int = 20,
+    include_audit_attach: bool = False,
+    proc_lister: Optional[ProcLister] = None,
 ) -> dict:
     """Scan an in-flight audit by SSHing to every box in its ``boxes.json``.
 
@@ -205,7 +250,7 @@ def scan_audit_progress(
     if total_expected:
         pct = round(100.0 * completed / total_expected, 1)
 
-    return {
+    response = {
         "audit_dir": audit_dir.name,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "boxes": box_results,
@@ -217,3 +262,45 @@ def scan_audit_progress(
             "pct_seeds": pct,
         },
     }
+    if include_audit_attach:
+        response["audit_attach"] = {"procs": scan_audit_attach_procs(proc_lister)}
+    return response
+
+
+def _cli(argv: list[str] | None = None) -> int:
+    """Command-line entry: prints the same JSON the HTTP endpoint returns.
+
+    Useful as a pre-deploy smoke test — run on the host that owns the SSH key
+    (user ``bts`` on bts-hetzner) to verify the remote PROGRESS_QUERY shell
+    snippet executes cleanly before restarting the dashboard.
+    """
+    import argparse
+    import sys
+
+    p = argparse.ArgumentParser(prog="bts-audit-progress")
+    p.add_argument("--provider", required=True, choices=["vultr", "hetzner", "oci"])
+    p.add_argument("--dir", required=True, dest="audit_name",
+                   help="Audit output dirname under data/<provider>_results/")
+    p.add_argument("--seeds-file", default=None,
+                   help="Optional seeds file (relative to CWD or absolute)")
+    p.add_argument("--timeout", type=int, default=20)
+    p.add_argument("--no-audit-attach", action="store_true",
+                   help="Skip the ps-based audit_attach process scan")
+    args = p.parse_args(argv)
+
+    audit_dir = Path("data") / f"{args.provider}_results" / args.audit_name
+    seeds_file = Path(args.seeds_file) if args.seeds_file else None
+
+    result = scan_audit_progress(
+        audit_dir,
+        seeds_file=seeds_file,
+        timeout=args.timeout,
+        include_audit_attach=not args.no_audit_attach,
+    )
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(_cli())
