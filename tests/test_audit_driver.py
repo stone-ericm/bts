@@ -74,3 +74,44 @@ def boxes():
         Box(id="2", name="b2", ipv4="10.0.0.2", region=""),
         Box(id="3", name="b3", ipv4="10.0.0.3", region=""),
     ]
+
+
+class TestTeardownRetrieved:
+    def test_all_ok_tears_down_everything(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        results = {"b1": "ok", "b2": "ok", "b3": "ok"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == ["1", "2", "3"]
+        assert selected == 3
+        assert deleted == 3
+
+    def test_one_partial_preserves_only_that_box(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        results = {"b1": "ok", "b2": "partial", "b3": "ok"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == ["1", "3"]
+        assert selected == 2
+        assert deleted == 2
+        joined = "\n".join(captured_log)
+        assert "PRESERVED b2" in joined
+        assert "ip=10.0.0.2" in joined
+        assert "retrieve_status=partial" in joined
+
+    def test_all_partial_preserves_all(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        results = {"b1": "partial", "b2": "partial", "b3": "partial"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == []
+        assert selected == 0
+        assert deleted == 0
+        preserved_lines = [l for l in captured_log if "PRESERVED" in l]
+        assert len(preserved_lines) == 3
