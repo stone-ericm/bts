@@ -864,6 +864,8 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
 
     boxes: list[Box] = []
+    retrieve_results: dict[str, str] = {}
+    exit_code = 0
     try:
         boxes = spinup(provider, args.boxes, label_prefix)
         if not boxes:
@@ -942,17 +944,26 @@ def main():
             futures = [ex.submit(retrieve_one, b, args.out, queues[b.name]) for b in boxes]
             for fut in concurrent.futures.as_completed(futures):
                 nm, status, errs = fut.result()
+                retrieve_results[nm] = status
                 if errs:
                     log(f"  [{nm}] {status}  errs={errs[:1]}")
                 else:
                     log(f"  [{nm}] {status}")
     finally:
-        # Unconditional teardown, always. This is the key fix for the
-        # 2026-04-14 Hetzner retrieve-cascade bug.
-        if boxes:
-            teardown_all(provider, boxes)
+        if not boxes:
+            pass
+        else:
+            selected, deleted = teardown_retrieved(provider, boxes, retrieve_results)
+            preserved = len(boxes) - selected      # held back for data-integrity
+            api_failed = selected - deleted         # provider API transient failures
+            log(f"=== TEARDOWN: selected={selected}/{len(boxes)} "
+                f"deleted={deleted} preserved={preserved} api_failed={api_failed} ===")
+            if preserved > 0:
+                exit_code = 1  # data-integrity signal for external monitoring
 
     log("=== AUDIT DRIVER DONE ===")
+    if exit_code:
+        raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":
