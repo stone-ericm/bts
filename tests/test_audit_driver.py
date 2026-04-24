@@ -115,3 +115,51 @@ class TestTeardownRetrieved:
         assert deleted == 0
         preserved_lines = [l for l in captured_log if "PRESERVED" in l]
         assert len(preserved_lines) == 3
+
+    def test_missing_key_defaults_to_preserve(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        # b2 is missing from the dict
+        results = {"b1": "ok", "b3": "ok"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == ["1", "3"]
+        assert selected == 2
+        assert deleted == 2
+        joined = "\n".join(captured_log)
+        assert "PRESERVED b2" in joined
+        assert "retrieve_status=not-attempted" in joined
+
+    def test_empty_results_preserves_all(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+
+        selected, deleted = teardown_retrieved(provider, boxes, {})
+
+        assert provider.deleted == []
+        assert selected == 0
+        assert deleted == 0
+        not_attempted = [l for l in captured_log if "not-attempted" in l]
+        assert len(not_attempted) == 3
+
+    def test_empty_boxes_list_noop(self, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+
+        selected, deleted = teardown_retrieved(provider, [], {"b1": "ok"})
+
+        assert provider.deleted == []
+        assert selected == 0
+        assert deleted == 0
+
+    def test_malformed_values_preserve(self, boxes, captured_log):
+        from audit_driver import teardown_retrieved
+        provider = FakeProvider()
+        results = {"b1": None, "b2": True, "b3": "weird"}
+
+        selected, deleted = teardown_retrieved(provider, boxes, results)
+
+        assert provider.deleted == []
+        assert selected == 0
+        assert deleted == 0
