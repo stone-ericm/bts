@@ -587,3 +587,192 @@ class TestSlotFromBo:
     def test_out_of_range_high(self):
         from bts.scorecard import _slot_from_bo
         assert _slot_from_bo("1000") is None
+
+
+def _mk_team(battingOrder: list[int], players: dict) -> dict:
+    """Build a boxscore_team block from a lineup + per-player data."""
+    return {
+        "battingOrder": list(battingOrder),
+        "players": {
+            f"ID{pid}": {
+                "person": {"id": pid, "fullName": f"player_{pid}"},
+                "battingOrder": data.get("battingOrder", "0"),
+                "stats": {"batting": {"atBats": data.get("atBats", 0)}},
+            }
+            for pid, data in players.items()
+        },
+    }
+
+
+class TestComputeLineupStatus:
+    def test_pre_game(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team([1, 2, 3], {1: {"battingOrder": "100"}})
+        status, away = _compute_lineup_status(1, team, current_batter_id=None, game_status="P")
+        assert status == "pre_game"
+        assert away is None
+
+    def test_final_game(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team([1, 2, 3], {1: {"battingOrder": "100", "atBats": 4}})
+        status, away = _compute_lineup_status(1, team, current_batter_id=None, game_status="F")
+        assert status == "final"
+        assert away is None
+
+    def test_at_bat(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3],
+            {
+                1: {"battingOrder": "100"},
+                2: {"battingOrder": "200"},
+                3: {"battingOrder": "300"},
+            },
+        )
+        status, away = _compute_lineup_status(2, team, current_batter_id=2, game_status="L")
+        assert status == "at_bat"
+        assert away == 0
+
+    def test_on_deck(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        status, away = _compute_lineup_status(2, team, current_batter_id=1, game_status="L")
+        assert status == "on_deck"
+        assert away == 1
+
+    def test_in_hole(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        status, away = _compute_lineup_status(3, team, current_batter_id=1, game_status="L")
+        assert status == "in_hole"
+        assert away == 2
+
+    def test_upcoming_distance_3(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        status, away = _compute_lineup_status(4, team, current_batter_id=1, game_status="L")
+        assert status == "upcoming"
+        assert away == 3
+
+    def test_upcoming_distance_8(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        status, away = _compute_lineup_status(9, team, current_batter_id=1, game_status="L")
+        assert status == "upcoming"
+        assert away == 8
+
+    def test_wraparound_current_slot_8_batter_slot_1(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        status, away = _compute_lineup_status(1, team, current_batter_id=8, game_status="L")
+        assert status == "in_hole"
+        assert away == 2
+
+    def test_out_of_game_pulled_starter(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 44, 5, 6, 7, 8, 9],
+            {
+                1: {"battingOrder": "100"},
+                2: {"battingOrder": "200"},
+                3: {"battingOrder": "300"},
+                4: {"battingOrder": "400", "atBats": 2},
+                44: {"battingOrder": "401"},
+                5: {"battingOrder": "500"},
+                6: {"battingOrder": "600"},
+                7: {"battingOrder": "700"},
+                8: {"battingOrder": "800"},
+                9: {"battingOrder": "900"},
+            },
+        )
+        status, away = _compute_lineup_status(4, team, current_batter_id=1, game_status="L")
+        assert status == "out_of_game"
+        assert away is None
+
+    def test_out_of_game_pulled_zero_ab(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3, 44, 5, 6, 7, 8, 9],
+            {
+                4: {"battingOrder": "400", "atBats": 0},
+                44: {"battingOrder": "401"},
+            },
+        )
+        status, away = _compute_lineup_status(4, team, current_batter_id=1, game_status="L")
+        assert status == "out_of_game"
+        assert away is None
+
+    def test_not_in_lineup_no_bo_string(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3],
+            {
+                1: {"battingOrder": "100"},
+                99: {},
+            },
+        )
+        status, away = _compute_lineup_status(99, team, current_batter_id=1, game_status="L")
+        assert status == "not_in_lineup"
+        assert away is None
+
+    def test_malformed_bo_string_treats_as_not_in_lineup(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3],
+            {
+                1: {"battingOrder": "100"},
+                99: {"battingOrder": "abc"},
+            },
+        )
+        status, away = _compute_lineup_status(99, team, current_batter_id=1, game_status="L")
+        assert status == "not_in_lineup"
+        assert away is None
+
+    def test_current_batter_none_during_live_game(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3],
+            {1: {"battingOrder": "100"}, 2: {"battingOrder": "200"}, 3: {"battingOrder": "300"}},
+        )
+        status, away = _compute_lineup_status(2, team, current_batter_id=None, game_status="L")
+        assert status == "pre_game"
+        assert away is None
+
+    def test_missing_battingOrder_array(self):
+        from bts.scorecard import _compute_lineup_status
+        team = {"players": {"ID1": {"battingOrder": "100"}}}
+        status, away = _compute_lineup_status(1, team, current_batter_id=1, game_status="L")
+        assert status == "not_in_lineup"
+        assert away is None
+
+    def test_missing_player_key(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team([1, 2, 3], {1: {"battingOrder": "100"}})
+        status, away = _compute_lineup_status(99, team, current_batter_id=1, game_status="L")
+        assert status == "not_in_lineup"
+        assert away is None
+
+    def test_current_batter_id_unknown_in_players(self):
+        from bts.scorecard import _compute_lineup_status
+        team = _mk_team(
+            [1, 2, 3],
+            {1: {"battingOrder": "100"}, 2: {"battingOrder": "200"}, 3: {"battingOrder": "300"}},
+        )
+        status, away = _compute_lineup_status(2, team, current_batter_id=999, game_status="L")
+        assert status == "pre_game"
+        assert away is None
