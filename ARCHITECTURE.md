@@ -202,7 +202,7 @@ LAN-only web dashboard at `http://bts-hetzner:3003` (tailnet). Single-file Pytho
 
 **Key modules:**
 - `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live`, `/api/live-html`, `/api/audit-progress`, `/health` endpoints
-- `scorecard.py` — Data extraction from MLB game feed for live scorecard (44 tests)
+- `scorecard.py` — Data extraction from MLB game feed for live scorecard. Per-batter payload carries `lineup_status` (one of `at_bat / on_deck / in_hole / upcoming / out_of_game / not_in_lineup / pre_game / final`) and `batters_away` (0-8) computed via `_compute_lineup_status` + `_slot_from_bo` helpers. When picked batter's team is currently fielding, `_next_leadoff_id_for_team` derives the right reference batter (their team's next leadoff slot) so distance still computes correctly. ~80 tests.
 - `audit_progress.py` — Live in-flight audit monitor. SSHes each box in `boxes.json`, parses `/root/audit.log` completion markers, aggregates per-box + overall progress. Also reports `ps -u bts` audit_attach process status. CLI entry for pre-deploy smoke testing: `python -m bts.audit_progress --provider vultr --dir <name> --seeds-file <path>`. 25 tests.
 
 **Live scorecard (during games):**
@@ -213,6 +213,7 @@ LAN-only web dashboard at `http://bts-hetzner:3003` (tailnet). Single-file Pytho
 - In-progress PA: pulsing amber border with current pitch count
 - Green tint only on hits (single/double/triple/HR), not walks/HBP
 - Sticky batter columns (#/name/POS) on horizontal scroll for 7+ PA games
+- Upcoming-PA placeholder cells render lineup-distance copy with state-tinted backgrounds (Direction A, shipped 2026-04-24): amber for `on_deck` / `in_hole` (imminent), gray for `N batters away`, red for `OUT`. The first upcoming PA cell is the only one that shows a label; subsequent placeholder cells stay blank. See `docs/superpowers/specs/2026-04-24-batters-away-display-design.md` and `docs/superpowers/specs/2026-04-24-upcoming-cell-polish-design.md`.
 
 **Lifecycle:** Scorecard appears when game is Live, stays through Final, hidden pre-game.
 
