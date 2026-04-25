@@ -838,3 +838,57 @@ class TestExtractBatterPasLineupStatus:
         assert b["batter_id"] == 2
         assert b["lineup_status"] == "on_deck"
         assert b["batters_away"] == 1
+
+
+class TestMergeScorecardsLineupStatus:
+    def test_merge_preserves_lineup_status_per_batter(self):
+        """DD-spans-two-games: each batter's lineup_status survives merge."""
+        from bts.scorecard import merge_scorecards
+
+        sc1 = {
+            "game_status": "L",
+            "inning": "Top 3",
+            "away_team": "BOS",
+            "home_team": "BAL",
+            "score": {"away": 1, "home": 5},
+            "batters": [
+                {
+                    "batter_id": 100,
+                    "name": "Yoshida",
+                    "position": "DH",
+                    "lineup_position": 3,
+                    "batting_hand": "L",
+                    "slash_line": ".280/.350/.450",
+                    "pas": [],
+                    "lineup_status": "on_deck",
+                    "batters_away": 1,
+                }
+            ],
+        }
+        sc2 = {
+            "game_status": "L",
+            "inning": "Top 4",
+            "away_team": "PHI",
+            "home_team": "ATL",
+            "score": {"away": 2, "home": 0},
+            "batters": [
+                {
+                    "batter_id": 200,
+                    "name": "Turner",
+                    "position": "SS",
+                    "lineup_position": 1,
+                    "batting_hand": "R",
+                    "slash_line": ".310/.380/.520",
+                    "pas": [],
+                    "lineup_status": "upcoming",
+                    "batters_away": 5,
+                }
+            ],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged is not None
+        names_to_status = {b["name"]: b for b in merged["batters"]}
+        assert names_to_status["Yoshida"]["lineup_status"] == "on_deck"
+        assert names_to_status["Yoshida"]["batters_away"] == 1
+        assert names_to_status["Turner"]["lineup_status"] == "upcoming"
+        assert names_to_status["Turner"]["batters_away"] == 5
