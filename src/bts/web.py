@@ -27,6 +27,21 @@ PROJECT_ROOT = Path(".")
 PORT = 3003
 ET = ZoneInfo("America/New_York")
 
+# Upcoming-PA placeholder cell styles per lineup_status (Direction A — tinted cell).
+# See docs/superpowers/specs/2026-04-24-upcoming-cell-polish-design.md.
+_PLACEHOLDER_STATE_STYLES: dict[str, str] = {
+    "on_deck":       "background:#fef3c7;border:1px solid #fcd34d;color:#92400e;",
+    "in_hole":       "background:#fef9e2;border:1px solid #fde68a;color:#92400e;",
+    "upcoming":      "background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;",
+    "out_of_game":   "background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;",
+    "not_in_lineup": "background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;",
+}
+_PLACEHOLDER_DEFAULT_STYLE = "background:#fff;border:1px dashed #ccc;color:#bbb;"
+_PLACEHOLDER_COMMON_STYLE = (
+    "vertical-align:middle;padding:6px 4px;"
+    "width:100px;min-width:100px;text-align:center;"
+)
+
 # MLB team abbreviation -> team ID (for logo URLs)
 TEAM_IDS = {
     "ATH": 133, "ATL": 144, "AZ": 109, "BAL": 110, "BOS": 111,
@@ -331,12 +346,7 @@ def _render_pa_cell(
     The placeholder branch (pa is None) is the only consumer of these args.
     """
     if pa is None:
-        # Upcoming PA placeholder
-        style = (
-            "border:1px dashed #ccc;color:#bbb;font-size:10px;"
-            "vertical-align:top;padding:4px;width:100px;min-width:100px;"
-            "text-align:center;"
-        )
+        # Upcoming PA placeholder — tinted cell per lineup_status (Direction A).
         label = ""
         if lineup_status == "on_deck":
             label = "ON DECK"
@@ -349,12 +359,16 @@ def _render_pa_cell(
         elif lineup_status == "not_in_lineup":
             label = "Not in lineup"
         # at_bat / pre_game / final / None → label stays empty
-        inner = ""
+
         if label:
-            inner = (
-                f'<div style="font-size:12px;color:#888;margin-top:4px;font-weight:600;">'
-                f'{label}</div>'
+            state_style = _PLACEHOLDER_STATE_STYLES.get(
+                lineup_status, _PLACEHOLDER_DEFAULT_STYLE
             )
+            inner = f'<div style="font-size:12px;font-weight:600;">{label}</div>'
+        else:
+            state_style = _PLACEHOLDER_DEFAULT_STYLE
+            inner = ""
+        style = _PLACEHOLDER_COMMON_STYLE + state_style
         return f'<td style="{style}">{inner}</td>'
 
     # In-progress PA — batter currently at bat
