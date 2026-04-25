@@ -549,3 +549,41 @@ class TestFetchLiveScorecard:
         mock_urlopen.side_effect = Exception("network error")
         result = fetch_live_scorecard(823730, {650490})
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Lineup-status helpers tests (added 2026-04-24)
+# ---------------------------------------------------------------------------
+
+class TestSlotFromBo:
+    def test_starter_slot_1(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("100") == 1
+
+    def test_first_sub_slot_4(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("401") == 4
+
+    def test_second_sub_slot_9(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("902") == 9
+
+    def test_none_input(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo(None) is None
+
+    def test_empty_string(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("") is None
+
+    def test_malformed_letters(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("abc") is None
+
+    def test_out_of_range_zero(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("000") is None
+
+    def test_out_of_range_high(self):
+        from bts.scorecard import _slot_from_bo
+        assert _slot_from_bo("1000") is None
