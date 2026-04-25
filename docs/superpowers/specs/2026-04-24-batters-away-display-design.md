@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-24
 **Author**: Eric + Claude (brainstorm)
-**Scope**: `src/bts/scorecard.py`, `src/bts/web.py`, `tests/test_scorecard.py` (extend), `tests/test_web_rendering.py` (new or extend)
+**Scope**: `src/bts/scorecard.py`, `src/bts/web.py`, `tests/test_scorecard.py` (extend), `tests/test_web_render.py` (NEW)
 
 ## Problem
 
@@ -103,20 +103,32 @@ def _compute_lineup_status(
 **Render-time mapping (in web.py)**:
 
 ```python
-if pa is None:
-    label = ""
-    if lineup_status == "on_deck":
-        label = "ON DECK"
-    elif lineup_status == "in_hole":
-        label = "IN THE HOLE"
-    elif lineup_status == "upcoming" and batters_away is not None:
-        label = f"{batters_away} batters"
-    elif lineup_status == "out_of_game":
-        label = "OUT"
-    elif lineup_status == "not_in_lineup":
-        label = "Not in lineup"
-    # at_bat / pre_game / final → label stays empty
-    # ... render label in the placeholder cell ...
+def _render_pa_cell(
+    pa: dict | None,
+    lineup_status: str | None = None,
+    batters_away: int | None = None,
+) -> str:
+    """Render a single plate appearance as a <td> element.
+
+    PRECEDENCE: when `pa` is provided (filled or in-progress cell), the
+    `lineup_status` and `batters_away` arguments are IGNORED — filled cells
+    own their own visual treatment (pitch grid, AB pulse, hit highlight).
+    The placeholder branch (pa is None) is the only consumer of lineup_status.
+    """
+    if pa is None:
+        label = ""
+        if lineup_status == "on_deck":
+            label = "ON DECK"
+        elif lineup_status == "in_hole":
+            label = "IN THE HOLE"
+        elif lineup_status == "upcoming" and batters_away is not None:
+            label = f"{batters_away} batters"
+        elif lineup_status == "out_of_game":
+            label = "OUT"
+        elif lineup_status == "not_in_lineup":
+            label = "Not in lineup"
+        # at_bat / pre_game / final → label stays empty
+        # ... render label in the placeholder cell ...
 ```
 
 ## Data flow — four cases
@@ -163,6 +175,9 @@ Schwarber's `id` not in current `battingOrder` array; he has `battingOrder` stri
 | 11 | Pulled batter with 0 AB (defensive sub before any PA) | `("out_of_game", None)` |
 | 12 | Malformed bo string (e.g., `"abc"`) | `("not_in_lineup", None)` |
 | 13 | `current_batter_id=None` while game is "In Progress" (ambiguous) | `("pre_game", None)` — defensive default |
+| 13a | `boxscore_team` missing `battingOrder` array entirely | `("not_in_lineup", None)` — defensive default |
+| 13b | `boxscore_team["players"]` dict missing the picked batter's key | `("not_in_lineup", None)` — defensive default |
+| 13c | `current_batter_id` not present in `boxscore_team["players"]` (race during sub) | `("pre_game", None)` — defensive default; can't compute distance from unknown current |
 
 ### Unit tests for `_slot_from_bo`
 
@@ -180,6 +195,12 @@ Schwarber's `id` not in current `battingOrder` array; he has `battingOrder` stri
 | # | Scenario | Asserts |
 |---|---|---|
 | 20 | Mock live feed with batter 2 slots away from current → returned scorecard's batter dict has `lineup_status="in_hole"`, `batters_away=2` |
+
+### Regression test for `merge_scorecards`
+
+| # | Scenario | Asserts |
+|---|---|---|
+| 20a | Two synthetic scorecards (one with `lineup_status="on_deck"`, the other `"upcoming"`) | merged result preserves both batters' `lineup_status` + `batters_away` unchanged |
 
 ### Render test for `_render_pa_cell` placeholder branch
 
@@ -200,8 +221,13 @@ Schwarber's `id` not in current `battingOrder` array; he has `battingOrder` stri
 |---|---|---|
 | 29 | `pa=<filled hit dict>` (any lineup_status) | renders pitch grid + green hit highlight unchanged from current behavior |
 | 30 | `pa=<in-progress dict>` (any lineup_status) | renders amber pulse + AB count unchanged |
+| 30a | `pa=<filled hit dict>, lineup_status="on_deck", batters_away=1` | rendered HTML does NOT contain "ON DECK" — filled cells ignore lineup args |
 
-**Total: ~30 new tests.** Existing 612 tests must continue to pass.
+**Total: 34 new tests.** Existing 612 tests must continue to pass.
+
+**Test file decisions:**
+- `_compute_lineup_status`, `_slot_from_bo`, `fetch_live_scorecard` integration, `merge_scorecards` regression → **extend `tests/test_scorecard.py`**.
+- `_render_pa_cell` placeholder branch + filled-cell precedence → **new file `tests/test_web_render.py`** (avoids polluting `test_web_audit_progress.py` which is scoped to the audit endpoint).
 
 ## Out of scope (explicitly deferred)
 
