@@ -343,7 +343,7 @@ def _render_pa_cell(
         elif lineup_status == "in_hole":
             label = "IN THE HOLE"
         elif lineup_status == "upcoming" and batters_away is not None:
-            label = f"{batters_away} batters"
+            label = f"{batters_away} batters away"
         elif lineup_status == "out_of_game":
             label = "OUT"
         elif lineup_status == "not_in_lineup":
@@ -352,7 +352,7 @@ def _render_pa_cell(
         inner = ""
         if label:
             inner = (
-                f'<div style="font-size:9px;color:#bbb;margin-top:4px;">'
+                f'<div style="font-size:12px;color:#888;margin-top:4px;font-weight:600;">'
                 f'{label}</div>'
             )
         return f'<td style="{style}">{inner}</td>'

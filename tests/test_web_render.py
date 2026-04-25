@@ -23,7 +23,7 @@ class TestRenderPaCellPlaceholder:
 
     def test_upcoming_distance_5(self):
         html = _render_pa_cell(None, lineup_status="upcoming", batters_away=5)
-        assert "5 batters" in html
+        assert "5 batters away" in html
 
     def test_out_of_game(self):
         html = _render_pa_cell(None, lineup_status="out_of_game")
