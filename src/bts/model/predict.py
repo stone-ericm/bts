@@ -46,6 +46,18 @@ LGB_PARAMS = dict(
     verbose=-1,
 )
 
+# Cross-provider / cross-machine bit-identical training is opt-in via env var.
+# Set BTS_LGBM_DETERMINISTIC=1 to force LightGBM into bit-exact-reproducible mode
+# (required to pool seeds across providers — see project_bts_oci_provider_add.md +
+# project_bts_ax102_pivot.md for the OCI E5.Flex drift evidence that motivated this).
+# Default OFF preserves shipped P(57)=8.17% pooled until a deliberate re-baseline
+# cycle. When ON, LightGBM trades a small amount of training speed for parallel-
+# reduction order stability.
+import os as _os
+if _os.environ.get("BTS_LGBM_DETERMINISTIC", "0") == "1":
+    LGB_PARAMS["deterministic"] = True
+    LGB_PARAMS["force_row_wise"] = True
+
 # Pitchers averaging < 3 IP over their recent appearances are likely openers/relievers
 OPENER_IP_THRESHOLD = 3.0
 OPENER_MIN_APPEARANCES = 5
