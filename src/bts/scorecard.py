@@ -90,6 +90,83 @@ def _extract_fielder_position(runners: list[dict]) -> int | None:
     return None
 
 
+def _slot_from_bo(bo_str: str | None) -> int | None:
+    """Parse a battingOrder string like "402" into a 1-9 lineup slot.
+
+    The 3-digit code is `slot * 100 + depth` where depth is 0 for the
+    original starter, 1 for the first sub at that slot, etc. We only
+    need the slot, so integer-divide by 100.
+
+    Returns None for missing, empty, malformed, or out-of-range inputs.
+    """
+    if not bo_str:
+        return None
+    try:
+        slot = int(bo_str) // 100
+    except (ValueError, TypeError):
+        return None
+    if slot < 1 or slot > 9:
+        return None
+    return slot
+
+
+def _compute_lineup_status(
+    batter_id: int,
+    boxscore_team: dict,
+    current_batter_id: int | None,
+    game_status: str,
+) -> tuple[str, int | None]:
+    """Return (lineup_status, batters_away) for a picked batter.
+
+    lineup_status ∈ {"pre_game", "final", "at_bat", "on_deck", "in_hole",
+                     "upcoming", "out_of_game", "not_in_lineup"}.
+    batters_away is 0 for at_bat, 1 for on_deck, ..., 8 for max distance,
+    or None for non-active states.
+
+    Defensive default: anything ambiguous (missing data, unparseable bo,
+    unknown current batter during live) resolves to ("pre_game", None) or
+    ("not_in_lineup", None) so the cell renders blank rather than wrong.
+    """
+    if game_status == "P":
+        return ("pre_game", None)
+    if game_status == "F":
+        return ("final", None)
+    if game_status != "L":
+        return ("pre_game", None)
+
+    players = boxscore_team.get("players", {})
+    batter_entry = players.get(f"ID{batter_id}", {})
+    bo_str = batter_entry.get("battingOrder")
+    batter_slot = _slot_from_bo(bo_str)
+
+    if batter_slot is None:
+        return ("not_in_lineup", None)
+
+    current_array = boxscore_team.get("battingOrder")
+    if not isinstance(current_array, list):
+        return ("not_in_lineup", None)
+
+    if batter_id not in current_array:
+        return ("out_of_game", None)
+
+    if current_batter_id is None:
+        return ("pre_game", None)
+
+    current_entry = players.get(f"ID{current_batter_id}", {})
+    current_slot = _slot_from_bo(current_entry.get("battingOrder"))
+    if current_slot is None:
+        return ("pre_game", None)
+
+    distance = (batter_slot - current_slot) % 9
+    if distance == 0:
+        return ("at_bat", 0)
+    if distance == 1:
+        return ("on_deck", 1)
+    if distance == 2:
+        return ("in_hole", 2)
+    return ("upcoming", distance)
+
+
 def _extract_pa(play: dict) -> dict:
     """Extract a structured plate-appearance dict from a single allPlays entry."""
     result_data = play.get("result", {})
