@@ -684,6 +684,14 @@ echo "launched seeds={seed_list_str}"
 
 
 def poll(boxes: list[Box]) -> tuple[int, list[tuple]]:
+    """Poll each box for done-ness + last log line.
+
+    Per-box errors (SSH timeout, connection refused, transient network) are
+    isolated: the box is reported as not-done with an error marker and polling
+    continues with the remaining boxes. A single hung box can no longer kill
+    the entire driver — see 2026-04-25 09:36 ET incident where audit_attach
+    crashed on a TimeoutExpired from one box and abandoned the other 25.
+    """
     done_count = 0
     lines = []
     for box in boxes:
@@ -696,11 +704,21 @@ else
   tail -1 /root/audit.log 2>/dev/null | head -c 140
 fi
 """
-        r = ssh_run(box.ipv4, q, timeout=15)
-        is_done = "DONE" in r.stdout
+        try:
+            r = ssh_run(box.ipv4, q, timeout=15)
+            is_done = "DONE" in r.stdout
+            stdout_short = r.stdout.strip()[:160]
+        except subprocess.TimeoutExpired:
+            log(f"  poll: {box.name} ({box.ipv4}) SSH timeout — will retry next poll")
+            is_done = False
+            stdout_short = "ssh-timeout"
+        except Exception as e:
+            log(f"  poll: {box.name} ({box.ipv4}) SSH error: {type(e).__name__}: {e}")
+            is_done = False
+            stdout_short = f"ssh-error: {type(e).__name__}"
         if is_done:
             done_count += 1
-        lines.append((box.name, is_done, r.stdout.strip()[:160]))
+        lines.append((box.name, is_done, stdout_short))
     return done_count, lines
 
 

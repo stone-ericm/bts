@@ -211,3 +211,78 @@ class TestTeardownAllReturn:
 
         assert deleted == 2  # b1 and b3 succeeded; b2 raised
         assert provider.deleted == ["1", "3"]
+
+
+class TestPollResilience:
+    """A single box's SSH timeout must not kill the whole poll cycle.
+
+    Regression for 2026-04-25 09:36 ET incident: audit_attach crashed when
+    one box (80.240.17.54) hit a transient SSH timeout, abandoning the
+    other 25 still-running boxes mid-audit.
+    """
+
+    def test_one_timeout_doesnt_kill_poll(self, boxes, captured_log, monkeypatch):
+        import subprocess as _sub
+        import audit_driver
+
+        def fake_ssh_run(ip, cmd, timeout=60):
+            if ip == "10.0.0.2":
+                raise _sub.TimeoutExpired(cmd=["ssh"], timeout=timeout)
+            # Other boxes return a "still running" response
+            return _sub.CompletedProcess(
+                args=[], returncode=0, stdout="3\n=== seed=42 done at X ===", stderr=""
+            )
+
+        monkeypatch.setattr(audit_driver, "ssh_run", fake_ssh_run)
+
+        done_count, lines = audit_driver.poll(boxes)
+
+        assert done_count == 0  # nobody's done
+        assert len(lines) == 3  # all three boxes reported, none lost
+        b2_line = next(l for l in lines if l[0] == "b2")
+        assert b2_line[1] is False  # not done
+        assert "ssh-timeout" in b2_line[2]
+        # Other boxes' results still captured
+        b1_line = next(l for l in lines if l[0] == "b1")
+        assert "seed=42 done" in b1_line[2]
+
+    def test_one_generic_exception_doesnt_kill_poll(self, boxes, captured_log, monkeypatch):
+        import subprocess as _sub
+        import audit_driver
+
+        def fake_ssh_run(ip, cmd, timeout=60):
+            if ip == "10.0.0.2":
+                raise OSError("Connection refused")
+            return _sub.CompletedProcess(
+                args=[], returncode=0, stdout="0", stderr=""
+            )
+
+        monkeypatch.setattr(audit_driver, "ssh_run", fake_ssh_run)
+
+        done_count, lines = audit_driver.poll(boxes)
+
+        assert done_count == 0
+        assert len(lines) == 3
+        b2_line = next(l for l in lines if l[0] == "b2")
+        assert "ssh-error" in b2_line[2]
+        assert "OSError" in b2_line[2]
+
+    def test_done_marker_still_recognized(self, boxes, captured_log, monkeypatch):
+        """A DONE response must still increment done_count post-fix."""
+        import subprocess as _sub
+        import audit_driver
+
+        def fake_ssh_run(ip, cmd, timeout=60):
+            if ip == "10.0.0.1":
+                return _sub.CompletedProcess(
+                    args=[], returncode=0, stdout="DONE\nqueue done at Sat", stderr=""
+                )
+            return _sub.CompletedProcess(args=[], returncode=0, stdout="2", stderr="")
+
+        monkeypatch.setattr(audit_driver, "ssh_run", fake_ssh_run)
+
+        done_count, lines = audit_driver.poll(boxes)
+
+        assert done_count == 1
+        b1_line = next(l for l in lines if l[0] == "b1")
+        assert b1_line[1] is True
