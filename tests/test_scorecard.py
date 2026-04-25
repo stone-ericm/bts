@@ -840,6 +840,114 @@ class TestExtractBatterPasLineupStatus:
         assert b["batters_away"] == 1
 
 
+class TestNextLeadoffIdForTeam:
+    def test_after_slot_3_returns_slot_4_player(self):
+        from bts.scorecard import _next_leadoff_id_for_team
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        assert _next_leadoff_id_for_team(team, last_team_batter_id=3) == 4
+
+    def test_wraparound_after_slot_9_returns_slot_1(self):
+        from bts.scorecard import _next_leadoff_id_for_team
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        assert _next_leadoff_id_for_team(team, last_team_batter_id=9) == 1
+
+    def test_no_last_batter_returns_slot_1(self):
+        from bts.scorecard import _next_leadoff_id_for_team
+        team = _mk_team(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            {i: {"battingOrder": f"{i}00"} for i in range(1, 10)},
+        )
+        assert _next_leadoff_id_for_team(team, last_team_batter_id=None) == 1
+
+    def test_finds_substitute_at_target_slot(self):
+        from bts.scorecard import _next_leadoff_id_for_team
+        # Slot 4 starter (id=4) was pulled; sub (id=44) is now at slot 4.
+        team = _mk_team(
+            [1, 2, 3, 44, 5, 6, 7, 8, 9],
+            {
+                3: {"battingOrder": "300"},
+                4: {"battingOrder": "400", "atBats": 2},  # pulled starter
+                44: {"battingOrder": "401"},                # sub now at slot 4
+            },
+        )
+        # last batter slot 3 → next leadoff slot 4 → finds the sub (id=44)
+        assert _next_leadoff_id_for_team(team, last_team_batter_id=3) == 44
+
+
+class TestExtractBatterPasFieldingState:
+    def test_picked_team_fielding_uses_next_leadoff_as_reference(self):
+        """When picked batter's team is fielding (current_batter on opponent),
+        compute distance from picked team's next leadoff, not opponent's batter.
+
+        Picked = Yoshida (slot 3, away/BOS). Yoshida just batted (3rd out).
+        Bottom-half BAL batter is up. Distance should be (3-4)%9 = 8 → '8 batters away'.
+        """
+        from bts.scorecard import extract_batter_pas
+
+        feed = {
+            "gameData": {
+                "status": {"abstractGameCode": "L"},
+                "teams": {
+                    "away": {"abbreviation": "BOS"},
+                    "home": {"abbreviation": "BAL"},
+                },
+            },
+            "liveData": {
+                "linescore": {
+                    "currentInning": 5,
+                    "inningHalf": "Bottom",
+                    "teams": {"away": {"runs": 1}, "home": {"runs": 8}},
+                    "offense": {"batter": {"id": 999}},  # BAL player
+                },
+                "boxscore": {
+                    "teams": {
+                        "away": {  # BOS
+                            "battingOrder": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                            "players": {
+                                f"ID{i}": {
+                                    "person": {"id": i, "fullName": f"bos_{i}"},
+                                    "battingOrder": f"{i}00",
+                                    "position": {"abbreviation": "?"},
+                                    "stats": {"batting": {"atBats": 1}},
+                                }
+                                for i in range(1, 10)
+                            },
+                        },
+                        "home": {  # BAL
+                            "battingOrder": [999],
+                            "players": {
+                                "ID999": {
+                                    "person": {"id": 999, "fullName": "bal_leadoff"},
+                                    "battingOrder": "100",
+                                    "position": {"abbreviation": "?"},
+                                    "stats": {"batting": {"atBats": 0}},
+                                }
+                            },
+                        },
+                    }
+                },
+                "plays": {
+                    "allPlays": [
+                        # Yoshida (slot 3) batted last for BOS
+                        {"matchup": {"batter": {"id": 3}}, "about": {"isComplete": True}},
+                    ]
+                },
+            },
+        }
+        result = extract_batter_pas(feed, batter_ids={3})
+        assert len(result["batters"]) == 1
+        b = result["batters"][0]
+        assert b["batter_id"] == 3
+        assert b["lineup_status"] == "upcoming"
+        assert b["batters_away"] == 8
+
+
 class TestMergeScorecardsLineupStatus:
     def test_merge_preserves_lineup_status_per_batter(self):
         """DD-spans-two-games: each batter's lineup_status survives merge."""

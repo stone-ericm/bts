@@ -110,6 +110,39 @@ def _slot_from_bo(bo_str: str | None) -> int | None:
     return slot
 
 
+def _next_leadoff_id_for_team(
+    boxscore_team: dict,
+    last_team_batter_id: int | None,
+) -> int | None:
+    """Return the ID of the player who would lead off the next at-bat for this team.
+
+    If the team has already batted this game, the next leadoff is the slot AFTER
+    the last batter's slot (mod 9). If the team hasn't batted yet, leadoff = slot 1.
+    Used when a picked batter's team is currently fielding — we count distance from
+    "next leadoff" rather than from the (opponent-team) current batter.
+    """
+    players = boxscore_team.get("players", {})
+    array = boxscore_team.get("battingOrder", [])
+    if not isinstance(array, list):
+        return None
+
+    target_slot: int | None = None
+    if last_team_batter_id is not None:
+        last_entry = players.get(f"ID{last_team_batter_id}", {})
+        last_slot = _slot_from_bo(last_entry.get("battingOrder"))
+        if last_slot is not None:
+            target_slot = (last_slot % 9) + 1
+
+    if target_slot is None:
+        target_slot = 1  # fallback: team hasn't batted, leadoff = slot 1
+
+    for pid in array:
+        p = players.get(f"ID{pid}", {})
+        if _slot_from_bo(p.get("battingOrder")) == target_slot:
+            return pid
+    return None
+
+
 def _compute_lineup_status(
     batter_id: int,
     boxscore_team: dict,
@@ -331,6 +364,18 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
     batter_pas: dict[int, list[dict]] = {}
     batter_first_play: dict[int, dict] = {}  # stores matchup from first play for batSide
 
+    # Track the most recent batter on each side (used when picked team is fielding)
+    last_batter_id_per_side: dict[str, int] = {}
+    for play in reversed(all_plays):
+        play_batter_id = play.get("matchup", {}).get("batter", {}).get("id")
+        if play_batter_id is None:
+            continue
+        play_side = batter_side.get(play_batter_id)
+        if play_side and play_side not in last_batter_id_per_side:
+            last_batter_id_per_side[play_side] = play_batter_id
+        if len(last_batter_id_per_side) == 2:
+            break
+
     for play in all_plays:
         about = play.get("about", {})
         batter_id = play.get("matchup", {}).get("batter", {}).get("id")
@@ -383,10 +428,21 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         # Lineup status (distance from current batter, OUT, etc.)
         side_for_batter = batter_side.get(batter_id)
         if side_for_batter:
+            side_team = boxscore_teams.get(side_for_batter, {})
+            # When picked team is fielding, the API's current_batter is on the opponent.
+            # Use "next leadoff" on the picked team as the reference instead.
+            current_side = batter_side.get(current_batter_id) if current_batter_id else None
+            if current_side == side_for_batter:
+                reference_id = current_batter_id
+            else:
+                reference_id = _next_leadoff_id_for_team(
+                    side_team,
+                    last_batter_id_per_side.get(side_for_batter),
+                )
             lineup_status, batters_away = _compute_lineup_status(
                 batter_id,
-                boxscore_teams.get(side_for_batter, {}),
-                current_batter_id,
+                side_team,
+                reference_id,
                 game_status,
             )
         else:
