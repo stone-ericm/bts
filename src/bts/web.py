@@ -318,8 +318,18 @@ def _render_diamond(pa: dict) -> str:
     return svg
 
 
-def _render_pa_cell(pa: dict | None, estimated_inning: str = "") -> str:
-    """Render a single plate appearance as a <td> element."""
+def _render_pa_cell(
+    pa: dict | None,
+    lineup_status: str | None = None,
+    batters_away: int | None = None,
+) -> str:
+    """Render a single plate appearance as a <td> element.
+
+    PRECEDENCE: when `pa` is provided (filled or in-progress cell), the
+    `lineup_status` and `batters_away` arguments are IGNORED — filled cells
+    own their own visual treatment (pitch grid, AB pulse, hit highlight).
+    The placeholder branch (pa is None) is the only consumer of these args.
+    """
     if pa is None:
         # Upcoming PA placeholder
         style = (
@@ -327,11 +337,23 @@ def _render_pa_cell(pa: dict | None, estimated_inning: str = "") -> str:
             "vertical-align:top;padding:4px;width:100px;min-width:100px;"
             "text-align:center;"
         )
+        label = ""
+        if lineup_status == "on_deck":
+            label = "ON DECK"
+        elif lineup_status == "in_hole":
+            label = "IN THE HOLE"
+        elif lineup_status == "upcoming" and batters_away is not None:
+            label = f"{batters_away} batters"
+        elif lineup_status == "out_of_game":
+            label = "OUT"
+        elif lineup_status == "not_in_lineup":
+            label = "Not in lineup"
+        # at_bat / pre_game / final / None → label stays empty
         inner = ""
-        if estimated_inning:
+        if label:
             inner = (
                 f'<div style="font-size:9px;color:#bbb;margin-top:4px;">'
-                f'{estimated_inning}</div>'
+                f'{label}</div>'
             )
         return f'<td style="{style}">{inner}</td>'
 
@@ -487,14 +509,16 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
         for i in range(num_pa_cols):
             if i < len(pas):
                 row_cells += _render_pa_cell(pas[i])
+            elif i == len(pas):
+                # First upcoming PA: render lineup-distance badge from live data
+                row_cells += _render_pa_cell(
+                    None,
+                    lineup_status=batter.get("lineup_status"),
+                    batters_away=batter.get("batters_away"),
+                )
             else:
-                # Estimate which inning this PA would occur in.
-                # Each batter gets ~1 PA per 9 batters through the order.
-                # First upcoming PA: current completed PAs + 1 → inning ≈ (pa_num) * 2 - 1
-                pa_num = i + 1
-                est_inning = pa_num * 2 - 1 if pa_num <= 5 else pa_num * 2
-                est = f"~{_ordinal(est_inning)}" if i == len(pas) else ""
-                row_cells += _render_pa_cell(None, estimated_inning=est)
+                # Subsequent upcoming PA cells stay blank
+                row_cells += _render_pa_cell(None)
 
         slash_html = (
             f'<div style="font-size:9px;color:#888;margin-top:1px;">{slash}</div>'
