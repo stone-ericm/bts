@@ -302,6 +302,11 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
     inning_half = linescore.get("inningHalf", "Top")
     inning_str = f"{inning_half} {_ordinal(current_inning)}"
 
+    # Current batter (for lineup-distance computation)
+    current_batter_id = (
+        linescore.get("offense", {}).get("batter", {}).get("id")
+    )
+
     # Score
     ls_teams = linescore.get("teams", {})
     score = {
@@ -309,15 +314,17 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         "home": ls_teams.get("home", {}).get("runs", 0),
     }
 
-    # Build boxscore player lookup: batter_id → player entry
+    # Build boxscore player lookup: batter_id → player entry, and side mapping
     boxscore_teams = live_data.get("boxscore", {}).get("teams", {})
     player_lookup: dict[int, dict] = {}
+    batter_side: dict[int, str] = {}
     for side in ("away", "home"):
         players = boxscore_teams.get(side, {}).get("players", {})
         for key, player_data in players.items():
             pid = player_data.get("person", {}).get("id")
             if pid is not None:
                 player_lookup[pid] = player_data
+                batter_side[pid] = side
 
     # Walk allPlays, collect PAs grouped by batter
     all_plays = live_data.get("plays", {}).get("allPlays", [])
@@ -373,6 +380,18 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         first_play = batter_first_play.get(batter_id)
         bat_side = first_play.get("matchup", {}).get("batSide", {}).get("code", "") if first_play else ""
 
+        # Lineup status (distance from current batter, OUT, etc.)
+        side_for_batter = batter_side.get(batter_id)
+        if side_for_batter:
+            lineup_status, batters_away = _compute_lineup_status(
+                batter_id,
+                boxscore_teams.get(side_for_batter, {}),
+                current_batter_id,
+                game_status,
+            )
+        else:
+            lineup_status, batters_away = "not_in_lineup", None
+
         batters.append(
             {
                 "batter_id": batter_id,
@@ -382,6 +401,8 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
                 "batting_hand": bat_side,
                 "slash_line": slash_line,
                 "pas": batter_pas.get(batter_id, []),
+                "lineup_status": lineup_status,
+                "batters_away": batters_away,
             }
         )
 

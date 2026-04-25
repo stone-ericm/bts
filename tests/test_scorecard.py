@@ -776,3 +776,65 @@ class TestComputeLineupStatus:
         status, away = _compute_lineup_status(2, team, current_batter_id=999, game_status="L")
         assert status == "pre_game"
         assert away is None
+
+
+class TestExtractBatterPasLineupStatus:
+    def test_lineup_status_populated_in_returned_batter_dict(self):
+        """When extract_batter_pas processes a live feed, each returned
+        batter dict carries lineup_status + batters_away derived from the
+        live feed's current batter and the boxscore.
+        """
+        from bts.scorecard import extract_batter_pas
+
+        feed = {
+            "gameData": {
+                "status": {"abstractGameCode": "L"},
+                "teams": {
+                    "away": {"abbreviation": "BOS"},
+                    "home": {"abbreviation": "BAL"},
+                },
+            },
+            "liveData": {
+                "linescore": {
+                    "currentInning": 1,
+                    "inningHalf": "Top",
+                    "teams": {"away": {"runs": 0}, "home": {"runs": 0}},
+                    "offense": {"batter": {"id": 1}},
+                },
+                "boxscore": {
+                    "teams": {
+                        "away": {
+                            "battingOrder": [1, 2, 3],
+                            "players": {
+                                "ID1": {
+                                    "person": {"id": 1, "fullName": "Alpha"},
+                                    "battingOrder": "100",
+                                    "position": {"abbreviation": "CF"},
+                                    "stats": {"batting": {"atBats": 0}},
+                                },
+                                "ID2": {
+                                    "person": {"id": 2, "fullName": "Beta"},
+                                    "battingOrder": "200",
+                                    "position": {"abbreviation": "DH"},
+                                    "stats": {"batting": {"atBats": 0}},
+                                },
+                                "ID3": {
+                                    "person": {"id": 3, "fullName": "Gamma"},
+                                    "battingOrder": "300",
+                                    "position": {"abbreviation": "1B"},
+                                    "stats": {"batting": {"atBats": 0}},
+                                },
+                            },
+                        },
+                        "home": {"battingOrder": [], "players": {}},
+                    }
+                },
+                "plays": {"allPlays": []},
+            },
+        }
+        result = extract_batter_pas(feed, batter_ids={2})
+        assert len(result["batters"]) == 1
+        b = result["batters"][0]
+        assert b["batter_id"] == 2
+        assert b["lineup_status"] == "on_deck"
+        assert b["batters_away"] == 1
