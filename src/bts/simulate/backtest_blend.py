@@ -307,6 +307,9 @@ def _train_blend_for_day(
 ) -> tuple[dict, set]:
     """Train per-config blend models. Reuse cached_models[name] when present.
 
+    Cached configs still register in side_channel_names if _is_regressor(extra_params),
+    so the cache path preserves blend-vs-side-channel semantics.
+
     Returns (blend, side_channel_names) where:
       blend: {name: (model, cols, predict_fn)}
       side_channel_names: set of model names excluded from blend averaging
@@ -410,8 +413,7 @@ def blend_walk_forward(
           f"{len(blend_configs)} models", file=sys.stderr)
 
     all_profiles = []
-    blend = None  # {name: (model, cols, predict_fn)}
-    side_channel_names: set = set()  # models excluded from averaging (e.g., quantile)
+    blend = None  # {name: (model, cols, predict_fn)} — populated on first retrain (i=0)
     per_model_capture = []  # daily per-model predictions for capture mode
 
     for i, day in enumerate(test_dates):
