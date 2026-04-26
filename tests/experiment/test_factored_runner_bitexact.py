@@ -109,6 +109,42 @@ def test_fast_path_refuses_ineligible_named_experiments(
 
 
 # ---------------------------------------------------------------------------
+# Model-swap eligibility — fast unit tests on the predicate (no walk-forward)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("exp_name", ["catboost", "vrex", "xendcg", "lambdarank"])
+def test_model_swap_eligibility_accepts_model_add(exp_name):
+    """All four model experiments append a 13th blend config and are eligible."""
+    from bts.experiment.runner_factored import _is_eligible_for_model_swap_fast_path
+
+    load_all_experiments()
+    eligible, reason = _is_eligible_for_model_swap_fast_path(get_experiment(exp_name))
+    assert eligible, f"{exp_name} should be eligible but rejected: {reason}"
+
+
+@pytest.mark.parametrize(
+    "exp_name,reason_substr",
+    [
+        ("wind_vector", "modifies features"),
+        ("kl_divergence", "modifies features"),
+        ("quantile_q10", "requires per-model capture"),
+        ("decision_calibration", "doesn't add a new model"),
+        ("venn_abers_width", "doesn't add a new model"),
+    ],
+)
+def test_model_swap_eligibility_rejects_ineligible(exp_name, reason_substr):
+    """The eligibility predicate rejects feature-mods, per-model-capture, and
+    strategy-only experiments. Bundles the same coverage as the strategy refuse-tests
+    but for the model-swap path."""
+    from bts.experiment.runner_factored import _is_eligible_for_model_swap_fast_path
+
+    load_all_experiments()
+    eligible, reason = _is_eligible_for_model_swap_fast_path(get_experiment(exp_name))
+    assert not eligible, f"{exp_name} should be rejected"
+    assert reason_substr in reason, f"reason {reason!r} doesn't match {reason_substr!r}"
+
+
+# ---------------------------------------------------------------------------
 # Bit-exact comparison tests — slow: real walk-forward via fixture
 # ---------------------------------------------------------------------------
 
@@ -224,7 +260,7 @@ def _assert_scorecard_close(a, b, atol: float, key_path: str = "") -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("exp_name", ["catboost", "vrex", "xendcg"])
+@pytest.mark.parametrize("exp_name", ["catboost", "vrex", "xendcg", "lambdarank"])
 def test_model_swap_path_matches_full_walkforward(
     tmp_path, test_pa_df, baseline_profiles, exp_name
 ):
