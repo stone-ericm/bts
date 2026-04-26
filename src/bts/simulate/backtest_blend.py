@@ -299,6 +299,63 @@ def _predict_lgbm_regressor(model, day_data, cols):
     return preds
 
 
+def _train_blend_for_day(
+    available: "pd.DataFrame",
+    blend_configs: list,
+    lgb_params: dict,
+    cached_models: dict | None = None,
+) -> tuple[dict, set]:
+    """Train per-config blend models. Reuse cached_models[name] when present.
+
+    Returns (blend, side_channel_names) where:
+      blend: {name: (model, cols, predict_fn)}
+      side_channel_names: set of model names excluded from blend averaging
+    """
+    blend = {}
+    side_channel_names: set = set()
+
+    for config in blend_configs:
+        if len(config) == 2:
+            name, cols = config
+            extra_params = {}
+        else:
+            name, cols, extra_params = config
+        # Dedupe: experiments that extend FEATURE_COLS with a feature
+        # already used by a blend variant (statcast_add_*) would otherwise
+        # produce duplicate column names, which LightGBM rejects.
+        cols = list(dict.fromkeys(cols))
+
+        # If a cached model was provided for this config, reuse it
+        if cached_models and name in cached_models:
+            blend[name] = cached_models[name]
+            if _is_regressor(extra_params):
+                side_channel_names.add(name)
+            continue
+
+        merged_params = {**lgb_params, **extra_params}
+
+        if _is_ranker(extra_params):
+            model = _train_ranker(available, cols, merged_params)
+            predict_fn = _predict_ranker
+        elif _is_regressor(extra_params):
+            model = _train_lgbm_regressor(available, cols, merged_params)
+            predict_fn = _predict_lgbm_regressor
+            side_channel_names.add(name)
+        elif _is_catboost(extra_params):
+            model = _train_catboost(available, cols, merged_params)
+            predict_fn = _predict_catboost
+        elif "vrex_beta" in extra_params:
+            model = _train_vrex_lgbm(available, cols, dict(merged_params))
+            predict_fn = _predict_lgbm_classifier
+        else:
+            model = _train_lgbm_classifier(available, cols, merged_params)
+            predict_fn = _predict_lgbm_classifier
+
+        blend[name] = (model, cols, predict_fn)
+
+    return blend, side_channel_names
+
+
 def blend_walk_forward(
     df: "pd.DataFrame",
     test_season: int,
@@ -364,38 +421,7 @@ def blend_walk_forward(
         if blend is None or (i % retrain_every == 0):
             available = pd.concat([train_pool, test_data[test_data["date"] < day]])
 
-            blend = {}
-            for config in blend_configs:
-                if len(config) == 2:
-                    name, cols = config
-                    extra_params = {}
-                else:
-                    name, cols, extra_params = config
-                # Dedupe: experiments that extend FEATURE_COLS with a feature
-                # already used by a blend variant (statcast_add_*) would otherwise
-                # produce duplicate column names, which LightGBM rejects.
-                cols = list(dict.fromkeys(cols))
-
-                merged_params = {**lgb_params, **extra_params}
-
-                if _is_ranker(extra_params):
-                    model = _train_ranker(available, cols, merged_params)
-                    predict_fn = _predict_ranker
-                elif _is_regressor(extra_params):
-                    model = _train_lgbm_regressor(available, cols, merged_params)
-                    predict_fn = _predict_lgbm_regressor
-                    side_channel_names.add(name)  # exclude from averaging
-                elif _is_catboost(extra_params):
-                    model = _train_catboost(available, cols, merged_params)
-                    predict_fn = _predict_catboost
-                elif "vrex_beta" in extra_params:
-                    model = _train_vrex_lgbm(available, cols, dict(merged_params))
-                    predict_fn = _predict_lgbm_classifier
-                else:
-                    model = _train_lgbm_classifier(available, cols, merged_params)
-                    predict_fn = _predict_lgbm_classifier
-
-                blend[name] = (model, cols, predict_fn)
+            blend, side_channel_names = _train_blend_for_day(available, blend_configs, lgb_params)
 
             if (i + 1) % 30 == 0 or i == 0:
                 print(f"  Day {i+1}/{len(test_dates)} ({pd.Timestamp(day).date()}) "
