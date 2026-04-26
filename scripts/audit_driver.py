@@ -779,6 +779,91 @@ def teardown_all(provider: Provider, boxes: list[Box]) -> int:
     return deleted
 
 
+def _poll_until_done(boxes: list[Box], args) -> None:
+    """Poll boxes until all report DONE or deadline exceeded.
+
+    Extracted so single-stage and two-stage flows share identical polling
+    logic. `args` carries `poll_interval` (sec) and `deadline_hours` (cap).
+    Logs poll number, elapsed hours, and per-box last-log-line snippets.
+    """
+    start = time.time()
+    deadline_t = start + args.deadline_hours * 3600
+    poll_num = 0
+    while time.time() < deadline_t:
+        poll_num += 1
+        time.sleep(args.poll_interval)
+        done_count, lines = poll(boxes)
+        elapsed_h = (time.time() - start) / 3600
+        log(f"=== POLL #{poll_num} ({elapsed_h:.2f}h, {done_count}/{len(boxes)} done) ===")
+        for nm, is_done, s in lines:
+            mark = "OK " if is_done else "..."
+            log(f"  {mark} {nm}: {s[:140]}")
+        if done_count == len(boxes):
+            break
+
+
+def _retrieve_all(
+    boxes: list[Box],
+    out_root: Path,
+    queues: dict[str, list[int]],
+) -> dict[str, str]:
+    """Rsync results off all boxes in parallel. Returns {box_name: status}.
+
+    Status is "ok" or "partial" — the same value `retrieve_one` produces.
+    Extracted so single-stage and two-stage flows share identical retrieve
+    logic, including the per-box error logging.
+    """
+    log("=== RETRIEVE ===")
+    results: dict[str, str] = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
+        futures = [ex.submit(retrieve_one, b, out_root, queues[b.name]) for b in boxes]
+        for fut in concurrent.futures.as_completed(futures):
+            nm, status, errs = fut.result()
+            results[nm] = status
+            if errs:
+                log(f"  [{nm}] {status}  errs={errs[:1]}")
+            else:
+                log(f"  [{nm}] {status}")
+    return results
+
+
+def _stage1_seed_dirs_via_symlinks(stage1_out: Path) -> list[Path]:
+    """Build a list of "virtual seed dirs" matching aggregate_stage_one_results' layout.
+
+    The audit produces `<stage1_out>/<box>/phase1_seed{N}/<exp>/diff.json`,
+    but `aggregate_stage_one_results` expects `<seed_dir>/phase1/<exp>/diff.json`.
+    We bridge by creating a sibling directory `<stage1_out>/_seeds_view/<box>__seed{N}/`
+    each with a `phase1` symlink pointing to the corresponding `phase1_seed{N}` dir.
+
+    Returns the list of virtual seed dir paths to feed aggregate_stage_one_results.
+    Idempotent: existing symlinks are reused.
+    """
+    view_root = stage1_out / "_seeds_view"
+    view_root.mkdir(parents=True, exist_ok=True)
+    seed_dirs: list[Path] = []
+    for box_dir in sorted(stage1_out.iterdir()):
+        if not box_dir.is_dir() or box_dir.name == "_seeds_view":
+            continue
+        for seed_dir in sorted(box_dir.glob("phase1_seed*")):
+            if not seed_dir.is_dir():
+                continue
+            seed_n = seed_dir.name.removeprefix("phase1_seed")
+            virt = view_root / f"{box_dir.name}__seed{seed_n}"
+            virt.mkdir(parents=True, exist_ok=True)
+            phase1_link = virt / "phase1"
+            if phase1_link.is_symlink() or phase1_link.exists():
+                # Idempotent: replace with a link to the current path
+                if phase1_link.is_symlink():
+                    phase1_link.unlink()
+                else:
+                    # If something else is there, leave it (don't delete real dirs)
+                    seed_dirs.append(virt)
+                    continue
+            phase1_link.symlink_to(seed_dir.resolve())
+            seed_dirs.append(virt)
+    return seed_dirs
+
+
 def teardown_retrieved(
     provider: Provider,
     boxes: list[Box],
@@ -857,6 +942,12 @@ def main():
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
     ap.add_argument("--poll-interval", type=int, default=900, help="Poll interval in seconds")
     ap.add_argument("--deadline-hours", type=float, default=168.0, help="Hard cap on total runtime")
+    ap.add_argument("--two-stage", action="store_true",
+                    help="Two-stage screening: n1 seeds kill/promote, n2 seeds for survivors")
+    ap.add_argument("--stage-one-seeds", type=int, default=8,
+                    help="Stage-1 seed count (only used with --two-stage)")
+    ap.add_argument("--stage-two-seeds", type=int, default=40,
+                    help="Stage-2 additional seed count for survivors (only used with --two-stage)")
     args = ap.parse_args()
 
     experiments = args.experiments.read_text().strip()
@@ -928,45 +1019,117 @@ def main():
                     log(f"  FAILED to release {b.name}: {e}")
             boxes = ready_boxes
 
-        queues = distribute_seeds(boxes, seeds)
-        log("Seed distribution:")
-        for nm, sl in queues.items():
-            log(f"  {nm}: {sl}")
+        if args.two_stage:
+            # ---- Two-stage screening ----
+            n1 = args.stage_one_seeds
+            n2 = args.stage_two_seeds
+            if len(seeds) < n1:
+                log(f"ERROR: --two-stage needs at least {n1} seeds, got {len(seeds)}")
+                return
+            stage1_seeds = seeds[:n1]
+            stage2_seeds = seeds[n1: n1 + n2]
+            if not stage2_seeds:
+                log(f"WARN: no stage-2 seeds available (n1={n1}, total={len(seeds)}); "
+                    f"survivors will only have n1 data")
+            exp_names = [e.strip() for e in experiments.split(",") if e.strip()]
+            log(f"Two-stage mode: stage1={len(stage1_seeds)} seeds, "
+                f"stage2={len(stage2_seeds)} seeds, {len(exp_names)} experiments")
 
-        log("Launching queues...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-            futures = [ex.submit(launch_box_queue, b, queues[b.name], experiments) for b in boxes]
-            for fut in concurrent.futures.as_completed(futures):
-                nm, rc, out = fut.result()
-                log(f"  [{nm}] rc={rc}  {out}")
+            # ---- Stage 1 ----
+            queues_s1 = distribute_seeds(boxes, stage1_seeds)
+            log("Stage 1 seed distribution:")
+            for nm, sl in queues_s1.items():
+                log(f"  {nm}: {sl}")
 
-        # Poll
-        start = time.time()
-        deadline_t = start + args.deadline_hours * 3600
-        poll_num = 0
-        while time.time() < deadline_t:
-            poll_num += 1
-            time.sleep(args.poll_interval)
-            done_count, lines = poll(boxes)
-            elapsed_h = (time.time() - start) / 3600
-            log(f"=== POLL #{poll_num} ({elapsed_h:.2f}h, {done_count}/{len(boxes)} done) ===")
-            for nm, is_done, s in lines:
-                mark = "OK " if is_done else "..."
-                log(f"  {mark} {nm}: {s[:140]}")
-            if done_count == len(boxes):
-                break
+            log("Launching stage-1 queues (all experiments)...")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
+                futures = [ex.submit(launch_box_queue, b, queues_s1[b.name], experiments)
+                           for b in boxes]
+                for fut in concurrent.futures.as_completed(futures):
+                    nm, rc, out = fut.result()
+                    log(f"  [{nm}] rc={rc}  {out}")
 
-        # Retrieve
-        log("=== RETRIEVE ===")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-            futures = [ex.submit(retrieve_one, b, args.out, queues[b.name]) for b in boxes]
-            for fut in concurrent.futures.as_completed(futures):
-                nm, status, errs = fut.result()
-                retrieve_results[nm] = status
-                if errs:
-                    log(f"  [{nm}] {status}  errs={errs[:1]}")
-                else:
-                    log(f"  [{nm}] {status}")
+            _poll_until_done(boxes, args)
+
+            # Retrieve stage-1 results into a dedicated subdir; do NOT teardown.
+            stage1_out = args.out / "stage1"
+            stage1_out.mkdir(parents=True, exist_ok=True)
+            stage1_retrieve = _retrieve_all(boxes, stage1_out, queues_s1)
+            # Roll stage-1 retrieve status into the final retrieve_results dict
+            # so that any "partial" stage-1 still counts as a partial overall.
+            for nm, st in stage1_retrieve.items():
+                retrieve_results[nm] = st
+
+            # ---- Decide: aggregate + decide_after_stage_one per experiment ----
+            from bts.experiment.two_stage import (
+                aggregate_stage_one_results,
+                decide_after_stage_one,
+            )
+            seed_dirs = _stage1_seed_dirs_via_symlinks(stage1_out)
+            log(f"Aggregating stage-1 results from {len(seed_dirs)} seed dirs...")
+            stage1_results = aggregate_stage_one_results(seed_dirs, exp_names)
+
+            survivors: list[str] = []
+            for exp in exp_names:
+                if exp not in stage1_results:
+                    log(f"  {exp}: NO RESULTS (kept as survivor — fail open)")
+                    survivors.append(exp)
+                    continue
+                decision = decide_after_stage_one(stage1_results[exp])
+                log(f"  {exp}: {decision.action}  ({decision.reason})")
+                if decision.action != "kill":
+                    survivors.append(exp)
+
+            log(f"Stage 1 complete: {len(survivors)}/{len(exp_names)} survived")
+            if not survivors:
+                log("No survivors — terminating early without stage 2")
+            elif not stage2_seeds:
+                log("No stage-2 seeds available — terminating after stage 1")
+            else:
+                # ---- Stage 2 ----
+                queues_s2 = distribute_seeds(boxes, stage2_seeds)
+                survivor_subset = ",".join(survivors)
+                log(f"Stage 2 seed distribution ({len(survivors)} survivors):")
+                for nm, sl in queues_s2.items():
+                    log(f"  {nm}: {sl}")
+
+                log(f"Launching stage-2 queues (subset: {survivor_subset[:120]}...)")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
+                    futures = [ex.submit(launch_box_queue, b, queues_s2[b.name],
+                                         survivor_subset) for b in boxes]
+                    for fut in concurrent.futures.as_completed(futures):
+                        nm, rc, out = fut.result()
+                        log(f"  [{nm}] rc={rc}  {out}")
+
+                _poll_until_done(boxes, args)
+
+                # Final retrieve — stage-2 seeds into args.out top-level (matches
+                # single-stage layout). Stage-1 already in args.out / stage1.
+                stage2_retrieve = _retrieve_all(boxes, args.out, queues_s2)
+                # Combine retrieve statuses: a box is "ok" only if BOTH stages are ok.
+                for nm, st in stage2_retrieve.items():
+                    prev = retrieve_results.get(nm)
+                    if prev == "ok" and st == "ok":
+                        retrieve_results[nm] = "ok"
+                    else:
+                        retrieve_results[nm] = "partial"
+        else:
+            # ---- Single-stage flow (unchanged) ----
+            queues = distribute_seeds(boxes, seeds)
+            log("Seed distribution:")
+            for nm, sl in queues.items():
+                log(f"  {nm}: {sl}")
+
+            log("Launching queues...")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
+                futures = [ex.submit(launch_box_queue, b, queues[b.name], experiments) for b in boxes]
+                for fut in concurrent.futures.as_completed(futures):
+                    nm, rc, out = fut.result()
+                    log(f"  [{nm}] rc={rc}  {out}")
+
+            _poll_until_done(boxes, args)
+            stage_retrieve = _retrieve_all(boxes, args.out, queues)
+            retrieve_results.update(stage_retrieve)
     finally:
         if not boxes:
             pass
