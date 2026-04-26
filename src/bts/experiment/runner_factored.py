@@ -5,6 +5,12 @@ run_single_screening for specific experiment categories. Enabled via
 cli flags; NOT the default path until bit-exact validation passes on
 seed=42 for every experiment category they support.
 """
+# Validation status:
+#   - Eligibility detector: tested via fast refuse-tests in
+#     tests/experiment/test_factored_runner_bitexact.py
+#   - Bit-exact numeric equivalence to run_single_screening: deferred to
+#     Task 6 of the throughput plan (Hetzner harness; ~60 min/parameter
+#     wall on local Mac, infeasible to run in CI).
 from __future__ import annotations
 
 import sys

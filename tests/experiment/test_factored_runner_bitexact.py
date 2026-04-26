@@ -116,7 +116,10 @@ def test_fast_path_refuses_ineligible_named_experiments(
 def test_pa_df() -> pd.DataFrame:
     """Load + feature-enrich a small PA frame (2 seasons for speed)."""
     proc = Path("data/processed")
-    dfs = [pd.read_parquet(p) for p in sorted(proc.glob("pa_*.parquet"))]
+    parquets = sorted(proc.glob("pa_*.parquet"))
+    if not parquets:
+        pytest.skip("data/processed/ has no PA parquets; run `bts ingest` first")
+    dfs = [pd.read_parquet(p) for p in parquets]
     df = pd.concat(dfs, ignore_index=True)
     return compute_all_features(df)
 
