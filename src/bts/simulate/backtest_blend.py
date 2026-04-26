@@ -359,6 +359,23 @@ def _train_blend_for_day(
     return blend, side_channel_names
 
 
+def _feature_cols_by_config(blend_configs: list) -> dict[str, list[str]]:
+    """Build {name: deduped_cols} from a blend_configs list.
+
+    Mirrors the dedupe logic in ``_train_blend_for_day`` so that cache
+    invalidation (which hashes feature columns) sees the same canonical column
+    list as training. Used by ``blend_walk_forward`` when cache kwargs are set.
+    """
+    out: dict[str, list[str]] = {}
+    for config in blend_configs:
+        if len(config) == 2:
+            name, cols = config
+        else:
+            name, cols, _extra = config
+        out[name] = list(dict.fromkeys(cols))
+    return out
+
+
 def blend_walk_forward(
     df: "pd.DataFrame",
     test_season: int,
@@ -367,6 +384,9 @@ def blend_walk_forward(
     blend_configs: list | None = None,
     lgb_params: dict | None = None,
     capture_per_model: bool = False,
+    cache_dir: "Path | None" = None,
+    cache_seed: int | None = None,
+    cache_reuse_configs: list[str] | None = None,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
@@ -386,6 +406,12 @@ def blend_walk_forward(
         lgb_params: LightGBM training parameters. Defaults to LGB_PARAMS.
         capture_per_model: If True, also captures per-model PA-level predictions
             for use by FWLS / Hedge experiments. Adds columns like 'm_<name>'.
+        cache_dir, cache_seed, cache_reuse_configs: Optional model cache. When
+            ALL three are provided, cached configs in ``cache_reuse_configs``
+            are loaded from ``cache_dir/seed_{cache_seed}/day_{day}/`` instead
+            of retrained, and freshly-trained configs are saved back to the
+            cache. When any are None, behavior is identical to a non-cached
+            run (default for all existing callers).
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -398,6 +424,20 @@ def blend_walk_forward(
         blend_configs = BLEND_CONFIGS
     if lgb_params is None:
         lgb_params = LGB_PARAMS
+
+    # Cache integration is off unless ALL three kwargs are provided. This
+    # preserves bit-exact behavior for every existing caller (74 tests in
+    # tests/simulate/, plus all run_single_screening callers).
+    cache_enabled = (
+        cache_dir is not None
+        and cache_seed is not None
+        and cache_reuse_configs is not None
+    )
+    if cache_enabled:
+        from bts.simulate.blend_model_cache import save_blend, load_blend
+        feature_cols_by_config = _feature_cols_by_config(blend_configs)
+    else:
+        feature_cols_by_config = None
 
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
@@ -423,11 +463,36 @@ def blend_walk_forward(
         if blend is None or (i % retrain_every == 0):
             available = pd.concat([train_pool, test_data[test_data["date"] < day]])
 
-            blend, side_channel_names = _train_blend_for_day(available, blend_configs, lgb_params)
+            cached_models: dict | None = None
+            day_str: str | None = None
+            if cache_enabled:
+                day_str = pd.Timestamp(day).strftime("%Y-%m-%d")
+                cached_models = load_blend(
+                    cache_dir, cache_seed, day_str,
+                    cache_reuse_configs, feature_cols_by_config,
+                )
+
+            blend, side_channel_names = _train_blend_for_day(
+                available, blend_configs, lgb_params, cached_models=cached_models,
+            )
+
+            if cache_enabled:
+                # Save the freshly-trained subset back to cache. save_blend
+                # safely overwrites existing entries — re-saving an already-
+                # cached model is a no-op-equivalent (model is bit-identical
+                # because seed is held constant via cache_seed).
+                save_blend(
+                    blend, cache_dir, cache_seed, day_str,
+                    feature_cols_by_config,
+                )
 
             if (i + 1) % 30 == 0 or i == 0:
+                hit_msg = ""
+                if cache_enabled and cached_models:
+                    hit_msg = f" — cache hit on {len(cached_models)}/{len(blend_configs)}"
                 print(f"  Day {i+1}/{len(test_dates)} ({pd.Timestamp(day).date()}) "
-                      f"— retrained on {len(available):,} PAs", file=sys.stderr)
+                      f"— retrained on {len(available):,} PAs{hit_msg}",
+                      file=sys.stderr)
 
         # Predict with all blend models
         blend_pa_scores = {}

@@ -185,3 +185,75 @@ def test_strategy_path_matches_full_walkforward(
         f"  current: {df_current}\n"
         f"  factored: {df_factored}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Model-swap fast-path bit-exact comparison — slow: real walk-forward.
+# Empirical reality: catboost / vrex / xendcg APPEND a 13th member rather
+# than replace one of the 12 baseline configs. The optimization is the same
+# (12/13 configs are unchanged baseline); only the cache reuse fraction
+# differs from the plan's "11 of 12" framing.
+# ---------------------------------------------------------------------------
+
+
+def _assert_scorecard_close(a, b, atol: float, key_path: str = "") -> None:
+    """Recursive close-comparison of scorecard JSON structures, skipping
+    non-deterministic fields (timestamp).
+    """
+    import math
+    if isinstance(a, dict):
+        a_keys = set(k for k in a.keys() if k != "timestamp")
+        b_keys = set(k for k in b.keys() if k != "timestamp")
+        assert a_keys == b_keys, (
+            f"key mismatch at {key_path!r}: a={sorted(a_keys)} b={sorted(b_keys)}"
+        )
+        for k in a_keys:
+            _assert_scorecard_close(a[k], b[k], atol, key_path=f"{key_path}.{k}")
+    elif isinstance(a, list):
+        assert len(a) == len(b), (
+            f"list length mismatch at {key_path!r}: {len(a)} != {len(b)}"
+        )
+        for i, (ai, bi) in enumerate(zip(a, b)):
+            _assert_scorecard_close(ai, bi, atol, key_path=f"{key_path}[{i}]")
+    elif isinstance(a, float):
+        assert math.isclose(a, b, abs_tol=atol), (
+            f"|{a} - {b}| > {atol} at {key_path!r}"
+        )
+    else:
+        assert a == b, f"value mismatch at {key_path!r}: {a!r} != {b!r}"
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("exp_name", ["catboost", "vrex", "xendcg"])
+def test_model_swap_path_matches_full_walkforward(
+    tmp_path, test_pa_df, baseline_profiles, exp_name
+):
+    """Model-replacement experiments should train 12 baseline models (cached) +
+    1 swapped (fresh) with output matching full 13-retrain within 1e-10
+    (floating-point accumulation).
+    """
+    from bts.experiment.runner import run_single_screening
+    from bts.experiment.runner_factored import run_model_swap_experiment_fast
+    from bts.validate.scorecard import compute_full_scorecard
+
+    load_all_experiments()
+    exp = get_experiment(exp_name)
+    baseline_scorecard = compute_full_scorecard(baseline_profiles)
+
+    dir_current = tmp_path / "current"
+    dir_current.mkdir()
+    run_single_screening(
+        exp, test_pa_df, baseline_scorecard, [2024, 2025], dir_current,
+        retrain_every=7,
+    )
+
+    dir_factored = tmp_path / "factored"
+    dir_factored.mkdir()
+    run_model_swap_experiment_fast(
+        exp, test_pa_df, baseline_scorecard, [2024, 2025], dir_factored,
+        retrain_every=7, cache_dir=tmp_path / "cache",
+    )
+
+    sc_current = json.loads((dir_current / exp.name / "scorecard.json").read_text())
+    sc_factored = json.loads((dir_factored / exp.name / "scorecard.json").read_text())
+    _assert_scorecard_close(sc_current, sc_factored, atol=1e-10)
