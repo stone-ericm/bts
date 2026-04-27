@@ -66,12 +66,20 @@ def diagnostics(data_dir: str, profiles_dir: str):
     help="Use factored-runner fast paths where eligible "
     "(default: False; flip to True after Task 6 validation)",
 )
+@click.option(
+    "--blend-cache-dir",
+    default=None,
+    type=click.Path(),
+    help="Override default cache dir for the model-swap fast path "
+    "(default: data/experiments/blend_cache). Only consulted with --use-factored.",
+)
 def screen(
     data_dir: str,
     subset: str | None,
     retrain_every: int,
     test_seasons: str,
     use_factored: bool,
+    blend_cache_dir: str | None,
 ):
     """Run Phase 1 independent screening."""
     import pandas as pd
@@ -132,6 +140,7 @@ def screen(
         RESULTS_BASE / "phase1", retrain_every,
         baseline_profiles=baseline_combined if use_factored else None,
         use_factored=use_factored,
+        blend_cache_dir=Path(blend_cache_dir) if blend_cache_dir else None,
     )
 
     click.echo(format_phase1_table(results))

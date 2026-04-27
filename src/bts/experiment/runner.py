@@ -160,6 +160,7 @@ def run_single_screening(
     Returns dict with keys: scorecard, diff, passed, reason, name.
     """
     if use_factored:
+        import sys as _sys
         from bts.experiment.runner_factored import (
             _is_eligible_for_strategy_fast_path,
             _is_eligible_for_model_swap_fast_path,
@@ -167,9 +168,18 @@ def run_single_screening(
             run_model_swap_experiment_fast,
         )
         strat_ok, _ = _is_eligible_for_strategy_fast_path(experiment)
-        if strat_ok and baseline_profiles is not None:
-            return run_strategy_experiment_fast(
-                experiment, baseline_profiles, baseline_scorecard, results_dir,
+        if strat_ok:
+            if baseline_profiles is not None:
+                return run_strategy_experiment_fast(
+                    experiment, baseline_profiles, baseline_scorecard, results_dir,
+                )
+            # Strategy-eligible but caller forgot baseline_profiles. This is
+            # a silent regression to the slow path — warn loudly so it shows
+            # up in audit logs (especially after Task 7b flips default to True).
+            print(
+                f"  WARN: {experiment.name} is strategy-eligible but "
+                f"baseline_profiles=None; falling through to slow path",
+                file=_sys.stderr,
             )
         model_swap_ok, _ = _is_eligible_for_model_swap_fast_path(experiment)
         if model_swap_ok:
@@ -179,7 +189,7 @@ def run_single_screening(
             )
         # Fall through to current implementation when:
         # - experiment is not eligible for any fast path
-        # - baseline_profiles missing for strategy fast path
+        # - strategy-eligible but baseline_profiles=None (warned above)
 
     from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
     from bts.simulate.backtest_blend import blend_walk_forward
