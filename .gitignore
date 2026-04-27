@@ -4,6 +4,7 @@ data/models/
 data/picks/
 data/external/odds/
 data/.heartbeat*
+experiments/validation_box.json
 __pycache__/
 *.pyc
 .venv/
