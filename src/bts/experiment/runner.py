@@ -131,6 +131,9 @@ def run_single_screening(
     test_seasons: list[int],
     results_dir: Path,
     retrain_every: int = 7,
+    baseline_profiles: pd.DataFrame | None = None,
+    use_factored: bool = False,
+    blend_cache_dir: Path | None = None,
 ) -> dict:
     """Run a single Phase 1 experiment: walk-forward → scorecard → diff → pass/fail.
 
@@ -140,8 +143,44 @@ def run_single_screening(
       3. modify_training_params (always)
       4. modify_strategy (after walk-forward, before scorecard)
 
+    When ``use_factored=True``, dispatches to ``runner_factored`` fast paths
+    where the experiment is eligible (strategy-only or model-add). Falls
+    through to the full implementation otherwise.
+
+    Args:
+        baseline_profiles: Required for the strategy fast path. When
+            ``use_factored=True`` and the experiment is strategy-only, the
+            cached baseline walk-forward output is reused 1:1.
+        use_factored: Opt-in to factored fast paths. Default False until
+            Task 6's bit-exact validation harness confirms equivalence.
+        blend_cache_dir: Cache directory for the model-swap fast path's
+            12 baseline blend models per (seed × day). When None, the
+            factored runner uses its own default.
+
     Returns dict with keys: scorecard, diff, passed, reason, name.
     """
+    if use_factored:
+        from bts.experiment.runner_factored import (
+            _is_eligible_for_strategy_fast_path,
+            _is_eligible_for_model_swap_fast_path,
+            run_strategy_experiment_fast,
+            run_model_swap_experiment_fast,
+        )
+        strat_ok, _ = _is_eligible_for_strategy_fast_path(experiment)
+        if strat_ok and baseline_profiles is not None:
+            return run_strategy_experiment_fast(
+                experiment, baseline_profiles, baseline_scorecard, results_dir,
+            )
+        model_swap_ok, _ = _is_eligible_for_model_swap_fast_path(experiment)
+        if model_swap_ok:
+            return run_model_swap_experiment_fast(
+                experiment, pa_df, baseline_scorecard, test_seasons, results_dir,
+                retrain_every=retrain_every, cache_dir=blend_cache_dir,
+            )
+        # Fall through to current implementation when:
+        # - experiment is not eligible for any fast path
+        # - baseline_profiles missing for strategy fast path
+
     from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
     from bts.simulate.backtest_blend import blend_walk_forward
     from bts.simulate.quality_bins import compute_bins
@@ -235,13 +274,28 @@ def run_screening(
     test_seasons: list[int],
     results_dir: Path,
     retrain_every: int = 7,
+    baseline_profiles: pd.DataFrame | None = None,
+    use_factored: bool = False,
+    blend_cache_dir: Path | None = None,
 ) -> list[dict]:
-    """Run Phase 1 screening for all experiments."""
+    """Run Phase 1 screening for all experiments.
+
+    Args:
+        baseline_profiles: Cached baseline walk-forward output, required
+            for the strategy fast path when ``use_factored=True``.
+        use_factored: Opt-in to factored fast paths in
+            ``run_single_screening``. Default False.
+        blend_cache_dir: Per-(seed × day) cache directory for the
+            model-swap fast path.
+    """
     results = []
     for exp in experiments:
         result = run_single_screening(
             exp, pa_df, baseline_scorecard, test_seasons,
             results_dir, retrain_every,
+            baseline_profiles=baseline_profiles,
+            use_factored=use_factored,
+            blend_cache_dir=blend_cache_dir,
         )
         results.append(result)
     return results
