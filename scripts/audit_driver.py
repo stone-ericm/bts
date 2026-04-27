@@ -28,6 +28,20 @@ Fixes 4 bugs from the 2026-04-14/15 overnight runs:
     3. Only-teardown-on-full-retrieve (Hetzner zombie risk)
     4. Relative paths in shell launches (cwd drift ambiguity)
 
+Recovery note for `--two-stage`:
+    `scripts/audit_attach.py` is the documented recovery path when the
+    driver process dies mid-run. It is NOT aware of the two-stage layout
+    (`args.out/stage1/<box>/...` for stage-1, `args.out/<box>/...` for
+    stage-2). After a deadline-exceeded mid-stage-2 run, recovery requires
+    one of:
+      (a) manually rsync `<box>:/root/projects/bts/experiments/results/
+          phase1_seed{N}/` into `args.out/stage{1,2}/<box>/` based on
+          which seeds belong to which stage (stage-1 seeds = first n1 in
+          the seed list, stage-2 seeds = next n2); or
+      (b) run `audit_attach.py` and accept that stage-1 content is now
+          duplicated under `args.out/<box>/...` alongside the original
+          `args.out/stage1/<box>/...` retrieved by the driver.
+
 Requires:
     - Provider credentials (one of):
         hetzner-cloud-token (macOS Keychain)
@@ -48,6 +62,7 @@ import base64
 import concurrent.futures
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -851,14 +866,14 @@ def _stage1_seed_dirs_via_symlinks(stage1_out: Path) -> list[Path]:
             virt = view_root / f"{box_dir.name}__seed{seed_n}"
             virt.mkdir(parents=True, exist_ok=True)
             phase1_link = virt / "phase1"
-            if phase1_link.is_symlink() or phase1_link.exists():
-                # Idempotent: replace with a link to the current path
-                if phase1_link.is_symlink():
-                    phase1_link.unlink()
-                else:
-                    # If something else is there, leave it (don't delete real dirs)
-                    seed_dirs.append(virt)
-                    continue
+            if phase1_link.is_symlink():
+                # Idempotent: replace with a link to the (possibly updated) path
+                phase1_link.unlink()
+            elif phase1_link.exists():
+                # _seeds_view is owned by this function — safe to overwrite a
+                # real dir that should have been a symlink (likely from a
+                # buggy prior run).
+                shutil.rmtree(phase1_link)
             phase1_link.symlink_to(seed_dir.resolve())
             seed_dirs.append(virt)
     return seed_dirs
@@ -1021,6 +1036,9 @@ def main():
 
         if args.two_stage:
             # ---- Two-stage screening ----
+            log("WARN: --two-stage active; audit_attach.py is not stage-aware. "
+                "Mid-stage-2 deadline-exceeded recovery requires manual rsync "
+                "into args.out/stage{1,2}/<box>/.")
             n1 = args.stage_one_seeds
             n2 = args.stage_two_seeds
             if len(seeds) < n1:
@@ -1094,6 +1112,10 @@ def main():
                     log(f"  {nm}: {sl}")
 
                 log(f"Launching stage-2 queues (subset: {survivor_subset[:120]}...)")
+                # Note: launch_box_queue's `rm -f /root/audit.log /root/audit.done`
+                # clears stage-1's remote logs; they were already retrieved into
+                # args.out/stage1/<box>/audit.log above, so the overwrite is
+                # intentional and safe.
                 with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
                     futures = [ex.submit(launch_box_queue, b, queues_s2[b.name],
                                          survivor_subset) for b in boxes]
