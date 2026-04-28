@@ -667,7 +667,7 @@ for SEED in {seed_list_str}; do
   rm -rf {BTS}/experiments/results/phase1
   mkdir -p {BTS}/experiments/results/phase1
   cd {BTS}
-  BTS_LGBM_RANDOM_STATE=$SEED {ENV} \\
+  BTS_LGBM_RANDOM_STATE=$SEED BTS_LGBM_DETERMINISTIC=1 {ENV} \\
     uv run bts experiment screen --subset "{exp_list}" \\
     --test-seasons 2024,2025 >> /root/audit.log 2>&1
   rc=$?
