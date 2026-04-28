@@ -62,9 +62,10 @@ def diagnostics(data_dir: str, profiles_dir: str):
 @click.option("--test-seasons", default="2024,2025", help="Comma-separated test seasons")
 @click.option(
     "--use-factored/--no-use-factored",
-    default=False,
+    default=True,
     help="Use factored-runner fast paths where eligible "
-    "(default: False; flip to True after Task 6 validation)",
+    "(default: True; flipped 2026-04-28 after Stage 2 v2 PASS — "
+    "AX102 validated all 32 experiments byte-equivalent at atol=1e-10)",
 )
 @click.option(
     "--blend-cache-dir",
