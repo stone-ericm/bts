@@ -1105,6 +1105,18 @@ def run_day(
             save_state(state, picks_dir)
             print(f"  Day complete. Result: {status}", file=sys.stderr)
 
+    # End-of-day calibration drift check. Pure observation — never modifies
+    # picks. Wrapped in try/except so an alerting bug can't break the
+    # scheduler's pick lifecycle. Sends Bluesky DM only on CRITICAL alerts.
+    cal_config = config.get("calibration_check", {})
+    if cal_config.get("enabled", True):
+        from bts.calibration_check import run_calibration_check
+        dm_recipient = config.get("bluesky", {}).get("dm_recipient")
+        try:
+            run_calibration_check(picks_dir=picks_dir, dm_recipient=dm_recipient)
+        except Exception as e:
+            print(f"  calibration_check: unexpected error (suppressed): {e}", file=sys.stderr)
+
     write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
     notify_watchdog()
 
