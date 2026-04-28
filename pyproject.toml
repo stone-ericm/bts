@@ -31,6 +31,9 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+markers = [
+    "slow: deselect with -m 'not slow'",
+]
 
 [dependency-groups]
 dev = [

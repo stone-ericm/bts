@@ -24,6 +24,53 @@ class LambdaRankExperiment(ExperimentDef):
         ]
 
 
+class LambdaRankTop1Experiment(ExperimentDef):
+    """LambdaRank tuned specifically for top-1 ranking (Tier 5 lit-import).
+
+    The existing LambdaRankExperiment uses ``lambdarank_truncation_level=1`` to
+    truncate pairwise comparisons at position 1, but otherwise leaves
+    LightGBM's defaults in place (``eval_at`` defaults to multiple positions,
+    ``label_gain`` to a multi-grade gain table).
+
+    For the BTS task — picking ONE batter per day — every NDCG signal except
+    @1 is wasted training pressure. This variant pins ``eval_at=[1]`` and
+    ``ndcg_eval_at=[1]`` so internal NDCG calculations only consider the top
+    of the list, configures ``label_gain=[0, 1]`` for binary relevance
+    (no multi-grade), and sets explicit boost hyperparams to make the
+    comparison reproducible against the existing lambdarank run.
+
+    Eligible for the model-swap fast path: appends a 13th blend config
+    without touching features or LGB_PARAMS.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="lambdarank_top1",
+            phase=1,
+            category="model",
+            description="LambdaRank tuned for top-1 ranking (NDCG@1 + binary label_gain)",
+        )
+
+    def modify_blend_configs(self, configs):
+        return configs + [
+            (
+                "lambdarank_top1",
+                FEATURE_COLS,
+                {
+                    "objective": "lambdarank",
+                    "eval_at": [1],
+                    "ndcg_eval_at": [1],
+                    "label_gain": [0, 1],
+                    "lambdarank_truncation_level": 1,
+                    "n_estimators": 200,
+                    "learning_rate": 0.05,
+                    "max_depth": 6,
+                    "num_leaves": 31,
+                },
+            ),
+        ]
+
+
 class CatBoostExperiment(ExperimentDef):
     """Add a CatBoost model with has_time=True as blend member."""
 
@@ -78,6 +125,7 @@ class VRExExperiment(ExperimentDef):
 
 
 register(LambdaRankExperiment())
+register(LambdaRankTop1Experiment())
 register(CatBoostExperiment())
 register(XENDCGExperiment())
 register(VRExExperiment())

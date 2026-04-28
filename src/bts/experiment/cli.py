@@ -60,7 +60,27 @@ def diagnostics(data_dir: str, profiles_dir: str):
 @click.option("--subset", default=None, help="Comma-separated experiment names to run")
 @click.option("--retrain-every", default=7, type=int)
 @click.option("--test-seasons", default="2024,2025", help="Comma-separated test seasons")
-def screen(data_dir: str, subset: str | None, retrain_every: int, test_seasons: str):
+@click.option(
+    "--use-factored/--no-use-factored",
+    default=False,
+    help="Use factored-runner fast paths where eligible "
+    "(default: False; flip to True after Task 6 validation)",
+)
+@click.option(
+    "--blend-cache-dir",
+    default=None,
+    type=click.Path(),
+    help="Override default cache dir for the model-swap fast path "
+    "(default: data/experiments/blend_cache). Only consulted with --use-factored.",
+)
+def screen(
+    data_dir: str,
+    subset: str | None,
+    retrain_every: int,
+    test_seasons: str,
+    use_factored: bool,
+    blend_cache_dir: str | None,
+):
     """Run Phase 1 independent screening."""
     import pandas as pd
     from bts.features.compute import compute_all_features
@@ -90,23 +110,37 @@ def screen(data_dir: str, subset: str | None, retrain_every: int, test_seasons: 
     df = compute_all_features(df)
 
     baseline_path = RESULTS_BASE / "phase1" / "baseline_scorecard.json"
-    if baseline_path.exists():
+    baseline_combined: pd.DataFrame | None = None
+
+    if baseline_path.exists() and not use_factored:
         baseline_scorecard = json.loads(baseline_path.read_text())
         click.echo("Loaded cached baseline scorecard.")
     else:
-        click.echo("Computing baseline scorecard...")
-        baseline_profiles = []
+        # Compute baseline profiles when:
+        #   - cached scorecard missing (always required), OR
+        #   - use_factored=True (strategy fast path needs profiles in-memory)
+        if use_factored and baseline_path.exists():
+            click.echo(
+                "Computing baseline profiles (cached scorecard exists, but "
+                "--use-factored requires in-memory profiles)..."
+            )
+        else:
+            click.echo("Computing baseline scorecard...")
+        baseline_profiles_list = []
         for season in seasons:
             profiles = blend_walk_forward(df, season, retrain_every=retrain_every)
             profiles["season"] = season
-            baseline_profiles.append(profiles)
-        baseline_combined = pd.concat(baseline_profiles, ignore_index=True)
+            baseline_profiles_list.append(profiles)
+        baseline_combined = pd.concat(baseline_profiles_list, ignore_index=True)
         baseline_scorecard = compute_full_scorecard(baseline_combined)
         save_scorecard(baseline_scorecard, baseline_path)
 
     results = run_screening(
         experiments, df, baseline_scorecard, seasons,
         RESULTS_BASE / "phase1", retrain_every,
+        baseline_profiles=baseline_combined if use_factored else None,
+        use_factored=use_factored,
+        blend_cache_dir=Path(blend_cache_dir) if blend_cache_dir else None,
     )
 
     click.echo(format_phase1_table(results))

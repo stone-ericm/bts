@@ -286,3 +286,88 @@ class TestPollResilience:
         assert done_count == 1
         b1_line = next(l for l in lines if l[0] == "b1")
         assert b1_line[1] is True
+
+
+# ---------------------------------------------------------------------------
+# _stage1_seed_dirs_via_symlinks tests
+# ---------------------------------------------------------------------------
+
+def _seed_layout(stage1_out: Path, box: str, seed: int, exp: str, payload: dict) -> None:
+    """Helper: write a synthetic <stage1_out>/<box>/phase1_seed{seed}/<exp>/diff.json."""
+    import json
+    seed_dir = stage1_out / box / f"phase1_seed{seed}" / exp
+    seed_dir.mkdir(parents=True, exist_ok=True)
+    (seed_dir / "diff.json").write_text(json.dumps(payload))
+
+
+class TestStage1SeedDirsViaSymlinks:
+    """Cover _stage1_seed_dirs_via_symlinks bridging logic.
+
+    Helper takes the audit-output layout
+        <stage1_out>/<box>/phase1_seed{N}/<exp>/diff.json
+    and produces virtual seed dirs
+        <stage1_out>/_seeds_view/<box>__seed{N}/phase1 -> phase1_seed{N}
+    that aggregate_stage_one_results can consume directly.
+    """
+
+    def test_stage1_seed_dirs_clean_creation(self, tmp_path):
+        from audit_driver import _stage1_seed_dirs_via_symlinks
+
+        # Box1 has seeds 42 and 99; box2 has seed 42 only.
+        _seed_layout(tmp_path, "box1", 42, "exp_a", {"precision": {"1": {"delta": 0.005}}})
+        _seed_layout(tmp_path, "box1", 99, "exp_a", {"precision": {"1": {"delta": 0.002}}})
+        _seed_layout(tmp_path, "box2", 42, "exp_a", {"precision": {"1": {"delta": -0.001}}})
+
+        seed_dirs = _stage1_seed_dirs_via_symlinks(tmp_path)
+
+        assert len(seed_dirs) == 3
+        # Each virt dir has a working phase1 symlink resolving to the right
+        # phase1_seed{N} target directory.
+        for virt in seed_dirs:
+            phase1 = virt / "phase1"
+            assert phase1.is_symlink()
+            target = phase1.resolve()
+            assert target.exists()
+            assert target.name.startswith("phase1_seed")
+            # diff.json under the link must be reachable.
+            assert (phase1 / "exp_a" / "diff.json").is_file()
+
+    def test_stage1_seed_dirs_idempotent(self, tmp_path):
+        from audit_driver import _stage1_seed_dirs_via_symlinks
+
+        _seed_layout(tmp_path, "box1", 42, "exp_a", {"precision": {"1": {"delta": 0.005}}})
+        _seed_layout(tmp_path, "box1", 99, "exp_a", {"precision": {"1": {"delta": 0.002}}})
+        _seed_layout(tmp_path, "box2", 42, "exp_a", {"precision": {"1": {"delta": -0.001}}})
+
+        first = _stage1_seed_dirs_via_symlinks(tmp_path)
+        first_targets = {p: (p / "phase1").resolve() for p in first}
+
+        second = _stage1_seed_dirs_via_symlinks(tmp_path)
+        second_targets = {p: (p / "phase1").resolve() for p in second}
+
+        # Identical paths AND identical resolved symlink targets.
+        assert sorted(first) == sorted(second)
+        assert first_targets == second_targets
+
+    def test_stage1_seed_dirs_integration_with_aggregate(self, tmp_path):
+        from audit_driver import _stage1_seed_dirs_via_symlinks
+        from bts.experiment.two_stage import aggregate_stage_one_results
+
+        # 4 seeds × 2 experiments. good_exp positive, bad_exp negative.
+        for box, seed in [("box1", 42), ("box1", 99), ("box2", 42), ("box2", 99)]:
+            _seed_layout(tmp_path, box, seed, "good_exp",
+                         {"precision": {"1": {"delta": 0.005}}})
+            _seed_layout(tmp_path, box, seed, "bad_exp",
+                         {"precision": {"1": {"delta": -0.003}}})
+
+        seed_dirs = _stage1_seed_dirs_via_symlinks(tmp_path)
+        assert len(seed_dirs) == 4
+
+        results = aggregate_stage_one_results(seed_dirs, ["good_exp", "bad_exp"])
+
+        assert "good_exp" in results
+        assert "bad_exp" in results
+        assert results["good_exp"].wins == 4
+        assert results["bad_exp"].wins == 0
+        assert results["good_exp"].seeds_run == 4
+        assert results["bad_exp"].seeds_run == 4
