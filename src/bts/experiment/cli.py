@@ -151,7 +151,16 @@ def screen(
 @click.option("--data-dir", default="data/processed", type=click.Path())
 @click.option("--retrain-every", default=7, type=int)
 @click.option("--test-seasons", default="2024,2025")
-def select(data_dir: str, retrain_every: int, test_seasons: str):
+@click.option(
+    "--seeds",
+    default=None,
+    help="Comma-separated seeds to pool across (e.g. '42,43,44'). "
+    "When provided, decisions use mean ΔP(57) across paired seed comparisons "
+    "instead of single-seed P(57). Recommended after 2026-04-28 because "
+    "single-seed=42 is at the 95th percentile of the n=100 baseline distribution, "
+    "creating a P(57) ceiling that rejects real winners.",
+)
+def select(data_dir: str, retrain_every: int, test_seasons: str, seeds: str | None):
     """Run Phase 2 forward stepwise selection."""
     import pandas as pd
     from bts.features.compute import compute_all_features
@@ -195,9 +204,15 @@ def select(data_dir: str, retrain_every: int, test_seasons: str):
     for w in winners:
         experiments_by_name[w["name"]] = get_experiment(w["name"])
 
+    seed_list = None
+    if seeds:
+        seed_list = [int(s.strip()) for s in seeds.split(",") if s.strip()]
+        click.echo(f"Multi-seed Phase 2: pooling across {len(seed_list)} seeds")
+
     selection_result = run_selection(
         winners, experiments_by_name, df, seasons,
         RESULTS_BASE / "phase2", retrain_every,
+        seeds=seed_list,
     )
 
     click.echo(format_phase2_log(selection_result))

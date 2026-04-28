@@ -13,6 +13,70 @@ from bts.experiment.base import ExperimentDef
 
 
 # ---------------------------------------------------------------------------
+# Blend config composition (used by Phase 1 and Phase 2)
+# ---------------------------------------------------------------------------
+
+def compose_blend_args(
+    experiments: list[ExperimentDef],
+) -> tuple[list, dict, bool]:
+    """Compose blend_configs / lgb_params / capture_per_model from stacked experiments.
+
+    For each experiment that overrides ``feature_cols()``, its added columns
+    are unioned into a per-blend-config base feature list. Per-config Statcast
+    "extras" are preserved so single-Statcast variants still work. Each
+    experiment's ``modify_blend_configs`` and ``modify_training_params`` are
+    applied in order. ``capture_per_model`` is True if ANY experiment
+    requires it.
+
+    Returns:
+        (blend_configs, lgb_params, capture_per_model)
+
+    This was extracted from ``run_single_screening`` 2026-04-28 so Phase 2
+    forward selection (``run_selection``) can apply the same logic. Before
+    the extraction, ``run_selection`` called ``blend_walk_forward`` with
+    the default BLEND_CONFIGS, so feature additions never reached training.
+    """
+    from bts.features.compute import FEATURE_COLS
+    from bts.model.predict import BLEND_CONFIGS, LGB_PARAMS
+
+    # Union all added features (preserve insertion order for determinism).
+    base_features = list(FEATURE_COLS)
+    for exp in experiments:
+        new_fc = exp.feature_cols()
+        if new_fc is not None:
+            for c in new_fc:
+                if c not in base_features:
+                    base_features.append(c)
+
+    # Rewrite each blend config: replace its FEATURE_COLS slice with
+    # base_features (which is FEATURE_COLS + experiment additions),
+    # preserving any per-config extras (Statcast variant features).
+    rewritten = []
+    for config in BLEND_CONFIGS:
+        name, cols = config[0], config[1]
+        extras = [c for c in cols if c not in FEATURE_COLS]
+        new_cols = list(base_features) + extras
+        if len(config) == 3:
+            rewritten.append((name, new_cols, config[2]))
+        else:
+            rewritten.append((name, new_cols))
+
+    # Apply each experiment's modify_blend_configs in order.
+    blend_configs = rewritten
+    for exp in experiments:
+        blend_configs = exp.modify_blend_configs(blend_configs)
+
+    # Compose lgb_params by stacking each experiment's modifications.
+    lgb_params = dict(LGB_PARAMS)
+    for exp in experiments:
+        lgb_params = exp.modify_training_params(lgb_params)
+
+    capture_per_model = any(exp.requires_per_model_capture() for exp in experiments)
+
+    return blend_configs, lgb_params, capture_per_model
+
+
+# ---------------------------------------------------------------------------
 # JSON helpers
 # ---------------------------------------------------------------------------
 
@@ -337,6 +401,7 @@ def run_selection(
     test_seasons: list[int],
     results_dir: Path,
     retrain_every: int = 7,
+    seeds: list[int] | None = None,
 ) -> dict:
     """Run Phase 2: forward stepwise selection + backward elimination.
 
@@ -346,65 +411,138 @@ def run_selection(
         pa_df: Full PA DataFrame (with features already computed).
         test_seasons: Seasons to evaluate on.
         results_dir: Directory for phase2 results.
+        retrain_every: Walk-forward retrain interval.
+        seeds: Optional list of seeds to pool across. If provided, each
+            forward/backward step is evaluated at every seed and decisions
+            use the mean ΔP(57) across paired seed comparisons. This was
+            added 2026-04-28 because single-seed Phase 2 at production
+            seed=42 hits a P(57) ceiling effect — seed=42's baseline P(57)
+            is at the 95th percentile of the n=100 distribution, so real
+            winners with positive pooled ΔP(57) get rejected. If seeds is
+            None, behavior matches pre-2026-04-28 single-seed mode.
 
     Returns:
         Dict with forward_log, backward_log, final_scorecard, final_diff, included.
     """
+    import os
+    from statistics import mean as _mean
     from bts.simulate.backtest_blend import blend_walk_forward
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards, save_scorecard
 
-    print(f"\n[Phase 2] Forward selection with {len(winners)} candidates", file=sys.stderr)
+    multi_seed = seeds is not None and len(seeds) > 0
+    eval_seeds = list(seeds) if multi_seed else [None]
 
-    # Compute baseline
-    baseline_profiles = []
-    for season in test_seasons:
-        profiles = blend_walk_forward(pa_df, season, retrain_every=retrain_every)
-        profiles["season"] = season
-        baseline_profiles.append(profiles)
-    baseline_combined = pd.concat(baseline_profiles, ignore_index=True)
-    baseline_scorecard = compute_full_scorecard(baseline_combined)
-    current_p57 = baseline_scorecard.get("p_57_mdp", 0) or 0
+    print(
+        f"\n[Phase 2] Forward selection with {len(winners)} candidates"
+        + (f" (multi-seed n={len(seeds)})" if multi_seed else ""),
+        file=sys.stderr,
+    )
+
+    def _walk(df, blend_configs, lgb_params, capture):
+        """Run walk-forward across all test_seasons with the given blend args."""
+        out = []
+        for season in test_seasons:
+            profiles = blend_walk_forward(
+                df, season,
+                retrain_every=retrain_every,
+                blend_configs=blend_configs,
+                lgb_params=lgb_params,
+                capture_per_model=capture,
+            )
+            profiles["season"] = season
+            out.append(profiles)
+        return pd.concat(out, ignore_index=True)
+
+    def _evaluate(df, stacked_experiments):
+        """Run walk-forward + scorecard at each seed in eval_seeds.
+
+        Returns (mean_p57, p57_per_seed_dict, scorecard_at_first_seed).
+        scorecard_at_first_seed is the scorecard from the first seed, used
+        for downstream diff/save (matching pre-existing single-seed semantics).
+        """
+        bc, lp, cap = compose_blend_args(stacked_experiments)
+        p57_per_seed = {}
+        first_scorecard = None
+        first_combined = None
+        for seed in eval_seeds:
+            prev_env = None
+            if seed is not None:
+                prev_env = os.environ.get("BTS_LGBM_RANDOM_STATE")
+                os.environ["BTS_LGBM_RANDOM_STATE"] = str(seed)
+            try:
+                combined = _walk(df, bc, lp, cap)
+            finally:
+                if seed is not None:
+                    if prev_env is None:
+                        os.environ.pop("BTS_LGBM_RANDOM_STATE", None)
+                    else:
+                        os.environ["BTS_LGBM_RANDOM_STATE"] = prev_env
+            sc = compute_full_scorecard(combined)
+            p57 = sc.get("p_57_mdp", 0) or 0
+            seed_key = seed if seed is not None else "default"
+            p57_per_seed[seed_key] = p57
+            if first_scorecard is None:
+                first_scorecard = sc
+                first_combined = combined
+        return _mean(p57_per_seed.values()), p57_per_seed, first_scorecard, first_combined
+
+    # Compute baseline at every seed (or single default seed when seeds=None).
+    current_p57, current_p57_per_seed, baseline_scorecard, baseline_combined = _evaluate(pa_df, [])
 
     included: list[str] = []
     forward_log: list[dict] = []
     current_df = pa_df.copy()
 
-    # Forward selection
+    # Forward selection — pooled mean ΔP(57) across seeds drives keep/drop.
     for winner in winners:
         name = winner["name"]
         exp = experiments_by_name[name]
         print(f"  Trying +{name}...", file=sys.stderr)
 
         candidate_df = exp.modify_features(current_df.copy())
-        candidate_profiles = []
-        for season in test_seasons:
-            profiles = blend_walk_forward(candidate_df, season, retrain_every=retrain_every)
-            profiles["season"] = season
-            candidate_profiles.append(profiles)
-        candidate_combined = pd.concat(candidate_profiles, ignore_index=True)
-        candidate_scorecard = compute_full_scorecard(candidate_combined)
-        candidate_p57 = candidate_scorecard.get("p_57_mdp", 0) or 0
+        stacked = [experiments_by_name[n] for n in included] + [exp]
+        candidate_p57, candidate_p57_per_seed, _, _ = _evaluate(candidate_df, stacked)
+
+        # Paired delta per seed → mean. Falls back to single-value subtraction
+        # in single-seed mode (the dicts have one key each).
+        per_seed_deltas = {
+            k: candidate_p57_per_seed[k] - current_p57_per_seed[k]
+            for k in candidate_p57_per_seed
+        }
+        mean_delta = _mean(per_seed_deltas.values())
 
         step = {
             "name": name,
             "p57_before": current_p57,
             "p57_after": candidate_p57,
-            "delta": candidate_p57 - current_p57,
-            "kept": candidate_p57 > current_p57,
+            "delta": mean_delta,
+            "kept": mean_delta > 0,
         }
+        if multi_seed:
+            step["p57_before_per_seed"] = current_p57_per_seed
+            step["p57_after_per_seed"] = candidate_p57_per_seed
+            step["delta_per_seed"] = per_seed_deltas
         forward_log.append(step)
 
-        if candidate_p57 > current_p57:
-            print(f"  ✓ Kept {name}: P(57) {current_p57:.4f} → {candidate_p57:.4f}", file=sys.stderr)
+        if mean_delta > 0:
+            print(
+                f"  ✓ Kept {name}: pooled mean ΔP(57) {mean_delta:+.5f}"
+                f" ({current_p57:.4f} → {candidate_p57:.4f})",
+                file=sys.stderr,
+            )
             included.append(name)
             current_df = candidate_df
             current_p57 = candidate_p57
+            current_p57_per_seed = candidate_p57_per_seed
         else:
-            print(f"  ✗ Dropped {name}: P(57) did not improve", file=sys.stderr)
+            print(
+                f"  ✗ Dropped {name}: pooled mean ΔP(57) {mean_delta:+.5f} (not positive)",
+                file=sys.stderr,
+            )
 
     print(f"\n  Forward selection: {len(included)} experiments included", file=sys.stderr)
 
-    # Backward elimination
+    # Backward elimination — remove each in turn, see if pooled P(57) holds.
     backward_log: list[dict] = []
     for name in list(included):
         print(f"  Trying -{name}...", file=sys.stderr)
@@ -413,42 +551,45 @@ def run_selection(
             if kept_name != name:
                 test_df = experiments_by_name[kept_name].modify_features(test_df)
 
-        test_profiles = []
-        for season in test_seasons:
-            profiles = blend_walk_forward(test_df, season, retrain_every=retrain_every)
-            profiles["season"] = season
-            test_profiles.append(profiles)
-        test_combined = pd.concat(test_profiles, ignore_index=True)
-        test_scorecard = compute_full_scorecard(test_combined)
-        test_p57 = test_scorecard.get("p_57_mdp", 0) or 0
+        stacked = [experiments_by_name[n] for n in included if n != name]
+        test_p57, test_p57_per_seed, _, _ = _evaluate(test_df, stacked)
+
+        per_seed_deltas = {
+            k: current_p57_per_seed[k] - test_p57_per_seed[k]
+            for k in test_p57_per_seed
+        }
+        mean_loss = _mean(per_seed_deltas.values())
 
         step = {
             "name": name,
             "p57_with": current_p57,
             "p57_without": test_p57,
-            "delta": current_p57 - test_p57,
-            "kept": test_p57 < current_p57,
+            "delta": mean_loss,
+            "kept": mean_loss > 0,
         }
+        if multi_seed:
+            step["p57_with_per_seed"] = current_p57_per_seed
+            step["p57_without_per_seed"] = test_p57_per_seed
+            step["delta_per_seed"] = per_seed_deltas
         backward_log.append(step)
 
-        if test_p57 >= current_p57:
-            print(f"  ✗ Removed {name}: not needed", file=sys.stderr)
+        if mean_loss <= 0:
+            print(f"  ✗ Removed {name}: pooled removing helps or neutral", file=sys.stderr)
             included.remove(name)
+            current_p57 = test_p57
+            current_p57_per_seed = test_p57_per_seed
         else:
-            print(f"  ✓ Kept {name}: removing hurts P(57)", file=sys.stderr)
+            print(f"  ✓ Kept {name}: pooled removing hurts P(57) by {mean_loss:+.5f}", file=sys.stderr)
 
-    # Final scorecard
+    # Final scorecard — blend args for the FINAL included set, evaluated at
+    # the first seed (single-seed mode) or first eval seed (multi-seed mode).
+    # The full per-seed P(57) array is logged in forward/backward logs already.
     final_df = pa_df.copy()
     for name in included:
         final_df = experiments_by_name[name].modify_features(final_df)
 
-    final_profiles = []
-    for season in test_seasons:
-        profiles = blend_walk_forward(final_df, season, retrain_every=retrain_every)
-        profiles["season"] = season
-        final_profiles.append(profiles)
-    final_combined = pd.concat(final_profiles, ignore_index=True)
-    final_scorecard = compute_full_scorecard(final_combined)
+    final_stacked = [experiments_by_name[n] for n in included]
+    final_p57, final_p57_per_seed, final_scorecard, _ = _evaluate(final_df, final_stacked)
     final_diff = diff_scorecards(baseline_scorecard, final_scorecard)
 
     # Save
