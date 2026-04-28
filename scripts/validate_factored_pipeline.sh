@@ -12,7 +12,7 @@ mkdir -p "$OUT/run_a" "$OUT/run_b"
 
 echo "=== Run A: current pipeline ==="
 rm -rf experiments/results/phase1
-UV_CACHE_DIR=/tmp/uv-cache BTS_LGBM_RANDOM_STATE=42 \
+UV_CACHE_DIR=/tmp/uv-cache BTS_LGBM_RANDOM_STATE=42 BTS_LGBM_DETERMINISTIC=1 \
     uv run bts experiment screen \
     --subset "$(cat scripts/audit_experiments.txt)" \
     --test-seasons 2024,2025
@@ -20,7 +20,7 @@ cp -r experiments/results/phase1 "$OUT/run_a/"
 
 echo "=== Run B: factored pipeline ==="
 rm -rf experiments/results/phase1
-UV_CACHE_DIR=/tmp/uv-cache BTS_LGBM_RANDOM_STATE=42 \
+UV_CACHE_DIR=/tmp/uv-cache BTS_LGBM_RANDOM_STATE=42 BTS_LGBM_DETERMINISTIC=1 \
     uv run bts experiment screen \
     --subset "$(cat scripts/audit_experiments.txt)" \
     --test-seasons 2024,2025 \
