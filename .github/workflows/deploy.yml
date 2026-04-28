@@ -35,7 +35,15 @@ jobs:
             echo "Pre-deploy SHA: $(echo $OLD_SHA | cut -c1-7)"
 
             sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
-            sudo -Hu bts git pull --ff-only
+            # Hard-reset the working tree to whatever was just pushed to `deploy`.
+            # Previously used `git pull --ff-only` which pulled origin/main (bts-mlb's
+            # tracked branch) — but `git push origin main:deploy` only advances
+            # origin/deploy, leaving origin/main behind. Result was silent no-op
+            # deploys: workflow succeeded, scheduler restarted, but no new code.
+            # Hard-reset to origin/deploy makes the deploy atomic: a single push
+            # to deploy is sufficient, and the working tree is guaranteed to match.
+            sudo -Hu bts git fetch origin
+            sudo -Hu bts git reset --hard origin/deploy
             sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
             # Self-heal: legacy system-level units (created before April 11)
             # race the canonical user-level units. Remove if present.
