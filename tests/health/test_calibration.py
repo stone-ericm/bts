@@ -19,8 +19,8 @@ import pytest
 
 from unittest.mock import patch, MagicMock
 
-from bts.calibration_check import (
-    Alert,
+from bts.health.alert import Alert
+from bts.health.calibration import (
     DriftMetrics,
     DEFAULT_THRESHOLDS,
     compute_drift_metrics,
@@ -232,7 +232,7 @@ class TestEvaluateDrift:
 
     def test_alerts_are_frozen(self):
         # Alerts are immutable (frozen dataclass) so they can be used as keys / hashed
-        a = Alert(level="INFO", message="test")
+        a = Alert(level="INFO", source="x", message="test")
         with pytest.raises(Exception):
             a.level = "WARN"  # type: ignore
 
@@ -244,7 +244,7 @@ class TestRunCalibrationCheck:
 
     def test_no_alerts_no_dm(self, tmp_path):
         # Empty picks dir → no alerts → no DM
-        with patch("bts.calibration_check.send_dm") as mock_dm:
+        with patch("bts.health.alert.send_dm") as mock_dm:
             alerts = run_calibration_check(picks_dir=tmp_path, dm_recipient="x.bsky.social")
             assert alerts == []
             mock_dm.assert_not_called()
@@ -252,7 +252,7 @@ class TestRunCalibrationCheck:
     def test_warn_alert_logs_but_no_dm(self, tmp_path):
         # WARN-level alerts log but DON'T send DM (CRITICAL only)
         _write_pick(tmp_path, "2026-04-15", 0.65)  # below 0.70 floor → WARN
-        with patch("bts.calibration_check.send_dm") as mock_dm:
+        with patch("bts.health.alert.send_dm") as mock_dm:
             alerts = run_calibration_check(
                 picks_dir=tmp_path, dm_recipient="x.bsky.social",
                 today=date(2026, 4, 15),
@@ -268,7 +268,7 @@ class TestRunCalibrationCheck:
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.84)
         for i in range(8, 15):
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.70)
-        with patch("bts.calibration_check.send_dm") as mock_dm:
+        with patch("bts.health.alert.send_dm") as mock_dm:
             mock_dm.return_value = "msg-id-123"
             alerts = run_calibration_check(
                 picks_dir=tmp_path, dm_recipient="x.bsky.social",
@@ -288,7 +288,7 @@ class TestRunCalibrationCheck:
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.84)
         for i in range(8, 15):
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.70)
-        with patch("bts.calibration_check.send_dm", side_effect=RuntimeError("network down")):
+        with patch("bts.health.alert.send_dm", side_effect=RuntimeError("network down")):
             alerts = run_calibration_check(
                 picks_dir=tmp_path, dm_recipient="x.bsky.social",
                 today=date(2026, 4, 14),
@@ -311,7 +311,7 @@ class TestRunCalibrationCheck:
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.84)
         for i in range(8, 15):
             _write_pick(tmp_path, f"2026-04-{i:02d}", 0.70)
-        with patch("bts.calibration_check.send_dm") as mock_dm:
+        with patch("bts.health.alert.send_dm") as mock_dm:
             alerts = run_calibration_check(
                 picks_dir=tmp_path, dm_recipient=None,
                 today=date(2026, 4, 14),

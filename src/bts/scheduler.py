@@ -1105,17 +1105,29 @@ def run_day(
             save_state(state, picks_dir)
             print(f"  Day complete. Result: {status}", file=sys.stderr)
 
-    # End-of-day calibration drift check. Pure observation — never modifies
-    # picks. Wrapped in try/except so an alerting bug can't break the
-    # scheduler's pick lifecycle. Sends Bluesky DM only on CRITICAL alerts.
-    cal_config = config.get("calibration_check", {})
-    if cal_config.get("enabled", True):
-        from bts.calibration_check import run_calibration_check
+    # End-of-day health checks. Pure observation — never modifies picks.
+    # Each check is failure-isolated; the runner catches per-check errors.
+    # Sends a single Bluesky DM if any CRITICAL alerts triggered.
+    health_config = config.get("health_checks", {})
+    if health_config.get("enabled", True):
+        from bts.health.runner import (
+            run_all_checks, read_systemd_nrestarts, get_self_pid,
+        )
         dm_recipient = config.get("bluesky", {}).get("dm_recipient")
+        models_dir = Path(
+            config.get("orchestrator", {}).get("models_dir", "data/models")
+        )
         try:
-            run_calibration_check(picks_dir=picks_dir, dm_recipient=dm_recipient)
+            run_all_checks(
+                picks_dir=picks_dir,
+                models_dir=models_dir,
+                dm_recipient=dm_recipient,
+                scheduler_pid=get_self_pid(),
+                current_nrestarts=read_systemd_nrestarts(),
+                thresholds_overrides=health_config.get("thresholds"),
+            )
         except Exception as e:
-            print(f"  calibration_check: unexpected error (suppressed): {e}", file=sys.stderr)
+            print(f"  health_checks: unexpected error (suppressed): {e}", file=sys.stderr)
 
     write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
     notify_watchdog()

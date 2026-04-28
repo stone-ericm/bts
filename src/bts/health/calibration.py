@@ -24,15 +24,11 @@ from datetime import date, timedelta
 from pathlib import Path
 from statistics import mean
 
-from bts.dm import send_dm
+from bts.health.alert import Alert, dispatch_dm_for_critical, log_alerts
 
 log = logging.getLogger(__name__)
 
-
-@dataclass(frozen=True)
-class Alert:
-    level: str  # "INFO" | "WARN" | "CRITICAL"
-    message: str
+SOURCE = "calibration_drift"
 
 
 @dataclass(frozen=True)
@@ -138,6 +134,7 @@ def evaluate_drift(
         if latest_p < t["single_day_floor"]:
             alerts.append(Alert(
                 level="WARN",
+                source=SOURCE,
                 message=f"top-1 P on {latest} = {latest_p:.4f} below floor {t['single_day_floor']:.2f}",
             ))
 
@@ -149,6 +146,7 @@ def evaluate_drift(
         if all(p < t["sustained_floor"] for p in recent_ps):
             alerts.append(Alert(
                 level="WARN",
+                source=SOURCE,
                 message=(
                     f"{n_days} consecutive days top-1 P < {t['sustained_floor']:.2f} "
                     f"({recent[0]}..{recent[-1]}: {[round(p, 3) for p in recent_ps]})"
@@ -169,13 +167,28 @@ def evaluate_drift(
         if level is not None:
             alerts.append(Alert(
                 level=level,
+                source=SOURCE,
                 message=(
-                    f"calibration drift {drop:+.4f}: "
+                    f"drift {drop:+.4f}: "
                     f"7d mean {metrics.rolling_7d_mean:.4f} vs 14d baseline {metrics.rolling_14d_mean:.4f}"
                 ),
             ))
 
     return alerts
+
+
+def check(
+    picks_dir: Path,
+    today: date | None = None,
+    thresholds: dict | None = None,
+) -> list[Alert]:
+    """Top-level entrypoint for the runner. Returns alerts (no I/O beyond reading)."""
+    try:
+        metrics = compute_drift_metrics(picks_dir, today=today)
+        return evaluate_drift(metrics, thresholds=thresholds)
+    except Exception as e:
+        log.exception(f"calibration check failed to compute metrics: {e}")
+        return []
 
 
 def run_calibration_check(
@@ -184,41 +197,12 @@ def run_calibration_check(
     today: date | None = None,
     thresholds: dict | None = None,
 ) -> list[Alert]:
-    """End-to-end calibration check — call from scheduler end-of-day.
+    """Backwards-compatible standalone entrypoint.
 
-    Computes drift metrics, evaluates alerts, logs at appropriate level,
-    and sends a Bluesky DM ONLY on CRITICAL alerts (and only if dm_recipient
-    is provided). Wraps DM in try/except so a notification failure never
-    propagates back to the caller — the scheduler's pick lifecycle must not
-    be blocked by an alerting bug.
-
-    Returns the list of alerts (empty if none triggered or on input errors).
+    Same flow as the runner does for any check: compute alerts, log them,
+    dispatch DM on CRITICAL. Kept for any caller importing this directly.
     """
-    try:
-        metrics = compute_drift_metrics(picks_dir, today=today)
-        alerts = evaluate_drift(metrics, thresholds=thresholds)
-    except Exception as e:
-        log.exception(f"calibration_check: failed to compute metrics: {e}")
-        return []
-
-    for a in alerts:
-        if a.level == "CRITICAL":
-            log.error(f"[calibration {a.level}] {a.message}")
-        elif a.level == "WARN":
-            log.warning(f"[calibration {a.level}] {a.message}")
-        else:
-            log.info(f"[calibration {a.level}] {a.message}")
-
-    critical_alerts = [a for a in alerts if a.level == "CRITICAL"]
-    if critical_alerts and dm_recipient:
-        body_lines = ["BTS calibration CRITICAL alert(s):"]
-        for a in critical_alerts:
-            body_lines.append(f"- {a.message}")
-        body = "\n".join(body_lines)
-        try:
-            send_dm(dm_recipient, body)
-            log.info(f"calibration_check: sent CRITICAL DM to {dm_recipient}")
-        except Exception as e:
-            log.exception(f"calibration_check: send_dm failed (alert detected but DM not delivered): {e}")
-
+    alerts = check(picks_dir, today=today, thresholds=thresholds)
+    log_alerts(alerts)
+    dispatch_dm_for_critical(alerts, dm_recipient)
     return alerts
