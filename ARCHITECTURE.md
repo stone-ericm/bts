@@ -152,6 +152,29 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd.
 
 **LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
 
+## Health Monitoring
+
+End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 12 sources as of 2026-04-29:
+
+| Source | Tier | Detects |
+|---|---|---|
+| `blend_training` | 1 | tomorrow's `blend_<N+1>.pkl` missing at end-of-day → fallback to stale model |
+| `pooled_training` | 1 | `<TOMORROW>_status.json` shows under-filled pool (added 2026-04-29; no-op until daily pooled training runs) |
+| `post_failure` | 1 | `bluesky_posted=true` and `bluesky_uri` present |
+| `restart_spike` | 1 | `NRestarts` delta vs checkpoint > threshold |
+| `calibration` | 2 | top-1 P drift on 7d vs 14d rolling mean |
+| `predicted_vs_realized` | 2 | acute drift in mean(predicted) - mean(realized) over 14d window |
+| `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket (added 2026-04-29; **expected to fire CRITICAL daily** while distribution shift between 2017-2025 training and 2026 prod persists — see `project_bts_2026_04_29_pooled_prediction_rejected.md`) |
+| `same_team_corr` | 2 | DD pair-realization vs naive independence |
+| `projected_lineup` | 2 | % rolling 14d projected_lineup over threshold |
+| `disk_fill` | 3 | `shutil.disk_usage` thresholds |
+| `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
+| `streak_validation` | 3 | `streak.json` schema sanity |
+
+**Tier 1**: silent failures with damage. **Tier 2**: quality decay. **Tier 3**: process integrity.
+
+State files: `data/health_state/memory_growth_history.jsonl` (daily-appended RSS log).
+
 ## Strategy Simulation
 
 Monte Carlo simulator and MDP solver for evaluating and optimizing play strategies.
