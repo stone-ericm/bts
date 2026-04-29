@@ -1,14 +1,16 @@
 """Bit-exact validation: factored runner produces identical output to current runner
 on strategy experiments (first factored path we enable).
 
-Note on `quantile_q10` and `kl_divergence` from the plan: empirically these
-experiments are NOT strategy-only — `quantile_q10` overrides
-`modify_blend_configs` AND `requires_per_model_capture`, and `kl_divergence`
-overrides `modify_features` + `feature_cols`. The eligibility detector
-correctly rejects both. The truly eligible experiments are
-`decision_calibration` and `venn_abers_width`; those are what the
-parametrized bit-exact path validates. The other two are checked via the
-"must-refuse" assertion.
+Note on `kl_divergence` from the plan: empirically it's NOT strategy-only
+(it overrides `modify_features` + `feature_cols`). The eligibility detector
+correctly rejects it via the "must-refuse" assertion. The truly eligible
+strategy experiment used for the parametrized bit-exact path is
+`decision_calibration`.
+
+Historical: `quantile_q10` and `venn_abers_width` were also tested here but
+were unregistered 2026-04-28 — n=10 multi-seed pooled screen showed they had
+zero effect on P@1 / P(57) and net-negative effect on streak. See the
+2026-04-28 retro for analysis.
 """
 from __future__ import annotations
 import json
@@ -89,20 +91,17 @@ def test_fast_path_refuses_feature_experiment(synthetic_profiles, synthetic_scor
         run_strategy_experiment_fast(exp, synthetic_profiles, synthetic_scorecard, tmp_path)
 
 
-@pytest.mark.parametrize(
-    "exp_name",
-    ["quantile_q10", "kl_divergence"],
-)
-def test_fast_path_refuses_ineligible_named_experiments(
-    exp_name, synthetic_profiles, synthetic_scorecard, tmp_path
+def test_fast_path_refuses_ineligible_named_experiment(
+    synthetic_profiles, synthetic_scorecard, tmp_path
 ):
-    """The plan's quantile_q10/kl_divergence are NOT strategy-only — they
-    override blend configs / per-model capture / features respectively, so
-    the eligibility check must reject them."""
+    """`kl_divergence` is NOT strategy-only — it overrides modify_features +
+    feature_cols, so the eligibility check must reject it. Was previously
+    parametrized with quantile_q10 too; that experiment was unregistered
+    2026-04-28."""
     from bts.experiment.runner_factored import run_strategy_experiment_fast
 
     load_all_experiments()
-    exp = get_experiment(exp_name)
+    exp = get_experiment("kl_divergence")
 
     with pytest.raises(ValueError, match="not eligible for fast strategy path"):
         run_strategy_experiment_fast(exp, synthetic_profiles, synthetic_scorecard, tmp_path)
@@ -127,9 +126,7 @@ def test_model_swap_eligibility_accepts_model_add(exp_name):
     [
         ("wind_vector", "modifies features"),
         ("kl_divergence", "modifies features"),
-        ("quantile_q10", "requires per-model capture"),
         ("decision_calibration", "doesn't add a new model"),
-        ("venn_abers_width", "doesn't add a new model"),
     ],
 )
 def test_model_swap_eligibility_rejects_ineligible(exp_name, reason_substr):
@@ -175,7 +172,7 @@ def baseline_profiles(test_pa_df) -> pd.DataFrame:
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "exp_name",
-    ["decision_calibration", "venn_abers_width"],
+    ["decision_calibration"],
 )
 def test_strategy_path_matches_full_walkforward(
     exp_name, tmp_path, test_pa_df, baseline_profiles
