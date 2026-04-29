@@ -156,12 +156,47 @@ def screen(
     default=None,
     help="Comma-separated seeds to pool across (e.g. '42,43,44'). "
     "When provided, decisions use mean ΔP(57) across paired seed comparisons "
-    "instead of single-seed P(57). Recommended after 2026-04-28 because "
-    "single-seed=42 is at the 95th percentile of the n=100 baseline distribution, "
-    "creating a P(57) ceiling that rejects real winners.",
+    "instead of single-seed P(57). Mutually exclusive with --seed-set. "
+    "Recommended after 2026-04-28 because single-seed=42 is at the 95th "
+    "percentile of the n=100 baseline distribution, creating a P(57) ceiling "
+    "that rejects real winners.",
 )
-def select(data_dir: str, retrain_every: int, test_seasons: str, seeds: str | None):
+@click.option(
+    "--seed-set",
+    default=None,
+    help="Named seed manifest (e.g. 'canonical-n10') loaded from "
+    "data/seed_sets/<name>.json. Convenience over --seeds for the "
+    "stable canonical sets. Mutually exclusive with --seeds.",
+)
+@click.option(
+    "--keep-t-threshold",
+    default=1.5,
+    type=float,
+    help="Minimum |t-stat| required to keep an experiment in multi-seed mode. "
+    "Default 1.5. Ignored in single-seed mode (no t-stat available).",
+)
+@click.option(
+    "--min-effect-size",
+    default=None,
+    type=float,
+    help="Optional escape hatch: keep an experiment regardless of t-stat if "
+    "|mean ΔP(57)| >= min-effect-size. Useful when n is small enough that "
+    "t-stat is low-power but the effect itself is large.",
+)
+def select(
+    data_dir: str,
+    retrain_every: int,
+    test_seasons: str,
+    seeds: str | None,
+    seed_set: str | None,
+    keep_t_threshold: float,
+    min_effect_size: float | None,
+):
     """Run Phase 2 forward stepwise selection."""
+    if seeds and seed_set:
+        raise click.UsageError(
+            "--seeds and --seed-set are mutually exclusive; pass at most one."
+        )
     import pandas as pd
     from bts.features.compute import compute_all_features
     from bts.experiment.registry import load_all_experiments, get_experiment
@@ -208,11 +243,27 @@ def select(data_dir: str, retrain_every: int, test_seasons: str, seeds: str | No
     if seeds:
         seed_list = [int(s.strip()) for s in seeds.split(",") if s.strip()]
         click.echo(f"Multi-seed Phase 2: pooling across {len(seed_list)} seeds")
+    elif seed_set:
+        manifest_path = Path("data/seed_sets") / f"{seed_set}.json"
+        if not manifest_path.exists():
+            available = sorted(p.stem for p in Path("data/seed_sets").glob("*.json"))
+            raise click.UsageError(
+                f"Seed set '{seed_set}' not found at {manifest_path}. "
+                f"Available: {available}"
+            )
+        manifest = json.loads(manifest_path.read_text())
+        seed_list = [int(s) for s in manifest["seeds"]]
+        click.echo(
+            f"Multi-seed Phase 2: pooling across {len(seed_list)} seeds "
+            f"from seed-set '{seed_set}'"
+        )
 
     selection_result = run_selection(
         winners, experiments_by_name, df, seasons,
         RESULTS_BASE / "phase2", retrain_every,
         seeds=seed_list,
+        keep_t_threshold=keep_t_threshold,
+        min_effect_size=min_effect_size,
     )
 
     click.echo(format_phase2_log(selection_result))
