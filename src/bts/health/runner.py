@@ -18,6 +18,7 @@ from bts.health import (
     calibration,
     disk_fill,
     memory_growth,
+    pooled_training,
     post_failure,
     predicted_vs_realized,
     projected_lineup,
@@ -47,6 +48,7 @@ def run_all_checks(
     current_nrestarts: int | None = None,
     today: date | None = None,
     thresholds_overrides: dict | None = None,
+    pooled_dir: Path | None = None,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -69,6 +71,10 @@ def run_all_checks(
     alerts.extend(_safe_run("blend_training", lambda: blend_training.check(
         models_dir, today=today,
     )))
+    if pooled_dir is not None:
+        alerts.extend(_safe_run("pooled_training", lambda: pooled_training.check(
+            pooled_dir=pooled_dir, today=today,
+        )))
     alerts.extend(_safe_run("post_failure", lambda: post_failure.check(
         picks_dir, today=today,
     )))
