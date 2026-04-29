@@ -25,9 +25,19 @@ log = logging.getLogger(__name__)
 SOURCE = "memory_growth"
 
 DEFAULT_THRESHOLDS = {
-    "info_mb": 200,
-    "warn_mb": 500,
-    "critical_mb": 1024,
+    # Tuned 2026-04-28 evening after first real CRITICAL fired at 2.9 GB.
+    # Previous thresholds (200/500/1024) were calibrated against sleeping-state
+    # baseline RSS (~90 MB), but the scheduler's bts-run path loads 1.5M PA ×
+    # dozens of features into pandas + trains 12 LightGBM blend models in
+    # process. That legitimately allocates 2-3 GB which CPython doesn't return
+    # to the OS. Post-prediction baseline is fundamentally different from
+    # sleeping baseline. New thresholds:
+    #   INFO 1 GB:    notable growth, worth observing
+    #   WARN 3 GB:    significant — beyond expected post-prediction RSS
+    #   CRITICAL 6 GB: ~40% of bts-mlb's 16 GB, likely real leak
+    "info_mb": 1024,
+    "warn_mb": 3072,
+    "critical_mb": 6144,
 }
 
 
