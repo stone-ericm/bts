@@ -35,7 +35,13 @@ class TestRunAllChecks:
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()
         _set_up_picks_dir(picks_dir, models_dir)
-        with patch("bts.health.runner.dispatch_dm_for_critical") as mock_dm:
+        # Mock disk_usage to a clean 50% — these tests must be host-state-independent
+        # (a dev box at 95% disk is real but not what these integration tests exercise).
+        from collections import namedtuple
+        _Usage = namedtuple("_Usage", ["total", "used", "free"])
+        clean_usage = _Usage(total=100 * 1024 ** 3, used=50 * 1024 ** 3, free=50 * 1024 ** 3)
+        with patch("bts.health.disk_fill.shutil.disk_usage", return_value=clean_usage), \
+             patch("bts.health.runner.dispatch_dm_for_critical") as mock_dm:
             mock_dm.return_value = False
             alerts = run_all_checks(
                 picks_dir=picks_dir, models_dir=models_dir,
