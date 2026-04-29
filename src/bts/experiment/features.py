@@ -720,6 +720,13 @@ class BatterPitcherMatchupExperiment(ExperimentDef):
         )
 
     def modify_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Idempotent guard: as of 2026-04-29, batter_pitcher_shrunk_hr is in
+        # FEATURE_COLS and computed by compute_all_features. If the column
+        # already exists, this experiment is a no-op (re-running the merge
+        # would create _x/_y suffixes and break downstream access).
+        if "batter_pitcher_shrunk_hr" in df.columns:
+            return df
+
         required = ("batter_id", "pitcher_id", "is_hit", "date")
         if not all(c in df.columns for c in required):
             df = df.copy()

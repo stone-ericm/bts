@@ -625,11 +625,48 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["batter_id", "date"], how="left",
     )
 
+    # batter_pitcher_shrunk_hr — Bayesian-shrunk historical (batter, pitcher) hit rate.
+    # Promoted to FEATURE_COLS 2026-04-29 after 4-way replication:
+    #   Phase 1 single-seed (passed), Phase 1 n=10 stratified (t=+3.35),
+    #   Phase 2 set 1 canonical-n10 (+2.77pp pooled Δ, KEEP),
+    #   Phase 2 set 2 orthogonal-n10 (+3.49pp pooled Δ, KEEP).
+    # Aggregates per (batter, pitcher, date) so same-day multi-PA rows share the
+    # same prior-day stat (no within-day leakage). Falls back to league prior 0.2195
+    # for sparse pairings. Idempotent with BatterPitcherMatchupExperiment.modify_features.
+    if all(c in df.columns for c in ("batter_id", "pitcher_id", "is_hit", "date")):
+        _PRIOR_RATE = 0.2195
+        _K = 10
+        _daily = (
+            df.groupby(["batter_id", "pitcher_id", "date"])
+            .agg(_day_hits=("is_hit", "sum"), _day_pas=("is_hit", "count"))
+            .reset_index()
+            .sort_values(["batter_id", "pitcher_id", "date"])
+        )
+        _daily["_cum_hits_prior"] = (
+            _daily.groupby(["batter_id", "pitcher_id"])["_day_hits"]
+            .transform(lambda s: s.cumsum().shift(1).fillna(0))
+        )
+        _daily["_cum_pas_prior"] = (
+            _daily.groupby(["batter_id", "pitcher_id"])["_day_pas"]
+            .transform(lambda s: s.cumsum().shift(1).fillna(0))
+        )
+        _daily["batter_pitcher_shrunk_hr"] = (
+            (_PRIOR_RATE * _K + _daily["_cum_hits_prior"])
+            / (_K + _daily["_cum_pas_prior"])
+        )
+        df = df.merge(
+            _daily[["batter_id", "pitcher_id", "date", "batter_pitcher_shrunk_hr"]],
+            on=["batter_id", "pitcher_id", "date"], how="left",
+        )
+        df["batter_pitcher_shrunk_hr"] = df["batter_pitcher_shrunk_hr"].fillna(_PRIOR_RATE)
+    else:
+        df["batter_pitcher_shrunk_hr"] = 0.2195
+
     return df
 
 
-# Feature columns (15) — provably leak-free. 14 baseline features plus
-# team bullpen composite (rolling 30-day reliever hit rate for the opposing team).
+# Feature columns (16) — provably leak-free. 15 baseline + 1 promoted from
+# the 2026-04-29 Phase 2 validation: batter_pitcher_shrunk_hr.
 # Bullpen feature improved MDP P(57) from 4.85% to 5.73% by polarizing quality bins.
 FEATURE_COLS = [
     "batter_hr_7g",
@@ -647,6 +684,7 @@ FEATURE_COLS = [
     "weather_temp",
     "park_factor",
     "days_rest",
+    "batter_pitcher_shrunk_hr",  # promoted 2026-04-29 (was BatterPitcherMatchupExperiment)
 ]
 
 # Context features (4) — computed alongside baseline features but only used
