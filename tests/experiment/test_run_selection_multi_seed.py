@@ -87,8 +87,10 @@ class TestRunSelectionMultiSeed:
         assert seeds_seen.count(43) >= 2
 
     def test_pooled_mean_drives_keep_decision(self, tmp_path, tiny_pa_df, monkeypatch):
-        """Multi-seed: experiment is KEPT when pooled mean ΔP(57) > 0, even if
-        one individual seed shows a regression."""
+        """Multi-seed: pooling drives keep — one bad seed doesn't veto the
+        experiment if the pool is positive. Passes ``keep_t_threshold=0`` to
+        isolate this concern from the 2026-04-28 t-stat tightening (which has
+        its own coverage in test_run_selection_keep_rule.py)."""
         from bts.experiment.runner import run_selection
         import bts.simulate.backtest_blend as bb
 
@@ -131,6 +133,8 @@ class TestRunSelectionMultiSeed:
                         results_dir=tmp_path,
                         retrain_every=7,
                         seeds=[42, 43],
+                        keep_t_threshold=0,  # isolate pooling concern; t-stat
+                                             # tightening tested separately
                     )
 
         # heat_dome should be kept because pooled mean delta = +0.01

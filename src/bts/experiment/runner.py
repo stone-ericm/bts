@@ -402,6 +402,8 @@ def run_selection(
     results_dir: Path,
     retrain_every: int = 7,
     seeds: list[int] | None = None,
+    keep_t_threshold: float = 1.5,
+    min_effect_size: float | None = None,
 ) -> dict:
     """Run Phase 2: forward stepwise selection + backward elimination.
 
@@ -420,6 +422,16 @@ def run_selection(
             is at the 95th percentile of the n=100 distribution, so real
             winners with positive pooled ΔP(57) get rejected. If seeds is
             None, behavior matches pre-2026-04-28 single-seed mode.
+        keep_t_threshold: Minimum |t-stat| to keep an experiment in
+            multi-seed mode. Default 1.5. The t-stat is computed from the
+            paired per-seed deltas (one-sample, ddof=1). Tightening was
+            added 2026-04-28 because the bare ``mean > 0`` rule kept
+            experiments on tiny positive noise (e.g. +0.0001pp pooled).
+            Ignored in single-seed mode (no t-stat available).
+        min_effect_size: Optional escape hatch: keep an experiment
+            regardless of t-stat if ``|mean| >= min_effect_size``. Useful
+            when n is small enough that t-stat is low-power but the
+            effect itself is large. None disables this branch.
 
     Returns:
         Dict with forward_log, backward_log, final_scorecard, final_diff, included.
@@ -486,6 +498,34 @@ def run_selection(
                 first_combined = combined
         return _mean(p57_per_seed.values()), p57_per_seed, first_scorecard, first_combined
 
+    def _passes_keep_rule(per_seed_deltas: dict) -> tuple[bool, float | None]:
+        """Decide keep/drop from per-seed deltas. Returns (keep, t_stat).
+
+        Single-seed (or n<2): keep if mean > 0, t_stat = None.
+
+        Multi-seed (n>=2): keep if mean > 0 AND
+        (|t| >= keep_t_threshold OR (min_effect_size set AND |mean| >= it)).
+        SD=0 → t treated as +inf (perfect across-seed consistency).
+        """
+        deltas = list(per_seed_deltas.values())
+        mean_d = _mean(deltas)
+        if mean_d <= 0:
+            return False, None
+        if not multi_seed or len(deltas) < 2:
+            return True, None
+        n = len(deltas)
+        var = sum((d - mean_d) ** 2 for d in deltas) / (n - 1)
+        if var == 0:
+            t_stat = float("inf")
+        else:
+            se = (var / n) ** 0.5
+            t_stat = mean_d / se
+        if abs(t_stat) >= keep_t_threshold:
+            return True, t_stat
+        if min_effect_size is not None and abs(mean_d) >= min_effect_size:
+            return True, t_stat
+        return False, t_stat
+
     # Compute baseline at every seed (or single default seed when seeds=None).
     current_p57, current_p57_per_seed, baseline_scorecard, baseline_combined = _evaluate(pa_df, [])
 
@@ -510,24 +550,27 @@ def run_selection(
             for k in candidate_p57_per_seed
         }
         mean_delta = _mean(per_seed_deltas.values())
+        keep, t_stat = _passes_keep_rule(per_seed_deltas)
 
         step = {
             "name": name,
             "p57_before": current_p57,
             "p57_after": candidate_p57,
             "delta": mean_delta,
-            "kept": mean_delta > 0,
+            "kept": keep,
         }
         if multi_seed:
             step["p57_before_per_seed"] = current_p57_per_seed
             step["p57_after_per_seed"] = candidate_p57_per_seed
             step["delta_per_seed"] = per_seed_deltas
+            step["t_stat"] = t_stat
         forward_log.append(step)
 
-        if mean_delta > 0:
+        if keep:
+            t_str = f", t={t_stat:+.2f}" if t_stat is not None else ""
             print(
                 f"  ✓ Kept {name}: pooled mean ΔP(57) {mean_delta:+.5f}"
-                f" ({current_p57:.4f} → {candidate_p57:.4f})",
+                f" ({current_p57:.4f} → {candidate_p57:.4f}){t_str}",
                 file=sys.stderr,
             )
             included.append(name)
@@ -535,8 +578,10 @@ def run_selection(
             current_p57 = candidate_p57
             current_p57_per_seed = candidate_p57_per_seed
         else:
+            t_str = f", t={t_stat:+.2f}" if t_stat is not None else ""
             print(
-                f"  ✗ Dropped {name}: pooled mean ΔP(57) {mean_delta:+.5f} (not positive)",
+                f"  ✗ Dropped {name}: pooled mean ΔP(57) {mean_delta:+.5f}{t_str}"
+                f" (below keep threshold)",
                 file=sys.stderr,
             )
 
@@ -559,27 +604,38 @@ def run_selection(
             for k in test_p57_per_seed
         }
         mean_loss = _mean(per_seed_deltas.values())
+        keep, t_stat = _passes_keep_rule(per_seed_deltas)
 
         step = {
             "name": name,
             "p57_with": current_p57,
             "p57_without": test_p57,
             "delta": mean_loss,
-            "kept": mean_loss > 0,
+            "kept": keep,
         }
         if multi_seed:
             step["p57_with_per_seed"] = current_p57_per_seed
             step["p57_without_per_seed"] = test_p57_per_seed
             step["delta_per_seed"] = per_seed_deltas
+            step["t_stat"] = t_stat
         backward_log.append(step)
 
-        if mean_loss <= 0:
-            print(f"  ✗ Removed {name}: pooled removing helps or neutral", file=sys.stderr)
+        if keep:
+            t_str = f", t={t_stat:+.2f}" if t_stat is not None else ""
+            print(
+                f"  ✓ Kept {name}: pooled removing hurts P(57) by {mean_loss:+.5f}{t_str}",
+                file=sys.stderr,
+            )
+        else:
+            t_str = f", t={t_stat:+.2f}" if t_stat is not None else ""
+            print(
+                f"  ✗ Removed {name}: pooled mean loss {mean_loss:+.5f}{t_str}"
+                f" (below keep threshold)",
+                file=sys.stderr,
+            )
             included.remove(name)
             current_p57 = test_p57
             current_p57_per_seed = test_p57_per_seed
-        else:
-            print(f"  ✓ Kept {name}: pooled removing hurts P(57) by {mean_loss:+.5f}", file=sys.stderr)
 
     # Final scorecard — blend args for the FINAL included set, evaluated at
     # the first seed (single-seed mode) or first eval seed (multi-seed mode).
