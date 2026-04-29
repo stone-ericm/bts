@@ -642,14 +642,15 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
             .reset_index()
             .sort_values(["batter_id", "pitcher_id", "date"])
         )
-        _daily["_cum_hits_prior"] = (
-            _daily.groupby(["batter_id", "pitcher_id"])["_day_hits"]
-            .transform(lambda s: s.cumsum().shift(1).fillna(0))
-        )
-        _daily["_cum_pas_prior"] = (
-            _daily.groupby(["batter_id", "pitcher_id"])["_day_pas"]
-            .transform(lambda s: s.cumsum().shift(1).fillna(0))
-        )
+        # Vectorized prior-day cumsum: groupby().cumsum() - current_value is
+        # equivalent to groupby().cumsum().shift(1).fillna(0) but avoids the
+        # Python-per-group lambda overhead. On the prod 1.5M-PA frame the
+        # transform-lambda variant pushed compute_all_features past the 5min
+        # heartbeat threshold (caught 2026-04-29 17:30 ET); this rewrite
+        # restores per-cycle latency.
+        _grp = _daily.groupby(["batter_id", "pitcher_id"])
+        _daily["_cum_hits_prior"] = _grp["_day_hits"].cumsum() - _daily["_day_hits"]
+        _daily["_cum_pas_prior"] = _grp["_day_pas"].cumsum() - _daily["_day_pas"]
         _daily["batter_pitcher_shrunk_hr"] = (
             (_PRIOR_RATE * _K + _daily["_cum_hits_prior"])
             / (_K + _daily["_cum_pas_prior"])
