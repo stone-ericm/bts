@@ -18,9 +18,11 @@ from bts.health import (
     calibration,
     disk_fill,
     memory_growth,
+    pooled_training,
     post_failure,
     predicted_vs_realized,
     projected_lineup,
+    realized_calibration,
     restart_spike,
     same_team_corr,
     streak_validation,
@@ -47,6 +49,7 @@ def run_all_checks(
     current_nrestarts: int | None = None,
     today: date | None = None,
     thresholds_overrides: dict | None = None,
+    pooled_dir: Path | None = None,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -69,6 +72,10 @@ def run_all_checks(
     alerts.extend(_safe_run("blend_training", lambda: blend_training.check(
         models_dir, today=today,
     )))
+    if pooled_dir is not None:
+        alerts.extend(_safe_run("pooled_training", lambda: pooled_training.check(
+            pooled_dir=pooled_dir, today=today,
+        )))
     alerts.extend(_safe_run("post_failure", lambda: post_failure.check(
         picks_dir, today=today,
     )))
@@ -80,6 +87,9 @@ def run_all_checks(
     # Tier 2 — quality decay
     alerts.extend(_safe_run("predicted_vs_realized", lambda: predicted_vs_realized.check(
         picks_dir, today=today, thresholds=overrides.get("predicted_vs_realized"),
+    )))
+    alerts.extend(_safe_run("realized_calibration", lambda: realized_calibration.check(
+        picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),
@@ -93,8 +103,15 @@ def run_all_checks(
         picks_dir, thresholds=overrides.get("disk_fill"),
     )))
     if scheduler_pid is not None:
+        # history_path enables daily JSONL append + Tuesday-EOD weekly digest INFO.
+        # Defaults to data/health_state/memory_growth_history.jsonl on bts-mlb;
+        # callers can override via thresholds_overrides["memory_growth_history"].
+        memory_history_path = (overrides.get("memory_growth_history")
+                                if "memory_growth_history" in overrides
+                                else picks_dir.parent / "health_state" / "memory_growth_history.jsonl")
         alerts.extend(_safe_run("memory_growth", lambda: memory_growth.check(
             pid=scheduler_pid, thresholds=overrides.get("memory_growth"),
+            history_path=memory_history_path, today=today,
         )))
     alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
 

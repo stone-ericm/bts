@@ -74,6 +74,21 @@ def diagnostics(data_dir: str, profiles_dir: str):
     help="Override default cache dir for the model-swap fast path "
     "(default: data/experiments/blend_cache). Only consulted with --use-factored.",
 )
+@click.option(
+    "--seeds",
+    default=None,
+    help="Comma-separated seeds to run in-process (e.g. '42,43,44'). When "
+    "provided, run_screening is invoked once per seed with results in "
+    "phase1/seed_<N>/ subdirs. Mutually exclusive with --seed-set. "
+    "Default (no flag) preserves single-seed-via-env-var behavior used "
+    "by audit_driver.",
+)
+@click.option(
+    "--seed-set",
+    default=None,
+    help="Named seed manifest from data/seed_sets/<name>.json (e.g. "
+    "'canonical-n10'). Mutually exclusive with --seeds.",
+)
 def screen(
     data_dir: str,
     subset: str | None,
@@ -81,8 +96,11 @@ def screen(
     test_seasons: str,
     use_factored: bool,
     blend_cache_dir: str | None,
+    seeds: str | None,
+    seed_set: str | None,
 ):
     """Run Phase 1 independent screening."""
+    import os as _os
     import pandas as pd
     from bts.features.compute import compute_all_features
     from bts.experiment.registry import list_experiments, load_all_experiments, get_experiment
@@ -90,6 +108,30 @@ def screen(
     from bts.experiment.reporting import format_phase1_table
     from bts.validate.scorecard import compute_full_scorecard, save_scorecard
     from bts.simulate.backtest_blend import blend_walk_forward
+
+    if seeds and seed_set:
+        raise click.UsageError(
+            "--seeds and --seed-set are mutually exclusive; pass at most one."
+        )
+
+    seed_list: list[int] | None = None
+    if seeds:
+        seed_list = [int(s.strip()) for s in seeds.split(",") if s.strip()]
+        click.echo(f"Multi-seed Phase 1: running across {len(seed_list)} explicit seeds")
+    elif seed_set:
+        manifest_path = Path("data/seed_sets") / f"{seed_set}.json"
+        if not manifest_path.exists():
+            available = sorted(p.stem for p in Path("data/seed_sets").glob("*.json"))
+            raise click.UsageError(
+                f"Seed set '{seed_set}' not found at {manifest_path}. "
+                f"Available: {available}"
+            )
+        manifest = json.loads(manifest_path.read_text())
+        seed_list = [int(s) for s in manifest["seeds"]]
+        click.echo(
+            f"Multi-seed Phase 1: running across {len(seed_list)} seeds "
+            f"from seed-set '{seed_set}'"
+        )
 
     load_all_experiments()
     seasons = [int(s.strip()) for s in test_seasons.split(",")]
@@ -110,41 +152,60 @@ def screen(
     df = pd.concat(dfs, ignore_index=True)
     df = compute_all_features(df)
 
-    baseline_path = RESULTS_BASE / "phase1" / "baseline_scorecard.json"
-    baseline_combined: pd.DataFrame | None = None
+    def _screen_at(results_dir: Path) -> list[dict]:
+        """Run baseline + screening for one (seed-implicit-via-env-var) call."""
+        baseline_path = results_dir / "baseline_scorecard.json"
+        baseline_combined: pd.DataFrame | None = None
 
-    if baseline_path.exists() and not use_factored:
-        baseline_scorecard = json.loads(baseline_path.read_text())
-        click.echo("Loaded cached baseline scorecard.")
-    else:
-        # Compute baseline profiles when:
-        #   - cached scorecard missing (always required), OR
-        #   - use_factored=True (strategy fast path needs profiles in-memory)
-        if use_factored and baseline_path.exists():
-            click.echo(
-                "Computing baseline profiles (cached scorecard exists, but "
-                "--use-factored requires in-memory profiles)..."
-            )
+        if baseline_path.exists() and not use_factored:
+            baseline_scorecard = json.loads(baseline_path.read_text())
+            click.echo(f"  Loaded cached baseline scorecard from {baseline_path}.")
         else:
-            click.echo("Computing baseline scorecard...")
-        baseline_profiles_list = []
-        for season in seasons:
-            profiles = blend_walk_forward(df, season, retrain_every=retrain_every)
-            profiles["season"] = season
-            baseline_profiles_list.append(profiles)
-        baseline_combined = pd.concat(baseline_profiles_list, ignore_index=True)
-        baseline_scorecard = compute_full_scorecard(baseline_combined)
-        save_scorecard(baseline_scorecard, baseline_path)
+            if use_factored and baseline_path.exists():
+                click.echo(
+                    "  Computing baseline profiles (cached scorecard exists, but "
+                    "--use-factored requires in-memory profiles)..."
+                )
+            else:
+                click.echo(f"  Computing baseline scorecard at {baseline_path}...")
+            baseline_profiles_list = []
+            for season in seasons:
+                profiles = blend_walk_forward(df, season, retrain_every=retrain_every)
+                profiles["season"] = season
+                baseline_profiles_list.append(profiles)
+            baseline_combined = pd.concat(baseline_profiles_list, ignore_index=True)
+            baseline_scorecard = compute_full_scorecard(baseline_combined)
+            save_scorecard(baseline_scorecard, baseline_path)
 
-    results = run_screening(
-        experiments, df, baseline_scorecard, seasons,
-        RESULTS_BASE / "phase1", retrain_every,
-        baseline_profiles=baseline_combined if use_factored else None,
-        use_factored=use_factored,
-        blend_cache_dir=Path(blend_cache_dir) if blend_cache_dir else None,
-    )
+        return run_screening(
+            experiments, df, baseline_scorecard, seasons,
+            results_dir, retrain_every,
+            baseline_profiles=baseline_combined if use_factored else None,
+            use_factored=use_factored,
+            blend_cache_dir=Path(blend_cache_dir) if blend_cache_dir else None,
+        )
 
-    click.echo(format_phase1_table(results))
+    if seed_list is None:
+        results = _screen_at(RESULTS_BASE / "phase1")
+        click.echo(format_phase1_table(results))
+    else:
+        prev_env = _os.environ.get("BTS_LGBM_RANDOM_STATE")
+        try:
+            for seed in seed_list:
+                _os.environ["BTS_LGBM_RANDOM_STATE"] = str(seed)
+                seed_dir = RESULTS_BASE / "phase1" / f"seed_{seed}"
+                click.echo(f"\n=== Seed {seed} ===")
+                results = _screen_at(seed_dir)
+                click.echo(format_phase1_table(results))
+        finally:
+            if prev_env is None:
+                _os.environ.pop("BTS_LGBM_RANDOM_STATE", None)
+            else:
+                _os.environ["BTS_LGBM_RANDOM_STATE"] = prev_env
+        click.echo(
+            f"\nMulti-seed run complete: results in {RESULTS_BASE}/phase1/seed_*/. "
+            f"Aggregate offline (e.g. via screen_pooled_n10 analysis script)."
+        )
 
 
 @experiment.command()
@@ -156,12 +217,47 @@ def screen(
     default=None,
     help="Comma-separated seeds to pool across (e.g. '42,43,44'). "
     "When provided, decisions use mean ΔP(57) across paired seed comparisons "
-    "instead of single-seed P(57). Recommended after 2026-04-28 because "
-    "single-seed=42 is at the 95th percentile of the n=100 baseline distribution, "
-    "creating a P(57) ceiling that rejects real winners.",
+    "instead of single-seed P(57). Mutually exclusive with --seed-set. "
+    "Recommended after 2026-04-28 because single-seed=42 is at the 95th "
+    "percentile of the n=100 baseline distribution, creating a P(57) ceiling "
+    "that rejects real winners.",
 )
-def select(data_dir: str, retrain_every: int, test_seasons: str, seeds: str | None):
+@click.option(
+    "--seed-set",
+    default=None,
+    help="Named seed manifest (e.g. 'canonical-n10') loaded from "
+    "data/seed_sets/<name>.json. Convenience over --seeds for the "
+    "stable canonical sets. Mutually exclusive with --seeds.",
+)
+@click.option(
+    "--keep-t-threshold",
+    default=1.5,
+    type=float,
+    help="Minimum |t-stat| required to keep an experiment in multi-seed mode. "
+    "Default 1.5. Ignored in single-seed mode (no t-stat available).",
+)
+@click.option(
+    "--min-effect-size",
+    default=None,
+    type=float,
+    help="Optional escape hatch: keep an experiment regardless of t-stat if "
+    "|mean ΔP(57)| >= min-effect-size. Useful when n is small enough that "
+    "t-stat is low-power but the effect itself is large.",
+)
+def select(
+    data_dir: str,
+    retrain_every: int,
+    test_seasons: str,
+    seeds: str | None,
+    seed_set: str | None,
+    keep_t_threshold: float,
+    min_effect_size: float | None,
+):
     """Run Phase 2 forward stepwise selection."""
+    if seeds and seed_set:
+        raise click.UsageError(
+            "--seeds and --seed-set are mutually exclusive; pass at most one."
+        )
     import pandas as pd
     from bts.features.compute import compute_all_features
     from bts.experiment.registry import load_all_experiments, get_experiment
@@ -208,11 +304,27 @@ def select(data_dir: str, retrain_every: int, test_seasons: str, seeds: str | No
     if seeds:
         seed_list = [int(s.strip()) for s in seeds.split(",") if s.strip()]
         click.echo(f"Multi-seed Phase 2: pooling across {len(seed_list)} seeds")
+    elif seed_set:
+        manifest_path = Path("data/seed_sets") / f"{seed_set}.json"
+        if not manifest_path.exists():
+            available = sorted(p.stem for p in Path("data/seed_sets").glob("*.json"))
+            raise click.UsageError(
+                f"Seed set '{seed_set}' not found at {manifest_path}. "
+                f"Available: {available}"
+            )
+        manifest = json.loads(manifest_path.read_text())
+        seed_list = [int(s) for s in manifest["seeds"]]
+        click.echo(
+            f"Multi-seed Phase 2: pooling across {len(seed_list)} seeds "
+            f"from seed-set '{seed_set}'"
+        )
 
     selection_result = run_selection(
         winners, experiments_by_name, df, seasons,
         RESULTS_BASE / "phase2", retrain_every,
         seeds=seed_list,
+        keep_t_threshold=keep_t_threshold,
+        min_effect_size=min_effect_size,
     )
 
     click.echo(format_phase2_log(selection_result))

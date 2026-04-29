@@ -305,130 +305,6 @@ class HitTypeParkFactorsExperiment(ExperimentDef):
         return cols + ["park_factor_1b", "park_factor_2b", "park_factor_3b"]
 
 
-class VennABERSExperiment(ExperimentDef):
-    """Use Venn-ABERS interval width as uncertainty signal for skip decisions.
-
-    Fits two isotonic regressions on the rank-1 calibration set (imputing
-    hit=0 and hit=1). The width [p0, p1] measures epistemic uncertainty.
-    Wide intervals → less confident → skip.
-    """
-
-    def __init__(self):
-        super().__init__(
-            name="venn_abers_width",
-            phase=1,
-            category="strategy",
-            description="Venn-ABERS isotonic calibration interval width as skip signal",
-        )
-
-    def modify_strategy(self, profiles_df, quality_bins):
-        from sklearn.isotonic import IsotonicRegression
-
-        df = profiles_df.copy().reset_index(drop=True)
-        df["date"] = pd.to_datetime(df["date"])
-        rank1 = df[df["rank"] == 1].copy()
-        if len(rank1) < 50:
-            return df, quality_bins
-
-        # Use earliest 30% of dates for calibration training (no leakage)
-        rank1 = rank1.sort_values("date")
-        split = len(rank1) // 3
-        cal = rank1.iloc[:split]
-
-        if len(cal) < 20:
-            return df, quality_bins
-
-        ir0 = IsotonicRegression(out_of_bounds="clip")
-        ir1 = IsotonicRegression(out_of_bounds="clip")
-
-        cal_y = cal["actual_hit"].values
-        cal_p = cal["p_game_hit"].values
-
-        ir0.fit(cal_p, cal_y)
-        cal_y_optimistic = np.minimum(cal_y + 0.1, 1.0)
-        ir1.fit(cal_p, cal_y_optimistic)
-
-        # Compute width per profile vectorized
-        all_p = df["p_game_hit"].values.astype(float)
-        p0 = ir0.predict(all_p)
-        p1 = ir1.predict(all_p)
-        width = np.abs(p1 - p0)
-
-        # Narrow intervals get full credit; wide intervals get downscored
-        max_width = max(float(width.max()), 1e-6)
-        confidence = 1.0 - (width / max_width) * 0.3  # max 30% downweight
-        new_p = all_p * confidence
-        new_p = np.where(np.isnan(new_p), all_p, new_p)
-        df["p_game_hit"] = new_p
-
-        # Re-rank within each day
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
-        df["rank"] = df.groupby("date").cumcount() + 1
-
-        try:
-            from bts.simulate.quality_bins import compute_bins
-            new_bins = compute_bins(df)
-        except Exception:
-            new_bins = quality_bins
-
-        return df, new_bins
-
-
-class QuantileQ10Experiment(ExperimentDef):
-    """Train quantile regression model at alpha=0.10 for conservative skip signal."""
-
-    def __init__(self):
-        super().__init__(
-            name="quantile_q10",
-            phase=1,
-            category="strategy",
-            description="LightGBM quantile q10 as additional skip signal",
-        )
-
-    def modify_blend_configs(self, configs):
-        # Add a quantile model alongside the blend.
-        # When used in modify_strategy, this model's outputs will be available
-        # via per-model capture (column m_quantile_q10).
-        return configs + [
-            ("quantile_q10", FEATURE_COLS, {"objective": "quantile", "alpha": 0.10}),
-        ]
-
-    def requires_per_model_capture(self) -> bool:
-        return True
-
-    def modify_strategy(self, profiles_df, quality_bins):
-        # Use q10 as a skip signal: when q10 is below threshold, downweight pick
-        df = profiles_df.copy().reset_index(drop=True)
-        if "m_quantile_q10" not in df.columns:
-            return df, quality_bins
-
-        # Vectorized: where q10 missing, leave p_game_hit unchanged
-        q10 = df["m_quantile_q10"].values.astype(float)
-        original_p = df["p_game_hit"].values.astype(float)
-
-        confidence = np.where(
-            np.isnan(q10),
-            1.0,
-            0.5 + 0.5 * np.clip(q10 / 0.7, 0.0, 1.0),
-        )
-        new_p = original_p * confidence
-        # Guard against any NaN propagation
-        new_p = np.where(np.isnan(new_p), original_p, new_p)
-        df["p_game_hit"] = new_p
-
-        # Re-rank within each day
-        df = df.sort_values(["date", "p_game_hit"], ascending=[True, False]).reset_index(drop=True)
-        df["rank"] = df.groupby("date").cumcount() + 1
-
-        try:
-            from bts.simulate.quality_bins import compute_bins
-            new_bins = compute_bins(df)
-        except Exception:
-            new_bins = quality_bins
-
-        return df, new_bins
-
-
 class StreakLengthFeatureExperiment(ExperimentDef):
     """Add streak length as a direct model feature (conditional on Phase 0)."""
 
@@ -943,8 +819,6 @@ register(KLDivergenceExperiment())
 register(BattingHeatQExperiment())
 register(GBPlatoonExperiment())
 register(HitTypeParkFactorsExperiment())
-register(VennABERSExperiment())
-register(QuantileQ10Experiment())
 register(StreakLengthFeatureExperiment())
 # Dormant column experiments
 register(UmpireHitRateExperiment())

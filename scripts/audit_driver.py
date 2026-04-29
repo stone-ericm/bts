@@ -172,8 +172,8 @@ class HetznerProvider(Provider):
     BASE = "https://api.hetzner.cloud/v1"
     SSH_KEY_ID = 110611534
     IMAGE = "ubuntu-24.04"
-    SERVER_TYPE = "cpx51"
-    LOCATION_FALLBACKS = ["hil", "hel1", "nbg1", "fsn1", "ash"]
+    SERVER_TYPE = "cpx62"  # 16 vCPU / 32GB / 640GB — matches our determinism-validated boxes (cpx51 deprecated 2026-04+ in newer regions)
+    LOCATION_FALLBACKS = ["fsn1", "nbg1", "hel1", "sin"]  # cpx62 EU + sin only (no US)
 
     def __init__(self):
         self.token = _keychain("hetzner-cloud-token")
