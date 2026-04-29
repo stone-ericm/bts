@@ -22,6 +22,7 @@ from bts.health import (
     post_failure,
     predicted_vs_realized,
     projected_lineup,
+    realized_calibration,
     restart_spike,
     same_team_corr,
     streak_validation,
@@ -86,6 +87,9 @@ def run_all_checks(
     # Tier 2 — quality decay
     alerts.extend(_safe_run("predicted_vs_realized", lambda: predicted_vs_realized.check(
         picks_dir, today=today, thresholds=overrides.get("predicted_vs_realized"),
+    )))
+    alerts.extend(_safe_run("realized_calibration", lambda: realized_calibration.check(
+        picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),
