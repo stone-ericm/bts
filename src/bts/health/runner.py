@@ -99,8 +99,15 @@ def run_all_checks(
         picks_dir, thresholds=overrides.get("disk_fill"),
     )))
     if scheduler_pid is not None:
+        # history_path enables daily JSONL append + Tuesday-EOD weekly digest INFO.
+        # Defaults to data/health_state/memory_growth_history.jsonl on bts-mlb;
+        # callers can override via thresholds_overrides["memory_growth_history"].
+        memory_history_path = (overrides.get("memory_growth_history")
+                                if "memory_growth_history" in overrides
+                                else picks_dir.parent / "health_state" / "memory_growth_history.jsonl")
         alerts.extend(_safe_run("memory_growth", lambda: memory_growth.check(
             pid=scheduler_pid, thresholds=overrides.get("memory_growth"),
+            history_path=memory_history_path, today=today,
         )))
     alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
 
