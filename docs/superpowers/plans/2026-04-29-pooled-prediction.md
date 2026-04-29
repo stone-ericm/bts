@@ -1,8 +1,44 @@
 # Pooled-Prediction Production Architecture (item #6)
 
-**Status**: scoping; not yet implemented.
+> ## ⚠️ STATUS: REJECTED 2026-04-29 (same day as creation)
+>
+> Component E1 backtest disproved the hypothesis. Pooled rank-1 predictions
+> across 10 canonical seeds **fail the gate** vs single seed=42 on 2025
+> backtest: pooled has worse Brier (+0.00684) and 1.1pp lower overall
+> realized hit rate.
+>
+> **The reframing finding**: model is **UNDER-confident** on 2025 backtest
+> (75-80% bucket: predicted 0.79, realized 0.88) but **OVER-confident** on
+> 2026 production (predicted 0.78, realized 0.47 on top-1-only). Same
+> model, opposite calibration directions in adjacent seasons. **That's
+> distribution shift between training (2017-2025) and 2026 production —
+> not the seed-variance problem this plan was designed to fix.**
+>
+> Pooling reduces seed-variance. It cannot fix a training-vs-deployment
+> data-distribution gap. Right fixes (none of which this plan addresses):
+> 1. Refresh training data more aggressively (incorporate 2026 in walk-forward)
+> 2. Post-hoc calibration adjustment using recent realized hit rates
+> 3. Accept the new regime and recalibrate expectations
+>
+> **What survives**: Components A (orchestrator), D (health check), E
+> (validation harness) and the realized_calibration alert are kept as
+> repurposable infrastructure — Component A is generic "train N variants"
+> tooling; D fires only when pooled training is running; E is the
+> diagnostic that surfaced this rejection.
+>
+> **What does NOT ship**: Component B (pooled inference path), the
+> Hetzner Phase 2 migration, the daily systemd timer.
+>
+> **Don't re-propose without** first showing pooling beats single-seed
+> on Brier in a backtest. See full rejection memo:
+> [project_bts_2026_04_29_pooled_prediction_rejected.md](../../../../.claude/projects/-Users-stone/memory/project_bts_2026_04_29_pooled_prediction_rejected.md).
+
+---
+
+**Status**: ~~scoping; not yet implemented~~ → **REJECTED**.
 **Created**: 2026-04-29
-**Decision driver**: F's calibration finding (n=57 picks, +14pp overconfidence in 75-80% bucket; +7pp overall). Production seed=42 is at the 95th pctile of the n=100 baseline P(57) distribution, producing systematically optimistic predictions.
+**Rejected**: 2026-04-29 (same day, by E1 backtest gate-FAIL)
+**Decision driver (now disproved)**: F's calibration finding (n=57 picks, +14pp overconfidence in 75-80% bucket; +7pp overall). Production seed=42 is at the 95th pctile of the n=100 baseline P(57) distribution, producing systematically optimistic predictions.
 **Verdict**: ship daily multi-seed pooled prediction (option 4 from item #6 options table) in two phases:
 - **Phase 1 (Vultr-only, ~3 weeks bridge)**: Hetzner account is <1mo old, so the limit-increase ticket can't be filed yet. Run on Vultr in Frankfurt (`voc-c-16c-32gb-300s-amd`, 10 parallel boxes, ~$75/mo).
 - **Phase 2 (Hetzner-only, ongoing)**: when account turns 1mo, file Hetzner ticket → 10 CPX62 in fsn1 (~$95/yr). One config-flag change to migrate; predictions byte-equivalent under `BTS_LGBM_DETERMINISTIC=1`.
