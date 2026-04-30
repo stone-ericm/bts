@@ -155,7 +155,7 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 
 ## Health Monitoring
 
-End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 12 sources as of 2026-04-29:
+End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 13 sources as of 2026-04-30:
 
 | Source | Tier | Detects |
 |---|---|---|
@@ -168,6 +168,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket (added 2026-04-29; **expected to fire CRITICAL daily** while distribution shift between 2017-2025 training and 2026 prod persists — see `project_bts_2026_04_29_pooled_prediction_rejected.md`) |
 | `same_team_corr` | 2 | DD pair-realization vs naive independence |
 | `projected_lineup` | 2 | % rolling 14d projected_lineup over threshold |
+| `pitcher_sparsity` | 2 | % rolling 14d picks with `LIMITED pitcher data` flag (added 2026-04-30 — diagnostic for MiLB-transfer ROI; also catches min_periods regression) |
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |

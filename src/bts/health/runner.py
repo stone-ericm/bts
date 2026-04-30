@@ -18,6 +18,7 @@ from bts.health import (
     calibration,
     disk_fill,
     memory_growth,
+    pitcher_sparsity,
     pooled_training,
     post_failure,
     predicted_vs_realized,
@@ -93,6 +94,9 @@ def run_all_checks(
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),
+    )))
+    alerts.extend(_safe_run("pitcher_sparsity", lambda: pitcher_sparsity.check(
+        picks_dir, today=today, thresholds=overrides.get("pitcher_sparsity"),
     )))
     alerts.extend(_safe_run("projected_lineup", lambda: projected_lineup.check(
         picks_dir, today=today, thresholds=overrides.get("projected_lineup"),
