@@ -183,10 +183,65 @@ def load_phase2_set_results(repo_root: Path) -> dict[str, dict]:
     return out
 
 
+def load_phase2_targeted(repo_root: Path) -> dict[str, dict]:
+    """Per-experiment Phase 2 audits — directory pattern phase2_<exp>_<set>_<date>/result.json.
+
+    Set label is one of {set1_canonical, set2_orthogonal}. Each result.json holds
+    forward_log + backward_log entries with per-seed deltas, identical schema to
+    the older paired-set runs.
+    """
+    import re
+    base = repo_root / "data/screen_postcutover"
+    if not base.exists():
+        return {}
+    out: dict[str, dict] = {}
+    pattern = re.compile(r"^phase2_(?P<exp>.+?)_(?P<set>set[12]_(?:canonical|orthogonal))_(?P<date>\d{4}-\d{2}-\d{2})$")
+    for d in sorted(base.iterdir()):
+        if not d.is_dir():
+            continue
+        m = pattern.match(d.name)
+        if not m:
+            continue
+        exp_name = m.group("exp")
+        set_label = m.group("set")
+        run_date = m.group("date")
+        result_p = d / "result.json"
+        if not result_p.exists():
+            continue
+        raw = json.loads(result_p.read_text())
+        for log_kind, log_phase in (("forward_log", "2-forward"), ("backward_log", "2-backward")):
+            for step in raw.get(log_kind, []):
+                sname = step.get("name")
+                if not sname:
+                    continue
+                mean_d = step.get("delta", 0)
+                per_seed = step.get("delta_per_seed", {})
+                deltas = list(per_seed.values()) if per_seed else [mean_d]
+                m_, sd, se, t = _t_stat(deltas)
+                key = f"{sname}__{set_label}_{run_date}_{log_kind}"
+                out[key] = {
+                    "source": d.name,
+                    "phase": log_phase,
+                    "n_seeds": len(deltas),
+                    "metric": "d_p57_mdp",
+                    "mean": m_, "sd": sd, "se": se, "t": t,
+                    "verdict": "KEEP" if step.get("kept") else "DROP",
+                    "extras": {
+                        "step_kept": step.get("kept"),
+                        "experiment": sname,
+                        "set_label": set_label,
+                        "date": run_date,
+                        "audit_dir_experiment": exp_name,
+                    },
+                }
+    return out
+
+
 def main(repo_root: Path) -> None:
     rows: dict[str, dict] = {}
     for loader in (load_screen_pooled_n10, load_lambdarank_only,
-                   load_borderline_n10, load_phase2_set_results):
+                   load_borderline_n10, load_phase2_set_results,
+                   load_phase2_targeted):
         for k, v in loader(repo_root).items():
             # Suffix duplicate names by source so we don't clobber across corpora.
             key = k if k not in rows else f"{k}__{v['source']}"
