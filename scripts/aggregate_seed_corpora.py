@@ -184,18 +184,24 @@ def load_phase2_set_results(repo_root: Path) -> dict[str, dict]:
 
 
 def load_phase2_targeted(repo_root: Path) -> dict[str, dict]:
-    """Per-experiment Phase 2 audits — directory pattern phase2_<exp>_<set>_<date>/result.json.
+    """Per-experiment Phase 2 audits — directory pattern phase2_<exp>_<set>[_<split>]_<date>/result.json.
 
-    Set label is one of {set1_canonical, set2_orthogonal}. Each result.json holds
-    forward_log + backward_log entries with per-seed deltas, identical schema to
-    the older paired-set runs.
+    Set label is one of {set1_canonical, set2_orthogonal}. Optional split label
+    is one of {splita, splitb} for parallel seed-split runs (5 seeds each on
+    separate boxes); when both splits exist for the same (exp, set, date), their
+    per-seed deltas are POOLED into a single n=10 verdict row. When only one
+    split or no split is present, that row stands alone.
     """
     import re
     base = repo_root / "data/screen_postcutover"
     if not base.exists():
         return {}
-    out: dict[str, dict] = {}
-    pattern = re.compile(r"^phase2_(?P<exp>.+?)_(?P<set>set[12]_(?:canonical|orthogonal))_(?P<date>\d{4}-\d{2}-\d{2})$")
+    pattern = re.compile(
+        r"^phase2_(?P<exp>.+?)_(?P<set>set[12]_(?:canonical|orthogonal))"
+        r"(?:_(?P<split>split[ab]))?_(?P<date>\d{4}-\d{2}-\d{2})$"
+    )
+    # First pass: collect per-seed deltas grouped by (exp, set_label, date, log_kind, step_name).
+    grouped: dict[tuple, dict] = {}
     for d in sorted(base.iterdir()):
         if not d.is_dir():
             continue
@@ -205,35 +211,57 @@ def load_phase2_targeted(repo_root: Path) -> dict[str, dict]:
         exp_name = m.group("exp")
         set_label = m.group("set")
         run_date = m.group("date")
+        split = m.group("split") or "single"
         result_p = d / "result.json"
         if not result_p.exists():
             continue
         raw = json.loads(result_p.read_text())
-        for log_kind, log_phase in (("forward_log", "2-forward"), ("backward_log", "2-backward")):
+        for log_kind in ("forward_log", "backward_log"):
             for step in raw.get(log_kind, []):
                 sname = step.get("name")
                 if not sname:
                     continue
-                mean_d = step.get("delta", 0)
-                per_seed = step.get("delta_per_seed", {})
-                deltas = list(per_seed.values()) if per_seed else [mean_d]
-                m_, sd, se, t = _t_stat(deltas)
-                key = f"{sname}__{set_label}_{run_date}_{log_kind}"
-                out[key] = {
-                    "source": d.name,
-                    "phase": log_phase,
-                    "n_seeds": len(deltas),
-                    "metric": "d_p57_mdp",
-                    "mean": m_, "sd": sd, "se": se, "t": t,
-                    "verdict": "KEEP" if step.get("kept") else "DROP",
-                    "extras": {
-                        "step_kept": step.get("kept"),
-                        "experiment": sname,
-                        "set_label": set_label,
-                        "date": run_date,
-                        "audit_dir_experiment": exp_name,
-                    },
-                }
+                per_seed = step.get("delta_per_seed", {}) or {}
+                kept = step.get("kept", False)
+                if not per_seed:
+                    # Single-seed mode emits delta but no per_seed dict; synthesize one.
+                    per_seed = {"default": step.get("delta", 0)}
+                key = (exp_name, set_label, run_date, log_kind, sname)
+                if key not in grouped:
+                    grouped[key] = {"deltas": {}, "kept_any": False, "sources": []}
+                # Tag each seed with its split origin so duplicate seed keys don't clobber.
+                for seed_k, seed_d in per_seed.items():
+                    grouped[key]["deltas"][f"{split}:{seed_k}"] = seed_d
+                grouped[key]["kept_any"] = grouped[key]["kept_any"] or bool(kept)
+                grouped[key]["sources"].append(d.name)
+
+    # Second pass: emit one row per group, with deltas pooled across splits.
+    out: dict[str, dict] = {}
+    for (exp_name, set_label, run_date, log_kind, sname), group in grouped.items():
+        deltas = list(group["deltas"].values())
+        m_, sd, se, t = _t_stat(deltas)
+        log_phase = "2-forward" if log_kind == "forward_log" else "2-backward"
+        # Use a deterministic source label that lists every contributing dir.
+        sources_str = "+".join(sorted(group["sources"]))
+        key = f"{sname}__{set_label}_{run_date}_{log_kind}"
+        out[key] = {
+            "source": sources_str,
+            "phase": log_phase,
+            "n_seeds": len(deltas),
+            "metric": "d_p57_mdp",
+            "mean": m_, "sd": sd, "se": se, "t": t,
+            "verdict": _verdict(t, m_) if log_phase == "2-forward" else (
+                "KEEP" if group["kept_any"] else "DROP"
+            ),
+            "extras": {
+                "step_kept_any": group["kept_any"],
+                "experiment": sname,
+                "set_label": set_label,
+                "date": run_date,
+                "audit_dir_experiment": exp_name,
+                "n_splits_pooled": len(group["sources"]),
+            },
+        }
     return out
 
 
