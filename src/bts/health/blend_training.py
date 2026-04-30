@@ -10,13 +10,19 @@ Pattern observed in production:
   blend_2026-04-28.pkl generated 2026-04-27 03:06 ET
 
 So at end-of-day on day N, blend_<N+1>.pkl must exist.
+
+**Time guard**: the alert is suppressed before 4 AM ET because the cron's
+own 3:06 AM start can run several minutes; firing CRITICAL between midnight
+and ~4 AM is a daily false positive (the file legitimately doesn't exist
+yet because the cron hasn't fired).
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts.health.alert import Alert
 
@@ -24,14 +30,27 @@ log = logging.getLogger(__name__)
 
 SOURCE = "blend_training"
 
+ET = ZoneInfo("America/New_York")
+EARLIEST_HOUR_ET = 4  # cron fires at 3:06; 4:00 gives ~1h grace
 
-def check(models_dir: Path, today: date | None = None) -> list[Alert]:
-    """Returns CRITICAL alert if tomorrow's blend pkl is missing on day N at end-of-day."""
+
+def check(
+    models_dir: Path,
+    today: date | None = None,
+    now: datetime | None = None,
+) -> list[Alert]:
+    """Returns CRITICAL alert if tomorrow's blend pkl is missing on day N after 4 AM ET."""
     if today is None:
         today = date.today()
     tomorrow = today + timedelta(days=1)
     expected = models_dir / f"blend_{tomorrow.isoformat()}.pkl"
     if expected.exists():
+        return []
+    # Time guard: suppress before 4 AM ET on day N — cron may not have fired yet.
+    if now is None:
+        now = datetime.now(ET)
+    now_et = now.astimezone(ET) if now.tzinfo is not None else now.replace(tzinfo=ET)
+    if now_et.date() == today and now_et.hour < EARLIEST_HOUR_ET:
         return []
     return [Alert(
         level="CRITICAL",
