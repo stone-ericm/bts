@@ -213,6 +213,19 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
             "opp_pitching_team_id"
         )["opp_bullpen_hr_30g"].last().to_dict()
 
+    # Batter × pitcher Bayesian-shrunk hit rate (bpm). Promoted to FEATURE_COLS
+    # 2026-04-29; inference must lookup latest value per (batter, pitcher) pair
+    # because the model now expects this column. Missing pairs (debuts, new
+    # matchups) fall back to the league prior 0.2195 (see compute.py:636-664).
+    if "batter_pitcher_shrunk_hr" in df.columns:
+        lookups["batter_pitcher_hr"] = df.dropna(
+            subset=["batter_pitcher_shrunk_hr"]
+        ).groupby(["batter_id", "pitcher_id"])[
+            "batter_pitcher_shrunk_hr"
+        ].last().to_dict()
+    else:
+        lookups["batter_pitcher_hr"] = {}
+
     # Batter last played date
     lookups["last_date"] = df.groupby("batter_id")["date"].max().to_dict()
 
@@ -525,6 +538,13 @@ def predict(
         for col in ["pitcher_avg_velo_30g", "pitcher_avg_spin_30g",
                      "pitcher_avg_extension_30g", "pitcher_break_total_30g"]:
             row[col] = lookups.get("pitcher_statcast", {}).get(col, {}).get(slot["pitcher_id"])
+
+        # Batter × pitcher Bayesian-shrunk hit rate (bpm, in FEATURE_COLS as of
+        # 2026-04-29). Fall back to league prior 0.2195 for matchups with no
+        # history — matches compute.py's fillna(_PRIOR_RATE) behavior.
+        row["batter_pitcher_shrunk_hr"] = lookups.get("batter_pitcher_hr", {}).get(
+            (bid, slot["pitcher_id"]), 0.2195
+        )
 
         # Context
         row["weather_temp"] = slot["weather_temp"]
