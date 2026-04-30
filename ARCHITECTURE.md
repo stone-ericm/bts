@@ -20,7 +20,7 @@ Validated results (walk-forward, provably leak-free):
 - **Filters**: Regular season only (no spring training, postseason, exhibitions, 7-inning COVID doubleheaders)
 - **Storage**: Raw JSON (`data/raw/{season}/{gamePk}.json`) → PA Parquet (`data/processed/pa_{season}.parquet`)
 
-## Features (15, provably leak-free)
+## Features (16, provably leak-free)
 
 All features use date-level shift(1) — only data from dates strictly before the prediction date.
 Verified by nuclear test: 260/260 manual spot checks passed.
@@ -42,6 +42,7 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 | pitcher_catcher_framing | Expanding | Catcher framing proxy (expanding strike rate) |
 | opp_bullpen_hr_30g | Rolling | Opposing team's reliever hit rate (30-day, via probable pitcher ID) |
 | days_rest | Context | Days since batter's last game |
+| batter_pitcher_shrunk_hr | Expanding × shrinkage | Bayesian-shrunk historical (batter, pitcher) hit rate. Promoted 2026-04-29 after Phase 1 t=+3.35, Phase 2 set-1 +2.77pp, set-2 +3.49pp. Aggregated per (batter, pitcher, date) for no within-day leakage; falls back to league prior 0.2195 (K=10). Inference path explicitly populates this from `lookups["batter_pitcher_hr"]` (predict.py); a missing-bpm bug shipped 2026-04-29 → fixed 2026-04-30 commit `ee4190f`. |
 
 ### Context features (4, shadow model — CONTEXT_COLS)
 
@@ -108,7 +109,7 @@ Tested and rejected after empirical validation:
 
 ## Orchestration
 
-Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd.
+Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (Audit fleet uses CPX62 in fsn1 since CPX51 deprecation 2026-04-26.)
 
 ```
 ┌──────────────────────────────────────────────────┐
