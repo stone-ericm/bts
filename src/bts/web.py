@@ -22,6 +22,7 @@ from bts.heartbeat import read_heartbeat, is_heartbeat_fresh
 from bts.audit_progress import scan_audit_progress
 
 PICKS_DIR = Path("data/picks")
+LEADERBOARD_DIR = Path("data/leaderboard")
 HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PROJECT_ROOT = Path(".")
 PORT = 3003
@@ -1358,6 +1359,8 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/audit-progress":
             status_code, body = audit_progress_response(parse_qs(parsed.query))
             self._json_response(body, status_code=status_code)
+        elif parsed.path == "/api/leaderboard":
+            self._handle_api_leaderboard()
         else:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -1445,6 +1448,42 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _handle_api_leaderboard(self):
+        """Return today's BTS-leaderboard consensus pick + our percentile rank.
+
+        Reads from data/leaderboard/ (populated by `bts leaderboard scrape`,
+        runs twice daily via systemd timer). Returns 200 with JSON body
+        even when no data has accumulated yet — fields will be null in
+        that case so the dashboard can render a placeholder.
+        """
+        from datetime import date as _date
+        try:
+            from bts.leaderboard.analysis import consensus_pick, percentile_rank
+        except ImportError as e:
+            self._json_response(
+                {"error": f"leaderboard analysis module unavailable: {e}"},
+                status_code=503,
+            )
+            return
+
+        our_streak = load_streak()
+        today = _date.today()
+        try:
+            consensus = consensus_pick(LEADERBOARD_DIR, today)
+            rank = percentile_rank(LEADERBOARD_DIR, our_streak)
+        except Exception as e:
+            self._json_response(
+                {"error": f"analysis failed: {e}"},
+                status_code=500,
+            )
+            return
+        self._json_response({
+            "as_of": today.isoformat(),
+            "our_streak": our_streak,
+            "consensus_pick": consensus,
+            "percentile_rank": rank,
+        })
 
     def _json_response(self, data, status_code=200):
         body = json.dumps(data).encode()
