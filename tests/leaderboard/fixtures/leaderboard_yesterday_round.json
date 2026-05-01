@@ -1,0 +1,3147 @@
+{
+  "success": {
+    "ranks": [
+      {
+        "userId": 595403,
+        "rank": 1,
+        "username": "tombrady12",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 34,
+        "activeStreak": 34,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 35,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 360877,
+        "rank": 2,
+        "username": "ADDMAR",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 32,
+        "activeStreak": 32,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 32,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 629886,
+        "rank": 2,
+        "username": "kkraushaar2",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 32,
+        "activeStreak": 32,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 34,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 11202,
+        "rank": 4,
+        "username": "simonsez",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-MLB.png",
+        "level": 11,
+        "levelName": "Superstar",
+        "levelColor": "#FFA794",
+        "streak": 30,
+        "activeStreak": 30,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -30,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 11436,
+        "rank": 4,
+        "username": "ChicksDigStreaks",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-112.png",
+        "level": 12,
+        "levelName": "Jersey Retired",
+        "levelColor": "#FFCE94",
+        "streak": 30,
+        "activeStreak": 30,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 31,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 466,
+              "playerId": 1737,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 27537,
+        "rank": 4,
+        "username": "SJiants",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Player_Portraits-Webb_Logan.jpg",
+        "level": 14,
+        "levelName": "Legend",
+        "levelColor": "#FFF2C4",
+        "streak": 30,
+        "activeStreak": 30,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 30,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 139315,
+        "rank": 4,
+        "username": "gepstein",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-121.png",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 30,
+        "activeStreak": 30,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -30,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1710,
+              "result": "hit",
+              "hits": 3,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 595375,
+        "rank": 4,
+        "username": "MAXFRIED",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 30,
+        "activeStreak": 30,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -30,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 29051,
+        "rank": 9,
+        "username": "sachael",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-143.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 29,
+        "activeStreak": 29,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 29,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 231588,
+        "rank": 9,
+        "username": "flemingjake",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-113.png",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 29,
+        "activeStreak": 29,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 30,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 455,
+              "playerId": 377,
+              "result": "hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 273437,
+        "rank": 11,
+        "username": "GianniG",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-MLB.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 28,
+        "activeStreak": 28,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -28,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 503578,
+        "rank": 11,
+        "username": "Stephen",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 28,
+        "activeStreak": 28,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -28,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 550469,
+        "rank": 11,
+        "username": "paolofq",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 28,
+        "activeStreak": 28,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -28,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 594421,
+        "rank": 11,
+        "username": "Trumbohr",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 28,
+        "activeStreak": 28,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 28,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 618802,
+        "rank": 11,
+        "username": "DanPike",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 28,
+        "activeStreak": 28,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -28,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 3811,
+        "rank": 16,
+        "username": "michael",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Jeff-McNeil.jpg",
+        "level": 10,
+        "levelName": "MVP",
+        "levelColor": "#FF94B4",
+        "streak": 27,
+        "activeStreak": 27,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -27,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 22863,
+        "rank": 16,
+        "username": "icegirl",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Painted_Team-TOR-WM.jpg",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 27,
+        "activeStreak": 27,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -27,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 180888,
+        "rank": 16,
+        "username": "Davidh27",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-147.png",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 27,
+        "activeStreak": 27,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 29,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 455,
+              "playerId": 377,
+              "result": "hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 247138,
+        "rank": 16,
+        "username": "PabloSanchez",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-114.png",
+        "level": 2,
+        "levelName": "Top Prospect",
+        "levelColor": "#BDF6B3",
+        "streak": 27,
+        "activeStreak": 27,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -27,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 11169,
+        "rank": 20,
+        "username": "Beau2408",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_Shohei-Ohtani-portrait.jpg",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 61889,
+        "rank": 20,
+        "username": "McKinley412",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_Sandy-Alcantara-portrait.jpg",
+        "level": 4,
+        "levelName": "September Call-up",
+        "levelColor": "#62F0CE",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 92062,
+        "rank": 20,
+        "username": "LBennett",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-111.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": "#D2DAE5",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 114417,
+        "rank": 20,
+        "username": "DSHJR33",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HR-Derby-Avatar-albert-pujols.jpg",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 115399,
+        "rank": 20,
+        "username": "bc3783",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-137.png",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 26,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 127560,
+        "rank": 20,
+        "username": "YankaBuc",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_aaron-judge-portrait.jpg",
+        "level": 12,
+        "levelName": "Jersey Retired",
+        "levelColor": "#FFCE94",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 28,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 164971,
+        "rank": 20,
+        "username": "DrewKo",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_mookie-betts-portrait.jpg",
+        "level": 14,
+        "levelName": "Legend",
+        "levelColor": "#FFF2C4",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 190174,
+        "rank": 20,
+        "username": "Benchjb",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PS%20bell.jpg",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 27,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 455,
+              "playerId": 377,
+              "result": "hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 375202,
+        "rank": 20,
+        "username": "Simon101",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 572742,
+        "rank": 20,
+        "username": "slick1979",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 631539,
+        "rank": 20,
+        "username": "WickedRunR",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 637032,
+        "rank": 20,
+        "username": "JGomez418",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 26,
+        "activeStreak": 26,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -26,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 460,
+              "playerId": 2771,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 2
+            },
+            {
+              "number": 2,
+              "unitId": 466,
+              "playerId": 1545,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 4952,
+        "rank": 32,
+        "username": "Jimmy2727",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/mascot%20MIN.jpg",
+        "level": 13,
+        "levelName": "Hall of Famer",
+        "levelColor": "#FFE794",
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -25,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 11070,
+        "rank": 32,
+        "username": "mauzam",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-141.png",
+        "level": 4,
+        "levelName": "September Call-up",
+        "levelColor": "#62F0CE",
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 25,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 28337,
+        "rank": 32,
+        "username": "MrCharlie",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Nestor-Cortes.jpg",
+        "level": 11,
+        "levelName": "Superstar",
+        "levelColor": "#FFA794",
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -25,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 31849,
+        "rank": 32,
+        "username": "OzOzzie",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/2021_All-Star_Game-Josh_Hader.jpg",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -25,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 375216,
+        "rank": 32,
+        "username": "handjiwa",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -25,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 460,
+              "playerId": 2771,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 2
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 525352,
+        "rank": 32,
+        "username": "jordan",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 25,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 568493,
+        "rank": 32,
+        "username": "megsheg",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 25,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 615954,
+        "rank": 32,
+        "username": "Ciuk06",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 25,
+        "activeStreak": 25,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -25,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 34942,
+        "rank": 40,
+        "username": "theone",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HEADSHOT_Jacob-deGrom-head.jpg",
+        "level": 6,
+        "levelName": "Starter",
+        "levelColor": "#4ECAFF",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 26,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 121087,
+        "rank": 40,
+        "username": "abdoman",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-134.png",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -24,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 150284,
+        "rank": 40,
+        "username": "jefferyk",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-147.png",
+        "level": 3,
+        "levelName": "Future Star",
+        "levelColor": "#65F062",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 26,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 178523,
+        "rank": 40,
+        "username": "ryanro",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-137.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": "#D2DAE5",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -24,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 2319,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 5
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 2586,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 2
+            }
+          ]
+        }
+      },
+      {
+        "userId": 190694,
+        "rank": 40,
+        "username": "jomeone",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-140.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": "#65F062",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -24,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 240896,
+        "rank": 40,
+        "username": "GMoney",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HEADSHOT_freddie-freeman-head.jpg",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 25,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 263054,
+        "rank": 40,
+        "username": "stmcgee8",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-143.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 24,
+        "activeStreak": 24,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -24,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 43213,
+        "rank": 47,
+        "username": "ellert",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-133.png",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 23,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 46725,
+        "rank": 47,
+        "username": "Redbirds04",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_Paul-Goldschmidt-portrait.jpg",
+        "level": 10,
+        "levelName": "MVP",
+        "levelColor": "#FF94B4",
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 49618,
+        "rank": 47,
+        "username": "bucknut555",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-117.png",
+        "level": 14,
+        "levelName": "Legend",
+        "levelColor": "#FFF2C4",
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 77498,
+        "rank": 47,
+        "username": "jackschwartz",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-138.png",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 24,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 78133,
+        "rank": 47,
+        "username": "bdizzle",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-MLB.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 400219,
+        "rank": 47,
+        "username": "mikefrilegh",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 458374,
+        "rank": 47,
+        "username": "JMurph",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 23,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 541951,
+        "rank": 47,
+        "username": "noahman17",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 566439,
+        "rank": 47,
+        "username": "Suzano",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 625734,
+        "rank": 47,
+        "username": "Ohbumper",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 25,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 460,
+              "playerId": 626,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 628120,
+        "rank": 47,
+        "username": "Douglas",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 23,
+        "activeStreak": 23,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -23,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 2319,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 5
+            }
+          ]
+        }
+      },
+      {
+        "userId": 5056,
+        "rank": 58,
+        "username": "cherman24",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-134.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": "#AA94FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 463,
+              "playerId": 2642,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 5562,
+        "rank": 58,
+        "username": "ActionJackson",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Albert-Pujols.jpg",
+        "level": 13,
+        "levelName": "Hall of Famer",
+        "levelColor": "#FFE794",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 24,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 463,
+              "playerId": 518,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 2
+            }
+          ]
+        }
+      },
+      {
+        "userId": 10728,
+        "rank": 58,
+        "username": "dspurvis",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/mascot%20BOS.jpg",
+        "level": 14,
+        "levelName": "Legend",
+        "levelColor": "#FFF2C4",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 22822,
+        "rank": 58,
+        "username": "SullySox",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Player_Portraits-Tatis_Fernando.jpg",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 23979,
+        "rank": 58,
+        "username": "JAYSAT44",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-141.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 24250,
+        "rank": 58,
+        "username": "Jinb4488",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Player_Headshots-Machado,_Manny.jpg",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 22,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 35469,
+        "rank": 58,
+        "username": "travisgb23",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-112.png",
+        "level": 11,
+        "levelName": "Superstar",
+        "levelColor": "#FFA794",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 464,
+              "playerId": 377,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 49920,
+        "rank": 58,
+        "username": "jordan",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-MLB.png",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 53892,
+        "rank": 58,
+        "username": "Murphy",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PS%20soto.jpg",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 67561,
+        "rank": 58,
+        "username": "Justin5982",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-137.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 455,
+              "playerId": 708,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 5
+            }
+          ]
+        }
+      },
+      {
+        "userId": 83582,
+        "rank": 58,
+        "username": "kydodgerfan",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HEADSHOT_freddie-freeman-head.jpg",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 187287,
+        "rank": 58,
+        "username": "emul12",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-119.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 22,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 228113,
+        "rank": 58,
+        "username": "Grumpy",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/AVATAR_joey-votto-field-of-dreams.jpg",
+        "level": 4,
+        "levelName": "September Call-up",
+        "levelColor": "#62F0CE",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 24,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 1740,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 5
+            },
+            {
+              "number": 2,
+              "unitId": 464,
+              "playerId": 505,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 263284,
+        "rank": 58,
+        "username": "Janitor32",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HR-Derby-Avatar-2022_Home_Run_Derby-logo.jpg",
+        "level": 3,
+        "levelName": "Future Star",
+        "levelColor": "#65F062",
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 466,
+              "playerId": 407,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 562615,
+        "rank": 58,
+        "username": "maimone4",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 610046,
+        "rank": 58,
+        "username": "Alejandro96",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 612255,
+        "rank": 58,
+        "username": "94EXPOS",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 617097,
+        "rank": 58,
+        "username": "Bigdog",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 618395,
+        "rank": 58,
+        "username": "rafimbuja",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 626142,
+        "rank": 58,
+        "username": "WildThing",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 628675,
+        "rank": 58,
+        "username": "matt2727",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 629456,
+        "rank": 58,
+        "username": "jerrad",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 633295,
+        "rank": 58,
+        "username": "pgnmacd",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 24,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 468,
+              "playerId": 1047,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 639383,
+        "rank": 58,
+        "username": "WesFrost716",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 22,
+        "activeStreak": 22,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -22,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 5070,
+        "rank": 82,
+        "username": "torreys2012",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/Neon-SEA.jpg",
+        "level": 13,
+        "levelName": "Hall of Famer",
+        "levelColor": "#FFE794",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 17703,
+        "rank": 82,
+        "username": "Benzo4499",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-158.png",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 30149,
+        "rank": 82,
+        "username": "nickmlb",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/2021_World_Series-Yordan_Alvarez_Portrait.jpg",
+        "level": 7,
+        "levelName": "All-Star",
+        "levelColor": "#7FA3FF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 462,
+              "playerId": 2028,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 2
+            }
+          ]
+        }
+      },
+      {
+        "userId": 47646,
+        "rank": 82,
+        "username": "ButchA",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-147.png",
+        "level": 14,
+        "levelName": "Legend",
+        "levelColor": "#FFF2C4",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 22,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 48261,
+        "rank": 82,
+        "username": "Kbob44",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-112.png",
+        "level": 9,
+        "levelName": "Captain",
+        "levelColor": "#D694FF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 57159,
+        "rank": 82,
+        "username": "UTLEYGOD",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-143.png",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 79625,
+        "rank": 82,
+        "username": "Owen369",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-141.png",
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 92359,
+        "rank": 82,
+        "username": "SeanDeedz",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_J.T.-Realmuto-portrait.jpg",
+        "level": 8,
+        "levelName": "All-MLB",
+        "levelColor": "#AA94FF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 22,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 106176,
+        "rank": 82,
+        "username": "ncl044",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-136.png",
+        "level": 3,
+        "levelName": "Future Star",
+        "levelColor": "#65F062",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 22,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 125147,
+        "rank": 82,
+        "username": "alexclausius1",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/HEADSHOT_Jesus-Luzardo-head.jpg",
+        "level": 6,
+        "levelName": "Starter",
+        "levelColor": "#4ECAFF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1021,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 167049,
+        "rank": 82,
+        "username": "kcroyals99",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-118.png",
+        "level": 5,
+        "levelName": "Rookie",
+        "levelColor": "#4EFFFF",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 21,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 180219,
+        "rank": 82,
+        "username": "bcas24",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-136.png",
+        "level": 10,
+        "levelName": "MVP",
+        "levelColor": "#FF94B4",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 257373,
+        "rank": 82,
+        "username": "DaddyShark",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/prizes/avatars/PORTRAIT_Brandon-Woodruff-portrait.jpg",
+        "level": 11,
+        "levelName": "Superstar",
+        "levelColor": "#FFA794",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 22,
+          "streakIncrease": 1,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 468,
+              "playerId": 1040,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 282245,
+        "rank": 82,
+        "username": "algy747",
+        "userType": "usual",
+        "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-MLB.png",
+        "level": 1,
+        "levelName": "Prospect",
+        "levelColor": "#D2DAE5",
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 464,
+              "playerId": 377,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1467,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 366477,
+        "rank": 82,
+        "username": "PazcoPicks",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "void",
+          "streak": 21,
+          "streakIncrease": 0,
+          "roundPredictions": []
+        }
+      },
+      {
+        "userId": 368815,
+        "rank": 82,
+        "username": "MFinger",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "hit",
+          "streak": 23,
+          "streakIncrease": 2,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 463,
+              "playerId": 1881,
+              "result": "hit",
+              "hits": 1,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 382577,
+        "rank": 82,
+        "username": "Masterbeater",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            }
+          ]
+        }
+      },
+      {
+        "userId": 435795,
+        "rank": 82,
+        "username": "thisisberman",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 465,
+              "playerId": 1419,
+              "result": "hit",
+              "hits": 2,
+              "atBats": 3
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      },
+      {
+        "userId": 457838,
+        "rank": 82,
+        "username": "Terp388",
+        "userType": "usual",
+        "avatar": null,
+        "level": null,
+        "levelName": null,
+        "levelColor": null,
+        "streak": 21,
+        "activeStreak": 21,
+        "predictions": {
+          "roundId": 859,
+          "result": "not_hit",
+          "streak": 0,
+          "streakIncrease": -21,
+          "roundPredictions": [
+            {
+              "number": 1,
+              "unitId": 461,
+              "playerId": 459,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 4
+            },
+            {
+              "number": 2,
+              "unitId": 467,
+              "playerId": 1458,
+              "result": "not_hit",
+              "hits": 0,
+              "atBats": 3
+            }
+          ]
+        }
+      }
+    ],
+    "user": {
+      "position": 90177,
+      "page": null,
+      "userId": 50311,
+      "rank": 47115,
+      "username": "stonehengee",
+      "userType": "usual",
+      "avatar": "https://storage.googleapis.com/gaming-platform/avatars/avatar-121.png",
+      "level": null,
+      "levelName": null,
+      "levelColor": null,
+      "streak": 0,
+      "activeStreak": 0,
+      "predictions": {
+        "roundId": 859,
+        "result": "not_hit",
+        "streak": 0,
+        "streakIncrease": -4,
+        "roundPredictions": [
+          {
+            "number": 1,
+            "unitId": 464,
+            "playerId": 377,
+            "result": "not_hit",
+            "hits": 0,
+            "atBats": 4
+          },
+          {
+            "number": 2,
+            "unitId": 461,
+            "playerId": 345,
+            "result": "hit",
+            "hits": 1,
+            "atBats": 5
+          }
+        ]
+      }
+    },
+    "nextPage": true,
+    "allParticipantsCount": 70061,
+    "friendsParticipantsCount": 0,
+    "updatedAt": "2026-05-01T08:03:47-04:00"
+  },
+  "errors": []
+}
