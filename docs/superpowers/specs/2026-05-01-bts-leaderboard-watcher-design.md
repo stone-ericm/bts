@@ -338,9 +338,13 @@ These are intentionally not answered in the design — they're discoveries that 
 - **Cookie lifetime**: how often do we expect to re-auth? (Inform proactive refresh schedule.)
 - **Pagination**: does the leaderboard return all 100 in one response, or paginate?
 - **Picks log depth**: does it show only current-streak picks, or full season? (Affects backfill scope.)
-- **`'all_time'` tab depth**: does it expose picks from streaks that ended years ago?
+- **`'all_time'` tab depth**: ~~does it expose picks from streaks that ended years ago?~~ **CLOSED 2026-05-01**: Eric's prior exploration confirms MLB.com BTS does NOT expose picks from pre-2026 streaks. All-time tab gives us streak-length history and usernames only, not the picks that produced those streaks. Plan accordingly: backfill is forward-only from today.
 
 These get filled in `endpoints.py` and the design doc gets updated post-Phase-1 if anything contradicts current assumptions.
+
+### Future investigation thread (separate from this spec)
+
+**Third-party BTS historical pick databases**: there may exist a fan-maintained DB or scraper archive somewhere on the internet that holds pre-2026 BTS picks (e.g., 57hits.com archives, kaggle datasets, GitHub repos with scraped data). Worth a one-time investigation pass — if found, that's a one-time corpus injection that would be transformative for strategy mining. Out of scope for this spec; tracked as its own open thread.
 
 ## 14. Out of scope (for clarity)
 
@@ -348,4 +352,4 @@ These get filled in `endpoints.py` and the design doc gets updated post-Phase-1 
 - **Group/private-pool data**: out of scope; only public leaderboard
 - **Pick inference from streak movement**: research-grade, low EV, not pursued
 - **Real-time alerting on consensus shifts**: v2+; v1 is daily snapshots
-- **Cross-season historical mining**: depends on Phase 1 discovery whether `'all_time'` exposes pre-2026 picks
+- **Cross-season historical mining via MLB.com BTS app**: confirmed not possible (pre-2026 picks not exposed). Third-party-DB hunt tracked separately (see Section 13).
