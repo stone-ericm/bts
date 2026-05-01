@@ -92,9 +92,13 @@ def run_all_checks(
     alerts.extend(_safe_run("predicted_vs_realized", lambda: predicted_vs_realized.check(
         picks_dir, today=today, thresholds=overrides.get("predicted_vs_realized"),
     )))
+    # Compute current deploy timestamp once; passed to checks that need
+    # since-deploy filtering to avoid pooling iteration-contaminated picks
+    # (see project_bts_production_realized_contaminated.md).
+    since_deploy_iso = realized_calibration._current_deploy_iso(Path("."))
     alerts.extend(_safe_run("realized_calibration", lambda: realized_calibration.check(
         picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
-        data_dir=data_dir,
+        data_dir=data_dir, since_deploy_iso=since_deploy_iso,
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),
