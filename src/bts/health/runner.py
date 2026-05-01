@@ -17,6 +17,7 @@ from bts.health import (
     blend_training,
     calibration,
     disk_fill,
+    leaderboard_freshness,
     memory_growth,
     pitcher_sparsity,
     pooled_training,
@@ -52,6 +53,7 @@ def run_all_checks(
     thresholds_overrides: dict | None = None,
     pooled_dir: Path | None = None,
     data_dir: Path | None = None,
+    leaderboard_dir: Path | None = None,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -103,6 +105,10 @@ def run_all_checks(
     alerts.extend(_safe_run("projected_lineup", lambda: projected_lineup.check(
         picks_dir, today=today, thresholds=overrides.get("projected_lineup"),
     )))
+    if leaderboard_dir is not None:
+        alerts.extend(_safe_run("leaderboard_freshness", lambda: leaderboard_freshness.check(
+            leaderboard_dir, thresholds=overrides.get("leaderboard_freshness"),
+        )))
 
     # Tier 3 — process integrity
     alerts.extend(_safe_run("disk_fill", lambda: disk_fill.check(
