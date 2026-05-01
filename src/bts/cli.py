@@ -14,6 +14,9 @@ cli.add_command(simulate)
 from bts.experiment.cli import experiment
 cli.add_command(experiment)
 
+from bts.leaderboard.cli import leaderboard
+cli.add_command(leaderboard)
+
 
 @cli.group()
 def validate():
