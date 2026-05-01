@@ -26,18 +26,19 @@ def _row(rank: int, username: str, streak: int) -> LeaderboardRow:
     )
 
 
-def _pick(pick_date_str: str, batter: str, captured_iso: str, round_id: int = 859) -> PickRow:
+def _pick(pick_date_str: str, batter_name_unused: str, captured_iso: str, round_id: int = 859) -> PickRow:
     return PickRow(
         captured_at=datetime.fromisoformat(captured_iso),
         round_id=round_id,
         pick_date=date.fromisoformat(pick_date_str),
-        batter_name=batter,
-        batter_team="NYM",
-        opponent_team="WSH",
-        home_or_away="home",
+        pick_number=1,
+        unit_id=465,
+        bts_player_id=1419,
+        result="hit",
         at_bats=3,
         hits=2,
         streak_after=10,
+        batter_name=batter_name_unused,  # for test "different captured_at" assertions still work
     )
 
 

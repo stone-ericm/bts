@@ -30,14 +30,18 @@ _USER_PICKS_SCHEMA = pa.schema([
     ("captured_at", pa.timestamp("ms")),
     ("round_id", pa.int32()),
     ("pick_date", pa.date32()),
-    ("batter_name", pa.string()),
-    ("batter_team", pa.string()),
-    ("opponent_team", pa.string()),
-    ("home_or_away", pa.string()),
+    ("pick_number", pa.int32()),
+    ("unit_id", pa.int32()),
+    ("bts_player_id", pa.int32()),
+    ("result", pa.string()),
     ("at_bats", pa.int32()),
     ("hits", pa.int32()),
     ("streak_after", pa.int32()),
     ("batter_id", pa.int64()),
+    ("batter_name", pa.string()),
+    ("batter_team", pa.string()),
+    ("opponent_team", pa.string()),
+    ("home_or_away", pa.string()),
 ])
 
 _SEASON_STATS_SCHEMA = pa.schema([

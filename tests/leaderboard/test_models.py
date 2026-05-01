@@ -52,44 +52,64 @@ class TestLeaderboardRow:
 
 
 class TestPickRow:
-    def test_valid_pick_with_round_id(self):
+    def test_valid_pick_with_api_fields(self):
         row = PickRow(
             captured_at=datetime(2026, 5, 1, 14, 0),
             round_id=859,
             pick_date=date(2026, 4, 30),
-            batter_name="Juan Soto",
-            batter_team="NYM",
-            opponent_team="WSH",
-            home_or_away="home",
+            pick_number=1,
+            unit_id=465,
+            bts_player_id=1419,
+            result="hit",
             at_bats=3,
             hits=2,
             streak_after=35,
             batter_id=665742,
+            batter_name="Juan Soto",
+            batter_team="NYM",
+            opponent_team="WSH",
+            home_or_away="home",
         )
         assert row.hits == 2
         assert row.round_id == 859
         assert row.streak_after == 35
+        assert row.pick_number == 1
+        assert row.bts_player_id == 1419
 
-    def test_batter_id_optional(self):
+    def test_optional_resolved_fields_default_none(self):
+        """PickRow can be constructed without name/team resolution fields."""
         row = PickRow(
             captured_at=datetime(2026, 5, 1),
             round_id=860,
             pick_date=date(2026, 5, 1),
-            batter_name="Some Player",
-            batter_team="ABC", opponent_team="XYZ", home_or_away="away",
-            at_bats=3, hits=1, streak_after=5,
+            pick_number=1,
+            unit_id=465,
+            bts_player_id=1419,
+            result="hit",
+            at_bats=3,
+            hits=1,
+            streak_after=5,
         )
         assert row.batter_id is None
+        assert row.batter_name is None
+        assert row.batter_team is None
+        assert row.opponent_team is None
+        assert row.home_or_away is None
 
-    def test_invalid_home_away_rejected(self):
+    def test_invalid_pick_number_rejected(self):
+        """pick_number must be 1 or 2."""
         with pytest.raises(ValidationError):
             PickRow(
                 captured_at=datetime(2026, 5, 1),
                 round_id=859,
                 pick_date=date(2026, 4, 30),
-                batter_name="X", batter_team="A", opponent_team="B",
-                home_or_away="elsewhere",
-                at_bats=3, hits=1, streak_after=5,
+                pick_number=3,
+                unit_id=465,
+                bts_player_id=1419,
+                result="hit",
+                at_bats=3,
+                hits=1,
+                streak_after=5,
             )
 
     def test_negative_round_id_rejected(self):
@@ -98,9 +118,13 @@ class TestPickRow:
                 captured_at=datetime(2026, 5, 1),
                 round_id=-1,
                 pick_date=date(2026, 4, 30),
-                batter_name="X", batter_team="A", opponent_team="B",
-                home_or_away="home",
-                at_bats=3, hits=1, streak_after=5,
+                pick_number=1,
+                unit_id=465,
+                bts_player_id=1419,
+                result="hit",
+                at_bats=3,
+                hits=1,
+                streak_after=5,
             )
 
 

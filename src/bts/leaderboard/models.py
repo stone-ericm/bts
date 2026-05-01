@@ -34,14 +34,21 @@ class PickRow(BaseModel):
     captured_at: datetime
     round_id: int = Field(ge=0)
     pick_date: date
-    batter_name: str = Field(min_length=1)
-    batter_team: str = Field(min_length=1)
-    opponent_team: str = Field(min_length=1)
-    home_or_away: HomeAway
+    pick_number: int = Field(ge=1, le=2)  # 1=primary, 2=double-down
+    unit_id: int = Field(ge=0)
+    bts_player_id: int = Field(ge=0)
+    result: str  # 'hit' | 'not_hit' (string for forward compat with new statuses)
     at_bats: int = Field(ge=0)
     hits: int = Field(ge=0)
     streak_after: int = Field(ge=0)
-    batter_id: int | None = None
+
+    # Resolved at scrape time when static lookups (players.json/units.json/squads.json)
+    # are available. May be None if scraper couldn't resolve.
+    batter_id: int | None = None        # MLB person_id (= players.json[playerId].feedId)
+    batter_name: str | None = None
+    batter_team: str | None = None       # squad abbreviation, e.g. "NYM"
+    opponent_team: str | None = None
+    home_or_away: HomeAway | None = None
 
 
 class SeasonStats(BaseModel):
