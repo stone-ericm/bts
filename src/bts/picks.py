@@ -62,11 +62,58 @@ def pick_from_row(row) -> Pick:
 
 
 def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
-    """Save daily pick to JSON file."""
+    """Save daily pick to JSON file (overwrite-on-write).
+
+    Also appends a lightweight observation to lineup_evolution_{date}.jsonl so
+    we have an audit trail of how the pick changed across the day's lineup
+    checks. Each save_pick call corresponds to one prediction run; the JSONL
+    captures projected-vs-confirmed evolution so we can later analyze whether
+    morning projected-lineup picks underperform confirmed-lineup picks.
+    Audit-log failures must not block the save.
+    """
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.json"
     path.write_text(json.dumps(asdict(daily), indent=2))
+    try:
+        append_lineup_evolution(daily, picks_dir)
+    except Exception:
+        pass
     return path
+
+
+def append_lineup_evolution(daily: DailyPick, picks_dir: Path) -> Path:
+    """Append one observation row to data/picks/lineup_evolution_{date}.jsonl.
+
+    Emits one line per save_pick call. Through the day, this file accumulates
+    the trajectory of {primary_pick, double_down} choices across lineup
+    confirmations. Comparing the first row (often projected_lineup=True) to
+    the last row (often projected_lineup=False) reveals whether the pick
+    changed at confirm time.
+    """
+    log_path = picks_dir / f"lineup_evolution_{daily.date}.jsonl"
+
+    def _slot(p) -> dict | None:
+        if p is None:
+            return None
+        return {
+            "batter_id": p.batter_id,
+            "batter_name": p.batter_name,
+            "team": p.team,
+            "p_game_hit": p.p_game_hit,
+            "projected_lineup": p.projected_lineup,
+            "game_pk": p.game_pk,
+        }
+
+    entry = {
+        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "date": daily.date,
+        "run_time": daily.run_time,
+        "primary": _slot(daily.pick),
+        "double_down": _slot(daily.double_down),
+    }
+    with log_path.open("a") as f:
+        f.write(json.dumps(entry) + "\n")
+    return log_path
 
 
 def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
