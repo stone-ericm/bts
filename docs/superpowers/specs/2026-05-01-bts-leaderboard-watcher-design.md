@@ -329,18 +329,36 @@ tests/leaderboard/
 | Disk full | Parquet write error | Existing `disk_fill` health check catches this |
 | MLB blocks scraping | All requests 403 + ToS update | Pivot to W2 (third-party sites) or W1-only; manual investigation |
 
-## 13. Open questions for Phase 1
+## 13. Phase 1 discoveries (CLOSED 2026-05-01)
 
-These are intentionally not answered in the design — they're discoveries that happen during implementation:
+All open questions resolved via `scripts/discover_bts_endpoints.py` (Playwright + cookie injection + network capture).
 
-- **Endpoint URLs**: what are the actual API paths the BTS app calls?
-- **Auth scheme**: cookie-only, or Bearer token, or session JWT?
-- **Cookie lifetime**: how often do we expect to re-auth? (Inform proactive refresh schedule.)
-- **Pagination**: does the leaderboard return all 100 in one response, or paginate?
-- **Picks log depth**: does it show only current-streak picks, or full season? (Affects backfill scope.)
-- **`'all_time'` tab depth**: ~~does it expose picks from streaks that ended years ago?~~ **CLOSED 2026-05-01**: Eric's prior exploration confirms MLB.com BTS does NOT expose picks from pre-2026 streaks. All-time tab gives us streak-length history and usernames only, not the picks that produced those streaks. Plan accordingly: backfill is forward-only from today.
+- ~~**Endpoint URLs**~~ — All under `https://mlb-play.mlbstatic.com/apps/beat-the-streak/game/api/`:
+  - `POST /auth/login` — exchange cookies + uid for short-lived xSid token
+  - `GET /rank/leaderboard?season=...&ranksType=...&xSid=...` — season-wide tabs
+  - `GET /rank/leaderboard/round/{N}?...&xSid=...` — round-specific (Yesterday tab)
+  - `GET /rank/user/{userId}/profile?xSid=...` — picks + season stats (combined)
+  - `GET /json/rounds.json` — static roundId → date mapping
+- ~~**Auth scheme**~~ — Cookies (Okta-issued + MLB session) for identity. Per-call also requires an `xSid` query param obtained from `POST /auth/login` with body `{uid, platform: "web"}`. The `uid` lives in the `oktaid` cookie.
+- ~~**Cookie lifetime**~~ — Not directly tested; observed `okta-access-token` JWT in cookies suggests Okta-managed sessions (typically 30-day refresh). xSid expires within hours. Safe assumption: re-auth/login on every scrape; manual cookie refresh ~monthly.
+- ~~**Pagination**~~ — Leaderboard supports `page` + `limit` query params; `limit=100` returns top 100 in one response. Top-100 is the current cap; deeper paging untested.
+- ~~**Picks log depth**~~ — `/rank/user/{userId}/profile` returns up to ~36 most recent rounds for an active streak (verified against tombrady12 streak=35). Coverage of OLDER streaks (concluded earlier in season) untested — likely per-user-state-dependent.
 
-These get filled in `endpoints.py` and the design doc gets updated post-Phase-1 if anything contradicts current assumptions.
+### Design adjustments from Phase 1
+
+These differ from earlier sections; the implementation should follow these (the original sections are kept for historical context):
+
+1. **Per-user endpoint is `profile`, not separate `picks` + `stats`.** A single `/rank/user/{userId}/profile` returns:
+   - Top-level: `activeStreak`, `seasonBestStreak`, `accuracy`, `favouriteBatter`, `predictions[]`
+   - Per `predictions[]` row: `roundId`, `result`, `streak`, `streakIncrease`, `roundPredictions[]`
+   - Per `roundPredictions[]` row: `number` (1=primary, 2=DD), `unitId`, `playerId`, `result`, `hits`, `atBats`
+   - Combine: storage layer should split this into `user_picks/<username>.parquet` (from `predictions × roundPredictions`) + `season_stats/<date>.parquet` (from top-level fields).
+
+2. **`pick_date` is computed via roundId join.** The picks payload carries `roundId`, not `date`. Map via static `rounds.json`. The scraper should fetch + cache rounds.json once per scrape.
+
+3. **PickRow needs `round_id` column.** Adding to the spec's data model so we can audit the join. `playerId` (MLB person_id) is preserved directly — that's stronger than the spec's `batter_name` join via roster.
+
+4. **Auth flow**: each scrape run starts with `POST /auth/login` to mint a fresh xSid. Cache it in memory for the run; don't persist (it expires).
 
 ### Future investigation thread (separate from this spec)
 
