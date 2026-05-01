@@ -51,6 +51,7 @@ def run_all_checks(
     today: date | None = None,
     thresholds_overrides: dict | None = None,
     pooled_dir: Path | None = None,
+    data_dir: Path | None = None,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -91,6 +92,7 @@ def run_all_checks(
     )))
     alerts.extend(_safe_run("realized_calibration", lambda: realized_calibration.check(
         picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
+        data_dir=data_dir,
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),

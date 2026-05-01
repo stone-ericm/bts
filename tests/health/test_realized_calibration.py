@@ -51,28 +51,32 @@ class TestRealizedCalibration:
         _well_calibrated_75_80(picks_dir, today, n=20)
         assert check(picks_dir, today=today) == []
 
-    def test_info_at_5pp_overconfidence(self, tmp_path):
-        # n=20 picks at 0.78 predicted, 73% realized → 5pp overconfident
+    def test_info_at_8pp_overconfidence(self, tmp_path):
+        # Thresholds raised 2026-05-01 after attribution-bias finding (DD picks were
+        # over-counted as misses, inflating apparent overconfidence). New floor: 8pp.
+        # n=20 at 0.78 predicted, 70% realized → 8pp gap → INFO
         picks_dir = tmp_path / "picks"
         today = date(2026, 4, 29)
-        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.73)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.70)
         alerts = check(picks_dir, today=today)
         assert len(alerts) == 1
         assert alerts[0].level == "INFO"
         assert alerts[0].source == SOURCE
         assert "75-80" in alerts[0].message
 
-    def test_warn_at_10pp_overconfidence(self, tmp_path):
-        picks_dir = tmp_path / "picks"
-        today = date(2026, 4, 29)
-        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.68)
-        alerts = check(picks_dir, today=today)
-        assert alerts[0].level == "WARN"
-
-    def test_critical_at_15pp_overconfidence(self, tmp_path):
+    def test_warn_at_15pp_overconfidence(self, tmp_path):
+        # 0.78 predicted, 0.63 realized → 15pp gap → WARN
         picks_dir = tmp_path / "picks"
         today = date(2026, 4, 29)
         _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.63)
+        alerts = check(picks_dir, today=today)
+        assert alerts[0].level == "WARN"
+
+    def test_critical_at_25pp_overconfidence(self, tmp_path):
+        # 0.78 predicted, 0.50 realized → 28pp gap → CRITICAL (the true distribution-shift signal)
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.50)
         alerts = check(picks_dir, today=today)
         assert alerts[0].level == "CRITICAL"
 
@@ -129,11 +133,11 @@ class TestRealizedCalibration:
     def test_threshold_overrides(self, tmp_path):
         # Custom thresholds override defaults.
         # n=20 picks at 0.78 predicted, realized_rate=0.755 → int(15.1)=15 hits
-        # → 0.75 realized → 3pp gap (under default 5pp INFO, over 2pp override)
+        # → 0.75 realized → 3pp gap (under default 8pp INFO, over 2pp override)
         picks_dir = tmp_path / "picks"
         today = date(2026, 4, 29)
         _overconfident_75_80(picks_dir, today, n=20, realized_rate=0.755)
-        # Default: 5pp INFO threshold, 3pp gap → no alert
+        # Default: 8pp INFO threshold, 3pp gap → no alert
         assert check(picks_dir, today=today) == []
         # Override: 2pp INFO threshold → fires INFO
         alerts = check(picks_dir, today=today, thresholds={"info_pp": 2, "warn_pp": 8, "critical_pp": 13})

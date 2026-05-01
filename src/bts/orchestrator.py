@@ -77,15 +77,26 @@ def predict_local(
     date: str,
     data_dir: str = "data/processed",
     models_dir: str = "data/models",
+    picks_dir: str = "data/picks",
 ) -> pd.DataFrame | None:
     """Run predictions locally in-process (no SSH cascade).
 
     Used when the scheduler runs on the same machine as the data and models
     (i.e., on the Fly cloud VM). Returns None on any failure, matching
     ssh_predict's contract.
+
+    **Post-hoc calibration**: when env var ``BTS_USE_CALIBRATION=1`` is set,
+    after run_pipeline produces predictions, this function fits an isotonic
+    calibrator from the last 30 days of resolved picks (joined to actual
+    day-level hit outcomes from the PA frame) and applies it to the
+    ``p_game_hit`` column. Default OFF preserves identical-to-uncalibrated
+    behavior. Enabled per project_bts_2026_05_01_morning_verdicts.md after
+    the +6.6pp overall and +12.3pp [0.75, 0.80) over-confidence finding.
     """
     from bts.model.predict import run_pipeline, load_blend
     from pathlib import Path
+    import os
+    from datetime import date as _date
 
     models_path = Path(models_dir)
     cache_path = models_path / f"blend_{date}.pkl"
@@ -100,10 +111,40 @@ def predict_local(
             cached_blend=cached_blend,
             save_blend_path=cache_path if not cached_blend else None,
         )
-        return predictions
     except Exception as e:
         print(f"  [local] Prediction failed: {e}", file=sys.stderr)
         return None
+
+    # Post-hoc calibration (opt-in via env var; default off).
+    if os.environ.get("BTS_USE_CALIBRATION", "0") == "1" and predictions is not None and not predictions.empty:
+        try:
+            from bts.model.calibrate import fit_calibrator_from_picks, apply_calibrator_series
+            # Fit calibrator from recent resolved picks against current PA frame.
+            proc = Path(data_dir)
+            current_year = int(date.split("-")[0])
+            current_pa = proc / f"pa_{current_year}.parquet"
+            if current_pa.exists():
+                pa_df = pd.read_parquet(current_pa)
+                today = _date.fromisoformat(date)
+                cal = fit_calibrator_from_picks(Path(picks_dir), pa_df, today=today)
+                if cal is not None:
+                    raw = predictions["p_game_hit"].copy()
+                    predictions["p_game_hit_raw"] = raw
+                    predictions["p_game_hit"] = apply_calibrator_series(raw, cal)
+                    n = len(predictions)
+                    print(
+                        f"  [local] Applied calibration to {n} predictions "
+                        f"(top: raw={raw.max():.3f} → calibrated={predictions['p_game_hit'].max():.3f})",
+                        file=sys.stderr,
+                    )
+                else:
+                    print("  [local] Calibrator unavailable (insufficient resolved picks); using raw p", file=sys.stderr)
+            else:
+                print(f"  [local] No {current_pa.name}; calibration skipped", file=sys.stderr)
+        except Exception as e:
+            print(f"  [local] Calibration failed (non-fatal): {e}; using raw p", file=sys.stderr)
+
+    return predictions
 
 
 def predict_local_shadow(
