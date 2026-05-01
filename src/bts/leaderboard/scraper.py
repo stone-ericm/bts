@@ -109,12 +109,15 @@ def parse_user_profile_response(
     as "unknown" — the orchestrator (run()) backfills it via model_copy.
     """
     success = body.get("success", {})
+    # API returns None for these fields on users with no picks (e.g. users
+    # appearing on All-Time leaderboard for past streaks but inactive this season).
+    # Coerce None -> 0 before pydantic validation.
     stats = SeasonStats(
         captured_at=captured_at,
         username=username,
-        best_streak=int(success.get("seasonBestStreak", 0)),
-        active_streak=int(success.get("activeStreak", 0)),
-        pick_accuracy_pct=float(success.get("accuracy", 0)),
+        best_streak=int(success.get("seasonBestStreak") or 0),
+        active_streak=int(success.get("activeStreak") or 0),
+        pick_accuracy_pct=float(success.get("accuracy") or 0),
     )
     picks: list[PickRow] = []
     for pred in success.get("predictions", []):
@@ -123,10 +126,12 @@ def parse_user_profile_response(
         if pick_date is None:
             log.warning(f"no rounds_lookup entry for round_id={round_id}; skipping pick")
             continue
-        streak_after = int(pred.get("streak", 0))
+        # API may return None for streak / atBats / hits on yet-to-resolve picks
+        # or for users with no recent activity. Coerce None -> 0 throughout.
+        streak_after = int(pred.get("streak") or 0)
         for rp in pred.get("roundPredictions", []):
-            unit_id = int(rp["unitId"])
-            bts_player_id = int(rp["playerId"])
+            unit_id = int(rp.get("unitId") or 0)
+            bts_player_id = int(rp.get("playerId") or 0)
             player = lookups.player(bts_player_id) or {}
             unit = lookups.unit(unit_id) or {}
             player_squad_id = player.get("squadId")
@@ -145,12 +150,12 @@ def parse_user_profile_response(
                 captured_at=captured_at,
                 round_id=round_id,
                 pick_date=pick_date,
-                pick_number=int(rp["number"]),
+                pick_number=int(rp.get("number") or 1),
                 unit_id=unit_id,
                 bts_player_id=bts_player_id,
-                result=str(rp.get("result", "")),
-                at_bats=int(rp.get("atBats", 0)),
-                hits=int(rp.get("hits", 0)),
+                result=str(rp.get("result") or ""),
+                at_bats=int(rp.get("atBats") or 0),
+                hits=int(rp.get("hits") or 0),
                 streak_after=streak_after,
                 batter_id=int(player["feedId"]) if player.get("feedId") is not None else None,
                 batter_name=player.get("name"),
