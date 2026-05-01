@@ -1,0 +1,18 @@
+[Unit]
+Description=BTS Leaderboard Scraper (oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/bts/projects/bts
+Environment=UV_CACHE_DIR=/tmp/uv-cache
+Environment=PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/bts/projects/bts/.env
+ExecStart=/home/bts/.local/bin/uv run bts leaderboard scrape \
+    --output-dir /home/bts/projects/bts/data/leaderboard \
+    --top-n 100 \
+    --dm-recipient stoneericm.bsky.social
+
+[Install]
+WantedBy=default.target
