@@ -41,32 +41,56 @@ class AuthError(Exception):
 
 
 def _read_keychain_raw() -> str:
-    """Read raw cookie blob from platform keychain. Raises AuthError on failure."""
-    try:
-        if sys.platform == "darwin":
+    """Read raw cookie blob from platform keychain. Raises AuthError on failure.
+
+    Mac:   `security find-generic-password ... -w` (may emit hex; we decode)
+    Linux: prefer `pass`; fall back to file at $BTS_LEADERBOARD_COOKIE_FILE
+           or $HOME/.bts-leaderboard-cookies.json.
+    """
+    if sys.platform == "darwin":
+        try:
             out = subprocess.check_output(
                 ["security", "find-generic-password",
                  "-a", KEYCHAIN_ACCOUNT, "-s", KEYCHAIN_SERVICE, "-w"],
                 stderr=subprocess.PIPE,
             )
-        elif sys.platform.startswith("linux"):
-            out = subprocess.check_output(
-                ["pass", "show", KEYCHAIN_SERVICE], stderr=subprocess.PIPE,
-            )
-        else:
-            raise AuthError(f"unknown platform: {sys.platform}")
-    except subprocess.CalledProcessError as e:
-        raise AuthError(f"could not read cookie store {KEYCHAIN_SERVICE!r}: {e}") from e
-    raw = out.decode().strip()
-    # `security -w` may emit hex-encoded output when it sees "binary" bytes;
-    # detect even-length all-hex output and decode back to UTF-8.
-    if re.fullmatch(r"[0-9a-fA-F]+", raw) and len(raw) % 2 == 0:
+        except subprocess.CalledProcessError as e:
+            raise AuthError(f"could not read cookie store {KEYCHAIN_SERVICE!r}: {e}") from e
+        raw = out.decode().strip()
+        # `security -w` may emit hex-encoded output when bytes look "binary"
+        if re.fullmatch(r"[0-9a-fA-F]+", raw) and len(raw) % 2 == 0:
+            try:
+                raw = bytes.fromhex(raw).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                pass
+        return raw
+
+    if sys.platform.startswith("linux"):
+        # Try pass first
         try:
-            raw = bytes.fromhex(raw).decode("utf-8")
-        except (ValueError, UnicodeDecodeError):
-            # Not actually hex-encoded JSON; leave it alone
-            pass
-    return raw
+            out = subprocess.check_output(
+                ["pass", "show", KEYCHAIN_SERVICE],
+                stderr=subprocess.PIPE,
+            )
+            return out.decode().strip()
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            log.info(f"`pass` unavailable ({type(e).__name__}); falling back to cookie file")
+        # Fall back to file
+        import os
+        cookie_path = (
+            os.environ.get("BTS_LEADERBOARD_COOKIE_FILE")
+            or os.path.expanduser("~/.bts-leaderboard-cookies.json")
+        )
+        if not os.path.exists(cookie_path):
+            raise AuthError(
+                f"cookie file not found at {cookie_path}. "
+                f"Either install `pass` and store at {KEYCHAIN_SERVICE!r}, "
+                "or write JSON cookies to that path (chmod 600)."
+            )
+        with open(cookie_path) as f:
+            return f.read().strip()
+
+    raise AuthError(f"unknown platform: {sys.platform}")
 
 
 def load_session_cookies() -> dict[str, str]:

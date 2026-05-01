@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess as _subprocess
 from unittest.mock import patch, MagicMock
@@ -56,6 +57,43 @@ class TestLoadSessionCookies:
              patch("bts.leaderboard.auth.sys.platform", "darwin"):
             with pytest.raises(AuthError, match="cookie store"):
                 load_session_cookies()
+
+    def test_loads_from_file_on_linux_when_pass_not_available(self, tmp_path, monkeypatch):
+        """If pass isn't installed, fall back to BTS_LEADERBOARD_COOKIE_FILE."""
+        cookie_file = tmp_path / "cookies.json"
+        cookie_file.write_text(json.dumps(SAMPLE_COOKIES))
+        monkeypatch.setenv("BTS_LEADERBOARD_COOKIE_FILE", str(cookie_file))
+        # Force pass to "not installed" by pointing PATH at empty dir
+        monkeypatch.setenv("PATH", str(tmp_path))
+        with patch("bts.leaderboard.auth.sys.platform", "linux"):
+            cookies = load_session_cookies()
+        assert cookies["oktaid"] == "00u7q0ft1NTz5zMUQ356"
+
+    def test_default_linux_cookie_file_in_home_dir(self, tmp_path, monkeypatch):
+        """Default path is ~/.bts-leaderboard-cookies.json"""
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        cookie_file = fake_home / ".bts-leaderboard-cookies.json"
+        cookie_file.write_text(json.dumps(SAMPLE_COOKIES))
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.delenv("BTS_LEADERBOARD_COOKIE_FILE", raising=False)
+        monkeypatch.setenv("PATH", str(tmp_path))  # no `pass` available
+        with patch("bts.leaderboard.auth.sys.platform", "linux"):
+            cookies = load_session_cookies()
+        assert cookies["oktaid"] == "00u7q0ft1NTz5zMUQ356"
+
+    def test_linux_prefers_pass_when_available(self, tmp_path, monkeypatch):
+        """If `pass` IS installed, use it (don't fall back to file)."""
+        # Make a fake `pass` executable that prints valid JSON
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        fake_pass = fake_bin / "pass"
+        fake_pass.write_text(f"#!/bin/sh\necho '{json.dumps(SAMPLE_COOKIES)}'\n")
+        fake_pass.chmod(0o755)
+        monkeypatch.setenv("PATH", str(fake_bin))
+        with patch("bts.leaderboard.auth.sys.platform", "linux"):
+            cookies = load_session_cookies()
+        assert cookies["oktaid"] == "00u7q0ft1NTz5zMUQ356"
 
 
 class TestExtractUid:
