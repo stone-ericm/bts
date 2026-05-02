@@ -119,6 +119,7 @@ dependencies = [
     { name = "pybaseball" },
     { name = "pydantic" },
     { name = "rich" },
+    { name = "scipy" },
 ]
 
 [package.optional-dependencies]
@@ -149,6 +150,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7" },
     { name = "rich", specifier = ">=13.0" },
     { name = "scikit-learn", marker = "extra == 'model'", specifier = ">=1.8.0" },
+    { name = "scipy", specifier = ">=1.10" },
 ]
 provides-extras = ["model"]
 

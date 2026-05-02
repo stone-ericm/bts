@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.2",
     "pydantic>=2.7",
     "pyarrow>=15.0",
+    "scipy>=1.10",
     "pybaseball>=2.2.7",
     "rich>=13.0",
 ]
