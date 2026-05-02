@@ -60,8 +60,8 @@ class TestHarnessSmokeTest:
             data = json.load(f)
         for key in (
             "headline_p57_in_sample",
-            "fixed_policy_dr_ope_p57",
-            "pipeline_dr_ope_p57",
+            "fixed_policy_terminal_r_mc_p57",
+            "pipeline_terminal_r_mc_p57",
             "rare_event_ce_p57",
             "rho_PA_within_game",
             "rho_pair_cross_game",

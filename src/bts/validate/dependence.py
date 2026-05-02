@@ -321,8 +321,16 @@ def build_corrected_transition_table(
         # adding rho*sqrt(...) on top would double-count. Using p1*p2 as the
         # independence baseline + rho*sqrt(p1(1-p1)p2(1-p2)) as the linear-
         # copula correction matches the standard Pearson formulation.
-        p1 = b.p_hit
-        p2 = b.p_hit
+        #
+        # Use new_p_hit (the corrected marginal) for both p1 and p2, NOT
+        # b.p_hit (the original). This keeps the returned bin internally
+        # consistent — the bin's reported p_hit and the reported p_both share
+        # the same marginal assumption. v1 limitation: rank-1 and rank-2 may
+        # have different real-world marginals, but we only have one bin-level
+        # marginal, so p1 = p2 = new_p_hit is the closest internally-consistent
+        # approximation available.
+        p1 = new_p_hit
+        p2 = new_p_hit
         new_p_both = p1 * p2 + rho_pair_cross_game * np.sqrt(
             p1 * (1.0 - p1) * p2 * (1.0 - p2)
         )

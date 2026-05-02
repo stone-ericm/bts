@@ -53,12 +53,20 @@ def _classify_verdict(
     """
     half_headline = 0.5 * headline
 
-    # DEFENDED: corrected pipeline CI contains headline (consistent with claim).
-    if corrected_pipeline_lo <= headline <= corrected_pipeline_hi:
+    # DEFENDED: corrected pipeline CI contains headline AND lower bound is at
+    # or above half-headline. The lower-bound precision check rules out the
+    # case where a CI is so wide it spans both the headline AND values in the
+    # broken-territory range — which would be ambiguous, not defended. Without
+    # this check, DEFENDED can win at low statistical power simply because the
+    # CI is too wide to reject anything (false-defend).
+    if (corrected_pipeline_lo <= headline <= corrected_pipeline_hi
+        and corrected_pipeline_lo >= half_headline):
         return "HEADLINE_DEFENDED", (
             f"Corrected pipeline P(57) CI [{corrected_pipeline_lo:.4f}, "
-            f"{corrected_pipeline_hi:.4f}] contains the headline {headline:.4f}; "
-            f"data is consistent with the claim under correlation correction."
+            f"{corrected_pipeline_hi:.4f}] contains the headline {headline:.4f} "
+            f"and lower bound {corrected_pipeline_lo:.4f} >= half-headline "
+            f"{half_headline:.4f}; data is consistent with the claim under "
+            f"correlation correction at adequate precision."
         )
 
     # BROKEN: corrected pipeline CI upper bound < 0.5 × headline (clear rejection).
@@ -137,6 +145,11 @@ def run_harness(
     for qb, n_days in zip(bins_full.bins, days_per_bin):
         for _ in range(n_days):
             ceis_profiles.append({"p_game": qb.p_hit, "p_both": qb.p_both})
+    # Shuffle the day order. Without this, the profile is block-ordered by bin
+    # (all Q1 days first, then all Q2, ...) which artificially suppresses streak
+    # probability since high-prob days are concentrated at the end. A shuffled
+    # mix matches a real season's day-to-day variation. Seeded for reproducibility.
+    np.random.default_rng(42).shuffle(ceis_profiles)
     ceis_result = estimate_p57_with_ceis(
         ceis_profiles, strategy=None, n_final=n_final, seed=42,
     )
@@ -205,10 +218,10 @@ def run_harness(
     out = {
         "date": pd.Timestamp.now().strftime("%Y-%m-%d"),
         "headline_p57_in_sample": headline_p57_in_sample,
-        "fixed_policy_dr_ope_p57": _format_estimate(
+        "fixed_policy_terminal_r_mc_p57": _format_estimate(
             fixed_result.point_estimate, fixed_result.ci_lower, fixed_result.ci_upper
         ),
-        "pipeline_dr_ope_p57": _format_estimate(
+        "pipeline_terminal_r_mc_p57": _format_estimate(
             pipeline_result.point_estimate, pipeline_result.ci_lower, pipeline_result.ci_upper
         ),
         "rare_event_ce_p57": _format_estimate(

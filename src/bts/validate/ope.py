@@ -355,7 +355,7 @@ def _trajectory_dataframe_from_profiles(
     return pd.DataFrame(rows)
 
 
-def _run_terminal_r_mc_bootstrap(traj_df, *, n_bootstrap, expected_block_length, seed):
+def _run_terminal_r_mc_bootstrap(traj_df, *, n_bootstrap, seed):
     """Terminal-reward MC over trajectories with simple bootstrap CI.
 
     BTS rewards are purely terminal (R = 1 if streak reaches 57, else 0). So
@@ -368,6 +368,9 @@ def _run_terminal_r_mc_bootstrap(traj_df, *, n_bootstrap, expected_block_length,
     realized-trajectory policy value but provides no DR-style robustness against
     model misspecification. Bootstrap resamples trajectories (not days);
     underestimates uncertainty if seeds within a season share day/player shocks.
+
+    `expected_block_length` is intentionally NOT a parameter here — it's a day-
+    bootstrap concept and this estimator is trajectory-bootstrap.
     """
     rng = np.random.default_rng(seed)
     if "trajectory_id" not in traj_df.columns or len(traj_df) == 0:
@@ -410,7 +413,6 @@ def audit_fixed_policy(
     return _run_terminal_r_mc_bootstrap(
         traj_df,
         n_bootstrap=n_bootstrap,
-        expected_block_length=expected_block_length,
         seed=seed,
     )
 
@@ -436,7 +438,6 @@ def audit_pipeline(
         fold_result = _run_terminal_r_mc_bootstrap(
             traj_df,
             n_bootstrap=n_bootstrap,
-            expected_block_length=expected_block_length,
             seed=seed,
         )
         fold_estimates.append(fold_result.point_estimate)
