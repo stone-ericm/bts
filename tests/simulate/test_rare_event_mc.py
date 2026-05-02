@@ -44,3 +44,59 @@ class TestLatentFactorSimulator:
             f"lambda_d=1.5 produced var_corr={var_corr:.5f} only marginally above "
             f"var_indep={var_indep:.5f}"
         )
+
+
+class TestCEISUnbiasedness:
+    def test_unbiased_at_theta_zero_matches_naive_mc(self):
+        """At theta=0, CE-IS estimator equals naive MC of independent Bernoulli draws.
+
+        Constructs a tiny synthetic profile (constant per-day p), uses the always-play
+        every-day strategy, and asserts that CE-IS at theta=0 matches the analytical
+        P(>=57 consecutive hits in N days) within reasonable MC noise.
+        """
+        from bts.simulate.rare_event_mc import estimate_p57_with_ceis
+
+        # Constant p=0.95 over 60 days. Use streak_threshold=50 so the event is
+        # frequent enough that 30k samples gives a tight estimate to compare against
+        # naive MC. P(>=57 consecutive at p=0.78, n=153) is ~1-5% which needs n=100k+.
+        n_days = 60
+        p = 0.95
+        threshold = 50
+        profiles = [{"date": d, "p_game": p} for d in range(n_days)]
+
+        result = estimate_p57_with_ceis(
+            profiles,
+            strategy=None,  # ignored when always-play; helper handles None
+            theta=np.zeros(4),  # explicit theta=0 means no tilting
+            n_rounds=0,         # skip CE fitting at theta=0
+            n_final=30000,
+            seed=42,
+            streak_threshold=threshold,
+        )
+
+        # Analytical truth via direct enumeration is hard for streaks; instead, run a
+        # large naive MC and assert CE-IS at theta=0 lands within MC noise of it.
+        # Both are sampling the same distribution at theta=0, so they should match
+        # within ~1pp at n=30k.
+        rng = np.random.default_rng(123)
+        naive_hits = 0
+        n_naive = 30000
+        for _ in range(n_naive):
+            streak = 0
+            max_streak = 0
+            for _ in range(n_days):
+                if rng.random() < p:
+                    streak += 1
+                    max_streak = max(max_streak, streak)
+                else:
+                    streak = 0
+            if max_streak >= threshold:
+                naive_hits += 1
+        naive_p = naive_hits / n_naive
+
+        ce_p = result.point_estimate
+        # Both at theta=0 should agree within MC noise (~1pp at n=30k).
+        assert abs(ce_p - naive_p) < 0.02, (
+            f"CE-IS theta=0 estimate {ce_p:.4f} differs from naive MC {naive_p:.4f} by "
+            f"{abs(ce_p - naive_p):.4f} (>2pp tolerance)"
+        )
