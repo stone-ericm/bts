@@ -282,10 +282,13 @@ def build_corrected_transition_table(
         new_p_both = p1*p2 + rho_pair * sqrt(p1*(1-p1)*p2*(1-p2))
         Clipped to Frechet-Hoeffding bounds [max(0, p1+p2-1), min(p1, p2)].
 
-    rho_PA_within_game is currently a record-keeping pass-through (the
-    correction it would induce is the same one tau_squared captures via the
-    logistic-normal integration). Reserved for future variance-inflation
-    extensions.
+    NOTE: `rho_PA_within_game` is currently UNUSED in the correction. The PA
+    dependence correction goes entirely through `tau_squared`, which is the
+    inverted form of the same quantity (rho_PA_within_game ≈ implied rho from
+    tau_squared via the logistic-normal model). The parameter is preserved in
+    the API for future variance-inflation extensions (where rho_PA might drive
+    a separate uncertainty knob), but for v1 it has no effect on the returned
+    bins. Pass the diagnostic value for record-keeping in your call site.
     """
     from bts.simulate.quality_bins import QualityBins, QualityBin
 

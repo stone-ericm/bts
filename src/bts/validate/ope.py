@@ -355,14 +355,19 @@ def _trajectory_dataframe_from_profiles(
     return pd.DataFrame(rows)
 
 
-def _run_dr_ope_with_bootstrap(traj_df, *, n_bootstrap, expected_block_length, seed):
-    """Internal helper: run terminal-reward MC over trajectories with simple bootstrap.
+def _run_terminal_r_mc_bootstrap(traj_df, *, n_bootstrap, expected_block_length, seed):
+    """Terminal-reward MC over trajectories with simple bootstrap CI.
 
-    v1 simplification: BTS rewards are purely terminal (R = 1 if streak reaches 57,
-    else 0). So per-trajectory total reward is the trajectory's policy value, and
-    the mean across trajectories is the policy value estimate. Bootstrap resamples
-    trajectories (not days) for v1; the day-level paired bootstrap is reserved for
-    Task 12's driver where the underlying df shape supports it cleanly.
+    BTS rewards are purely terminal (R = 1 if streak reaches 57, else 0). So
+    per-trajectory total reward is the trajectory's policy value, and the mean
+    across trajectories is the policy value estimate.
+
+    NOTE: This is naive terminal-reward MC, NOT DR-OPE. The earlier name
+    `_run_dr_ope_with_bootstrap` was misleading — there is no nuisance correction
+    or action-propensity correction here. The estimator is unbiased for the
+    realized-trajectory policy value but provides no DR-style robustness against
+    model misspecification. Bootstrap resamples trajectories (not days);
+    underestimates uncertainty if seeds within a season share day/player shocks.
     """
     rng = np.random.default_rng(seed)
     if "trajectory_id" not in traj_df.columns or len(traj_df) == 0:
@@ -402,7 +407,7 @@ def audit_fixed_policy(
     traj_df = _trajectory_dataframe_from_profiles(
         test_profiles, frozen_policy["action_table"], bins
     )
-    return _run_dr_ope_with_bootstrap(
+    return _run_terminal_r_mc_bootstrap(
         traj_df,
         n_bootstrap=n_bootstrap,
         expected_block_length=expected_block_length,
@@ -428,7 +433,7 @@ def audit_pipeline(
         bins = _compute_bins_from_direct_profiles(train)
         mdp_solution = solve_mdp(bins)
         traj_df = _trajectory_dataframe_from_profiles(test, mdp_solution.policy_table, bins)
-        fold_result = _run_dr_ope_with_bootstrap(
+        fold_result = _run_terminal_r_mc_bootstrap(
             traj_df,
             n_bootstrap=n_bootstrap,
             expected_block_length=expected_block_length,
