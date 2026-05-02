@@ -103,3 +103,61 @@ class TestBucketWilsonCalibrator:
         cal = fit_bucket_wilson_calibrator(pairs, alphas=[0.10])
         # p=0.30 falls in a bucket that doesn't exist in calibration
         assert apply_bucket_wilson(cal, predicted_p=0.30, alpha_index=0) is None
+
+
+import numpy as np
+import pandas as pd
+from bts.model.conformal import fit_lr_classifier, compute_lr_weights
+
+
+class TestFitLRClassifier:
+    def test_returns_classifier_with_predict_proba(self):
+        # Mock calibration data: 50 rows from "year=2025", 50 from "year=2026"
+        # Use a simple feature that differs between groups.
+        rng = np.random.default_rng(42)
+        cal_features = pd.DataFrame({
+            "feat_a": np.concatenate([
+                rng.normal(0.5, 0.1, 50),  # year 2025
+                rng.normal(0.7, 0.1, 50),  # year 2026 (shifted higher)
+            ]),
+        })
+        years = np.array([2025] * 50 + [2026] * 50)
+        clf = fit_lr_classifier(cal_features, years, target_year=2026)
+        # Classifier should predict P(year=2026) higher for higher feat_a values
+        proba_low = clf.predict_proba([[0.5]])[0, 1]
+        proba_high = clf.predict_proba([[0.7]])[0, 1]
+        assert proba_high > proba_low
+
+    def test_compute_lr_weights_shape(self):
+        rng = np.random.default_rng(42)
+        cal_features = pd.DataFrame({
+            "feat_a": np.concatenate([
+                rng.normal(0.5, 0.1, 50),
+                rng.normal(0.7, 0.1, 50),
+            ]),
+        })
+        years = np.array([2025] * 50 + [2026] * 50)
+        clf = fit_lr_classifier(cal_features, years, target_year=2026)
+        weights = compute_lr_weights(clf, cal_features)
+        assert weights.shape == (100,)
+        assert np.all(weights > 0)
+        # Weights should be higher for rows that "look more like" target
+        # (higher feat_a, since year=2026 has higher mean)
+        assert weights[-1] > weights[0]  # last (year=2026) row weights > first
+
+    def test_weights_clipped_for_stability(self):
+        # Extreme features could give 0/inf weights; helper should clip
+        rng = np.random.default_rng(42)
+        n = 200
+        cal_features = pd.DataFrame({
+            "feat_a": np.concatenate([
+                rng.normal(0.0, 0.01, n // 2),    # very tight, year 2025
+                rng.normal(1.0, 0.01, n // 2),    # very tight, year 2026
+            ]),
+        })
+        years = np.array([2025] * (n // 2) + [2026] * (n // 2))
+        clf = fit_lr_classifier(cal_features, years, target_year=2026)
+        weights = compute_lr_weights(clf, cal_features)
+        # No weight should be exactly 0 or inf
+        assert np.all(np.isfinite(weights))
+        assert np.all(weights > 0)

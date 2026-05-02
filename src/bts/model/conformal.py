@@ -17,6 +17,9 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+import numpy as np
+import pandas as pd
+from lightgbm import LGBMClassifier
 from scipy.stats import norm
 
 
@@ -115,3 +118,42 @@ def apply_bucket_wilson(
     if b not in cal.bucket_lower:
         return None
     return cal.bucket_lower[b][alpha_index]
+
+
+def fit_lr_classifier(
+    cal_features: pd.DataFrame,
+    years: np.ndarray,
+    target_year: int,
+    n_estimators: int = 100,
+    random_state: int = 42,
+) -> LGBMClassifier:
+    """Fit a binary LightGBM classifier predicting P(year == target_year | x).
+
+    Used for the covariate-shift correction in weighted conformal prediction
+    (Tibshirani et al. 2019). The density-ratio LR(x) = P(target) / (1 -
+    P(target)) reweights calibration rows toward the target-year distribution.
+    """
+    y = (years == target_year).astype(int)
+    clf = LGBMClassifier(
+        n_estimators=n_estimators,
+        random_state=random_state,
+        verbose=-1,
+    )
+    clf.fit(cal_features, y)
+    return clf
+
+
+def compute_lr_weights(
+    clf: LGBMClassifier,
+    cal_features: pd.DataFrame,
+    eps: float = 1e-3,
+) -> np.ndarray:
+    """Compute density-ratio weights w_i = p_i / (1 - p_i) per Tibshirani 2019.
+
+    Clips probabilities to [eps, 1-eps] to prevent infinite or zero weights
+    from extreme predictions (numerical stability). The clip threshold of
+    1e-3 follows Sugiyama, Suzuki, Kanamori 2012 standard practice.
+    """
+    proba = clf.predict_proba(cal_features)[:, 1]
+    proba_clipped = np.clip(proba, eps, 1.0 - eps)
+    return proba_clipped / (1.0 - proba_clipped)
