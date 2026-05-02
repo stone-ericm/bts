@@ -1,7 +1,8 @@
 # BTS State-of-the-Art Audit — Master Tracker
 
 **Date created**: 2026-05-01
-**Status**: Active; populated with 11 audit areas. First area not yet selected.
+**Last updated**: 2026-05-01 evening (Codex adversarial review absorbed)
+**Status**: Active; 17 audit areas. First concrete area: **8.17% falsification harness** (combines areas 13, 14, 15).
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
@@ -19,143 +20,223 @@ For each area, we capture:
 - **Next concrete action** — what to do FIRST when this area is picked up
 - **Notes** — running scratch space
 
+**Methodological orientation (added 2026-05-01 evening, after Codex review):** Treat each area not just as "a technique to install" but as "a claim to falsify." The goal is not to ornament the system with respectable methods; it's to find out whether the headline numbers (8.17% pooled P(57), 16-feature blend gain, etc.) survive honest decision-level scrutiny. When the literature SOTA P(57) is ~0.5%, being at 8.17% creates a burden of proof, not a baseline.
+
 ## Prioritization heuristics
 
-Order areas by **expected_P(57)_impact / weeks_of_work**, with hard prerequisites respected. Highest expected EV starts first.
+Order areas by **expected_P(57)_honesty_or_impact / weeks_of_work**, with hard prerequisites respected. Highest expected EV starts first.
 
 Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly make." Don't compromise rigor for speed; do compromise scope when SOTA is ill-defined.
 
 ---
 
-## Audit area inventory (11 items)
+## Audit area inventory (17 items)
 
-### 1. MDP decision layer — CVaR / DR-MDP
+### 1. MDP decision layer — distributional DP / DR-MDP / CVaR
 
 - **Current**: Vanilla value iteration on point estimates of P(hit). Single policy table indexed by (streak, days_remaining, saver, quality_bin). Last solved 2026-04-15.
-- **SOTA target**: **CVaR-MDP** (Chow & Ghavamzadeh 2014) — explicit tail-risk objective. **Distributionally Robust MDP** (Iyengar 2005, Wiesemann et al. 2013) — handles parameter uncertainty.
-- **Speculative ΔP(57)**: +1.0–1.5pp (highest single-area impact; tail-risk control directly addresses the streak-survival concern)
+- **SOTA target** (sequence, immediate to advanced):
+  1. **Exact distributional DP** + **robust value iteration over calibrated probability intervals** — keeps the tabular structure, adds tail-risk awareness without deep-RL machinery. This is the immediate target.
+  2. **Distributionally Robust MDP** (Iyengar 2005, Wiesemann et al. 2013) — explicit parameter-uncertainty handling.
+  3. **CVaR-MDP** (Chow & Ghavamzadeh 2014) — explicit tail-risk objective.
+  4. (Far end) Distributional RL (C51 / QR-DQN / IQN, Bellemare et al. 2017, Dabney et al. 2018) — only if abandoning the tabular MDP, likely overkill given 103K states.
+- **Speculative ΔP(57)**: +1.0–1.5pp (highest single-area direct impact)
 - **Effort**: L
-- **Prerequisites**: Fresh post-bpm 24-seed pooled backtest (the same blocker that gates plain MDP re-solve). ~$50 cloud cycle.
-- **Status**: unstarted
-- **Next action**: Design brainstorm. Key decisions: (a) full CVaR vs hybrid, (b) at which streak threshold the risk-aversion kicks in, (c) how to validate against current value-iteration policy.
+- **Prerequisites**: (a) Fresh post-bpm 24-seed pooled backtest; (b) **Offline policy evaluation infrastructure (#13) for honest comparison against current vanilla VI**.
+- **Status**: unstarted; deprioritized in execution order behind validation work (Codex critique: don't jump to deep RL on a 103K-state tabular problem).
+- **Next action**: Build OPE infra first (#13). Then design brainstorm for robust VI vs CVaR vs full distributional.
 
-### 2. Calibration — Beta calibration + binary-y conformal
+### 2. Calibration — Beta / Venn-Abers / spline + binary-y conformal
 
 - **Current**: Isotonic regression (`src/bts/model/calibrate.py`, default OFF behind `BTS_USE_CALIBRATION`). Validated as DROP at n=61 on 2026-05-01.
-- **SOTA target**: **Beta calibration** (Kull, Filho, Flach 2017) — empirically superior to isotonic for binary classification (smoother, handles small calibration sets better). Plus: research on binary-y conformal proper (today's parked branch surfaced that per-row coverage metrics don't transfer cleanly from continuous regression).
+- **SOTA target**: **Cross-fitted comparison** of Platt / Beta (Kull, Filho, Flach 2017) / spline / isotonic / **Venn-Abers** under proper scores + top-bin calibration. Venn-Abers (Vovk & Petej 2014) is more relevant than Beta if probability *intervals* are needed. Plus binary-y conformal proper (#11).
 - **Speculative ΔP(57)**: +0.3–0.5pp (helps MDP threshold decisions when activated)
-- **Effort**: S (Beta calibration alone) + M (binary-y validation methodology)
+- **Effort**: S (any single calibrator) + M (cross-fitted comparison + binary-y validation)
 - **Prerequisites**: n>=200 resolved picks (currently 61). Estimated late June 2026.
 - **Status**: unstarted; deferred until n threshold reached.
-- **Next action**: When n reaches 200, brainstorm Beta-vs-isotonic comparison. Separately: research per-bucket coverage tests for binary-y conformal validation (this unblocks #8 below).
+- **Next action**: When n reaches 200, brainstorm Beta-vs-isotonic-vs-Venn-Abers comparison under proper-scoring-rule eval (#12). Separately: per-bucket coverage tests for binary-y conformal validation (#11) unblocks #8 below.
 
-### 3. Feature attribution / interpretability — TreeSHAP
+### 3. Feature attribution / interpretability — TreeSHAP + ALE + model reliance
 
 - **Current**: One-feature-at-a-time sensitivity analysis (used today on Beck investigation). Misses interaction effects.
-- **SOTA target**: **TreeSHAP** (Lundberg & Lee 2017) — exact Shapley values for tree models, captures interactions. Available in `shap` library; trivial integration with LightGBM.
-- **Speculative ΔP(57)**: 0.0pp (interpretability tool, not a P(57) lever; high value for diagnosis when uncomfortable picks land)
-- **Effort**: S (drop-in)
+- **SOTA target**: **TreeSHAP** (Lundberg & Lee 2017) for local attribution + **ALE plots** (Apley & Zhu 2020) for marginal effects without correlation artifacts + **conditional PFI** + **SHAP interactions** + **model reliance** (Fisher, Rudin, Dominici 2019). FastTreeSHAP is a speed upgrade, not a conceptual one.
+- **Speculative ΔP(57)**: 0.0pp (interpretability tool, not a P(57) lever; high value for diagnosis when uncomfortable picks land).
+- **Effort**: S (drop-in for TreeSHAP) + S (ALE).
 - **Prerequisites**: None.
-- **Status**: unstarted.
-- **Next action**: Add `shap` to deps, write `src/bts/model/attribution.py` wrapper. Retro Beck pick using TreeSHAP and compare to today's sensitivity analysis. ~1-2 hours of work.
+- **Status**: unstarted; **demoted in execution order** — Codex flagged this as comfortable-but-low-leverage. Still worth doing eventually, just not first.
+- **Next action**: After validation/scoring work lands, add `shap` + ALE library to deps, write `src/bts/model/attribution.py` wrapper. Retro Beck pick using TreeSHAP. ~2-4 hours.
 
-### 4. Audit experiment design — always-valid sequential p-values
+### 4. Audit experiment design — e-values / e-processes (Safe Anytime-Valid Inference)
 
 - **Current**: Fixed-n with t-stat threshold + dual-stratum dual-split protocol. Each Phase 2 audit runs to completion regardless of mid-stream signal.
-- **SOTA target**: **Always-valid sequential p-values** (Howard, Ramdas, McAuliffe, Sekhon 2021, "Time-uniform, nonparametric, nonasymptotic confidence sequences"). Allows early-stopping audits when signal is unambiguous, reducing compute by 30-50%.
+- **SOTA target**: **Safe Anytime-Valid Inference** framing (Ramdas & Grünwald 2024) — e-values, e-processes, confidence sequences. Howard et al. 2021 is the same lineage but the SAVI framing is the current one. Plus **e-values for combining** (Vovk & Wang 2021).
 - **Speculative ΔP(57)**: 0.0pp directly; ~30-50% audit-cycle compute reduction (compounds: more audits per dollar).
-- **Effort**: M (research + integrate into `bts.experiment` framework)
+- **Effort**: M (research + integrate into `bts.experiment` framework).
 - **Prerequisites**: None.
 - **Status**: unstarted.
-- **Next action**: Read Howard et al. 2021. Design how to integrate sequential testing into `audit_driver.py` — specifically: per-experiment early-stop criterion + protocol for downstream pooling.
+- **Next action**: Read Ramdas & Grünwald 2024 SAVI paper. Design how to integrate e-process testing into `audit_driver.py` — specifically: per-experiment early-stop criterion + protocol for downstream pooling.
 
-### 5. Validation methodology — Combinatorial Purged CV
+### 5. Validation methodology — nested purged blocked CV + lockbox
 
 - **Current**: Walk-forward CV (single fold-per-day) + multi-seed pooling for audits.
-- **SOTA target**: **Combinatorial Purged CV** (Lopez de Prado 2018, "Advances in Financial Machine Learning") — handles temporal structure properly, embargoes around test periods, generates many resampling paths for robust aggregation. **Deflated Sharpe Ratio** for selection-bias correction across audit batches.
-- **Speculative ΔP(57)**: 0.0pp directly; better honesty about which "shipped" features are real signal vs selection bias.
+- **SOTA target**: **Nested rolling-origin CV with purging/embargo** as the more general target (per Codex). **Combinatorial Purged CV** (López de Prado 2018) is finance-derived; useful but not the only SOTA. Plus **reverse-CV diagnostics** for selection-bias detection. Plus **untouched lockbox** (final season/month never seen during audit) for honest final assessment. **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) for selection-bias correction across audit batches.
+- **Speculative ΔP(57)**: 0.0pp directly; better honesty about which "shipped" features are real signal vs selection bias. **May shrink the historical 8.17% claim** when prior audits get re-evaluated.
 - **Effort**: M
-- **Prerequisites**: None.
+- **Prerequisites**: None (but compounds badly if started after lots of audits already executed — plan now).
 - **Status**: unstarted.
-- **Next action**: Read Lopez de Prado 2018 chapters 7 (CV) and 14 (DSR). Design retrofit into `bts.experiment.runner` — specifically how CPCV interacts with the dual-stratum dual-split protocol.
+- **Next action**: Read López de Prado 2018 ch. 7 + 14. **Carve a recent 2025 month-block as untouched lockbox before any further audit work.** Design retrofit into `bts.experiment.runner`.
 
-### 6. Distribution shift handling — drift detection
+### 6. Distribution shift handling — BOCPD + drift-aware health check
 
 - **Current**: Walk-forward retraining only (daily blend cycle). No explicit drift detection.
-- **SOTA target**: **ADWIN** (Bifet & Gavaldà 2007) for adaptive window sizing; **DDM/EDDM** (Gama et al. 2004) for explicit drift signaling. Combined with importance-weighted training to handle covariate shift directly in the model.
-- **Speculative ΔP(57)**: +0.2–0.5pp (helps adaptation to mid-season regime shifts that walk-forward alone might lag on)
+- **SOTA target**: **Bayesian Online Changepoint Detection** (Adams & MacKay 2007) for adaptive segmentation; **MMD / KS-CUSUM** on features and residuals; **online calibration drift** monitoring; **label-lag-aware loss monitors**. ADWIN/DDM (2004/2007) are older comparable approaches. Drift detection only matters if it triggers a policy change.
+- **Speculative ΔP(57)**: +0.2–0.5pp (helps adaptation to mid-season regime shifts).
 - **Effort**: M
-- **Prerequisites**: Pull request to add a drift-monitoring health check (similar pattern to `realized_calibration` and `pitcher_sparsity`).
+- **Prerequisites**: Decide what drift signal does — re-train? Switch to a fallback policy? Fire alert?
 - **Status**: unstarted.
-- **Next action**: Read ADWIN + EDDM papers. Design where in the predict pipeline drift signal is computed (per-batter rolling residuals?). Brainstorm health-check thresholds.
+- **Next action**: Read Adams & MacKay BOCPD. Decide policy-side response. Design where in the predict pipeline drift signal is computed.
 
-### 7. Multiple testing across audits — FDR control
+### 7. Multiple testing across audits — e-BH / online FDR
 
 - **Current**: Nothing applied. Phase 1's "8 unshipped KEEPs all DROPped against bpm-baseline" is partly explainable as multiple-testing inflation that wasn't controlled for.
-- **SOTA target**: **Benjamini-Hochberg FDR control** across the dozens of feature audits. **Storey q-values** for FDR-adjusted p-values. Apply both prospectively (new audits) and retrospectively (re-evaluate Phase 1 verdicts).
+- **SOTA target**: **e-BH / online FDR** for sequential audits (Wang & Ramdas 2022). **Knockoffs** (Barber & Candès 2015) attractive in principle but hard under temporal dependence. **Randomization/permutation tests** around the whole audit pipeline. Classical BH (1995) and Storey q-values (2002) are baselines, not SOTA.
 - **Speculative ΔP(57)**: 0.0pp directly; honest interpretation of which features ARE legitimate KEEPs vs noise. May trigger re-investigation of historically-shipped features.
-- **Effort**: S (BH is one function call given an array of p-values)
+- **Effort**: S (BH/eBH is one function call given an array of p-values or e-values).
 - **Prerequisites**: None.
 - **Status**: unstarted.
-- **Next action**: Run BH retrospectively on the audit verdicts collected in `experiments/results/`. Surface findings: how many shipped features survive FDR correction at q=0.05?
+- **Next action**: Run e-BH retrospectively on the audit verdicts collected in `experiments/results/`. Surface findings: how many shipped features survive FDR correction at q=0.05?
 
-### 8. Streaming calibration alert — online conformal
+### 8. Streaming calibration alert — ACI / RCPS
 
 - **Current**: `realized_calibration` health check uses fixed-window thresholds; just patched today (since-deploy filter).
-- **SOTA target**: **Anytime-valid sequential testing** (Howard et al. 2021 — same framework as #4) for streaming calibration. **Online conformal updates** (Lei et al. 2018) so calibrator improves with each new resolved pick without re-running full K-fold validation.
+- **SOTA target**: **Adaptive Conformal Inference** (Gibbs & Candès 2021); **Risk-Controlling Prediction Sets** (Bates et al. 2021); **Strongly-adaptive online conformal** (Bhatnagar et al. 2023); **NexCP / weighted conformal** (Barber et al. 2022). Lei et al. 2018 was the wrong target.
 - **Speculative ΔP(57)**: 0.0pp; early detection of calibration drift.
 - **Effort**: M
-- **Prerequisites**: Conformal v1 working (currently parked at branch `feature/conformal-lower-bounds`, gate failed). Need to fix binary-y validation methodology (#2 second sub-area) first.
+- **Prerequisites**: Conformal v1 working (currently parked at branch `feature/conformal-lower-bounds`, gate failed). Need to fix binary-y validation methodology (#11) first.
 - **Status**: BLOCKED on conformal v1 unblock.
-- **Next action**: When conformal v1 unblocks, read Howard et al. + Lei et al. and design online update path.
+- **Next action**: When conformal v1 unblocks, read ACI + RCPS papers and design online update path.
 
-### 9. Feature engineering — sequence/transformer/GNN models for batter-pitcher
+### 9. Feature engineering — sequence / transformer / GNN models for batter-pitcher
 
 - **Current**: Tabular features (16 in FEATURE_COLS) + Bayesian shrinkage on bpm.
-- **SOTA target**: **Transformer-based PA-sequence models** (recent baseball analytics literature: see Mehta & Rao 2023, "Sabermetric Sequence Models"). **Graph Neural Networks** on player-pitcher-context graphs (e.g., DGL-PyTorch).
-- **Speculative ΔP(57)**: +0.5–1.5pp speculative; high uncertainty.
+- **SOTA target** (verified 2026-05-01 via independent web search):
+  - **Neural Sabermetrics with World Model** (arxiv 2602.07030, Feb 2026) — LLM continuously pretrained on 10+ years MLB tracking data; ~64% next-pitch accuracy, 78% swing-decision accuracy. Pitch-level not BTS-level.
+  - **The Impacts of Increasingly Complex Matchup Models on Baseball Win Probability** (arxiv 2511.17733, Nov 2025) — pitcher+batter neural matchup outcome distributions over 9 outcomes (K/BB/HBP/GO/FO/1B/2B/3B/HR).
+  - **Pitcher Performance Prediction via Temporal Fusion Transformer** (ScienceDirect S1546221825005028, 2025).
+  - **Singlearity** (Baseball Prospectus) — older NN PA-outcome model; established baseline.
+  - **Kevin Garnett "Chasing $5.6M with ML"** (Medium, Feb 2026) — directly addresses BTS via ML; this is the SOTA P@500=77% / P@100=85% benchmark already cited in BTS ARCHITECTURE.md.
+  - **REMOVED 2026-05-01**: previous "Mehta & Rao 2023, Sabermetric Sequence Models" — this citation was unverifiable on independent web search and is concluded to be hallucinated. See `data/external/codex_reviews/2026-05-01-sota-audit.md`.
+- **Speculative ΔP(57)**: +0.5–1.5pp speculative; high uncertainty; may be more useful as one model voice in the existing 12-blend than as a replacement.
 - **Effort**: XL
-- **Prerequisites**: GPU compute (Mac MPS or cloud); training data pipeline that surfaces PA sequences instead of aggregated features.
+- **Prerequisites**: GPU compute (Mac MPS or cloud); training data pipeline that surfaces PA sequences instead of aggregated features; #12 proper-scoring suite for honest comparison vs Garnett's benchmark.
 - **Status**: unstarted.
-- **Next action**: Survey 2024-2026 baseball-analytics literature for transformer/sequence-model results. If credible improvements documented, scope a brainstorm for a Phase-1-style audit experiment that adds a sequence-model output as a feature in the existing 12-blend.
+- **Next action**: Read Neural Sabermetrics paper + Matchup Models paper + Garnett's writeup. Scope a brainstorm for adding a sequence-model output as one feature in the existing 12-blend. Compare against Garnett's reported P@500=77% as external SOTA benchmark.
 
-### 10. Distribution-aware ensemble — Bayesian model averaging
+### 10. Distribution-aware ensemble — predictive stacking
 
 - **Current**: Single-seed production model (BTS_LGBM_RANDOM_STATE=42). Multi-seed pooling REJECTED 2026-04-29 for the wrong reason (overconfidence framing was iteration noise).
-- **SOTA target**: **Bayesian model averaging** with proper posterior over hyperparameters. **Conformal ensemble** with calibrated weights across multiple seed/blend variants.
-- **Speculative ΔP(57)**: +0.2–0.5pp variance reduction; possibly more if combined with #1 (CVaR-MDP) which can directly use ensemble variance.
+- **SOTA target**: **Predictive stacking of distributions** (Yao, Vehtari, Simpson, Gelman 2018 "Using Stacking to Average Bayesian Predictive Distributions") — out-of-fold log-score weighted, more honest than Bayesian Model Averaging when models are misspecified. **Conformal ensemble** with calibrated weights as alternative. **Stack against downstream MDP value** not generic PA accuracy (decision-aware, see #16).
+- **Speculative ΔP(57)**: +0.2–0.5pp variance reduction; potentially more if combined with #1 (CVaR-MDP) which can directly use ensemble variance.
 - **Effort**: M
-- **Prerequisites**: Compute budget for multi-seed daily training (~10x current cost; possibly cheaper via subsampled-bootstrap variants).
+- **Prerequisites**: Compute budget for multi-seed daily training (~10x current cost); #12 proper-scoring suite for stacking weights.
 - **Status**: unstarted; rejection from 2026-04-29 should be re-evaluated.
-- **Next action**: Re-read the rejection memo (`project_bts_2026_04_29_pooled_prediction_rejected.md`). Brainstorm whether the rejection logic still applies given today's reframing of distribution shift.
+- **Next action**: Re-read the rejection memo (`project_bts_2026_04_29_pooled_prediction_rejected.md`). Brainstorm whether predictive stacking (vs simple multi-seed mean) addresses the rejection logic.
 
-### 11. (NEW) Validation methodology for binary classification calibrators
+### 11. Validation methodology for binary classification calibrators
 
 - **Current**: `scripts/validate_conformal.py` uses per-row coverage `(actual_hit ≥ bound).mean()`. For binary y, this collapses to empirical hit rate regardless of bound — not what we want.
-- **SOTA target**: **Per-bucket coverage tests** that aggregate (predicted_p, actual) pairs by bucket and ask "does the bucket's realized rate exceed the bucket's lower bound at the claimed coverage?". Plus class-conditional Mondrian conformal techniques for proper binary-y bounds (Sesia & Romano 2021 "Adaptive Conformal Prediction Intervals"). Plus Venn-Abers extensions for multi-confidence-level outputs.
+- **SOTA target**: **Reliability diagrams with uncertainty bands**; **Brier decomposition** (reliability/resolution/uncertainty); **top-bin calibration**; **class-conditional / Mondrian conformal diagnostics** (Sesia & Romano 2021); **Venn-Abers intervals**; **decision-bucket calibration**; **conditional coverage diagnostics** (Romano et al. 2020). Per-bucket coverage is necessary but too narrow on its own — the binary-y validation problem needs the full probabilistic-validation toolkit.
 - **Speculative ΔP(57)**: 0.0pp directly; unblocks the conformal v1 ship which then enables #8 + parts of #1.
 - **Effort**: M
 - **Prerequisites**: None (the parked conformal v1 branch has the calibrator infrastructure ready).
 - **Status**: surfaced 2026-05-01 evening when validation gate fired 0/6 SHIP. unstarted.
-- **Next action**: Brainstorm session on binary-y validation methodology specifically. Read Sesia & Romano 2021 + Vovk's class-conditional conformal. Redesign `evaluate_fold` in validate_conformal.py to use per-bucket coverage. Re-run gate; if non-empty SHIP set, unblock conformal v1 deploy.
+- **Next action**: Brainstorm session on binary-y validation methodology specifically. Read Sesia & Romano 2021 + Vovk's class-conditional conformal. Redesign `evaluate_fold` to use per-bucket coverage + reliability diagram + Brier decomposition. Re-run gate; if non-empty SHIP set, unblock conformal v1 deploy.
 
 ---
 
-## Suggested execution order
+### 12. (NEW, 2026-05-01 evening) Probabilistic forecast evaluation suite
 
-Ordered by EV-per-week:
+- **Current**: Primary metric is P@1 game-level accuracy. No proper-scoring-rule evaluation, no Brier decomposition, no sharpness-vs-reliability framework. P@1 is too blunt for a chained probabilistic decision system.
+- **SOTA target**: **Proper scoring rules** (Gneiting & Raftery 2007 "Strictly Proper Scoring Rules, Prediction, and Estimation"); **Brier decomposition** into reliability/resolution/uncertainty (Murphy 1973); **top-decile calibration** specifically (the picks live there); **sharpness-vs-reliability framework** (Gneiting et al. 2007); **CRPS** for ranked outputs. Plus **decision-bucket calibration** (calibration restricted to days where the pick is actually selectable as rank-1).
+- **Speculative ΔP(57)**: 0.0pp directly; foundational for honest model comparison and for replacing P@1 in tuning loops with decision-aware scoring (#16).
+- **Effort**: S (most of these are one-pass calculations on existing OOF predictions).
+- **Prerequisites**: None.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
+- **Next action**: Read Gneiting & Raftery 2007. Implement `bts.validate.proper_scoring` module: log loss, Brier, Brier decomposition, reliability diagram with bootstrap bands, sharpness-vs-reliability scatter, decision-bucket calibration. Add to `bts validate scorecard` output.
 
-1. **#3 TreeSHAP** — Quick win. Drop-in replacement; ~2 hours; foundation for all future "why did it pick X" investigations.
-2. **#7 FDR control** — Quick win + truth-up. Re-evaluating Phase 1 verdicts under FDR control may shift our entire interpretation of which features are "real."
-3. **#11 Binary-y validation methodology** — Unblocks the parked conformal v1.
-4. **#1 CVaR-MDP / DR-MDP** — Highest direct P(57) impact. Substantial effort but the payoff lines up with the goal.
-5. **#5 Combinatorial Purged CV** — Methodology foundation. Should happen before more audits.
-6. **#4 Always-valid sequential testing** — Audit-compute reduction. Should happen before more audits.
-7. **#10 Bayesian ensemble** — Reframe of rejected idea given today's distribution-shift findings.
-8. **#6 Drift detection** — Production monitoring upgrade.
-9. **#2 Beta calibration** — Deferred until n>=200 resolved picks (~late June 2026).
-10. **#8 Online conformal** — Blocked on #11.
-11. **#9 Transformer/GNN features** — Major research; lowest priority given uncertainty.
+### 13. (NEW, 2026-05-01 evening) Offline policy evaluation (OPE)
+
+- **Current**: MDP policy is offline-trained on walk-forward predictions; "evaluation" is `evaluate_mdp_policy` which uses the same point-estimate value function the policy was solved against (not honest cross-validated policy value).
+- **SOTA target**: **Doubly-robust OPE** (Jiang & Li 2016 "Doubly Robust Off-policy Value Evaluation"); **per-decision IS estimators** (Precup et al. 2000); **Q-evaluation with held-out fitted Q**; **policy regret against baseline policies**; **uncertainty intervals around policy value** (bootstrap or bayes). The MDP layer is a fully offline batch-RL problem and should be evaluated as such.
+- **Speculative ΔP(57)**: 0.0pp directly; foundational. Currently we **can't honestly compare** a CVaR-MDP policy to vanilla VI without OPE infra. Also: this is the right place to find out if the 8.17% claim is real (component of the falsification harness).
+- **Effort**: M
+- **Prerequisites**: None.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). **Hard prerequisite for area #1 and the falsification harness.**
+- **Next action**: Read Jiang & Li 2016. Design DR-OPE estimator over the existing walk-forward backtest profiles. Include policy-regret bounds against (a) "always-skip" baseline, (b) "always-rank1" baseline, (c) the heuristic strategy.
+
+### 14. (NEW, 2026-05-01 evening) Rare-event Monte Carlo with variance reduction
+
+- **Current**: P(57) estimated via straightforward Monte Carlo (`bts.simulate.monte_carlo`) and analytical absorbing Markov chain (`exact.py`). Bootstrap CIs reported but use naive sampling that may undercount variance for an extreme survival probability.
+- **SOTA target**: **Cross-entropy importance sampling** (Rubinstein 1997, Rubinstein & Kroese 2017); **subset simulation** (Au & Beck 2001); **multilevel Monte Carlo** (Giles 2008) if applicable. P(57) is an extreme survival event — naive MC needs ~10^4-10^5 trials to estimate with reasonable variance, and correlated game-day outcomes inflate variance further.
+- **Speculative ΔP(57)**: 0.0pp directly; provides honest CIs around the 8.17% number. **Critical component of the falsification harness** — if the honest CI on 8.17% is `[2pp, 14pp]` rather than the implied tight band, that changes the audit posture entirely.
+- **Effort**: M
+- **Prerequisites**: None.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). Component of the falsification harness.
+- **Next action**: Read Rubinstein-style CE methods + Au & Beck subset simulation. Implement `bts.simulate.rare_event_mc` with cross-entropy IS for P(57). Compare CIs against current naive-MC CIs.
+
+### 15. (NEW, 2026-05-01 evening) PA-independence and cross-game dependence modeling
+
+- **Current**: Game-level aggregation `1 - prod(1 - p_PA)` assumes conditional PA independence given features. Double-down policy treats two games as independent. Neither assumption is tested.
+- **SOTA target**: **Test PA independence empirically** — fit a within-game-residual covariance model, compare to independent-baseline log-likelihood. **Test cross-game dependence** — same weather slate, same modeling errors, correlated bullpen availability, cross-game park effects on the same day. Methods: copula approaches; conditional residual models; permutation tests for independence (Romano 1989). Decision implication: if dependence is non-trivial, the double-down policy under-weights correlation risk and CVaR-MDP becomes more important.
+- **Speculative ΔP(57)**: -0.5 to +0.5pp depending on direction. May reduce the headline number (good — honest) and shift policy toward more conservative doubles.
+- **Effort**: M
+- **Prerequisites**: None.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). Component of the falsification harness.
+- **Next action**: Design a within-game PA residual covariance test on backtest data. Then a cross-game day-correlation test on rank-1/rank-2 picks. Quantify the dependence and feed it into MDP simulation as variance inflation.
+
+### 16. (NEW, 2026-05-01 evening) Decision-aware learning
+
+- **Current**: PA model is optimized for binary cross-entropy on hit/no-hit. The contest objective is a nonlinear tail event (P(57)). Training and decision metrics are decoupled.
+- **SOTA target**: **Smart Predict-then-Optimize** (Elmachtoub & Grigas 2022 "Smart Predict, then Optimize"); **end-to-end loss surrogates** that target eventual MDP value; **decision-focused learning** (Wilder et al. 2019); **reweighting by downstream policy sensitivity** (train with weights proportional to how much each PA's prediction affects MDP decisions).
+- **Speculative ΔP(57)**: +0.2-1.0pp speculative; high uncertainty. **The decoupling between PA-Brier and downstream-MDP-value may explain part of why feature-engineering returns are diminishing** (today's morning verdicts).
+- **Effort**: M (reweighting) to L (full SPO surrogate).
+- **Prerequisites**: #12 probabilistic-scoring-suite + #13 OPE for honest measurement.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
+- **Next action**: Read Elmachtoub & Grigas 2022 SPO. Try the lightweight version first: weight training rows by `|MDP-value-gradient w.r.t. p_PA|` from a simulator pass. Compare downstream P(57) to baseline.
+
+### 17. (NEW, 2026-05-01 evening) Model-class challenge
+
+- **Current**: LightGBM-only, default hyperparameters, 12-model blend with rotating Statcast feature.
+- **SOTA target**: **CatBoost ordered boosting** (Prokhorenkova et al. 2018) — handles target leakage in categorical/target-encoded features which BTS has many of (e.g., bpm). **NGBoost** (Duan et al. 2020) — natively probabilistic outputs (predictive distribution, not point), feeds into #14 directly. **Explainable Boosting Machines** (InterpretML, Nori et al. 2019) — interpretability+accuracy without the SHAP layer. **Monotone-constrained XGBoost/LightGBM** where baseball monotonicities are defensible (e.g., higher bpm → higher P(hit) all else equal).
+- **Speculative ΔP(57)**: -0.2 to +0.5pp. Mostly an honest-comparison move — if LightGBM is genuinely best, Codex's "too comfortable" critique gets formally rebutted.
+- **Effort**: M
+- **Prerequisites**: #5 nested CV + #12 proper scoring rules for honest comparison.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
+- **Next action**: After #5 + #12 are in place, run a single-pass model-class bake-off: LightGBM (current) vs CatBoost ordered vs NGBoost vs EBM under proper-scoring evaluation. Time-bounded to one week; if no model beats LightGBM under proper scores, stop.
+
+---
+
+## Suggested execution order (revised 2026-05-01 evening, post-Codex review)
+
+The original execution order put TreeSHAP first as a quick win. Codex's review re-prioritized aggressively: feature-engineering returns are diminishing (today's morning verdicts confirm), and the 16× gap between our 8.17% pooled P(57) and published SOTA ~0.5% means the audit's first job is to **defend the headline number**, not extend it.
+
+Revised order:
+
+1. **Falsification harness for the 8.17% claim** = #13 OPE + #14 rare-event MC + #15 dependence modeling, designed and built together. Goal: try to break the 8.17% number with honest decision-level evaluation under correlated rare-event variance. **First concrete area to execute.**
+2. **#12 Probabilistic forecast evaluation suite** — replace P@1-centric evaluation. Foundation for everything else.
+3. **#11 Binary-y validation methodology** — unblocks parked conformal v1.
+4. **#5 Nested rolling-origin CV + lockbox** — methodology foundation; should happen before any further model-class or feature audits.
+5. **#1 MDP robustness (distributional DP / robust VI)** — once OPE infra is in place.
+6. **#16 Decision-aware learning** — try lightweight SPO/reweighting; depends on #12 + #13.
+7. **#10 Predictive stacking** — variance reduction with proper-score weighting.
+8. **#4 e-values / e-processes for sequential audits** — audit-compute reduction.
+9. **#17 Model-class challenge** — depends on #5 + #12.
+10. **#7 e-BH / online FDR retrospective** — truth-up on past audits.
+11. **#6 BOCPD drift detection** — production monitoring.
+12. **#3 TreeSHAP + ALE** — interpretability after the heavy lifting; use for diagnosis when uncomfortable picks land.
+13. **#2 Beta / Venn-Abers calibration** — deferred until n>=200 resolved picks (~late June 2026).
+14. **#8 ACI / RCPS online conformal** — blocked on #11.
+15. **#9 Transformer / GNN feature** — major research; do after Garnett-comparable benchmarks are in place via #12.
 
 ---
 
@@ -173,8 +254,28 @@ What was learned:
 - **The "best anyone could make" framing helps catch quiet quality regressions.** Today's bucket-Wilson-instead-of-conformal retreat was reverted; today's sensitivity-analysis-instead-of-TreeSHAP wasn't caught at the time.
 - **First concrete output was rejected by validation, which is success.** The gate worked. Implementation infrastructure (calibrator math, dataclass extensions, predict_local wiring, refit script) is reusable when the validation methodology is fixed.
 
+## Day 1 evening update — Codex adversarial review (2026-05-01 ~22:30 ET)
+
+Eric authorized a Codex (GPT-5.5, high reasoning) adversarial review of this tracker doc via the `consulting-codex` skill, with explicit instruction to use GPT-5.5 wherever it adds value regardless of cost. Goal: catch SOTA blind spots that came from Claude's training-distribution defaults. The review surfaced substantive disagreement. Full output preserved at `data/external/codex_reviews/2026-05-01-sota-audit.md`.
+
+Concrete changes absorbed into this doc:
+
+1. **One fictional citation removed.** Area #9 cited "Mehta & Rao 2023, Sabermetric Sequence Models" — this paper does not exist (verified by independent web search 2026-05-01 evening: nothing matching that author/title combination, only generic sabermetrics pages and an unrelated medical-foundation report). Replaced with verified real references: Neural Sabermetrics with World Model (arxiv 2602.07030, Feb 2026), Matchup Models paper (arxiv 2511.17733, Nov 2025), TFT pitcher performance (ScienceDirect 2025), Singlearity (Baseball Prospectus), Garnett's BTS-direct ML piece (Medium Feb 2026).
+2. **Six new audit areas added (#12-#17):** probabilistic forecast evaluation, offline policy evaluation, rare-event MC, dependence modeling, decision-aware learning, model-class challenge. None of these were in the original 11.
+3. **SOTA targets updated for areas where the named technique was outdated or wrong:** #1 (exact distributional DP / robust VI before deep RL), #2 (Venn-Abers added), #4 (e-values / e-processes / SAVI framing), #6 (BOCPD over ADWIN/DDM), #7 (e-BH / online FDR over classical BH), #8 (ACI / RCPS over Lei 2018), #10 (predictive stacking over BMA), #11 (full probabilistic-validation toolkit, not just per-bucket coverage).
+4. **Execution order rewritten.** TreeSHAP demoted from #1 to #12. New first concrete area: "8.17% falsification harness" combining #13 + #14 + #15.
+5. **Methodological orientation added to "Audit framework" section:** treat each area as "a claim to falsify" not just "a technique to install." Codex's full reframe (5 claims A-E) was considered but the area-inventory structure was kept per Eric's preference; the falsification posture is absorbed into the framing.
+
+Codex's full top-3 moves (verbatim summary, ordering matches revised execution order):
+1. Build the decision-level validation and rare-event harness — first job is to break the 8.17% claim.
+2. Replace P@1-centric evaluation with probabilistic + decision-aware scoring.
+3. Robust calibrated policy optimization (cross-fitted calibrators feed robust DP).
+
+This maps directly to revised execution order items 1, 2, and 5 above.
+
 ## Open questions for next session
 
-- Which area to start with (suggested: #3 TreeSHAP for quick foundation, then #7 FDR for retrospective truth-up)?
-- Audit cadence — one area per session, or grouped?
+- Does the falsification-harness scope break out cleanly into a single design spec, or three (one per #13/#14/#15)?
 - Where to put per-area brainstorm outputs — separate spec docs in `docs/superpowers/specs/` (one per area), or extend this tracker as we go?
+- Cadence — one area per session, or grouped (e.g., "validation week" covering #5, #11, #12, #13)?
+- Budget for Codex consultations on each individual area's literature scan — at ~$1-2 each, the 17-area inventory implies ~$17-34 of consulting cost over the audit lifetime. Worth it given today's review surfaced one factual error and 6 missing areas.
