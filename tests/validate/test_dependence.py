@@ -155,6 +155,82 @@ class TestLogisticNormalRandomIntercept:
         assert abs(p_at_least_one - p_indep) < 0.05
 
 
+class TestBuildCorrectedTransitionTable:
+    def test_zero_dependence_preserves_original_transitions(self):
+        """When rho_PA = tau = rho_pair = 0, corrected bins equal originals."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.7, 0.8), p_hit=0.75, p_both=0.55, frequency=1.0),
+            ],
+            boundaries=[],
+        )
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.0,
+            n_pa_per_game=5,
+        )
+        assert abs(corrected.bins[0].p_hit - 0.75) < 1e-9
+        assert abs(corrected.bins[0].p_both - 0.55) < 1e-9
+        assert corrected.bins[0].index == 0
+        assert corrected.bins[0].frequency == 1.0
+
+    def test_positive_pa_dependence_lowers_p_hit(self):
+        """Within-game positive correlation lowers P(at least one hit per game).
+
+        This effect holds when p_hit is large enough that the kernel
+        g(u) = (1 - sigmoid(logit(p_pa) + u))^n is concave and the Jensen
+        correction pushes E[1-g(U)] below 1-g(0). At p_hit=0.70 with n=5 and
+        tau_squared=0.5 the direction is reliably downward (delta ≈ -0.020).
+        """
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.65, 0.75), p_hit=0.70, p_both=0.45, frequency=1.0),
+            ],
+            boundaries=[],
+        )
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.20,  # included in result for caller record-keeping
+            tau_squared=0.5,
+            rho_pair_cross_game=0.0,
+            n_pa_per_game=5,
+        )
+        assert corrected.bins[0].p_hit < 0.70, (
+            f"PA positive dependence should lower p_hit; got {corrected.bins[0].p_hit:.4f}"
+        )
+        # Should still be a valid probability.
+        assert 0.0 < corrected.bins[0].p_hit < 1.0
+
+    def test_positive_pair_dependence_raises_p_both(self):
+        """Cross-game positive correlation raises P(both hit)."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.7, 0.8), p_hit=0.75, p_both=0.55, frequency=1.0),
+            ],
+            boundaries=[],
+        )
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.15,
+            n_pa_per_game=5,
+        )
+        assert corrected.bins[0].p_both > 0.55, (
+            f"pair positive dependence should raise p_both; got {corrected.bins[0].p_both:.4f}"
+        )
+        # Frechet upper bound: min(p1, p2) = 0.75. Should be <= that.
+        assert corrected.bins[0].p_both <= 0.75
+
+
 class TestPairResidualCorrelation:
     def test_independent_pairs_yield_nonsignificant_correlation(self):
         """If rank1 and rank2 are independent, the test should not reject H0 most of the time."""

@@ -255,3 +255,80 @@ def pair_residual_correlation(
     ci_hi = float(np.quantile(bs, 0.975))
 
     return rho_hat, ci_lo, ci_hi, p_value
+
+
+def build_corrected_transition_table(
+    bins,                          # QualityBins
+    *,
+    rho_PA_within_game: float,
+    tau_squared: float,
+    rho_pair_cross_game: float,
+    n_pa_per_game: int = 5,
+):
+    """Apply two-knob mean corrections to a QualityBins instance.
+
+    Returns a new QualityBins with corrected p_hit (logistic-normal integration
+    for within-game PA dependence) and p_both (Pearson + Frechet bounds for
+    cross-game pair dependence). Bin index, p_range, frequency, and boundaries
+    are preserved from the original.
+
+    Mean correction for p_hit (when tau_squared > 0):
+        p_pa_indep = 1 - (1 - p_hit_orig)^(1/n_pa_per_game)
+        new_p_hit = E_u[1 - (1 - sigmoid(logit(p_pa_indep) + u))^n_pa_per_game]
+                    where u ~ N(0, tau_squared)
+        Computed via Gauss-Hermite quadrature.
+
+    Mean correction for p_both (when rho_pair_cross_game != 0):
+        new_p_both = p1*p2 + rho_pair * sqrt(p1*(1-p1)*p2*(1-p2))
+        Clipped to Frechet-Hoeffding bounds [max(0, p1+p2-1), min(p1, p2)].
+
+    rho_PA_within_game is currently a record-keeping pass-through (the
+    correction it would induce is the same one tau_squared captures via the
+    logistic-normal integration). Reserved for future variance-inflation
+    extensions.
+    """
+    from bts.simulate.quality_bins import QualityBins, QualityBin
+
+    quad_x, quad_w = np.polynomial.hermite_e.hermegauss(21)
+    quad_w_sum = float(quad_w.sum())
+
+    new_bins = []
+    for b in bins.bins:
+        # Mean correction for p_hit via logistic-normal integration.
+        if tau_squared > 1e-12:
+            # Invert the game-level hit probability to per-PA probability under independence.
+            p_pa_indep = 1.0 - (1.0 - b.p_hit) ** (1.0 / n_pa_per_game)
+            # Clip to avoid logit blowup.
+            p_pa_indep = max(min(p_pa_indep, 1.0 - 1e-9), 1e-9)
+            tau = float(np.sqrt(tau_squared))
+            logit_p_pa = float(np.log(p_pa_indep / (1.0 - p_pa_indep)))
+            num = 0.0
+            for x, w in zip(quad_x, quad_w):
+                u = tau * x
+                p_pa_tilted = 1.0 / (1.0 + np.exp(-(logit_p_pa + u)))
+                p_at_least_one = 1.0 - (1.0 - p_pa_tilted) ** n_pa_per_game
+                num += w * p_at_least_one
+            new_p_hit = float(num / quad_w_sum)
+        else:
+            new_p_hit = b.p_hit
+
+        # Mean correction for p_both via Pearson copula delta.
+        # Applied as a delta on the original p_both so that rho=0 is identity.
+        p1 = b.p_hit
+        p2 = b.p_hit
+        delta = rho_pair_cross_game * np.sqrt(p1 * (1.0 - p1) * p2 * (1.0 - p2))
+        new_p_both = b.p_both + float(delta)
+        # Clip to Frechet-Hoeffding bounds.
+        lower = max(0.0, p1 + p2 - 1.0)
+        upper = min(p1, p2)
+        new_p_both = float(min(max(new_p_both, lower), upper))
+
+        new_bins.append(QualityBin(
+            index=b.index,
+            p_range=b.p_range,
+            p_hit=new_p_hit,
+            p_both=new_p_both,
+            frequency=b.frequency,
+        ))
+
+    return QualityBins(bins=new_bins, boundaries=bins.boundaries)
