@@ -41,39 +41,40 @@ def pa_residual_correlation(
     """
     rng = np.random.default_rng(seed)
     df = df.copy()
-    df["e"] = [pearson_residual(y, p) for y, p in zip(df["actual_hit"], df["p_pa"])]
+    # Vectorized Pearson residual computation (was a list comp ~1.8M times).
+    p = np.clip(df["p_pa"].to_numpy(), 1e-9, 1 - 1e-9)
+    y = df["actual_hit"].to_numpy()
+    df["e"] = (y - p) / np.sqrt(p * (1 - p))
 
-    # Compute the off-diagonal pair products from each batter-game.
-    pair_products = []
-    for _, group in df.groupby("batter_game_id"):
-        residuals = group["e"].to_numpy()
-        if len(residuals) < 2:
-            continue
-        for i in range(len(residuals)):
-            for j in range(i + 1, len(residuals)):
-                pair_products.append(residuals[i] * residuals[j])
-    pair_products = np.array(pair_products)
-    if len(pair_products) == 0:
-        return 0.0, 0.0, 0.0, 1.0
-    rho_hat = float(pair_products.mean())
-
-    # Cluster bootstrap: resample batter_game_id values with replacement.
-    # Pre-group residuals via single O(N) groupby (NOT a dict comp of O(N*M)
-    # filters, which on 1.8M PA rows × 360K batter-game-ids took >35 min and
-    # was clearly the harness's wall-time bottleneck).
+    # Closed-form per-group pair statistics (Codex round 4):
+    # For residuals e_1..e_n in a group:
+    #   sum_{i<j} e_i*e_j = (sum_e^2 - sum_e2) / 2
+    #   n_pairs = n*(n-1)/2
+    # So rho_hat = total_pair_sum / total_pair_n. This avoids materializing
+    # any pair products and runs in O(N) instead of O(N*k^2).
     grouped = df.groupby("batter_game_id")["e"]
-    residuals_by_bg = {bg: vals.to_numpy() for bg, vals in grouped}
-    bg_ids = np.array(list(residuals_by_bg.keys()))
+    sum_e = grouped.sum().to_numpy()
+    sum_e2 = grouped.apply(lambda v: float(np.square(v).sum())).to_numpy()
+    counts = grouped.size().to_numpy()
+    pair_sum = 0.5 * (sum_e**2 - sum_e2)
+    pair_n = counts * (counts - 1) // 2
+
+    total_pair_n = pair_n.sum()
+    if total_pair_n == 0:
+        return 0.0, 0.0, 0.0, 1.0
+    rho_hat = float(pair_sum.sum() / total_pair_n)
+
+    # Cluster bootstrap via bincount (Codex round 4): for each rep, sample
+    # group indices with replacement, get group-counts via np.bincount, then
+    # weighted ratio. Pure numpy, no Python loops over groups.
+    G = len(pair_sum)
     bs_estimates = np.empty(n_bootstrap)
     for b in range(n_bootstrap):
-        sample_ids = rng.choice(bg_ids, size=len(bg_ids), replace=True)
-        bs_pairs = []
-        for bg in sample_ids:
-            residuals = residuals_by_bg[bg]
-            for i in range(len(residuals)):
-                for j in range(i + 1, len(residuals)):
-                    bs_pairs.append(residuals[i] * residuals[j])
-        bs_estimates[b] = float(np.mean(bs_pairs)) if bs_pairs else 0.0
+        idx = rng.integers(0, G, size=G)
+        c = np.bincount(idx, minlength=G)
+        num = float(c @ pair_sum)
+        den = float(c @ pair_n)
+        bs_estimates[b] = num / den if den > 0 else 0.0
 
     ci_lo = float(np.quantile(bs_estimates, 0.025))
     ci_hi = float(np.quantile(bs_estimates, 0.975))
@@ -148,18 +149,18 @@ def fit_logistic_normal_random_intercept(
     mean_p = max(min(mean_p, 1 - 1e-9), 1e-9)
 
     # Stage 1: cross-pair Pearson residual product (intra-class correlation estimate).
+    # Closed-form per-group sums (Codex round 4 perf fix):
+    #   sum_{i<j} e_i*e_j = (sum_e^2 - sum_e2) / 2
+    # avoids materializing pair products. O(N) instead of O(N*k^2).
     quad_x, quad_w = np.polynomial.hermite_e.hermegauss(n_quad_points)
-    pair_products: list[float] = []
-    for _, grp in df.groupby(group_col):
-        residuals = grp["_e"].to_numpy()
-        n = len(residuals)
-        if n < 2:
-            continue
-        for i in range(n):
-            for j in range(i + 1, n):
-                pair_products.append(float(residuals[i] * residuals[j]))
-
-    rho_hat = float(np.mean(pair_products)) if pair_products else 0.0
+    grouped_e = df.groupby(group_col)["_e"]
+    sum_e = grouped_e.sum().to_numpy()
+    sum_e2 = grouped_e.apply(lambda v: float(np.square(v).sum())).to_numpy()
+    counts = grouped_e.size().to_numpy()
+    pair_sum = 0.5 * (sum_e**2 - sum_e2)
+    pair_n = counts * (counts - 1) // 2
+    total_pair_n = pair_n.sum()
+    rho_hat = float(pair_sum.sum() / total_pair_n) if total_pair_n > 0 else 0.0
 
     # Stage 2: invert E[e_i*e_j](tau) = rho_hat to recover tau_hat.
     def _expected_cross_product(tau: float) -> float:

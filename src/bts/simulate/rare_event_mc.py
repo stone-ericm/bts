@@ -228,10 +228,14 @@ def estimate_p57_with_ceis(
     # Final IS estimation.
     final_paths = _sample_paths(theta, n_final)
     weights = _is_weights(final_paths, theta)
-    event_indicators = np.array([
-        _event_reached_threshold(path, threshold=streak_threshold)
-        for path in final_paths
-    ])
+    # Vectorized "max consecutive 1s >= threshold" across all paths (Codex
+    # round 4): for each row, find positions of zeros, take a running max
+    # of zero positions, the run length up to position t is t - last_zero.
+    n_days_p = final_paths.shape[1]
+    zero_pos = np.where(final_paths == 0, np.arange(n_days_p), -1)
+    last_zero = np.maximum.accumulate(zero_pos, axis=1)
+    run_len = np.arange(n_days_p) - last_zero
+    event_indicators = (run_len >= streak_threshold).any(axis=1).astype(np.int8)
     estimates = event_indicators * weights
     point = float(estimates.mean())
 
