@@ -155,7 +155,7 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 
 ## Health Monitoring
 
-End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 13 sources as of 2026-04-30:
+End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 14 sources as of 2026-05-01:
 
 | Source | Tier | Detects |
 |---|---|---|
@@ -165,17 +165,18 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `restart_spike` | 1 | `NRestarts` delta vs checkpoint > threshold |
 | `calibration` | 2 | top-1 P drift on 7d vs 14d rolling mean |
 | `predicted_vs_realized` | 2 | acute drift in mean(predicted) - mean(realized) over 14d window |
-| `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket (added 2026-04-29; **expected to fire CRITICAL daily** while distribution shift between 2017-2025 training and 2026 prod persists — see `project_bts_2026_04_29_pooled_prediction_rejected.md`) |
+| `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket. Filters by `since_deploy_iso` (auto-derived from `git log -1 --format=%cI HEAD` on production repo) so it only counts current-model picks; pre-deploy picks excluded with logged skip count. Thresholds 8/15/25 pp INFO/WARN/CRITICAL. Uses PA-frame attribution when `data_dir` provided (corrects DD attribution bias from streak-result proxy). Both fixes shipped 2026-05-01. |
 | `same_team_corr` | 2 | DD pair-realization vs naive independence |
 | `projected_lineup` | 2 | % rolling 14d projected_lineup over threshold |
 | `pitcher_sparsity` | 2 | % rolling 14d picks with `LIMITED pitcher data` flag (added 2026-04-30 — diagnostic for MiLB-transfer ROI; also catches min_periods regression) |
+| `leaderboard_freshness` | 2 | last successful BTS-leaderboard scrape > 12h (WARN) / 36h (CRITICAL); silent if `data/leaderboard/` doesn't exist (pre-deploy state) |
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |
 
 **Tier 1**: silent failures with damage. **Tier 2**: quality decay. **Tier 3**: process integrity.
 
-State files: `data/health_state/memory_growth_history.jsonl` (daily-appended RSS log).
+State files: `data/health_state/memory_growth_history.jsonl` (daily-appended RSS log); `data/picks/lineup_evolution_<date>.jsonl` (one append per `save_pick` call — captures pick trajectory across day's lineup-confirm checks; supports gap #6 analysis of projected-vs-confirmed underperformance, shipped 2026-05-01).
 
 ## Strategy Simulation
 
@@ -226,7 +227,7 @@ Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation
 LAN-only web dashboard at `http://bts-hetzner:3003` (tailnet). Single-file Python server using `http.server` (no framework). Serves MLB-themed HTML with inline CSS.
 
 **Key modules:**
-- `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live`, `/api/live-html`, `/api/audit-progress`, `/health` endpoints
+- `web.py` — HTTP handler, page rendering, live scorecard HTML, `/api/live`, `/api/live-html`, `/api/audit-progress`, `/api/leaderboard` (added 2026-05-01: returns today's BTS-leaderboard consensus pick + our percentile rank as JSON), `/health` endpoints
 - `scorecard.py` — Data extraction from MLB game feed for live scorecard. Per-batter payload carries `lineup_status` (one of `at_bat / on_deck / in_hole / upcoming / out_of_game / not_in_lineup / pre_game / final`) and `batters_away` (0-8) computed via `_compute_lineup_status` + `_slot_from_bo` helpers. When picked batter's team is currently fielding, `_next_leadoff_id_for_team` derives the right reference batter (their team's next leadoff slot) so distance still computes correctly. ~80 tests.
 - `audit_progress.py` — Live in-flight audit monitor. SSHes each box in `boxes.json`, parses `/root/audit.log` completion markers, aggregates per-box + overall progress. Also reports `ps -u bts` audit_attach process status. CLI entry for pre-deploy smoke testing: `python -m bts.audit_progress --provider vultr --dir <name> --seeds-file <path>`. 25 tests.
 
@@ -247,6 +248,36 @@ LAN-only web dashboard at `http://bts-hetzner:3003` (tailnet). Single-file Pytho
 - Why HTTP instead of direct SSH: during a run, `data/<provider>_results/<dir>/` is EMPTY on bts-hetzner — `retrieve_one` only rsyncs at final teardown. Live progress lives in `/root/audit.log` on each box, reachable via the `bts`-user SSH key distributed during provisioning. Exposing as an endpoint means any tailnet caller (laptop, phone) can poll without its own SSH plumbing.
 - Shell helper: `scripts/check_audit_progress.sh` — curl + jq + column, defaults to the current Vultr n=100 run. Env-var overridable for other audits.
 - Response time ~15–20s for a 26-box fleet (parallel SSH via size-8 thread pool).
+
+## Leaderboard Watcher (added 2026-05-01)
+
+Standalone scraper that captures the public MLB.com BTS leaderboard plus per-user picks logs into parquet. Decoupled from the picks pipeline — failure cannot break daily picks.
+
+```
+src/bts/leaderboard/
+  ├── auth.py           — load cookies from macOS Keychain (Mac) or file (Linux); xSid mint via POST /auth/login
+  ├── endpoints.py      — discovered MLB.com BTS API URL templates
+  ├── models.py         — pydantic schemas (LeaderboardRow, PickRow, SeasonStats)
+  ├── scraper.py        — HTTP wrappers + parsers; static-lookup resolution (rounds + players + units + squads)
+  ├── ratelimit.py      — per-function 2s minimum gap decorator
+  ├── storage.py        — parquet I/O (append-only user_picks; dedupe-on-read)
+  ├── analysis.py       — consensus_pick, percentile_rank
+  └── cli.py            — bts leaderboard {scrape, status, backfill}
+```
+
+**Scheduling:** twice daily via systemd timer (`bts-leaderboard.service` + `.timer`). 10:00 ET captures morning intentions; 01:00 ET captures post-game outcomes. ~3-10 minute scrape budget (rate-limited at 2s/request).
+
+**Storage:**
+- `data/leaderboard/leaderboard_snapshots/{YYYY-MM-DD}.parquet` — 4 tabs × top-100 rows
+- `data/leaderboard/user_picks/{username}.parquet` — append-only per-user picks log
+- `data/leaderboard/season_stats/{YYYY-MM-DD}.parquet` — best/active streak + accuracy per user
+
+**Auth:**
+- Mac: `security` keychain (account `claude-cli`, service `mlb-bts-session-cookies`)
+- Linux: `~/.bts-leaderboard-cookies.json` (chmod 600); falls back to `pass` if installed
+- One-time interactive capture via `scripts/capture_bts_cookies.py` (Playwright)
+
+**First production scrape (2026-05-01):** captured 309 unique users across 4 tabs; all picks resolved via static lookups for batter_name + batter_team. opponent_team / home_or_away are NaN for historical picks (units.json only carries current/upcoming games). See `docs/superpowers/specs/2026-05-01-bts-leaderboard-watcher-design.md` + `docs/superpowers/plans/2026-05-01-bts-leaderboard-watcher.md`.
 
 ## Pipeline
 
