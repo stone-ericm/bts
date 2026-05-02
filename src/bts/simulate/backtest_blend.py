@@ -600,11 +600,16 @@ def run_backtest(
     output_dir: str = "data/simulation",
     seasons: list[int] | None = None,
     retrain_every: int = 7,
+    log_pa_predictions: bool = False,
 ) -> None:
     """Run blend backtest for specified seasons and save profiles.
 
     Loads all PA parquets, computes features once, then runs blend
     walk-forward for each test season.
+
+    When `log_pa_predictions=True`, also persists per-PA predicted probabilities
+    to `{output_dir}/pa_predictions_{season}.parquet` for use by the BTS
+    falsification harness's dependence-testing module.
     """
     import pandas as pd
     from bts.features.compute import compute_all_features
@@ -631,5 +636,8 @@ def run_backtest(
         print(f"\n{'='*60}", file=sys.stderr)
         print(f"Season {season}", file=sys.stderr)
         print(f"{'='*60}", file=sys.stderr)
-        profiles_df = blend_walk_forward(df, season, retrain_every=retrain_every)
+        pa_path = (out / f"pa_predictions_{season}.parquet") if log_pa_predictions else None
+        profiles_df = blend_walk_forward(
+            df, season, retrain_every=retrain_every, pa_predictions_path=pa_path
+        )
         save_profiles(profiles_df, season, out)
