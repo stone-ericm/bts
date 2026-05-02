@@ -200,3 +200,101 @@ def weighted_quantile(
     if idx >= len(s_sorted):
         return float(s_sorted[-1])
     return float(s_sorted[idx])
+
+
+DEFAULT_MIN_BUCKET_EFF_N = 50
+
+
+@dataclass
+class WeightedMondrianConformalCalibrator:
+    """Weighted-conformal calibrator with Mondrian (per-bucket) quantiles.
+
+    Stores per-bucket weighted quantiles of signed residuals s = predicted_p - actual_hit.
+    Calls to apply() find the bucket containing predicted_p and compute
+    L = p - q_bucket(alpha), with marginal-quantile fallback for sparse buckets.
+
+    Per Tibshirani et al. 2019, weights w_i are the density ratios that
+    correct for covariate shift between calibration and target distributions.
+    """
+    alphas: list[float]
+    bucket_quantiles: dict[float, list[float]]   # bucket_low -> [q_per_alpha]
+    marginal_quantiles: list[float]
+    n_effective_per_bucket: dict[float, float]
+    bucket_width: float = DEFAULT_BUCKET_WIDTH
+    n_calibration: int = 0
+    lr_weight_summary: dict | None = None  # for diagnostics
+
+
+def fit_weighted_mondrian_conformal_calibrator(
+    predicted_p: np.ndarray,
+    actual_hit: np.ndarray,
+    weights: np.ndarray,
+    alphas: list[float],
+    bucket_width: float = DEFAULT_BUCKET_WIDTH,
+    min_bucket_eff_n: float = DEFAULT_MIN_BUCKET_EFF_N,
+) -> WeightedMondrianConformalCalibrator:
+    """Fit weighted Mondrian split conformal per Tibshirani et al. 2019."""
+    p = np.asarray(predicted_p, dtype=float)
+    y = np.asarray(actual_hit, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    s = p - y  # signed non-conformity scores
+
+    # Marginal quantile (used for sparse-bucket fallback)
+    marginal_quantiles = [
+        weighted_quantile(s.tolist(), w.tolist(), alpha=a, n_for_correction=len(s))
+        for a in alphas
+    ]
+
+    # Per-bucket weighted quantiles
+    buckets = (p / bucket_width).astype(int) * bucket_width
+    bucket_quantiles: dict[float, list[float]] = {}
+    n_eff_per_bucket: dict[float, float] = {}
+    for b in np.unique(buckets):
+        mask = buckets == b
+        s_b = s[mask]
+        w_b = w[mask]
+        n_eff = float(w_b.sum())
+        n_eff_per_bucket[round(float(b), 6)] = n_eff
+        if n_eff < min_bucket_eff_n:
+            continue
+        bucket_quantiles[round(float(b), 6)] = [
+            weighted_quantile(s_b.tolist(), w_b.tolist(), alpha=a, n_for_correction=len(s_b))
+            for a in alphas
+        ]
+
+    weight_summary = {
+        "mean": float(w.mean()),
+        "median": float(np.median(w)),
+        "p5": float(np.quantile(w, 0.05)),
+        "p95": float(np.quantile(w, 0.95)),
+    }
+    return WeightedMondrianConformalCalibrator(
+        alphas=list(alphas),
+        bucket_quantiles=bucket_quantiles,
+        marginal_quantiles=marginal_quantiles,
+        n_effective_per_bucket=n_eff_per_bucket,
+        bucket_width=bucket_width,
+        n_calibration=len(p),
+        lr_weight_summary=weight_summary,
+    )
+
+
+def apply_weighted_mondrian_conformal(
+    cal: WeightedMondrianConformalCalibrator,
+    predicted_p: float,
+    alpha_index: int,
+) -> float | None:
+    """Compute the conformal lower bound for predicted_p at alpha_index.
+
+    Returns max(0, min(predicted_p, predicted_p - q)) where q is the
+    bucket quantile or marginal fallback.
+    """
+    b = round(int(predicted_p / cal.bucket_width) * cal.bucket_width, 6)
+    if b in cal.bucket_quantiles:
+        q = cal.bucket_quantiles[b][alpha_index]
+    else:
+        q = cal.marginal_quantiles[alpha_index]
+    if q == float("inf") or q == float("-inf"):
+        return None
+    L = predicted_p - q
+    return max(0.0, min(predicted_p, L))

@@ -192,3 +192,85 @@ class TestWeightedQuantile:
         weights = [1.0, 1.0, 1.0, 1.0, 1.0]
         result = weighted_quantile(scores, weights, alpha=0.10, n_for_correction=5)
         assert result == 5.0
+
+
+from bts.model.conformal import (
+    WeightedMondrianConformalCalibrator,
+    fit_weighted_mondrian_conformal_calibrator,
+    apply_weighted_mondrian_conformal,
+)
+
+
+class TestWeightedMondrianConformal:
+    def _build_calibration_data(self, n=200):
+        """Build calibration: predicted ~ Beta-ish, hits ~ Bernoulli(predicted * .9)."""
+        rng = np.random.default_rng(42)
+        predicted = rng.uniform(0.6, 0.85, n)
+        hits = (rng.uniform(0, 1, n) < (predicted * 0.95)).astype(int)
+        weights = np.ones(n)
+        # 16-feature placeholder DataFrame
+        features = pd.DataFrame({
+            "feat_0": rng.uniform(0, 1, n),
+            "feat_1": rng.uniform(0, 1, n),
+        })
+        return predicted, hits, features, weights
+
+    def test_fit_basic_returns_calibrator(self):
+        predicted, hits, features, weights = self._build_calibration_data(n=400)
+        cal = fit_weighted_mondrian_conformal_calibrator(
+            predicted_p=predicted,
+            actual_hit=hits,
+            weights=weights,
+            alphas=[0.05, 0.10, 0.20],
+        )
+        assert isinstance(cal, WeightedMondrianConformalCalibrator)
+        assert cal.alphas == [0.05, 0.10, 0.20]
+        # Marginal quantile populated
+        assert len(cal.marginal_quantiles) == 3
+
+    def test_apply_in_populated_bucket(self):
+        predicted, hits, features, weights = self._build_calibration_data(n=400)
+        cal = fit_weighted_mondrian_conformal_calibrator(
+            predicted_p=predicted, actual_hit=hits, weights=weights, alphas=[0.10],
+        )
+        # Pick a predicted_p in a populated bucket (most fall in [0.6, 0.85))
+        result = apply_weighted_mondrian_conformal(cal, predicted_p=0.72, alpha_index=0)
+        assert result is not None
+        assert 0.0 <= result <= 0.72
+
+    def test_apply_falls_back_to_marginal_for_sparse_bucket(self):
+        predicted, hits, features, weights = self._build_calibration_data(n=400)
+        cal = fit_weighted_mondrian_conformal_calibrator(
+            predicted_p=predicted, actual_hit=hits, weights=weights, alphas=[0.10],
+            min_bucket_eff_n=999999,  # force all buckets sparse
+        )
+        # No bucket meets threshold → marginal fallback
+        result = apply_weighted_mondrian_conformal(cal, predicted_p=0.72, alpha_index=0)
+        assert result is not None  # marginal still computed
+
+    def test_apply_clamps_to_zero_below(self):
+        # When q is large (very over-confident model), L = p - q can go negative.
+        # Result must clamp to 0.
+        predicted = np.array([0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6])  # all in 0.575-0.625
+        hits = np.array([0, 0, 0, 0, 0, 0, 0, 0])  # all miss
+        weights = np.ones(8)
+        cal = fit_weighted_mondrian_conformal_calibrator(
+            predicted_p=predicted, actual_hit=hits, weights=weights,
+            alphas=[0.20], min_bucket_eff_n=5,
+        )
+        result = apply_weighted_mondrian_conformal(cal, predicted_p=0.6, alpha_index=0)
+        # score s = 0.6 - 0 = 0.6 for every row; q ≈ 0.6; L = 0.6 - 0.6 = 0
+        assert result == 0.0
+
+    def test_apply_clamps_to_predicted_p_above(self):
+        # When q is negative (very under-confident), L = p - q > p. Clamp at p.
+        predicted = np.array([0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6])
+        hits = np.array([1, 1, 1, 1, 1, 1, 1, 1])  # all hit
+        weights = np.ones(8)
+        cal = fit_weighted_mondrian_conformal_calibrator(
+            predicted_p=predicted, actual_hit=hits, weights=weights,
+            alphas=[0.20], min_bucket_eff_n=5,
+        )
+        result = apply_weighted_mondrian_conformal(cal, predicted_p=0.6, alpha_index=0)
+        # score s = 0.6 - 1 = -0.4; q ≈ -0.4; L = 0.6 - (-0.4) = 1.0 → clamp to 0.6
+        assert result == 0.6
