@@ -73,6 +73,60 @@ def ssh_predict(
     return pd.DataFrame(data)
 
 
+def _attach_conformal_lower_bounds(
+    predictions: pd.DataFrame,
+    conformal_dir: Path = Path("data/conformal"),
+) -> pd.DataFrame:
+    """Attach 6 conformal-lower-bound columns to predictions DataFrame.
+
+    Gated by ``BTS_USE_CONFORMAL=1`` env var (default OFF; set to "1" in
+    bts-hetzner .env after the validation gate passes). When OFF, returns
+    predictions unchanged. When ON but no calibrator file exists, attaches
+    the columns as all-None (graceful degradation; allows pre-shipping
+    deploy of column infrastructure).
+    """
+    import os
+    if os.environ.get("BTS_USE_CONFORMAL", "0") != "1":
+        return predictions
+
+    from bts.model.conformal import (
+        apply_weighted_mondrian_conformal,
+        apply_bucket_wilson,
+    )
+
+    # Find the most recent calibrator files
+    if not conformal_dir.exists():
+        # Attach all-None columns and return
+        for method in ("conformal", "wilson"):
+            for alpha_pct in (95, 90, 80):
+                predictions[f"p_game_hit_lower_{method}_{alpha_pct}"] = None
+        return predictions
+
+    cal_files = sorted(conformal_dir.glob("calibrator_*.pkl"))
+    wilson_files = sorted(conformal_dir.glob("wilson_calibrator_*.pkl"))
+    if not cal_files or not wilson_files:
+        for method in ("conformal", "wilson"):
+            for alpha_pct in (95, 90, 80):
+                predictions[f"p_game_hit_lower_{method}_{alpha_pct}"] = None
+        return predictions
+
+    import joblib
+    cal = joblib.load(cal_files[-1])
+    wilson = joblib.load(wilson_files[-1])
+
+    for alpha_idx, alpha_pct in enumerate((95, 90, 80)):
+        col_c = f"p_game_hit_lower_conformal_{alpha_pct}"
+        col_w = f"p_game_hit_lower_wilson_{alpha_pct}"
+        predictions[col_c] = predictions["p_game_hit"].apply(
+            lambda p, ai=alpha_idx: apply_weighted_mondrian_conformal(cal, p, ai)
+        )
+        predictions[col_w] = predictions["p_game_hit"].apply(
+            lambda p, ai=alpha_idx: apply_bucket_wilson(wilson, p, ai)
+        )
+
+    return predictions
+
+
 def predict_local(
     date: str,
     data_dir: str = "data/processed",
@@ -143,6 +197,9 @@ def predict_local(
                 print(f"  [local] No {current_pa.name}; calibration skipped", file=sys.stderr)
         except Exception as e:
             print(f"  [local] Calibration failed (non-fatal): {e}; using raw p", file=sys.stderr)
+
+    # Conformal lower bounds (NEW 2026-05-01) — gated by BTS_USE_CONFORMAL
+    predictions = _attach_conformal_lower_bounds(predictions)
 
     return predictions
 
