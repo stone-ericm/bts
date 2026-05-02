@@ -27,6 +27,16 @@ class Pick:
     game_pk: int
     game_time: str  # ISO 8601 UTC
     pitcher_team: str | None = None
+    # Conformal lower bounds (NEW 2026-05-01); see
+    # docs/superpowers/specs/2026-05-01-bts-conformal-lower-bounds-design.md
+    # All six are populated when BTS_USE_CONFORMAL=1; left None for old picks
+    # or if the validation gate didn't ship that (method, alpha) combo.
+    p_game_hit_lower_conformal_95: float | None = None
+    p_game_hit_lower_conformal_90: float | None = None
+    p_game_hit_lower_conformal_80: float | None = None
+    p_game_hit_lower_wilson_95: float | None = None
+    p_game_hit_lower_wilson_90: float | None = None
+    p_game_hit_lower_wilson_80: float | None = None
 
 
 @dataclass
