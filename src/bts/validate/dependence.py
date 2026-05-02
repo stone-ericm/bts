@@ -58,10 +58,13 @@ def pa_residual_correlation(
     rho_hat = float(pair_products.mean())
 
     # Cluster bootstrap: resample batter_game_id values with replacement.
-    bg_ids = df["batter_game_id"].unique()
+    # Pre-group residuals via single O(N) groupby (NOT a dict comp of O(N*M)
+    # filters, which on 1.8M PA rows × 360K batter-game-ids took >35 min and
+    # was clearly the harness's wall-time bottleneck).
+    grouped = df.groupby("batter_game_id")["e"]
+    residuals_by_bg = {bg: vals.to_numpy() for bg, vals in grouped}
+    bg_ids = np.array(list(residuals_by_bg.keys()))
     bs_estimates = np.empty(n_bootstrap)
-    # Pre-group the residual arrays for speed.
-    residuals_by_bg = {bg: df.loc[df["batter_game_id"] == bg, "e"].to_numpy() for bg in bg_ids}
     for b in range(n_bootstrap):
         sample_ids = rng.choice(bg_ids, size=len(bg_ids), replace=True)
         bs_pairs = []
