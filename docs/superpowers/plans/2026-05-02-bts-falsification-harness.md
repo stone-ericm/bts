@@ -23,6 +23,32 @@
 
 ---
 
+## Post-execution reconciliation (added 2026-05-02)
+
+Tasks 0-5 were executed 2026-05-01 evening through 2026-05-02 early morning via subagent-driven development. **Source of truth for what was actually built is the git history on `feature/falsification-harness`, not the per-task descriptions below.**
+
+### Tasks already shipped
+
+| Plan task | Status | Commit(s) | Key plan-vs-built deviations |
+|---|---|---|---|
+| 0 | ✅ shipped | `82c2ae6` | Plan said "after scipy"; scipy isn't on main yet, so statsmodels was placed alphabetically after `rich`. |
+| 1 | ✅ shipped | `5d761d0`, `edb13ff` | Function name is **`blend_walk_forward`** (NOT `walk_forward_backtest`). Kwarg is **`pa_predictions_path: "Path \| None" = None`** (NOT `log_pa_predictions: bool`). No `synthetic_pa_dataframe` fixture exists; tests use inline DataFrames. Helper `_write_pa_predictions_chunk` factored out for testability. Added missing `parent.mkdir(parents=True, exist_ok=True)` after code review. |
+| 2 | ✅ shipped | `26984b6` | Built as planned. FQE recovers toy-MDP true value within 0.0017 (>>15× tighter than spec tolerance). |
+| 3 | ✅ shipped | `07e4e2e`, `5ca02e7` | Built as planned. DR-OPE collapses to FQE under full-information replay (`rho=1`); test confirms within 0.00075 of analytical truth. |
+| 4 | ✅ shipped | `a6c075d` | Stationary bootstrap built as planned. **Paired hierarchical bootstrap added a slot-date reassignment step** not in the plan — needed because the plan's literal `for d in resampled_dates` loop produced 48 rows per date when the bootstrap drew duplicates, breaking the per-date-counts test. The slot-date workaround relabels duplicate-source draws so each output position has 24 seeds. **Implication for Tasks 6-13**: production use of `dr_ope_with_bootstrap` on real trajectories may need `trajectory_id` and `t` reassignment alongside `date` to preserve trajectory coherence under bootstrap duplication. Task 5's `_run_dr_ope_with_bootstrap` sidesteps this by using terminal-reward MC. |
+| 5 | ✅ shipped | `2876d9f` | Three API mismatches with plan: (a) `QualityBins.assign_bin(top1_p, top2_p)` doesn't exist — actual method is `bins.classify(top1_p)` (single-arg); (b) `compute_pooled_bins` requires `rank/p_game_hit/actual_hit/seed` columns, not the `top1_p/top1_hit/top2_p/top2_hit` test format — implementer wrote `_compute_bins_from_direct_profiles` helper; (c) `build_pooled_policy(profiles, bins)` signature is wrong — actual is `build_pooled_policy(profiles_df, season_length, late_phase_days, n_bins)` with no `bins` param — `audit_pipeline` calls `solve_mdp(bins)` directly. Policy-table shape guard added (`min(streak, shape[0]-1)`) for 57-row vs 58-row tables. **v1 simplification documented**: `_run_dr_ope_with_bootstrap` uses per-trajectory terminal-reward MC, not full sequential DR. |
+
+### Tasks 6-13 (not yet executed)
+
+The descriptions below for Tasks 6-13 are likely accurate — they create new modules from scratch with no integration into existing code. Tasks 8-11 (dependence module) integrate with `bts.simulate.quality_bins` for the corrected transition table; expect similar API-mismatch findings as Task 5. **Recommendation**: when picking up Task 8+, verify each plan-asserted API against actual source before dispatching.
+
+### Outstanding deferrals
+
+- **Bootstrap trajectory-duplicate semantics** (Task 4): if the harness verdict eventually motivates upgrading from terminal-R MC to full sequential DR, the bootstrap also needs trajectory_id + t reassignment per slot. Document this in `bts.validate.ope.paired_hierarchical_bootstrap_sample` docstring before the upgrade.
+- **Plan accuracy for Tasks 6+**: spot-check API references (especially Task 11's `compute_corrected_transition_table` if it touches `QualityBins`) before dispatching.
+
+---
+
 ## File Structure
 
 | Path | Purpose | Action |
@@ -41,7 +67,9 @@
 
 ---
 
-## Task 0: Branch + dependency setup
+## Task 0: Branch + dependency setup  [✅ SHIPPED — see commit `82c2ae6`]
+
+> **Status (2026-05-02): SHIPPED.** Plan said to insert `statsmodels` after `scipy` in `pyproject.toml`, but scipy isn't currently in main's deps (it was added on the conformal branch but not merged). Implementer correctly placed statsmodels at the alphabetical position after `rich`. Branch `feature/falsification-harness` exists with this as its initial commit on top of main `db8d517`.
 
 **Files:**
 - Modify: `pyproject.toml` (add `statsmodels`)
@@ -84,7 +112,9 @@ git commit -m "chore(deps): add statsmodels for logistic-normal MLE in falsifica
 
 ---
 
-## Task 1: PA-level prediction logging hook
+## Task 1: PA-level prediction logging hook  [✅ SHIPPED — see commits `5d761d0`, `edb13ff`]
+
+> **Status (2026-05-02): SHIPPED. The task body below is the original plan and contains stale references** (`walk_forward_backtest`, `log_pa_predictions: bool`, `synthetic_pa_dataframe` fixture). For the actual implementation read `src/bts/simulate/backtest_blend.py` (`_write_pa_predictions_chunk` helper at line ~379, `pa_predictions_path` kwarg on `blend_walk_forward`) and `tests/simulate/test_backtest_pa_logging.py`. The reconciliation header at the top of this doc lists the deviations.
 
 **Why first:** §6.1 of the spec needs per-PA predicted probabilities for residual computation. The existing walk-forward backtest aggregates to game-level and discards per-PA predictions. We need a flag that, when set, persists per-PA predictions alongside the daily backtest profile parquet.
 
@@ -202,7 +232,9 @@ git commit -m "feat(backtest): add log_pa_predictions flag for harness PA residu
 
 ---
 
-## Task 2: `bts.validate.ope` — Fitted-Q-Evaluation primitive
+## Task 2: `bts.validate.ope` — Fitted-Q-Evaluation primitive  [✅ SHIPPED — see commit `26984b6`]
+
+> **Status (2026-05-02): SHIPPED as planned.** FQE recovered toy-MDP true value (0.96875) within 0.0017 absolute on n=5000 — well inside the 0.03 tolerance. Source: `src/bts/validate/ope.py:fitted_q_evaluation`, fixture at `tests/validate/conftest.py`.
 
 **Files:**
 - Create: `src/bts/validate/__init__.py` (if missing)
@@ -400,7 +432,9 @@ git commit -m "feat(validate.ope): tabular Fitted-Q-Evaluation primitive with to
 
 ---
 
-## Task 3: `bts.validate.ope` — DR-OPE estimator
+## Task 3: `bts.validate.ope` — DR-OPE estimator  [✅ SHIPPED — see commits `07e4e2e`, `5ca02e7`]
+
+> **Status (2026-05-02): SHIPPED as planned.** DR-OPE under full-information replay (`rho=1`) recovered toy-MDP truth within 0.00075 absolute. `DROPEResult` dataclass added with the field shape downstream tasks consume. Source: `src/bts/validate/ope.py` (`dr_ope_full_information`, `DROPEResult`).
 
 ### Task 3.1: DR-OPE on full-information replay (rho=1)
 
@@ -546,7 +580,9 @@ git commit -m "feat(validate.ope): DR-OPE estimator under full-information repla
 
 ---
 
-## Task 4: `bts.validate.ope` — Paired hierarchical block bootstrap
+## Task 4: `bts.validate.ope` — Paired hierarchical block bootstrap  [✅ SHIPPED — see commit `a6c075d`]
+
+> **Status (2026-05-02): SHIPPED with one deviation from the plan.** The Politis-Romano stationary bootstrap is built as planned. The paired-hierarchical wrapper required adding **slot-date reassignment**: when the bootstrap draws the same source date multiple times, the output rows are relabeled to distinct slot dates so each output position has 24 seeds (matching the test assertion). This is a v1 simplification — production use of `dr_ope_with_bootstrap` may need to also reassign `trajectory_id` and `t` for full-sequential-DR coherence. Task 5's `_run_dr_ope_with_bootstrap` deliberately uses terminal-reward MC to sidestep this. Source: `src/bts/validate/ope.py` (`stationary_bootstrap_indices`, `paired_hierarchical_bootstrap_sample`, `dr_ope_with_bootstrap`).
 
 The unit of dependence in BTS is **the MLB slate/day**. Seeds share the same realized baseball outcomes; bootstrapping seeds as independent inflates effective n by 24×.
 
@@ -693,7 +729,14 @@ git commit -m "feat(validate.ope): paired hierarchical block bootstrap for DR-OP
 
 ---
 
-## Task 5: `bts.validate.ope` — Two audit modes + policy regret
+## Task 5: `bts.validate.ope` — Two audit modes + policy regret  [✅ SHIPPED — see commit `2876d9f`]
+
+> **Status (2026-05-02): SHIPPED with three API adaptations from the plan.** Stale plan references that were corrected at implementation time:
+> 1. `QualityBins.assign_bin(top1_p, top2_p)` doesn't exist → actual implementation calls `bins.classify(top1_p)` (single-argument).
+> 2. `compute_pooled_bins(profiles)` requires `rank/p_game_hit/actual_hit/seed` columns → implementer wrote `_compute_bins_from_direct_profiles` to handle the `top1_p/top1_hit/top2_p/top2_hit` audit-test format.
+> 3. `build_pooled_policy(profiles, bins)` signature is `(profiles_df, season_length, late_phase_days, n_bins)` with no `bins` parameter → `audit_pipeline` calls `solve_mdp(bins)` directly.
+>
+> Policy-table shape guard (`min(streak, shape[0]-1)`) added for 57-row vs 58-row table compatibility. **`_run_dr_ope_with_bootstrap` uses terminal-reward Monte Carlo** (not full sequential DR) — documented v1 simplification because BTS rewards are terminal-only. Source: `src/bts/validate/ope.py` (`audit_fixed_policy`, `audit_pipeline`, `policy_regret_table`, `_trajectory_dataframe_from_profiles`, `_run_dr_ope_with_bootstrap`, `_compute_bins_from_direct_profiles`).
 
 ### Task 5.1: Fixed-policy + pipeline audit modes
 
