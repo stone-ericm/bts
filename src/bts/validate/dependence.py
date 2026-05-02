@@ -312,12 +312,17 @@ def build_corrected_transition_table(
         else:
             new_p_hit = b.p_hit
 
-        # Mean correction for p_both via Pearson copula delta.
-        # Applied as a delta on the original p_both so that rho=0 is identity.
+        # Mean correction for p_both via Pearson copula reconstruction.
+        # Replaces empirical p_both with synthetic from independence + correlation,
+        # because empirical p_both already incorporates real-data correlation;
+        # adding rho*sqrt(...) on top would double-count. Using p1*p2 as the
+        # independence baseline + rho*sqrt(p1(1-p1)p2(1-p2)) as the linear-
+        # copula correction matches the standard Pearson formulation.
         p1 = b.p_hit
         p2 = b.p_hit
-        delta = rho_pair_cross_game * np.sqrt(p1 * (1.0 - p1) * p2 * (1.0 - p2))
-        new_p_both = b.p_both + float(delta)
+        new_p_both = p1 * p2 + rho_pair_cross_game * np.sqrt(
+            p1 * (1.0 - p1) * p2 * (1.0 - p2)
+        )
         # Clip to Frechet-Hoeffding bounds.
         lower = max(0.0, p1 + p2 - 1.0)
         upper = min(p1, p2)

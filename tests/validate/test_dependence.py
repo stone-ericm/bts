@@ -156,8 +156,13 @@ class TestLogisticNormalRandomIntercept:
 
 
 class TestBuildCorrectedTransitionTable:
-    def test_zero_dependence_preserves_original_transitions(self):
-        """When rho_PA = tau = rho_pair = 0, corrected bins equal originals."""
+    def test_zero_dependence_preserves_p_hit_and_returns_independence_p_both(self):
+        """When rho_PA = tau = rho_pair = 0, p_hit unchanged AND p_both = p1*p2.
+
+        Note: with the Codex-review fix to use Pearson reconstruction (rather than
+        empirical-additive), the corrected p_both at zero correlation equals the
+        independence product p1*p2, not the original empirical b.p_both.
+        """
         from bts.validate.dependence import build_corrected_transition_table
         from bts.simulate.quality_bins import QualityBins, QualityBin
         bins = QualityBins(
@@ -174,7 +179,8 @@ class TestBuildCorrectedTransitionTable:
             n_pa_per_game=5,
         )
         assert abs(corrected.bins[0].p_hit - 0.75) < 1e-9
-        assert abs(corrected.bins[0].p_both - 0.55) < 1e-9
+        # p_both = p1*p2 at independence (synthetic from Pearson reconstruction).
+        assert abs(corrected.bins[0].p_both - 0.5625) < 1e-9
         assert corrected.bins[0].index == 0
         assert corrected.bins[0].frequency == 1.0
 
