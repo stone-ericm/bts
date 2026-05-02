@@ -193,6 +193,47 @@ def paired_hierarchical_bootstrap_sample(
     return pd.concat(out_chunks, ignore_index=True)
 
 
+def _compute_bins_from_direct_profiles(
+    profiles: pd.DataFrame,
+    n_bins: int = 5,
+) -> "QualityBins":
+    """Compute QualityBins from direct-format profiles (top1_p/top1_hit/top2_p/top2_hit).
+
+    This internal helper works with the daily-profile format produced by
+    backtest_blend and used in audit_fixed_policy / audit_pipeline, which has
+    columns: season, date, seed, top1_p, top1_hit, top2_p, top2_hit.
+
+    Unlike compute_pooled_bins (which merges rank-1/rank-2 rows within
+    (seed, date)), this format already has top1 and top2 in the same row,
+    so no merge step is needed.
+
+    Boundaries are computed over ALL rows (pooled across seeds).
+    """
+    from bts.simulate.quality_bins import QualityBin, QualityBins
+
+    p = profiles["top1_p"].to_numpy()
+    hit1 = profiles["top1_hit"].to_numpy().astype(bool)
+    hit2 = profiles["top2_hit"].to_numpy().astype(bool)
+
+    quantiles = [i / n_bins for i in range(1, n_bins)]
+    boundaries = [float(np.quantile(p, q)) for q in quantiles]
+    bin_idx = np.digitize(p, boundaries)
+
+    bins: list[QualityBin] = []
+    for i in range(n_bins):
+        mask = bin_idx == i
+        if mask.sum() == 0:
+            continue
+        bins.append(QualityBin(
+            index=i,
+            p_range=(float(p[mask].min()), float(p[mask].max())),
+            p_hit=float(hit1[mask].mean()),
+            p_both=float((hit1[mask] & hit2[mask]).mean()),
+            frequency=float(mask.sum() / len(p)),
+        ))
+    return QualityBins(bins=bins, boundaries=boundaries)
+
+
 def dr_ope_with_bootstrap(
     df: pd.DataFrame,
     target_policy: "Callable[[int, int], int]",
@@ -231,3 +272,218 @@ def dr_ope_with_bootstrap(
         n_trajectories=df["trajectory_id"].nunique() if "trajectory_id" in df.columns else 0,
         bootstrap_distribution=bootstrap_values,
     )
+
+
+def _trajectory_dataframe_from_profiles(
+    profiles: pd.DataFrame,
+    policy_action_table: np.ndarray,
+    bins,  # QualityBins
+) -> pd.DataFrame:
+    """Convert daily profiles into trajectory-form DataFrame for DR-OPE.
+
+    Each (season, seed) pair becomes one trajectory; days are time steps. State
+    at each step is (streak, days_remaining, saver, quality_bin); action is
+    `policy_action_table[state]`; outcome is realized hit (or skip). Reward
+    R = 1 if streak reaches 57 during the trajectory, else 0.
+    """
+    from bts.simulate.mdp import ACTIONS
+
+    rows = []
+    for (season, seed), group in profiles.groupby(["season", "seed"]):
+        group = group.sort_values("date").reset_index(drop=True)
+        streak = 0
+        saver = 1
+        n_steps = len(group)
+        for t, day in group.iterrows():
+            if streak >= 57:
+                # Goal already reached — no further decisions or rewards needed.
+                break
+            days_remaining = n_steps - t
+            qbin = bins.classify(day["top1_p"])
+            d_clamped = min(days_remaining, policy_action_table.shape[1] - 1)
+            s_clamped = min(streak, policy_action_table.shape[0] - 1)
+            action_idx = policy_action_table[s_clamped, d_clamped, saver, qbin]
+            action = ACTIONS[action_idx]
+            if action == "skip":
+                r = 0
+                next_streak = streak
+                next_saver = saver
+            elif action == "single":
+                if day["top1_hit"]:
+                    next_streak = min(streak + 1, 57)
+                    next_saver = saver
+                    r = 1 if (next_streak == 57 and streak < 57) else 0
+                else:
+                    if saver and 10 <= streak <= 15:
+                        next_streak = streak
+                        next_saver = 0
+                        r = 0
+                    else:
+                        next_streak = 0
+                        next_saver = saver
+                        r = 0
+            else:  # double
+                if day["top1_hit"] and day["top2_hit"]:
+                    next_streak = min(streak + 2, 57)
+                    next_saver = saver
+                    r = 1 if (next_streak == 57 and streak < 57) else 0
+                else:
+                    if saver and 10 <= streak <= 15:
+                        next_streak = streak
+                        next_saver = 0
+                        r = 0
+                    else:
+                        next_streak = 0
+                        next_saver = saver
+                        r = 0
+            rows.append({
+                "trajectory_id": f"{season}_{seed}",
+                "season": season,
+                "seed": seed,
+                "date": day["date"],
+                "t": t,
+                "s_streak": streak,
+                "s_days": days_remaining,
+                "s_saver": saver,
+                "s_qbin": qbin,
+                "a": int(action_idx),
+                "sn_streak": next_streak,
+                "r": r,
+            })
+            streak = next_streak
+            saver = next_saver
+    return pd.DataFrame(rows)
+
+
+def _run_dr_ope_with_bootstrap(traj_df, *, n_bootstrap, expected_block_length, seed):
+    """Internal helper: run terminal-reward MC over trajectories with simple bootstrap.
+
+    v1 simplification: BTS rewards are purely terminal (R = 1 if streak reaches 57,
+    else 0). So per-trajectory total reward is the trajectory's policy value, and
+    the mean across trajectories is the policy value estimate. Bootstrap resamples
+    trajectories (not days) for v1; the day-level paired bootstrap is reserved for
+    Task 12's driver where the underlying df shape supports it cleanly.
+    """
+    rng = np.random.default_rng(seed)
+    if "trajectory_id" not in traj_df.columns or len(traj_df) == 0:
+        return DROPEResult(point_estimate=0.0, ci_lower=0.0, ci_upper=0.0, n_trajectories=0)
+    terminal_R = traj_df.groupby("trajectory_id")["r"].sum().to_numpy()
+    point = float(terminal_R.mean())
+    bootstrap_values = np.empty(n_bootstrap)
+    for b in range(n_bootstrap):
+        sample = rng.choice(len(terminal_R), size=len(terminal_R), replace=True)
+        bootstrap_values[b] = terminal_R[sample].mean()
+    return DROPEResult(
+        point_estimate=point,
+        ci_lower=float(np.quantile(bootstrap_values, 0.025)),
+        ci_upper=float(np.quantile(bootstrap_values, 0.975)),
+        n_trajectories=len(terminal_R),
+        bootstrap_distribution=bootstrap_values,
+    )
+
+
+def audit_fixed_policy(
+    profiles: pd.DataFrame,
+    *,
+    frozen_policy: dict,
+    test_seasons: list[int],
+    n_bootstrap: int = 2000,
+    expected_block_length: int = 7,
+    seed: int = 42,
+) -> "DROPEResult":
+    """Audit mode 1: frozen policy evaluated on held-out seasons.
+
+    `frozen_policy` is a dict with key 'action_table' = the policy_table as
+    saved by mdp.MDPSolution.save().
+    """
+    test_profiles = profiles[profiles["season"].isin(test_seasons)].copy()
+    train_profiles = profiles[~profiles["season"].isin(test_seasons)].copy()
+    bins = _compute_bins_from_direct_profiles(train_profiles)
+    traj_df = _trajectory_dataframe_from_profiles(
+        test_profiles, frozen_policy["action_table"], bins
+    )
+    return _run_dr_ope_with_bootstrap(
+        traj_df,
+        n_bootstrap=n_bootstrap,
+        expected_block_length=expected_block_length,
+        seed=seed,
+    )
+
+
+def audit_pipeline(
+    profiles: pd.DataFrame,
+    *,
+    fold_seasons: list[int],
+    n_bootstrap: int = 2000,
+    expected_block_length: int = 7,
+    seed: int = 42,
+) -> "DROPEResult":
+    """Audit mode 2: leave-one-season-out, refit bins + re-solve MDP per fold."""
+    from bts.simulate.mdp import solve_mdp
+
+    fold_estimates = []
+    for held_out in fold_seasons:
+        train = profiles[profiles["season"] != held_out].copy()
+        test = profiles[profiles["season"] == held_out].copy()
+        bins = _compute_bins_from_direct_profiles(train)
+        mdp_solution = solve_mdp(bins)
+        traj_df = _trajectory_dataframe_from_profiles(test, mdp_solution.policy_table, bins)
+        fold_result = _run_dr_ope_with_bootstrap(
+            traj_df,
+            n_bootstrap=n_bootstrap,
+            expected_block_length=expected_block_length,
+            seed=seed,
+        )
+        fold_estimates.append(fold_result.point_estimate)
+    return DROPEResult(
+        point_estimate=float(np.mean(fold_estimates)),
+        ci_lower=float(np.quantile(fold_estimates, 0.025)) if len(fold_estimates) >= 5 else None,
+        ci_upper=float(np.quantile(fold_estimates, 0.975)) if len(fold_estimates) >= 5 else None,
+        n_trajectories=len(fold_estimates),
+    )
+
+
+def policy_regret_table(
+    profiles: pd.DataFrame,
+    *,
+    target_policy_table: np.ndarray,
+    bins,
+    n_bootstrap: int = 2000,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """Compute policy regret of target vs canonical baselines on the same bootstrap reps.
+
+    Returns a dataframe with columns: baseline, point_regret, ci_lower, ci_upper.
+    Baselines: always_skip (zeros action table), always_rank1 (ones action table).
+    """
+    rng = np.random.default_rng(seed)
+    target_traj = _trajectory_dataframe_from_profiles(profiles, target_policy_table, bins)
+    always_skip = np.zeros_like(target_policy_table)
+    always_rank1 = np.ones_like(target_policy_table)
+    skip_traj = _trajectory_dataframe_from_profiles(profiles, always_skip, bins)
+    rank1_traj = _trajectory_dataframe_from_profiles(profiles, always_rank1, bins)
+
+    target_terminal = target_traj.groupby("trajectory_id")["r"].sum()
+    skip_terminal = skip_traj.groupby("trajectory_id")["r"].sum()
+    rank1_terminal = rank1_traj.groupby("trajectory_id")["r"].sum()
+
+    rows = []
+    for baseline_name, baseline_R in [
+        ("always_skip", skip_terminal),
+        ("always_rank1", rank1_terminal),
+    ]:
+        # Align indices for paired difference.
+        aligned = pd.concat({"t": target_terminal, "b": baseline_R}, axis=1).dropna()
+        regret_per_traj = (aligned["t"] - aligned["b"]).to_numpy()
+        traj_ids = aligned.index.to_numpy()
+        bs_regrets = np.empty(n_bootstrap)
+        for b in range(n_bootstrap):
+            sample = rng.choice(len(traj_ids), size=len(traj_ids), replace=True)
+            bs_regrets[b] = regret_per_traj[sample].mean()
+        rows.append({
+            "baseline": baseline_name,
+            "point_regret": float(regret_per_traj.mean()),
+            "ci_lower": float(np.quantile(bs_regrets, 0.025)),
+            "ci_upper": float(np.quantile(bs_regrets, 0.975)),
+        })
+    return pd.DataFrame(rows)

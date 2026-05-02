@@ -90,3 +90,47 @@ class TestPairedHierarchicalBootstrap:
         bs = paired_hierarchical_bootstrap_sample(df, expected_block_length=7, rng=rng)
         per_date_counts = bs.groupby("date").size()
         assert (per_date_counts == 24).all(), f"some dates have != 24 seeds: {per_date_counts.value_counts()}"
+
+
+class TestAuditModes:
+    def test_fixed_policy_and_pipeline_modes_produce_finite_estimates(self, tmp_path):
+        """Fixed-policy reuses a frozen policy; pipeline rebuilds per fold."""
+        rng = np.random.default_rng(42)
+        seasons = [2022, 2023, 2024]
+        n_days = 100
+        n_seeds = 24
+        rows = []
+        for season in seasons:
+            for d in range(n_days):
+                date = pd.Timestamp(f"{season}-04-01") + pd.Timedelta(days=d)
+                for seed in range(n_seeds):
+                    rows.append({
+                        "season": season, "date": date, "seed": seed,
+                        "top1_p": rng.uniform(0.65, 0.90),
+                        "top1_hit": int(rng.random() < 0.78),
+                        "top2_p": rng.uniform(0.65, 0.85),
+                        "top2_hit": int(rng.random() < 0.75),
+                    })
+        profiles = pd.DataFrame(rows)
+
+        from bts.validate.ope import audit_fixed_policy, audit_pipeline
+        # Fixed-policy: a frozen policy table = always-skip baseline.
+        n_streak, n_days_dim, n_saver, n_bins = 58, 200, 2, 5
+        frozen_action_table = np.zeros((n_streak, n_days_dim, n_saver, n_bins), dtype=int)
+        fixed_result = audit_fixed_policy(
+            profiles,
+            frozen_policy={"action_table": frozen_action_table},
+            test_seasons=[2024],
+            n_bootstrap=200,
+        )
+        assert isinstance(fixed_result.point_estimate, float)
+        assert 0.0 <= fixed_result.point_estimate <= 1.0
+
+        # Pipeline mode: LOSO across all 3 seasons.
+        pipeline_result = audit_pipeline(
+            profiles,
+            fold_seasons=seasons,
+            n_bootstrap=200,
+        )
+        assert isinstance(pipeline_result.point_estimate, float)
+        assert 0.0 <= pipeline_result.point_estimate <= 1.0
