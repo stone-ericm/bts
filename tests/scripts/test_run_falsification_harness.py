@@ -70,4 +70,4 @@ class TestHarnessSmokeTest:
             "verdict_rationale",
         ):
             assert key in data, f"missing key {key} in verdict JSON"
-        assert data["verdict"] in ("HEADLINE_DEFENDED", "HEADLINE_REDUCED", "HEADLINE_BROKEN")
+        assert data["verdict"] in ("HEADLINE_DEFENDED", "HEADLINE_REDUCED", "HEADLINE_BROKEN", "HEADLINE_INCONCLUSIVE")
