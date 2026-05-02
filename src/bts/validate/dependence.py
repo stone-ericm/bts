@@ -203,3 +203,55 @@ def fit_logistic_normal_random_intercept(
         return float(result / quad_w.sum())
 
     return tau_hat, integrate_fn
+
+
+def pair_residual_correlation(
+    df: pd.DataFrame,
+    *,
+    n_permutations: int = 1000,
+    seed: int = 42,
+) -> tuple[float, float, float, float]:
+    """Stratified permutation test on rank-1/rank-2 Pearson residuals.
+
+    For each row (one row per day):
+        e_{t,1} = pearson_residual(y_rank1, p_rank1)
+        e_{t,2} = pearson_residual(y_rank2, p_rank2)
+
+    Test statistic: T = mean over t of (e_{t,1} * e_{t,2}).
+
+    Null H0: rank-1 and rank-2 residuals are conditionally independent given
+    predicted probabilities.
+
+    Permutation: shuffle e_{t,2} across days. The null distribution of T under
+    permutation gives the two-sided p-value.
+
+    CI on rho_hat: paired bootstrap on rows.
+
+    df columns required: date, p_rank1, p_rank2, y_rank1, y_rank2.
+
+    Returns: (rho_hat, ci_lower, ci_upper, p_value).
+    """
+    rng = np.random.default_rng(seed)
+    e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
+    e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+
+    rho_hat = float(np.mean(e1 * e2))
+
+    # Permutation null distribution: shuffle e2 across positions.
+    null_distribution = np.empty(n_permutations)
+    for k in range(n_permutations):
+        shuffled = rng.permutation(e2)
+        null_distribution[k] = float(np.mean(e1 * shuffled))
+    # Two-sided p-value: how often is the absolute null statistic >= |observed|?
+    p_value = float(np.mean(np.abs(null_distribution) >= abs(rho_hat)))
+
+    # CI via paired bootstrap on rows.
+    n = len(e1)
+    bs = np.empty(n_permutations)
+    for k in range(n_permutations):
+        idx = rng.integers(0, n, n)
+        bs[k] = float(np.mean(e1[idx] * e2[idx]))
+    ci_lo = float(np.quantile(bs, 0.025))
+    ci_hi = float(np.quantile(bs, 0.975))
+
+    return rho_hat, ci_lo, ci_hi, p_value

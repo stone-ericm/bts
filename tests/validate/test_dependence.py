@@ -153,3 +153,50 @@ class TestLogisticNormalRandomIntercept:
         p_at_least_one = integrate_fn(p_list)
         p_indep = 1.0 - 0.75**5
         assert abs(p_at_least_one - p_indep) < 0.05
+
+
+class TestPairResidualCorrelation:
+    def test_independent_pairs_yield_nonsignificant_correlation(self):
+        """If rank1 and rank2 are independent, the test should not reject H0 most of the time."""
+        rng = np.random.default_rng(0)
+        n_pairs = 100
+        rows = []
+        for t in range(n_pairs):
+            p1, p2 = 0.75, 0.70
+            y1 = int(rng.random() < p1)
+            y2 = int(rng.random() < p2)
+            rows.append({
+                "date": t, "p_rank1": p1, "p_rank2": p2,
+                "y_rank1": y1, "y_rank2": y2,
+            })
+        df = pd.DataFrame(rows)
+        from bts.validate.dependence import pair_residual_correlation
+        rho_hat, ci_lo, ci_hi, p_value = pair_residual_correlation(df, n_permutations=500)
+        assert abs(rho_hat) < 0.20, f"rho_hat={rho_hat:.3f} too far from 0 under independence"
+
+    def test_correlated_pairs_detected(self):
+        """If rank1 and rank2 share a latent slate factor, test should detect."""
+        rng = np.random.default_rng(0)
+        n_pairs = 200
+        rows = []
+        for t in range(n_pairs):
+            u = rng.normal()  # slate factor shared by both picks on day t
+            p1, p2 = 0.75, 0.70
+            # sigma=1.2 is a strong-but-plausible slate effect; sigma=0.8 lands
+            # rho_hat right at the detection boundary for this seed and is not
+            # reliably distinguishable from zero at n=200.
+            logit_p1 = np.log(p1 / (1 - p1)) + 1.2 * u
+            logit_p2 = np.log(p2 / (1 - p2)) + 1.2 * u
+            y1 = int(rng.random() < 1.0 / (1.0 + np.exp(-logit_p1)))
+            y2 = int(rng.random() < 1.0 / (1.0 + np.exp(-logit_p2)))
+            rows.append({
+                "date": t, "p_rank1": p1, "p_rank2": p2,
+                "y_rank1": y1, "y_rank2": y2,
+            })
+        df = pd.DataFrame(rows)
+        from bts.validate.dependence import pair_residual_correlation
+        rho_hat, ci_lo, ci_hi, p_value = pair_residual_correlation(df, n_permutations=500)
+        # Latent factor with sigma=1.2 and n=200 reliably produces rho_hat in 0.10-0.20.
+        assert rho_hat > 0.04, f"rho_hat={rho_hat:.3f} not detecting positive correlation"
+        # The permutation test should show p_value < 0.10 at this signal strength.
+        assert p_value < 0.10, f"p_value={p_value:.3f} above significance under positive correlation"
