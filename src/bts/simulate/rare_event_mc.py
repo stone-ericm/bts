@@ -24,23 +24,33 @@ def _sigmoid(x: float | np.ndarray) -> float | np.ndarray:
 
 @dataclass
 class LatentFactorSimulator:
-    """Simulates per-day game outcomes with optional latent day/game factor tilts.
+    """Simulates per-day game outcomes with optional latent factor tilts.
 
-    For each day t:
-        Z_t ~ N(mu_d, 1)
-        For each game g on day t:
-            G_{t,g} ~ N(mu_g, 1)
-            logit(p*_{t,g}) = logit(p_{t,g}) + lambda_d * Z_t + lambda_g * G_{t,g}
+    For each simulated season:
+        Z_season ~ N(mu_d, 1)              [drawn ONCE per season]
+        For each day t in season, for each game g on day t:
+            G_{t,g} ~ N(mu_g, 1)            [drawn fresh per game]
+            logit(p*_{t,g}) = logit(p_{t,g}) + lambda_d * Z_season + lambda_g * G_{t,g}
             Y_{t,g} ~ Bernoulli(p*_{t,g})
 
     When lambda_d = lambda_g = 0, collapses to independent Bernoulli draws — used
     as the unbiasedness oracle baseline for CE-IS validation.
 
+    **Z is per-season, not per-day** (deviation from the original spec). Reasoning:
+    with one game per day in the canonical setup, a per-day Z_t would be
+    independent across days and produce no observable per-season variance
+    effect — the variance-inflation test would be uninformative. The per-season
+    structure is also the right CE-IS design: the auxiliary distribution tilts
+    at the rare-event-relevant scale (a season's outcome). For *within-day
+    correlation modeling* (the harness's Task 11 corrected-transitions path),
+    the production code routes through `bts.validate.dependence` instead of
+    this simulator, so the deviation is contained.
+
     Args:
         profiles: list of dicts, one per day. Required key: 'p_game'. Optional: 'date'.
-        lambda_d: scale of the day-level latent factor (0 = no day correlation).
-        lambda_g: scale of the per-game latent factor (0 = no within-day game correlation).
-        mu_d: mean of the day-level factor distribution (used for CE tilting in Task 7).
+        lambda_d: scale of the season-level latent factor (0 = no season-wide tilt).
+        lambda_g: scale of the per-game latent factor (0 = no within-day game tilt).
+        mu_d: mean of the season-level factor distribution (used for CE tilting in Task 7).
         mu_g: mean of the per-game factor distribution.
     """
     profiles: list[dict[str, Any]]
