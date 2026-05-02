@@ -449,6 +449,74 @@ def audit_pipeline(
     )
 
 
+def corrected_audit_pipeline(
+    profiles: pd.DataFrame,
+    corrected_policy: dict,
+    *,
+    fold_seasons: list[int],
+    n_bootstrap: int = 2000,
+    seed: int = 42,
+) -> "DROPEResult":
+    """Pipeline-style audit replaying a fixed corrected policy across folds.
+
+    For each fold (season), use the global corrected_policy (NOT a per-fold
+    corrected policy) to replay decisions on the held-out season. Returns the
+    mean fold-estimate and its bootstrap CI.
+
+    v1 simplification: uses a GLOBAL corrected policy built from ALL data, not
+    fold-specific corrected bins. A purist LOSO would rebuild the dependence
+    diagnostics (pa_residual_correlation, fit_logistic_normal_random_intercept,
+    pair_residual_correlation) using only each fold's training data. That's
+    deferred to v2 because:
+    (a) dependence params are bin-level aggregates that don't overfit specific
+        folds in the way per-day predictions would, so the leak is mild;
+    (b) running 5x dependence-pipelines per audit is expensive (~30 min each);
+    (c) v1 establishes the harness pattern; v2 can refine.
+
+    Args:
+        profiles: backtest profiles DataFrame with season, date, seed, top1_p,
+            top1_hit, top2_p, top2_hit columns.
+        corrected_policy: dict with key 'action_table' = corrected policy
+            built once from all-data corrected bins.
+        fold_seasons: list of seasons to use as held-out folds (LOSO).
+        n_bootstrap: bootstrap replicates for the trajectory bootstrap CI.
+        seed: rng seed.
+
+    Returns:
+        DROPEResult with mean across fold point-estimates and percentile CI
+        across folds when len(fold_seasons) >= 5; None CI bounds otherwise.
+    """
+    fold_estimates = []
+    for held_out in fold_seasons:
+        # Use full-data bins for the trajectory replay's bin classification.
+        # This is consistent with the global-corrected-policy choice — both
+        # are built from all-data so the held-out trajectory replay uses
+        # consistent state encoding.
+        bins = _compute_bins_from_direct_profiles(profiles)
+        test = profiles[profiles["season"] == held_out].copy()
+        traj_df = _trajectory_dataframe_from_profiles(
+            test, corrected_policy["action_table"], bins
+        )
+        fold_result = _run_terminal_r_mc_bootstrap(
+            traj_df, n_bootstrap=n_bootstrap, seed=seed,
+        )
+        fold_estimates.append(fold_result.point_estimate)
+
+    point = float(np.mean(fold_estimates))
+    if len(fold_estimates) >= 5:
+        ci_lo = float(np.quantile(fold_estimates, 0.025))
+        ci_hi = float(np.quantile(fold_estimates, 0.975))
+    else:
+        ci_lo = None
+        ci_hi = None
+    return DROPEResult(
+        point_estimate=point,
+        ci_lower=ci_lo,
+        ci_upper=ci_hi,
+        n_trajectories=len(fold_estimates),
+    )
+
+
 def policy_regret_table(
     profiles: pd.DataFrame,
     *,

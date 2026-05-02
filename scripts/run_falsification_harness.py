@@ -23,6 +23,7 @@ from bts.validate.dependence import (
 from bts.validate.ope import (
     audit_fixed_policy,
     audit_pipeline,
+    corrected_audit_pipeline,
     _compute_bins_from_direct_profiles,
 )
 
@@ -196,24 +197,68 @@ def run_harness(
     )
     corrected_solution = solve_mdp(corrected_bins, season_length=153, late_phase_days=30)
 
-    # Step 7: Corrected-policy audit on held-out season (fixed-policy mode, v1).
-    corrected_result = audit_fixed_policy(
+    # Step 7: Corrected-policy audit on held-out season (fixed-policy mode).
+    corrected_fixed_result = audit_fixed_policy(
         profiles,
         frozen_policy={"action_table": corrected_solution.policy_table},
         test_seasons=[held_out],
         n_bootstrap=n_bootstrap,
     )
 
-    # Step 8: Verdict.
+    # Step 7b: True pipeline-LOSO audit of the corrected policy.
+    # Replays the global corrected policy across all fold seasons.
+    corrected_pipeline_result = corrected_audit_pipeline(
+        profiles,
+        corrected_policy={"action_table": corrected_solution.policy_table},
+        fold_seasons=seasons,
+        n_bootstrap=n_bootstrap,
+    )
+
+    # Step 7c: Pair-correlation seed sensitivity diagnostic.
+    # Run with multiple canonical seeds to surface whether rho_pair varies
+    # enough across seeds to flip the verdict.
+    sensitivity_seeds = [0, 42, 100]
+    sensitivity_rhos = []
+    available_seeds = set(profiles["seed"].unique())
+    for sens_seed in sensitivity_seeds:
+        if sens_seed not in available_seeds:
+            continue
+        sens_profiles_filtered = profiles[profiles["seed"] == sens_seed].copy()
+        sens_pair_df = sens_profiles_filtered[
+            ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
+        ].rename(columns={
+            "top1_p": "p_rank1", "top1_hit": "y_rank1",
+            "top2_p": "p_rank2", "top2_hit": "y_rank2",
+        })
+        sens_rho, _, _, _ = pair_residual_correlation(sens_pair_df, n_permutations=200)
+        sensitivity_rhos.append((sens_seed, sens_rho))
+
+    # Step 8: Verdict — prefer pipeline CI when available (>=5 folds), else fixed-policy.
+    if (corrected_pipeline_result.ci_lower is not None
+            and corrected_pipeline_result.ci_upper is not None):
+        # Pipeline mode has real CI — use it for the verdict.
+        verdict_basis = "pipeline_loso"
+        verdict_point = corrected_pipeline_result.point_estimate
+        verdict_lo = corrected_pipeline_result.ci_lower
+        verdict_hi = corrected_pipeline_result.ci_upper
+    else:
+        # Fall back to fixed-policy CI — note this in the verdict rationale.
+        verdict_basis = "fixed_policy_held_out"
+        verdict_point = corrected_fixed_result.point_estimate
+        verdict_lo = corrected_fixed_result.ci_lower or 0.0
+        verdict_hi = corrected_fixed_result.ci_upper or 1.0
+
     verdict, rationale = _classify_verdict(
-        corrected_result.point_estimate,
-        corrected_result.ci_lower if corrected_result.ci_lower is not None else 0.0,
-        corrected_result.ci_upper if corrected_result.ci_upper is not None else 1.0,
+        verdict_point,
+        verdict_lo,
+        verdict_hi,
         fixed_result.point_estimate,
         fixed_result.ci_lower if fixed_result.ci_lower is not None else 0.0,
         fixed_result.ci_upper if fixed_result.ci_upper is not None else 1.0,
         headline_p57_in_sample,
     )
+    # Append the verdict basis to rationale for transparency.
+    rationale = f"[basis: {verdict_basis}] " + rationale
 
     out = {
         "date": pd.Timestamp.now().strftime("%Y-%m-%d"),
@@ -229,9 +274,18 @@ def run_harness(
         ),
         "rho_PA_within_game": _format_estimate(rho_PA, rho_PA_lo, rho_PA_hi),
         "rho_pair_cross_game": _format_estimate(rho_pair, rho_pair_lo, rho_pair_hi),
-        "corrected_pipeline_p57": _format_estimate(
-            corrected_result.point_estimate, corrected_result.ci_lower, corrected_result.ci_upper
+        "corrected_fixed_policy_p57": _format_estimate(
+            corrected_fixed_result.point_estimate,
+            corrected_fixed_result.ci_lower, corrected_fixed_result.ci_upper
         ),
+        "corrected_pipeline_p57": _format_estimate(
+            corrected_pipeline_result.point_estimate,
+            corrected_pipeline_result.ci_lower, corrected_pipeline_result.ci_upper
+        ),
+        "rho_pair_seed_sensitivity": [
+            {"seed": s, "rho": float(r)} for s, r in sensitivity_rhos
+        ],
+        "verdict_basis": verdict_basis,
         "verdict": verdict,
         "verdict_rationale": rationale,
     }

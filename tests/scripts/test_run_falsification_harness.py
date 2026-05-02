@@ -65,7 +65,10 @@ class TestHarnessSmokeTest:
             "rare_event_ce_p57",
             "rho_PA_within_game",
             "rho_pair_cross_game",
+            "corrected_fixed_policy_p57",
             "corrected_pipeline_p57",
+            "rho_pair_seed_sensitivity",
+            "verdict_basis",
             "verdict",
             "verdict_rationale",
         ):
