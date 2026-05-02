@@ -35,3 +35,31 @@ class TestFittedQEvaluation:
 
         true_v = mdp["true_value"]["always_advance"]
         assert abs(v_hat - true_v) < 0.03, f"FQE recovered {v_hat:.4f} vs true {true_v:.4f}"
+
+
+class TestDROPE:
+    def test_dr_recovers_true_value_on_toy_mdp(self, toy_mdp_2state_2action):
+        """DR estimator under full-information replay matches FQE asymptotically."""
+        rng = np.random.default_rng(0)
+        mdp = toy_mdp_2state_2action
+
+        n_trajectories = 5000
+        rows = []
+        for traj_id in range(n_trajectories):
+            s = 0
+            for t in range(mdp["horizon"]):
+                a = 1
+                next_states, probs = zip(*mdp["transitions"][(s, a)].items())
+                sn = rng.choice(next_states, p=probs)
+                r = mdp["rewards"](s, a, sn)
+                rows.append({"trajectory_id": traj_id, "t": t, "s": s, "a": a, "sn": sn, "r": r})
+                s = sn
+        df = pd.DataFrame(rows)
+        target_policy = lambda s, t: 1
+
+        from bts.validate.ope import dr_ope_full_information
+        v_dr = dr_ope_full_information(
+            df, target_policy, n_states=2, n_actions=2, horizon=mdp["horizon"]
+        )
+        true_v = mdp["true_value"]["always_advance"]
+        assert abs(v_dr - true_v) < 0.03
