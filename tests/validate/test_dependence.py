@@ -80,3 +80,76 @@ class TestPAResidualCorrelation:
         # Under independence, rho_hat should be near 0; CI should contain 0.
         assert abs(rho_hat) < 0.10, f"rho_hat={rho_hat:.3f} too far from 0 under independence"
         assert ci_lo <= 0 <= ci_hi, f"CI [{ci_lo:.3f}, {ci_hi:.3f}] should contain 0"
+
+
+class TestLogisticNormalRandomIntercept:
+    def test_recovers_known_tau(self):
+        """Fit on synthetic data with known tau (latent Gaussian SD); recovered tau in same scale."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        tau_true = 0.5
+        n_groups = 500
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            u = rng.normal(0, tau_true)
+            for k in range(n_per):
+                p_pred = 0.25
+                logit_p_pred = np.log(p_pred / (1 - p_pred))
+                p_realized = 1.0 / (1.0 + np.exp(-(logit_p_pred + u)))
+                y = int(rng.random() < p_realized)
+                rows.append({"group_id": g, "p_pred": p_pred, "y": y})
+        df = pd.DataFrame(rows)
+        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        # Wide tolerance because the latent-to-observed transformation is noisy
+        # at finite n. We mainly want to confirm the estimator is in the right
+        # ballpark (recovers >0.2 tau when truth is 0.5) and doesn't blow up.
+        assert 0.20 < tau_hat < 1.20, f"tau_hat={tau_hat:.3f}; expected 0.2-1.2 for tau_true=0.5"
+
+    def test_integrate_fn_lowers_p_at_least_one(self):
+        """integrate_fn(p_list) should return P(>=1 hit) lower than independence when tau>0."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        tau_true = 0.8  # large enough that integrate_fn yields meaningfully different values
+        n_groups = 500
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            u = rng.normal(0, tau_true)
+            for k in range(n_per):
+                p_pred = 0.25
+                logit_p_pred = np.log(p_pred / (1 - p_pred))
+                p_realized = 1.0 / (1.0 + np.exp(-(logit_p_pred + u)))
+                y = int(rng.random() < p_realized)
+                rows.append({"group_id": g, "p_pred": p_pred, "y": y})
+        df = pd.DataFrame(rows)
+        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        p_list = [0.25, 0.25, 0.25, 0.25, 0.25]
+        p_at_least_one_corrected = integrate_fn(p_list)
+        p_at_least_one_indep = 1.0 - 0.75**5  # ≈ 0.7626
+        # Positive tau should reduce P(>=1 hit) below independence baseline.
+        assert p_at_least_one_corrected < p_at_least_one_indep, (
+            f"corrected={p_at_least_one_corrected:.4f} not below indep={p_at_least_one_indep:.4f}"
+        )
+
+    def test_zero_tau_returns_independence_aggregation(self):
+        """When the data is iid (tau truly 0), integrate_fn should match independence."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(1)
+        n_groups = 500
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            for k in range(n_per):
+                p_pred = 0.25
+                y = int(rng.random() < p_pred)
+                rows.append({"group_id": g, "p_pred": p_pred, "y": y})
+        df = pd.DataFrame(rows)
+        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        # tau_hat should be very small (truth is 0).
+        assert tau_hat < 0.30, f"tau_hat={tau_hat:.3f} too large for tau_true=0 case"
+        # integrate_fn at very small tau should return ≈ 1 - prod(1-p).
+        p_list = [0.25, 0.25, 0.25, 0.25, 0.25]
+        p_at_least_one = integrate_fn(p_list)
+        p_indep = 1.0 - 0.75**5
+        assert abs(p_at_least_one - p_indep) < 0.05

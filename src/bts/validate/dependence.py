@@ -78,3 +78,128 @@ def pa_residual_correlation(
     p_value = float(2 * min(np.mean(bs_estimates >= 0), np.mean(bs_estimates <= 0)))
 
     return rho_hat, ci_lo, ci_hi, p_value
+
+
+def fit_logistic_normal_random_intercept(
+    df: pd.DataFrame,
+    *,
+    p_col: str = "p_pred",
+    y_col: str = "y",
+    group_col: str = "group_id",
+    n_quad_points: int = 21,
+):
+    """Fit logit(P(y=1)) = logit(p_pred) + u, u ~ N(0, tau^2). Returns (tau_hat, integrate_fn).
+
+    Method-of-moments estimation via cross-pair Pearson residual inversion
+    -----------------------------------------------------------------------
+    The estimator works in two stages:
+
+    Stage 1 — Estimate the intra-class correlation (rho_hat):
+      Compute Pearson residuals e_ij = (y_ij - p_ij) / sqrt(p_ij*(1-p_ij))
+      using the model-predicted p_ij (not the realized probability).  For
+      pairs (j, k) within the same group, form e_ij * e_ik.  Average across
+      all within-group pairs:
+          rho_hat = mean(e_ij * e_ik)
+      Under the logistic-normal model with tau > 0, rho_hat > 0 because each
+      latent u shifts all outcomes in the same direction.
+
+    Stage 2 — Invert the theoretical rho(tau) curve:
+      The theoretical expectation under the model is
+          E[e_ij * e_ik] = E_u[(sigmoid(logit(p) + u) - p)^2 / (p*(1-p))]
+      which is a monotone increasing function of tau (computed via Gauss-
+      Hermite quadrature).  We use scipy.optimize.brentq to invert it and
+      recover tau_hat.  This gives tau in the same Gaussian latent scale as
+      the data-generating process.
+
+    Deliberate simplification vs full GLMM MLE
+    -------------------------------------------
+    statsmodels GEE / GLMM MLE have known convergence fragility on small
+    synthetic datasets and the naive variance-inflation formula
+    (tau^2 ≈ mean_within_var - 1) is incorrect here because Pearson residuals
+    use p_pred (the fixed prediction) rather than the realized probability —
+    the within-group variance actually decreases with tau, not increases, so
+    the naive formula is backwards.  The cross-pair inversion approach is:
+      (a) Correct: rho_hat is monotonically related to tau and invertible.
+      (b) Robust: no iterative MLE, no convergence failures.
+      (c) Handles tau→0 cleanly: rho_hat ≤ 0 → tau_hat = 0.
+
+    Edge cases:
+    - All groups have ≤ 1 PA (no cross-pairs): rho_hat = 0 → tau_hat = 0,
+      integrate_fn collapses to independence product.
+    - Empty df: same as above.
+
+    integrate_fn(p_list) computes P(>=1 hit | tau_hat) by marginalising over
+    u via Gauss-Hermite quadrature:
+        E_u[1 - prod_j (1 - sigmoid(logit(p_j) + u))],  u ~ N(0, tau_hat^2)
+
+    For tau_hat ≈ 0 the integral collapses to 1 - prod(1 - p) (independence).
+    For tau_hat > 0 positive within-game correlation reduces P(>=1 hit) below
+    the independence baseline (see BTS spec §6.3).
+    """
+    from scipy.optimize import brentq
+
+    df = df.copy()
+    df["_e"] = [pearson_residual(y, p) for y, p in zip(df[y_col], df[p_col])]
+    mean_p = float(df[p_col].mean()) if len(df) > 0 else 0.25
+    # Clip mean_p away from 0/1 to keep logit finite.
+    mean_p = max(min(mean_p, 1 - 1e-9), 1e-9)
+
+    # Stage 1: cross-pair Pearson residual product (intra-class correlation estimate).
+    quad_x, quad_w = np.polynomial.hermite_e.hermegauss(n_quad_points)
+    pair_products: list[float] = []
+    for _, grp in df.groupby(group_col):
+        residuals = grp["_e"].to_numpy()
+        n = len(residuals)
+        if n < 2:
+            continue
+        for i in range(n):
+            for j in range(i + 1, n):
+                pair_products.append(float(residuals[i] * residuals[j]))
+
+    rho_hat = float(np.mean(pair_products)) if pair_products else 0.0
+
+    # Stage 2: invert E[e_i*e_j](tau) = rho_hat to recover tau_hat.
+    def _expected_cross_product(tau: float) -> float:
+        """E_u[(sigmoid(logit(p)+u) - p)^2 / (p*(1-p))], u ~ N(0, tau^2)."""
+        logit_p = float(np.log(mean_p / (1 - mean_p)))
+        var_p = mean_p * (1 - mean_p)
+        total = 0.0
+        for xi, wi in zip(quad_x, quad_w):
+            u = tau * xi
+            p_r = 1.0 / (1.0 + np.exp(-(logit_p + u)))
+            total += wi * ((p_r - mean_p) ** 2 / var_p)
+        return total / float(quad_w.sum())
+
+    tau_hat: float
+    if rho_hat <= 0.0:
+        tau_hat = 0.0
+    else:
+        tau_max = 5.0
+        max_theory = _expected_cross_product(tau_max)
+        if rho_hat >= max_theory:
+            tau_hat = tau_max
+        else:
+            try:
+                tau_hat = float(brentq(
+                    lambda t: _expected_cross_product(t) - rho_hat,
+                    0.0, tau_max, xtol=1e-4,
+                ))
+            except ValueError:
+                tau_hat = 0.0
+
+    # Build integrate_fn using the same Gauss-Hermite nodes.
+    def integrate_fn(p_list: "list[float]") -> float:
+        """E_u[1 - prod_j (1 - sigmoid(logit(p_j) + u))], u ~ N(0, tau_hat^2)."""
+        if tau_hat <= 1e-9:
+            return float(1.0 - np.prod([1.0 - p for p in p_list]))
+        result = 0.0
+        for xi, wi in zip(quad_x, quad_w):
+            u = tau_hat * xi
+            p_at_least_one = 1.0 - float(np.prod([
+                1.0 - 1.0 / (1.0 + np.exp(-(np.log(max(min(p, 1-1e-9), 1e-9) / (1 - max(min(p, 1-1e-9), 1e-9))) + u)))
+                for p in p_list
+            ]))
+            result += wi * p_at_least_one
+        return float(result / quad_w.sum())
+
+    return tau_hat, integrate_fn
