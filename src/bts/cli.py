@@ -1,3 +1,4 @@
+import json
 import click
 from pathlib import Path
 
@@ -183,6 +184,50 @@ def scorecard(
                 _add_diff_rows(key, val)
 
         console.print(diff_table)
+
+
+@validate.command("falsification-harness")
+@click.option("--profiles-glob", default="data/simulation/backtest_*.parquet",
+              help="Glob for daily backtest profile parquets")
+@click.option("--pa-glob", default="data/simulation/pa_predictions_*.parquet",
+              help="Glob for PA-level prediction parquets")
+@click.option("--output", default="data/validation/falsification_harness.json",
+              type=click.Path(), help="Output verdict JSON path")
+@click.option("--n-bootstrap", default=2000, type=int,
+              help="Bootstrap replicates for OPE CIs and dependence CIs")
+@click.option("--n-final", default=20000, type=int,
+              help="Final IS sample size for CE-IS rare-event MC")
+@click.option("--headline-p57", default=0.0817, type=float,
+              help="In-sample headline P(57) to defend (default: 8.17%)")
+def falsification_harness_cmd(
+    profiles_glob, pa_glob, output, n_bootstrap, n_final, headline_p57
+):
+    """Run the BTS 8.17% falsification harness.
+
+    Wires DR-OPE (fixed-policy + pipeline), CE-IS rare-event MC, and
+    PA + cross-game dependence diagnostics into a single verdict JSON.
+    See data/validation/falsification_harness.json for output.
+    """
+    import pandas as pd
+    from scripts.run_falsification_harness import run_harness
+
+    profile_paths = sorted(Path().glob(profiles_glob))
+    pa_paths = sorted(Path().glob(pa_glob))
+    if not profile_paths:
+        raise click.ClickException(f"No profiles found matching: {profiles_glob}")
+    if not pa_paths:
+        raise click.ClickException(f"No PA files found matching: {pa_glob}")
+
+    profiles = pd.concat(pd.read_parquet(p) for p in profile_paths)
+    pa_df = pd.concat(pd.read_parquet(p) for p in pa_paths)
+    out = run_harness(
+        profiles, pa_df,
+        output_path=Path(output),
+        headline_p57_in_sample=headline_p57,
+        n_bootstrap=n_bootstrap,
+        n_final=n_final,
+    )
+    click.echo(json.dumps(out, indent=2))
 
 
 @cli.group()
