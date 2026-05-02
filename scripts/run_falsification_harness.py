@@ -93,13 +93,23 @@ def run_harness(
     )
 
     # Step 4: CE-IS rare-event MC on a synthetic 153-day profile derived from bins.
+    # Build a 153-day season profile that respects each bin's empirical
+    # frequency. Cycling through bins uniformly (bins[d % n_bins]) gave 1/5
+    # days per bin regardless of the actual bin distribution; using qb.frequency
+    # produces the right composition (e.g., 38 Q1 days, 30 Q2 days, etc.).
+    total_days = 153
+    days_per_bin = [int(round(qb.frequency * total_days)) for qb in bins_full.bins]
+    # Adjust to ensure the sum is exactly total_days (rounding can drift by ±1-2).
+    drift = sum(days_per_bin) - total_days
+    if drift != 0:
+        # Adjust the largest-frequency bin so it absorbs the rounding error.
+        largest_idx = max(range(len(days_per_bin)), key=lambda i: bins_full.bins[i].frequency)
+        days_per_bin[largest_idx] -= drift
+
     ceis_profiles = []
-    for d in range(153):
-        qb = bins_full.bins[d % len(bins_full.bins)]
-        ceis_profiles.append({
-            "p_game": qb.p_hit,
-            "p_both": qb.p_both,
-        })
+    for qb, n_days in zip(bins_full.bins, days_per_bin):
+        for _ in range(n_days):
+            ceis_profiles.append({"p_game": qb.p_hit, "p_both": qb.p_both})
     ceis_result = estimate_p57_with_ceis(
         ceis_profiles, strategy=None, n_final=n_final, seed=42,
     )
