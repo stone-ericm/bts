@@ -132,3 +132,102 @@ def dr_ope_full_information(
         v_dr_i = V[0, 0] + v_correction
         v_dr_values.append(v_dr_i)
     return float(np.mean(v_dr_values))
+
+
+def stationary_bootstrap_indices(
+    n_days: int,
+    *,
+    expected_block_length: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Politis & Romano 1994 stationary bootstrap.
+
+    Resamples a length-n_days index array using geometric block lengths with
+    expected length `expected_block_length`. Wraps around the day axis.
+
+    Reference: Politis & Romano 1994, "The Stationary Bootstrap." JASA.
+    """
+    p = 1.0 / expected_block_length
+    out = np.empty(n_days, dtype=np.int64)
+    out[0] = rng.integers(n_days)
+    for i in range(1, n_days):
+        if rng.random() < p:
+            out[i] = rng.integers(n_days)
+        else:
+            out[i] = (out[i - 1] + 1) % n_days
+    return out
+
+
+def paired_hierarchical_bootstrap_sample(
+    df: pd.DataFrame,
+    *,
+    expected_block_length: int = 7,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Resample the day axis with stationary bootstrap; keep all seeds per day together.
+
+    The dataframe must have at least: 'season', 'date', 'seed', plus payload columns.
+    Within each season, dates are resampled via stationary bootstrap. For each
+    resampled date, ALL rows (across seeds and other within-day groupings) are
+    included — the day is the unit of dependence in BTS, so all 24 seeds share
+    the realized baseball outcomes for that day.
+
+    The output date column is reassigned to the *slot* date (i.e., the original date
+    at position i in the sorted unique-dates array), not the source date that was
+    drawn. This ensures each output date slot appears exactly once, preserving the
+    block-contiguous temporal structure while allowing repeated draws to be identified
+    by their assigned slot rather than their source date.
+    """
+    out_chunks = []
+    for season, season_df in df.groupby("season"):
+        unique_dates = season_df["date"].drop_duplicates().sort_values().to_numpy()
+        n_days = len(unique_dates)
+        idx = stationary_bootstrap_indices(
+            n_days, expected_block_length=expected_block_length, rng=rng
+        )
+        resampled_dates = unique_dates[idx]
+        for slot_date, source_date in zip(unique_dates, resampled_dates):
+            chunk = season_df[season_df["date"] == source_date].copy()
+            chunk["date"] = slot_date
+            out_chunks.append(chunk)
+    return pd.concat(out_chunks, ignore_index=True)
+
+
+def dr_ope_with_bootstrap(
+    df: pd.DataFrame,
+    target_policy: "Callable[[int, int], int]",
+    *,
+    n_states: int,
+    n_actions: int,
+    horizon: int,
+    n_bootstrap: int = 2000,
+    expected_block_length: int = 7,
+    seed: int = 42,
+    alpha: float = 0.05,
+) -> "DROPEResult":
+    """DR-OPE with paired hierarchical block bootstrap CI.
+
+    Computes the DR-OPE point estimate via dr_ope_full_information, then
+    n_bootstrap paired-hierarchical resamples to estimate (1 - alpha) percentile CI.
+    """
+    point = dr_ope_full_information(
+        df, target_policy, n_states=n_states, n_actions=n_actions, horizon=horizon
+    )
+    rng = np.random.default_rng(seed)
+    bootstrap_values = np.empty(n_bootstrap)
+    for b in range(n_bootstrap):
+        bs_df = paired_hierarchical_bootstrap_sample(
+            df, expected_block_length=expected_block_length, rng=rng
+        )
+        bootstrap_values[b] = dr_ope_full_information(
+            bs_df, target_policy, n_states=n_states, n_actions=n_actions, horizon=horizon
+        )
+    lo = float(np.quantile(bootstrap_values, alpha / 2))
+    hi = float(np.quantile(bootstrap_values, 1 - alpha / 2))
+    return DROPEResult(
+        point_estimate=point,
+        ci_lower=lo,
+        ci_upper=hi,
+        n_trajectories=df["trajectory_id"].nunique() if "trajectory_id" in df.columns else 0,
+        bootstrap_distribution=bootstrap_values,
+    )
