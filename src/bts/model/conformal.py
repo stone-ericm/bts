@@ -157,3 +157,46 @@ def compute_lr_weights(
     proba = clf.predict_proba(cal_features)[:, 1]
     proba_clipped = np.clip(proba, eps, 1.0 - eps)
     return proba_clipped / (1.0 - proba_clipped)
+
+
+import math
+
+
+def weighted_quantile(
+    scores: list[float] | np.ndarray,
+    weights: list[float] | np.ndarray,
+    alpha: float,
+    n_for_correction: int | None = None,
+) -> float:
+    """Weighted (1-alpha)-quantile per Tibshirani et al. 2019 split conformal.
+
+    The finite-sample correction uses ⌈(n+1)(1-α)⌉ / (n+1) as the target
+    cumulative weight ratio (Vovk 2013). When n_for_correction is None,
+    falls back to plain (1-alpha) without correction.
+    """
+    s = np.asarray(scores, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    if len(s) == 0:
+        return float("inf")  # no calibration data → infinite quantile (no constraint)
+
+    order = np.argsort(s)
+    s_sorted = s[order]
+    w_sorted = w[order]
+
+    cum_w = np.cumsum(w_sorted)
+    total_w = cum_w[-1]
+    if total_w <= 0:
+        return float("inf")
+
+    if n_for_correction is None:
+        target = 1.0 - alpha
+    else:
+        n = n_for_correction
+        target = math.ceil((n + 1) * (1.0 - alpha)) / (n + 1)
+        target = min(target, 1.0)
+
+    target_w = target * total_w
+    idx = np.searchsorted(cum_w, target_w, side="left")
+    if idx >= len(s_sorted):
+        return float(s_sorted[-1])
+    return float(s_sorted[idx])

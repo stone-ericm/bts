@@ -161,3 +161,34 @@ class TestFitLRClassifier:
         # No weight should be exactly 0 or inf
         assert np.all(np.isfinite(weights))
         assert np.all(weights > 0)
+
+
+from bts.model.conformal import weighted_quantile
+
+
+class TestWeightedQuantile:
+    def test_uniform_weights_match_unweighted(self):
+        scores = [1.0, 2.0, 3.0, 4.0, 5.0]
+        weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+        # 0.9 quantile of [1..5] uniform = 5 (with finite-sample correction
+        # ⌈(5+1)·0.9⌉ / (5+1) = 6/6 = 1.0 → highest score)
+        result = weighted_quantile(scores, weights, alpha=0.10, n_for_correction=5)
+        assert result == 5.0
+
+    def test_higher_weights_skew_quantile(self):
+        scores = [1.0, 2.0, 3.0, 4.0, 5.0]
+        weights = [10.0, 1.0, 1.0, 1.0, 1.0]  # skew toward 1.0
+        # Cumulative weight up to score=1 is 10/14 ≈ 0.71; not enough for 0.9
+        # Cumulative up to score=2: 11/14 ≈ 0.79
+        # Cumulative up to score=3: 12/14 ≈ 0.86
+        # Cumulative up to score=4: 13/14 ≈ 0.93 → first to exceed
+        # ⌈(5+1)·0.9⌉ / (5+1) = 6/6 = 1.0
+        # So we need cumulative >= 1.0 → only score=5 qualifies
+        result = weighted_quantile(scores, weights, alpha=0.10, n_for_correction=5)
+        assert result == 5.0
+
+    def test_handles_unsorted_input(self):
+        scores = [3.0, 1.0, 5.0, 2.0, 4.0]
+        weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+        result = weighted_quantile(scores, weights, alpha=0.10, n_for_correction=5)
+        assert result == 5.0
