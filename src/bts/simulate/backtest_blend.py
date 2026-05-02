@@ -400,6 +400,7 @@ def _write_pa_predictions_chunk(
     chunk = chunk[["date", "game_pk", "batter_id", "pa_index", "p_hit_blend", "is_hit"]]
 
     output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists():
         existing = pd.read_parquet(output_path)
         chunk = pd.concat([existing, chunk], ignore_index=True)
