@@ -113,23 +113,25 @@ def run_harness(
     })
     tau_hat, _ = fit_logistic_normal_random_intercept(pa_for_lnri)
 
-    # Cross-game pair correlation: one observation per (season, date), averaged over seeds.
-    # Using one row per day is semantically correct — cross-game correlation is a property
-    # of the game realizations, not of the modeling seeds.
-    pair_df = (
-        profiles
-        .groupby(["season", "date"])
-        .agg(
-            p_rank1=("top1_p", "mean"),
-            y_rank1=("top1_hit", "mean"),
-            p_rank2=("top2_p", "mean"),
-            y_rank2=("top2_hit", "mean"),
-        )
-        .reset_index()
+    # Cross-game pair correlation: use the canonical (production) seed only.
+    # Different seeds pick different rank-1/rank-2 batters, so averaging across
+    # seeds produces fractional y values that break the permutation null. The
+    # canonical seed gives one row per (season, date) with binary y values —
+    # which is what pair_residual_correlation actually expects.
+    canonical_seed_candidates = [42, 0]
+    canonical_seed = next(
+        (s for s in canonical_seed_candidates if s in profiles["seed"].unique()),
+        int(profiles["seed"].iloc[0]),
     )
-    # Round realized hit columns back to binary using the mean (0.5 threshold).
-    # For independence testing, fractional values from averaging are fine — the
-    # pearson_residual function handles floats in (0, 1) cleanly.
+    canonical_profiles = profiles[profiles["seed"] == canonical_seed].copy()
+    pair_df = canonical_profiles[
+        ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
+    ].rename(columns={
+        "top1_p": "p_rank1",
+        "top1_hit": "y_rank1",
+        "top2_p": "p_rank2",
+        "top2_hit": "y_rank2",
+    })
     rho_pair, rho_pair_lo, rho_pair_hi, _ = pair_residual_correlation(
         pair_df, n_permutations=n_bootstrap
     )
