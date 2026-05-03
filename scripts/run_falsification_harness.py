@@ -162,7 +162,7 @@ def run_harness(
         "p_pa": "p_pred",
         "actual_hit": "y",
     })
-    tau_hat, _ = fit_logistic_normal_random_intercept(pa_for_lnri)
+    tau_hat, _, _ = fit_logistic_normal_random_intercept(pa_for_lnri)
 
     # Cross-game pair correlation: use the canonical (production) seed only.
     # Different seeds pick different rank-1/rank-2 batters, so averaging across

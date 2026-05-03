@@ -101,7 +101,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_realized)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         # Wide tolerance because the latent-to-observed transformation is noisy
         # at finite n. We mainly want to confirm the estimator is in the right
         # ballpark (recovers >0.2 tau when truth is 0.5) and doesn't blow up.
@@ -124,7 +124,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_realized)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         p_list = [0.25, 0.25, 0.25, 0.25, 0.25]
         p_at_least_one_corrected = integrate_fn(p_list)
         p_at_least_one_indep = 1.0 - 0.75**5  # ≈ 0.7626
@@ -146,7 +146,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_pred)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         # tau_hat should be very small (truth is 0).
         assert tau_hat < 0.30, f"tau_hat={tau_hat:.3f} too large for tau_true=0 case"
         # integrate_fn at very small tau should return ≈ 1 - prod(1-p).
@@ -154,6 +154,50 @@ class TestLogisticNormalRandomIntercept:
         p_at_least_one = integrate_fn(p_list)
         p_indep = 1.0 - 0.75**5
         assert abs(p_at_least_one - p_indep) < 0.05
+
+    def test_fit_logistic_normal_random_intercept_returns_stability_dict(self):
+        """fit_logistic_normal_random_intercept returns a 3-tuple with correct stability keys."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        n_groups = 50
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            for k in range(n_per):
+                rows.append({"group_id": g, "p_pred": 0.25, "y": int(rng.random() < 0.25)})
+        df = pd.DataFrame(rows)
+        result = fit_logistic_normal_random_intercept(df)
+        assert len(result) == 3, f"expected 3-tuple, got {len(result)}-tuple"
+        tau_hat, integrate_fn, stability = result
+        required_keys = {"n_groups", "total_pair_n", "rho_hat", "small_sample_warning", "estimator"}
+        assert required_keys == set(stability.keys()), (
+            f"stability keys mismatch: got {set(stability.keys())}"
+        )
+        assert isinstance(stability["n_groups"], int)
+        assert isinstance(stability["total_pair_n"], int)
+        assert isinstance(stability["rho_hat"], float)
+        assert isinstance(stability["small_sample_warning"], bool)
+        assert stability["estimator"] == "method_of_moments_pearson_pair_inversion"
+
+    def test_stability_warning_fires_on_small_pair_count(self):
+        """small_sample_warning=True when total_pair_n < SMALL_SAMPLE_PAIR_THRESHOLD."""
+        from bts.validate.dependence import (
+            fit_logistic_normal_random_intercept,
+            SMALL_SAMPLE_PAIR_THRESHOLD,
+        )
+        # Build a tiny df: 3 groups × 2 obs each → 3 pairs total (well below threshold=100).
+        rows = [
+            {"group_id": 0, "p_pred": 0.25, "y": 0},
+            {"group_id": 0, "p_pred": 0.25, "y": 1},
+            {"group_id": 1, "p_pred": 0.25, "y": 0},
+            {"group_id": 1, "p_pred": 0.25, "y": 1},
+            {"group_id": 2, "p_pred": 0.25, "y": 0},
+            {"group_id": 2, "p_pred": 0.25, "y": 1},
+        ]
+        df = pd.DataFrame(rows)
+        _, _, stability = fit_logistic_normal_random_intercept(df)
+        assert stability["total_pair_n"] < SMALL_SAMPLE_PAIR_THRESHOLD
+        assert stability["small_sample_warning"] is True
 
 
 class TestBuildCorrectedTransitionTable:

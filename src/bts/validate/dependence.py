@@ -11,6 +11,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# Minimum total within-group pairs required for a reliable tau MoM estimate.
+# Below this threshold the rho_hat is noisy enough that tau_hat is unreliable.
+# 100 pairs corresponds to roughly 14 groups of 4 PAs each — chosen empirically
+# as the point where bootstrap variance of rho_hat drops below ~0.05.
+SMALL_SAMPLE_PAIR_THRESHOLD = 100
+
 
 def pearson_residual(y: int | float, p: float) -> float:
     """Pearson residual for a Bernoulli prediction.
@@ -206,7 +212,15 @@ def fit_logistic_normal_random_intercept(
             result += wi * p_at_least_one
         return float(result / quad_w.sum())
 
-    return tau_hat, integrate_fn
+    stability = {
+        "n_groups": int(len(counts)),
+        "total_pair_n": int(total_pair_n),
+        "rho_hat": float(rho_hat),
+        "small_sample_warning": bool(total_pair_n < SMALL_SAMPLE_PAIR_THRESHOLD),
+        "estimator": "method_of_moments_pearson_pair_inversion",
+    }
+
+    return tau_hat, integrate_fn, stability
 
 
 def pair_residual_correlation(
