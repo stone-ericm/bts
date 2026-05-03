@@ -9,6 +9,7 @@ from bts.validate.dependence import (
     pearson_residual,
     pa_residual_correlation,
     pair_residual_correlation,
+    pair_residual_correlation_per_cell,
 )
 
 
@@ -657,3 +658,66 @@ class TestPairResidualCorrelation:
         )
         # All output bins are empty (label 7 was dropped).
         assert result["n_per_bin"].sum() == 0
+
+
+class TestPairResidualCorrelationPerCell:
+    def test_pair_residual_correlation_per_cell_returns_lower_triangular_dict(self):
+        rng = np.random.default_rng(42)
+        n = 2000  # Codex round 1: bigger n to populate off-diagonal cells
+        # Generate data respecting the rank invariant p_rank2 <= p_rank1.
+        p1_arr = rng.uniform(0.5, 0.95, n)
+        p2_arr = np.array([rng.uniform(0.4, p) for p in p1_arr])
+        df = pd.DataFrame({
+            "p_rank1": p1_arr,
+            "y_rank1": (rng.random(n) < p1_arr).astype(int),
+            "p_rank2": p2_arr,
+            "y_rank2": (rng.random(n) < p2_arr).astype(int),
+        })
+        # Use a real QualityBins boundaries-style 5-bin assignment.
+        boundaries = np.array([0.0, 0.6, 0.7, 0.8, 0.9, 1.0])
+        rank1_bins = np.clip(np.digitize(p1_arr, boundaries[1:-1]), 0, 4)
+        rank2_bins = np.clip(np.digitize(p2_arr, boundaries[1:-1]), 0, 4)
+
+        result = pair_residual_correlation_per_cell(
+            df,
+            rank1_bin_assignment=rank1_bins,
+            rank2_bin_assignment=rank2_bins,
+            expected_bin_indices=np.arange(5),
+            n_permutations=50,
+        )
+        assert result["rho_matrix"].shape == (5, 5)
+        # By the p_rank2 <= p_rank1 invariant, upper-triangular cells (r2 > r1)
+        # should have n == 0 and rho == NaN.
+        for r1 in range(5):
+            for r2 in range(r1 + 1, 5):
+                assert result["n_matrix"][r1, r2] == 0
+                assert np.isnan(result["rho_matrix"][r1, r2])
+        # Lower-triangular cells with non-zero counts should have non-NaN rho.
+        n_populated_cells = 0
+        for r1 in range(5):
+            for r2 in range(r1 + 1):
+                if result["n_matrix"][r1, r2] >= 2:
+                    assert not np.isnan(result["rho_matrix"][r1, r2])
+                    n_populated_cells += 1
+        # At least 5 of the 15 lower-triangular cells should be populated at n=2000.
+        assert n_populated_cells >= 5, f"Only {n_populated_cells}/15 cells populated"
+
+    def test_pair_residual_correlation_per_cell_invariant_violation_warning(self, caplog):
+        """When p_rank2 > p_rank1 in any row, log a warning (data violates invariant)."""
+        df = pd.DataFrame({
+            "p_rank1": [0.5, 0.6],
+            "y_rank1": [1, 1],
+            "p_rank2": [0.7, 0.5],  # row 0 violates p_rank2 <= p_rank1
+            "y_rank2": [0, 1],
+        })
+        rank1_bins = np.array([0, 0])
+        rank2_bins = np.array([1, 0])  # row 0 has rank2_bin > rank1_bin
+        with caplog.at_level("WARNING", logger="bts.validate.dependence"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=rank2_bins,
+                expected_bin_indices=np.arange(2),
+                n_permutations=10,
+            )
+        assert any("invariant" in r.message.lower() for r in caplog.records)

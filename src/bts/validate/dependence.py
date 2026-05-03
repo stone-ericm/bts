@@ -8,8 +8,12 @@ References:
 """
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Heuristic small-sample thresholds for fold-level tau stability flag.
 # MIN_PRODUCTION_PAIRS: 1000 pairs ≈ 50 groups × 5 PAs each. At Task 13 fold scale (~72K pairs)
@@ -409,6 +413,119 @@ def pair_residual_correlation(
         "global_ci_lo": ci_lo,
         "global_ci_hi": ci_hi,
         "global_p_value": p_value,
+    }
+
+
+def pair_residual_correlation_per_cell(
+    df: pd.DataFrame,
+    *,
+    rank1_bin_assignment: "pd.Series | np.ndarray",
+    rank2_bin_assignment: "pd.Series | np.ndarray",
+    expected_bin_indices: "np.ndarray | list",
+    n_permutations: int = 500,
+    seed: int = 42,
+) -> dict:
+    """Per-cross-bin-cell rho_pair for diagnostic 5×5 lower-triangular heatmap.
+
+    Convention: BOTH rank1_bin_assignment and rank2_bin_assignment are computed
+    against the rank-1-derived bin boundaries (QualityBins fitted on top1_p).
+    The function does NOT classify rank-2 against rank-2-derived boundaries.
+    This is natural because p_rank2 <= p_rank1 always holds, so rank-2 lives
+    in a subspace of rank-1's bin scheme.
+
+    Output matrix convention: rho_matrix[r1, r2] is the rho for rank-1 in bin
+    r1 paired with rank-2 in bin r2. By the p_rank2 <= p_rank1 invariant, cells
+    where r2 > r1 (upper-triangular) should have zero observations and are
+    populated with np.nan for rho and 0 for n_matrix.
+
+    IMPORTANT: bin_indices values are used as both iteration values AND matrix
+    indices (n_matrix[r1, r2]). This works correctly only when
+    expected_bin_indices == np.arange(K). For production calls with 5 bins,
+    pass expected_bin_indices=np.arange(5).
+
+    Parameters
+    ----------
+    df : DataFrame with columns p_rank1, y_rank1, p_rank2, y_rank2.
+    rank1_bin_assignment : shape-(n,) bin index per row for rank-1 pick.
+    rank2_bin_assignment : shape-(n,) bin index per row for rank-2 pick,
+        computed against the same rank-1-derived boundaries.
+    expected_bin_indices : shape-(K,) array of expected bin index values
+        (must equal np.arange(K) for correct matrix indexing).
+    n_permutations : bootstrap resamples per populated cell (default 500).
+    seed : numpy rng seed for reproducibility.
+
+    Returns
+    -------
+    dict with keys (all shape (K, K) where K = len(expected_bin_indices)):
+        rho_matrix        : NaN for empty cells (n < 2), else rho estimate
+        n_matrix          : int observation counts per cell
+        ci_lo_matrix      : bootstrap 2.5th percentile CI (NaN for empty)
+        ci_hi_matrix      : bootstrap 97.5th percentile CI (NaN for empty)
+        empirical_p_both_matrix : realized P(y_rank1=1 AND y_rank2=1) per cell
+        synthetic_p1p2_matrix   : mean(p_rank1) * mean(p_rank2) per cell
+        bin_indices       : shape-(K,) — what each row/col index means
+    """
+    rng = np.random.default_rng(seed)
+    n = len(df)
+    r1_arr = np.asarray(rank1_bin_assignment)
+    r2_arr = np.asarray(rank2_bin_assignment)
+    bin_indices = np.asarray(expected_bin_indices)
+    K = len(bin_indices)
+
+    # Invariant check: p_rank2 <= p_rank1 implies r2_bin <= r1_bin.
+    n_invariant_violations = int((r2_arr > r1_arr).sum())
+    if n_invariant_violations > 0:
+        logger.warning(
+            "pair_residual_correlation_per_cell: %d/%d rows violate the rank invariant "
+            "(rank2_bin > rank1_bin). Heatmap upper-triangular cells will be non-empty.",
+            n_invariant_violations, n,
+        )
+
+    e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
+    e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+
+    rho_matrix = np.full((K, K), np.nan)
+    n_matrix = np.zeros((K, K), dtype=int)
+    ci_lo_matrix = np.full((K, K), np.nan)
+    ci_hi_matrix = np.full((K, K), np.nan)
+    empirical_p_both_matrix = np.full((K, K), np.nan)
+    synthetic_p1p2_matrix = np.full((K, K), np.nan)
+
+    for r1 in bin_indices:
+        for r2 in bin_indices:
+            mask = (r1_arr == r1) & (r2_arr == r2)
+            n_cell = int(mask.sum())
+            n_matrix[r1, r2] = n_cell
+            if n_cell < 2:
+                continue
+            e1_c = e1[mask]
+            e2_c = e2[mask]
+            rho_matrix[r1, r2] = float(np.mean(e1_c * e2_c))
+
+            # Bootstrap CI within cell.
+            bs = np.empty(n_permutations)
+            for j in range(n_permutations):
+                idx = rng.integers(0, n_cell, n_cell)
+                bs[j] = float(np.mean(e1_c[idx] * e2_c[idx]))
+            ci_lo_matrix[r1, r2] = float(np.quantile(bs, 0.025))
+            ci_hi_matrix[r1, r2] = float(np.quantile(bs, 0.975))
+
+            # Empirical p_both and synthetic p1*p2.
+            y1_c = df["y_rank1"].to_numpy()[mask]
+            y2_c = df["y_rank2"].to_numpy()[mask]
+            empirical_p_both_matrix[r1, r2] = float(np.mean(y1_c * y2_c))
+            p1_c = df["p_rank1"].to_numpy()[mask]
+            p2_c = df["p_rank2"].to_numpy()[mask]
+            synthetic_p1p2_matrix[r1, r2] = float(np.mean(p1_c) * np.mean(p2_c))
+
+    return {
+        "rho_matrix": rho_matrix,
+        "n_matrix": n_matrix,
+        "ci_lo_matrix": ci_lo_matrix,
+        "ci_hi_matrix": ci_hi_matrix,
+        "empirical_p_both_matrix": empirical_p_both_matrix,
+        "synthetic_p1p2_matrix": synthetic_p1p2_matrix,
+        "bin_indices": bin_indices,
     }
 
 
