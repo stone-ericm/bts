@@ -11,11 +11,15 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# Heuristic threshold for flagging fold-local tau estimates as "small sample."
-# 100 pairs is roughly 17 groups of 4 PAs each (17 × 6 = 102). No formal
-# derivation; treat small_sample_warning as a flag to log and inspect, not a
-# hard correctness gate. T4's fold metadata surfaces this for downstream review.
-SMALL_SAMPLE_PAIR_THRESHOLD = 100
+# Heuristic small-sample thresholds for fold-level tau stability flag.
+# MIN_PRODUCTION_PAIRS: 1000 pairs ≈ 50 groups × 5 PAs each. At Task 13 fold scale (~72K pairs)
+# this will not fire, which is the intent — the warning is a canary for genuinely tiny folds, not
+# routine production data. Below this, fold is too small for meaningful tau MoM inversion.
+# MIN_GROUPS_WITH_PAIRS: 50 contributing groups. One giant group can inflate total_pair_n while
+# leaving the estimator near-degenerate; combining both thresholds prevents that masking.
+# Neither is a hard correctness gate — just inspection signals for downstream review.
+MIN_PRODUCTION_PAIRS = 1000
+MIN_GROUPS_WITH_PAIRS = 50
 
 
 def pearson_residual(y: int | float, p: float) -> float:
@@ -98,7 +102,7 @@ def fit_logistic_normal_random_intercept(
     group_col: str = "group_id",
     n_quad_points: int = 21,
 ):
-    """Fit logit(P(y=1)) = logit(p_pred) + u, u ~ N(0, tau^2). Returns (tau_hat, integrate_fn).
+    """Fit logit(P(y=1)) = logit(p_pred) + u, u ~ N(0, tau^2). Returns (tau_hat, integrate_fn, stability) — see stability dict keys below.
 
     Method-of-moments estimation via cross-pair Pearson residual inversion
     -----------------------------------------------------------------------
@@ -145,6 +149,25 @@ def fit_logistic_normal_random_intercept(
     For tau_hat ≈ 0 the integral collapses to 1 - prod(1 - p) (independence).
     For tau_hat > 0 positive within-game correlation reduces P(>=1 hit) below
     the independence baseline (see BTS spec §6.3).
+
+    Returns:
+        (tau_hat, integrate_fn, stability) where stability is a dict with keys:
+            n_groups (int): total number of groups in the input df.
+            n_groups_with_pairs (int): groups contributing ≥2 observations — these
+                are the only ones that enter the rho_hat numerator and denominator.
+                A low value relative to n_groups signals near-degenerate estimation.
+            total_pair_n (int): total within-group pairs across all groups.
+            rho_hat (float): intra-class correlation estimate from cross-pair
+                Pearson residual products.
+            tau_hat_at_floor (bool): True when tau_hat == 0.0, regardless of
+                whether that was due to rho_hat ≤ 0, inversion failure, or a
+                genuinely near-zero signal. Useful as a quick downstream flag.
+            small_sample_warning (bool): True when total_pair_n < MIN_PRODUCTION_PAIRS
+                OR n_groups_with_pairs < MIN_GROUPS_WITH_PAIRS. Both canaries must
+                be clear for the warning to stay False. At Task 13 production fold
+                scale (~72K pairs, ~5K groups) this will be False; it fires only for
+                genuinely tiny folds.
+            estimator (str): always "method_of_moments_pearson_pair_inversion".
     """
     from scipy.optimize import brentq
 
@@ -212,11 +235,18 @@ def fit_logistic_normal_random_intercept(
             result += wi * p_at_least_one
         return float(result / quad_w.sum())
 
+    n_groups_with_pairs = int((pair_n > 0).sum())
+    tau_hat_at_floor = bool(tau_hat == 0.0)
+
     stability = {
         "n_groups": int(len(counts)),
+        "n_groups_with_pairs": n_groups_with_pairs,  # groups with ≥2 obs (the ones that contribute)
         "total_pair_n": int(total_pair_n),
         "rho_hat": float(rho_hat),
-        "small_sample_warning": bool(total_pair_n < SMALL_SAMPLE_PAIR_THRESHOLD),
+        "tau_hat_at_floor": tau_hat_at_floor,  # tau_hat==0, regardless of reason
+        "small_sample_warning": bool(
+            total_pair_n < MIN_PRODUCTION_PAIRS or n_groups_with_pairs < MIN_GROUPS_WITH_PAIRS
+        ),
         "estimator": "method_of_moments_pearson_pair_inversion",
     }
 

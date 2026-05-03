@@ -159,7 +159,7 @@ class TestLogisticNormalRandomIntercept:
         """fit_logistic_normal_random_intercept returns a 3-tuple with correct stability keys."""
         from bts.validate.dependence import fit_logistic_normal_random_intercept
         rng = np.random.default_rng(0)
-        n_groups = 50
+        n_groups = 200  # bumped from 50: 200 groups × 5 obs = 2000 pairs (> MIN_PRODUCTION_PAIRS=1000)
         n_per = 5
         rows = []
         for g in range(n_groups):
@@ -169,28 +169,32 @@ class TestLogisticNormalRandomIntercept:
         result = fit_logistic_normal_random_intercept(df)
         assert len(result) == 3, f"expected 3-tuple, got {len(result)}-tuple"
         tau_hat, integrate_fn, stability = result
-        required_keys = {"n_groups", "total_pair_n", "rho_hat", "small_sample_warning", "estimator"}
-        assert required_keys == set(stability.keys()), (
-            f"stability keys mismatch: got {set(stability.keys())}"
+        required_keys = {"n_groups", "n_groups_with_pairs", "total_pair_n", "rho_hat",
+                         "tau_hat_at_floor", "small_sample_warning", "estimator"}
+        assert required_keys.issubset(stability.keys()), (
+            f"missing required keys: {required_keys - stability.keys()}"
         )
         assert isinstance(stability["n_groups"], int)
+        assert isinstance(stability["n_groups_with_pairs"], int)
         assert isinstance(stability["total_pair_n"], int)
         assert isinstance(stability["rho_hat"], float)
+        assert isinstance(stability["tau_hat_at_floor"], bool)
         assert isinstance(stability["small_sample_warning"], bool)
         # Verify warning is NOT spuriously firing on this fixture
-        # (50 groups × 5 obs → ~500 pairs, well above threshold=100).
+        # (200 groups × 5 obs → 2000 pairs > MIN_PRODUCTION_PAIRS=1000, 200 groups > MIN_GROUPS_WITH_PAIRS=50).
         # Closes false-negative coverage gap — a buggy "always True" impl would pass
         # the isinstance check above but fail here.
         assert stability["small_sample_warning"] is False
         assert stability["estimator"] == "method_of_moments_pearson_pair_inversion"
 
     def test_stability_warning_fires_on_small_pair_count(self):
-        """small_sample_warning=True when total_pair_n < SMALL_SAMPLE_PAIR_THRESHOLD."""
+        """small_sample_warning=True when fold is genuinely small by either canary."""
         from bts.validate.dependence import (
             fit_logistic_normal_random_intercept,
-            SMALL_SAMPLE_PAIR_THRESHOLD,
+            MIN_PRODUCTION_PAIRS,
+            MIN_GROUPS_WITH_PAIRS,
         )
-        # Build a tiny df: 3 groups × 2 obs each → 3 pairs total (well below threshold=100).
+        # Build a tiny df: 3 groups × 2 obs each → 3 pairs total (well below both thresholds).
         rows = [
             {"group_id": 0, "p_pred": 0.25, "y": 0},
             {"group_id": 0, "p_pred": 0.25, "y": 1},
@@ -201,8 +205,26 @@ class TestLogisticNormalRandomIntercept:
         ]
         df = pd.DataFrame(rows)
         _, _, stability = fit_logistic_normal_random_intercept(df)
-        assert stability["total_pair_n"] < SMALL_SAMPLE_PAIR_THRESHOLD
+        assert stability["total_pair_n"] < MIN_PRODUCTION_PAIRS
+        assert stability["n_groups_with_pairs"] < MIN_GROUPS_WITH_PAIRS
         assert stability["small_sample_warning"] is True
+        assert stability["tau_hat_at_floor"] is True  # 3 groups → likely no positive dependence
+
+    def test_stability_warning_does_not_fire_at_production_scale(self):
+        """Production-scale fixture (well above both canary thresholds) should NOT trigger warning."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        n_groups = 200  # well above MIN_GROUPS_WITH_PAIRS=50; 200×10 pairs/group = 2000 pairs > MIN_PRODUCTION_PAIRS=1000
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            for k in range(n_per):
+                rows.append({"group_id": g, "p_pred": 0.25, "y": int(rng.random() < 0.25)})
+        df = pd.DataFrame(rows)
+        _, _, stability = fit_logistic_normal_random_intercept(df)
+        assert stability["small_sample_warning"] is False, (
+            f"should not warn at production scale; got stability={stability}"
+        )
 
 
 class TestBuildCorrectedTransitionTable:
