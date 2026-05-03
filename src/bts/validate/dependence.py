@@ -472,6 +472,12 @@ def pair_residual_correlation_per_cell(
     bin_indices = np.asarray(expected_bin_indices)
     K = len(bin_indices)
 
+    if not np.array_equal(bin_indices, np.arange(K)):
+        raise ValueError(
+            f"expected_bin_indices must equal np.arange({K}); got {bin_indices.tolist()}. "
+            f"bin_indices values are used directly as matrix row/col indices."
+        )
+
     # Invariant check: p_rank2 <= p_rank1 implies r2_bin <= r1_bin.
     n_invariant_violations = int((r2_arr > r1_arr).sum())
     if n_invariant_violations > 0:
@@ -483,6 +489,10 @@ def pair_residual_correlation_per_cell(
 
     e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
     e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+    y1_arr = df["y_rank1"].to_numpy()
+    y2_arr = df["y_rank2"].to_numpy()
+    p1_arr = df["p_rank1"].to_numpy()
+    p2_arr = df["p_rank2"].to_numpy()
 
     rho_matrix = np.full((K, K), np.nan)
     n_matrix = np.zeros((K, K), dtype=int)
@@ -511,11 +521,11 @@ def pair_residual_correlation_per_cell(
             ci_hi_matrix[r1, r2] = float(np.quantile(bs, 0.975))
 
             # Empirical p_both and synthetic p1*p2.
-            y1_c = df["y_rank1"].to_numpy()[mask]
-            y2_c = df["y_rank2"].to_numpy()[mask]
+            y1_c = y1_arr[mask]
+            y2_c = y2_arr[mask]
             empirical_p_both_matrix[r1, r2] = float(np.mean(y1_c * y2_c))
-            p1_c = df["p_rank1"].to_numpy()[mask]
-            p2_c = df["p_rank2"].to_numpy()[mask]
+            p1_c = p1_arr[mask]
+            p2_c = p2_arr[mask]
             synthetic_p1p2_matrix[r1, r2] = float(np.mean(p1_c) * np.mean(p2_c))
 
     return {

@@ -686,6 +686,9 @@ class TestPairResidualCorrelationPerCell:
             n_permutations=50,
         )
         assert result["rho_matrix"].shape == (5, 5)
+        for key in ["n_matrix", "ci_lo_matrix", "ci_hi_matrix", "empirical_p_both_matrix", "synthetic_p1p2_matrix"]:
+            assert result[key].shape == (5, 5), f"{key} shape mismatch: {result[key].shape}"
+        np.testing.assert_array_equal(result["bin_indices"], np.arange(5))
         # By the p_rank2 <= p_rank1 invariant, upper-triangular cells (r2 > r1)
         # should have n == 0 and rho == NaN.
         for r1 in range(5):
