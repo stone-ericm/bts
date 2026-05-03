@@ -6,7 +6,7 @@
 # Pulls data/validation/falsification_harness_v2.5_cell*.json[/heatmap.json]
 # into local data/validation/.
 #
-# Usage: bash scripts/v2.5_retrieve.sh
+# Usage: bash scripts/v2_5_retrieve.sh
 
 set -euo pipefail
 cd "$(dirname "$0")/.."

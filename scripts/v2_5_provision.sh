@@ -10,7 +10,7 @@
 #   5. Runs `uv sync --extra model` on each box.
 #   6. Writes /tmp/v2.5/instances.tsv: cell_label<TAB>instance_id<TAB>ip
 #
-# Usage: bash scripts/v2.5_provision.sh [--dry-run]
+# Usage: bash scripts/v2_5_provision.sh [--dry-run]
 #
 # Prereqs:
 #   - vultr-api-token in macOS Keychain (service=vultr-api-token, account=claude-cli)
@@ -285,4 +285,4 @@ echo "cell_label	instance_id	ip"
 cat /tmp/v2.5/instances.tsv
 echo ""
 echo "All 4 boxes provisioned and ready."
-echo "Next: python scripts/v2.5_run_ablations.py"
+echo "Next: python scripts/v2_5_run_ablations.py"

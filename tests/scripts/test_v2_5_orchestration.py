@@ -23,7 +23,7 @@ SCRIPTS_DIR = Path(__file__).parent.parent.parent / "scripts"
 def _load_run_ablations():
     spec = importlib.util.spec_from_file_location(
         "v2_5_run_ablations",
-        str(SCRIPTS_DIR / "v2.5_run_ablations.py"),
+        str(SCRIPTS_DIR / "v2_5_run_ablations.py"),
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -97,7 +97,7 @@ def test_v1_v2_baselines_not_in_cell_flags():
 def test_run_ablations_dry_run():
     """v2.5_run_ablations.py --dry-run exits 0 and prints cell flag summary."""
     result = subprocess.run(
-        [sys.executable, str(SCRIPTS_DIR / "v2.5_run_ablations.py"), "--dry-run"],
+        [sys.executable, str(SCRIPTS_DIR / "v2_5_run_ablations.py"), "--dry-run"],
         capture_output=True,
         text=True,
         timeout=30,
@@ -122,7 +122,7 @@ def test_provision_dry_run(tmp_path):
     if platform.system() != "Darwin":
         pytest.skip("Keychain unavailable on non-macOS")
 
-    provision_script = SCRIPTS_DIR / "v2.5_provision.sh"
+    provision_script = SCRIPTS_DIR / "v2_5_provision.sh"
     assert provision_script.exists(), f"{provision_script} not found"
 
     # Run from the worktree root so relative paths resolve correctly.

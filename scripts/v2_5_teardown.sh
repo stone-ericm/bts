@@ -4,7 +4,7 @@
 # Mirrors task13_teardown.sh. Reads /tmp/v2.5/instances.tsv
 # (cell_label TAB instance_id TAB ip) and deletes each instance in parallel.
 #
-# Usage: bash scripts/v2.5_teardown.sh
+# Usage: bash scripts/v2_5_teardown.sh
 
 set -euo pipefail
 

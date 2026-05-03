@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v2.5_run_ablations.py — Launch harness ablation runs on 4 Vultr boxes.
+"""v2_5_run_ablations.py — Launch harness ablation runs on 4 Vultr boxes.
 
 Reads /tmp/v2.5/instances.tsv (cell_label TAB instance_id TAB ip) and fires
 one SSH+nohup run per box with the correct mode flags for that cell label.
@@ -18,7 +18,7 @@ Bit encoding:
     bit 0 (LSB): policy_mode   0=per-fold   1=global
 
 Usage:
-    python scripts/v2.5_run_ablations.py [--dry-run]
+    python scripts/v2_5_run_ablations.py [--dry-run]
 
 Outputs:
     Each box writes:
@@ -69,7 +69,7 @@ def read_instances(tsv: Path) -> list[tuple[str, str, str]]:
     """Parse instances.tsv → list of (cell_label, instance_id, ip)."""
     if not tsv.exists():
         raise FileNotFoundError(
-            f"{tsv} not found. Run scripts/v2.5_provision.sh first."
+            f"{tsv} not found. Run scripts/v2_5_provision.sh first."
         )
     rows = []
     for line in tsv.read_text().splitlines():
@@ -192,7 +192,7 @@ def main() -> None:
     print(f"  done < /tmp/v2.5/instances.tsv")
     print("")
     print("When done:")
-    print("  bash scripts/v2.5_retrieve.sh")
+    print("  bash scripts/v2_5_retrieve.sh")
 
 
 if __name__ == "__main__":
