@@ -494,6 +494,8 @@ def corrected_audit_pipeline(
     params_mode: Literal["pooled", "fold-local"] = "fold-local",
     rho_pair_mode: Literal["scalar", "per-bin"] = "per-bin",
     policy_mode: Literal["global", "per-fold"] = "per-fold",
+    n_block_bootstrap: int = 0,
+    expected_block_length: int = 7,
 ) -> "DROPEResult":
     """LOSO audit with configurable dependence estimation and policy modes.
 
@@ -568,10 +570,21 @@ def corrected_audit_pipeline(
         params_mode: "pooled" or "fold-local" (default "fold-local").
         rho_pair_mode: "scalar" or "per-bin" (default "per-bin").
         policy_mode: "global" or "per-fold" (default "per-fold").
+        n_block_bootstrap: number of profile-level block-bootstrap replicates per
+            fold for CI estimation (v2.6 Route A). 0 (default) falls back to the
+            existing 5-fold percentile CI. When > 0, for each held-out fold the
+            date axis is stationary-resampled (Politis-Romano), profiles are
+            reassembled, trajectories are re-run, and terminal_R is re-computed.
+            Replicates are pooled across folds (mean over folds per replicate) to
+            match the point-estimate weighting. The point estimate is UNCHANGED
+            from the unresampled held-out fold — only ci_lower/ci_upper differ.
+        expected_block_length: mean block length for stationary bootstrap (default
+            7 days). Only used when n_block_bootstrap > 0.
 
     Returns:
-        DROPEResult with mean across folds + percentile CI when n_folds >= 5,
-        plus fold_metadata list populated with rho_PA, tau, rho_pair_per_bin
+        DROPEResult with mean across folds + CI (percentile when n_block_bootstrap=0
+        and n_folds >= 5; block-bootstrap when n_block_bootstrap > 0), plus
+        fold_metadata list populated with rho_PA, tau, rho_pair_per_bin
         (shape K indexed by bin.index 0..K-1), rho_pair_per_bin_ci, n_per_bin,
         stability dict, per-fold P(57), and mode flags.
     """
@@ -689,6 +702,7 @@ def corrected_audit_pipeline(
     # --- Per-fold loop ---
     fold_estimates = []
     fold_metadata = []
+    fold_block_bootstrap_replicates: list[np.ndarray] = []  # v2.6 Route A: per-fold replicate arrays
 
     for fold_idx, held_out in enumerate(fold_seasons):
         # Fold-specific RNG seed: different fold gets different bootstrap/permutation
@@ -823,6 +837,33 @@ def corrected_audit_pipeline(
         )
         fold_estimates.append(fold_result.point_estimate)
 
+        # v2.6 Route A: profile-level block-bootstrap CI accumulation.
+        # For each replicate: stationary-resample the date axis on test_profiles
+        # (keeping all seeds for a sampled day together), reassign slot dates,
+        # rerun _trajectory_dataframe_from_profiles with the SAME policy_table
+        # and used_bins as the original fold, and compute terminal_R mean.
+        # policy_table and used_bins are in scope here for both policy_mode
+        # branches ("global" sets them before the loop; "per-fold" sets them in
+        # the branch above — both are assigned before this point).
+        if n_block_bootstrap > 0:
+            fold_block_replicates = np.empty(n_block_bootstrap)
+            for b in range(n_block_bootstrap):
+                rng_b = np.random.default_rng(seed + 10000 * fold_idx + b)
+                resampled_profiles = paired_hierarchical_bootstrap_sample(
+                    test_profiles,
+                    expected_block_length=expected_block_length,
+                    rng=rng_b,
+                )
+                traj_df_b = _trajectory_dataframe_from_profiles(
+                    resampled_profiles, policy_table, used_bins,
+                )
+                if "trajectory_id" not in traj_df_b.columns or len(traj_df_b) == 0:
+                    fold_block_replicates[b] = 0.0
+                else:
+                    terminal_R = traj_df_b.groupby("trajectory_id")["r"].sum().to_numpy()
+                    fold_block_replicates[b] = float(terminal_R.mean())
+            fold_block_bootstrap_replicates.append(fold_block_replicates)
+
         # Build per-bin metadata from rho_result_for_meta.
         # rho_result_for_meta is either:
         #   - a per-bin dict (rho_pair_mode="per-bin")
@@ -889,7 +930,16 @@ def corrected_audit_pipeline(
         })
 
     point = float(np.mean(fold_estimates))
-    if len(fold_estimates) >= 5:
+    if n_block_bootstrap > 0:
+        # Pool replicates across folds: for each b, take the mean of fold_p57_b
+        # across all folds. Matches the existing mean-over-folds point-estimate
+        # weighting, so the replicate distribution is centered near `point`.
+        # replicate_matrix shape: (n_folds, n_block_bootstrap)
+        replicate_matrix = np.array(fold_block_bootstrap_replicates)
+        pooled_replicates = replicate_matrix.mean(axis=0)  # shape: (n_block_bootstrap,)
+        ci_lo = float(np.quantile(pooled_replicates, 0.025))
+        ci_hi = float(np.quantile(pooled_replicates, 0.975))
+    elif len(fold_estimates) >= 5:
         ci_lo = float(np.quantile(fold_estimates, 0.025))
         ci_hi = float(np.quantile(fold_estimates, 0.975))
     else:

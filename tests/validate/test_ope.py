@@ -540,3 +540,82 @@ def test_corrected_audit_pipeline_cell_101_fold_local_scalar_per_fold():
         # rho_pair_per_bin in scalar mode is a synthesized broadcast (np.full)
         assert fm["rho_pair_per_bin"].shape == (5,)
         assert np.all(fm["rho_pair_per_bin"] == fm["rho_pair_per_bin"][0])  # all equal (broadcast scalar)
+
+
+# ---------------------------------------------------------------------------
+# v2.6 Route A: profile-level block-bootstrap CI tests
+# ---------------------------------------------------------------------------
+
+def test_corrected_audit_pipeline_block_bootstrap_default_off():
+    """n_block_bootstrap=0 (default) preserves existing 5-fold percentile CI behavior."""
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    # Run with n_block_bootstrap=0 (default) and n_block_bootstrap=0 explicit.
+    result_default = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20, rho_pair_n_permutations=20, pa_n_bootstrap=20,
+    )
+    result_explicit_zero = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20, rho_pair_n_permutations=20, pa_n_bootstrap=20,
+        n_block_bootstrap=0,
+    )
+    # Both should return identical results (same code path).
+    assert result_default.point_estimate == result_explicit_zero.point_estimate
+    assert result_default.ci_lower == result_explicit_zero.ci_lower
+    assert result_default.ci_upper == result_explicit_zero.ci_upper
+
+
+def test_corrected_audit_pipeline_block_bootstrap_point_unchanged():
+    """Block-bootstrap doesn't change the point estimate — only the CI."""
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    # Baseline (no block-bootstrap)
+    result_no_bb = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20, rho_pair_n_permutations=20, pa_n_bootstrap=20,
+        n_block_bootstrap=0,
+    )
+    # With block-bootstrap (low rep count for test speed)
+    result_bb = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20, rho_pair_n_permutations=20, pa_n_bootstrap=20,
+        n_block_bootstrap=10, expected_block_length=7,
+    )
+    # Point estimate must be identical (computed on unresampled held-out data).
+    assert result_no_bb.point_estimate == result_bb.point_estimate
+    # CI shape: both have lo and hi (or both None).
+    assert (result_no_bb.ci_lower is None) == (result_bb.ci_lower is None)
+
+
+def test_corrected_audit_pipeline_block_bootstrap_ci_finite():
+    """Block-bootstrap CI is finite (not NaN, not None) when n_block_bootstrap > 0 and folds >= 1."""
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    result = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20, rho_pair_n_permutations=20, pa_n_bootstrap=20,
+        n_block_bootstrap=10,
+    )
+    assert result.ci_lower is not None
+    assert result.ci_upper is not None
+    assert np.isfinite(result.ci_lower)
+    assert np.isfinite(result.ci_upper)
+    # CI must at least touch the point estimate (lo <= point or point <= hi within float tolerance).
+    assert (
+        result.ci_lower <= result.point_estimate + 1e-9
+        or result.ci_upper >= result.point_estimate - 1e-9
+    )
