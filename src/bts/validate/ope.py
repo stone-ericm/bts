@@ -717,16 +717,16 @@ def corrected_audit_pipeline(
             n_bins = len(train_bins.bins)
             # Contiguity assumption: bin.index must equal position in train_bins.bins.
             # build_corrected_transition_table also enforces this (T2 followup), but
-            # fail earlier here with a clearer message about the global-policy branch.
+            # fail earlier here with a clearer message tied to this fold.
             actual_train_indices = [b.index for b in train_bins.bins]
             expected_train_indices = list(range(n_bins))
             if actual_train_indices != expected_train_indices:
                 raise ValueError(
-                    f"Global-policy branch requires contiguous bin indices, but "
-                    f"_compute_bins_from_direct_profiles produced {actual_train_indices}. "
-                    f"This usually means an empty quantile bin was skipped. "
-                    f"Use policy_mode='per-fold' which can handle sparse bins, or "
-                    f"investigate why the data has empty bins."
+                    f"Per-fold branch (held_out={held_out}) requires contiguous "
+                    f"bin indices, but _compute_bins_from_direct_profiles produced "
+                    f"{actual_train_indices}. This usually means an empty quantile "
+                    f"bin was skipped in this fold's training data. Investigate "
+                    f"why this fold's data has empty bins."
                 )
 
             # Fold-local rho_pair — per-bin or scalar.
