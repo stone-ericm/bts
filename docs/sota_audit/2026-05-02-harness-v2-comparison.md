@@ -6,86 +6,119 @@
 **Issue**: [#7](https://github.com/stone-ericm/bts/issues/7)
 **Verdict JSON**: `data/validation/falsification_harness_v2_2026-05-03.json`
 
-## Headline finding
+## Headline finding (revised after Codex round 1 review)
 
-> **The methodology fix flipped the gate-class.** v1 said `HEADLINE_BROKEN`. v2 says `HEADLINE_REDUCED`. The production policy is doing something — just not 8× better than chance.
+> **Conservative claim, supported by data:** v1's `HEADLINE_BROKEN` verdict does not reproduce under v2. The v2 verdict is `HEADLINE_REDUCED` — but the gate-class transition is CI-driven, not point-estimate driven.
 
 | Metric | v1 | v2 production (n_bootstrap=300) |
 |---|---|---|
-| `corrected_pipeline_p57` | `0.0083 [0.0000, 0.0375]` | **`0.0333 [0.0000, 0.1167]`** |
-| Verdict | `HEADLINE_BROKEN` | **`HEADLINE_REDUCED`** |
+| `corrected_pipeline_p57` | `0.0083 [0.0000, 0.0375]` | `0.0333 [0.0000, 0.1167]` |
+| Verdict | `HEADLINE_BROKEN` | `HEADLINE_REDUCED` |
 | Half-headline threshold | 0.0408 | 0.0408 |
-| Position relative to threshold | hi=0.0375 *below* half-headline | hi=0.1167 *above* half-headline |
-| Methodology | global params, LOSO bins | fold-local params + per-bin rho_pair |
-| In-sample (build_corrected_mdp_policy) | 0.1183 | not recomputed (deferred) |
+| Position relative to threshold | hi=0.0375 *below* half-headline (BROKEN) | **point=0.0333 still below half-headline; only hi=0.1167 is above (REDUCED)** |
+| Methodology | global params, LOSO bins, single corrected policy | fold-local params + per-bin rho_pair, fold-local corrected policies |
+| In-sample (build_corrected_mdp_policy) | 0.1183 | **NOT recomputed in v2** — see open question |
 | `rare_event_ce_p57` (CE-IS, n_final=20K) | not computed | `0.0037 [0.0031, 0.0044]` |
 | `fixed_policy_terminal_r_mc_p57` | not stable | `0.4167 [0.2083, 0.6250]` (n=24 fixed-policy) |
 
-**v2 is 4× higher than v1 at the point estimate** (0.0333 vs 0.0083). The CI upper bound moves from `below` half-headline to `above`, which is the gate-class transition. v2 still says the headline is partly artifact (point < half-headline) but doesn't say production is broken.
+**The honest read:** v2's point estimate (0.0333) is *still below* half-headline. The reason the verdict isn't BROKEN is that the upper-CI bound (0.1167) widened enough that we can no longer **certify** BROKEN. This is "uncertainty got large enough that BROKEN is no longer guaranteed," not "production policy was rehabilitated."
 
 > **Note on n_bootstrap:** smoke (n=30) and production (n=300) gave identical `corrected_pipeline_p57` because the verdict CI is the percentile over 5 fold points (n=5 — essentially min/max). `n_bootstrap` only affects per-fold internal CIs which don't propagate to the verdict. The CE-IS estimate did tighten with `n_final=20000` (0.0037 [0.0031, 0.0044] vs smoke's 0.0058 [0.0016, 0.0119]).
 
-**v2 is 4× higher than v1 at the point estimate** (0.0333 vs 0.0083). The CI upper bound moves from `below` half-headline to `above`, which is the gate-class transition. v2 still says the headline is partly artifact (point < half-headline) but doesn't say production is broken.
+## CI fragility — what's actually happening
 
-## What changed methodologically
+The 5 fold point estimates are: `[0.0, 0.0, 0.125, 0.0, 0.0417]`. Three folds returned exactly zero successes; two had small positive rates. The percentile CI on n=5 values is essentially the min/max, plus interpolation noise. This is **not a defensible uncertainty interval** for the underlying probability.
 
-Two gaps in v1 were closed:
+**Binomial perspective**: the held-out replays produced ~4 successes out of ~120 trajectory-attempts (5 folds × 24 seeds). Naive binomial 95% interval on 4/120 ≈ [0.009, 0.083]. That's a tighter, more defensible interval than the fold-percentile [0, 0.117], but it ignores fold-level variation. **Either bound contains 0.0408 (half-headline)**, so neither cleanly classifies as BROKEN or REDUCED. The current verdict is at the gate threshold.
 
-1. **v1 estimated `rho_PA / tau / rho_pair` once on full pooled data** while bins were LOSO-split. Parameter contamination across the audit boundary inflated the in-sample-vs-LOSO gap (0.1183 vs 0.0083, ~14× ratio — classic overfit). v2 refits all parameters within each fold's 4 training seasons.
+## What changed methodologically (and what we DO NOT know)
 
-2. **v1 used a single global `rho_pair_cross_game` scalar.** Aggregate ≈ 0 hid Q4's apparent 8pp empirical-vs-synthetic gap. v2 uses per-rank-1-bin `rho_pair_per_bin` (5-element vector) so each bin gets its own correction.
+Three things changed between v1 and v2:
 
-## Per-fold rho_pair_per_bin (smoke verdict)
+1. **v1 estimated `rho_PA / tau / rho_pair` once on full pooled data** while bins were LOSO-split. Parameter contamination across the audit boundary. v2 refits all parameters within each fold's 4 training seasons.
 
-Pattern: Q2 consistently positive across all folds; Q4 small and inconsistent; Q5 small. The bin-conditional structure that motivated v2 (Q4's apparent 8pp gap on full pooled data) **did NOT survive fold-local re-estimation**.
+2. **v1 used a single global `rho_pair_cross_game` scalar.** v2 uses per-rank-1-bin `rho_pair_per_bin` (5-element vector).
 
-| Held-out season | rho_PA | tau | fold_p57 | rho_pair_per_bin (Q1..Q5) |
-|---|---|---|---|---|
-| 2021 | 0.0017 | 0.0979 | 0.0000 | [-0.020, +0.057, -0.019, +0.016, -0.005] |
-| 2022 | 0.0006 | 0.0602 | 0.0000 | [-0.010, +0.025, -0.046, +0.030, -0.034] |
-| 2023 | 0.0006 | 0.0578 | 0.1250 | [-0.049, +0.045, -0.016, +0.035, -0.041] |
-| 2024 | 0.0020 | 0.1089 | 0.0000 | [-0.003, +0.029, -0.006, -0.012, -0.040] |
-| 2025 | 0.0012 | 0.0827 | 0.0417 | [-0.011, +0.055, -0.044, -0.004, -0.008] |
+3. **v1 used a single pre-built corrected policy** replayed across folds. v2 solves a fold-local MDP per fold.
 
-**Q4 in v2**: point estimates range from -0.012 to +0.035 across the 5 folds, with wide CIs that all bracket zero. The "Q4 antagonism" that drove v2's design was a finite-sample artifact of pooled estimation. **Q2 emerges as the only bin with a consistent rho_pair signal** (positive in all 5 folds, p<0.05 in fold 2021).
+**What we do NOT know without ablations** (Codex round 1 catch): which of (1), (2), (3) is responsible for how much of the 4× point-estimate change. The fair claim is "under the v2 harness, the verdict moves from BROKEN to REDUCED" — NOT "the methodology fix flipped it." Without ablations (v1 policy under v2 replay; v2 solver with v1 global params; fold-local scalar rho_pair; etc.) we can't attribute. **Highest-priority v2.5 work item.**
+
+## Per-fold rho_pair_per_bin (production verdict)
+
+| Held-out season | rho_PA | tau | fold_p57 | Q1 | Q2 | Q3 | Q4 | Q5 |
+|---|---|---|---|---|---|---|---|---|
+| 2021 | 0.0017 | 0.0979 | 0.0000 | -0.020 | +0.057 | -0.019 | +0.016 | -0.005 |
+| 2022 | 0.0006 | 0.0602 | 0.0000 | -0.010 | +0.025 | -0.046 | **+0.030*** | -0.034 |
+| 2023 | 0.0006 | 0.0578 | 0.1250 | -0.049 | +0.045 | -0.016 | **+0.035*** | -0.041 |
+| 2024 | 0.0020 | 0.1089 | 0.0000 | -0.003 | +0.029 | -0.006 | -0.012 | -0.040 |
+| 2025 | 0.0012 | 0.0827 | 0.0417 | -0.011 | +0.055 | -0.044 | -0.004 | -0.008 |
+
+\* = bootstrap CI excludes zero (CI semantically distinct from permutation p-value, see note below).
+
+### Q4 finding (corrected after Codex round 1 review)
+
+**My initial claim was wrong.** Q4 is NOT ≈0 across all folds. Q4 has positive estimates with bootstrap CIs that exclude zero in 2022 and 2023 (rho ≈ +0.03, CI [+0.010, +0.052] and [+0.013, +0.058]). The other three folds have Q4 near zero.
+
+**The real finding**: Q4 sign **reverses** between v1 and v2. v1 (pooled) showed Q4 antagonism (negative gap). v2 (fold-local) shows Q4 *cooperative* in 2/5 folds (positive rho excluding zero). Either:
+- The v1 pooled estimate was driven by a strong antagonistic signal in 2024/2025 (Q4 negative there) that v2 averages away with the cooperative seasons
+- Or Q4's true dependence is genuinely heterogeneous across seasons
+
+Both readings argue against a confident **global** Q4 antagonism correction (v1's framing). Neither says Q4 has zero dependence universally.
+
+### p-value vs CI tension (defined here, not just casually invoked)
+
+The reported `rho_pair_per_bin_p_value` is from a **two-sided permutation test** (n_permutations=300): `mean(|null_dist| >= |observed|)` under shuffles of e2 within bin. CIs are from a separate paired bootstrap. The two can disagree because:
+- Permutation test is two-sided around 0; CIs are around the point estimate
+- Permutation null can have heavy tails making absolute test statistic insensitive
+- n_permutations=300 has minimum detectable p of ~0.003
+
+**The CI is the more reliable signal** for "is rho different from zero in this fold." The p-values shown should be read as "didn't reach permutation significance" rather than "no effect."
 
 ## Diagnostic heatmap
 
-`pair_residual_correlation_per_cell` was run on the canonical-seed pooled data (n=912 days). Lower-triangular convention — cells where `r2_bin > r1_bin` are empty by the `p_rank2 ≤ p_rank1` invariant. `n_invariant_violations = 0` (data respects the invariant).
+`pair_residual_correlation_per_cell` was run on the canonical-seed pooled data (n=912 days). Lower-triangular convention. `n_invariant_violations = 0`. ~7-8 of the 15 lower-triangular cells have n ≥ 30 (the `reliable_cells` mask threshold).
 
-Cell occupancy is heavily skewed toward the diagonal and lower-rank-2 cells. Q5×Q5 had ~110 obs, Q5×Q1 had 28 obs. Per-cell rho estimates at small n are noisy — the `reliable_cells` mask (n ≥ 30) flags ~7-8 of the 15 lower-triangular cells as reliable.
+The heatmap shows no single cell with persistent dependence post-correction across the reliable subset. This argues against v3 cross-bin-cell correction being justified by current data.
 
-**Bottom line on the heatmap**: no single cell shows persistent dependence after fold-local correction. The heatmap is informative for *deciding* v3 isn't needed, not for *driving* v2's correction. The per-rank-1-bin correction (which v2 actually uses) captures the same information at lower variance.
+## Production policy implication (revised after Codex round 1)
 
-## Production policy implication
+**Recommendation: do NOT replace the production MDP policy YET — but the reasons are weaker than I initially claimed.**
 
-**Recommendation: do NOT replace the production MDP policy with the v1-corrected version.**
+The v1-corrected policy is still inappropriate (it's based on global parameter estimation contaminated across the audit boundary). But my initial argument that "v2 corrected policy would also over-correct because in-sample diverges from CV" is **not established** — v2 in-sample was not recomputed in this round. Without v2 in-sample numbers, we can't say whether the in-sample-vs-CV gap closed or persists.
 
-- v1 said the production policy was broken (BROKEN: hi-CI below half-headline). v2 contradicts (REDUCED: hi-CI above half-headline).
-- The v1 corrected policy was solved against an over-corrected transition table — applying it would deflate production's projected P(57) more than the data supports.
-- The v2 corrected policy IS produced (`scripts/build_corrected_mdp_policy.py` could be re-run with v2's per-bin rho input), but ALSO would over-correct because in-sample diverges from CV.
+**The defensible recommendation**:
+- Don't apply v1's corrected policy to production (v1's contamination story is real)
+- Don't yet apply v2's corrected policy without first running same-evaluator policy comparisons (v1 policy vs v2 policy on identical held-out trajectories with identical replay mechanics)
+- Recompute v2 in-sample to confirm the in-sample-vs-CV gap behavior changed
 
-**Better path**: keep the current production policy. The headline (8.17%) is partly artifact, but the policy itself is closer to right than the v1-corrected one.
+Until those two ablations land, "keep current production policy" is the safest move, but it should be framed as "wait for the comparison" not "v2 also over-corrects."
 
-## Tension with CE-IS estimate
+## CE-IS vs LOSO — gap is suggestive but underidentified (Codex round 1)
 
-v2 verdict has `rare_event_ce_p57 = 0.0058 [0.0016, 0.0119]` — substantially LOWER than the LOSO `0.0333`. The two estimators measure different things:
-- LOSO (corrected_pipeline_p57): replays a fold-local corrected policy on held-out trajectories, using the policy that was solved against fold-corrected bins
-- CE-IS (rare_event_ce_p57): naive "always pick rank-1" rare-event MC, no policy correction, no LOSO
+v2 production verdict has `rare_event_ce_p57 = 0.0037 [0.0031, 0.0044]` — substantially LOWER than the LOSO `0.0333`. My initial claim that this gap proves MDP policy lift over naive rank-1 was **overclaim**.
 
-The 6× gap between them suggests the MDP policy meaningfully outperforms naive rank-1 — even after correction. This is a positive signal for the production policy that v2's gate-class transition (BROKEN→REDUCED) reinforces.
+The two estimators differ in: policy (CE-IS uses always-pick-rank-1, LOSO uses fold-local corrected MDP), data split (CE-IS uses pooled canonical-seed data, LOSO uses per-fold held-out), replay mechanics, denominators, terminal-r MC variance behavior, and event definition.
 
-## Open follow-ups
+The gap is **consistent with** policy lift, but not isolation evidence for it. To confirm policy lift, run both policies through the same evaluator on the same held-out folds with the same replay mechanics (a v2.5 ablation).
 
-- **CI methodology** ⭐ : 5-fold percentile CI is essentially min/max at n=5. The verdict CI didn't tighten when going from n_bootstrap=30 to 300 because of this. A bootstrap-of-folds or paired-block-bootstrap on fold point estimates would give a tighter, more defensible CI. **This is the highest-leverage v2.5 work item** — the current verdict is at gate threshold, and a tighter CI would either firmly resolve `HEADLINE_REDUCED` or potentially move it to `HEADLINE_BROKEN` / `HEADLINE_DEFENDED`.
-- **Distribution shift remediation**: the v2 verdict still says headline is partly artifact (point < half-headline). The strategic gaps memo's #1 (refresh training data) is the next layer to address — separate work item, not part of v2.
-- **Cross-bin-cell correction (v3)**: the heatmap shows no cell with persistent dependence post-correction, so v3 cross-bin correction is **not justified by the data**. v2 closed the methodology question; further refinement in this layer has marginal expected value.
+## Open follow-ups (priority-ordered after Codex round 1)
 
-## Verdict status: REVISED, not BROKEN
+1. **Attribution ablations** ⭐ : run minimal-pair ablations to isolate which v1→v2 change drove the verdict shift. Specifically: v1 policy under v2 replay (controls solver/replay path); v2 with global rho_pair scalar (controls #2 from "What changed"); v2 with v1 global params but per-bin rho_pair (controls #1). Without these, we know "v2 ≠ v1 verdict" but not why.
 
-The production policy:
-- ✅ Shows real lift over naive rank-1 (CE-IS 0.0058 vs MDP 0.0333 at LOSO)
-- ⚠ Is overconfident relative to the headline (0.0817 in-sample vs 0.0333 CV-corrected)
-- ❌ Is NOT broken (v1's claim that hi-CI < half-headline doesn't hold under fold-local methodology)
+2. **v2 in-sample recompute** ⭐ : recompute the in-sample corrected P(57) using v2's per-bin rho_pair via `build_corrected_transition_table`. v1 in-sample was 0.1183. If v2 in-sample is also high (>0.05 say), the in-sample-vs-CV gap is mostly the same — meaning fold-local estimation didn't fully close the overfit. If v2 in-sample is closer to v2 LOSO (0.03), v2 actually closed the gap. **This is the cleanest single test of v2's methodological claim.**
 
-**Action**: keep production policy as-is, mentally adjust expected P(57) downward from 8% to 3-4%, plan training-data refresh (distribution shift remediation) as the next priority.
+3. **Same-evaluator policy comparison**: run v1 policy and v2 policy on identical held-out trajectories with identical replay. If they produce ≈ same P(57), policy doesn't matter; if different, we can quantify lift.
+
+4. **CI methodology**: 5-fold percentile CI is not adequate. Block-bootstrap or hierarchical bootstrap that separates season variation from within-season trajectory uncertainty. Also report binomial interval over pooled held-out successes (4/120) as a sanity check.
+
+5. **Distribution shift remediation**: a higher-leverage strategic question — the v2 verdict still says headline is partly artifact (point < half-headline). Refresh training data per `project_bts_strategic_gaps_2026_04_30.md` item #1.
+
+## Verdict status (revised)
+
+The production policy under v2 evaluation:
+- ⚠ Not affirmatively rehabilitated (point estimate 0.0333 still below half-headline 0.0408)
+- ⚠ Not affirmatively broken (CI upper 0.1167 above half-headline)
+- ❓ Genuine signal vs noise unresolved (5-fold CI is essentially min/max; need block-bootstrap or binomial interval to firm up)
+- ❓ Methodology attribution unresolved (don't know which of v2's three changes drove the gate-class transition)
+
+**Honest action**: keep production policy. Do NOT broadcast v2 as "production rehabilitated." Schedule v2.5 ablations + in-sample recompute as the next priority, ahead of distribution-shift remediation.
