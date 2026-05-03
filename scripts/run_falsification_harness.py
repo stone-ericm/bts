@@ -124,6 +124,7 @@ def run_harness(
     n_bootstrap: int = 2000,
     n_final: int = 20000,
     n_permutations: int = 300,
+    pa_n_bootstrap: int = 300,
     seed: int = 42,
 ) -> dict:
     """Top-level harness driver. Returns the verdict dict and writes it to output_path."""
@@ -140,11 +141,12 @@ def run_harness(
         frozen_policy={"action_table": headline_solution.policy_table},
         test_seasons=[held_out],
         n_bootstrap=n_bootstrap,
+        seed=seed,
     )
 
     # Step 3: Pipeline audit (LOSO).
     pipeline_result = audit_pipeline(
-        profiles, fold_seasons=seasons, n_bootstrap=n_bootstrap
+        profiles, fold_seasons=seasons, n_bootstrap=n_bootstrap, seed=seed,
     )
 
     # Step 4: CE-IS rare-event MC on a synthetic 153-day profile derived from bins.
@@ -169,13 +171,15 @@ def run_harness(
     # (all Q1 days first, then all Q2, ...) which artificially suppresses streak
     # probability since high-prob days are concentrated at the end. A shuffled
     # mix matches a real season's day-to-day variation. Seeded for reproducibility.
-    np.random.default_rng(42).shuffle(ceis_profiles)
+    np.random.default_rng(seed).shuffle(ceis_profiles)
     ceis_result = estimate_p57_with_ceis(
-        ceis_profiles, strategy=None, n_final=n_final, seed=42,
+        ceis_profiles, strategy=None, n_final=n_final, seed=seed,
     )
 
     # Step 5: Dependence diagnostics.
-    rho_PA, rho_PA_lo, rho_PA_hi, _ = pa_residual_correlation(pa_df, n_bootstrap=n_bootstrap)
+    rho_PA, rho_PA_lo, rho_PA_hi, _ = pa_residual_correlation(
+        pa_df, n_bootstrap=pa_n_bootstrap, seed=seed,
+    )
     pa_for_lnri = pa_df.rename(columns={
         "batter_game_id": "group_id",
         "p_pa": "p_pred",
@@ -203,7 +207,7 @@ def run_harness(
         "top2_hit": "y_rank2",
     })
     rho_pair, rho_pair_lo, rho_pair_hi, _ = pair_residual_correlation(
-        pair_df, n_permutations=n_permutations
+        pair_df, n_permutations=n_permutations, seed=seed,
     )
 
     # Step 6: Corrected transition table + re-solved policy (for fixed-policy audit only).
@@ -225,6 +229,7 @@ def run_harness(
         frozen_policy={"action_table": corrected_solution.policy_table},
         test_seasons=[held_out],
         n_bootstrap=n_bootstrap,
+        seed=seed,
     )
 
     # Step 7b: v2 pipeline-LOSO audit — fold-local params + per-bin rho_pair.
@@ -243,7 +248,7 @@ def run_harness(
         n_bootstrap=n_bootstrap,
         seed=seed,
         rho_pair_n_permutations=n_permutations,
-        pa_n_bootstrap=n_permutations,
+        pa_n_bootstrap=pa_n_bootstrap,
     )
 
     # Step 7c: Diagnostic heatmap — per-cross-bin-cell rho_pair on full pooled data.
@@ -364,7 +369,11 @@ def main():
     parser.add_argument("--headline-p57", type=float, default=0.0817)
     parser.add_argument(
         "--n-permutations", type=int, default=300,
-        help="Permutations for fold-local rho_pair tests + heatmap (default 300).",
+        help="Permutations for the rho_pair permutation null test + heatmap (default 300).",
+    )
+    parser.add_argument(
+        "--pa-n-bootstrap", type=int, default=300,
+        help="Bootstrap resamples for PA residual correlation CI (default 300).",
     )
     parser.add_argument(
         "--seed", type=int, default=42,
@@ -381,6 +390,7 @@ def main():
         n_bootstrap=args.n_bootstrap,
         n_final=args.n_final,
         n_permutations=args.n_permutations,
+        pa_n_bootstrap=args.pa_n_bootstrap,
         seed=args.seed,
     )
     print(json.dumps(out, indent=2))
