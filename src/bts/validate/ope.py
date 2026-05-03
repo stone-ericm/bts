@@ -10,7 +10,7 @@ References:
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -70,6 +70,7 @@ class DROPEResult:
     n_trajectories: int = 0
     nuisance_v_hat: float | None = None
     bootstrap_distribution: np.ndarray | None = None
+    fold_metadata: list[dict] = field(default_factory=list)  # NEW (v2): per-fold dependence params
 
 
 def dr_ope_full_information(
@@ -480,73 +481,180 @@ def audit_pipeline(
 
 def corrected_audit_pipeline(
     profiles: pd.DataFrame,
-    corrected_policy: dict,
+    pa_df: pd.DataFrame,
     *,
     fold_seasons: list[int],
+    mdp_solve_fn: "Callable",
     n_bootstrap: int = 2000,
     seed: int = 42,
+    n_pa_per_game: int = 5,
+    rho_pair_n_permutations: int = 300,
+    pa_n_bootstrap: int = 300,
 ) -> "DROPEResult":
-    """Pipeline-style audit replaying a fixed corrected policy across folds.
+    """LOSO audit with FOLD-LOCAL dependence parameters and corrected policy.
 
-    For each fold (season), use the global corrected_policy (NOT a per-fold
-    corrected policy) to replay decisions on the held-out season. Returns the
-    mean fold-estimate and its bootstrap CI.
+    For each held-out season:
+      1. Slice training data to the 4 held-in seasons (no leakage).
+      2. Fit fold-local bins from training profiles.
+      3. Fit fold-local rho_PA, tau, rho_pair_per_bin from training PA + profiles.
+      4. Build corrected QualityBins with the fold-local parameters.
+      5. Solve MDP on corrected bins (via mdp_solve_fn).
+      6. Replay on held-out season; compute terminal-reward MC point estimate.
 
-    v1 simplification: uses a GLOBAL corrected policy built from ALL data, not
-    fold-specific corrected bins. A purist LOSO would rebuild the dependence
-    diagnostics (pa_residual_correlation, fit_logistic_normal_random_intercept,
-    pair_residual_correlation) using only each fold's training data. That's
-    deferred to v2 because:
-    (a) dependence params are bin-level aggregates that don't overfit specific
-        folds in the way per-day predictions would, so the leak is mild;
-    (b) running 5x dependence-pipelines per audit is expensive (~30 min each);
-    (c) v1 establishes the harness pattern; v2 can refine.
+    mdp_solve_fn contract (Codex round 1 fix): callable that takes
+    `corrected_bins: QualityBins` and returns either an `np.ndarray`
+    policy_table of shape (57, season_length+1, 2, n_bins) OR an object with
+    `.policy_table` attribute (e.g., MDPSolution from solve_mdp). Adapter logic
+    normalizes both.
+
+    v2 closes v1's overfit gap: v1 used a GLOBAL corrected policy built from
+    ALL data, causing the 0.1183 (in-sample) vs 0.0083 (LOSO) discrepancy.
+    Each fold now refits rho_PA / tau / rho_pair_per_bin on its own 4 training
+    seasons; the corrected bins and policy are fold-specific.
 
     Args:
         profiles: backtest profiles DataFrame with season, date, seed, top1_p,
             top1_hit, top2_p, top2_hit columns.
-        corrected_policy: dict with key 'action_table' = corrected policy
-            built once from all-data corrected bins.
-        fold_seasons: list of seasons to use as held-out folds (LOSO).
-        n_bootstrap: bootstrap replicates for the trajectory bootstrap CI.
-        seed: rng seed.
+        pa_df: PA-level DataFrame with season, batter_game_id, p_pa, actual_hit
+            columns.  Used to fit rho_PA (pa_residual_correlation) and tau
+            (fit_logistic_normal_random_intercept) per fold.
+        fold_seasons: seasons to use as held-out folds (LOSO).
+        mdp_solve_fn: callable(corrected_bins) -> np.ndarray or MDPSolution.
+        n_bootstrap: bootstrap replicates for the per-fold trajectory bootstrap CI.
+        seed: base rng seed; fold i uses seed+i for independent realizations.
+        n_pa_per_game: PAs per game for the tau→p_hit correction in
+            build_corrected_transition_table.
+        rho_pair_n_permutations: permutations for pair_residual_correlation per
+            fold.  300 is adequate for fold-level estimates; use 1000+ for
+            production-level CIs.
+        pa_n_bootstrap: bootstrap replicates for pa_residual_correlation per fold.
 
     Returns:
-        DROPEResult with mean across fold point-estimates and percentile CI
-        across folds when len(fold_seasons) >= 5; None CI bounds otherwise.
+        DROPEResult with mean across folds + percentile CI when n_folds >= 5,
+        plus fold_metadata list populated with rho_PA, tau, rho_pair_per_bin
+        (shape K indexed by bin.index 0..K-1), rho_pair_per_bin_ci, n_per_bin,
+        stability dict, and per-fold P(57).
     """
-    # Compute full-data bins ONCE outside the fold loop (Codex round 4 perf
-    # fix). Was being recomputed per fold = redundant work since the policy
-    # is also global-from-all-data.
-    bins = _compute_bins_from_direct_profiles(profiles)
+    from bts.validate.dependence import (
+        build_corrected_transition_table,
+        fit_logistic_normal_random_intercept,
+        pa_residual_correlation,
+        pair_residual_correlation,
+    )
 
     fold_estimates = []
-    for held_out in fold_seasons:
-        # Use full-data bins for the trajectory replay's bin classification.
-        # This is consistent with the global-corrected-policy choice — both
-        # are built from all-data so the held-out trajectory replay uses
-        # consistent state encoding.
-        test = profiles[profiles["season"] == held_out].copy()
+    fold_metadata = []
+
+    for fold_idx, held_out in enumerate(fold_seasons):
+        # Fold-specific RNG seed (Codex round 1 minor): different fold gets
+        # different bootstrap/permutation realizations.
+        fold_seed = seed + fold_idx
+
+        # Within-fold training data: 4 held-in seasons (NO leakage).
+        train_profiles = profiles[profiles["season"] != held_out].copy()
+        train_pa = pa_df[pa_df["season"] != held_out].copy()
+        test_profiles = profiles[profiles["season"] == held_out].copy()
+
+        # Fold-local bins.
+        train_bins = _compute_bins_from_direct_profiles(train_profiles)
+        n_bins = len(train_bins.bins)
+
+        # Fold-local rho_PA via PA-level cluster bootstrap.
+        rho_PA, rho_PA_lo, rho_PA_hi, _ = pa_residual_correlation(
+            train_pa, n_bootstrap=pa_n_bootstrap, seed=fold_seed,
+        )
+
+        # Fold-local tau via logistic-normal random-intercept MoM inversion.
+        train_pa_for_lnri = train_pa.rename(columns={
+            "batter_game_id": "group_id",
+            "p_pa": "p_pred",
+            "actual_hit": "y",
+        })
+        tau_hat, _, lnri_stability = fit_logistic_normal_random_intercept(train_pa_for_lnri)
+
+        # Fold-local per-bin rho_pair. CRITICAL: pass expected_bin_indices to
+        # guarantee the returned vector is indexed by bin.index 0..K-1, NOT
+        # by sorted-unique-of-data (which silently shifts when a bin is empty
+        # for this fold's smaller training set).
+        pair_df = train_profiles[
+            ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
+        ].rename(columns={
+            "top1_p": "p_rank1", "top1_hit": "y_rank1",
+            "top2_p": "p_rank2", "top2_hit": "y_rank2",
+        })
+        bin_assignment = pair_df["p_rank1"].apply(train_bins.classify)
+        rho_result = pair_residual_correlation(
+            pair_df,
+            n_permutations=rho_pair_n_permutations,
+            bin_assignment=bin_assignment,
+            expected_bin_indices=np.arange(n_bins),  # CRITICAL: stable indexing
+            seed=fold_seed,
+        )
+
+        # Build fold-local corrected bins (rho_per_bin indexed by bin.index).
+        corrected_bins = build_corrected_transition_table(
+            train_bins,
+            rho_PA_within_game=rho_PA,
+            tau_squared=tau_hat ** 2,
+            rho_pair_cross_game=rho_result["rho_per_bin"],
+            n_pa_per_game=n_pa_per_game,
+        )
+
+        # Solve MDP on this fold's corrected bins. Adapter normalizes the two
+        # legitimate return shapes (Codex round 1 fix):
+        #   - np.ndarray: direct policy_table (e.g., _all_skip_policy in tests)
+        #   - object with .policy_table: MDPSolution from solve_mdp
+        solver_out = mdp_solve_fn(corrected_bins)
+        if hasattr(solver_out, "policy_table"):
+            policy_table = solver_out.policy_table
+        elif isinstance(solver_out, np.ndarray):
+            policy_table = solver_out
+        else:
+            raise TypeError(
+                f"mdp_solve_fn returned unsupported type {type(solver_out)}; "
+                f"must be np.ndarray or have .policy_table attribute"
+            )
+
+        # Replay on held-out season using fold-local corrected bins for state
+        # encoding. Both the policy and the bins are fold-local — consistent.
         traj_df = _trajectory_dataframe_from_profiles(
-            test, corrected_policy["action_table"], bins
+            test_profiles, policy_table, corrected_bins,
         )
         fold_result = _run_terminal_r_mc_bootstrap(
-            traj_df, n_bootstrap=n_bootstrap, seed=seed,
+            traj_df, n_bootstrap=n_bootstrap, seed=fold_seed,
         )
         fold_estimates.append(fold_result.point_estimate)
+
+        fold_metadata.append({
+            "held_out_season": int(held_out),
+            "rho_PA": float(rho_PA),
+            "rho_PA_ci_lo": float(rho_PA_lo),
+            "rho_PA_ci_hi": float(rho_PA_hi),
+            "tau": float(tau_hat),
+            "rho_pair_per_bin": rho_result["rho_per_bin"],          # shape (n_bins,)
+            "rho_pair_per_bin_ci_lo": rho_result["ci_lo_per_bin"],  # shape (n_bins,)
+            "rho_pair_per_bin_ci_hi": rho_result["ci_hi_per_bin"],  # shape (n_bins,)
+            "rho_pair_per_bin_p_value": rho_result["p_value_per_bin"],
+            "rho_pair_n_per_bin": rho_result["n_per_bin"],
+            "rho_pair_global": float(rho_result["global_rho"]),
+            "bin_indices": rho_result["bin_indices"],
+            "stability": lnri_stability,
+            "fold_p57": float(fold_result.point_estimate),
+        })
 
     point = float(np.mean(fold_estimates))
     if len(fold_estimates) >= 5:
         ci_lo = float(np.quantile(fold_estimates, 0.025))
         ci_hi = float(np.quantile(fold_estimates, 0.975))
     else:
-        ci_lo = None
-        ci_hi = None
+        ci_lo, ci_hi = None, None
+
     return DROPEResult(
         point_estimate=point,
         ci_lower=ci_lo,
         ci_upper=ci_hi,
         n_trajectories=len(fold_estimates),
+        fold_metadata=fold_metadata,
     )
 
 
