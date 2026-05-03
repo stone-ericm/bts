@@ -280,3 +280,10 @@ def test_corrected_audit_pipeline_returns_fold_metadata_with_per_bin_rho():
         assert fold_meta["rho_pair_n_per_bin"].shape == (5,)
         assert "stability" in fold_meta
         assert "small_sample_warning" in fold_meta["stability"]
+        # Catches the silent-degenerate-output bug: if per-bin rho computation
+        # returned all-zero arrays for some reason, the structural assertions above
+        # would pass. The n_per_bin must show actual observations populated the bins.
+        assert fold_meta["rho_pair_n_per_bin"].sum() > 0, (
+            f"Fold for season {fold_meta['held_out_season']}: "
+            f"rho_pair_n_per_bin is all zero — bin classification failed silently"
+        )
