@@ -551,8 +551,12 @@ def corrected_audit_pipeline(
         fold_seed = seed + fold_idx
 
         # Within-fold training data: 4 held-in seasons (NO leakage).
-        train_profiles = profiles[profiles["season"] != held_out].copy()
-        train_pa = pa_df[pa_df["season"] != held_out].copy()
+        # isin(held_in) guards against any season outside fold_seasons leaking
+        # into training — e.g., a 2020 row in profiles would pass != held_out
+        # but must not be in the training set.
+        held_in = set(fold_seasons) - {held_out}
+        train_profiles = profiles[profiles["season"].isin(held_in)].copy()
+        train_pa = pa_df[pa_df["season"].isin(held_in)].copy()
         test_profiles = profiles[profiles["season"] == held_out].copy()
 
         # Fold-local bins.
@@ -640,6 +644,7 @@ def corrected_audit_pipeline(
             "bin_indices": rho_result["bin_indices"],
             "stability": lnri_stability,
             "fold_p57": float(fold_result.point_estimate),
+            "n_trajectories": int(fold_result.n_trajectories),  # actual trajectories in this fold
         })
 
     point = float(np.mean(fold_estimates))
@@ -649,11 +654,13 @@ def corrected_audit_pipeline(
     else:
         ci_lo, ci_hi = None, None
 
+    # Sum actual trajectories across folds (not fold count).
+    total_trajectories = sum(fm.get("n_trajectories", 1) for fm in fold_metadata)
     return DROPEResult(
         point_estimate=point,
         ci_lower=ci_lo,
         ci_upper=ci_hi,
-        n_trajectories=len(fold_estimates),
+        n_trajectories=total_trajectories,  # actual trajectories aggregated across folds
         fold_metadata=fold_metadata,
     )
 

@@ -198,32 +198,25 @@ def test_corrected_audit_pipeline_refits_parameters_per_fold(monkeypatch):
     profiles = _synthetic_profiles_5_seasons()
     pa_df = _synthetic_pa_5_seasons()
 
-    leakage_violations = []  # collect held_out values that appeared in passed-in df
+    expected_held_in_per_call = []  # list of expected held-in season sets (one per fold)
+    actual_held_in_per_call = []   # list of actual season sets seen by estimator
 
-    def make_no_leak_wrapper(real_fn, fn_name):
-        # The body of corrected_audit_pipeline tracks which season is held_out
-        # in a `current_held_out` local. We can't directly observe that from
-        # the wrapper, but we CAN observe that no single call's input df should
-        # contain ALL 5 seasons — if it does, fold-local slicing failed.
-        # Stronger check: every call's input should have len(unique seasons) == 4.
+    def make_strict_no_leak_wrapper(real_fn, fn_name):
         def wrapper(df, *args, **kwargs):
             if "season" in df.columns:
                 seasons_in_df = set(df["season"].unique())
-                if len(seasons_in_df) != 4:
-                    leakage_violations.append(
-                        (fn_name, sorted(seasons_in_df))
-                    )
+                actual_held_in_per_call.append((fn_name, seasons_in_df))
             return real_fn(df, *args, **kwargs)
         return wrapper
 
     from bts.validate import dependence as dep_mod
     monkeypatch.setattr(
         dep_mod, "pa_residual_correlation",
-        make_no_leak_wrapper(dep_mod.pa_residual_correlation, "pa_residual_correlation"),
+        make_strict_no_leak_wrapper(dep_mod.pa_residual_correlation, "pa_residual_correlation"),
     )
     monkeypatch.setattr(
         dep_mod, "fit_logistic_normal_random_intercept",
-        make_no_leak_wrapper(dep_mod.fit_logistic_normal_random_intercept, "fit_lnri"),
+        make_strict_no_leak_wrapper(dep_mod.fit_logistic_normal_random_intercept, "fit_lnri"),
     )
     # pair_residual_correlation takes pair_df (different column shape) — wrap
     # using a call-count-tracking no-leak helper:
@@ -242,14 +235,32 @@ def test_corrected_audit_pipeline_refits_parameters_per_fold(monkeypatch):
         mdp_solve_fn=_all_skip_policy,
         n_bootstrap=20,
         rho_pair_n_permutations=20,
+        pa_n_bootstrap=20,  # keep tests fast
     )
 
     # Per-fold count: pair_residual_correlation called 5x (once per fold).
     assert no_leak_pair.call_count == 5, (
         f"expected pair_residual_correlation called 5 times, got {no_leak_pair.call_count}"
     )
-    # Critical: NO leakage violations should have been recorded.
-    assert leakage_violations == [], f"Held-out leaked into estimator input: {leakage_violations}"
+
+    # Exact-set leakage check: each estimator must have been called 5 times,
+    # once per fold, and the seasons in each call must be exactly
+    # all_seasons - {held_out} for some held_out in fold_seasons.
+    # This catches both cardinality bugs (|seasons| != 4) AND identity bugs
+    # (wrong complement, e.g., train=[2021,2023,2024,2025] when held_out=2022
+    # would have cardinality 4 but would also have 2021 when it should not).
+    all_seasons = {2021, 2022, 2023, 2024, 2025}
+    pa_calls = [s for fn, s in actual_held_in_per_call if fn == "pa_residual_correlation"]
+    lnri_calls = [s for fn, s in actual_held_in_per_call if fn == "fit_lnri"]
+    assert len(pa_calls) == 5, f"pa_residual_correlation called {len(pa_calls)} times, expected 5"
+    assert len(lnri_calls) == 5, f"fit_lnri called {len(lnri_calls)} times, expected 5"
+    expected_sets = {frozenset(all_seasons - {h}) for h in all_seasons}
+    assert {frozenset(s) for s in pa_calls} == expected_sets, (
+        f"pa_residual_correlation leaked or used wrong complement: {pa_calls}"
+    )
+    assert {frozenset(s) for s in lnri_calls} == expected_sets, (
+        f"fit_lnri leaked or used wrong complement: {lnri_calls}"
+    )
 
 
 def test_corrected_audit_pipeline_returns_fold_metadata_with_per_bin_rho():
@@ -265,6 +276,7 @@ def test_corrected_audit_pipeline_returns_fold_metadata_with_per_bin_rho():
         mdp_solve_fn=_all_skip_policy,
         n_bootstrap=20,
         rho_pair_n_permutations=20,
+        pa_n_bootstrap=20,  # keep tests fast
     )
     assert hasattr(result, "fold_metadata")
     assert len(result.fold_metadata) == 5
