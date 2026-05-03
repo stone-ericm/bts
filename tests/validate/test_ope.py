@@ -508,3 +508,33 @@ def test_corrected_audit_pipeline_scalar_rho_pair_uses_global_scalar(monkeypatch
             f"scalar mode passed a rho_pair of size {arr.size} to "
             f"build_corrected_transition_table; expected size 1 (scalar)"
         )
+
+
+def test_corrected_audit_pipeline_cell_101_fold_local_scalar_per_fold():
+    """Cell 101 (fold-local params + scalar rho_pair + per-fold policy) is
+    the only valid cell not exercised by the dimension-focused tests.
+    Verify it produces a coherent verdict + fold metadata.
+    """
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    result = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20,
+        rho_pair_n_permutations=20,
+        pa_n_bootstrap=20,
+        params_mode="fold-local",
+        rho_pair_mode="scalar",
+        policy_mode="per-fold",
+    )
+    assert isinstance(result.point_estimate, float)
+    assert len(result.fold_metadata) == 5
+    for fm in result.fold_metadata:
+        assert fm["params_mode"] == "fold-local"
+        assert fm["rho_pair_mode"] == "scalar"
+        assert fm["policy_mode"] == "per-fold"
+        # rho_pair_per_bin in scalar mode is a synthesized broadcast (np.full)
+        assert fm["rho_pair_per_bin"].shape == (5,)
+        assert np.all(fm["rho_pair_per_bin"] == fm["rho_pair_per_bin"][0])  # all equal (broadcast scalar)

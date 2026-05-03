@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -490,9 +491,9 @@ def corrected_audit_pipeline(
     n_pa_per_game: int = 5,
     rho_pair_n_permutations: int = 300,
     pa_n_bootstrap: int = 300,
-    params_mode: str = "fold-local",   # "pooled" | "fold-local"
-    rho_pair_mode: str = "per-bin",    # "scalar" | "per-bin"
-    policy_mode: str = "per-fold",     # "global" | "per-fold"
+    params_mode: Literal["pooled", "fold-local"] = "fold-local",
+    rho_pair_mode: Literal["scalar", "per-bin"] = "per-bin",
+    policy_mode: Literal["global", "per-fold"] = "per-fold",
 ) -> "DROPEResult":
     """LOSO audit with configurable dependence estimation and policy modes.
 
@@ -594,7 +595,7 @@ def corrected_audit_pipeline(
     # --- Pre-compute pooled params when needed ---
     # Pooled params are needed if: (a) params_mode='pooled', or (b) policy_mode='global'
     # (which requires pooled params since fold-local+global is forbidden above).
-    need_pooled_params = (params_mode == "pooled")
+    need_pooled_params = (params_mode == "pooled") or (policy_mode == "global")
     if need_pooled_params:
         pooled_rho_PA, pooled_rho_PA_lo, pooled_rho_PA_hi, _ = pa_residual_correlation(
             pa_df, n_bootstrap=pa_n_bootstrap, seed=seed,
@@ -611,6 +612,19 @@ def corrected_audit_pipeline(
     if policy_mode == "global":
         full_bins = _compute_bins_from_direct_profiles(profiles)
         n_full_bins = len(full_bins.bins)
+        # Contiguity assumption: bin.index must equal position in full_bins.bins.
+        # build_corrected_transition_table also enforces this (T2 followup), but
+        # fail earlier here with a clearer message about the global-policy branch.
+        actual_indices = [b.index for b in full_bins.bins]
+        expected_indices = list(range(n_full_bins))
+        if actual_indices != expected_indices:
+            raise ValueError(
+                f"Global-policy branch requires contiguous bin indices, but "
+                f"_compute_bins_from_direct_profiles produced {actual_indices}. "
+                f"This usually means an empty quantile bin was skipped. "
+                f"Use policy_mode='per-fold' which can handle sparse bins, or "
+                f"investigate why the data has empty bins."
+            )
         pair_df_pooled = profiles[
             ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
         ].rename(columns={
@@ -691,11 +705,29 @@ def corrected_audit_pipeline(
             policy_table = global_policy_table
             used_bins = global_corrected_bins
             rho_pair_arg_used = global_rho_pair_arg
+            # When policy_mode='global', the SAME global_rho_result is assigned to every
+            # fold's metadata. All 5 entries will carry identical parameter values
+            # (rho_PA, tau, rho_pair_per_bin) — this is correct (global policy was built
+            # from these stats) but a consumer computing fold-to-fold variance will see
+            # zero. Document this in any analysis tooling that consumes fold_metadata.
             rho_result_for_meta = global_rho_result
         else:  # per-fold
             # Fold-local bins.
             train_bins = _compute_bins_from_direct_profiles(train_profiles)
             n_bins = len(train_bins.bins)
+            # Contiguity assumption: bin.index must equal position in train_bins.bins.
+            # build_corrected_transition_table also enforces this (T2 followup), but
+            # fail earlier here with a clearer message about the global-policy branch.
+            actual_train_indices = [b.index for b in train_bins.bins]
+            expected_train_indices = list(range(n_bins))
+            if actual_train_indices != expected_train_indices:
+                raise ValueError(
+                    f"Global-policy branch requires contiguous bin indices, but "
+                    f"_compute_bins_from_direct_profiles produced {actual_train_indices}. "
+                    f"This usually means an empty quantile bin was skipped. "
+                    f"Use policy_mode='per-fold' which can handle sparse bins, or "
+                    f"investigate why the data has empty bins."
+                )
 
             # Fold-local rho_pair — per-bin or scalar.
             # CRITICAL: pass expected_bin_indices to guarantee the returned vector
