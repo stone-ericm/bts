@@ -129,6 +129,8 @@ def run_harness(
     params_mode: str = "fold-local",
     rho_pair_mode: str = "per-bin",
     policy_mode: str = "per-fold",
+    n_block_bootstrap: int = 0,
+    expected_block_length: int = 7,
 ) -> dict:
     """Top-level harness driver. Returns the verdict dict and writes it to output_path."""
     seasons = sorted(profiles["season"].unique().tolist())
@@ -255,6 +257,8 @@ def run_harness(
         params_mode=params_mode,
         rho_pair_mode=rho_pair_mode,
         policy_mode=policy_mode,
+        n_block_bootstrap=n_block_bootstrap,
+        expected_block_length=expected_block_length,
     )
 
     # Step 7c: Diagnostic heatmap — per-cross-bin-cell rho_pair on full pooled data.
@@ -321,6 +325,8 @@ def run_harness(
         "rho_pair_mode": rho_pair_mode,
         "rho_pair_scope": "full" if policy_mode == "global" else "fold-local",
         "policy_mode": policy_mode,
+        "n_block_bootstrap": n_block_bootstrap,
+        "expected_block_length": expected_block_length,
         "fixed_policy_terminal_r_mc_p57": _format_estimate(
             fixed_result.point_estimate, fixed_result.ci_lower, fixed_result.ci_upper
         ),
@@ -401,6 +407,14 @@ def main():
         "--policy-mode", choices=["global", "per-fold"], default="per-fold",
         help="MDP policy solve scope: 'global' (v1) or 'per-fold' (v2 default).",
     )
+    parser.add_argument(
+        "--n-block-bootstrap", default=0, type=int,
+        help="Profile-level block-bootstrap replicates for pooled CI (default 0 = use 5-fold percentile).",
+    )
+    parser.add_argument(
+        "--expected-block-length", default=7, type=int,
+        help="Mean block length (days) for stationary bootstrap when --n-block-bootstrap > 0.",
+    )
     args = parser.parse_args()
 
     profiles = pd.concat(pd.read_parquet(p) for p in sorted(Path().glob(args.profiles_glob)))
@@ -417,6 +431,8 @@ def main():
         params_mode=args.params_mode,
         rho_pair_mode=args.rho_pair_mode,
         policy_mode=args.policy_mode,
+        n_block_bootstrap=args.n_block_bootstrap,
+        expected_block_length=args.expected_block_length,
     )
     print(json.dumps(out, indent=2))
 

@@ -118,3 +118,39 @@ class TestHarnessSmokeTest:
         # rho_pair_per_bin in fold_metadata must be JSON-safe (no NaN — only None).
         raw = json.dumps(data)  # re-serialize; would raise on NaN literals
         assert "NaN" not in raw, "NaN literal found in verdict JSON (use None instead)"
+
+
+def test_run_harness_forwards_block_bootstrap_kwargs(monkeypatch, tmp_path: Path):
+    """run_harness must forward n_block_bootstrap and expected_block_length to corrected_audit_pipeline."""
+    import scripts.run_falsification_harness as rfh
+
+    captured: dict = {}
+    real_corrected = rfh.corrected_audit_pipeline
+
+    def capturing_corrected(*args, **kwargs):
+        captured.update(kwargs)
+        return real_corrected(*args, **kwargs)
+
+    monkeypatch.setattr(rfh, "corrected_audit_pipeline", capturing_corrected)
+
+    rng = np.random.default_rng(1)
+    profiles = _make_smoke_profiles(rng)
+    pa_df = _make_smoke_pa_df(rng)
+
+    rfh.run_harness(
+        profiles, pa_df,
+        output_path=tmp_path / "verdict.json",
+        n_bootstrap=50,
+        n_permutations=10,
+        pa_n_bootstrap=10,
+        n_final=100,
+        n_block_bootstrap=5,
+        expected_block_length=14,
+    )
+
+    assert captured.get("n_block_bootstrap") == 5, (
+        f"n_block_bootstrap not forwarded; captured kwargs: {list(captured)}"
+    )
+    assert captured.get("expected_block_length") == 14, (
+        f"expected_block_length not forwarded; captured kwargs: {list(captured)}"
+    )

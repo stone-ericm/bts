@@ -199,8 +199,13 @@ def scorecard(
               help="Final IS sample size for CE-IS rare-event MC")
 @click.option("--headline-p57", default=0.0817, type=float,
               help="In-sample headline P(57) to defend (default: 8.17%)")
+@click.option("--n-block-bootstrap", default=0, type=int,
+              help="Profile-level block-bootstrap replicates for pooled CI (default 0 = use 5-fold percentile).")
+@click.option("--expected-block-length", default=7, type=int,
+              help="Mean block length (days) for stationary bootstrap when --n-block-bootstrap > 0.")
 def falsification_harness_cmd(
-    profiles_glob, pa_glob, output, n_bootstrap, n_final, headline_p57
+    profiles_glob, pa_glob, output, n_bootstrap, n_final, headline_p57,
+    n_block_bootstrap, expected_block_length,
 ):
     """Run the BTS 8.17% falsification harness.
 
@@ -226,6 +231,8 @@ def falsification_harness_cmd(
         headline_p57_in_sample=headline_p57,
         n_bootstrap=n_bootstrap,
         n_final=n_final,
+        n_block_bootstrap=n_block_bootstrap,
+        expected_block_length=expected_block_length,
     )
     click.echo(json.dumps(out, indent=2))
 
