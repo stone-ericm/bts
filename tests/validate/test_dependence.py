@@ -352,8 +352,43 @@ class TestPairResidualCorrelation:
         assert result["n_per_bin"][2] == 0  # bin 2 absent
         assert result["rho_per_bin"][2] == 0.0  # empty bin → rho=0
         assert result["p_value_per_bin"][2] == 1.0  # empty bin → p=1
+        # Bin 2 absent — verify ALL empty-bin defaults, not just rho/n.
+        assert result["ci_lo_per_bin"][2] == 0.0
+        assert result["ci_hi_per_bin"][2] == 0.0
         # Bins 0, 1, 3, 4 should have non-zero counts.
         for k in [0, 1, 3, 4]:
             assert result["n_per_bin"][k] > 0
         # bin_indices should match what was passed in.
         np.testing.assert_array_equal(result["bin_indices"], np.arange(5))
+
+    def test_pair_residual_correlation_strict_label_validation_raises(self):
+        """When bin_assignment contains labels outside expected_bin_indices,
+        strict_bin_labels=True (default) raises ValueError; False allows drop."""
+        rng = np.random.default_rng(42)
+        n = 100
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.95, n),
+            "y_rank1": rng.binomial(1, 0.7, n),
+            "p_rank2": rng.uniform(0.4, 0.85, n),
+            "y_rank2": rng.binomial(1, 0.6, n),
+        })
+        # Data has bin label 7, but expected only includes [0..4].
+        bin_assignment = pd.Series([7] * n)
+
+        # Default strict mode raises.
+        with pytest.raises(ValueError, match="not in expected_bin_indices"):
+            pair_residual_correlation(
+                df, n_permutations=10,
+                bin_assignment=bin_assignment,
+                expected_bin_indices=np.arange(5),
+            )
+
+        # Opt-out allows silent drop.
+        result = pair_residual_correlation(
+            df, n_permutations=10,
+            bin_assignment=bin_assignment,
+            expected_bin_indices=np.arange(5),
+            strict_bin_labels=False,
+        )
+        # All output bins are empty (label 7 was dropped).
+        assert result["n_per_bin"].sum() == 0

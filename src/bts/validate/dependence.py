@@ -216,6 +216,7 @@ def pair_residual_correlation(
     seed: int = 42,
     bin_assignment: "pd.Series | np.ndarray | None" = None,
     expected_bin_indices: "np.ndarray | list | None" = None,
+    strict_bin_labels: bool = True,
 ) -> "tuple[float, float, float, float] | dict":
     """Stratified permutation test on rank-1/rank-2 Pearson residuals.
 
@@ -250,6 +251,9 @@ def pair_residual_correlation(
     Returned dict keys:
         rho_per_bin: shape-(K,) array; rho_per_bin[k] is rho for bin k
             where K = len(expected_bin_indices) if given, else len(unique(bin_assignment))
+            NOTE: arrays are position-indexed (not label-indexed). Direct lookup
+            `rho_per_bin[b.index]` is safe ONLY when `expected_bin_indices == np.arange(n_bins)`.
+            For arbitrary label sets like [10, 20, 30], use `bin_indices` to look up by label.
         ci_lo_per_bin: shape-(K,)
         ci_hi_per_bin: shape-(K,)
         p_value_per_bin: shape-(K,)
@@ -261,10 +265,11 @@ def pair_residual_correlation(
     ci_lo/ci_hi=0.0, p_value=1.0. Caller should check n_per_bin and treat
     rho=0 as "uninformative for this bin in this fold."
 
-    Rows whose bin label does not appear in `expected_bin_indices` are silently
-    excluded from all per-bin statistics. Callers should verify that
-    ``set(np.unique(bin_assignment)) <= set(expected_bin_indices)`` if
-    unexpected labels are a concern.
+    Strict label validation (strict_bin_labels=True, default): raises ValueError
+    when bin_assignment contains labels not in expected_bin_indices. This
+    fail-closed default protects against bin-classification bugs hiding silently.
+    Set strict_bin_labels=False to opt into silent exclusion of unexpected
+    labels (useful for diagnostic explorations).
     """
     rng = np.random.default_rng(seed)
     e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
@@ -294,6 +299,8 @@ def pair_residual_correlation(
 
     # Per-bin path. bin_assignment must have len == len(df).
     bins_arr = np.asarray(bin_assignment)
+    if bins_arr.ndim != 1:
+        raise ValueError(f"bin_assignment must be 1D, got ndim={bins_arr.ndim}")
     if len(bins_arr) != n:
         raise ValueError(
             f"bin_assignment length {len(bins_arr)} != df length {n}"
@@ -302,6 +309,16 @@ def pair_residual_correlation(
     # back to sorted unique values (legacy behavior).
     if expected_bin_indices is not None:
         bin_indices = np.asarray(expected_bin_indices)
+        if bin_indices.ndim != 1:
+            raise ValueError(f"expected_bin_indices must be 1D, got ndim={bin_indices.ndim}")
+        if strict_bin_labels:
+            unexpected = set(np.unique(bins_arr).tolist()) - set(bin_indices.tolist())
+            if unexpected:
+                raise ValueError(
+                    f"bin_assignment contains labels {sorted(unexpected)} not in "
+                    f"expected_bin_indices. Pass strict_bin_labels=False to allow "
+                    f"silent exclusion of unexpected labels."
+                )
     else:
         bin_indices = np.sort(np.unique(bins_arr))
     K = len(bin_indices)
