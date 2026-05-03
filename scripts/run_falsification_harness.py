@@ -126,6 +126,9 @@ def run_harness(
     n_permutations: int = 300,
     pa_n_bootstrap: int = 300,
     seed: int = 42,
+    params_mode: str = "fold-local",
+    rho_pair_mode: str = "per-bin",
+    policy_mode: str = "per-fold",
 ) -> dict:
     """Top-level harness driver. Returns the verdict dict and writes it to output_path."""
     seasons = sorted(profiles["season"].unique().tolist())
@@ -249,6 +252,9 @@ def run_harness(
         seed=seed,
         rho_pair_n_permutations=n_permutations,
         pa_n_bootstrap=pa_n_bootstrap,
+        params_mode=params_mode,
+        rho_pair_mode=rho_pair_mode,
+        policy_mode=policy_mode,
     )
 
     # Step 7c: Diagnostic heatmap — per-cross-bin-cell rho_pair on full pooled data.
@@ -311,6 +317,9 @@ def run_harness(
     out = {
         "date": pd.Timestamp.now().strftime("%Y-%m-%d"),
         "headline_p57_in_sample": headline_p57_in_sample,
+        "params_mode": params_mode,
+        "rho_pair_mode": rho_pair_mode,
+        "policy_mode": policy_mode,
         "fixed_policy_terminal_r_mc_p57": _format_estimate(
             fixed_result.point_estimate, fixed_result.ci_lower, fixed_result.ci_upper
         ),
@@ -379,6 +388,18 @@ def main():
         "--seed", type=int, default=42,
         help="Base RNG seed; fold i uses seed+i (default 42).",
     )
+    parser.add_argument(
+        "--params-mode", choices=["pooled", "fold-local"], default="fold-local",
+        help="Dependence parameter estimation mode: 'pooled' (v1) or 'fold-local' (v2 default).",
+    )
+    parser.add_argument(
+        "--rho-pair-mode", choices=["scalar", "per-bin"], default="per-bin",
+        help="rho_pair shape: 'scalar' (v1) or 'per-bin' (v2 default).",
+    )
+    parser.add_argument(
+        "--policy-mode", choices=["global", "per-fold"], default="per-fold",
+        help="MDP policy solve scope: 'global' (v1) or 'per-fold' (v2 default).",
+    )
     args = parser.parse_args()
 
     profiles = pd.concat(pd.read_parquet(p) for p in sorted(Path().glob(args.profiles_glob)))
@@ -392,6 +413,9 @@ def main():
         n_permutations=args.n_permutations,
         pa_n_bootstrap=args.pa_n_bootstrap,
         seed=args.seed,
+        params_mode=args.params_mode,
+        rho_pair_mode=args.rho_pair_mode,
+        policy_mode=args.policy_mode,
     )
     print(json.dumps(out, indent=2))
 

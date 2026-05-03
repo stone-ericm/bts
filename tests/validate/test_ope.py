@@ -299,3 +299,212 @@ def test_corrected_audit_pipeline_returns_fold_metadata_with_per_bin_rho():
             f"Fold for season {fold_meta['held_out_season']}: "
             f"rho_pair_n_per_bin is all zero — bin classification failed silently"
         )
+
+
+# ---------------------------------------------------------------------------
+# v2.5 ablation mode flag tests
+# ---------------------------------------------------------------------------
+
+def test_corrected_audit_pipeline_default_modes_match_v2():
+    """When no mode flags are specified, fold_metadata still has all expected keys
+    and the 3 mode fields record the v2 defaults.
+    """
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    result = corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=20,
+        rho_pair_n_permutations=20,
+        pa_n_bootstrap=20,
+    )
+
+    assert len(result.fold_metadata) == 5
+    for fm in result.fold_metadata:
+        assert fm["params_mode"] == "fold-local"
+        assert fm["rho_pair_mode"] == "per-bin"
+        assert fm["policy_mode"] == "per-fold"
+        # Legacy keys still present.
+        assert "rho_PA" in fm
+        assert "tau" in fm
+        assert "stability" in fm
+        assert fm["rho_pair_per_bin"].shape == (5,)
+
+
+def test_corrected_audit_pipeline_rejects_undefined_combo():
+    """fold-local + global is the operationally undefined combination; must raise ValueError."""
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    with pytest.raises(ValueError, match="operationally undefined"):
+        corrected_audit_pipeline(
+            profiles, pa_df,
+            fold_seasons=[2021, 2022, 2023, 2024, 2025],
+            mdp_solve_fn=_all_skip_policy,
+            n_bootstrap=20,
+            rho_pair_n_permutations=20,
+            pa_n_bootstrap=20,
+            params_mode="fold-local",
+            policy_mode="global",
+        )
+
+
+def test_corrected_audit_pipeline_pooled_params_uses_full_data(monkeypatch):
+    """params_mode='pooled' calls pa_residual_correlation once with all 5 seasons;
+    params_mode='fold-local' calls it 5 times each with exactly 4 seasons.
+    """
+    from bts.validate import dependence as dep_mod
+
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+    all_seasons = {2021, 2022, 2023, 2024, 2025}
+
+    # --- pooled mode: exactly 1 call with all 5 seasons ---
+    pooled_call_seasons = []
+    real_pa_corr = dep_mod.pa_residual_correlation
+
+    def pooled_spy(df, *args, **kwargs):
+        if "season" in df.columns:
+            pooled_call_seasons.append(set(df["season"].unique()))
+        return real_pa_corr(df, *args, **kwargs)
+
+    monkeypatch.setattr(dep_mod, "pa_residual_correlation", pooled_spy)
+    corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=10,
+        rho_pair_n_permutations=10,
+        pa_n_bootstrap=10,
+        params_mode="pooled",
+        rho_pair_mode="per-bin",
+        policy_mode="per-fold",
+    )
+    assert len(pooled_call_seasons) == 1, (
+        f"pooled mode called pa_residual_correlation {len(pooled_call_seasons)} times, expected 1"
+    )
+    assert pooled_call_seasons[0] == all_seasons, (
+        f"pooled mode passed seasons {pooled_call_seasons[0]}, expected all 5"
+    )
+
+    # --- fold-local mode: 5 calls each with 4 seasons ---
+    local_call_seasons = []
+
+    def local_spy(df, *args, **kwargs):
+        if "season" in df.columns:
+            local_call_seasons.append(set(df["season"].unique()))
+        return real_pa_corr(df, *args, **kwargs)
+
+    monkeypatch.setattr(dep_mod, "pa_residual_correlation", local_spy)
+    corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=10,
+        rho_pair_n_permutations=10,
+        pa_n_bootstrap=10,
+        params_mode="fold-local",
+        rho_pair_mode="per-bin",
+        policy_mode="per-fold",
+    )
+    assert len(local_call_seasons) == 5, (
+        f"fold-local mode called pa_residual_correlation {len(local_call_seasons)} times, expected 5"
+    )
+    for s in local_call_seasons:
+        assert len(s) == 4, f"fold-local call had {len(s)} seasons, expected 4"
+    expected_complements = {frozenset(all_seasons - {h}) for h in all_seasons}
+    assert {frozenset(s) for s in local_call_seasons} == expected_complements
+
+
+def test_corrected_audit_pipeline_global_policy_solves_once(monkeypatch):
+    """policy_mode='global' calls mdp_solve_fn exactly once; 'per-fold' calls it 5 times."""
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    call_counts = {"n": 0}
+
+    def counting_solver(bins):
+        call_counts["n"] += 1
+        return _all_skip_policy(bins)
+
+    # global mode: MDP solved once before the fold loop.
+    call_counts["n"] = 0
+    corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=counting_solver,
+        n_bootstrap=10,
+        rho_pair_n_permutations=10,
+        pa_n_bootstrap=10,
+        params_mode="pooled",
+        rho_pair_mode="per-bin",
+        policy_mode="global",
+    )
+    assert call_counts["n"] == 1, (
+        f"global mode called mdp_solve_fn {call_counts['n']} times, expected 1"
+    )
+
+    # per-fold mode: MDP solved once per fold = 5 times.
+    call_counts["n"] = 0
+    corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=counting_solver,
+        n_bootstrap=10,
+        rho_pair_n_permutations=10,
+        pa_n_bootstrap=10,
+        params_mode="fold-local",
+        rho_pair_mode="per-bin",
+        policy_mode="per-fold",
+    )
+    assert call_counts["n"] == 5, (
+        f"per-fold mode called mdp_solve_fn {call_counts['n']} times, expected 5"
+    )
+
+
+def test_corrected_audit_pipeline_scalar_rho_pair_uses_global_scalar(monkeypatch):
+    """rho_pair_mode='scalar' feeds a scalar (not a length-5 array) to
+    build_corrected_transition_table at every call site.
+    """
+    from bts.validate import dependence as dep_mod
+
+    profiles = _synthetic_profiles_5_seasons()
+    pa_df = _synthetic_pa_5_seasons()
+
+    rho_args_seen = []
+    real_build = dep_mod.build_corrected_transition_table
+
+    def spy_build(bins, *, rho_PA_within_game, tau_squared, rho_pair_cross_game, n_pa_per_game):
+        rho_args_seen.append(np.asarray(rho_pair_cross_game))
+        return real_build(
+            bins,
+            rho_PA_within_game=rho_PA_within_game,
+            tau_squared=tau_squared,
+            rho_pair_cross_game=rho_pair_cross_game,
+            n_pa_per_game=n_pa_per_game,
+        )
+
+    monkeypatch.setattr(dep_mod, "build_corrected_transition_table", spy_build)
+
+    corrected_audit_pipeline(
+        profiles, pa_df,
+        fold_seasons=[2021, 2022, 2023, 2024, 2025],
+        mdp_solve_fn=_all_skip_policy,
+        n_bootstrap=10,
+        rho_pair_n_permutations=10,
+        pa_n_bootstrap=10,
+        params_mode="pooled",
+        rho_pair_mode="scalar",
+        policy_mode="per-fold",
+    )
+
+    assert len(rho_args_seen) == 5, f"expected 5 build calls, got {len(rho_args_seen)}"
+    for arr in rho_args_seen:
+        # A scalar or shape-() array has ndim=0; shape-() and shape-(1,) are both
+        # acceptable as "scalar" — the key thing is it's NOT a length-5 vector.
+        assert arr.size == 1, (
+            f"scalar mode passed a rho_pair of size {arr.size} to "
+            f"build_corrected_transition_table; expected size 1 (scalar)"
+        )
