@@ -506,12 +506,19 @@ def corrected_audit_pipeline(
             loop, then reused in every fold. Matches v1's behavior.
 
     rho_pair_mode ("per-bin" [v2 default] | "scalar" [v1]):
-        "per-bin": pair_residual_correlation is called with bin_assignment +
-            expected_bin_indices, producing a per-bin rho vector passed to
-            build_corrected_transition_table. Finer-grained correction.
-        "scalar": pair_residual_correlation returns a single scalar rho, which
-            build_corrected_transition_table broadcasts across all bins. Matches
-            v1's behavior.
+        Controls SHAPE of rho_pair, not its data scope:
+        - "per-bin": pair_residual_correlation produces a per-bin rho vector
+        - "scalar": pair_residual_correlation returns a single scalar rho
+
+        rho_pair's data SCOPE follows policy_mode (because rho_pair is bound to
+        the bin classification used for correction):
+        - policy_mode="per-fold" → rho_pair computed PER FOLD on fold-local bins
+        - policy_mode="global"   → rho_pair computed ONCE on full-data bins
+
+        This means params_mode does NOT change rho_pair's scope. Cell 001 (pooled
+        params, scalar rho_pair, per-fold policy) uses POOLED rho_PA/tau but
+        FOLD-LOCAL scalar rho_pair. The "pooled" label in `params_mode` only
+        affects the LNRI parameters (rho_PA, tau), not rho_pair.
 
     policy_mode ("per-fold" [v2 default] | "global" [v1]):
         "per-fold": MDP is solved once per fold on that fold's corrected bins.
@@ -525,12 +532,16 @@ def corrected_audit_pipeline(
     2026-05-03. Use params_mode="pooled" for the global-policy cells.
 
     Nested factorial design (6 valid cells):
-        000 = (pooled,   scalar,  global)  → v1 behavior
-        010 = (pooled,   per-bin, global)
-        001 = (pooled,   scalar,  per-fold)
-        011 = (pooled,   per-bin, per-fold)
-        101 = (fold-local, scalar,  per-fold)
-        111 = (fold-local, per-bin, per-fold) → v2 behavior [defaults]
+        Cell ID = (params_mode, rho_pair_mode, policy_mode)
+        rho_pair scope is determined by policy_mode:
+           per-fold → fold-local rho_pair; global → full rho_pair
+
+        000 = (pooled,     scalar,  global)   → v1 baseline
+        010 = (pooled,     per-bin, global)   → full per-bin rho_pair
+        001 = (pooled,     scalar,  per-fold) → pooled rho_PA/tau + fold-local scalar rho
+        011 = (pooled,     per-bin, per-fold) → pooled rho_PA/tau + fold-local per-bin rho
+        101 = (fold-local, scalar,  per-fold) → fold-local everything (scalar rho)
+        111 = (fold-local, per-bin, per-fold) → v2 default; fold-local everything (per-bin rho)
 
     mdp_solve_fn contract (Codex round 1 fix): callable that takes
     `corrected_bins: QualityBins` and returns either an `np.ndarray`
@@ -622,8 +633,8 @@ def corrected_audit_pipeline(
                 f"Global-policy branch requires contiguous bin indices, but "
                 f"_compute_bins_from_direct_profiles produced {actual_indices}. "
                 f"This usually means an empty quantile bin was skipped. "
-                f"Use policy_mode='per-fold' which can handle sparse bins, or "
-                f"investigate why the data has empty bins."
+                f"Investigate why the data has empty bins (likely a degenerate "
+                f"distribution or too few observations for the requested n_bins)."
             )
         pair_df_pooled = profiles[
             ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
@@ -642,10 +653,19 @@ def corrected_audit_pipeline(
             )
             global_rho_pair_arg = global_rho_result["rho_per_bin"]
         else:  # scalar
-            global_scalar, _, _, _ = pair_residual_correlation(
-                pair_df_pooled, n_permutations=rho_pair_n_permutations, seed=seed,
+            global_scalar, global_scalar_ci_lo, global_scalar_ci_hi, global_scalar_p = (
+                pair_residual_correlation(
+                    pair_df_pooled, n_permutations=rho_pair_n_permutations, seed=seed,
+                )
             )
-            global_rho_result = None
+            global_rho_result = {
+                "_scalar": True,
+                "_rho": global_scalar,
+                "_ci_lo": global_scalar_ci_lo,
+                "_ci_hi": global_scalar_ci_hi,
+                "_p": global_scalar_p,
+                "_n": len(pair_df_pooled),
+            }
             global_rho_pair_arg = global_scalar
 
         global_corrected_bins = build_corrected_transition_table(
@@ -752,11 +772,18 @@ def corrected_audit_pipeline(
                 rho_pair_arg = rho_result["rho_per_bin"]
                 rho_result_for_meta = rho_result
             else:  # scalar
-                scalar_rho, _, _, _ = pair_residual_correlation(
+                scalar_rho, scalar_ci_lo, scalar_ci_hi, scalar_p = pair_residual_correlation(
                     pair_df, n_permutations=rho_pair_n_permutations, seed=fold_seed,
                 )
                 rho_pair_arg = scalar_rho  # scalar; build_corrected_transition_table broadcasts
-                rho_result_for_meta = None
+                rho_result_for_meta = {
+                    "_scalar": True,
+                    "_rho": scalar_rho,
+                    "_ci_lo": scalar_ci_lo,
+                    "_ci_hi": scalar_ci_hi,
+                    "_p": scalar_p,
+                    "_n": len(pair_df),
+                }
 
             rho_pair_arg_used = rho_pair_arg
 
@@ -796,8 +823,12 @@ def corrected_audit_pipeline(
         )
         fold_estimates.append(fold_result.point_estimate)
 
-        # Build per-bin metadata from rho_result_for_meta (None when scalar mode).
-        if rho_result_for_meta is not None:
+        # Build per-bin metadata from rho_result_for_meta.
+        # rho_result_for_meta is either:
+        #   - a per-bin dict (rho_pair_mode="per-bin")
+        #   - a scalar dict with "_scalar"=True (rho_pair_mode="scalar")
+        if rho_result_for_meta is not None and not rho_result_for_meta.get("_scalar"):
+            # Per-bin mode: full per-bin arrays from pair_residual_correlation.
             rho_pair_per_bin = rho_result_for_meta["rho_per_bin"]
             rho_pair_per_bin_ci_lo = rho_result_for_meta["ci_lo_per_bin"]
             rho_pair_per_bin_ci_hi = rho_result_for_meta["ci_hi_per_bin"]
@@ -806,14 +837,32 @@ def corrected_audit_pipeline(
             rho_pair_global = float(rho_result_for_meta["global_rho"])
             bin_indices = rho_result_for_meta["bin_indices"]
         else:
-            # scalar mode: represent as a scalar in metadata
-            rho_scalar_val = float(np.asarray(rho_pair_arg_used).flat[0])
+            # Scalar mode: broadcast scalar metadata to length-K arrays so consumers
+            # always get array-shaped fields. ci_lo/ci_hi/p_value come from
+            # pair_residual_correlation's 4-tuple return (rho, ci_lo, ci_hi, p_value).
+            # n_per_bin gets the total observation count (every bin sees the same
+            # scalar estimate, so there is no meaningful per-bin count).
             n_bins_meta = len(used_bins.bins)
+            if rho_result_for_meta is not None:
+                # Scalar dict with CI/p captured at call time.
+                rho_scalar_val = float(rho_result_for_meta["_rho"])
+                scalar_ci_lo_val = float(rho_result_for_meta["_ci_lo"])
+                scalar_ci_hi_val = float(rho_result_for_meta["_ci_hi"])
+                scalar_p_val = float(rho_result_for_meta["_p"])
+                scalar_n_val = int(rho_result_for_meta["_n"])
+            else:
+                # Fallback: rho_result_for_meta is None (legacy path; should not
+                # occur after this fix, but keep defensive for safety).
+                rho_scalar_val = float(np.asarray(rho_pair_arg_used).flat[0])
+                scalar_ci_lo_val = float("nan")
+                scalar_ci_hi_val = float("nan")
+                scalar_p_val = float("nan")
+                scalar_n_val = 0
             rho_pair_per_bin = np.full(n_bins_meta, rho_scalar_val)
-            rho_pair_per_bin_ci_lo = None
-            rho_pair_per_bin_ci_hi = None
-            rho_pair_per_bin_p_value = None
-            rho_pair_n_per_bin = None
+            rho_pair_per_bin_ci_lo = np.full(n_bins_meta, scalar_ci_lo_val)
+            rho_pair_per_bin_ci_hi = np.full(n_bins_meta, scalar_ci_hi_val)
+            rho_pair_per_bin_p_value = np.full(n_bins_meta, scalar_p_val)
+            rho_pair_n_per_bin = np.full(n_bins_meta, scalar_n_val, dtype=int)
             rho_pair_global = rho_scalar_val
             bin_indices = np.arange(n_bins_meta)
 
@@ -821,6 +870,7 @@ def corrected_audit_pipeline(
             "held_out_season": int(held_out),
             "params_mode": params_mode,
             "rho_pair_mode": rho_pair_mode,
+            "rho_pair_scope": "full" if policy_mode == "global" else "fold-local",  # derived from policy_mode
             "policy_mode": policy_mode,
             "rho_PA": float(rho_PA),
             "rho_PA_ci_lo": float(rho_PA_lo),

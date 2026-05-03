@@ -326,6 +326,8 @@ def test_corrected_audit_pipeline_default_modes_match_v2():
         assert fm["params_mode"] == "fold-local"
         assert fm["rho_pair_mode"] == "per-bin"
         assert fm["policy_mode"] == "per-fold"
+        # rho_pair_scope is derived from policy_mode: "fold-local" when per-fold.
+        assert fm["rho_pair_scope"] == "fold-local"
         # Legacy keys still present.
         assert "rho_PA" in fm
         assert "tau" in fm

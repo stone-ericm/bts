@@ -319,6 +319,7 @@ def run_harness(
         "headline_p57_in_sample": headline_p57_in_sample,
         "params_mode": params_mode,
         "rho_pair_mode": rho_pair_mode,
+        "rho_pair_scope": "full" if policy_mode == "global" else "fold-local",
         "policy_mode": policy_mode,
         "fixed_policy_terminal_r_mc_p57": _format_estimate(
             fixed_result.point_estimate, fixed_result.ci_lower, fixed_result.ci_upper
