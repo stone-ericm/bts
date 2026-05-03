@@ -58,9 +58,6 @@ def _classify_verdict(
     corrected_pipeline_point: float,
     corrected_pipeline_lo: float,
     corrected_pipeline_hi: float,
-    fixed_point: float,
-    fixed_lo: float,
-    fixed_hi: float,
     headline: float,
 ) -> tuple[str, str]:
     """Apply hypothesis-test verdict gates calibrated for the trajectory count.
@@ -206,7 +203,7 @@ def run_harness(
         "top2_hit": "y_rank2",
     })
     rho_pair, rho_pair_lo, rho_pair_hi, _ = pair_residual_correlation(
-        pair_df, n_permutations=n_bootstrap
+        pair_df, n_permutations=n_permutations
     )
 
     # Step 6: Corrected transition table + re-solved policy (for fixed-policy audit only).
@@ -252,16 +249,16 @@ def run_harness(
     # Step 7c: Diagnostic heatmap — per-cross-bin-cell rho_pair on full pooled data.
     # Diagnostic only; does not feed the verdict. Uses full bins (not fold-local)
     # so every cell is populated — gives the most informative heatmap picture.
-    full_bins = _compute_bins_from_direct_profiles(profiles)
-    n_bins = len(full_bins.bins)
+    # Reuse bins_full computed in Step 1 — no need to recompute.
+    n_bins = len(bins_full.bins)
     pair_df_full = canonical_profiles[
         ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
     ].rename(columns={
         "top1_p": "p_rank1", "top1_hit": "y_rank1",
         "top2_p": "p_rank2", "top2_hit": "y_rank2",
     })
-    rank1_assign = pair_df_full["p_rank1"].apply(full_bins.classify)
-    rank2_assign = pair_df_full["p_rank2"].apply(full_bins.classify)
+    rank1_assign = pair_df_full["p_rank1"].apply(bins_full.classify)
+    rank2_assign = pair_df_full["p_rank2"].apply(bins_full.classify)
     heatmap = pair_residual_correlation_per_cell(
         pair_df_full,
         rank1_bin_assignment=rank1_assign,
@@ -272,7 +269,8 @@ def run_harness(
     )
 
     # Step 7d: Read v1 verdict for sensitivity comparison (if available).
-    v1_path = Path("data/validation/falsification_harness_2026-05-02.json")
+    # Anchor to the worktree root via the script's location: scripts/ → ../data/validation/
+    v1_path = Path(__file__).resolve().parent.parent / "data/validation/falsification_harness_2026-05-02.json"
     v1_p57 = "<not-available>"
     if v1_path.exists():
         v1_data = json.loads(v1_path.read_text())
@@ -297,9 +295,6 @@ def run_harness(
         verdict_point,
         verdict_lo,
         verdict_hi,
-        fixed_result.point_estimate,
-        fixed_result.ci_lower if fixed_result.ci_lower is not None else 0.0,
-        fixed_result.ci_upper if fixed_result.ci_upper is not None else 1.0,
         headline_p57_in_sample,
     )
     # Append the verdict basis to rationale for transparency.
@@ -367,6 +362,14 @@ def main():
     parser.add_argument("--n-bootstrap", type=int, default=2000)
     parser.add_argument("--n-final", type=int, default=20000)
     parser.add_argument("--headline-p57", type=float, default=0.0817)
+    parser.add_argument(
+        "--n-permutations", type=int, default=300,
+        help="Permutations for fold-local rho_pair tests + heatmap (default 300).",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42,
+        help="Base RNG seed; fold i uses seed+i (default 42).",
+    )
     args = parser.parse_args()
 
     profiles = pd.concat(pd.read_parquet(p) for p in sorted(Path().glob(args.profiles_glob)))
@@ -377,6 +380,8 @@ def main():
         headline_p57_in_sample=args.headline_p57,
         n_bootstrap=args.n_bootstrap,
         n_final=args.n_final,
+        n_permutations=args.n_permutations,
+        seed=args.seed,
     )
     print(json.dumps(out, indent=2))
 
