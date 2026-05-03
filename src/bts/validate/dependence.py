@@ -373,7 +373,7 @@ def build_corrected_transition_table(
     *,
     rho_PA_within_game: float,
     tau_squared: float,
-    rho_pair_cross_game: float,
+    rho_pair_cross_game: float | np.ndarray | list | tuple,
     n_pa_per_game: int = 5,
 ):
     """Apply two-knob mean corrections to a QualityBins instance.
@@ -393,6 +393,14 @@ def build_corrected_transition_table(
         new_p_both = p1*p2 + rho_pair * sqrt(p1*(1-p1)*p2*(1-p2))
         Clipped to Frechet-Hoeffding bounds [max(0, p1+p2-1), min(p1, p2)].
 
+    rho_pair_cross_game: scalar or array-like (list, tuple, numpy array).
+        - Scalar (float): same rho applied to every bin. Backward-compatible;
+          np.asarray(0.05).ravel() gives size-1 array → uniform broadcast.
+        - Per-bin vector of length K (where K = len(bins.bins)): each bin b
+          receives rho_arr[b.index]. Lists and tuples are coerced via np.asarray,
+          so any array-like of length K works.
+        Raises ValueError if length is neither 1 nor len(bins.bins).
+
     NOTE: `rho_PA_within_game` is currently UNUSED in the correction. The PA
     dependence correction goes entirely through `tau_squared`, which is the
     inverted form of the same quantity (rho_PA_within_game ≈ implied rho from
@@ -402,6 +410,17 @@ def build_corrected_transition_table(
     bins. Pass the diagnostic value for record-keeping in your call site.
     """
     from bts.simulate.quality_bins import QualityBins, QualityBin
+
+    # Normalize rho_pair_cross_game to a 1D array once. Handles float, list,
+    # tuple, and ndarray uniformly. Size-1 means "broadcast scalar to all bins."
+    rho_arr = np.asarray(rho_pair_cross_game, dtype=float).ravel()
+    if rho_arr.size == 1:
+        pass  # scalar broadcast — handled in loop via rho_arr[0]
+    elif rho_arr.size != len(bins.bins):
+        raise ValueError(
+            f"rho_pair_cross_game length {rho_arr.size} != number of bins "
+            f"{len(bins.bins)}; pass scalar or per-bin vector of length {len(bins.bins)}"
+        )
 
     quad_x, quad_w = np.polynomial.hermite_e.hermegauss(21)
     quad_w_sum = float(quad_w.sum())
@@ -442,7 +461,10 @@ def build_corrected_transition_table(
         # approximation available.
         p1 = new_p_hit
         p2 = new_p_hit
-        new_p_both = p1 * p2 + rho_pair_cross_game * np.sqrt(
+        # Per-bin rho_pair: when scalar, broadcast; when array, index by bin position.
+        # b.index is in [0, K-1] matching QualityBin's contract.
+        rho_for_bin = float(rho_arr[0]) if rho_arr.size == 1 else float(rho_arr[b.index])
+        new_p_both = p1 * p2 + rho_for_bin * np.sqrt(
             p1 * (1.0 - p1) * p2 * (1.0 - p2)
         )
         # Clip to Frechet-Hoeffding bounds.

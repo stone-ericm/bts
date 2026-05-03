@@ -237,6 +237,64 @@ class TestBuildCorrectedTransitionTable:
         # Frechet upper bound: min(p1, p2) = 0.75. Should be <= that.
         assert corrected.bins[0].p_both <= 0.75
 
+    def test_build_corrected_transition_table_accepts_per_bin_rho_vector(self):
+        """Passing a length-K rho_pair vector applies per-bin correction."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.0, 0.5), p_hit=0.3, p_both=0.10, frequency=0.2),
+                QualityBin(index=1, p_range=(0.5, 0.6), p_hit=0.55, p_both=0.30, frequency=0.2),
+                QualityBin(index=2, p_range=(0.6, 0.7), p_hit=0.65, p_both=0.42, frequency=0.2),
+                QualityBin(index=3, p_range=(0.7, 0.8), p_hit=0.75, p_both=0.55, frequency=0.2),
+                QualityBin(index=4, p_range=(0.8, 1.0), p_hit=0.85, p_both=0.72, frequency=0.2),
+            ],
+            boundaries=[0.0, 0.5, 0.6, 0.7, 0.8, 1.0],
+        )
+        rho_per_bin = np.array([0.0, 0.0, 0.0, -0.10, +0.05])  # Q4 negative, Q5 positive
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # Q1-Q3 use rho=0 → p_both should equal p1*p2 (within FH bounds).
+        for i in [0, 1, 2]:
+            b_orig = bins.bins[i]
+            b_new = corrected.bins[i]
+            expected_pboth = b_orig.p_hit ** 2
+            assert abs(b_new.p_both - expected_pboth) < 1e-9, (
+                f"Q{i+1}: rho=0 should give p_both = p_hit^2"
+            )
+        # Q4 uses rho=-0.10 → p_both should be BELOW p1*p2.
+        b4_orig = bins.bins[3]
+        b4_new = corrected.bins[3]
+        p1 = p2 = b4_orig.p_hit
+        sigma = np.sqrt(p1 * (1 - p1) * p2 * (1 - p2))
+        expected_q4 = p1 * p2 + (-0.10) * sigma
+        expected_q4 = max(0.0, p1 + p2 - 1.0) if expected_q4 < max(0.0, p1 + p2 - 1.0) else expected_q4
+        expected_q4 = min(p1, p2) if expected_q4 > min(p1, p2) else expected_q4
+        assert abs(b4_new.p_both - expected_q4) < 1e-9
+
+    def test_build_corrected_transition_table_scalar_input_still_works(self):
+        """Backward compat: scalar rho_pair_cross_game applies to all bins."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.5, p_both=0.25, frequency=0.2) for i in range(5)],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.05,  # scalar
+            n_pa_per_game=5,
+        )
+        for b in corrected.bins:
+            assert abs(b.p_both - (0.5*0.5 + 0.05*0.25)) < 1e-9
+
 
 class TestPairResidualCorrelation:
     def test_independent_pairs_yield_nonsignificant_correlation(self):
