@@ -414,13 +414,25 @@ def build_corrected_transition_table(
     # Normalize rho_pair_cross_game to a 1D array once. Handles float, list,
     # tuple, and ndarray uniformly. Size-1 means "broadcast scalar to all bins."
     rho_arr = np.asarray(rho_pair_cross_game, dtype=float).ravel()
-    if rho_arr.size == 1:
-        pass  # scalar broadcast — handled in loop via rho_arr[0]
-    elif rho_arr.size != len(bins.bins):
+    if rho_arr.size not in (1, len(bins.bins)):
         raise ValueError(
             f"rho_pair_cross_game length {rho_arr.size} != number of bins "
-            f"{len(bins.bins)}; pass scalar or per-bin vector of length {len(bins.bins)}"
+            f"{len(bins.bins)}; pass scalar or per-bin vector"
         )
+
+    # Per-bin lookup uses rho_arr[b.index]; only safe when bin indices are
+    # contiguous 0..K-1. compute_bins can produce non-contiguous indices when
+    # empty groups are skipped (see quality_bins.py). Fail loudly with an
+    # actionable message instead of silently mis-assigning rho values.
+    if rho_arr.size > 1:
+        bin_index_list = [b.index for b in bins.bins]
+        if bin_index_list != list(range(len(bins.bins))):
+            raise ValueError(
+                f"Per-bin rho_pair_cross_game requires contiguous 0-based bin "
+                f"indices, but bins.bins has indices {bin_index_list}. Call "
+                f"pair_residual_correlation with expected_bin_indices="
+                f"np.arange(n_bins) to guarantee dense output, or refit bins."
+            )
 
     quad_x, quad_w = np.polynomial.hermite_e.hermegauss(21)
     quad_w_sum = float(quad_w.sum())

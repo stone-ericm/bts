@@ -276,6 +276,52 @@ class TestBuildCorrectedTransitionTable:
         expected_q4 = max(0.0, p1 + p2 - 1.0) if expected_q4 < max(0.0, p1 + p2 - 1.0) else expected_q4
         expected_q4 = min(p1, p2) if expected_q4 > min(p1, p2) else expected_q4
         assert abs(b4_new.p_both - expected_q4) < 1e-9
+        # Q5 uses rho=+0.05 → p_both should be ABOVE p1*p2.
+        b5_orig = bins.bins[4]
+        b5_new = corrected.bins[4]
+        p1 = p2 = b5_orig.p_hit
+        sigma = np.sqrt(p1 * (1 - p1) * p2 * (1 - p2))
+        expected_q5 = p1 * p2 + 0.05 * sigma
+        # Apply Frechet-Hoeffding clipping (small positive rho probably won't trigger,
+        # but parallels the Q4 logic and locks down the formula).
+        lower_fh = max(0.0, p1 + p2 - 1.0)
+        upper_fh = min(p1, p2)
+        expected_q5 = float(min(max(expected_q5, lower_fh), upper_fh))
+        assert abs(b5_new.p_both - expected_q5) < 1e-9
+
+    def test_build_corrected_transition_table_rejects_non_contiguous_bin_indices(self):
+        """When bins have non-contiguous indices (e.g., index=0,1,3,4 from
+        compute_bins skipping an empty group), per-bin rho input must raise
+        ValueError instead of silently mis-assigning."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        sparse_bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.0, 0.5), p_hit=0.3, p_both=0.10, frequency=0.25),
+                QualityBin(index=1, p_range=(0.5, 0.7), p_hit=0.6, p_both=0.36, frequency=0.25),
+                QualityBin(index=3, p_range=(0.7, 0.85), p_hit=0.78, p_both=0.61, frequency=0.25),
+                QualityBin(index=4, p_range=(0.85, 1.0), p_hit=0.9, p_both=0.81, frequency=0.25),
+            ],
+            boundaries=[0.0, 0.5, 0.7, 0.85, 1.0],
+        )
+        rho_per_bin = np.array([0.0, 0.0, 0.0, 0.0])  # length 4, matches len(bins.bins)
+        with pytest.raises(ValueError, match="contiguous 0-based"):
+            build_corrected_transition_table(
+                sparse_bins,
+                rho_PA_within_game=0.0,
+                tau_squared=0.0,
+                rho_pair_cross_game=rho_per_bin,
+                n_pa_per_game=5,
+            )
+        # Scalar input on the same sparse bins should still work (no per-bin lookup).
+        result = build_corrected_transition_table(
+            sparse_bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.05,
+            n_pa_per_game=5,
+        )
+        assert len(result.bins) == 4
 
     def test_build_corrected_transition_table_scalar_input_still_works(self):
         """Backward compat: scalar rho_pair_cross_game applies to all bins."""
