@@ -260,6 +260,11 @@ def pair_residual_correlation(
     Empty-bin behavior: when n_per_bin[k] < 2, rho_per_bin[k]=0.0,
     ci_lo/ci_hi=0.0, p_value=1.0. Caller should check n_per_bin and treat
     rho=0 as "uninformative for this bin in this fold."
+
+    Rows whose bin label does not appear in `expected_bin_indices` are silently
+    excluded from all per-bin statistics. Callers should verify that
+    ``set(np.unique(bin_assignment)) <= set(expected_bin_indices)`` if
+    unexpected labels are a concern.
     """
     rng = np.random.default_rng(seed)
     e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
@@ -269,18 +274,18 @@ def pair_residual_correlation(
 
     # Permutation null distribution: shuffle e2 across positions.
     null_distribution = np.empty(n_permutations)
-    for k in range(n_permutations):
+    for j in range(n_permutations):
         shuffled = rng.permutation(e2)
-        null_distribution[k] = float(np.mean(e1 * shuffled))
+        null_distribution[j] = float(np.mean(e1 * shuffled))
     # Two-sided p-value: how often is the absolute null statistic >= |observed|?
     p_value = float(np.mean(np.abs(null_distribution) >= abs(rho_hat)))
 
     # CI via paired bootstrap on rows.
     n = len(e1)
     bs = np.empty(n_permutations)
-    for k in range(n_permutations):
+    for j in range(n_permutations):
         idx = rng.integers(0, n, n)
-        bs[k] = float(np.mean(e1[idx] * e2[idx]))
+        bs[j] = float(np.mean(e1[idx] * e2[idx]))
     ci_lo = float(np.quantile(bs, 0.025))
     ci_hi = float(np.quantile(bs, 0.975))
 
@@ -289,9 +294,10 @@ def pair_residual_correlation(
 
     # Per-bin path. bin_assignment must have len == len(df).
     bins_arr = np.asarray(bin_assignment)
-    assert len(bins_arr) == n, (
-        f"bin_assignment length {len(bins_arr)} != df length {n}"
-    )
+    if len(bins_arr) != n:
+        raise ValueError(
+            f"bin_assignment length {len(bins_arr)} != df length {n}"
+        )
     # Use caller-supplied expected indices if given (safe contract); else fall
     # back to sorted unique values (legacy behavior).
     if expected_bin_indices is not None:
