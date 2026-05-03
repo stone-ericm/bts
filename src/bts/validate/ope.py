@@ -178,16 +178,22 @@ def paired_hierarchical_bootstrap_sample(
     block-contiguous temporal structure while allowing repeated draws to be identified
     by their assigned slot rather than their source date.
     """
+    # Pre-group by (season, date) once (Codex round 4 perf fix). Avoids
+    # repeated O(N) `season_df[season_df["date"] == source_date]` scans
+    # inside the bootstrap loop. With 24 seeds × ~150 days × ~5 seasons,
+    # the precompute is O(N) and lookups are O(1).
     out_chunks = []
     for season, season_df in df.groupby("season"):
         unique_dates = season_df["date"].drop_duplicates().sort_values().to_numpy()
         n_days = len(unique_dates)
+        # Precompute date → chunk lookup for this season.
+        chunks_by_date = {date: grp for date, grp in season_df.groupby("date")}
         idx = stationary_bootstrap_indices(
             n_days, expected_block_length=expected_block_length, rng=rng
         )
         resampled_dates = unique_dates[idx]
         for slot_date, source_date in zip(unique_dates, resampled_dates):
-            chunk = season_df[season_df["date"] == source_date].copy()
+            chunk = chunks_by_date[source_date].copy()
             chunk["date"] = slot_date
             out_chunks.append(chunk)
     return pd.concat(out_chunks, ignore_index=True)
@@ -286,7 +292,27 @@ def _trajectory_dataframe_from_profiles(
     `policy_action_table[state]`; outcome is realized hit (or skip). Reward
     R = 1 if streak reaches 57 during the trajectory, else 0.
     """
-    from bts.simulate.mdp import ACTIONS
+    # Performance refactor (Codex round 4): the inner state machine
+    # (streak / saver) is genuinely sequential and can't be vectorized,
+    # but everything ELSE can be precomputed:
+    #   1. qbin: vectorized np.digitize on top1_p over the whole df, instead
+    #      of bins.classify per row (Python overhead × 18K rows per audit).
+    #   2. itertuples: ~5x faster than iterrows for row iteration.
+    #   3. Integer action constants (ACTION_SKIP=0, etc.) compared instead of
+    #      strings, avoiding ACTIONS[action_idx] lookup per row.
+
+    # Action constants matching bts.simulate.mdp.ACTIONS = ("skip", "single", "double").
+    ACTION_SKIP, ACTION_SINGLE, ACTION_DOUBLE = 0, 1, 2
+
+    # Vectorized qbin assignment (replaces bins.classify per row).
+    boundaries = np.asarray(bins.boundaries, dtype=float)
+    p_arr = profiles["top1_p"].to_numpy()
+    qbins_all = np.digitize(p_arr, boundaries) if boundaries.size else np.zeros(len(profiles), dtype=int)
+    profiles = profiles.copy()
+    profiles["_qbin"] = qbins_all
+
+    n_streak_dim = policy_action_table.shape[0] - 1
+    n_days_dim = policy_action_table.shape[1] - 1
 
     rows = []
     for (season, seed), group in profiles.groupby(["season", "seed"]):
@@ -294,59 +320,62 @@ def _trajectory_dataframe_from_profiles(
         streak = 0
         saver = 1
         n_steps = len(group)
-        for t, day in group.iterrows():
+        # Pre-extract numpy arrays for the columns we touch in the hot loop.
+        top1_hits = group["top1_hit"].to_numpy()
+        top2_hits = group["top2_hit"].to_numpy()
+        qbins = group["_qbin"].to_numpy()
+        dates = group["date"].to_numpy()
+        traj_id = f"{season}_{seed}"
+        for t in range(n_steps):
             if streak >= 57:
-                # Goal already reached — no further decisions or rewards needed.
                 break
             days_remaining = n_steps - t
-            qbin = bins.classify(day["top1_p"])
-            d_clamped = min(days_remaining, policy_action_table.shape[1] - 1)
-            s_clamped = min(streak, policy_action_table.shape[0] - 1)
-            action_idx = policy_action_table[s_clamped, d_clamped, saver, qbin]
-            action = ACTIONS[action_idx]
-            if action == "skip":
+            qbin = int(qbins[t])
+            d_clamped = days_remaining if days_remaining <= n_days_dim else n_days_dim
+            s_clamped = streak if streak <= n_streak_dim else n_streak_dim
+            action_idx = int(policy_action_table[s_clamped, d_clamped, saver, qbin])
+            top1 = bool(top1_hits[t])
+            if action_idx == ACTION_SKIP:
                 r = 0
                 next_streak = streak
                 next_saver = saver
-            elif action == "single":
-                if day["top1_hit"]:
-                    next_streak = min(streak + 1, 57)
+            elif action_idx == ACTION_SINGLE:
+                if top1:
+                    next_streak = streak + 1 if streak + 1 < 57 else 57
                     next_saver = saver
                     r = 1 if (next_streak == 57 and streak < 57) else 0
+                elif saver and 10 <= streak <= 15:
+                    next_streak = streak
+                    next_saver = 0
+                    r = 0
                 else:
-                    if saver and 10 <= streak <= 15:
-                        next_streak = streak
-                        next_saver = 0
-                        r = 0
-                    else:
-                        next_streak = 0
-                        next_saver = saver
-                        r = 0
-            else:  # double
-                if day["top1_hit"] and day["top2_hit"]:
-                    next_streak = min(streak + 2, 57)
+                    next_streak = 0
+                    next_saver = saver
+                    r = 0
+            else:  # ACTION_DOUBLE
+                if top1 and bool(top2_hits[t]):
+                    next_streak = streak + 2 if streak + 2 < 57 else 57
                     next_saver = saver
                     r = 1 if (next_streak == 57 and streak < 57) else 0
+                elif saver and 10 <= streak <= 15:
+                    next_streak = streak
+                    next_saver = 0
+                    r = 0
                 else:
-                    if saver and 10 <= streak <= 15:
-                        next_streak = streak
-                        next_saver = 0
-                        r = 0
-                    else:
-                        next_streak = 0
-                        next_saver = saver
-                        r = 0
+                    next_streak = 0
+                    next_saver = saver
+                    r = 0
             rows.append({
-                "trajectory_id": f"{season}_{seed}",
+                "trajectory_id": traj_id,
                 "season": season,
                 "seed": seed,
-                "date": day["date"],
+                "date": dates[t],
                 "t": t,
                 "s_streak": streak,
                 "s_days": days_remaining,
                 "s_saver": saver,
                 "s_qbin": qbin,
-                "a": int(action_idx),
+                "a": action_idx,
                 "sn_streak": next_streak,
                 "r": r,
             })
@@ -486,13 +515,17 @@ def corrected_audit_pipeline(
         DROPEResult with mean across fold point-estimates and percentile CI
         across folds when len(fold_seasons) >= 5; None CI bounds otherwise.
     """
+    # Compute full-data bins ONCE outside the fold loop (Codex round 4 perf
+    # fix). Was being recomputed per fold = redundant work since the policy
+    # is also global-from-all-data.
+    bins = _compute_bins_from_direct_profiles(profiles)
+
     fold_estimates = []
     for held_out in fold_seasons:
         # Use full-data bins for the trajectory replay's bin classification.
         # This is consistent with the global-corrected-policy choice — both
         # are built from all-data so the held-out trajectory replay uses
         # consistent state encoding.
-        bins = _compute_bins_from_direct_profiles(profiles)
         test = profiles[profiles["season"] == held_out].copy()
         traj_df = _trajectory_dataframe_from_profiles(
             test, corrected_policy["action_table"], bins

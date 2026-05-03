@@ -16,3 +16,8 @@ dist/
 
 # Modal POC artifacts (not part of the production pipeline)
 modal_audit/
+
+# Task 13 falsification harness — per-seed backtest outputs (large, regenerable)
+data/simulation_seed*/
+data/simulation/profiles_seed*_season*.parquet
+data/simulation/pa_predictions_seed*_season*.parquet

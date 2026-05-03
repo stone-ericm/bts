@@ -239,9 +239,17 @@ def estimate_p57_with_ceis(
     estimates = event_indicators * weights
     point = float(estimates.mean())
 
-    # Bootstrap CI on the estimates array.
-    bs_idx = rng.choice(n_final, size=(2000, n_final), replace=True)
-    bs_means = estimates[bs_idx].mean(axis=1)
+    # Bootstrap CI on the estimates array. Chunked (Codex round 4 memory fix):
+    # `rng.choice(n_final, size=(2000, n_final))` at n_final=20000 would
+    # allocate a 320MB int64 array. Chunked at 200 reps × 20000 = 32MB peak,
+    # with negligible runtime overhead.
+    n_bs = 2000
+    chunk = 200
+    bs_means = np.empty(n_bs)
+    for start in range(0, n_bs, chunk):
+        end = min(start + chunk, n_bs)
+        idx = rng.choice(n_final, size=(end - start, n_final), replace=True)
+        bs_means[start:end] = estimates[idx].mean(axis=1)
     ci_lo = float(np.quantile(bs_means, 0.025))
     ci_hi = float(np.quantile(bs_means, 0.975))
 

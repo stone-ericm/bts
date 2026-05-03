@@ -32,8 +32,9 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ## Audit area inventory (17 items)
 
-### 1. MDP decision layer — distributional DP / DR-MDP / CVaR
+### 1. MDP decision layer — distributional DP / DR-MDP / CVaR  [⏳ partial — corrected transitions shipped 2026-05-02 via Task 13 falsification harness]
 
+- **Status update 2026-05-02**: The two-knob mean correction (PA dependence + cross-game pair) on the existing tabular MDP IS now live in `bts.validate.dependence.build_corrected_transition_table` and exercised by the falsification harness. CVaR-MDP and full DR-MDP are NOT yet implemented; the corrected transitions feed the SAME vanilla value iteration. Real-data run produced corrected_pipeline_p57 = 0.83% [0, 3.75%] vs headline 8.17% — verdict HEADLINE_BROKEN. See `data/validation/falsification_harness_2026-05-02.json` and `project_bts_2026_05_02_task13_verdict.md`.
 - **Current**: Vanilla value iteration on point estimates of P(hit). Single policy table indexed by (streak, days_remaining, saver, quality_bin). Last solved 2026-04-15.
 - **SOTA target** (sequence, immediate to advanced):
   1. **Exact distributional DP** + **robust value iteration over calibrated probability intervals** — keeps the tabular structure, adds tail-risk awareness without deep-RL machinery. This is the immediate target.
@@ -164,7 +165,10 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
 - **Next action**: Read Gneiting & Raftery 2007. Implement `bts.validate.proper_scoring` module: log loss, Brier, Brier decomposition, reliability diagram with bootstrap bands, sharpness-vs-reliability scatter, decision-bucket calibration. Add to `bts validate scorecard` output.
 
-### 13. (NEW, 2026-05-01 evening) Offline policy evaluation (OPE)
+### 13. (NEW, 2026-05-01 evening) Offline policy evaluation (OPE)  [✅ shipped 2026-05-02 — falsification harness Task 13]
+
+- **Status (2026-05-02)**: SHIPPED as part of the Task 13 falsification harness. `bts.validate.ope` module includes `audit_fixed_policy` (frozen-policy held-out), `audit_pipeline` (LOSO refit + re-solve per fold), `corrected_audit_pipeline` (LOSO with global corrected policy), paired hierarchical block bootstrap, and policy regret table. Real-data run on 24-seed × 5-season backtest verdict: HEADLINE_BROKEN. v1 simplification: terminal-reward MC, not full sequential DR; documented inline.
+
 
 - **Current**: MDP policy is offline-trained on walk-forward predictions; "evaluation" is `evaluate_mdp_policy` which uses the same point-estimate value function the policy was solved against (not honest cross-validated policy value).
 - **SOTA target**: **Doubly-robust OPE** (Jiang & Li 2016 "Doubly Robust Off-policy Value Evaluation"); **per-decision IS estimators** (Precup et al. 2000); **Q-evaluation with held-out fitted Q**; **policy regret against baseline policies**; **uncertainty intervals around policy value** (bootstrap or bayes). The MDP layer is a fully offline batch-RL problem and should be evaluated as such.
@@ -174,7 +178,10 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). **Hard prerequisite for area #1 and the falsification harness.**
 - **Next action**: Read Jiang & Li 2016. Design DR-OPE estimator over the existing walk-forward backtest profiles. Include policy-regret bounds against (a) "always-skip" baseline, (b) "always-rank1" baseline, (c) the heuristic strategy.
 
-### 14. (NEW, 2026-05-01 evening) Rare-event Monte Carlo with variance reduction
+### 14. (NEW, 2026-05-01 evening) Rare-event Monte Carlo with variance reduction  [✅ shipped 2026-05-02 — falsification harness Task 13]
+
+- **Status (2026-05-02)**: SHIPPED as `bts.simulate.rare_event_mc` — direct deterministic-theta CE-IS sampler (bypassing the planned LatentFactorSimulator after a structural-bug discovery; documented), unbiasedness gate validated against `bts.simulate.exact`. Real-data verdict from harness: rare_event_ce_p57 = 0.0034 [0.0025, 0.0045], independently corroborates the HEADLINE_BROKEN verdict (the CE-IS estimate is even lower than the corrected pipeline estimate). v1 fits only theta_0 constant logit shift; per-step / per-action tilt deferred to v1.5.
+
 
 - **Current**: P(57) estimated via straightforward Monte Carlo (`bts.simulate.monte_carlo`) and analytical absorbing Markov chain (`exact.py`). Bootstrap CIs reported but use naive sampling that may undercount variance for an extreme survival probability.
 - **SOTA target**: **Cross-entropy importance sampling** (Rubinstein 1997, Rubinstein & Kroese 2017); **subset simulation** (Au & Beck 2001); **multilevel Monte Carlo** (Giles 2008) if applicable. P(57) is an extreme survival event — naive MC needs ~10^4-10^5 trials to estimate with reasonable variance, and correlated game-day outcomes inflate variance further.
@@ -184,7 +191,10 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). Component of the falsification harness.
 - **Next action**: Read Rubinstein-style CE methods + Au & Beck subset simulation. Implement `bts.simulate.rare_event_mc` with cross-entropy IS for P(57). Compare CIs against current naive-MC CIs.
 
-### 15. (NEW, 2026-05-01 evening) PA-independence and cross-game dependence modeling
+### 15. (NEW, 2026-05-01 evening) PA-independence and cross-game dependence modeling  [✅ shipped 2026-05-02 — falsification harness Task 13]
+
+- **Status (2026-05-02)**: SHIPPED as `bts.validate.dependence` — Pearson residuals + within-batter-game residual correlation via cluster bootstrap, logistic-normal random-intercept fit (cross-pair products + brentq inversion, NOT the textbook `tau^2 ≈ var-1` which Codex round 2 caught as backwards), cross-game pair-residual permutation test, and `build_corrected_transition_table` (two-knob mean correction). Real-data findings: rho_PA_within_game = 0.0012 [0.0009, 0.0015] (small but nonzero), rho_pair_cross_game = -0.0074 [-0.0607, 0.0476] (essentially zero). The PA-correction collapses corrected_pipeline_p57 by ~10× — this is the dominant signal that drove the HEADLINE_BROKEN verdict.
+
 
 - **Current**: Game-level aggregation `1 - prod(1 - p_PA)` assumes conditional PA independence given features. Double-down policy treats two games as independent. Neither assumption is tested.
 - **SOTA target**: **Test PA independence empirically** — fit a within-game-residual covariance model, compare to independent-baseline log-likelihood. **Test cross-game dependence** — same weather slate, same modeling errors, correlated bullpen availability, cross-game park effects on the same day. Methods: copula approaches; conditional residual models; permutation tests for independence (Romano 1989). Decision implication: if dependence is non-trivial, the double-down policy under-weights correlation risk and CVaR-MDP becomes more important.
