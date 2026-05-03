@@ -13,9 +13,9 @@ Cell flag mapping (ablation: bits are params_mode, rho_pair_mode, policy_mode):
     101: params=fold-local  rho=scalar    policy=per-fold
 
 Bit encoding:
-    bit 2 (MSB): params_mode   0=fold-local 1=pooled
-    bit 1:       rho_pair_mode 0=per-bin    1=scalar
-    bit 0 (LSB): policy_mode   0=per-fold   1=global
+    bit 2 (MSB): params_mode   0=pooled     1=fold-local
+    bit 1:       rho_pair_mode 0=scalar     1=per-bin
+    bit 0 (LSB): policy_mode   0=global     1=per-fold
 
 Usage:
     python scripts/v2_5_run_ablations.py [--dry-run]
@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 
 # ---- Cell → harness flag mapping ----
-# Bit encoding: bit2=params_mode(1=pooled), bit1=rho_pair_mode(1=scalar), bit0=policy_mode(1=global)
+# Bit encoding: bit2=params_mode(0=pooled,1=fold-local), bit1=rho_pair_mode(0=scalar,1=per-bin), bit0=policy_mode(0=global,1=per-fold)
 CELL_FLAGS: dict[str, tuple[str, str, str]] = {
     "010": ("pooled",      "per-bin", "global"),
     "001": ("pooled",      "scalar",  "per-fold"),
@@ -88,9 +88,11 @@ def build_harness_cmd(cell: str, params_mode: str, rho_pair_mode: str, policy_mo
     """Build the full shell command to run the harness on the remote box."""
     output_path = f"data/validation/falsification_harness_v2.5_cell{cell}.json"
     log_path = f"/root/v2.5_{cell}.log"
+    # 5400 s = 90 min wall-time cap. Production runs ~25 min; if this fires,
+    # something is badly hung and we don't want to keep billing for it.
     cmd = (
         f"cd /root/projects/bts && {ENV_PREFIX} "
-        f"nohup uv run python scripts/run_falsification_harness.py "
+        f"nohup timeout --signal=TERM 5400 uv run python scripts/run_falsification_harness.py "
         f"--profiles-glob 'data/simulation/profiles_seed*_season*.parquet' "
         f"--pa-glob 'data/simulation/pa_predictions_seed*_season*.parquet' "
         f"--output {output_path} "
@@ -161,27 +163,56 @@ def main() -> None:
         print("ERROR: instances.tsv is empty", file=sys.stderr)
         sys.exit(1)
 
-    # Validate all expected cells are present
-    found_cells = {row[0] for row in instances}
-    missing = KNOWN_CELLS - found_cells
+    # Strict cell validation: require EXACTLY the 4 expected cells, no more, no less.
+    found_cells = [row[0] for row in instances]
+    found_set = set(found_cells)
+
+    missing = KNOWN_CELLS - found_set
     if missing:
-        print(f"WARNING: Missing cells in instances.tsv: {sorted(missing)}", file=sys.stderr)
+        print(
+            f"ERROR: instances.tsv is missing required cells: {sorted(missing)}. "
+            f"Re-run v2_5_provision.sh.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    duplicated = [c for c in found_cells if found_cells.count(c) > 1]
+    if duplicated:
+        print(
+            f"ERROR: instances.tsv contains duplicate cell entries: {sorted(set(duplicated))}. "
+            f"instances.tsv is corrupted.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    unknown = found_set - KNOWN_CELLS
+    if unknown:
+        print(
+            f"ERROR: instances.tsv contains unknown cells: {sorted(unknown)}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     print(f"Launching {len(instances)} ablation run(s) in parallel...")
     t0 = time.time()
 
-    procs: list[tuple[str, str, subprocess.Popen]] = []
+    launch_failures: list[str] = []
     for cell, inst_id, ip in instances:
-        params_mode, rho_pair_mode, policy_mode = CELL_FLAGS.get(cell, ("?", "?", "?"))
-        if cell not in CELL_FLAGS:
-            print(f"  SKIP unknown cell {cell!r}", file=sys.stderr)
-            continue
         pid = launch_cell(cell, ip, dry_run=False)
         if pid is None:
-            print(f"  WARNING: cell {cell} failed to launch", file=sys.stderr)
+            launch_failures.append(cell)
+            print(f"  ERROR: cell {cell} failed to launch", file=sys.stderr)
 
     elapsed = time.time() - t0
-    print(f"\nAll launches fired in {elapsed:.1f}s.")
+
+    if launch_failures:
+        print(
+            f"\nERROR: {len(launch_failures)} cell(s) failed to start: {launch_failures}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    print(f"\nAll {len(instances)} launches fired in {elapsed:.1f}s.")
     print("Runs are executing in the background on each box (~22 min each).")
     print("")
     print("To monitor progress:")

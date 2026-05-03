@@ -5,7 +5,7 @@
 #   1. Provisions 4 Vultr vhp-12c-24gb-amd boxes in ewr with cloud-init that
 #      installs uv and waits at /root/cloud-init-done.
 #   2. Polls until all 4 boxes are active with IPs.
-#   3. Rsyncs src/, pyproject.toml, uv.lock to each box.
+#   3. Rsyncs src/, scripts/, pyproject.toml, uv.lock to each box.
 #   4. Rsyncs data/simulation/ parquets to each box.
 #   5. Runs `uv sync --extra model` on each box.
 #   6. Writes /tmp/v2.5/instances.tsv: cell_label<TAB>instance_id<TAB>ip
@@ -229,13 +229,16 @@ done < /tmp/v2.5/instances.tsv
 # ---- Rsync code to each box ----
 
 echo ""
-echo "Rsyncing src/, pyproject.toml, uv.lock to each box..."
+echo "Rsyncing src/, scripts/, pyproject.toml, uv.lock to each box..."
 SSH_CMD="ssh $SSH_OPTS"
 while IFS=$'\t' read -r CELL INST IP; do
   echo "  harness-v2.5-cell-${CELL} ($IP): code..."
   rsync -az -e "$SSH_CMD" \
     src/ \
     "root@${IP}:/root/projects/bts/src/" || { echo "ERROR: rsync src failed for cell $CELL" >&2; exit 1; }
+  rsync -az -e "$SSH_CMD" \
+    scripts/ \
+    "root@${IP}:/root/projects/bts/scripts/" || { echo "ERROR: rsync scripts failed for cell $CELL" >&2; exit 1; }
   rsync -az -e "$SSH_CMD" \
     pyproject.toml uv.lock \
     "root@${IP}:/root/projects/bts/" || { echo "ERROR: rsync configs failed for cell $CELL" >&2; exit 1; }
@@ -261,7 +264,7 @@ while IFS=$'\t' read -r CELL INST IP; do
   (
     LOG=/tmp/v2.5/uvsync_cell${CELL}.log
     ssh $SSH_OPTS "root@$IP" \
-      "cd /root/projects/bts && PATH=/root/.local/bin:\$PATH UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model 2>&1 | tail -5" \
+      "cd /root/projects/bts && PATH=/root/.local/bin:\$PATH UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model > /tmp/uv_sync.log 2>&1; rc=\$?; tail -5 /tmp/uv_sync.log; exit \$rc" \
       > "$LOG" 2>&1
     RC=$?
     echo -e "${CELL}\t${IP}\t${RC}" >> /tmp/v2.5/uvsync_results.txt
