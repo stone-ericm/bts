@@ -376,6 +376,38 @@ def _feature_cols_by_config(blend_configs: list) -> dict[str, list[str]]:
     return out
 
 
+def _write_pa_predictions_chunk(
+    day_data: "pd.DataFrame",
+    output_path: "Path",
+) -> None:
+    """Append per-PA predictions for one game day to a parquet file.
+
+    ``day_data`` must already have ``p_hit_blend`` populated. Persists the
+    columns: ``date``, ``game_pk``, ``batter_id``, ``pa_index``,
+    ``p_hit_blend``, ``is_hit``.
+
+    If output_path doesn't exist yet, creates it. If it exists, reads the
+    existing data, concatenates the new chunk, and rewrites the file
+    (pyarrow does not support native parquet append).
+
+    ``pa_index`` is the per-(batter_id, game_pk) ordinal of the PA, generated
+    from ``cumcount()`` — PA #1 = 0, PA #2 = 1, ...
+    """
+    import pandas as pd
+
+    chunk = day_data.copy()
+    chunk["pa_index"] = chunk.groupby(["batter_id", "game_pk"]).cumcount()
+    chunk = chunk[["date", "game_pk", "batter_id", "pa_index", "p_hit_blend", "is_hit"]]
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        existing = pd.read_parquet(output_path)
+        chunk = pd.concat([existing, chunk], ignore_index=True)
+
+    chunk.to_parquet(output_path, index=False)
+
+
 def blend_walk_forward(
     df: "pd.DataFrame",
     test_season: int,
@@ -387,6 +419,7 @@ def blend_walk_forward(
     cache_dir: "Path | None" = None,
     cache_seed: int | None = None,
     cache_reuse_configs: list[str] | None = None,
+    pa_predictions_path: "Path | None" = None,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
@@ -412,6 +445,11 @@ def blend_walk_forward(
             of retrained, and freshly-trained configs are saved back to the
             cache. When any are None, behavior is identical to a non-cached
             run (default for all existing callers).
+        pa_predictions_path: Optional path at which to accumulate per-PA
+            predictions. When provided, calls ``_write_pa_predictions_chunk``
+            after each game day to append ``date``, ``game_pk``, ``batter_id``,
+            ``pa_index``, ``p_hit_blend``, and ``is_hit`` for every PA in the
+            test window. When None (the default), behavior is unchanged.
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -511,6 +549,10 @@ def blend_walk_forward(
         pa_blend = pd.DataFrame(avg_scores).mean(axis=1)
         day_data["p_hit_blend"] = pa_blend
 
+        # Optional: persist per-PA predictions for falsification harness
+        if pa_predictions_path is not None:
+            _write_pa_predictions_chunk(day_data, pa_predictions_path)
+
         # Optional: capture per-model scores
         if capture_per_model:
             for name, scores in blend_pa_scores.items():
@@ -558,11 +600,16 @@ def run_backtest(
     output_dir: str = "data/simulation",
     seasons: list[int] | None = None,
     retrain_every: int = 7,
+    log_pa_predictions: bool = False,
 ) -> None:
     """Run blend backtest for specified seasons and save profiles.
 
     Loads all PA parquets, computes features once, then runs blend
     walk-forward for each test season.
+
+    When `log_pa_predictions=True`, also persists per-PA predicted probabilities
+    to `{output_dir}/pa_predictions_{season}.parquet` for use by the BTS
+    falsification harness's dependence-testing module.
     """
     import pandas as pd
     from bts.features.compute import compute_all_features
@@ -589,5 +636,8 @@ def run_backtest(
         print(f"\n{'='*60}", file=sys.stderr)
         print(f"Season {season}", file=sys.stderr)
         print(f"{'='*60}", file=sys.stderr)
-        profiles_df = blend_walk_forward(df, season, retrain_every=retrain_every)
+        pa_path = (out / f"pa_predictions_{season}.parquet") if log_pa_predictions else None
+        profiles_df = blend_walk_forward(
+            df, season, retrain_every=retrain_every, pa_predictions_path=pa_path
+        )
         save_profiles(profiles_df, season, out)

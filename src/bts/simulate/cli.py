@@ -25,13 +25,19 @@ def simulate():
               help="Output directory for profile parquets")
 @click.option("--retrain-every", default=7, type=int,
               help="Retrain blend models every N days")
-def backtest(seasons: str, data_dir: str, output_dir: str, retrain_every: int):
+@click.option("--log-pa-predictions/--no-log-pa-predictions", default=False,
+              help="Persist per-PA predictions to pa_predictions_{season}.parquet "
+                   "for use by the falsification harness dependence-testing module.")
+def backtest(seasons: str, data_dir: str, output_dir: str, retrain_every: int,
+             log_pa_predictions: bool):
     """Run blend walk-forward backtest and save daily profiles."""
     from bts.simulate.backtest_blend import run_backtest
 
     season_list = [int(s.strip()) for s in seasons.split(",")]
     click.echo(f"Running blend backtest for seasons: {season_list}")
-    run_backtest(data_dir, output_dir, season_list, retrain_every)
+    if log_pa_predictions:
+        click.echo("Per-PA predictions will be logged.")
+    run_backtest(data_dir, output_dir, season_list, retrain_every, log_pa_predictions)
     click.echo("Done.")
 
 

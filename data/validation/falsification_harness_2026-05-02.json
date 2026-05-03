@@ -1,0 +1,20 @@
+{
+  "date": "2026-05-02",
+  "headline_p57_in_sample": 0.0817,
+  "fixed_policy_terminal_r_mc_p57": "0.4167 [0.2083, 0.6250]",
+  "pipeline_terminal_r_mc_p57": "0.0833 [0.0000, 0.3417]",
+  "rare_event_ce_p57": "0.0034 [0.0025, 0.0045]",
+  "rho_PA_within_game": "0.0012 [0.0009, 0.0015]",
+  "rho_pair_cross_game": "-0.0074 [-0.0607, 0.0476]",
+  "corrected_fixed_policy_p57": "0.0417 [0.0000, 0.1250]",
+  "corrected_pipeline_p57": "0.0083 [0.0000, 0.0375]",
+  "rho_pair_seed_sensitivity": [
+    {
+      "seed": 0,
+      "rho": -0.007393719911499261
+    }
+  ],
+  "verdict_basis": "pipeline_loso",
+  "verdict": "HEADLINE_BROKEN",
+  "verdict_rationale": "[basis: pipeline_loso] Corrected pipeline P(57) CI upper bound 0.0375 is below half the headline (0.0408); the 8.17% claim does not survive honest cross-validated evaluation. Trigger a full rebuild of the policy with the corrected transition tables."
+}
