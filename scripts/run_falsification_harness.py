@@ -19,6 +19,7 @@ from bts.validate.dependence import (
     fit_logistic_normal_random_intercept,
     pa_residual_correlation,
     pair_residual_correlation,
+    pair_residual_correlation_per_cell,
 )
 from bts.validate.ope import (
     audit_fixed_policy,
@@ -26,6 +27,25 @@ from bts.validate.ope import (
     corrected_audit_pipeline,
     _compute_bins_from_direct_profiles,
 )
+
+
+def _to_jsonable(obj):
+    """Recursively convert numpy types + NaN to JSON-safe Python types.
+
+    NaN → None (so jq doesn't choke on raw NaN literals which aren't legal JSON).
+    """
+    if isinstance(obj, np.ndarray):
+        return [_to_jsonable(x) for x in obj.tolist()]
+    if isinstance(obj, (np.floating, float)):
+        v = float(obj)
+        return None if np.isnan(v) else v
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, dict):
+        return {k: _to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_jsonable(v) for v in obj]
+    return obj
 
 
 def _format_estimate(point: float, ci_lo: float | None, ci_hi: float | None) -> str:
@@ -106,6 +126,8 @@ def run_harness(
     headline_p57_in_sample: float = 0.0817,
     n_bootstrap: int = 2000,
     n_final: int = 20000,
+    n_permutations: int = 300,
+    seed: int = 42,
 ) -> dict:
     """Top-level harness driver. Returns the verdict dict and writes it to output_path."""
     seasons = sorted(profiles["season"].unique().tolist())
@@ -187,7 +209,10 @@ def run_harness(
         pair_df, n_permutations=n_bootstrap
     )
 
-    # Step 6: Corrected transition table + re-solved policy.
+    # Step 6: Corrected transition table + re-solved policy (for fixed-policy audit only).
+    # build_corrected_transition_table still needs a scalar rho here since it is
+    # called once on full data for the fixed-policy audit (Step 7).  The v2
+    # pipeline (Step 7b) re-builds corrected bins per-fold with per-bin rho.
     corrected_bins = build_corrected_transition_table(
         bins_full,
         rho_PA_within_game=rho_PA,
@@ -205,42 +230,62 @@ def run_harness(
         n_bootstrap=n_bootstrap,
     )
 
-    # Step 7b: True pipeline-LOSO audit of the corrected policy.
-    # Replays the global corrected policy across all fold seasons.
-    corrected_pipeline_result = corrected_audit_pipeline(
-        profiles,
-        corrected_policy={"action_table": corrected_solution.policy_table},
+    # Step 7b: v2 pipeline-LOSO audit — fold-local params + per-bin rho_pair.
+    # Each fold: fits its own rho_PA, tau, rho_pair_per_bin on 4 training seasons,
+    # builds a corrected QualityBins, solves MDP, and replays on held-out season.
+    # This closes v1's contamination gap (v1 used a global corrected policy built
+    # on ALL data and just replayed it, inflating in-sample P(57) dramatically).
+    def _solve_for_v2(corrected_bins_arg):
+        """Closure: solve MDP on a fold's corrected bins."""
+        return solve_mdp(corrected_bins_arg, season_length=153, late_phase_days=30)
+
+    corrected_v2 = corrected_audit_pipeline(
+        profiles, pa_df,
         fold_seasons=seasons,
+        mdp_solve_fn=_solve_for_v2,
         n_bootstrap=n_bootstrap,
+        seed=seed,
+        rho_pair_n_permutations=n_permutations,
+        pa_n_bootstrap=n_permutations,
     )
 
-    # Step 7c: Pair-correlation seed sensitivity diagnostic.
-    # Run with multiple canonical seeds to surface whether rho_pair varies
-    # enough across seeds to flip the verdict.
-    sensitivity_seeds = [0, 42, 100]
-    sensitivity_rhos = []
-    available_seeds = set(profiles["seed"].unique())
-    for sens_seed in sensitivity_seeds:
-        if sens_seed not in available_seeds:
-            continue
-        sens_profiles_filtered = profiles[profiles["seed"] == sens_seed].copy()
-        sens_pair_df = sens_profiles_filtered[
-            ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
-        ].rename(columns={
-            "top1_p": "p_rank1", "top1_hit": "y_rank1",
-            "top2_p": "p_rank2", "top2_hit": "y_rank2",
-        })
-        sens_rho, _, _, _ = pair_residual_correlation(sens_pair_df, n_permutations=200)
-        sensitivity_rhos.append((sens_seed, sens_rho))
+    # Step 7c: Diagnostic heatmap — per-cross-bin-cell rho_pair on full pooled data.
+    # Diagnostic only; does not feed the verdict. Uses full bins (not fold-local)
+    # so every cell is populated — gives the most informative heatmap picture.
+    full_bins = _compute_bins_from_direct_profiles(profiles)
+    n_bins = len(full_bins.bins)
+    pair_df_full = canonical_profiles[
+        ["date", "top1_p", "top1_hit", "top2_p", "top2_hit"]
+    ].rename(columns={
+        "top1_p": "p_rank1", "top1_hit": "y_rank1",
+        "top2_p": "p_rank2", "top2_hit": "y_rank2",
+    })
+    rank1_assign = pair_df_full["p_rank1"].apply(full_bins.classify)
+    rank2_assign = pair_df_full["p_rank2"].apply(full_bins.classify)
+    heatmap = pair_residual_correlation_per_cell(
+        pair_df_full,
+        rank1_bin_assignment=rank1_assign,
+        rank2_bin_assignment=rank2_assign,
+        expected_bin_indices=np.arange(n_bins),
+        n_permutations=n_permutations,
+        seed=seed,
+    )
 
-    # Step 8: Verdict — prefer pipeline CI when available (>=5 folds), else fixed-policy.
-    if (corrected_pipeline_result.ci_lower is not None
-            and corrected_pipeline_result.ci_upper is not None):
+    # Step 7d: Read v1 verdict for sensitivity comparison (if available).
+    v1_path = Path("data/validation/falsification_harness_2026-05-02.json")
+    v1_p57 = "<not-available>"
+    if v1_path.exists():
+        v1_data = json.loads(v1_path.read_text())
+        v1_p57 = v1_data.get("corrected_pipeline_p57", "<missing>")
+
+    # Step 8: Verdict — prefer v2 pipeline CI when available (>=5 folds), else fixed-policy.
+    if (corrected_v2.ci_lower is not None
+            and corrected_v2.ci_upper is not None):
         # Pipeline mode has real CI — use it for the verdict.
-        verdict_basis = "pipeline_loso"
-        verdict_point = corrected_pipeline_result.point_estimate
-        verdict_lo = corrected_pipeline_result.ci_lower
-        verdict_hi = corrected_pipeline_result.ci_upper
+        verdict_basis = "pipeline_loso_v2"
+        verdict_point = corrected_v2.point_estimate
+        verdict_lo = corrected_v2.ci_lower
+        verdict_hi = corrected_v2.ci_upper
     else:
         # Fall back to fixed-policy CI — note this in the verdict rationale.
         verdict_basis = "fixed_policy_held_out"
@@ -259,6 +304,9 @@ def run_harness(
     )
     # Append the verdict basis to rationale for transparency.
     rationale = f"[basis: {verdict_basis}] " + rationale
+
+    verdict_path = Path(output_path)
+    heatmap_path = verdict_path.with_name(verdict_path.stem + "_heatmap.json")
 
     out = {
         "date": pd.Timestamp.now().strftime("%Y-%m-%d"),
@@ -279,18 +327,35 @@ def run_harness(
             corrected_fixed_result.ci_lower, corrected_fixed_result.ci_upper
         ),
         "corrected_pipeline_p57": _format_estimate(
-            corrected_pipeline_result.point_estimate,
-            corrected_pipeline_result.ci_lower, corrected_pipeline_result.ci_upper
+            corrected_v2.point_estimate,
+            corrected_v2.ci_lower, corrected_v2.ci_upper
         ),
-        "rho_pair_seed_sensitivity": [
-            {"seed": s, "rho": float(r)} for s, r in sensitivity_rhos
-        ],
+        "v1_reference_p57": v1_p57,
+        "v1_reference_path": str(v1_path) if v1_path.exists() else None,
+        "fold_metadata": _to_jsonable(corrected_v2.fold_metadata),
+        "diagnostic_heatmap_path": str(heatmap_path.name),
         "verdict_basis": verdict_basis,
         "verdict": verdict,
         "verdict_rationale": rationale,
     }
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(output_path).write_text(json.dumps(out, indent=2))
+
+    verdict_path.parent.mkdir(parents=True, exist_ok=True)
+    verdict_path.write_text(json.dumps(out, indent=2))
+
+    heatmap_path.write_text(json.dumps(_to_jsonable({
+        **heatmap,
+        "bin_labels": [f"Q{i+1}" for i in range(len(heatmap["bin_indices"]))],
+    }), indent=2))
+
+    # Per-fold summary to stdout for quick inspection.
+    print("\n=== Per-fold rho_pair_per_bin ===")
+    print(f"{'Held-out':<10} {'rho_PA':<10} {'tau':<8} {'small?':<8} {'rho_pair_per_bin (Q1..Q5)'}")
+    for fm in corrected_v2.fold_metadata:
+        rho_arr = np.asarray(fm["rho_pair_per_bin"])
+        rho_str = " ".join(f"{x:+.3f}" for x in rho_arr)
+        warn = "YES" if fm["stability"]["small_sample_warning"] else "no"
+        print(f"{fm['held_out_season']:<10} {fm['rho_PA']:+.4f}    {fm['tau']:.4f}  {warn:<8} {rho_str}")
+
     return out
 
 
