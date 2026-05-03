@@ -341,6 +341,96 @@ class TestBuildCorrectedTransitionTable:
         for b in corrected.bins:
             assert abs(b.p_both - (0.5*0.5 + 0.05*0.25)) < 1e-9
 
+    def test_build_corrected_transition_table_per_bin_rho_uses_post_tau_marginal(self):
+        """REGRESSION GUARD: when both tau>0 AND per-bin rho!=0, the rho correction
+        must use the tau-corrected p_hit (new_p_hit), NOT the original b.p_hit.
+
+        v1 had this bug; v2 fixes it. This test would catch a revert.
+        """
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.6, p_both=0.36, frequency=0.2)
+                for i in range(5)
+            ],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        # Tau > 0 will pull new_p_hit BELOW 0.6 (within-game dependence inflates
+        # game-level hit when integrated). Per-bin rho lookup of 0.10 in every bin.
+        rho_per_bin = np.array([0.10] * 5)
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.5,  # nonzero — exercises the tau path
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # For each bin, the corrected p_both must equal new_p_hit^2 + rho * sigma(new_p_hit),
+        # NOT b.p_hit^2 + rho * sigma(b.p_hit).
+        for i, b_new in enumerate(corrected.bins):
+            new_p_hit = b_new.p_hit  # the tau-corrected marginal
+            # Verify tau actually moved the marginal (sanity check the test setup).
+            assert abs(new_p_hit - 0.6) > 0.001, (
+                f"Q{i+1}: tau=0.5 should have shifted p_hit from 0.6 (got {new_p_hit:.6f})"
+            )
+            # Now verify p_both uses new_p_hit, not 0.6.
+            sigma_post_tau = np.sqrt(new_p_hit * (1 - new_p_hit) * new_p_hit * (1 - new_p_hit))
+            expected_post_tau = new_p_hit * new_p_hit + 0.10 * sigma_post_tau
+            # Apply FH clipping
+            lower_fh = max(0.0, 2 * new_p_hit - 1.0)
+            upper_fh = min(new_p_hit, new_p_hit)  # = new_p_hit
+            expected_post_tau = float(min(max(expected_post_tau, lower_fh), upper_fh))
+
+            # The bug-version would compute against b.p_hit=0.6
+            sigma_pre_tau = np.sqrt(0.6 * 0.4 * 0.6 * 0.4)
+            bug_value = 0.6 * 0.6 + 0.10 * sigma_pre_tau
+            # Both expected values should differ — otherwise the test isn't sensitive.
+            assert abs(expected_post_tau - bug_value) > 1e-6, (
+                f"Q{i+1}: test setup degenerate — pre-tau and post-tau values "
+                f"are too close ({expected_post_tau:.6f} vs {bug_value:.6f})"
+            )
+            assert abs(b_new.p_both - expected_post_tau) < 1e-9, (
+                f"Q{i+1}: corrected p_both ({b_new.p_both:.6f}) should match "
+                f"post-tau formula ({expected_post_tau:.6f}), NOT pre-tau ({bug_value:.6f})"
+            )
+
+    def test_build_corrected_transition_table_per_bin_rho_extreme_values_clip_to_FH_bounds(self):
+        """rho=-1 and rho=+1 push p_both outside [max(0, p1+p2-1), min(p1,p2)];
+        output must clip to those bounds for valid joint probabilities.
+        """
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        # Use p_hit=0.5 (max sigma=0.25, so rho=-1 sends p_both to 0.0).
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.5, p_both=0.25, frequency=0.2)
+                for i in range(5)
+            ],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        # Q1 rho=-1 (max negative), Q5 rho=+1 (max positive), middle bins zero.
+        rho_per_bin = np.array([-1.0, 0.0, 0.0, 0.0, +1.0])
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # Q1 (rho=-1): formula gives 0.25 + (-1)(0.25) = 0.0. FH lower = max(0, 0.5+0.5-1) = 0.0.
+        # Result: 0.0 (right at lower bound, no clipping needed but still valid).
+        assert abs(corrected.bins[0].p_both - 0.0) < 1e-9
+        # Q5 (rho=+1): formula gives 0.25 + 1*0.25 = 0.5. FH upper = min(0.5, 0.5) = 0.5.
+        # Result: 0.5 (at upper bound).
+        assert abs(corrected.bins[4].p_both - 0.5) < 1e-9
+        # Validity: every p_both must be in [0, 1] AND in FH bounds.
+        for b in corrected.bins:
+            assert 0.0 <= b.p_both <= 1.0
+            p1 = p2 = b.p_hit
+            assert b.p_both >= max(0.0, p1 + p2 - 1.0) - 1e-9
+            assert b.p_both <= min(p1, p2) + 1e-9
+
 
 class TestPairResidualCorrelation:
     def test_independent_pairs_yield_nonsignificant_correlation(self):
