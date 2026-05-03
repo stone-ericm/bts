@@ -705,6 +705,61 @@ class TestPairResidualCorrelationPerCell:
         # At least 5 of the 15 lower-triangular cells should be populated at n=2000.
         assert n_populated_cells >= 5, f"Only {n_populated_cells}/15 cells populated"
 
+        # New keys from T5 Codex fixes.
+        assert "p_both_diff_matrix" in result
+        assert "reliable_cells" in result
+        assert "n_invariant_violations" in result
+        assert "n_total_rows" in result
+
+        assert result["p_both_diff_matrix"].shape == (5, 5)
+        assert result["reliable_cells"].shape == (5, 5)
+        assert result["reliable_cells"].dtype == bool
+        assert result["n_invariant_violations"] == 0  # rank invariant respected by fixture
+        assert result["n_total_rows"] == 2000
+
+        # Synthetic baseline should now use mean(p1*p2), not mean(p1)*mean(p2).
+        # Verify by manual computation on Q5×Q5 cell (should be densely populated).
+        # This is a regression guard for the statistical bug Codex caught.
+        mask_q5 = (rank1_bins == 4) & (rank2_bins == 4)
+        n_q5 = int(mask_q5.sum())
+        if n_q5 >= 2:
+            p1_q5 = p1_arr[mask_q5]
+            p2_q5 = p2_arr[mask_q5]
+            expected_synthetic = float(np.mean(p1_q5 * p2_q5))
+            assert abs(result["synthetic_p1p2_matrix"][4, 4] - expected_synthetic) < 1e-9, (
+                f"synthetic uses mean(p1*p2)={expected_synthetic}, "
+                f"got {result['synthetic_p1p2_matrix'][4, 4]} "
+                f"(BUG: would equal {np.mean(p1_q5) * np.mean(p2_q5)} under wrong formula)"
+            )
+
+    def test_pair_residual_correlation_per_cell_validates_inputs(self):
+        rng = np.random.default_rng(42)
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.9, 100),
+            "y_rank1": rng.binomial(1, 0.7, 100),
+            "p_rank2": rng.uniform(0.4, 0.8, 100),
+            "y_rank2": rng.binomial(1, 0.6, 100),
+        })
+        rank1_bins = np.zeros(100, dtype=int)
+        rank2_bins_wrong = np.zeros(99, dtype=int)  # length mismatch
+
+        with pytest.raises(ValueError, match="length 99"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=rank2_bins_wrong,
+                expected_bin_indices=np.arange(5),
+                n_permutations=10,
+            )
+        with pytest.raises(ValueError, match="n_permutations"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=np.zeros(100, dtype=int),
+                expected_bin_indices=np.arange(5),
+                n_permutations=0,
+            )
+
     def test_pair_residual_correlation_per_cell_invariant_violation_warning(self, caplog):
         """When p_rank2 > p_rank1 in any row, log a warning (data violates invariant)."""
         df = pd.DataFrame({

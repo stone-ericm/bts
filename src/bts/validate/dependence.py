@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 # Neither is a hard correctness gate — just inspection signals for downstream review.
 MIN_PRODUCTION_PAIRS = 1000
 MIN_GROUPS_WITH_PAIRS = 50
+# MIN_RELIABLE_N_CELL: per-cell observation threshold for the 5×5 heatmap.
+# Below 30, percentile bootstrap CIs are too noisy to act on. Operators should
+# weight reliable cells (n >= 30) more heavily when reading the heatmap.
+MIN_RELIABLE_N_CELL = 30
 
 
 def pearson_residual(y: int | float, p: float) -> float:
@@ -462,8 +466,17 @@ def pair_residual_correlation_per_cell(
         ci_lo_matrix      : bootstrap 2.5th percentile CI (NaN for empty)
         ci_hi_matrix      : bootstrap 97.5th percentile CI (NaN for empty)
         empirical_p_both_matrix : realized P(y_rank1=1 AND y_rank2=1) per cell
-        synthetic_p1p2_matrix   : mean(p_rank1) * mean(p_rank2) per cell
+        synthetic_p1p2_matrix   : mean(p_rank1 * p_rank2) per cell — correct
+            conditional-independence baseline (E[p1*p2 | bin]), NOT mean(p1)*mean(p2)
+        p_both_diff_matrix : empirical_p_both - synthetic_p1p2 per cell; positive =
+            observed cooperative dependence, negative = antagonistic; NaN for empty cells
+        reliable_cells    : bool mask, True where n >= MIN_RELIABLE_N_CELL (30).
+            reliable_cells is True for cells where n>=30 (a heuristic — bootstrap CIs
+            become noisy below ~30 observations). Operators should weight reliable cells
+            more heavily when reading the heatmap.
         bin_indices       : shape-(K,) — what each row/col index means
+        n_invariant_violations : int count of rows where rank2_bin > rank1_bin
+        n_total_rows      : total row count (useful denominator)
     """
     rng = np.random.default_rng(seed)
     n = len(df)
@@ -471,6 +484,14 @@ def pair_residual_correlation_per_cell(
     r2_arr = np.asarray(rank2_bin_assignment)
     bin_indices = np.asarray(expected_bin_indices)
     K = len(bin_indices)
+
+    # Fix #5: input validation.
+    if len(r1_arr) != n:
+        raise ValueError(f"rank1_bin_assignment length {len(r1_arr)} != df length {n}")
+    if len(r2_arr) != n:
+        raise ValueError(f"rank2_bin_assignment length {len(r2_arr)} != df length {n}")
+    if n_permutations <= 0:
+        raise ValueError(f"n_permutations must be > 0, got {n_permutations}")
 
     if not np.array_equal(bin_indices, np.arange(K)):
         raise ValueError(
@@ -520,13 +541,29 @@ def pair_residual_correlation_per_cell(
             ci_lo_matrix[r1, r2] = float(np.quantile(bs, 0.025))
             ci_hi_matrix[r1, r2] = float(np.quantile(bs, 0.975))
 
-            # Empirical p_both and synthetic p1*p2.
+            # Empirical p_both and synthetic conditional-independence baseline.
+            # Fix #1 (CRITICAL): synthetic baseline is mean(p1*p2), NOT mean(p1)*mean(p2).
+            # mean(p1)*mean(p2) assumes p1 and p2 are uncorrelated within the cell, but
+            # same-day game predictions are always correlated (shared slate effects).
+            # mean(p1*p2) is the correct E[p1*p2 | bin] baseline under conditional independence.
             y1_c = y1_arr[mask]
             y2_c = y2_arr[mask]
             empirical_p_both_matrix[r1, r2] = float(np.mean(y1_c * y2_c))
             p1_c = p1_arr[mask]
             p2_c = p2_arr[mask]
-            synthetic_p1p2_matrix[r1, r2] = float(np.mean(p1_c) * np.mean(p2_c))
+            synthetic_p1p2_matrix[r1, r2] = float(np.mean(p1_c * p2_c))
+
+    # Fix #2: difference matrix — positive = observed cooperative dependence,
+    # negative = antagonistic. NaN propagates through subtraction for empty cells.
+    p_both_diff_matrix = empirical_p_both_matrix - synthetic_p1p2_matrix
+
+    # Fix #3: reliability mask — cells with n >= MIN_RELIABLE_N_CELL have
+    # bootstrap CIs stable enough to act on. Operators should weight these cells
+    # more heavily when reading the heatmap.
+    # reliable_cells is True for cells where n>=30 (a heuristic — bootstrap CIs become
+    # noisy below ~30 observations). Operators should weight reliable cells more heavily
+    # when reading the heatmap.
+    reliable_cells = n_matrix >= MIN_RELIABLE_N_CELL
 
     return {
         "rho_matrix": rho_matrix,
@@ -535,7 +572,11 @@ def pair_residual_correlation_per_cell(
         "ci_hi_matrix": ci_hi_matrix,
         "empirical_p_both_matrix": empirical_p_both_matrix,
         "synthetic_p1p2_matrix": synthetic_p1p2_matrix,
+        "p_both_diff_matrix": p_both_diff_matrix,   # Fix #2
+        "reliable_cells": reliable_cells,            # Fix #3
         "bin_indices": bin_indices,
+        "n_invariant_violations": n_invariant_violations,  # Fix #4
+        "n_total_rows": n,                                  # Fix #4: useful denominator
     }
 
 
