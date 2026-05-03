@@ -282,3 +282,84 @@ class TestPairResidualCorrelation:
         assert rho_hat > 0.04, f"rho_hat={rho_hat:.3f} not detecting positive correlation"
         # The permutation test should show p_value < 0.10 at this signal strength.
         assert p_value < 0.10, f"p_value={p_value:.3f} above significance under positive correlation"
+
+
+def test_pair_residual_correlation_per_bin_returns_dict_with_correct_shapes():
+    """Per-bin rho returns shape-(K,) arrays for K unique bins."""
+    rng = np.random.default_rng(42)
+    n = 500
+    df = pd.DataFrame({
+        "p_rank1": rng.uniform(0.5, 0.95, n),
+        "y_rank1": rng.binomial(1, 0.7, n),
+        "p_rank2": rng.uniform(0.4, 0.85, n),
+        "y_rank2": rng.binomial(1, 0.6, n),
+    })
+    bin_assignment = pd.Series(rng.integers(0, 5, n))  # 5 bins
+
+    from bts.validate.dependence import pair_residual_correlation
+    result = pair_residual_correlation(
+        df, n_permutations=100, bin_assignment=bin_assignment,
+    )
+
+    assert isinstance(result, dict)
+    assert result["rho_per_bin"].shape == (5,)
+    assert result["ci_lo_per_bin"].shape == (5,)
+    assert result["ci_hi_per_bin"].shape == (5,)
+    assert result["p_value_per_bin"].shape == (5,)
+    assert result["n_per_bin"].shape == (5,)
+    assert isinstance(result["global_rho"], float)
+    # Per-bin n_per_bin should sum to total
+    assert int(result["n_per_bin"].sum()) == n
+
+
+def test_pair_residual_correlation_scalar_path_preserved_for_back_compat():
+    """When bin_assignment is None, return tuple (rho, ci_lo, ci_hi, p) as before."""
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({
+        "p_rank1": rng.uniform(0.5, 0.95, 200),
+        "y_rank1": rng.binomial(1, 0.7, 200),
+        "p_rank2": rng.uniform(0.4, 0.85, 200),
+        "y_rank2": rng.binomial(1, 0.6, 200),
+    })
+    from bts.validate.dependence import pair_residual_correlation
+    result = pair_residual_correlation(df, n_permutations=100)
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    rho, ci_lo, ci_hi, p = result
+    assert isinstance(rho, float)
+
+
+def test_pair_residual_correlation_missing_bin_returns_zero_at_correct_index():
+    """CRITICAL: when bin 2 is missing from data but expected_bin_indices=[0..4],
+    output[2] is the empty-bin slot — NOT the next observed bin's value.
+
+    This protects against the silent indexing-shift bug where bin labels in
+    output don't match bin labels the consumer indexes by.
+    """
+    rng = np.random.default_rng(42)
+    n = 400
+    # Build df where rank-1 bin is in {0,1,3,4} (no bin 2).
+    df = pd.DataFrame({
+        "p_rank1": rng.uniform(0.5, 0.95, n),
+        "y_rank1": rng.binomial(1, 0.7, n),
+        "p_rank2": rng.uniform(0.4, 0.85, n),
+        "y_rank2": rng.binomial(1, 0.6, n),
+    })
+    bin_assignment = pd.Series(rng.choice([0, 1, 3, 4], n))
+
+    from bts.validate.dependence import pair_residual_correlation
+    result = pair_residual_correlation(
+        df, n_permutations=50,
+        bin_assignment=bin_assignment,
+        expected_bin_indices=np.arange(5),  # [0,1,2,3,4]
+    )
+    # Output is shape-(5,) with bin 2 empty.
+    assert result["rho_per_bin"].shape == (5,)
+    assert result["n_per_bin"][2] == 0  # bin 2 absent
+    assert result["rho_per_bin"][2] == 0.0  # empty bin → rho=0
+    assert result["p_value_per_bin"][2] == 1.0  # empty bin → p=1
+    # Bins 0, 1, 3, 4 should have non-zero counts.
+    for k in [0, 1, 3, 4]:
+        assert result["n_per_bin"][k] > 0
+    # bin_indices should match what was passed in.
+    np.testing.assert_array_equal(result["bin_indices"], np.arange(5))

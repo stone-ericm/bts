@@ -214,7 +214,9 @@ def pair_residual_correlation(
     *,
     n_permutations: int = 1000,
     seed: int = 42,
-) -> tuple[float, float, float, float]:
+    bin_assignment: "pd.Series | np.ndarray | None" = None,
+    expected_bin_indices: "np.ndarray | list | None" = None,
+) -> "tuple[float, float, float, float] | dict":
     """Stratified permutation test on rank-1/rank-2 Pearson residuals.
 
     For each row (one row per day):
@@ -233,7 +235,31 @@ def pair_residual_correlation(
 
     df columns required: date, p_rank1, p_rank2, y_rank1, y_rank2.
 
-    Returns: (rho_hat, ci_lower, ci_upper, p_value).
+    When bin_assignment is None: returns (rho_hat, ci_lower, ci_upper, p_value).
+
+    When bin_assignment is provided (one rank-1 bin index per row in df):
+    returns dict with arrays indexed by `expected_bin_indices` (when given) or
+    by sorted unique values of bin_assignment otherwise.
+
+    **CRITICAL** (caught by Codex round 1 review): caller MUST pass
+    `expected_bin_indices=np.arange(n_bins)` when the consumer indexes the
+    output by `bin.index` (as `build_corrected_transition_table` does).
+    Otherwise output[i] silently means different bins on different folds when
+    a fold's data lacks bin labels.
+
+    Returned dict keys:
+        rho_per_bin: shape-(K,) array; rho_per_bin[k] is rho for bin k
+            where K = len(expected_bin_indices) if given, else len(unique(bin_assignment))
+        ci_lo_per_bin: shape-(K,)
+        ci_hi_per_bin: shape-(K,)
+        p_value_per_bin: shape-(K,)
+        n_per_bin: shape-(K,) — bin observation counts (0 means bin absent in this fold's data)
+        bin_indices: shape-(K,) — the bin indices each output row corresponds to
+        global_rho, global_ci_lo, global_ci_hi, global_p_value: aggregate scalars
+
+    Empty-bin behavior: when n_per_bin[k] < 2, rho_per_bin[k]=0.0,
+    ci_lo/ci_hi=0.0, p_value=1.0. Caller should check n_per_bin and treat
+    rho=0 as "uninformative for this bin in this fold."
     """
     rng = np.random.default_rng(seed)
     e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
@@ -258,7 +284,65 @@ def pair_residual_correlation(
     ci_lo = float(np.quantile(bs, 0.025))
     ci_hi = float(np.quantile(bs, 0.975))
 
-    return rho_hat, ci_lo, ci_hi, p_value
+    if bin_assignment is None:
+        return rho_hat, ci_lo, ci_hi, p_value
+
+    # Per-bin path. bin_assignment must have len == len(df).
+    bins_arr = np.asarray(bin_assignment)
+    assert len(bins_arr) == n, (
+        f"bin_assignment length {len(bins_arr)} != df length {n}"
+    )
+    # Use caller-supplied expected indices if given (safe contract); else fall
+    # back to sorted unique values (legacy behavior).
+    if expected_bin_indices is not None:
+        bin_indices = np.asarray(expected_bin_indices)
+    else:
+        bin_indices = np.sort(np.unique(bins_arr))
+    K = len(bin_indices)
+    rho_per_bin = np.zeros(K)
+    ci_lo_per_bin = np.zeros(K)
+    ci_hi_per_bin = np.zeros(K)
+    p_per_bin = np.ones(K)  # default p=1.0 for empty bins
+    n_per_bin = np.zeros(K, dtype=int)
+
+    for k, bin_idx in enumerate(bin_indices):
+        mask = bins_arr == bin_idx
+        e1_b = e1[mask]
+        e2_b = e2[mask]
+        n_b = len(e1_b)
+        n_per_bin[k] = n_b
+        if n_b < 2:
+            # Empty/singleton bin: rho=0, p=1.0 (uninformative); rest already
+            # zeroed at init. Caller should check n_per_bin.
+            continue
+        rho_b = float(np.mean(e1_b * e2_b))
+        rho_per_bin[k] = rho_b
+        # Permutation null within this bin.
+        null_b = np.empty(n_permutations)
+        for j in range(n_permutations):
+            shuffled_b = rng.permutation(e2_b)
+            null_b[j] = float(np.mean(e1_b * shuffled_b))
+        p_per_bin[k] = float(np.mean(np.abs(null_b) >= abs(rho_b)))
+        # Bootstrap CI within this bin.
+        bs_b = np.empty(n_permutations)
+        for j in range(n_permutations):
+            idx_b = rng.integers(0, n_b, n_b)
+            bs_b[j] = float(np.mean(e1_b[idx_b] * e2_b[idx_b]))
+        ci_lo_per_bin[k] = float(np.quantile(bs_b, 0.025))
+        ci_hi_per_bin[k] = float(np.quantile(bs_b, 0.975))
+
+    return {
+        "rho_per_bin": rho_per_bin,
+        "ci_lo_per_bin": ci_lo_per_bin,
+        "ci_hi_per_bin": ci_hi_per_bin,
+        "p_value_per_bin": p_per_bin,
+        "n_per_bin": n_per_bin,
+        "bin_indices": bin_indices,
+        "global_rho": rho_hat,
+        "global_ci_lo": ci_lo,
+        "global_ci_hi": ci_hi,
+        "global_p_value": p_value,
+    }
 
 
 def build_corrected_transition_table(
