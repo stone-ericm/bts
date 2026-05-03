@@ -177,6 +177,11 @@ class TestLogisticNormalRandomIntercept:
         assert isinstance(stability["total_pair_n"], int)
         assert isinstance(stability["rho_hat"], float)
         assert isinstance(stability["small_sample_warning"], bool)
+        # Verify warning is NOT spuriously firing on this fixture
+        # (50 groups × 5 obs → ~500 pairs, well above threshold=100).
+        # Closes false-negative coverage gap — a buggy "always True" impl would pass
+        # the isinstance check above but fail here.
+        assert stability["small_sample_warning"] is False
         assert stability["estimator"] == "method_of_moments_pearson_pair_inversion"
 
     def test_stability_warning_fires_on_small_pair_count(self):

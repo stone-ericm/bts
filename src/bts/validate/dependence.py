@@ -11,10 +11,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# Minimum total within-group pairs required for a reliable tau MoM estimate.
-# Below this threshold the rho_hat is noisy enough that tau_hat is unreliable.
-# 100 pairs corresponds to roughly 14 groups of 4 PAs each — chosen empirically
-# as the point where bootstrap variance of rho_hat drops below ~0.05.
+# Heuristic threshold for flagging fold-local tau estimates as "small sample."
+# 100 pairs is roughly 17 groups of 4 PAs each (17 × 6 = 102). No formal
+# derivation; treat small_sample_warning as a flag to log and inspect, not a
+# hard correctness gate. T4's fold metadata surfaces this for downstream review.
 SMALL_SAMPLE_PAIR_THRESHOLD = 100
 
 
