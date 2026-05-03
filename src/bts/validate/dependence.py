@@ -41,6 +41,26 @@ def pearson_residual(y: int | float, p: float) -> float:
     return float((y - p) / np.sqrt(p * (1 - p)))
 
 
+def pearson_residual_vec(y, p) -> np.ndarray:
+    """Vectorized Pearson residual for arrays of Bernoulli predictions.
+
+    Same math as pearson_residual but operates on arrays via numpy. ~50× faster
+    than `[pearson_residual(yi, pi) for yi, pi in zip(y, p)]` on million-row
+    inputs (the Python list-comp is the dominant cost in pa_residual_correlation
+    on full PA data).
+
+    Args:
+        y: array-like of binary outcomes (0 or 1).
+        p: array-like of predicted probabilities. Clipped to [1e-9, 1 - 1e-9].
+
+    Returns:
+        np.ndarray of float Pearson residuals, same shape as y.
+    """
+    y_arr = np.asarray(y, dtype=float)
+    p_arr = np.clip(np.asarray(p, dtype=float), 1e-9, 1 - 1e-9)
+    return (y_arr - p_arr) / np.sqrt(p_arr * (1.0 - p_arr))
+
+
 def pa_residual_correlation(
     df: pd.DataFrame,
     *,
@@ -180,7 +200,7 @@ def fit_logistic_normal_random_intercept(
     from scipy.optimize import brentq
 
     df = df.copy()
-    df["_e"] = [pearson_residual(y, p) for y, p in zip(df[y_col], df[p_col])]
+    df["_e"] = pearson_residual_vec(df[y_col], df[p_col])
     mean_p = float(df[p_col].mean()) if len(df) > 0 else 0.25
     # Clip mean_p away from 0/1 to keep logit finite.
     mean_p = max(min(mean_p, 1 - 1e-9), 1e-9)
@@ -324,8 +344,8 @@ def pair_residual_correlation(
     labels (useful for diagnostic explorations).
     """
     rng = np.random.default_rng(seed)
-    e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
-    e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+    e1 = pearson_residual_vec(df["y_rank1"], df["p_rank1"])
+    e2 = pearson_residual_vec(df["y_rank2"], df["p_rank2"])
 
     rho_hat = float(np.mean(e1 * e2))
 
@@ -508,8 +528,8 @@ def pair_residual_correlation_per_cell(
             n_invariant_violations, n,
         )
 
-    e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
-    e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+    e1 = pearson_residual_vec(df["y_rank1"], df["p_rank1"])
+    e2 = pearson_residual_vec(df["y_rank2"], df["p_rank2"])
     y1_arr = df["y_rank1"].to_numpy()
     y2_arr = df["y_rank2"].to_numpy()
     p1_arr = df["p_rank1"].to_numpy()

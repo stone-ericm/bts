@@ -1,0 +1,348 @@
+{
+  "date": "2026-05-03",
+  "headline_p57_in_sample": 0.0817,
+  "params_mode": "fold-local",
+  "rho_pair_mode": "scalar",
+  "rho_pair_scope": "fold-local",
+  "policy_mode": "per-fold",
+  "fixed_policy_terminal_r_mc_p57": "0.4167 [0.1865, 0.6052]",
+  "pipeline_terminal_r_mc_p57": "0.0833 [0.0000, 0.3417]",
+  "rare_event_ce_p57": "0.0036 [0.0023, 0.0052]",
+  "rho_PA_within_game": "0.0012 [0.0008, 0.0015]",
+  "rho_pair_cross_game": "-0.0074 [-0.0451, 0.0466]",
+  "corrected_fixed_policy_p57": "0.0417 [0.0000, 0.1250]",
+  "corrected_pipeline_p57": "0.0250 [0.0000, 0.0792]",
+  "v1_reference_p57": "0.0083 [0.0000, 0.0375]",
+  "v1_reference_path": "/Users/stone/projects/bts/.worktrees/harness-v2/data/validation/falsification_harness_2026-05-02.json",
+  "fold_metadata": [
+    {
+      "held_out_season": 2021,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0016514653047573567,
+      "rho_PA_ci_lo": 0.0014401994128798307,
+      "rho_PA_ci_hi": 0.0021029601960046804,
+      "tau": 0.09793439819121025,
+      "rho_pair_per_bin": [
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.003654175829234913,
+        -0.003654175829234913,
+        -0.003654175829234913,
+        -0.003654175829234913,
+        -0.003654175829234913
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.01766281496863066,
+        0.01766281496863066,
+        0.01766281496863066,
+        0.01766281496863066,
+        0.01766281496863066
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.92,
+        0.92,
+        0.92,
+        0.92,
+        0.92
+      ],
+      "rho_pair_n_per_bin": [
+        17520,
+        17520,
+        17520,
+        17520,
+        17520
+      ],
+      "rho_pair_global": 0.005660627623876216,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4662576,
+        "n_groups_with_pairs": 4312800,
+        "total_pair_n": 26902656,
+        "rho_hat": 0.0016514653047573567,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2022,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0006224478394475379,
+      "rho_PA_ci_lo": 0.0002560755856552415,
+      "rho_PA_ci_hi": 0.0010106025522371048,
+      "tau": 0.060233380539712215,
+      "rho_pair_per_bin": [
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.01594122366217717,
+        -0.01594122366217717,
+        -0.01594122366217717,
+        -0.01594122366217717,
+        -0.01594122366217717
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.0031314693093029027,
+        0.0031314693093029027,
+        0.0031314693093029027,
+        0.0031314693093029027,
+        0.0031314693093029027
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.65,
+        0.65,
+        0.65,
+        0.65,
+        0.65
+      ],
+      "rho_pair_n_per_bin": [
+        17592,
+        17592,
+        17592,
+        17592,
+        17592
+      ],
+      "rho_pair_global": -0.006847614706794648,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4689552,
+        "n_groups_with_pairs": 4253568,
+        "total_pair_n": 26586216,
+        "rho_hat": 0.0006224478394475379,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2023,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0005741453100434134,
+      "rho_PA_ci_lo": 0.0001820030504642512,
+      "rho_PA_ci_hi": 0.0009350583387067078,
+      "tau": 0.05784891396345995,
+      "rho_pair_per_bin": [
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.0150702122160256,
+        -0.0150702122160256,
+        -0.0150702122160256,
+        -0.0150702122160256,
+        -0.0150702122160256
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.005553802175330004,
+        0.005553802175330004,
+        0.005553802175330004,
+        0.005553802175330004,
+        0.005553802175330004
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.96,
+        0.96,
+        0.96,
+        0.96,
+        0.96
+      ],
+      "rho_pair_n_per_bin": [
+        17520,
+        17520,
+        17520,
+        17520,
+        17520
+      ],
+      "rho_pair_global": -0.00537591113417807,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4676088,
+        "n_groups_with_pairs": 4246080,
+        "total_pair_n": 26430576,
+        "rho_hat": 0.0005741453100434134,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.08333333333333333,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2024,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0020386622286641086,
+      "rho_PA_ci_lo": 0.0017238452352698415,
+      "rho_PA_ci_hi": 0.0023811227675455903,
+      "tau": 0.10892514089645555,
+      "rho_pair_per_bin": [
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.018650356547822156,
+        -0.018650356547822156,
+        -0.018650356547822156,
+        -0.018650356547822156,
+        -0.018650356547822156
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.0048812588700196365,
+        0.0048812588700196365,
+        0.0048812588700196365,
+        0.0048812588700196365,
+        0.0048812588700196365
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.8,
+        0.8,
+        0.8,
+        0.8,
+        0.8
+      ],
+      "rho_pair_n_per_bin": [
+        17448,
+        17448,
+        17448,
+        17448,
+        17448
+      ],
+      "rho_pair_global": -0.006476473199210781,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4676016,
+        "n_groups_with_pairs": 4248672,
+        "total_pair_n": 26580672,
+        "rho_hat": 0.0020386622286641086,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2025,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0011729507243478097,
+      "rho_PA_ci_lo": 0.0008183950559063104,
+      "rho_PA_ci_hi": 0.0014911476043402672,
+      "tau": 0.08268653196181522,
+      "rho_pair_per_bin": [
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.015361176423837544,
+        -0.015361176423837544,
+        -0.015361176423837544,
+        -0.015361176423837544,
+        -0.015361176423837544
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.00784224603871807,
+        0.00784224603871807,
+        0.00784224603871807,
+        0.00784224603871807,
+        0.00784224603871807
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.96,
+        0.96,
+        0.96,
+        0.96,
+        0.96
+      ],
+      "rho_pair_n_per_bin": [
+        17472,
+        17472,
+        17472,
+        17472,
+        17472
+      ],
+      "rho_pair_global": -0.002546415861254087,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4674936,
+        "n_groups_with_pairs": 4247328,
+        "total_pair_n": 26546664,
+        "rho_hat": 0.0011729507243478097,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.041666666666666664,
+      "n_trajectories": 24
+    }
+  ],
+  "diagnostic_heatmap_path": "falsification_harness_v2.5_cell101_mac_vectorized_heatmap.json",
+  "verdict_basis": "pipeline_loso_v2",
+  "verdict": "HEADLINE_REDUCED",
+  "verdict_rationale": "[basis: pipeline_loso_v2] Corrected pipeline P(57) point estimate 0.0250 is below half the headline (0.0408); production policy may still beat always-rank1 but the headline is partly artifact."
+}
