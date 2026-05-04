@@ -501,6 +501,107 @@ def conformal_gate_cmd(
     console.print(f"\n[green]Gate output saved to {out_path}[/green]")
 
 
+@validate.command("policy-value-eval")
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest_*.parquet files")
+@click.option("--manifest", "manifest_path", required=True, type=click.Path(exists=True),
+              help="Split manifest JSON (from `bts validate split-manifest`)")
+@click.option("--target-policy", type=click.Choice(["mdp_optimal", "always_skip", "always_rank1"]),
+              default="mdp_optimal",
+              help="Target policy to evaluate (P0/P1 supports 3 baselines; named-strategy adapter deferred to P1.5+)")
+@click.option("--season-length", default=180, type=int)
+@click.option("--late-phase-days", default=30, type=int)
+@click.option("--min-bin-n", default=200, type=int,
+              help="Diagnostic threshold for SPARSE_HOLDOUT_SUPPORT flag")
+@click.option("--n-bins", default=5, type=int)
+@click.option("--output", required=True, type=click.Path(),
+              help="Output JSON path for the policy_value_eval_v1 result")
+def policy_value_eval_cmd(
+    profiles_dir: str,
+    manifest_path: str,
+    target_policy: str,
+    season_length: int,
+    late_phase_days: int,
+    min_bin_n: int,
+    n_bins: int,
+    output: str,
+):
+    """Run the per-fold policy-value evaluation contract (SOTA #13 P0/P1).
+
+    Solves the target policy on each fold's train slice (or uses a baseline
+    table for always_skip / always_rank1), evaluates the fixed policy against
+    fold holdout bins via `evaluate_mdp_policy`, computes terminal-MC replay
+    on holdout profiles as a cross-check. Lockbox held out per #5;
+    aggregate_deferred=true.
+    """
+    import pandas as pd
+    from rich.console import Console
+    from rich.table import Table
+    from bts.validate.ope_eval import evaluate_target_policy_on_manifest
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+    parquet_files = sorted(profiles_path.glob("backtest_*.parquet"))
+    if not parquet_files:
+        click.echo(f"No backtest_*.parquet files in {profiles_dir}", err=True)
+        raise SystemExit(1)
+    dfs = []
+    for pf in parquet_files:
+        df = pd.read_parquet(pf)
+        stem = pf.stem
+        parts = stem.split("_")
+        if len(parts) >= 2 and parts[-1].isdigit():
+            df["season"] = int(parts[-1])
+        dfs.append(df)
+    profiles_df = pd.concat(dfs, ignore_index=True)
+    console.print(f"[bold]Loaded {len(profiles_df):,} profile rows from "
+                  f"{len(parquet_files)} files[/bold]")
+
+    result = evaluate_target_policy_on_manifest(
+        profiles_df, manifest_path,
+        target_policy_name=target_policy,
+        season_length=season_length,
+        late_phase_days=late_phase_days,
+        min_bin_n=min_bin_n,
+        n_bins=n_bins,
+    )
+
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    # Strict JSON guard (Codex #111 #3): allow_nan=False fails closed if a
+    # future metric becomes non-finite, surfacing the bug rather than emitting
+    # the non-strict 'Infinity'/'NaN' tokens.
+    out_path.write_text(
+        json.dumps(result, indent=2, sort_keys=True, default=str, allow_nan=False)
+    )
+
+    fold_table = Table(title=f"Policy-Value Eval — target_policy={target_policy}")
+    fold_table.add_column("Fold", justify="right")
+    fold_table.add_column("Train days", justify="right")
+    fold_table.add_column("Holdout days", justify="right")
+    fold_table.add_column("V_pi", justify="right")
+    fold_table.add_column("V_replay", justify="right")
+    fold_table.add_column("|disagree|", justify="right")
+    fold_table.add_column("flag", justify="center")
+    for fr in result["fold_results"]:
+        fold_table.add_row(
+            str(fr["fold_idx"]),
+            str(fr["n_train_dates"]),
+            str(fr["n_holdout_dates"]),
+            f"{fr['V_pi']:.4f}",
+            f"{fr['V_replay']:.4f}",
+            f"{fr['disagreement_abs']:.4f}",
+            fr["sparse_support"]["verdict_flag"],
+        )
+    console.print(fold_table)
+    console.print(
+        f"  [dim]lockbox: {result['lockbox']['start_date']} .. "
+        f"{result['lockbox']['end_date']} | "
+        f"aggregate_deferred=true[/dim]"
+    )
+    console.print(f"\n[green]Policy-value-eval output saved to {out_path}[/green]")
+
+
 @validate.command("falsification-harness")
 @click.option("--profiles-glob", default="data/simulation/profiles_seed*_season*.parquet",
               help="Glob for v2.5+ profile parquets (must contain a 'season' column)")
