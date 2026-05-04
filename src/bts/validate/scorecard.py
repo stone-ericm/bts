@@ -294,6 +294,80 @@ def compute_full_scorecard(
 
 
 # ---------------------------------------------------------------------------
+# Manifest-based scorecard (SOTA #5 phase 0/1)
+# ---------------------------------------------------------------------------
+
+def compute_scorecard_over_manifest(
+    profiles_df: pd.DataFrame,
+    manifest_path: str | Path,
+    *,
+    mc_trials: int = 10_000,
+    season_length: int = 180,
+) -> dict:
+    """Compute per-fold scorecards using a saved split manifest.
+
+    Loads the manifest, asserts no lockbox leakage, then runs
+    `compute_full_scorecard` on each fold's HOLDOUT slice. Returns a
+    dict with manifest metadata, lockbox_held_out=True, fold_scorecards,
+    and aggregate_deferred=True. NO aggregate-across-folds metrics in
+    Phase 0/1 (deferred — needs grouped/block bootstrap, separate scope).
+
+    The lockbox itself is NOT scored here; it's reserved for an explicit
+    end-of-cycle cert pass.
+    """
+    from bts.validate.splits import (
+        load_manifest,
+        apply_fold,
+        assert_no_lockbox_leakage,
+    )
+
+    folds, lockbox = load_manifest(manifest_path)
+    assert_no_lockbox_leakage(folds, lockbox)
+
+    # Capture full manifest metadata for the output JSON; load_manifest
+    # only returns folds + lockbox, so re-read the raw JSON for the
+    # remaining fields (schema_version, created_at, split_params, universe).
+    raw = json.loads(Path(manifest_path).read_text())
+    manifest_metadata = {
+        "manifest_path": str(manifest_path),
+        "schema_version": raw.get("schema_version"),
+        "created_at": raw.get("created_at"),
+        "split_params": raw.get("split_params"),
+        "universe": raw.get("universe"),
+    }
+
+    fold_scorecards = []
+    for fold in folds:
+        train_df, holdout_df = apply_fold(profiles_df, fold)
+        sc = compute_full_scorecard(
+            holdout_df, mc_trials=mc_trials, season_length=season_length
+        )
+        fold_scorecards.append(
+            {
+                "fold_idx": fold.fold_idx,
+                "train_n_dates": len(fold.train_dates),
+                "holdout_n_dates": len(fold.holdout_dates),
+                "train_n_rows": int(len(train_df)),
+                "holdout_n_rows": int(len(holdout_df)),
+                "scorecard": sc,
+            }
+        )
+
+    return {
+        "manifest_metadata": manifest_metadata,
+        "lockbox_held_out": True,
+        "lockbox": {
+            "start_date": lockbox.start_date.isoformat(),
+            "end_date": lockbox.end_date.isoformat(),
+            "description": lockbox.description,
+        },
+        "n_folds": len(folds),
+        "fold_scorecards": fold_scorecards,
+        "aggregate_deferred": True,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Persistence
 # ---------------------------------------------------------------------------
 
