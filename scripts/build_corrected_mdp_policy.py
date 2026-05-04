@@ -72,7 +72,7 @@ def main() -> None:
         "p_pa": "p_pred",
         "actual_hit": "y",
     })
-    tau_hat, _ = fit_logistic_normal_random_intercept(pa_for_lnri)
+    tau_hat, _, _ = fit_logistic_normal_random_intercept(pa_for_lnri)
     print(f"  tau_hat: {tau_hat:.4f}  (tau_squared: {tau_hat**2:.6f})")
 
     # Pair correlation: use canonical seed 42 (or 0).

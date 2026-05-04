@@ -1,0 +1,344 @@
+{
+  "cell": "101",
+  "params_mode": "fold-local",
+  "rho_pair_mode": "scalar",
+  "policy_mode": "per-fold",
+  "n_block_bootstrap": 500,
+  "expected_block_length": 7,
+  "n_bootstrap": 300,
+  "rho_pair_n_permutations": 300,
+  "pa_n_bootstrap": 300,
+  "seed": 42,
+  "point": 0.025,
+  "ci_lower": 0.0,
+  "ci_upper": 0.16666666666666669,
+  "n_folds": 5,
+  "runtime_seconds": 1043.8822801113129,
+  "fold_metadata": [
+    {
+      "held_out_season": 2021,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0016514653047573567,
+      "rho_PA_ci_lo": 0.001316637089455786,
+      "rho_PA_ci_hi": 0.0020696534767800103,
+      "tau": 0.09793439819121025,
+      "rho_pair_per_bin": [
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216,
+        0.005660627623876216
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.006119505862786623,
+        -0.006119505862786623,
+        -0.006119505862786623,
+        -0.006119505862786623,
+        -0.006119505862786623
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.01625762419463817,
+        0.01625762419463817,
+        0.01625762419463817,
+        0.01625762419463817,
+        0.01625762419463817
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.9166666666666666,
+        0.9166666666666666,
+        0.9166666666666666,
+        0.9166666666666666,
+        0.9166666666666666
+      ],
+      "rho_pair_n_per_bin": [
+        17520,
+        17520,
+        17520,
+        17520,
+        17520
+      ],
+      "rho_pair_global": 0.005660627623876216,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4662576,
+        "n_groups_with_pairs": 4312800,
+        "total_pair_n": 26902656,
+        "rho_hat": 0.0016514653047573567,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2022,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0006224478394475379,
+      "rho_PA_ci_lo": 0.00025162289643908037,
+      "rho_PA_ci_hi": 0.0010464623246421501,
+      "tau": 0.060233380539712215,
+      "rho_pair_per_bin": [
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648,
+        -0.006847614706794648
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.018018722026226165,
+        -0.018018722026226165,
+        -0.018018722026226165,
+        -0.018018722026226165,
+        -0.018018722026226165
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.004559326403991886,
+        0.004559326403991886,
+        0.004559326403991886,
+        0.004559326403991886,
+        0.004559326403991886
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.6666666666666666,
+        0.6666666666666666,
+        0.6666666666666666,
+        0.6666666666666666,
+        0.6666666666666666
+      ],
+      "rho_pair_n_per_bin": [
+        17592,
+        17592,
+        17592,
+        17592,
+        17592
+      ],
+      "rho_pair_global": -0.006847614706794648,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4689552,
+        "n_groups_with_pairs": 4253568,
+        "total_pair_n": 26586216,
+        "rho_hat": 0.0006224478394475379,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2023,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0005741453100434134,
+      "rho_PA_ci_lo": 0.0002470646812476505,
+      "rho_PA_ci_hi": 0.0009592321535651928,
+      "tau": 0.05784891396345995,
+      "rho_pair_per_bin": [
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807,
+        -0.00537591113417807
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.019979752528767193,
+        -0.019979752528767193,
+        -0.019979752528767193,
+        -0.019979752528767193,
+        -0.019979752528767193
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.005747122391225143,
+        0.005747122391225143,
+        0.005747122391225143,
+        0.005747122391225143,
+        0.005747122391225143
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rho_pair_n_per_bin": [
+        17520,
+        17520,
+        17520,
+        17520,
+        17520
+      ],
+      "rho_pair_global": -0.00537591113417807,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4676088,
+        "n_groups_with_pairs": 4246080,
+        "total_pair_n": 26430576,
+        "rho_hat": 0.0005741453100434134,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.08333333333333333,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2024,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0020386622286641086,
+      "rho_PA_ci_lo": 0.0016574201092671736,
+      "rho_PA_ci_hi": 0.0024503138269213612,
+      "tau": 0.10892514089645555,
+      "rho_pair_per_bin": [
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781,
+        -0.006476473199210781
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.017151478540062094,
+        -0.017151478540062094,
+        -0.017151478540062094,
+        -0.017151478540062094,
+        -0.017151478540062094
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.003926519121200482,
+        0.003926519121200482,
+        0.003926519121200482,
+        0.003926519121200482,
+        0.003926519121200482
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.8666666666666667,
+        0.8666666666666667,
+        0.8666666666666667,
+        0.8666666666666667,
+        0.8666666666666667
+      ],
+      "rho_pair_n_per_bin": [
+        17448,
+        17448,
+        17448,
+        17448,
+        17448
+      ],
+      "rho_pair_global": -0.006476473199210781,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4676016,
+        "n_groups_with_pairs": 4248672,
+        "total_pair_n": 26580672,
+        "rho_hat": 0.0020386622286641086,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.0,
+      "n_trajectories": 24
+    },
+    {
+      "held_out_season": 2025,
+      "params_mode": "fold-local",
+      "rho_pair_mode": "scalar",
+      "rho_pair_scope": "fold-local",
+      "policy_mode": "per-fold",
+      "rho_PA": 0.0011729507243478097,
+      "rho_PA_ci_lo": 0.0008176596094267105,
+      "rho_PA_ci_hi": 0.001540763547119116,
+      "tau": 0.08268653196181522,
+      "rho_pair_per_bin": [
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087,
+        -0.002546415861254087
+      ],
+      "rho_pair_per_bin_ci_lo": [
+        -0.012291280497576114,
+        -0.012291280497576114,
+        -0.012291280497576114,
+        -0.012291280497576114,
+        -0.012291280497576114
+      ],
+      "rho_pair_per_bin_ci_hi": [
+        0.009198846098113906,
+        0.009198846098113906,
+        0.009198846098113906,
+        0.009198846098113906,
+        0.009198846098113906
+      ],
+      "rho_pair_per_bin_p_value": [
+        0.9733333333333334,
+        0.9733333333333334,
+        0.9733333333333334,
+        0.9733333333333334,
+        0.9733333333333334
+      ],
+      "rho_pair_n_per_bin": [
+        17472,
+        17472,
+        17472,
+        17472,
+        17472
+      ],
+      "rho_pair_global": -0.002546415861254087,
+      "bin_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "stability": {
+        "n_groups": 4674936,
+        "n_groups_with_pairs": 4247328,
+        "total_pair_n": 26546664,
+        "rho_hat": 0.0011729507243478097,
+        "tau_hat_at_floor": false,
+        "small_sample_warning": false,
+        "estimator": "method_of_moments_pearson_pair_inversion"
+      },
+      "fold_p57": 0.041666666666666664,
+      "n_trajectories": 24
+    }
+  ]
+}

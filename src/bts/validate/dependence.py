@@ -8,8 +8,26 @@ References:
 """
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+# Heuristic small-sample thresholds for fold-level tau stability flag.
+# MIN_PRODUCTION_PAIRS: 1000 pairs ≈ 50 groups × 5 PAs each. At Task 13 fold scale (~72K pairs)
+# this will not fire, which is the intent — the warning is a canary for genuinely tiny folds, not
+# routine production data. Below this, fold is too small for meaningful tau MoM inversion.
+# MIN_GROUPS_WITH_PAIRS: 50 contributing groups. One giant group can inflate total_pair_n while
+# leaving the estimator near-degenerate; combining both thresholds prevents that masking.
+# Neither is a hard correctness gate — just inspection signals for downstream review.
+MIN_PRODUCTION_PAIRS = 1000
+MIN_GROUPS_WITH_PAIRS = 50
+# MIN_RELIABLE_N_CELL: per-cell observation threshold for the 5×5 heatmap.
+# Below 30, percentile bootstrap CIs are too noisy to act on. Operators should
+# weight reliable cells (n >= 30) more heavily when reading the heatmap.
+MIN_RELIABLE_N_CELL = 30
 
 
 def pearson_residual(y: int | float, p: float) -> float:
@@ -21,6 +39,26 @@ def pearson_residual(y: int | float, p: float) -> float:
     """
     p = max(min(p, 1 - 1e-9), 1e-9)
     return float((y - p) / np.sqrt(p * (1 - p)))
+
+
+def pearson_residual_vec(y, p) -> np.ndarray:
+    """Vectorized Pearson residual for arrays of Bernoulli predictions.
+
+    Same math as pearson_residual but operates on arrays via numpy. ~50× faster
+    than `[pearson_residual(yi, pi) for yi, pi in zip(y, p)]` on million-row
+    inputs (the Python list-comp is the dominant cost in pa_residual_correlation
+    on full PA data).
+
+    Args:
+        y: array-like of binary outcomes (0 or 1).
+        p: array-like of predicted probabilities. Clipped to [1e-9, 1 - 1e-9].
+
+    Returns:
+        np.ndarray of float Pearson residuals, same shape as y.
+    """
+    y_arr = np.asarray(y, dtype=float)
+    p_arr = np.clip(np.asarray(p, dtype=float), 1e-9, 1 - 1e-9)
+    return (y_arr - p_arr) / np.sqrt(p_arr * (1.0 - p_arr))
 
 
 def pa_residual_correlation(
@@ -92,7 +130,7 @@ def fit_logistic_normal_random_intercept(
     group_col: str = "group_id",
     n_quad_points: int = 21,
 ):
-    """Fit logit(P(y=1)) = logit(p_pred) + u, u ~ N(0, tau^2). Returns (tau_hat, integrate_fn).
+    """Fit logit(P(y=1)) = logit(p_pred) + u, u ~ N(0, tau^2). Returns (tau_hat, integrate_fn, stability) — see stability dict keys below.
 
     Method-of-moments estimation via cross-pair Pearson residual inversion
     -----------------------------------------------------------------------
@@ -139,11 +177,30 @@ def fit_logistic_normal_random_intercept(
     For tau_hat ≈ 0 the integral collapses to 1 - prod(1 - p) (independence).
     For tau_hat > 0 positive within-game correlation reduces P(>=1 hit) below
     the independence baseline (see BTS spec §6.3).
+
+    Returns:
+        (tau_hat, integrate_fn, stability) where stability is a dict with keys:
+            n_groups (int): total number of groups in the input df.
+            n_groups_with_pairs (int): groups contributing ≥2 observations — these
+                are the only ones that enter the rho_hat numerator and denominator.
+                A low value relative to n_groups signals near-degenerate estimation.
+            total_pair_n (int): total within-group pairs across all groups.
+            rho_hat (float): intra-class correlation estimate from cross-pair
+                Pearson residual products.
+            tau_hat_at_floor (bool): True when tau_hat == 0.0, regardless of
+                whether that was due to rho_hat ≤ 0, inversion failure, or a
+                genuinely near-zero signal. Useful as a quick downstream flag.
+            small_sample_warning (bool): True when total_pair_n < MIN_PRODUCTION_PAIRS
+                OR n_groups_with_pairs < MIN_GROUPS_WITH_PAIRS. Both canaries must
+                be clear for the warning to stay False. At Task 13 production fold
+                scale (~72K pairs, ~5K groups) this will be False; it fires only for
+                genuinely tiny folds.
+            estimator (str): always "method_of_moments_pearson_pair_inversion".
     """
     from scipy.optimize import brentq
 
     df = df.copy()
-    df["_e"] = [pearson_residual(y, p) for y, p in zip(df[y_col], df[p_col])]
+    df["_e"] = pearson_residual_vec(df[y_col], df[p_col])
     mean_p = float(df[p_col].mean()) if len(df) > 0 else 0.25
     # Clip mean_p away from 0/1 to keep logit finite.
     mean_p = max(min(mean_p, 1 - 1e-9), 1e-9)
@@ -206,7 +263,22 @@ def fit_logistic_normal_random_intercept(
             result += wi * p_at_least_one
         return float(result / quad_w.sum())
 
-    return tau_hat, integrate_fn
+    n_groups_with_pairs = int((pair_n > 0).sum())
+    tau_hat_at_floor = bool(tau_hat == 0.0)
+
+    stability = {
+        "n_groups": int(len(counts)),
+        "n_groups_with_pairs": n_groups_with_pairs,  # groups with ≥2 obs (the ones that contribute)
+        "total_pair_n": int(total_pair_n),
+        "rho_hat": float(rho_hat),
+        "tau_hat_at_floor": tau_hat_at_floor,  # tau_hat==0, regardless of reason
+        "small_sample_warning": bool(
+            total_pair_n < MIN_PRODUCTION_PAIRS or n_groups_with_pairs < MIN_GROUPS_WITH_PAIRS
+        ),
+        "estimator": "method_of_moments_pearson_pair_inversion",
+    }
+
+    return tau_hat, integrate_fn, stability
 
 
 def pair_residual_correlation(
@@ -214,7 +286,10 @@ def pair_residual_correlation(
     *,
     n_permutations: int = 1000,
     seed: int = 42,
-) -> tuple[float, float, float, float]:
+    bin_assignment: "pd.Series | np.ndarray | None" = None,
+    expected_bin_indices: "np.ndarray | list | None" = None,
+    strict_bin_labels: bool = True,
+) -> "tuple[float, float, float, float] | dict":
     """Stratified permutation test on rank-1/rank-2 Pearson residuals.
 
     For each row (one row per day):
@@ -233,32 +308,296 @@ def pair_residual_correlation(
 
     df columns required: date, p_rank1, p_rank2, y_rank1, y_rank2.
 
-    Returns: (rho_hat, ci_lower, ci_upper, p_value).
+    When bin_assignment is None: returns (rho_hat, ci_lower, ci_upper, p_value).
+
+    When bin_assignment is provided (one rank-1 bin index per row in df):
+    returns dict with arrays indexed by `expected_bin_indices` (when given) or
+    by sorted unique values of bin_assignment otherwise.
+
+    **CRITICAL** (caught by Codex round 1 review): caller MUST pass
+    `expected_bin_indices=np.arange(n_bins)` when the consumer indexes the
+    output by `bin.index` (as `build_corrected_transition_table` does).
+    Otherwise output[i] silently means different bins on different folds when
+    a fold's data lacks bin labels.
+
+    Returned dict keys:
+        rho_per_bin: shape-(K,) array; rho_per_bin[k] is rho for bin k
+            where K = len(expected_bin_indices) if given, else len(unique(bin_assignment))
+            NOTE: arrays are position-indexed (not label-indexed). Direct lookup
+            `rho_per_bin[b.index]` is safe ONLY when `expected_bin_indices == np.arange(n_bins)`.
+            For arbitrary label sets like [10, 20, 30], use `bin_indices` to look up by label.
+        ci_lo_per_bin: shape-(K,)
+        ci_hi_per_bin: shape-(K,)
+        p_value_per_bin: shape-(K,)
+        n_per_bin: shape-(K,) — bin observation counts (0 means bin absent in this fold's data)
+        bin_indices: shape-(K,) — the bin indices each output row corresponds to
+        global_rho, global_ci_lo, global_ci_hi, global_p_value: aggregate scalars
+
+    Empty-bin behavior: when n_per_bin[k] < 2, rho_per_bin[k]=0.0,
+    ci_lo/ci_hi=0.0, p_value=1.0. Caller should check n_per_bin and treat
+    rho=0 as "uninformative for this bin in this fold."
+
+    Strict label validation (strict_bin_labels=True, default): raises ValueError
+    when bin_assignment contains labels not in expected_bin_indices. This
+    fail-closed default protects against bin-classification bugs hiding silently.
+    Set strict_bin_labels=False to opt into silent exclusion of unexpected
+    labels (useful for diagnostic explorations).
     """
     rng = np.random.default_rng(seed)
-    e1 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank1"], df["p_rank1"])])
-    e2 = np.array([pearson_residual(y, p) for y, p in zip(df["y_rank2"], df["p_rank2"])])
+    e1 = pearson_residual_vec(df["y_rank1"], df["p_rank1"])
+    e2 = pearson_residual_vec(df["y_rank2"], df["p_rank2"])
 
     rho_hat = float(np.mean(e1 * e2))
 
     # Permutation null distribution: shuffle e2 across positions.
     null_distribution = np.empty(n_permutations)
-    for k in range(n_permutations):
+    for j in range(n_permutations):
         shuffled = rng.permutation(e2)
-        null_distribution[k] = float(np.mean(e1 * shuffled))
+        null_distribution[j] = float(np.mean(e1 * shuffled))
     # Two-sided p-value: how often is the absolute null statistic >= |observed|?
     p_value = float(np.mean(np.abs(null_distribution) >= abs(rho_hat)))
 
     # CI via paired bootstrap on rows.
     n = len(e1)
     bs = np.empty(n_permutations)
-    for k in range(n_permutations):
+    for j in range(n_permutations):
         idx = rng.integers(0, n, n)
-        bs[k] = float(np.mean(e1[idx] * e2[idx]))
+        bs[j] = float(np.mean(e1[idx] * e2[idx]))
     ci_lo = float(np.quantile(bs, 0.025))
     ci_hi = float(np.quantile(bs, 0.975))
 
-    return rho_hat, ci_lo, ci_hi, p_value
+    if bin_assignment is None:
+        return rho_hat, ci_lo, ci_hi, p_value
+
+    # Per-bin path. bin_assignment must have len == len(df).
+    bins_arr = np.asarray(bin_assignment)
+    if bins_arr.ndim != 1:
+        raise ValueError(f"bin_assignment must be 1D, got ndim={bins_arr.ndim}")
+    if len(bins_arr) != n:
+        raise ValueError(
+            f"bin_assignment length {len(bins_arr)} != df length {n}"
+        )
+    # Use caller-supplied expected indices if given (safe contract); else fall
+    # back to sorted unique values (legacy behavior).
+    if expected_bin_indices is not None:
+        bin_indices = np.asarray(expected_bin_indices)
+        if bin_indices.ndim != 1:
+            raise ValueError(f"expected_bin_indices must be 1D, got ndim={bin_indices.ndim}")
+        if strict_bin_labels:
+            unexpected = set(np.unique(bins_arr).tolist()) - set(bin_indices.tolist())
+            if unexpected:
+                raise ValueError(
+                    f"bin_assignment contains labels {sorted(unexpected)} not in "
+                    f"expected_bin_indices. Pass strict_bin_labels=False to allow "
+                    f"silent exclusion of unexpected labels."
+                )
+    else:
+        bin_indices = np.sort(np.unique(bins_arr))
+    K = len(bin_indices)
+    rho_per_bin = np.zeros(K)
+    ci_lo_per_bin = np.zeros(K)
+    ci_hi_per_bin = np.zeros(K)
+    p_per_bin = np.ones(K)  # default p=1.0 for empty bins
+    n_per_bin = np.zeros(K, dtype=int)
+
+    for k, bin_idx in enumerate(bin_indices):
+        mask = bins_arr == bin_idx
+        e1_b = e1[mask]
+        e2_b = e2[mask]
+        n_b = len(e1_b)
+        n_per_bin[k] = n_b
+        if n_b < 2:
+            # Empty/singleton bin: rho=0, p=1.0 (uninformative); rest already
+            # zeroed at init. Caller should check n_per_bin.
+            continue
+        rho_b = float(np.mean(e1_b * e2_b))
+        rho_per_bin[k] = rho_b
+        # Permutation null within this bin.
+        null_b = np.empty(n_permutations)
+        for j in range(n_permutations):
+            shuffled_b = rng.permutation(e2_b)
+            null_b[j] = float(np.mean(e1_b * shuffled_b))
+        p_per_bin[k] = float(np.mean(np.abs(null_b) >= abs(rho_b)))
+        # Bootstrap CI within this bin.
+        bs_b = np.empty(n_permutations)
+        for j in range(n_permutations):
+            idx_b = rng.integers(0, n_b, n_b)
+            bs_b[j] = float(np.mean(e1_b[idx_b] * e2_b[idx_b]))
+        ci_lo_per_bin[k] = float(np.quantile(bs_b, 0.025))
+        ci_hi_per_bin[k] = float(np.quantile(bs_b, 0.975))
+
+    return {
+        "rho_per_bin": rho_per_bin,
+        "ci_lo_per_bin": ci_lo_per_bin,
+        "ci_hi_per_bin": ci_hi_per_bin,
+        "p_value_per_bin": p_per_bin,
+        "n_per_bin": n_per_bin,
+        "bin_indices": bin_indices,
+        "global_rho": rho_hat,
+        "global_ci_lo": ci_lo,
+        "global_ci_hi": ci_hi,
+        "global_p_value": p_value,
+    }
+
+
+def pair_residual_correlation_per_cell(
+    df: pd.DataFrame,
+    *,
+    rank1_bin_assignment: "pd.Series | np.ndarray",
+    rank2_bin_assignment: "pd.Series | np.ndarray",
+    expected_bin_indices: "np.ndarray | list",
+    n_permutations: int = 500,
+    seed: int = 42,
+) -> dict:
+    """Per-cross-bin-cell rho_pair for diagnostic 5×5 lower-triangular heatmap.
+
+    Convention: BOTH rank1_bin_assignment and rank2_bin_assignment are computed
+    against the rank-1-derived bin boundaries (QualityBins fitted on top1_p).
+    The function does NOT classify rank-2 against rank-2-derived boundaries.
+    This is natural because p_rank2 <= p_rank1 always holds, so rank-2 lives
+    in a subspace of rank-1's bin scheme.
+
+    Output matrix convention: rho_matrix[r1, r2] is the rho for rank-1 in bin
+    r1 paired with rank-2 in bin r2. By the p_rank2 <= p_rank1 invariant, cells
+    where r2 > r1 (upper-triangular) should have zero observations and are
+    populated with np.nan for rho and 0 for n_matrix.
+
+    IMPORTANT: bin_indices values are used as both iteration values AND matrix
+    indices (n_matrix[r1, r2]). This works correctly only when
+    expected_bin_indices == np.arange(K). For production calls with 5 bins,
+    pass expected_bin_indices=np.arange(5).
+
+    Parameters
+    ----------
+    df : DataFrame with columns p_rank1, y_rank1, p_rank2, y_rank2.
+    rank1_bin_assignment : shape-(n,) bin index per row for rank-1 pick.
+    rank2_bin_assignment : shape-(n,) bin index per row for rank-2 pick,
+        computed against the same rank-1-derived boundaries.
+    expected_bin_indices : shape-(K,) array of expected bin index values
+        (must equal np.arange(K) for correct matrix indexing).
+    n_permutations : bootstrap resamples per populated cell (default 500).
+    seed : numpy rng seed for reproducibility.
+
+    Returns
+    -------
+    dict with keys (all shape (K, K) where K = len(expected_bin_indices)):
+        rho_matrix        : NaN for empty cells (n < 2), else rho estimate
+        n_matrix          : int observation counts per cell
+        ci_lo_matrix      : bootstrap 2.5th percentile CI (NaN for empty)
+        ci_hi_matrix      : bootstrap 97.5th percentile CI (NaN for empty)
+        empirical_p_both_matrix : realized P(y_rank1=1 AND y_rank2=1) per cell
+        synthetic_p1p2_matrix   : mean(p_rank1 * p_rank2) per cell — correct
+            conditional-independence baseline (E[p1*p2 | bin]), NOT mean(p1)*mean(p2)
+        p_both_diff_matrix : empirical_p_both - synthetic_p1p2 per cell; positive =
+            observed cooperative dependence, negative = antagonistic; NaN for empty cells
+        reliable_cells    : bool mask, True where n >= MIN_RELIABLE_N_CELL (30).
+            reliable_cells is True for cells where n>=30 (a heuristic — bootstrap CIs
+            become noisy below ~30 observations). Operators should weight reliable cells
+            more heavily when reading the heatmap.
+        bin_indices       : shape-(K,) — what each row/col index means
+        n_invariant_violations : int count of rows where rank2_bin > rank1_bin
+        n_total_rows      : total row count (useful denominator)
+    """
+    rng = np.random.default_rng(seed)
+    n = len(df)
+    r1_arr = np.asarray(rank1_bin_assignment)
+    r2_arr = np.asarray(rank2_bin_assignment)
+    bin_indices = np.asarray(expected_bin_indices)
+    K = len(bin_indices)
+
+    # Fix #5: input validation.
+    if len(r1_arr) != n:
+        raise ValueError(f"rank1_bin_assignment length {len(r1_arr)} != df length {n}")
+    if len(r2_arr) != n:
+        raise ValueError(f"rank2_bin_assignment length {len(r2_arr)} != df length {n}")
+    if n_permutations <= 0:
+        raise ValueError(f"n_permutations must be > 0, got {n_permutations}")
+
+    if not np.array_equal(bin_indices, np.arange(K)):
+        raise ValueError(
+            f"expected_bin_indices must equal np.arange({K}); got {bin_indices.tolist()}. "
+            f"bin_indices values are used directly as matrix row/col indices."
+        )
+
+    # Invariant check: p_rank2 <= p_rank1 implies r2_bin <= r1_bin.
+    n_invariant_violations = int((r2_arr > r1_arr).sum())
+    if n_invariant_violations > 0:
+        logger.warning(
+            "pair_residual_correlation_per_cell: %d/%d rows violate the rank invariant "
+            "(rank2_bin > rank1_bin). Heatmap upper-triangular cells will be non-empty.",
+            n_invariant_violations, n,
+        )
+
+    e1 = pearson_residual_vec(df["y_rank1"], df["p_rank1"])
+    e2 = pearson_residual_vec(df["y_rank2"], df["p_rank2"])
+    y1_arr = df["y_rank1"].to_numpy()
+    y2_arr = df["y_rank2"].to_numpy()
+    p1_arr = df["p_rank1"].to_numpy()
+    p2_arr = df["p_rank2"].to_numpy()
+
+    rho_matrix = np.full((K, K), np.nan)
+    n_matrix = np.zeros((K, K), dtype=int)
+    ci_lo_matrix = np.full((K, K), np.nan)
+    ci_hi_matrix = np.full((K, K), np.nan)
+    empirical_p_both_matrix = np.full((K, K), np.nan)
+    synthetic_p1p2_matrix = np.full((K, K), np.nan)
+
+    for r1 in bin_indices:
+        for r2 in bin_indices:
+            mask = (r1_arr == r1) & (r2_arr == r2)
+            n_cell = int(mask.sum())
+            n_matrix[r1, r2] = n_cell
+            if n_cell < 2:
+                continue
+            e1_c = e1[mask]
+            e2_c = e2[mask]
+            rho_matrix[r1, r2] = float(np.mean(e1_c * e2_c))
+
+            # Bootstrap CI within cell.
+            bs = np.empty(n_permutations)
+            for j in range(n_permutations):
+                idx = rng.integers(0, n_cell, n_cell)
+                bs[j] = float(np.mean(e1_c[idx] * e2_c[idx]))
+            ci_lo_matrix[r1, r2] = float(np.quantile(bs, 0.025))
+            ci_hi_matrix[r1, r2] = float(np.quantile(bs, 0.975))
+
+            # Empirical p_both and synthetic conditional-independence baseline.
+            # Fix #1 (CRITICAL): synthetic baseline is mean(p1*p2), NOT mean(p1)*mean(p2).
+            # mean(p1)*mean(p2) assumes p1 and p2 are uncorrelated within the cell, but
+            # same-day game predictions are always correlated (shared slate effects).
+            # mean(p1*p2) is the correct E[p1*p2 | bin] baseline under conditional independence.
+            y1_c = y1_arr[mask]
+            y2_c = y2_arr[mask]
+            empirical_p_both_matrix[r1, r2] = float(np.mean(y1_c * y2_c))
+            p1_c = p1_arr[mask]
+            p2_c = p2_arr[mask]
+            synthetic_p1p2_matrix[r1, r2] = float(np.mean(p1_c * p2_c))
+
+    # Fix #2: difference matrix — positive = observed cooperative dependence,
+    # negative = antagonistic. NaN propagates through subtraction for empty cells.
+    p_both_diff_matrix = empirical_p_both_matrix - synthetic_p1p2_matrix
+
+    # Fix #3: reliability mask — cells with n >= MIN_RELIABLE_N_CELL have
+    # bootstrap CIs stable enough to act on. Operators should weight these cells
+    # more heavily when reading the heatmap.
+    # reliable_cells is True for cells where n>=30 (a heuristic — bootstrap CIs become
+    # noisy below ~30 observations). Operators should weight reliable cells more heavily
+    # when reading the heatmap.
+    reliable_cells = n_matrix >= MIN_RELIABLE_N_CELL
+
+    return {
+        "rho_matrix": rho_matrix,
+        "n_matrix": n_matrix,
+        "ci_lo_matrix": ci_lo_matrix,
+        "ci_hi_matrix": ci_hi_matrix,
+        "empirical_p_both_matrix": empirical_p_both_matrix,
+        "synthetic_p1p2_matrix": synthetic_p1p2_matrix,
+        "p_both_diff_matrix": p_both_diff_matrix,   # Fix #2
+        "reliable_cells": reliable_cells,            # Fix #3
+        "bin_indices": bin_indices,
+        "n_invariant_violations": n_invariant_violations,  # Fix #4
+        "n_total_rows": n,                                  # Fix #4: useful denominator
+    }
 
 
 def build_corrected_transition_table(
@@ -266,7 +605,7 @@ def build_corrected_transition_table(
     *,
     rho_PA_within_game: float,
     tau_squared: float,
-    rho_pair_cross_game: float,
+    rho_pair_cross_game: float | np.ndarray | list | tuple,
     n_pa_per_game: int = 5,
 ):
     """Apply two-knob mean corrections to a QualityBins instance.
@@ -286,6 +625,14 @@ def build_corrected_transition_table(
         new_p_both = p1*p2 + rho_pair * sqrt(p1*(1-p1)*p2*(1-p2))
         Clipped to Frechet-Hoeffding bounds [max(0, p1+p2-1), min(p1, p2)].
 
+    rho_pair_cross_game: scalar or array-like (list, tuple, numpy array).
+        - Scalar (float): same rho applied to every bin. Backward-compatible;
+          np.asarray(0.05).ravel() gives size-1 array → uniform broadcast.
+        - Per-bin vector of length K (where K = len(bins.bins)): each bin b
+          receives rho_arr[b.index]. Lists and tuples are coerced via np.asarray,
+          so any array-like of length K works.
+        Raises ValueError if length is neither 1 nor len(bins.bins).
+
     NOTE: `rho_PA_within_game` is currently UNUSED in the correction. The PA
     dependence correction goes entirely through `tau_squared`, which is the
     inverted form of the same quantity (rho_PA_within_game ≈ implied rho from
@@ -295,6 +642,29 @@ def build_corrected_transition_table(
     bins. Pass the diagnostic value for record-keeping in your call site.
     """
     from bts.simulate.quality_bins import QualityBins, QualityBin
+
+    # Normalize rho_pair_cross_game to a 1D array once. Handles float, list,
+    # tuple, and ndarray uniformly. Size-1 means "broadcast scalar to all bins."
+    rho_arr = np.asarray(rho_pair_cross_game, dtype=float).ravel()
+    if rho_arr.size not in (1, len(bins.bins)):
+        raise ValueError(
+            f"rho_pair_cross_game length {rho_arr.size} != number of bins "
+            f"{len(bins.bins)}; pass scalar or per-bin vector"
+        )
+
+    # Per-bin lookup uses rho_arr[b.index]; only safe when bin indices are
+    # contiguous 0..K-1. compute_bins can produce non-contiguous indices when
+    # empty groups are skipped (see quality_bins.py). Fail loudly with an
+    # actionable message instead of silently mis-assigning rho values.
+    if rho_arr.size > 1:
+        bin_index_list = [b.index for b in bins.bins]
+        if bin_index_list != list(range(len(bins.bins))):
+            raise ValueError(
+                f"Per-bin rho_pair_cross_game requires contiguous 0-based bin "
+                f"indices, but bins.bins has indices {bin_index_list}. Call "
+                f"pair_residual_correlation with expected_bin_indices="
+                f"np.arange(n_bins) to guarantee dense output, or refit bins."
+            )
 
     quad_x, quad_w = np.polynomial.hermite_e.hermegauss(21)
     quad_w_sum = float(quad_w.sum())
@@ -335,7 +705,10 @@ def build_corrected_transition_table(
         # approximation available.
         p1 = new_p_hit
         p2 = new_p_hit
-        new_p_both = p1 * p2 + rho_pair_cross_game * np.sqrt(
+        # Per-bin rho_pair: when scalar, broadcast; when array, index by bin position.
+        # b.index is in [0, K-1] matching QualityBin's contract.
+        rho_for_bin = float(rho_arr[0]) if rho_arr.size == 1 else float(rho_arr[b.index])
+        new_p_both = p1 * p2 + rho_for_bin * np.sqrt(
             p1 * (1.0 - p1) * p2 * (1.0 - p2)
         )
         # Clip to Frechet-Hoeffding bounds.

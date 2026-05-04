@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-03",
+  "verdicts": {
+    "000": {
+      "point": 0.0083,
+      "ci_lo": 0.0,
+      "ci_hi": 0.0375,
+      "source": "data/validation/falsification_harness_2026-05-02.json"
+    },
+    "010": {
+      "point": 0.025,
+      "ci_lo": 0.0,
+      "ci_hi": 0.0792,
+      "source": "data/validation/falsification_harness_v2.5_cell010.json"
+    },
+    "001": {
+      "point": 0.025,
+      "ci_lo": 0.0,
+      "ci_hi": 0.0792,
+      "source": "data/validation/falsification_harness_v2.5_cell001.json"
+    },
+    "011": {
+      "point": 0.0333,
+      "ci_lo": 0.0,
+      "ci_hi": 0.1167,
+      "source": "data/validation/falsification_harness_v2.5_cell011.json"
+    },
+    "101": {
+      "point": 0.025,
+      "ci_lo": 0.0,
+      "ci_hi": 0.0792,
+      "source": "data/validation/falsification_harness_v2.5_cell101.json"
+    },
+    "111": {
+      "point": 0.0333,
+      "ci_lo": 0.0,
+      "ci_hi": 0.1167,
+      "source": "data/validation/falsification_harness_v2_2026-05-03.json"
+    }
+  },
+  "decomposition": {
+    "total_v1_to_v2": 0.025,
+    "global_B_effect": 0.0167,
+    "policy_switch_effect": 0.0125,
+    "A_effect_given_per_fold": 0.0,
+    "B_effect_given_per_fold": 0.0083,
+    "nested_AB_interaction": 0.0
+  },
+  "sanity_check": {
+    "effects_sum_to_total": false,
+    "residual": 0.0042,
+    "note": "4-term sum (global_B + policy_switch + A_given_per_fold + nested_AB) minus total. Near zero when the path attribution is exact; nonzero indicates that B_effect_given_per_fold absorbs the remainder."
+  },
+  "interpretation_notes": [
+    "Design is NESTED: A (fold-local vs pooled params) is only meaningful under C=per-fold. Cells 100 and 110 were not run. This is NOT symmetric Shapley over 3 independent factors.",
+    "Global B effect: how much switching rho_pair from scalar\u2192per-bin contributes under global policy (C=0). Pure rho_pair effect in the simpler branch.",
+    "Policy switch: how much switching from global\u2192per-fold MDP policy adds, averaged over the two rho_pair settings (scalar and per-bin). This is the effect of fold-local MDP solves, independent of params_mode.",
+    "A effect given per-fold: how much fold-local params (A=1) improve over pooled params (A=0) within the per-fold policy branch, averaged over B.",
+    "B effect given per-fold: how much per-bin rho_pair (B=1) adds within the per-fold branch, averaged over A. Informational; not in the 4-term path sum.",
+    "Nested AB interaction: whether A and B synergize or cancel within the per-fold branch. Formula: V111 - V101 - V011 + V001.",
+    "4-term path sum (global_B + policy_switch + A_given_per_fold + nested_AB) does not equal total when B_effect_given_per_fold is nonzero. The residual captures this gap."
+  ]
+}

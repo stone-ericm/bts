@@ -215,12 +215,24 @@ Multi-metric scorecard for benchmarking model and strategy changes.
 ```
 src/bts/validate/
     scorecard.py         — P@K, miss analysis, calibration, streak metrics, full scorecard assembly
+    ope.py               — DR-OPE, paired hierarchical block bootstrap, fitted-Q-evaluation, corrected_audit_pipeline (LOSO with configurable params/rho_pair/policy modes)
+    dependence.py        — pearson_residual (+ vectorized pearson_residual_vec, 16× speedup), within-batter-game PA correlation, logistic-normal random-intercept (MoM via brentq inversion), cross-game pair residual permutation test, build_corrected_transition_table, pair_residual_correlation_per_cell (5x5 diagnostic heatmap)
 ```
 
 CLI: `bts validate scorecard [--save path] [--diff baseline.json]`
 
 Baseline scorecard at `data/validation/scorecard_baseline.json` (2026-04-02).
 Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation/`.
+
+### Falsification harness (v1 2026-05-02, v2 2026-05-02, v2.5 attribution 2026-05-03)
+
+`scripts/run_falsification_harness.py` — 6-component audit of production's claimed `P(57) ≈ 8.17%`. Uses DR-OPE through `corrected_audit_pipeline`, CE-IS rare-event MC, PA + cross-game dependence diagnostics. v2.5 added 3 mode flags for nested factorial ablation: `--params-mode {pooled,fold-local}`, `--rho-pair-mode {scalar,per-bin}`, `--policy-mode {global,per-fold}`.
+
+**v1 verdict (2026-05-02)**: `HEADLINE_BROKEN` at `corrected_pipeline_p57 = 0.0083 [0, 0.0375]`.
+**v2 verdict (2026-05-02)**: `HEADLINE_REDUCED` at `0.0333 [0, 0.1167]`.
+**v2.5 attribution (2026-05-03)**: 6-cell nested ablation shows Change A (fold-local params) has **zero observable effect at this metric's resolution** within per-fold branch; Changes B (per-bin rho_pair) and C (per-fold MDP solve) each independently produce ~+0.0167pp lift. v2's "fold-local fix" framing is refuted by attribution. See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`.
+
+Cells 100/110 (params=fold-local + policy=global) are operationally undefined per the nested factorial design. v2.5 produced 4 ablation verdict JSONs at `data/validation/falsification_harness_v2.5_cell{010,001,011,101}.json` plus an attribution JSON. Cloud orchestration via `scripts/v2_5_*.{sh,py}` (Vultr provision/run/retrieve/teardown).
 
 ## Dashboard
 

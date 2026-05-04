@@ -8,6 +8,8 @@ import pytest
 from bts.validate.dependence import (
     pearson_residual,
     pa_residual_correlation,
+    pair_residual_correlation,
+    pair_residual_correlation_per_cell,
 )
 
 
@@ -100,7 +102,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_realized)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         # Wide tolerance because the latent-to-observed transformation is noisy
         # at finite n. We mainly want to confirm the estimator is in the right
         # ballpark (recovers >0.2 tau when truth is 0.5) and doesn't blow up.
@@ -123,7 +125,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_realized)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         p_list = [0.25, 0.25, 0.25, 0.25, 0.25]
         p_at_least_one_corrected = integrate_fn(p_list)
         p_at_least_one_indep = 1.0 - 0.75**5  # ≈ 0.7626
@@ -145,7 +147,7 @@ class TestLogisticNormalRandomIntercept:
                 y = int(rng.random() < p_pred)
                 rows.append({"group_id": g, "p_pred": p_pred, "y": y})
         df = pd.DataFrame(rows)
-        tau_hat, integrate_fn = fit_logistic_normal_random_intercept(df)
+        tau_hat, integrate_fn, _ = fit_logistic_normal_random_intercept(df)
         # tau_hat should be very small (truth is 0).
         assert tau_hat < 0.30, f"tau_hat={tau_hat:.3f} too large for tau_true=0 case"
         # integrate_fn at very small tau should return ≈ 1 - prod(1-p).
@@ -153,6 +155,77 @@ class TestLogisticNormalRandomIntercept:
         p_at_least_one = integrate_fn(p_list)
         p_indep = 1.0 - 0.75**5
         assert abs(p_at_least_one - p_indep) < 0.05
+
+    def test_fit_logistic_normal_random_intercept_returns_stability_dict(self):
+        """fit_logistic_normal_random_intercept returns a 3-tuple with correct stability keys."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        n_groups = 200  # bumped from 50: 200 groups × 5 obs = 2000 pairs (> MIN_PRODUCTION_PAIRS=1000)
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            for k in range(n_per):
+                rows.append({"group_id": g, "p_pred": 0.25, "y": int(rng.random() < 0.25)})
+        df = pd.DataFrame(rows)
+        result = fit_logistic_normal_random_intercept(df)
+        assert len(result) == 3, f"expected 3-tuple, got {len(result)}-tuple"
+        tau_hat, integrate_fn, stability = result
+        required_keys = {"n_groups", "n_groups_with_pairs", "total_pair_n", "rho_hat",
+                         "tau_hat_at_floor", "small_sample_warning", "estimator"}
+        assert required_keys.issubset(stability.keys()), (
+            f"missing required keys: {required_keys - stability.keys()}"
+        )
+        assert isinstance(stability["n_groups"], int)
+        assert isinstance(stability["n_groups_with_pairs"], int)
+        assert isinstance(stability["total_pair_n"], int)
+        assert isinstance(stability["rho_hat"], float)
+        assert isinstance(stability["tau_hat_at_floor"], bool)
+        assert isinstance(stability["small_sample_warning"], bool)
+        # Verify warning is NOT spuriously firing on this fixture
+        # (200 groups × 5 obs → 2000 pairs > MIN_PRODUCTION_PAIRS=1000, 200 groups > MIN_GROUPS_WITH_PAIRS=50).
+        # Closes false-negative coverage gap — a buggy "always True" impl would pass
+        # the isinstance check above but fail here.
+        assert stability["small_sample_warning"] is False
+        assert stability["estimator"] == "method_of_moments_pearson_pair_inversion"
+
+    def test_stability_warning_fires_on_small_pair_count(self):
+        """small_sample_warning=True when fold is genuinely small by either canary."""
+        from bts.validate.dependence import (
+            fit_logistic_normal_random_intercept,
+            MIN_PRODUCTION_PAIRS,
+            MIN_GROUPS_WITH_PAIRS,
+        )
+        # Build a tiny df: 3 groups × 2 obs each → 3 pairs total (well below both thresholds).
+        rows = [
+            {"group_id": 0, "p_pred": 0.25, "y": 0},
+            {"group_id": 0, "p_pred": 0.25, "y": 1},
+            {"group_id": 1, "p_pred": 0.25, "y": 0},
+            {"group_id": 1, "p_pred": 0.25, "y": 1},
+            {"group_id": 2, "p_pred": 0.25, "y": 0},
+            {"group_id": 2, "p_pred": 0.25, "y": 1},
+        ]
+        df = pd.DataFrame(rows)
+        _, _, stability = fit_logistic_normal_random_intercept(df)
+        assert stability["total_pair_n"] < MIN_PRODUCTION_PAIRS
+        assert stability["n_groups_with_pairs"] < MIN_GROUPS_WITH_PAIRS
+        assert stability["small_sample_warning"] is True
+        assert stability["tau_hat_at_floor"] is True  # 3 groups → likely no positive dependence
+
+    def test_stability_warning_does_not_fire_at_production_scale(self):
+        """Production-scale fixture (well above both canary thresholds) should NOT trigger warning."""
+        from bts.validate.dependence import fit_logistic_normal_random_intercept
+        rng = np.random.default_rng(0)
+        n_groups = 200  # well above MIN_GROUPS_WITH_PAIRS=50; 200×10 pairs/group = 2000 pairs > MIN_PRODUCTION_PAIRS=1000
+        n_per = 5
+        rows = []
+        for g in range(n_groups):
+            for k in range(n_per):
+                rows.append({"group_id": g, "p_pred": 0.25, "y": int(rng.random() < 0.25)})
+        df = pd.DataFrame(rows)
+        _, _, stability = fit_logistic_normal_random_intercept(df)
+        assert stability["small_sample_warning"] is False, (
+            f"should not warn at production scale; got stability={stability}"
+        )
 
 
 class TestBuildCorrectedTransitionTable:
@@ -236,6 +309,200 @@ class TestBuildCorrectedTransitionTable:
         # Frechet upper bound: min(p1, p2) = 0.75. Should be <= that.
         assert corrected.bins[0].p_both <= 0.75
 
+    def test_build_corrected_transition_table_accepts_per_bin_rho_vector(self):
+        """Passing a length-K rho_pair vector applies per-bin correction."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.0, 0.5), p_hit=0.3, p_both=0.10, frequency=0.2),
+                QualityBin(index=1, p_range=(0.5, 0.6), p_hit=0.55, p_both=0.30, frequency=0.2),
+                QualityBin(index=2, p_range=(0.6, 0.7), p_hit=0.65, p_both=0.42, frequency=0.2),
+                QualityBin(index=3, p_range=(0.7, 0.8), p_hit=0.75, p_both=0.55, frequency=0.2),
+                QualityBin(index=4, p_range=(0.8, 1.0), p_hit=0.85, p_both=0.72, frequency=0.2),
+            ],
+            boundaries=[0.0, 0.5, 0.6, 0.7, 0.8, 1.0],
+        )
+        rho_per_bin = np.array([0.0, 0.0, 0.0, -0.10, +0.05])  # Q4 negative, Q5 positive
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # Q1-Q3 use rho=0 → p_both should equal p1*p2 (within FH bounds).
+        for i in [0, 1, 2]:
+            b_orig = bins.bins[i]
+            b_new = corrected.bins[i]
+            expected_pboth = b_orig.p_hit ** 2
+            assert abs(b_new.p_both - expected_pboth) < 1e-9, (
+                f"Q{i+1}: rho=0 should give p_both = p_hit^2"
+            )
+        # Q4 uses rho=-0.10 → p_both should be BELOW p1*p2.
+        b4_orig = bins.bins[3]
+        b4_new = corrected.bins[3]
+        p1 = p2 = b4_orig.p_hit
+        sigma = np.sqrt(p1 * (1 - p1) * p2 * (1 - p2))
+        expected_q4 = p1 * p2 + (-0.10) * sigma
+        expected_q4 = max(0.0, p1 + p2 - 1.0) if expected_q4 < max(0.0, p1 + p2 - 1.0) else expected_q4
+        expected_q4 = min(p1, p2) if expected_q4 > min(p1, p2) else expected_q4
+        assert abs(b4_new.p_both - expected_q4) < 1e-9
+        # Q5 uses rho=+0.05 → p_both should be ABOVE p1*p2.
+        b5_orig = bins.bins[4]
+        b5_new = corrected.bins[4]
+        p1 = p2 = b5_orig.p_hit
+        sigma = np.sqrt(p1 * (1 - p1) * p2 * (1 - p2))
+        expected_q5 = p1 * p2 + 0.05 * sigma
+        # Apply Frechet-Hoeffding clipping (small positive rho probably won't trigger,
+        # but parallels the Q4 logic and locks down the formula).
+        lower_fh = max(0.0, p1 + p2 - 1.0)
+        upper_fh = min(p1, p2)
+        expected_q5 = float(min(max(expected_q5, lower_fh), upper_fh))
+        assert abs(b5_new.p_both - expected_q5) < 1e-9
+
+    def test_build_corrected_transition_table_rejects_non_contiguous_bin_indices(self):
+        """When bins have non-contiguous indices (e.g., index=0,1,3,4 from
+        compute_bins skipping an empty group), per-bin rho input must raise
+        ValueError instead of silently mis-assigning."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        sparse_bins = QualityBins(
+            bins=[
+                QualityBin(index=0, p_range=(0.0, 0.5), p_hit=0.3, p_both=0.10, frequency=0.25),
+                QualityBin(index=1, p_range=(0.5, 0.7), p_hit=0.6, p_both=0.36, frequency=0.25),
+                QualityBin(index=3, p_range=(0.7, 0.85), p_hit=0.78, p_both=0.61, frequency=0.25),
+                QualityBin(index=4, p_range=(0.85, 1.0), p_hit=0.9, p_both=0.81, frequency=0.25),
+            ],
+            boundaries=[0.0, 0.5, 0.7, 0.85, 1.0],
+        )
+        rho_per_bin = np.array([0.0, 0.0, 0.0, 0.0])  # length 4, matches len(bins.bins)
+        with pytest.raises(ValueError, match="contiguous 0-based"):
+            build_corrected_transition_table(
+                sparse_bins,
+                rho_PA_within_game=0.0,
+                tau_squared=0.0,
+                rho_pair_cross_game=rho_per_bin,
+                n_pa_per_game=5,
+            )
+        # Scalar input on the same sparse bins should still work (no per-bin lookup).
+        result = build_corrected_transition_table(
+            sparse_bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.05,
+            n_pa_per_game=5,
+        )
+        assert len(result.bins) == 4
+
+    def test_build_corrected_transition_table_scalar_input_still_works(self):
+        """Backward compat: scalar rho_pair_cross_game applies to all bins."""
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.5, p_both=0.25, frequency=0.2) for i in range(5)],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=0.05,  # scalar
+            n_pa_per_game=5,
+        )
+        for b in corrected.bins:
+            assert abs(b.p_both - (0.5*0.5 + 0.05*0.25)) < 1e-9
+
+    def test_build_corrected_transition_table_per_bin_rho_uses_post_tau_marginal(self):
+        """REGRESSION GUARD: when both tau>0 AND per-bin rho!=0, the rho correction
+        must use the tau-corrected p_hit (new_p_hit), NOT the original b.p_hit.
+
+        v1 had this bug; v2 fixes it. This test would catch a revert.
+        """
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.6, p_both=0.36, frequency=0.2)
+                for i in range(5)
+            ],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        # Tau > 0 will pull new_p_hit BELOW 0.6 (within-game dependence inflates
+        # game-level hit when integrated). Per-bin rho lookup of 0.10 in every bin.
+        rho_per_bin = np.array([0.10] * 5)
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.5,  # nonzero — exercises the tau path
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # For each bin, the corrected p_both must equal new_p_hit^2 + rho * sigma(new_p_hit),
+        # NOT b.p_hit^2 + rho * sigma(b.p_hit).
+        for i, b_new in enumerate(corrected.bins):
+            new_p_hit = b_new.p_hit  # the tau-corrected marginal
+            # Verify tau actually moved the marginal (sanity check the test setup).
+            assert abs(new_p_hit - 0.6) > 0.001, (
+                f"Q{i+1}: tau=0.5 should have shifted p_hit from 0.6 (got {new_p_hit:.6f})"
+            )
+            # Now verify p_both uses new_p_hit, not 0.6.
+            sigma_post_tau = np.sqrt(new_p_hit * (1 - new_p_hit) * new_p_hit * (1 - new_p_hit))
+            expected_post_tau = new_p_hit * new_p_hit + 0.10 * sigma_post_tau
+            # Apply FH clipping
+            lower_fh = max(0.0, 2 * new_p_hit - 1.0)
+            upper_fh = min(new_p_hit, new_p_hit)  # = new_p_hit
+            expected_post_tau = float(min(max(expected_post_tau, lower_fh), upper_fh))
+
+            # The bug-version would compute against b.p_hit=0.6
+            sigma_pre_tau = np.sqrt(0.6 * 0.4 * 0.6 * 0.4)
+            bug_value = 0.6 * 0.6 + 0.10 * sigma_pre_tau
+            # Both expected values should differ — otherwise the test isn't sensitive.
+            assert abs(expected_post_tau - bug_value) > 1e-6, (
+                f"Q{i+1}: test setup degenerate — pre-tau and post-tau values "
+                f"are too close ({expected_post_tau:.6f} vs {bug_value:.6f})"
+            )
+            assert abs(b_new.p_both - expected_post_tau) < 1e-9, (
+                f"Q{i+1}: corrected p_both ({b_new.p_both:.6f}) should match "
+                f"post-tau formula ({expected_post_tau:.6f}), NOT pre-tau ({bug_value:.6f})"
+            )
+
+    def test_build_corrected_transition_table_per_bin_rho_extreme_values_clip_to_FH_bounds(self):
+        """rho=-1 and rho=+1 push p_both outside [max(0, p1+p2-1), min(p1,p2)];
+        output must clip to those bounds for valid joint probabilities.
+        """
+        from bts.validate.dependence import build_corrected_transition_table
+        from bts.simulate.quality_bins import QualityBins, QualityBin
+        # Use p_hit=0.5 (max sigma=0.25, so rho=-1 sends p_both to 0.0).
+        bins = QualityBins(
+            bins=[
+                QualityBin(index=i, p_range=(i*0.2, (i+1)*0.2), p_hit=0.5, p_both=0.25, frequency=0.2)
+                for i in range(5)
+            ],
+            boundaries=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        )
+        # Q1 rho=-1 (max negative), Q5 rho=+1 (max positive), middle bins zero.
+        rho_per_bin = np.array([-1.0, 0.0, 0.0, 0.0, +1.0])
+        corrected = build_corrected_transition_table(
+            bins,
+            rho_PA_within_game=0.0,
+            tau_squared=0.0,
+            rho_pair_cross_game=rho_per_bin,
+            n_pa_per_game=5,
+        )
+        # Q1 (rho=-1): formula gives 0.25 + (-1)(0.25) = 0.0. FH lower = max(0, 0.5+0.5-1) = 0.0.
+        # Result: 0.0 (right at lower bound, no clipping needed but still valid).
+        assert abs(corrected.bins[0].p_both - 0.0) < 1e-9
+        # Q5 (rho=+1): formula gives 0.25 + 1*0.25 = 0.5. FH upper = min(0.5, 0.5) = 0.5.
+        # Result: 0.5 (at upper bound).
+        assert abs(corrected.bins[4].p_both - 0.5) < 1e-9
+        # Validity: every p_both must be in [0, 1] AND in FH bounds.
+        for b in corrected.bins:
+            assert 0.0 <= b.p_both <= 1.0
+            p1 = p2 = b.p_hit
+            assert b.p_both >= max(0.0, p1 + p2 - 1.0) - 1e-9
+            assert b.p_both <= min(p1, p2) + 1e-9
+
 
 class TestPairResidualCorrelation:
     def test_independent_pairs_yield_nonsignificant_correlation(self):
@@ -252,7 +519,6 @@ class TestPairResidualCorrelation:
                 "y_rank1": y1, "y_rank2": y2,
             })
         df = pd.DataFrame(rows)
-        from bts.validate.dependence import pair_residual_correlation
         rho_hat, ci_lo, ci_hi, p_value = pair_residual_correlation(df, n_permutations=500)
         assert abs(rho_hat) < 0.20, f"rho_hat={rho_hat:.3f} too far from 0 under independence"
 
@@ -276,9 +542,240 @@ class TestPairResidualCorrelation:
                 "y_rank1": y1, "y_rank2": y2,
             })
         df = pd.DataFrame(rows)
-        from bts.validate.dependence import pair_residual_correlation
         rho_hat, ci_lo, ci_hi, p_value = pair_residual_correlation(df, n_permutations=500)
         # Latent factor with sigma=1.2 and n=200 reliably produces rho_hat in 0.10-0.20.
         assert rho_hat > 0.04, f"rho_hat={rho_hat:.3f} not detecting positive correlation"
         # The permutation test should show p_value < 0.10 at this signal strength.
         assert p_value < 0.10, f"p_value={p_value:.3f} above significance under positive correlation"
+
+    def test_pair_residual_correlation_per_bin_returns_dict_with_correct_shapes(self):
+        """Per-bin rho returns shape-(K,) arrays for K unique bins."""
+        rng = np.random.default_rng(42)
+        n = 500
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.95, n),
+            "y_rank1": rng.binomial(1, 0.7, n),
+            "p_rank2": rng.uniform(0.4, 0.85, n),
+            "y_rank2": rng.binomial(1, 0.6, n),
+        })
+        bin_assignment = pd.Series(rng.integers(0, 5, n))  # 5 bins
+
+        result = pair_residual_correlation(
+            df, n_permutations=100, bin_assignment=bin_assignment,
+        )
+
+        assert isinstance(result, dict)
+        assert result["rho_per_bin"].shape == (5,)
+        assert result["ci_lo_per_bin"].shape == (5,)
+        assert result["ci_hi_per_bin"].shape == (5,)
+        assert result["p_value_per_bin"].shape == (5,)
+        assert result["n_per_bin"].shape == (5,)
+        assert isinstance(result["global_rho"], float)
+        # Per-bin n_per_bin should sum to total
+        assert int(result["n_per_bin"].sum()) == n
+        np.testing.assert_array_equal(np.sort(result["bin_indices"]), np.arange(5))
+
+    def test_pair_residual_correlation_scalar_path_preserved_for_back_compat(self):
+        """When bin_assignment is None, return tuple (rho, ci_lo, ci_hi, p) as before."""
+        rng = np.random.default_rng(42)
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.95, 200),
+            "y_rank1": rng.binomial(1, 0.7, 200),
+            "p_rank2": rng.uniform(0.4, 0.85, 200),
+            "y_rank2": rng.binomial(1, 0.6, 200),
+        })
+        result = pair_residual_correlation(df, n_permutations=100)
+        assert isinstance(result, tuple)
+        assert len(result) == 4
+        rho, ci_lo, ci_hi, p = result
+        assert isinstance(rho, float)
+
+    def test_pair_residual_correlation_missing_bin_returns_zero_at_correct_index(self):
+        """CRITICAL: when bin 2 is missing from data but expected_bin_indices=[0..4],
+        output[2] is the empty-bin slot — NOT the next observed bin's value.
+
+        This protects against the silent indexing-shift bug where bin labels in
+        output don't match bin labels the consumer indexes by.
+        """
+        rng = np.random.default_rng(42)
+        n = 400
+        # Build df where rank-1 bin is in {0,1,3,4} (no bin 2).
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.95, n),
+            "y_rank1": rng.binomial(1, 0.7, n),
+            "p_rank2": rng.uniform(0.4, 0.85, n),
+            "y_rank2": rng.binomial(1, 0.6, n),
+        })
+        bin_assignment = pd.Series(rng.choice([0, 1, 3, 4], n))
+
+        result = pair_residual_correlation(
+            df, n_permutations=50,
+            bin_assignment=bin_assignment,
+            expected_bin_indices=np.arange(5),  # [0,1,2,3,4]
+        )
+        # Output is shape-(5,) with bin 2 empty.
+        assert result["rho_per_bin"].shape == (5,)
+        assert result["n_per_bin"][2] == 0  # bin 2 absent
+        assert result["rho_per_bin"][2] == 0.0  # empty bin → rho=0
+        assert result["p_value_per_bin"][2] == 1.0  # empty bin → p=1
+        # Bin 2 absent — verify ALL empty-bin defaults, not just rho/n.
+        assert result["ci_lo_per_bin"][2] == 0.0
+        assert result["ci_hi_per_bin"][2] == 0.0
+        # Bins 0, 1, 3, 4 should have non-zero counts.
+        for k in [0, 1, 3, 4]:
+            assert result["n_per_bin"][k] > 0
+        # bin_indices should match what was passed in.
+        np.testing.assert_array_equal(result["bin_indices"], np.arange(5))
+
+    def test_pair_residual_correlation_strict_label_validation_raises(self):
+        """When bin_assignment contains labels outside expected_bin_indices,
+        strict_bin_labels=True (default) raises ValueError; False allows drop."""
+        rng = np.random.default_rng(42)
+        n = 100
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.95, n),
+            "y_rank1": rng.binomial(1, 0.7, n),
+            "p_rank2": rng.uniform(0.4, 0.85, n),
+            "y_rank2": rng.binomial(1, 0.6, n),
+        })
+        # Data has bin label 7, but expected only includes [0..4].
+        bin_assignment = pd.Series([7] * n)
+
+        # Default strict mode raises.
+        with pytest.raises(ValueError, match="not in expected_bin_indices"):
+            pair_residual_correlation(
+                df, n_permutations=10,
+                bin_assignment=bin_assignment,
+                expected_bin_indices=np.arange(5),
+            )
+
+        # Opt-out allows silent drop.
+        result = pair_residual_correlation(
+            df, n_permutations=10,
+            bin_assignment=bin_assignment,
+            expected_bin_indices=np.arange(5),
+            strict_bin_labels=False,
+        )
+        # All output bins are empty (label 7 was dropped).
+        assert result["n_per_bin"].sum() == 0
+
+
+class TestPairResidualCorrelationPerCell:
+    def test_pair_residual_correlation_per_cell_returns_lower_triangular_dict(self):
+        rng = np.random.default_rng(42)
+        n = 2000  # Codex round 1: bigger n to populate off-diagonal cells
+        # Generate data respecting the rank invariant p_rank2 <= p_rank1.
+        p1_arr = rng.uniform(0.5, 0.95, n)
+        p2_arr = np.array([rng.uniform(0.4, p) for p in p1_arr])
+        df = pd.DataFrame({
+            "p_rank1": p1_arr,
+            "y_rank1": (rng.random(n) < p1_arr).astype(int),
+            "p_rank2": p2_arr,
+            "y_rank2": (rng.random(n) < p2_arr).astype(int),
+        })
+        # Use a real QualityBins boundaries-style 5-bin assignment.
+        boundaries = np.array([0.0, 0.6, 0.7, 0.8, 0.9, 1.0])
+        rank1_bins = np.clip(np.digitize(p1_arr, boundaries[1:-1]), 0, 4)
+        rank2_bins = np.clip(np.digitize(p2_arr, boundaries[1:-1]), 0, 4)
+
+        result = pair_residual_correlation_per_cell(
+            df,
+            rank1_bin_assignment=rank1_bins,
+            rank2_bin_assignment=rank2_bins,
+            expected_bin_indices=np.arange(5),
+            n_permutations=50,
+        )
+        assert result["rho_matrix"].shape == (5, 5)
+        for key in ["n_matrix", "ci_lo_matrix", "ci_hi_matrix", "empirical_p_both_matrix", "synthetic_p1p2_matrix"]:
+            assert result[key].shape == (5, 5), f"{key} shape mismatch: {result[key].shape}"
+        np.testing.assert_array_equal(result["bin_indices"], np.arange(5))
+        # By the p_rank2 <= p_rank1 invariant, upper-triangular cells (r2 > r1)
+        # should have n == 0 and rho == NaN.
+        for r1 in range(5):
+            for r2 in range(r1 + 1, 5):
+                assert result["n_matrix"][r1, r2] == 0
+                assert np.isnan(result["rho_matrix"][r1, r2])
+        # Lower-triangular cells with non-zero counts should have non-NaN rho.
+        n_populated_cells = 0
+        for r1 in range(5):
+            for r2 in range(r1 + 1):
+                if result["n_matrix"][r1, r2] >= 2:
+                    assert not np.isnan(result["rho_matrix"][r1, r2])
+                    n_populated_cells += 1
+        # At least 5 of the 15 lower-triangular cells should be populated at n=2000.
+        assert n_populated_cells >= 5, f"Only {n_populated_cells}/15 cells populated"
+
+        # New keys from T5 Codex fixes.
+        assert "p_both_diff_matrix" in result
+        assert "reliable_cells" in result
+        assert "n_invariant_violations" in result
+        assert "n_total_rows" in result
+
+        assert result["p_both_diff_matrix"].shape == (5, 5)
+        assert result["reliable_cells"].shape == (5, 5)
+        assert result["reliable_cells"].dtype == bool
+        assert result["n_invariant_violations"] == 0  # rank invariant respected by fixture
+        assert result["n_total_rows"] == 2000
+
+        # Synthetic baseline should now use mean(p1*p2), not mean(p1)*mean(p2).
+        # Verify by manual computation on Q5×Q5 cell (should be densely populated).
+        # This is a regression guard for the statistical bug Codex caught.
+        mask_q5 = (rank1_bins == 4) & (rank2_bins == 4)
+        n_q5 = int(mask_q5.sum())
+        if n_q5 >= 2:
+            p1_q5 = p1_arr[mask_q5]
+            p2_q5 = p2_arr[mask_q5]
+            expected_synthetic = float(np.mean(p1_q5 * p2_q5))
+            assert abs(result["synthetic_p1p2_matrix"][4, 4] - expected_synthetic) < 1e-9, (
+                f"synthetic uses mean(p1*p2)={expected_synthetic}, "
+                f"got {result['synthetic_p1p2_matrix'][4, 4]} "
+                f"(BUG: would equal {np.mean(p1_q5) * np.mean(p2_q5)} under wrong formula)"
+            )
+
+    def test_pair_residual_correlation_per_cell_validates_inputs(self):
+        rng = np.random.default_rng(42)
+        df = pd.DataFrame({
+            "p_rank1": rng.uniform(0.5, 0.9, 100),
+            "y_rank1": rng.binomial(1, 0.7, 100),
+            "p_rank2": rng.uniform(0.4, 0.8, 100),
+            "y_rank2": rng.binomial(1, 0.6, 100),
+        })
+        rank1_bins = np.zeros(100, dtype=int)
+        rank2_bins_wrong = np.zeros(99, dtype=int)  # length mismatch
+
+        with pytest.raises(ValueError, match="length 99"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=rank2_bins_wrong,
+                expected_bin_indices=np.arange(5),
+                n_permutations=10,
+            )
+        with pytest.raises(ValueError, match="n_permutations"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=np.zeros(100, dtype=int),
+                expected_bin_indices=np.arange(5),
+                n_permutations=0,
+            )
+
+    def test_pair_residual_correlation_per_cell_invariant_violation_warning(self, caplog):
+        """When p_rank2 > p_rank1 in any row, log a warning (data violates invariant)."""
+        df = pd.DataFrame({
+            "p_rank1": [0.5, 0.6],
+            "y_rank1": [1, 1],
+            "p_rank2": [0.7, 0.5],  # row 0 violates p_rank2 <= p_rank1
+            "y_rank2": [0, 1],
+        })
+        rank1_bins = np.array([0, 0])
+        rank2_bins = np.array([1, 0])  # row 0 has rank2_bin > rank1_bin
+        with caplog.at_level("WARNING", logger="bts.validate.dependence"):
+            pair_residual_correlation_per_cell(
+                df,
+                rank1_bin_assignment=rank1_bins,
+                rank2_bin_assignment=rank2_bins,
+                expected_bin_indices=np.arange(2),
+                n_permutations=10,
+            )
+        assert any("invariant" in r.message.lower() for r in caplog.records)
