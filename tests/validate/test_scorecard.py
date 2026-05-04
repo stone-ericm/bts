@@ -260,3 +260,169 @@ class TestComputeStreakMetrics:
         df = _make_profiles(days=30, top_n=5)
         result = compute_streak_metrics(df, n_trials=100, season_length=50)
         assert isinstance(result["mean_max_streak"], float)
+
+
+# ---------------------------------------------------------------------------
+# compute_full_scorecard integration — proper_scoring section (SOTA #12)
+# ---------------------------------------------------------------------------
+
+class TestProperScoringInScorecard:
+    """SOTA #12 phase 1 integration: scorecard JSON includes proper_scoring."""
+
+    def test_scorecard_has_proper_scoring_section(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        df = _make_profiles(days=30, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        assert "proper_scoring" in sc
+
+    def test_proper_scoring_has_both_decision_buckets(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        df = _make_profiles(days=30, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        ps = sc["proper_scoring"]
+        assert "all_top10" in ps
+        assert "rank1" in ps
+        assert "metadata" in ps
+
+    def test_proper_scoring_buckets_have_required_metrics(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        df = _make_profiles(days=30, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        for bucket_name in ("all_top10", "rank1"):
+            bucket = sc["proper_scoring"][bucket_name]
+            for key in ("n", "log_loss", "brier", "decomposition", "reliability_table", "top_bin"):
+                assert key in bucket, f"{bucket_name} missing {key}"
+
+    def test_rank1_n_matches_n_days(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        df = _make_profiles(days=42, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        assert sc["proper_scoring"]["rank1"]["n"] == 42
+
+    def test_proper_scoring_metadata_has_interval_and_binning(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        df = _make_profiles(days=30, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        meta = sc["proper_scoring"]["metadata"]
+        assert meta["interval_method"] == "wilson"
+        assert "n_bins" in meta
+        assert "binning" in meta
+
+    def test_proper_scoring_round_trips_through_save_scorecard(self, tmp_path):
+        """save_scorecard handles the proper_scoring section without numpy-serialization errors."""
+        import json
+        from bts.validate.scorecard import compute_full_scorecard, save_scorecard
+        df = _make_profiles(days=30, top_n=10)
+        sc = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        path = tmp_path / "scorecard.json"
+        saved = save_scorecard(sc, path)
+        assert saved.exists()
+        loaded = json.loads(saved.read_text())
+        assert "proper_scoring" in loaded
+        assert "all_top10" in loaded["proper_scoring"]
+        assert "rank1" in loaded["proper_scoring"]
+
+
+# ---------------------------------------------------------------------------
+# diff_scorecards — proper_scoring scalar diffs (Codex bus #65)
+# ---------------------------------------------------------------------------
+
+class TestDiffScorecardsProperScoring:
+    """Verify proper_scoring scalars flow through diff_scorecards as flat
+    {bucket}.{field} entries; tabular fields and metadata are skipped."""
+
+    def _make_scorecard_pair(self):
+        from bts.validate.scorecard import compute_full_scorecard
+        # Build two different profile sets; same RNG (seed=42) but different
+        # row counts → different per-bin metrics in proper_scoring.
+        df_a = _make_profiles(days=30, top_n=10)
+        df_b = _make_profiles(days=40, top_n=10)
+        baseline = compute_full_scorecard(df_a, mc_trials=100, season_length=50)
+        variant = compute_full_scorecard(df_b, mc_trials=100, season_length=50)
+        return baseline, variant
+
+    def test_diff_emits_proper_scoring_section(self):
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        diffs = diff_scorecards(baseline, variant)
+        assert "proper_scoring" in diffs
+
+    def test_diff_includes_bucket_level_scalars(self):
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for bucket in ("all_top10", "rank1"):
+            for field in ("log_loss", "brier"):
+                key = f"{bucket}.{field}"
+                assert key in ps_diff, f"missing {key}"
+                entry = ps_diff[key]
+                for k in ("baseline", "variant", "delta"):
+                    assert k in entry
+
+    def test_diff_includes_decomposition_scalars(self):
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for bucket in ("all_top10", "rank1"):
+            for field in ("reliability", "resolution", "uncertainty"):
+                assert f"{bucket}.decomposition.{field}" in ps_diff
+
+    def test_diff_includes_top_bin_scalars(self):
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for bucket in ("all_top10", "rank1"):
+            for field in ("mean_p", "mean_y", "gap"):
+                assert f"{bucket}.top_bin.{field}" in ps_diff
+
+    def test_diff_skips_reliability_table(self):
+        """reliability_table is tabular and must not appear in flat scalar diff."""
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for key in ps_diff:
+            assert "reliability_table" not in key
+
+    def test_diff_skips_top_bin_count_and_ci(self):
+        """top_bin.n / ci_lo / ci_hi are not performance scalars; skip in diff."""
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for bucket in ("all_top10", "rank1"):
+            assert f"{bucket}.top_bin.n" not in ps_diff
+            assert f"{bucket}.top_bin.ci_lo" not in ps_diff
+            assert f"{bucket}.top_bin.ci_hi" not in ps_diff
+
+    def test_diff_skips_metadata(self):
+        """metadata is non-numeric (strings); diff must not emit it."""
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        for key in ps_diff:
+            assert "metadata" not in key
+
+    def test_diff_tolerates_missing_proper_scoring_in_baseline(self):
+        """Old scorecards without proper_scoring must not break diff_scorecards."""
+        from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
+        df = _make_profiles(days=30, top_n=10)
+        old_baseline = {"precision": {1: 0.9}}  # legacy, no proper_scoring
+        variant = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        diffs = diff_scorecards(old_baseline, variant)
+        # No crash; proper_scoring section absent because baseline lacks it
+        assert "proper_scoring" not in diffs
+
+    def test_diff_tolerates_missing_proper_scoring_in_variant(self):
+        from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
+        df = _make_profiles(days=30, top_n=10)
+        baseline = compute_full_scorecard(df, mc_trials=100, season_length=50)
+        old_variant = {"precision": {1: 0.9}}
+        diffs = diff_scorecards(baseline, old_variant)
+        assert "proper_scoring" not in diffs
+
+    def test_diff_delta_sign_matches_variant_minus_baseline(self):
+        """Sanity: delta = variant - baseline."""
+        from bts.validate.scorecard import diff_scorecards
+        baseline, variant = self._make_scorecard_pair()
+        ps_diff = diff_scorecards(baseline, variant)["proper_scoring"]
+        entry = ps_diff["all_top10.log_loss"]
+        assert abs(entry["delta"] - (entry["variant"] - entry["baseline"])) < 1e-12

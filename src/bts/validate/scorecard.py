@@ -244,6 +244,9 @@ def compute_full_scorecard(
         df, n_trials=mc_trials, season_length=season_length
     )
 
+    from bts.validate.proper_scoring import compute_proper_scoring
+    proper_scoring = compute_proper_scoring(df)
+
     # Summarize P@1 per season for quick comparison
     p_at_1_by_season: dict[int, float] = {}
     for season_key, season_precision in precision_by_season.items():
@@ -286,6 +289,7 @@ def compute_full_scorecard(
         "streak_metrics": streak_metrics,
         "p_57_exact": p_57_exact,
         "p_57_mdp": p_57_mdp,
+        "proper_scoring": proper_scoring,
     }
 
 
@@ -353,6 +357,10 @@ def diff_scorecards(baseline: dict, variant: dict) -> dict:
     - streak_metrics (field → scalar)
     - p_57_exact (scalar)
     - p_57_mdp (scalar)
+    - proper_scoring (flat dotted keys: {bucket}.{field} for log_loss,
+      brier, decomposition.{reliability,resolution,uncertainty}, and
+      top_bin.{mean_p,mean_y,gap}). Tabular reliability_table, top_bin
+      counts/intervals, and metadata are omitted.
 
     Args:
         baseline: Reference scorecard dict.
@@ -427,5 +435,39 @@ def diff_scorecards(baseline: dict, variant: dict) -> dict:
         d = _diff_numeric(baseline.get(field), variant.get(field))
         if d is not None:
             result[field] = d
+
+    # proper_scoring: flatten nested scalars under {bucket}.{field} keys.
+    # Skipped: reliability_table (tabular), top_bin.n / top_bin.ci_lo / top_bin.ci_hi
+    # (counts and intervals, not performance scalars). metadata is not numeric.
+    b_ps = baseline.get("proper_scoring", {})
+    v_ps = variant.get("proper_scoring", {})
+    if b_ps and v_ps:
+        ps_diff: dict = {}
+        for bucket in ("all_top10", "rank1"):
+            b_bucket = b_ps.get(bucket, {})
+            v_bucket = v_ps.get(bucket, {})
+            if not b_bucket or not v_bucket:
+                continue
+            # bucket-level scalars
+            for field in ("log_loss", "brier"):
+                d = _diff_numeric(b_bucket.get(field), v_bucket.get(field))
+                if d is not None:
+                    ps_diff[f"{bucket}.{field}"] = d
+            # decomposition scalars
+            b_dec = b_bucket.get("decomposition", {})
+            v_dec = v_bucket.get("decomposition", {})
+            for field in ("reliability", "resolution", "uncertainty"):
+                d = _diff_numeric(b_dec.get(field), v_dec.get(field))
+                if d is not None:
+                    ps_diff[f"{bucket}.decomposition.{field}"] = d
+            # top_bin scalars
+            b_tb = b_bucket.get("top_bin", {})
+            v_tb = v_bucket.get("top_bin", {})
+            for field in ("mean_p", "mean_y", "gap"):
+                d = _diff_numeric(b_tb.get(field), v_tb.get(field))
+                if d is not None:
+                    ps_diff[f"{bucket}.top_bin.{field}"] = d
+        if ps_diff:
+            result["proper_scoring"] = ps_diff
 
     return result

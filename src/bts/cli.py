@@ -145,6 +145,41 @@ def scorecard(
     streak_table.add_row("Longest replay streak", str(sm["longest_replay_streak"]))
     console.print(streak_table)
 
+    # --- Display: Probabilistic forecast evaluation (SOTA #12) ---
+    ps = sc.get("proper_scoring")
+    if ps:
+        console.print()
+        ps_table = Table(title="Probabilistic Scoring (proper scores + top-bin calibration)")
+        ps_table.add_column("Metric")
+        ps_table.add_column("all_top10", justify="right")
+        ps_table.add_column("rank1", justify="right")
+        for label, key, fmt in [
+            ("n", "n", "{:d}"),
+            ("Log loss", "log_loss", "{:.4f}"),
+            ("Brier score", "brier", "{:.4f}"),
+        ]:
+            ps_table.add_row(label, fmt.format(ps["all_top10"][key]), fmt.format(ps["rank1"][key]))
+        for label, section, key, fmt in [
+            ("Reliability", "decomposition", "reliability", "{:.4f}"),
+            ("Resolution", "decomposition", "resolution", "{:.4f}"),
+            ("Uncertainty", "decomposition", "uncertainty", "{:.4f}"),
+            ("Top-bin mean p", "top_bin", "mean_p", "{:.4f}"),
+            ("Top-bin mean y", "top_bin", "mean_y", "{:.4f}"),
+            ("Top-bin gap (p − y)", "top_bin", "gap", "{:+.4f}"),
+            ("Top-bin n", "top_bin", "n", "{:d}"),
+        ]:
+            ps_table.add_row(
+                label,
+                fmt.format(ps["all_top10"][section][key]),
+                fmt.format(ps["rank1"][section][key]),
+            )
+        console.print(ps_table)
+        meta = ps["metadata"]
+        console.print(
+            f"  [dim]bins={meta['n_bins']} ({meta['binning']}), "
+            f"intervals={meta['interval_method']}[/dim]"
+        )
+
     # --- Save ---
     if save_path is None:
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
