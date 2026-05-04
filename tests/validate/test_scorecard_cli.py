@@ -392,3 +392,181 @@ class TestDiffScorecards:
         diff_scorecards(baseline, variant)
         assert baseline == baseline_copy
         assert variant == variant_copy
+
+
+# ---------------------------------------------------------------------------
+# compute_scorecard_over_manifest (SOTA #5 phase 0/1)
+# ---------------------------------------------------------------------------
+
+class TestComputeScorecardOverManifest:
+    """Verify scorecard helper accepts a saved split manifest, runs per-fold
+    scorecards on holdout slices, and includes manifest metadata + lockbox
+    held-out + aggregate_deferred fields."""
+
+    def _setup_manifest_and_df(self, tmp_path):
+        from datetime import date, timedelta
+        from bts.validate.splits import (
+            declare_lockbox,
+            make_purged_blocked_cv,
+            save_manifest,
+        )
+
+        # Synthetic dates: 1000 game-days starting 2022-01-01
+        dates = [date(2022, 1, 1) + timedelta(days=i) for i in range(1000)]
+        lockbox = declare_lockbox(
+            date(2024, 8, 30), date(2024, 9, 28), "test lockbox"
+        )
+        folds = make_purged_blocked_cv(
+            dates,
+            n_folds=3,
+            purge_game_days=7,
+            embargo_game_days=7,
+            min_train_game_days=200,
+            lockbox=lockbox,
+        )
+        manifest_path = tmp_path / "manifest.json"
+        save_manifest(
+            folds, lockbox, manifest_path,
+            purge_game_days=7, embargo_game_days=7,
+            min_train_game_days=200, mode="rolling_origin",
+            universe_dates=dates,
+        )
+
+        # Build a profile DataFrame covering all the dates
+        rows = []
+        for d in dates:
+            for rank in range(1, 11):
+                rows.append({
+                    "date": d,
+                    "rank": rank,
+                    "batter_id": 1000 + rank,
+                    "p_game_hit": 0.78,
+                    "actual_hit": 1 if rank <= 8 else 0,
+                    "n_pas": 4,
+                })
+        df = pd.DataFrame(rows)
+        return df, manifest_path
+
+    def test_returns_dict_with_required_keys(self, tmp_path):
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        for key in (
+            "manifest_metadata",
+            "lockbox_held_out",
+            "lockbox",
+            "n_folds",
+            "fold_scorecards",
+            "aggregate_deferred",
+        ):
+            assert key in result, f"missing {key}"
+
+    def test_lockbox_held_out_true(self, tmp_path):
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        assert result["lockbox_held_out"] is True
+        assert result["aggregate_deferred"] is True
+
+    def test_n_folds_matches_manifest(self, tmp_path):
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        assert result["n_folds"] == 3
+        assert len(result["fold_scorecards"]) == 3
+
+    def test_each_fold_scorecard_has_full_scorecard(self, tmp_path):
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        for fs in result["fold_scorecards"]:
+            for key in (
+                "fold_idx", "train_n_dates", "holdout_n_dates",
+                "train_n_rows", "holdout_n_rows", "scorecard",
+            ):
+                assert key in fs, f"fold missing {key}"
+            sc = fs["scorecard"]
+            for key in ("precision", "calibration", "streak_metrics"):
+                assert key in sc
+
+    def test_holdout_n_rows_matches_holdout_n_dates_times_top_n(self, tmp_path):
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        for fs in result["fold_scorecards"]:
+            assert fs["holdout_n_rows"] == fs["holdout_n_dates"] * 10  # top_n=10
+
+    def test_lockbox_dates_not_in_any_fold_scorecard_input(self, tmp_path):
+        """Sanity: no scoring is done on lockbox dates."""
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        from bts.validate.splits import load_manifest, is_in_lockbox
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        folds, lockbox = load_manifest(mpath)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        for fold, fs in zip(folds, result["fold_scorecards"]):
+            for d in fold.holdout_dates:
+                assert not is_in_lockbox(d, lockbox), \
+                    f"fold {fs['fold_idx']} holdout overlaps lockbox: {d}"
+
+    def test_output_includes_manifest_metadata_block(self, tmp_path):
+        """Codex #79 blocking fix #1: manifest output must carry metadata
+        beyond manifest_path + lockbox; include schema_version, created_at,
+        split_params, and universe."""
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        df, mpath = self._setup_manifest_and_df(tmp_path)
+        result = compute_scorecard_over_manifest(
+            df, mpath, mc_trials=100, season_length=50
+        )
+        assert "manifest_metadata" in result
+        meta = result["manifest_metadata"]
+        for key in ("manifest_path", "schema_version", "created_at",
+                    "split_params", "universe"):
+            assert key in meta, f"manifest_metadata missing {key}"
+        # split_params should be a dict with the recorded params
+        assert "n_folds" in meta["split_params"]
+        assert "purge_game_days" in meta["split_params"]
+        # universe should record date range
+        assert "first_date" in meta["universe"]
+        assert "last_date" in meta["universe"]
+
+
+# ---------------------------------------------------------------------------
+# CLI usage error: --manifest + --diff (Codex #79 nonblocking)
+# ---------------------------------------------------------------------------
+
+class TestScorecardCLIManifestDiffMutex:
+    """--manifest and --diff are mutually exclusive: aggregate-fold diffing
+    is deferred (P0/P1 produces per-fold scorecards only)."""
+
+    def test_combination_raises_usage_error(self, tmp_path):
+        from click.testing import CliRunner
+        from bts.cli import cli
+        # Create dummy files so click.Path(exists=True) passes
+        manifest_path = tmp_path / "manifest.json"
+        diff_path = tmp_path / "baseline.json"
+        manifest_path.write_text("{}")
+        diff_path.write_text("{}")
+        # Need profiles dir to exist too — use the worktree's tracked dir
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "validate", "scorecard",
+            "--profiles-dir", "data/simulation",
+            "--manifest", str(manifest_path),
+            "--diff", str(diff_path),
+        ])
+        # Click UsageError exits with code 2
+        assert result.exit_code == 2
+        assert "mutually exclusive" in result.output.lower() or \
+               "manifest" in result.output.lower()

@@ -36,18 +36,31 @@ def validate():
               help="Save scorecard JSON to this path (default: auto-timestamped)")
 @click.option("--diff", "diff_path", default=None, type=click.Path(exists=True),
               help="Baseline scorecard JSON to diff against")
+@click.option("--manifest", "manifest_path", default=None, type=click.Path(exists=True),
+              help="Split manifest JSON (SOTA #5). When provided, runs per-fold "
+                   "scorecard on each fold's holdout slice and saves "
+                   "fold_scorecards JSON; lockbox is held out and aggregate "
+                   "metrics are deferred.")
 def scorecard(
     profiles_dir: str,
     mc_trials: int,
     season_length: int,
     save_path: str | None,
     diff_path: str | None,
+    manifest_path: str | None,
 ):
     """Compute and display the BTS model validation scorecard.
 
     Loads all backtest_*.parquet files, computes P@K, miss analysis,
     calibration, and streak metrics. Saves a JSON artifact.
     """
+    if manifest_path is not None and diff_path is not None:
+        raise click.UsageError(
+            "--manifest and --diff are mutually exclusive: aggregate-fold "
+            "diffing is deferred (SOTA #5 Phase 0/1 produces per-fold "
+            "scorecards only; run --diff in non-manifest mode)"
+        )
+
     import json as _json
     from datetime import datetime, timezone
     from rich.console import Console
@@ -83,6 +96,44 @@ def scorecard(
     profiles_df = pd.concat(dfs, ignore_index=True)
     console.print(f"[bold]Loaded {len(parquet_files)} profile files "
                   f"({len(profiles_df):,} rows, {profiles_df['date'].nunique()} days)[/bold]")
+
+    # --- Manifest mode (SOTA #5): per-fold scorecards on holdout slices ---
+    if manifest_path is not None:
+        from bts.validate.scorecard import compute_scorecard_over_manifest
+        console.print(f"[bold cyan]Manifest mode:[/bold cyan] {manifest_path}")
+        console.print("Computing per-fold scorecards (lockbox held out, aggregate deferred)...")
+        manifest_result = compute_scorecard_over_manifest(
+            profiles_df, manifest_path,
+            mc_trials=mc_trials, season_length=season_length,
+        )
+        # Display compact per-fold summary
+        fold_table = Table(title="Per-Fold Scorecard (manifest mode)")
+        fold_table.add_column("Fold", justify="right")
+        fold_table.add_column("Train days", justify="right")
+        fold_table.add_column("Holdout days", justify="right")
+        fold_table.add_column("P@1", justify="right")
+        for fs in manifest_result["fold_scorecards"]:
+            p1 = fs["scorecard"].get("precision", {}).get(1)
+            fold_table.add_row(
+                str(fs["fold_idx"]),
+                str(fs["train_n_dates"]),
+                str(fs["holdout_n_dates"]),
+                f"{p1:.1%}" if p1 is not None else "N/A",
+            )
+        console.print(fold_table)
+        console.print(
+            f"  [dim]lockbox: {manifest_result['lockbox']['start_date']} .. "
+            f"{manifest_result['lockbox']['end_date']} "
+            f"({manifest_result['lockbox']['description']})[/dim]"
+        )
+        # Save and exit before standard scorecard render
+        if save_path is None:
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+            save_path = f"data/validation/scorecard_manifest_{ts}.json"
+        from bts.validate.scorecard import save_scorecard
+        saved = save_scorecard(manifest_result, save_path)
+        console.print(f"\n[green]Manifest scorecard saved to {saved}[/green]")
+        return
 
     # --- Compute scorecard ---
     console.print(f"Computing scorecard (mc_trials={mc_trials:,}, "
@@ -219,6 +270,133 @@ def scorecard(
                 _add_diff_rows(key, val)
 
         console.print(diff_table)
+
+
+@validate.command("split-manifest")
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest_*.parquet files")
+@click.option("--lockbox-season", default=None, type=int,
+              help="Season to source the lockbox from (default: latest tracked "
+                   "complete season, skipping any partial in-progress season)")
+@click.option("--lockbox-game-days", default=30, type=int,
+              help="Number of game-days at end of lockbox season to reserve")
+@click.option("--n-folds", default=5, type=int)
+@click.option("--purge-game-days", default=7, type=int)
+@click.option("--embargo-game-days", default=7, type=int,
+              help="Recorded in manifest; only meaningful in deferred symmetric mode")
+@click.option("--min-train-game-days", default=365, type=int,
+              help="Floor on first fold's train size (game-days)")
+@click.option("--min-complete-season-dates", default=150, type=int,
+              help="Threshold for considering a season 'complete' when "
+                   "auto-resolving the default lockbox season")
+@click.option("--output", required=True, type=click.Path(),
+              help="Output JSON path for the split manifest")
+def split_manifest_cmd(
+    profiles_dir: str,
+    lockbox_season: int | None,
+    lockbox_game_days: int,
+    n_folds: int,
+    purge_game_days: int,
+    embargo_game_days: int,
+    min_train_game_days: int,
+    min_complete_season_dates: int,
+    output: str,
+):
+    """Build a purged blocked CV split manifest with a reserved lockbox.
+
+    Reads backtest_*.parquet files, resolves the lockbox season (skipping
+    any partial in-progress season unless --lockbox-season is explicit),
+    carves the last `--lockbox-game-days` of that season as the lockbox,
+    and writes a deterministic manifest JSON.
+    """
+    from rich.console import Console
+    import pandas as pd
+    from bts.validate.splits import (
+        make_purged_blocked_cv,
+        save_manifest,
+        resolve_default_lockbox_season,
+        default_lockbox_for_season,
+        collect_universe_dates,
+    )
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+    parquet_files = sorted(profiles_path.glob("backtest_*.parquet"))
+    if not parquet_files:
+        click.echo(f"No backtest_*.parquet files found in {profiles_dir}", err=True)
+        raise SystemExit(1)
+
+    # Group dates by season inferred from filename
+    dates_by_season: dict[int, list] = {}
+    for pf in parquet_files:
+        stem = pf.stem
+        parts = stem.split("_")
+        if len(parts) >= 2 and parts[-1].isdigit():
+            season = int(parts[-1])
+        else:
+            continue
+        df = pd.read_parquet(pf, columns=["date"])
+        season_dates = sorted({d.date() if hasattr(d, "date") else d
+                                for d in pd.to_datetime(df["date"])})
+        dates_by_season[season] = season_dates
+
+    if not dates_by_season:
+        click.echo("No seasons inferred from filenames", err=True)
+        raise SystemExit(1)
+
+    # Resolve lockbox season
+    if lockbox_season is None:
+        try:
+            lockbox_season = resolve_default_lockbox_season(
+                dates_by_season,
+                min_complete_season_dates=min_complete_season_dates,
+            )
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+
+    lockbox = default_lockbox_for_season(
+        dates_by_season, lockbox_season, n_game_days=lockbox_game_days
+    )
+
+    # Build universe restricted to dates <= lockbox.end_date by default.
+    # This prevents partial-current-season files (e.g., an in-progress 2026
+    # backtest beside complete 2025) from leaking post-lockbox dates into
+    # any fold's train or holdout.
+    universe = collect_universe_dates(dates_by_season, lockbox)
+
+    folds = make_purged_blocked_cv(
+        universe,
+        n_folds=n_folds,
+        purge_game_days=purge_game_days,
+        embargo_game_days=embargo_game_days,
+        min_train_game_days=min_train_game_days,
+        lockbox=lockbox,
+    )
+
+    saved = save_manifest(
+        folds, lockbox, output,
+        purge_game_days=purge_game_days,
+        embargo_game_days=embargo_game_days,
+        min_train_game_days=min_train_game_days,
+        mode="rolling_origin",
+        universe_dates=universe,
+    )
+
+    console.print(f"[bold]Split manifest saved to {saved}[/bold]")
+    console.print(
+        f"  Lockbox season: [cyan]{lockbox_season}[/cyan]  "
+        f"(range {lockbox.start_date} .. {lockbox.end_date}, "
+        f"{lockbox_game_days} game-days)"
+    )
+    console.print(
+        f"  Folds: {n_folds}  "
+        f"purge={purge_game_days}gd  embargo={embargo_game_days}gd  "
+        f"min_train={min_train_game_days}gd"
+    )
+    console.print(
+        f"  Universe: {len(universe)} dates ({universe[0]} .. {universe[-1]})"
+    )
 
 
 @validate.command("falsification-harness")
