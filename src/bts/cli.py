@@ -187,8 +187,8 @@ def scorecard(
 
 
 @validate.command("falsification-harness")
-@click.option("--profiles-glob", default="data/simulation/backtest_*.parquet",
-              help="Glob for daily backtest profile parquets")
+@click.option("--profiles-glob", default="data/simulation/profiles_seed*_season*.parquet",
+              help="Glob for v2.5+ profile parquets (must contain a 'season' column)")
 @click.option("--pa-glob", default="data/simulation/pa_predictions_*.parquet",
               help="Glob for PA-level prediction parquets")
 @click.option("--output", default="data/validation/falsification_harness.json",

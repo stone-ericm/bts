@@ -377,7 +377,8 @@ def run_harness(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profiles-glob", default="data/simulation/backtest_*.parquet")
+    parser.add_argument("--profiles-glob", default="data/simulation/profiles_seed*_season*.parquet",
+                        help="Glob for v2.5+ profile parquets (must contain a 'season' column).")
     parser.add_argument("--pa-glob", default="data/simulation/pa_predictions_*.parquet")
     parser.add_argument("--output", default="data/validation/falsification_harness.json")
     parser.add_argument("--n-bootstrap", type=int, default=2000)
