@@ -399,6 +399,108 @@ def split_manifest_cmd(
     )
 
 
+@validate.command("conformal-gate")
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest_*.parquet files")
+@click.option("--manifest", "manifest_path", required=True, type=click.Path(exists=True),
+              help="Split manifest JSON (from `bts validate split-manifest`)")
+@click.option("--methods", default="bucket_wilson,weighted_mondrian_conformal",
+              help="Comma-separated calibrator methods")
+@click.option("--alphas", default="0.05,0.10,0.20",
+              help="Comma-separated significance levels (1 - target coverage)")
+@click.option("--bucket-width", default=0.025, type=float)
+@click.option("--min-bucket-n", default=30, type=int)
+@click.option("--validity-tolerance", default=0.01, type=float)
+@click.option("--tightness-threshold", default=0.30, type=float)
+@click.option("--wilson-alpha", default=0.05, type=float,
+              help="One-sided Wilson alpha for the OBSERVED-rate CI in the gate")
+@click.option("--output", required=True, type=click.Path(),
+              help="Output JSON path for the v2 gate result")
+def conformal_gate_cmd(
+    profiles_dir: str,
+    manifest_path: str,
+    methods: str,
+    alphas: str,
+    bucket_width: float,
+    min_bucket_n: int,
+    validity_tolerance: float,
+    tightness_threshold: float,
+    wilson_alpha: float,
+    output: str,
+):
+    """Run the redesigned conformal-lower-bound gate (SOTA #11 P0/P1).
+
+    Replaces the broken-for-binary-y per-row coverage metric with per-bucket
+    lower-bound calibration validity (Wilson_lower >= mean_bound - tolerance).
+    Composes #5 manifest (lockbox held out). #12 reliability machinery is
+    used as DIAGNOSTICS only, not as a shipping gate.
+    """
+    import pandas as pd
+    from rich.console import Console
+    from rich.table import Table
+    from bts.validate.conformal_gate import run_gate_matrix
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+    parquet_files = sorted(profiles_path.glob("backtest_*.parquet"))
+    if not parquet_files:
+        click.echo(f"No backtest_*.parquet files in {profiles_dir}", err=True)
+        raise SystemExit(1)
+    dfs = []
+    for pf in parquet_files:
+        df = pd.read_parquet(pf)
+        stem = pf.stem
+        parts = stem.split("_")
+        if len(parts) >= 2 and parts[-1].isdigit():
+            df["season"] = int(parts[-1])
+        dfs.append(df)
+    profiles_df = pd.concat(dfs, ignore_index=True)
+    console.print(f"[bold]Loaded {len(profiles_df):,} profile rows from "
+                  f"{len(parquet_files)} files[/bold]")
+
+    methods_list = tuple(m.strip() for m in methods.split(","))
+    alphas_list = tuple(float(a.strip()) for a in alphas.split(","))
+
+    result = run_gate_matrix(
+        profiles_df, manifest_path,
+        methods=methods_list, alphas=alphas_list,
+        bucket_width=bucket_width, min_bucket_n=min_bucket_n,
+        validity_tolerance=validity_tolerance,
+        tightness_threshold=tightness_threshold,
+        wilson_alpha=wilson_alpha,
+    )
+
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(result, indent=2, sort_keys=True))
+
+    matrix_table = Table(title=f"Conformal Gate v2 — {result['verdict']}")
+    matrix_table.add_column("Method")
+    matrix_table.add_column("Alpha", justify="right")
+    matrix_table.add_column("Verdict", justify="center")
+    matrix_table.add_column("Fail reasons (head)", overflow="fold")
+    for cell_key, cell in result["method_alpha_matrix"].items():
+        verdict_color = {
+            "PASS": "green",
+            "FAIL": "red",
+            "INSUFFICIENT_DATA": "yellow",
+        }.get(cell["verdict"], "white")
+        reasons = "; ".join(cell["fail_reasons"][:2]) if cell["fail_reasons"] else ""
+        matrix_table.add_row(
+            cell["method"],
+            f"{cell['alpha']:.2f}",
+            f"[{verdict_color}]{cell['verdict']}[/{verdict_color}]",
+            reasons,
+        )
+    console.print(matrix_table)
+    console.print(
+        f"  [dim]lockbox: {result['lockbox']['start_date']} .. "
+        f"{result['lockbox']['end_date']} | "
+        f"ship_set: {len(result['ship_set'])} cell(s)[/dim]"
+    )
+    console.print(f"\n[green]Gate output saved to {out_path}[/green]")
+
+
 @validate.command("falsification-harness")
 @click.option("--profiles-glob", default="data/simulation/profiles_seed*_season*.parquet",
               help="Glob for v2.5+ profile parquets (must contain a 'season' column)")
