@@ -1,11 +1,29 @@
 # BTS State-of-the-Art Audit — Master Tracker
 
 **Date created**: 2026-05-01
-**Last updated**: 2026-05-01 evening (Codex adversarial review absorbed)
-**Status**: Active; 17 audit areas. First concrete area: **8.17% falsification harness** (combines areas 13, 14, 15).
+**Last updated**: 2026-05-04 (post-v2.5/v2.6 reconciliation)
+**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04) — but full SOTA targets for #13/#14/#15 remain open. **Next active area: #12 probabilistic forecast evaluation suite.**
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
+
+## Status update — 2026-05-04 (post-v2.5/v2.6 reconciliation)
+
+**PR #8 merged** at commit `1a0eefb` on 2026-05-04 — completes the v2.5 nested-factorial attribution + v2.6 block-bootstrap CI ablation cycle.
+
+**v2.6 outcome (within the falsification-harness path only)**:
+- Profile-level paired hierarchical block-bootstrap (Politis–Romano stationary, expected_block_length=7, n=500) added to `corrected_audit_pipeline` for `corrected_pipeline_p57`.
+- Gate-class transition collapsed at the current half-headline=0.04085 threshold: under block-bootstrap, the v1 BROKEN classification was a percentile-CI artifact (ci_upper 0.0375 was 0.7pp below threshold on a CI whose grid resolution is 0.83pp). All 6 ablation cells gate REDUCED.
+- v2.5 point-estimate attribution survives with precise framing: B (per-bin rho_pair) and C (per-fold MDP solve) each shift +1.67pp single-mode; combined B+C shift +2.50pp via one extra 2023 fold success. A (fold-local params) has no observable effect at current resolution AND is ~3.5× slower in this runner — keep A as leakage-hygiene methodology for final audits, use pooled for exploratory screens.
+- See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md` for full memo + v2.6 addendum.
+
+**What v2.6 did NOT close**: areas #13 (OPE), #14 (rare-event MC), and #15 (PA/cross-game dependence modeling) shipped **v1 simplifications** inside the Task 13 falsification harness, but their full SOTA targets remain open: **#13 sequential DR/FQE remains open; #14 richer per-step/per-action CE-IS or subset-simulation variants remain deferred; #15 fuller out-of-fold PA/cross-game residual-dependence modeling remains open.** Areas #5 (nested CV/lockbox), #11 (binary-y conformal validation), #12 (probabilistic forecast evaluation suite) are still unstarted. **The falsification-harness path is NOT complete; it has a CI-robustness piece shipped on top of v1 simplifications.**
+
+**Current production recommendation**: keep policy as-is. The harness work has not produced grounds to redeploy.
+
+**Strategic question reframe**: avoid framing the next project as "distribution-shift remediation." The strategic-gaps memo flagged that the original production-overconfidence diagnosis was iteration-contaminated. The current open production question is **whether current-model top-of-slate under-confidence is real and exploitable** — and #12 (probabilistic forecast evaluation suite) is the cheapest foundation for testing that.
+
+**Next active SOTA item**: **#12 probabilistic forecast evaluation suite** (per existing "suggested execution order" item 2 below). #12 is the prerequisite for #5, #8, #9, #11, #16, #17 — foundation for everything else.
 
 ## Audit framework
 
@@ -22,11 +40,15 @@ For each area, we capture:
 
 **Methodological orientation (added 2026-05-01 evening, after Codex review):** Treat each area not just as "a technique to install" but as "a claim to falsify." The goal is not to ornament the system with respectable methods; it's to find out whether the headline numbers (8.17% pooled P(57), 16-feature blend gain, etc.) survive honest decision-level scrutiny. When the literature SOTA P(57) is ~0.5%, being at 8.17% creates a burden of proof, not a baseline.
 
+**Cross-cutting claim — production equivalence / data lineage (added 2026-05-04 per Codex post-v2.6 review):** In addition to the per-area concerns above, the audit must defend the claim that "the picks the research backtest scores are the picks production would have made on the same dates with the same information." This means: research data lineage = production data lineage at evaluation time (no future leakage, no projected-lineup vs confirmed-lineup mismatch, no upstream feature drift between training and serving). This claim cuts across area **#5 (nested validation must reflect production information sets at fold boundaries)** and area **#13 (OPE must use frozen-at-decision-time information sets)**. It is a defended claim the harness assumes; it is NOT a separate numbered area — it is a constraint on how #5 and #13 must be implemented.
+
 ## Prioritization heuristics
 
 Order areas by **expected_P(57)_honesty_or_impact / weeks_of_work**, with hard prerequisites respected. Highest expected EV starts first.
 
 Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly make." Don't compromise rigor for speed; do compromise scope when SOTA is ill-defined.
+
+**Deployability constraint (added 2026-05-04 per Codex post-v2.6 review):** SOTA areas are gated by deployable constraints — cost, latency, and provider determinism — that decide whether a method can run daily in production. These are operational constraints on what's deployable, not statistical-validity constraints. A method that is statistically defensible but cannot run within the production daily window (morning lineup-lock to game-start) cannot be deployed regardless of its SOTA-ness. This adds a third axis to the prioritization heuristic: expected EV / weeks-of-work, gated by daily-runnability.
 
 ---
 
@@ -159,11 +181,12 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 - **Current**: Primary metric is P@1 game-level accuracy. No proper-scoring-rule evaluation, no Brier decomposition, no sharpness-vs-reliability framework. P@1 is too blunt for a chained probabilistic decision system.
 - **SOTA target**: **Proper scoring rules** (Gneiting & Raftery 2007 "Strictly Proper Scoring Rules, Prediction, and Estimation"); **Brier decomposition** into reliability/resolution/uncertainty (Murphy 1973); **top-decile calibration** specifically (the picks live there); **sharpness-vs-reliability framework** (Gneiting et al. 2007); **CRPS** for ranked outputs. Plus **decision-bucket calibration** (calibration restricted to days where the pick is actually selectable as rank-1).
+- **Scope expansion (added 2026-05-04 per Codex post-v2.6 review)**: External benchmark reconciliation is part of #12. Garnett 2026 / lokikg-style P@K comparisons must be evaluated under identical temporal guardrails, proper scoring rules, and decision-bucket calibration to be honest; headline P@1 / P(57) reported in different papers under different temporal-leak rules and different calibration conditions are NOT directly comparable. #12 should produce the apples-to-apples external-benchmark reconciliation as part of its first deliverable, not as a downstream task.
 - **Speculative ΔP(57)**: 0.0pp directly; foundational for honest model comparison and for replacing P@1 in tuning loops with decision-aware scoring (#16).
 - **Effort**: S (most of these are one-pass calculations on existing OOF predictions).
 - **Prerequisites**: None.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
-- **Next action**: Read Gneiting & Raftery 2007. Implement `bts.validate.proper_scoring` module: log loss, Brier, Brier decomposition, reliability diagram with bootstrap bands, sharpness-vs-reliability scatter, decision-bucket calibration. Add to `bts validate scorecard` output.
+- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). **Designated next active SOTA item per 2026-05-04 reconciliation.**
+- **Next action**: Read Gneiting & Raftery 2007. Implement `bts.validate.proper_scoring` module: log loss, Brier, Brier decomposition, reliability diagram with bootstrap bands, sharpness-vs-reliability scatter, decision-bucket calibration. Add to `bts validate scorecard` output. As part of first deliverable, produce external-benchmark reconciliation table comparing BTS P@K and proper-score performance to published P@K claims under matched temporal guardrails.
 
 ### 13. (NEW, 2026-05-01 evening) Offline policy evaluation (OPE)  [✅ shipped 2026-05-02 — falsification harness Task 13]
 
@@ -193,7 +216,9 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ### 15. (NEW, 2026-05-01 evening) PA-independence and cross-game dependence modeling  [✅ shipped 2026-05-02 — falsification harness Task 13 (v1) + Issue #7 (v2)]
 
-- **Status (2026-05-03 v2.5 evening — partial attribution)**: v2.5 SHIPPED via 6-cell nested factorial ablation. **Headline finding (Codex matrix-reviewed): in this six-cell nested ablation, Change A (fold-local parameter estimation) has no observable effect on the corrected_pipeline_p57 point estimate conditional on per-fold policy, while Changes B and C each independently produce most of the v1→v2 verdict shift.** A_effect_given_per_fold = 0.00pp; nested AB interaction = 0.00pp; both at metric resolution of 1/120 = 0.0083pp. Cells V010 = V001 = V101 = 0.0250 (any single one of B-alone, C-alone, or A+C produces same coarse scalar); V011 = V111 = 0.0333. **Caveat**: point estimates are coarse (1/120, 3/120, 4/120 successes); same-scalar across cells doesn't establish mechanism equivalence. Path-sum residual is 17% of total (decomposition is descriptive, not additive). **Defensible**: A is below detection in measured per-fold contrasts; B/C drive the shift. **Not defensible**: "A is methodology theater," "B/C substitutable," "deploy cell 010 as production policy" — those are interpretive jumps beyond what 6 coarse scalars establish. See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`. v2.6 priorities: (1) block-bootstrap CI replacing 5-fold percentile, (2) cell 101 full-rep verification (cheap), (3) mechanism inspection (does V010=V001 reflect same fold patterns?), (4) distribution shift remediation as strategic priority.
+- **Status (2026-05-04 v2.6)**: PR #8 merged at `1a0eefb`. v2.6 added profile-level paired hierarchical block-bootstrap CI (Politis–Romano stationary, expected_block_length=7, n=500) for `corrected_pipeline_p57` within the harness path. Gate-class transition collapsed at half-headline=0.04085 threshold: under block-bootstrap, the v1 BROKEN classification was a percentile-CI artifact (ci_upper 0.0375 was 0.7pp below threshold on a CI whose grid resolution is 0.83pp); all 6 ablation cells gate REDUCED. v2.5 point-estimate attribution survives with precise framing (B/C each shift +1.67pp single-mode; combined +2.50pp via 2023 fold synergy; A no observable effect at current resolution AND ~3.5× slower in this runner). Full v2.6 addendum: `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`. **Note**: v2.6 is a CI-methodology piece on top of v1 dependence-modeling simplifications; fuller out-of-fold PA/cross-game residual-dependence modeling remains scoped but unstarted.
+
+- **Status (2026-05-03 v2.5 evening — partial attribution)**: v2.5 SHIPPED via 6-cell nested factorial ablation. **Headline finding (Codex matrix-reviewed): in this six-cell nested ablation, Change A (fold-local parameter estimation) has no observable effect on the corrected_pipeline_p57 point estimate conditional on per-fold policy, while Changes B and C each independently produce most of the v1→v2 verdict shift.** A_effect_given_per_fold = 0.00pp; nested AB interaction = 0.00pp; both at metric resolution of 1/120 = 0.0083pp. Cells V010 = V001 = V101 = 0.0250 (any single one of B-alone, C-alone, or A+C produces same coarse scalar); V011 = V111 = 0.0333. **Caveat**: point estimates are coarse (1/120, 3/120, 4/120 successes); same-scalar across cells doesn't establish mechanism equivalence. Path-sum residual is 17% of total (decomposition is descriptive, not additive). **Defensible**: A is below detection in measured per-fold contrasts; B/C drive the shift. **Not defensible**: "A is methodology theater," "B/C substitutable," "deploy cell 010 as production policy" — those are interpretive jumps beyond what 6 coarse scalars establish. See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`. v2.6 priorities (historical, as recorded 2026-05-03): (1) block-bootstrap CI replacing 5-fold percentile, (2) cell 101 full-rep verification (cheap), (3) mechanism inspection (does V010=V001 reflect same fold patterns?), (4) distribution shift remediation as strategic priority. **Note (2026-05-04)**: priorities (1)-(3) shipped via v2.6; priority (4) framing superseded — see 2026-05-04 status update at top of tracker for under-confidence/top-of-slate reframe.
 
 - **Status (2026-05-02 v2 evening)**: v2 SHIPPED via Issue #7 — closes v1's two methodology gaps (later refuted by v2.5 attribution; see above). Per-rank-1-bin `rho_pair_per_bin` correction (5-element vector) and within-fold dependence-parameter estimation (rho_PA, tau, rho_pair refit per LOSO fold's 4 training seasons). New diagnostic 5×5 lower-triangular heatmap via `pair_residual_correlation_per_cell`. v2 verdict: `corrected_pipeline_p57 = 0.0333 [0.0000, 0.1167]` → `HEADLINE_REDUCED`. **However (per Codex round 1 review of memo)**: v2 point estimate is *still below* half-headline (0.0408); the gate-class transition from v1's `BROKEN` to v2's `REDUCED` is CI-driven, not point-estimate driven. Q4 sign reversed (v1 antagonism → v2 cooperative in 2/5 folds, near-zero in 3/5) — heterogeneous, not "artifact." See `docs/sota_audit/2026-05-02-harness-v2-comparison.md` and `data/validation/falsification_harness_v2_2026-05-03.json`.
 
@@ -236,8 +261,8 @@ The original execution order put TreeSHAP first as a quick win. Codex's review r
 
 Revised order:
 
-1. **Falsification harness for the 8.17% claim** = #13 OPE + #14 rare-event MC + #15 dependence modeling, designed and built together. Goal: try to break the 8.17% number with honest decision-level evaluation under correlated rare-event variance. **First concrete area to execute.**
-2. **#12 Probabilistic forecast evaluation suite** — replace P@1-centric evaluation. Foundation for everything else.
+1. **Falsification harness for the 8.17% claim** = #13 OPE + #14 rare-event MC + #15 dependence modeling, designed and built together. Goal: try to break the 8.17% number with honest decision-level evaluation under correlated rare-event variance. ~~First concrete area to execute.~~ **(2026-05-04 update: v1 harness path shipped + v2.5 attribution + v2.6 block-bootstrap CI; full-SOTA #13/#14/#15 remains open.)**
+2. **#12 Probabilistic forecast evaluation suite** — replace P@1-centric evaluation. Foundation for everything else. **(2026-05-04 update: designated next active item per post-v2.6 reconciliation.)**
 3. **#11 Binary-y validation methodology** — unblocks parked conformal v1.
 4. **#5 Nested rolling-origin CV + lockbox** — methodology foundation; should happen before any further model-class or feature audits.
 5. **#1 MDP robustness (distributional DP / robust VI)** — once OPE infra is in place.
