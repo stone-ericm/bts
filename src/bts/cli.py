@@ -602,6 +602,131 @@ def policy_value_eval_cmd(
     console.print(f"\n[green]Policy-value-eval output saved to {out_path}[/green]")
 
 
+@validate.command("rare-event-ce-is")
+@click.option("--profiles-dir", default="data/simulation", type=click.Path(exists=True),
+              help="Directory with backtest_*.parquet files")
+@click.option("--manifest", "manifest_path", required=True, type=click.Path(exists=True),
+              help="Split manifest JSON (from `bts validate split-manifest`)")
+@click.option("--n-rounds-train", default=8, type=int,
+              help="CE rounds on fold-train profiles to learn theta")
+@click.option("--n-per-round-train", default=5000, type=int)
+@click.option("--n-final-train", default=2000, type=int,
+              help="Final IS sample size on TRAIN (point estimate is discarded; "
+                   "smaller default than holdout since we only keep theta_final)")
+@click.option("--n-final-holdout", default=20000, type=int,
+              help="Final IS sample size on HOLDOUT for the fixed-window estimate")
+@click.option("--seed", default=42, type=int)
+@click.option("--streak-threshold", default=57, type=int,
+              help="Threshold for the rare event (default 57 to match exact_p57's "
+                   "hard-coded absorbing state)")
+@click.option("--min-ess", default=1000.0, type=float,
+              help="Diagnostic threshold (NOT a gate)")
+@click.option("--max-weight-share", default=0.1, type=float,
+              help="Diagnostic threshold (NOT a gate)")
+@click.option("--output", required=True, type=click.Path(),
+              help="Output JSON path for the rare_event_ce_is_v1 result")
+def rare_event_ce_is_cmd(
+    profiles_dir: str,
+    manifest_path: str,
+    n_rounds_train: int,
+    n_per_round_train: int,
+    n_final_train: int,
+    n_final_holdout: int,
+    seed: int,
+    streak_threshold: int,
+    min_ess: float,
+    max_weight_share: float,
+    output: str,
+):
+    """Run the per-fold CE-IS rare-event evaluation contract (SOTA #14 P0/P1).
+
+    Black-box wrapper of `bts.simulate.rare_event_mc.estimate_p57_with_ceis`
+    over a #5 manifest. Per fold: CE rounds learn theta on fold-train
+    profiles (the train point estimate is discarded — there is no public
+    tune-only API in v1); final IS estimate runs on fold-holdout profiles
+    with `n_rounds=0, theta=train_theta`. Lockbox held out per #5;
+    aggregate_deferred=true.
+
+    Estimand: P(max consecutive rank-1 hits >= streak_threshold) over the
+    ordered fold-holdout date sequence under independent Bernoulli rank-1
+    hits. Horizon = n_holdout_dates per fold. NOT comparable to #13's V_pi.
+    """
+    import pandas as pd
+    from rich.console import Console
+    from rich.table import Table
+    from bts.validate.rare_event_mc_eval import evaluate_ceis_on_manifest
+
+    console = Console()
+    profiles_path = Path(profiles_dir)
+    parquet_files = sorted(profiles_path.glob("backtest_*.parquet"))
+    if not parquet_files:
+        click.echo(f"No backtest_*.parquet files in {profiles_dir}", err=True)
+        raise SystemExit(1)
+    dfs = []
+    for pf in parquet_files:
+        df = pd.read_parquet(pf)
+        stem = pf.stem
+        parts = stem.split("_")
+        if len(parts) >= 2 and parts[-1].isdigit():
+            df["season"] = int(parts[-1])
+        dfs.append(df)
+    profiles_df = pd.concat(dfs, ignore_index=True)
+    console.print(f"[bold]Loaded {len(profiles_df):,} profile rows from "
+                  f"{len(parquet_files)} files[/bold]")
+
+    result = evaluate_ceis_on_manifest(
+        profiles_df, manifest_path,
+        n_rounds_train=n_rounds_train,
+        n_per_round_train=n_per_round_train,
+        n_final_train=n_final_train,
+        n_final_holdout=n_final_holdout,
+        seed=seed,
+        streak_threshold=streak_threshold,
+        min_ess=min_ess,
+        max_weight_share_threshold=max_weight_share,
+    )
+
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    # Strict JSON — fails closed if a metric becomes non-finite
+    out_path.write_text(
+        json.dumps(result, indent=2, sort_keys=True, default=str, allow_nan=False)
+    )
+
+    fold_table = Table(
+        title=f"CE-IS Rare-Event MC — streak_threshold={streak_threshold}, "
+              f"horizon=n_holdout_dates"
+    )
+    fold_table.add_column("Fold", justify="right")
+    fold_table.add_column("Train days", justify="right")
+    fold_table.add_column("Holdout days", justify="right")
+    fold_table.add_column("Estimate", justify="right")
+    fold_table.add_column("CI [lo, hi]", justify="right")
+    fold_table.add_column("ESS", justify="right")
+    fold_table.add_column("MaxWS", justify="right")
+    fold_table.add_column("flag", justify="center")
+    for fr in result["fold_results"]:
+        d = fr["diagnostics"]
+        fold_table.add_row(
+            str(fr["fold_idx"]),
+            str(fr["n_train_dates"]),
+            str(fr["n_holdout_dates"]),
+            f"{fr['fixed_window_estimate']:.4e}",
+            f"[{fr['ci_lower']:.2e}, {fr['ci_upper']:.2e}]",
+            f"{d['ess']:.0f}",
+            f"{d['max_weight_share']:.3f}",
+            d["verdict_flag"],
+        )
+    console.print(fold_table)
+    console.print(
+        f"  [dim]lockbox: {result['lockbox']['start_date']} .. "
+        f"{result['lockbox']['end_date']} | "
+        f"aggregate_deferred=true | "
+        f"NOT comparable to #13 V_pi[/dim]"
+    )
+    console.print(f"\n[green]CE-IS eval output saved to {out_path}[/green]")
+
+
 @validate.command("falsification-harness")
 @click.option("--profiles-glob", default="data/simulation/profiles_seed*_season*.parquet",
               help="Glob for v2.5+ profile parquets (must contain a 'season' column)")
