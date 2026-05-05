@@ -1,7 +1,9 @@
 """Pick persistence, streak tracking, and MLB API helpers for BTS automation."""
 
+import hashlib
 import json
 import re
+import subprocess
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +13,96 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 from bts.util import retry_urlopen
 
 API_BASE = "https://statsapi.mlb.com"
+
+
+def _git_head_sha(cwd: Path | str = ".") -> str | None:
+    """Return git rev-parse HEAD for ``cwd``, or None on any failure.
+
+    Provenance helper. Failures (cwd is not a git repo, git binary missing,
+    timeout) MUST be non-fatal — a failed sha read should never block a
+    pick save. Per Codex bus #168.
+    """
+    try:
+        out = subprocess.check_output(
+            ["git", "-C", str(cwd), "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+        ).strip()
+        return out or None
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _sha256_file(path: Path | str | None) -> str | None:
+    """Return hex sha256 of the file at ``path``, or None on any failure.
+
+    Returns None when ``path`` is None, doesn't exist, or any I/O error
+    occurs. Failures MUST be non-fatal per Codex bus #168. Used only as
+    a content-identity hash over already-existing artifact files; this
+    helper does not deserialize the content.
+    """
+    if path is None:
+        return None
+    p = Path(path)
+    if not p.exists() or not p.is_file():
+        return None
+    try:
+        h = hashlib.sha256()
+        with p.open("rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return None
+
+
+def compute_provenance(
+    blend_path: Path | str | None = None,
+    policy_path: Path | str | None = None,
+    cwd: Path | str = ".",
+) -> dict[str, str | None]:
+    """Bundle provenance fields for a DailyPick.
+
+    Returns a dict with keys ``model_git_sha``, ``model_pickle_sha256``,
+    ``policy_npz_sha256``. Each value is either a hex string or None.
+    None values reflect "the artifact is genuinely unavailable" or "the
+    git/hash call failed" — they MUST NOT cause callers to error out
+    (per Codex #168).
+
+    ``blend_path`` is the path of the cached blend artifact written by
+    ``bts.model.predict.run_pipeline``; the field name on DailyPick
+    follows the existing on-disk convention (``model_pickle_sha256``).
+    """
+    return {
+        "model_git_sha": _git_head_sha(cwd),
+        "model_pickle_sha256": _sha256_file(blend_path),
+        "policy_npz_sha256": _sha256_file(policy_path),
+    }
+
+
+def attach_provenance(
+    daily: "DailyPick",
+    blend_path: Path | str | None = None,
+    policy_path: Path | str | None = None,
+    cwd: Path | str = ".",
+) -> "DailyPick":
+    """Attach provenance v1 fields to a freshly-predicted DailyPick.
+
+    Mutates and returns ``daily`` (callable as either an effect or an
+    expression). Wraps :func:`compute_provenance` and writes the three
+    fields directly onto the dataclass. Failure modes are inherited from
+    the helpers — None values are silently accepted; this never raises.
+
+    Use only when ``daily`` represents a fresh prediction run; re-saves
+    of an already-saved DailyPick should preserve the existing provenance
+    (it round-trips through load_pick).
+    """
+    prov = compute_provenance(blend_path=blend_path, policy_path=policy_path, cwd=cwd)
+    daily.model_git_sha = prov["model_git_sha"]
+    daily.model_pickle_sha256 = prov["model_pickle_sha256"]
+    daily.policy_npz_sha256 = prov["policy_npz_sha256"]
+    return daily
 
 
 @dataclass
@@ -39,6 +131,12 @@ class DailyPick:
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
     result: str | None = None  # "hit", "miss", "suspended", "unresolved", or None (pending)
+    # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
+    # old picks lack these fields and load_pick backfills via .get(...).
+    # See bts.picks.compute_provenance for the helper that populates them.
+    model_git_sha: str | None = None  # git rev-parse HEAD at predict/save time
+    model_pickle_sha256: str | None = None  # sha256 of blend artifact actually used
+    policy_npz_sha256: str | None = None  # sha256 of mdp_policy.npz if loaded
 
 
 def pick_from_row(row) -> Pick:
@@ -145,6 +243,9 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
         result=data.get("result"),
+        model_git_sha=data.get("model_git_sha"),
+        model_pickle_sha256=data.get("model_pickle_sha256"),
+        policy_npz_sha256=data.get("policy_npz_sha256"),
     )
 
 
@@ -167,6 +268,10 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
         result=data.get("result"),
+        # Provenance v1 — defaults to None for picks saved before these fields existed.
+        model_git_sha=data.get("model_git_sha"),
+        model_pickle_sha256=data.get("model_pickle_sha256"),
+        policy_npz_sha256=data.get("policy_npz_sha256"),
     )
 
 

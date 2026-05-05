@@ -152,6 +152,66 @@ class TestRunShadowPrediction:
         captured = capsys.readouterr()
         assert "DISAGREES" in captured.err
 
+    def test_threads_config_data_dir_and_models_dir(self, tmp_path):
+        """Per Codex bus #172/#174: a non-default orchestrator data_dir/models_dir
+        in the TOML must be passed through to predict_local_shadow AND used to
+        compute the artifact hash, so the recorded sha matches the loaded artifact.
+        """
+        custom_models_dir = tmp_path / "custom_models"
+        custom_models_dir.mkdir()
+        date = "2026-04-10"
+        blend_artifact = custom_models_dir / f"blend_{date}_shadow.pkl"
+        blend_artifact.write_bytes(b"dummy shadow blend content")
+
+        custom_data_dir = tmp_path / "custom_processed"
+        custom_data_dir.mkdir()
+
+        # Use a real DailyPick (not MagicMock) so attach_provenance can mutate
+        # real fields and the assertions inspect real state.
+        sample_pick = Pick(
+            batter_name="Luis Arraez", batter_id=650333, team="SF",
+            lineup_position=1, pitcher_name="Test Pitcher", pitcher_id=12345,
+            p_game_hit=0.75, flags=[], projected_lineup=False,
+            game_pk=999999, game_time=f"{date}T20:00:00Z",
+        )
+        real_daily = DailyPick(
+            date=date, run_time=f"{date}T15:00:00+00:00",
+            pick=sample_pick, double_down=None, runner_up=None,
+        )
+        mock_result = MagicMock()
+        mock_result.daily = real_daily
+
+        with patch("bts.scheduler.predict_local_shadow") as mock_predict, \
+             patch("bts.scheduler.select_pick", return_value=mock_result), \
+             patch("bts.scheduler.save_shadow_pick"):
+            mock_predict.return_value = MagicMock()  # truthy -> path proceeds
+
+            _run_shadow_prediction(
+                config={
+                    "orchestrator": {
+                        "picks_dir": str(tmp_path / "picks"),
+                        "data_dir": str(custom_data_dir),
+                        "models_dir": str(custom_models_dir),
+                    }
+                },
+                date=date,
+                production_pick_name="Luis Arraez",
+            )
+
+            # 1. predict_local_shadow received the configured paths.
+            mock_predict.assert_called_once()
+            call_kwargs = mock_predict.call_args.kwargs
+            assert call_kwargs.get("data_dir") == str(custom_data_dir)
+            assert call_kwargs.get("models_dir") == str(custom_models_dir)
+
+            # 2. Provenance attached AND artifact hash reflects the file at
+            #    the configured models_dir (not the default path).
+            assert real_daily.model_pickle_sha256 is not None
+            assert len(real_daily.model_pickle_sha256) == 64
+            from bts.picks import _sha256_file
+            expected = _sha256_file(blend_artifact)
+            assert real_daily.model_pickle_sha256 == expected
+
     def test_failure_does_not_raise(self, tmp_path):
         with patch("bts.scheduler.predict_local_shadow", side_effect=RuntimeError("boom")):
             _run_shadow_prediction(
