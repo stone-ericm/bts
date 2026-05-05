@@ -115,12 +115,44 @@ def test_run_ablations_dry_run():
 def test_provision_dry_run(tmp_path):
     """v2.5_provision.sh --dry-run exits 0 without making API calls.
 
-    Note: this test requires the Keychain to be accessible (macOS only).
-    Skip on non-macOS platforms where `security` is unavailable.
+    Note: this test requires the Keychain to be accessible (macOS only) AND
+    the vultr-api-token Keychain item to be present and readable. Skip
+    cleanly when either precondition is missing — the script's explicit
+    ERROR-and-exit path is exercised by direct CLI use, not this test.
     """
     import platform
     if platform.system() != "Darwin":
         pytest.skip("Keychain unavailable on non-macOS")
+
+    # Preflight 1: confirm the Keychain item is actually retrievable. The
+    # script's explicit `ERROR: vultr-api-token not found in Keychain` path
+    # already covers direct CLI use after the `|| true` fix landed alongside
+    # this test. This preflight keeps the success-path smoke from going red
+    # when the local Keychain token is absent — without it, the test would
+    # observe rc=1 with the explicit ERROR rather than the rc=0 dry-run
+    # success it's actually asserting.
+    keychain_check = subprocess.run(
+        ["security", "find-generic-password", "-a", "claude-cli", "-s", "vultr-api-token", "-w"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if keychain_check.returncode != 0:
+        pytest.skip(
+            "vultr-api-token Keychain item not accessible "
+            f"(rc={keychain_check.returncode}); see script docstring for setup"
+        )
+
+    # Preflight 2: the dry-run path requires data/simulation/*.parquet to
+    # exist. The script's explicit "parquets missing" ERROR is exercised by
+    # direct CLI use, not this test — the test is asserting dry-run success,
+    # so skip when parquets aren't present.
+    import glob
+    worktree_root = SCRIPTS_DIR.parent
+    if not glob.glob(str(worktree_root / "data" / "simulation" / "profiles_seed*_season*.parquet")):
+        pytest.skip("data/simulation/ profile parquets not present; dry-run cannot succeed")
+    if not glob.glob(str(worktree_root / "data" / "simulation" / "pa_predictions_seed*_season*.parquet")):
+        pytest.skip("data/simulation/ pa-prediction parquets not present; dry-run cannot succeed")
 
     provision_script = SCRIPTS_DIR / "v2_5_provision.sh"
     assert provision_script.exists(), f"{provision_script} not found"
