@@ -144,8 +144,9 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Double-down must be from a different game. Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator.
-- `orchestrator.py` — Local prediction (`predict_local`) + shadow prediction (`predict_local_shadow`). TOML config, calls strategy + posting. Shadow uses `feature_cols_override` with separate model cache (`blend_{date}_shadow.pkl`).
-- `scheduler.py` — Long-running daemon. Dynamic lineup checks at `game_time - 45min`. Short-circuits when pick is locked. Shadow model runs after production lock (`_run_shadow_prediction`). Helpers: `_compute_result_poll_start` (uses `_earliest_pick_game_et` so double-down's earlier game isn't skipped), `_poll_interval_sleep` (result_polling sleep), `_watchdog_ping_sleep` (SLEEPING-state waits — keeps systemd watchdog fed without overwriting heartbeat file), `_idle_until_next_wakeup` (end-of-day overnight sleep). All cooperate with `bts/heartbeat.py:heartbeat_watchdog` (RUNNING-state context manager). `bts schedule` CLI command.
+- `orchestrator.py` — Local prediction (`predict_local`) + shadow prediction (`predict_local_shadow`). TOML config, calls strategy + posting. Shadow uses `feature_cols_override` with separate model cache (`blend_{date}_shadow.pkl`). Both production and shadow paths attach pick provenance v1 (see below) to the DailyPick before save.
+- `scheduler.py` — Long-running daemon. Dynamic lineup checks at `game_time - 45min`. Short-circuits when pick is locked. Shadow model runs after production lock (`_run_shadow_prediction`). Helpers: `_compute_result_poll_start` (uses `_earliest_pick_game_et` so double-down's earlier game isn't skipped), `_poll_interval_sleep` (result_polling sleep), `_watchdog_ping_sleep` (SLEEPING-state waits — keeps systemd watchdog fed without overwriting heartbeat file), `_idle_until_next_wakeup` (end-of-day overnight sleep). All cooperate with `bts/heartbeat.py:heartbeat_watchdog` (RUNNING-state context manager). `bts schedule` CLI command. `_run_shadow_prediction` reads `data_dir`/`models_dir` from config and threads them into both the prediction call and provenance attachment so the recorded blend hash matches the artifact actually loaded.
+- `picks.py` — DailyPick + Pick dataclasses, save_pick / save_shadow_pick / load_pick / load_shadow_pick. **Pick provenance v1 (PR #18, deployed 2026-05-04 at `a3bc4d3`)**: every saved pick JSON now carries three optional fields populated at save time: `model_git_sha` (HEAD of the producing checkout), `model_pickle_sha256` (sha of the blend artifact `blend_<date>.pkl` actually used), `policy_npz_sha256` (sha of `mdp_policy.npz` if loaded). All hashes are best-effort/null when the artifact is unavailable; pick saves never fail on provenance errors. Old picks load with `None` via `data.get(...)` backcompat. Future calibration analyses can filter by `model_git_sha == current_deploy_sha` instead of doing deploy-branch archaeology.
 - `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
 - `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
@@ -210,29 +211,69 @@ src/bts/simulate/
 
 ## Validation
 
-Multi-metric scorecard for benchmarking model and strategy changes.
+Multi-metric scorecard plus a five-piece SOTA validation methodology stack (PRs #9 → #18, May 2026) for benchmarking model and strategy changes against a held-out lockbox.
 
 ```
 src/bts/validate/
     scorecard.py         — P@K, miss analysis, calibration, streak metrics, full scorecard assembly
-    ope.py               — DR-OPE, paired hierarchical block bootstrap, fitted-Q-evaluation, corrected_audit_pipeline (LOSO with configurable params/rho_pair/policy modes)
-    dependence.py        — pearson_residual (+ vectorized pearson_residual_vec, 16× speedup), within-batter-game PA correlation, logistic-normal random-intercept (MoM via brentq inversion), cross-game pair residual permutation test, build_corrected_transition_table, pair_residual_correlation_per_cell (5x5 diagnostic heatmap)
+                            (also: compute_scorecard_over_manifest for per-fold #5-manifest evaluation)
+    splits.py            — #5 P0/P1: LockboxSpec + FoldSpec + make_purged_blocked_cv (rolling-origin
+                            forward-chaining with purge/embargo) + manifest save/load. Lockbox is a stored
+                            explicit date range; default lockbox is last 30 game-days of latest tracked
+                            complete season.
+    proper_scoring.py    — #12 phase 1: log loss, Brier, Murphy reliability/resolution/uncertainty,
+                            top-bin calibration. Game/profile-level. Integrated via scorecard output —
+                            no standalone CLI.
+    conformal_gate.py    — #11 P0/P1: bucket-Wilson lower-bound validity gate + median-bound-width
+                            tightness gate over #5 manifest folds. Per-cell PASS/FAIL/INSUFFICIENT_DATA;
+                            top-level PRODUCTION_DEPLOY_READY / NO_PRODUCTION_DEPLOY verdict from ship_set.
+    ope.py               — DR-OPE, paired hierarchical block bootstrap (Politis–Romano stationary;
+                            supports profile-level block-bootstrap CI via n_block_bootstrap, default
+                            0; v2.6 used n=500, expected_block_length=7), fitted-Q-evaluation,
+                            corrected_audit_pipeline (LOSO with configurable params/rho_pair/policy modes).
+    ope_eval.py          — #13 P0/P1: per-fold target-policy V_pi solve + terminal-MC replay
+                            cross-check over #5 manifest. Phase-aware late-bin guard. Strict JSON
+                            artifact (allow_nan=False).
+    rare_event_mc_eval.py — #14 P0/P1: black-box CE-IS rare-event MC over #5 manifest. Train-theta
+                            on fold-train, holdout estimate with theta_train + n_rounds=0. Fixed-window
+                            estimand (P(max consecutive rank-1 hits ≥ streak_threshold) over
+                            n_holdout_dates) — explicitly NOT comparable to #13 V_pi.
+    dependence.py        — pearson_residual (+ vectorized pearson_residual_vec, 16× speedup), within-
+                            batter-game PA correlation, logistic-normal random-intercept (MoM via
+                            brentq inversion), cross-game pair residual permutation test,
+                            build_corrected_transition_table, pair_residual_correlation_per_cell
+                            (5×5 diagnostic heatmap).
 ```
 
-CLI: `bts validate scorecard [--save path] [--diff baseline.json]`
+**CLI** (`bts validate <subcommand>`):
+- `scorecard [--save path] [--diff baseline.json] [--manifest path] [--mc-trials N]` — per-fold scorecard when `--manifest` is provided
+- `split-manifest --profiles-dir data/simulation [--lockbox-season N] [--output path]` — build + save a `#5` manifest with explicit lockbox
+- `conformal-gate --manifest path [--output path]` — per-(method, alpha) PASS/FAIL + ship_set
+- `policy-value-eval --profiles-dir ... --manifest path [--target-policy mdp_optimal] [--output path]` — V_pi + replay
+- `rare-event-ce-is --profiles-dir ... --manifest path [--n-rounds-train 8] [--n-final-holdout 20000] [--output path]` — fixed-window event probability per fold
+- `falsification-harness ...` — v1/v2/v2.5/v2.6 6-component audit (separate path; see below)
+
+All `#5`-manifest-bound validators (`scorecard`, `conformal-gate`, `policy-value-eval`, `rare-event-ce-is`) carry `lockbox_held_out=true` + `manifest_metadata`. The CV-eval outputs (`scorecard --manifest`, `policy-value-eval`, `rare-event-ce-is`) additionally carry `aggregate_deferred=true` — cross-fold uncertainty is a deferred P1.5+ cycle.
 
 Baseline scorecard at `data/validation/scorecard_baseline.json` (2026-04-02).
-Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation/`.
+Investigation scripts in `scripts/validation/`, verdict docs in `docs/validation/`, audit memos in `docs/sota_audit/`.
 
-### Falsification harness (v1 2026-05-02, v2 2026-05-02, v2.5 attribution 2026-05-03)
+**Realized-picks audit artifact (PR #17, 2026-05-04)**: `data/validation/realized_picks_canonical_2026-05-04.parquet` — canonical view of production picks with PA-frame ground-truth attribution and explicit regime cutoffs. Reproducible via `scripts/canonicalize_realized_picks.py --summary`. Memo at `docs/sota_audit/2026-05-04-realized-picks-calibration.md`. Strict-current model verdict was inconclusive (n=5); the post-pooled-MDP-pre-bpm stratum (n=30) showed exploratory overconfidence concentrated in the double-down slot — not a production-deploy claim.
 
-`scripts/run_falsification_harness.py` — 6-component audit of production's claimed `P(57) ≈ 8.17%`. Uses DR-OPE through `corrected_audit_pipeline`, CE-IS rare-event MC, PA + cross-game dependence diagnostics. v2.5 added 3 mode flags for nested factorial ablation: `--params-mode {pooled,fold-local}`, `--rho-pair-mode {scalar,per-bin}`, `--policy-mode {global,per-fold}`.
+**Synthesis memo (PR #16, 2026-05-04)**: `docs/sota_audit/2026-05-04-falsification-harness-synthesis.md` connects the five validation pieces and the v2.5/v2.6 attribution into a single picture; explicit guardrail that none of #11/#13/#14 has authorized a production deploy.
 
-**v1 verdict (2026-05-02)**: `HEADLINE_BROKEN` at `corrected_pipeline_p57 = 0.0083 [0, 0.0375]`.
-**v2 verdict (2026-05-02)**: `HEADLINE_REDUCED` at `0.0333 [0, 0.1167]`.
-**v2.5 attribution (2026-05-03)**: 6-cell nested ablation shows Change A (fold-local params) has **zero observable effect at this metric's resolution** within per-fold branch; Changes B (per-bin rho_pair) and C (per-fold MDP solve) each independently produce ~+0.0167pp lift. v2's "fold-local fix" framing is refuted by attribution. See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`.
+### Falsification harness (v1/v2/v2.5/v2.6, 2026-05-02 → 2026-05-04)
 
-Cells 100/110 (params=fold-local + policy=global) are operationally undefined per the nested factorial design. v2.5 produced 4 ablation verdict JSONs at `data/validation/falsification_harness_v2.5_cell{010,001,011,101}.json` plus an attribution JSON. Cloud orchestration via `scripts/v2_5_*.{sh,py}` (Vultr provision/run/retrieve/teardown).
+`scripts/run_falsification_harness.py` — 6-component audit of production's claimed `P(57) ≈ 8.17%`. Uses DR-OPE through `corrected_audit_pipeline`, CE-IS rare-event MC, PA + cross-game dependence diagnostics. v2.5 added 3 mode flags for nested factorial ablation: `--params-mode {pooled,fold-local}`, `--rho-pair-mode {scalar,per-bin}`, `--policy-mode {global,per-fold}`. v2.6 added `--n-block-bootstrap N` for profile-level paired hierarchical block-bootstrap CI on `corrected_pipeline_p57`.
+
+**v1 verdict (2026-05-02)**: `HEADLINE_BROKEN` at `corrected_pipeline_p57 = 0.0083 [0, 0.0375]` (5-fold percentile CI, ≈min/max).
+**v2 verdict (2026-05-02)**: `HEADLINE_REDUCED` at `0.0333 [0, 0.1167]` (still 5-fold percentile CI; v2.6 superseded).
+**v2.5 attribution (2026-05-03)**: 6-cell nested ablation shows Change A (fold-local params) has **zero observable effect at this metric's resolution** within per-fold branch; Changes B (per-bin rho_pair) and C (per-fold MDP solve) each independently produce a +1.67pp lift on `corrected_pipeline_p57`. v2's "fold-local fix" framing is refuted by attribution. See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md`.
+**v2.6 reconciliation (2026-05-03 → 2026-05-04)**: under profile-level paired hierarchical block-bootstrap (Politis–Romano stationary, expected_block_length=7, n=500), all 6 v2.5 ablation cells gate `HEADLINE_REDUCED` at half-headline=0.04085. The v1 BROKEN classification was a percentile-CI artifact (ci_upper 0.0375 was narrowly below the threshold — about 0.34pp gap on a CI whose grid resolution is 1/120 = 0.83pp, i.e. less than half a metric tick). **The v1→v2 gate-class transition does not survive at this threshold.** Point-estimate attribution (B alone +1.67pp, C alone +1.67pp, B+C +2.50pp via one extra 2023 fold success) survives. See the v2.5 memo's "Addendum: v2.6 block-bootstrap CI" section. Synthesis: `docs/sota_audit/2026-05-04-falsification-harness-synthesis.md` (PR #16).
+
+Cells 100/110 (params=fold-local + policy=global) are operationally undefined per the nested factorial design. v2.5 verdict JSONs (4 ablation cells; cell 000 was the v1 baseline, cell 111 was the v2 production verdict that came in via prior runs): `data/validation/falsification_harness_v2.5_cell{001,010,011,101}.json` plus matching `_heatmap.json` files and the attribution decomposition `data/validation/v2_5_attribution_2026-05-03.json`. v2.6 verdict JSONs (all 6 cells, n_block_bootstrap=500): `data/validation/falsification_harness_v2.6_n500_cell{000,001,010,011,101,111}.json` plus `data/validation/v2_6_n500_summary.json`. Cloud orchestration via `scripts/v2_5_*.{sh,py}` (Vultr provision/run/retrieve/teardown); v2.6 sweep ran locally on Mac (~55 min, vectorized `pearson_residual_vec`).
+
+**Honest production claim status**: the corrected estimate is about 41% of the 8.17% headline (point estimate ~0.0333 in v2/v2.5; v2.6 widens uncertainty without moving the point) — less than half the headline value. No formal retraction has been issued because no replacement number has been certified under lockbox + aggregate-CI methodology — the validation stack at PRs #9-#15 ships the foundation for that future certification but has not yet been used to license a deploy decision.
 
 ## Dashboard
 
@@ -319,3 +360,5 @@ walk_forward_evaluate(df, test_season=2025)            # Walk-forward P@K
 15. **Pooled-seed MDP policy (Option 7, SHIPPED 2026-04-15)**: Computing quality bins from profiles pooled across 24 seeds (instead of a single seed) drops per-bin SE by √24 and produces a policy robust to any single seed's luck. A/B validated with four independent signals: 24/24 LOO wins on walk_forward_backtest (+1.93pp), 8/8 on blend_walk_forward cross-path (+1.59pp), MC bootstrap (+2.59pp, 60/80 seed-seasons), chronological replay (+2.31 mean max_streak). Production's in-sample P(57) dropped from 8.91% (inflated) to 8.17% (honest). The new in-sample estimate closely matches LOO holdout (8.38%), confirming it's not overfitting. **Two-metric reporting standard adopted**: avg P@1 for screening, mean MDP P(57) across seeds for shipping. Never ship on single-seed MDP again. Full 48-seed × 32-experiment audit on 4 × Hetzner CPX51 **completed 2026-04-23 19:30 ET** (audit_attach retrieve + auto-teardown clean) + 52-seed Vultr extension on 26 × vhp-8c-16gb-amd in progress (ETA Sat 2026-04-25 morning) = **combined n=100** ready Sat afternoon. Run `scripts/analyze_audit_results.py` against merged data. OCI E5.Flex was attempted as a third provider 2026-04-21 evening but abandoned — new-account 90-day quota moratorium + concurrent-launch accounting cap made it unviable until ~2026-07-20. OCIProvider code preserved in `audit_driver.py` for post-moratorium use.
 15. **Any function receiving the full prediction DataFrame must filter by game status**: Predictions include batters from all scheduled games (started, postponed, etc). Functions like `should_lock` that compare against projected picks must exclude non-Preview games, or postponed/finished games will pollute the comparison.
 16. **Analytical forward evaluator vs MC bootstrap can disagree in sign for bin-structure changes (2026-04-16)**: Isotonic calibration of `p_game_hit` before binning showed +1.14pp P(57) under the analytical `evaluate_mdp_policy` (t=+3.14, 18/24 seeds) but −1.12pp under MC bootstrap (t=−3.43, 45/120 wins). Root cause: the analytical evaluator computes each policy's value against its OWN bin partition. When a change shifts days across bin boundaries (42% reassigned under isotonic), A and B are evaluated on different day-partitions — not a true A/B. **Rule**: any BTS MDP policy change that alters bin boundaries (calibration, different n_bins, alternative discretization) must be validated with `scripts/mc_replay_ab.py`-style MC bootstrap, not just the analytical. The shipped pooled-policy used both; that's the discipline to keep. Full rejection record at `memory/project_bts_2026_04_16_calibration_rejected.md`.
+17. **Gate-class verdicts can be CI-method artifacts (2026-05-04)**: v1's `HEADLINE_BROKEN` classification (5-fold percentile CI ci_upper=0.0375 below half-headline=0.04085) collapsed under v2.6's profile-level paired hierarchical block-bootstrap (Politis–Romano stationary, expected_block_length=7, n=500). At the same threshold, all 6 v2.5 ablation cells gate REDUCED. Point-estimate attribution (B alone +1.67pp, C alone +1.67pp via per-bin rho_pair / per-fold MDP solve) survives the methodology change; the gate-class transition does not. **Rule**: when a methodology change produces a verdict-gate transition, default to two robustness checks before announcing — (1) is the point-estimate attribution actually driven by the change being announced, and (2) is the gate-class transition robust to alternative CI methods at the same threshold. Skipping either check leads to overclaim that has to be retracted under review. Synthesis: `docs/sota_audit/2026-05-04-falsification-harness-synthesis.md`.
+18. **PA-frame attribution corrects DD-bias in realized-picks calibration (2026-05-04)**: The 2026-04-25 chronic ~7pp overconfidence finding (n=48) used streak-result attribution, which is biased on double-down days (`result=miss` could mean primary missed or DD missed or both — a hit DD gets attributed as miss whenever the primary missed). The 2026-05-01 health-fix `b08769d` corrected this in alert code; PR #17 was the first retrospective analysis to apply the fix. With PA-frame `(batter_id, date) → day_had_any_hit` attribution on a regime-bounded n=30 stratum (post-pooled-MDP, pre-bpm), primary picks are well-calibrated (gap +1.8pp); the overconfidence concentrates in the **double-down slot** (gap +19.2pp). Strict-current-model n=5 was inconclusive. The DD-slot finding is exploratory — needs more resolved post-bpm picks to track. Memo: `docs/sota_audit/2026-05-04-realized-picks-calibration.md`.
