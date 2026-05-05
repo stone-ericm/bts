@@ -105,6 +105,150 @@ class TestPickFileIO:
         raw = json.loads((tmp_path / "2026-04-01.json").read_text())
         assert "streak" not in raw
 
+    def test_load_pick_backcompat_missing_provenance(self, tmp_path):
+        """Old pick files saved before provenance v1 must load cleanly with None fields."""
+        legacy_payload = {
+            "date": "2026-03-01",
+            "run_time": "2026-03-01T15:00:00+00:00",
+            "pick": {
+                "batter_name": "Old Pick", "batter_id": 1, "team": "XXX",
+                "lineup_position": 1, "pitcher_name": "Old Pitcher", "pitcher_id": 2,
+                "p_game_hit": 0.7, "flags": [], "projected_lineup": False,
+                "game_pk": 12345, "game_time": "2026-03-01T20:00:00Z",
+            },
+            "double_down": None,
+            "runner_up": None,
+            "bluesky_posted": False,
+            "bluesky_uri": None,
+            "result": "hit",
+        }
+        (tmp_path / "2026-03-01.json").write_text(json.dumps(legacy_payload))
+
+        loaded = load_pick("2026-03-01", tmp_path)
+        assert loaded is not None
+        assert loaded.model_git_sha is None
+        assert loaded.model_pickle_sha256 is None
+        assert loaded.policy_npz_sha256 is None
+        assert loaded.result == "hit"
+        assert loaded.pick.batter_name == "Old Pick"
+
+    def test_provenance_round_trip_when_set(self, tmp_path):
+        """When provenance fields are set, they round-trip through save/load."""
+        daily = _sample_daily()
+        daily.model_git_sha = "abc123def456"
+        daily.model_pickle_sha256 = "deadbeef" * 8
+        daily.policy_npz_sha256 = "feedface" * 8
+        save_pick(daily, tmp_path)
+
+        loaded = load_pick("2026-04-01", tmp_path)
+        assert loaded.model_git_sha == "abc123def456"
+        assert loaded.model_pickle_sha256 == "deadbeef" * 8
+        assert loaded.policy_npz_sha256 == "feedface" * 8
+
+    def test_save_default_picks_have_null_provenance(self, tmp_path):
+        """Picks saved without explicit provenance attachment serialize as null,
+        not as missing keys — keeps the on-disk schema stable."""
+        daily = _sample_daily()
+        save_pick(daily, tmp_path)
+
+        raw = json.loads((tmp_path / "2026-04-01.json").read_text())
+        assert raw["model_git_sha"] is None
+        assert raw["model_pickle_sha256"] is None
+        assert raw["policy_npz_sha256"] is None
+
+
+class TestProvenance:
+    """Provenance helpers per Codex bus #168.
+
+    Failure modes are non-fatal by design — every helper returns None
+    rather than raising on any I/O / git / hash error.
+    """
+
+    def test_sha256_file_returns_hex_for_existing_file(self, tmp_path):
+        from bts.picks import _sha256_file
+        p = tmp_path / "artifact.bin"
+        p.write_bytes(b"hello world")
+        result = _sha256_file(p)
+        assert isinstance(result, str)
+        assert len(result) == 64
+        # Known SHA-256 of "hello world"
+        assert result == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+
+    def test_sha256_file_returns_none_for_missing(self, tmp_path):
+        from bts.picks import _sha256_file
+        assert _sha256_file(tmp_path / "does_not_exist.bin") is None
+
+    def test_sha256_file_returns_none_for_none(self):
+        from bts.picks import _sha256_file
+        assert _sha256_file(None) is None
+
+    def test_sha256_file_returns_none_for_directory(self, tmp_path):
+        from bts.picks import _sha256_file
+        # Should not raise on a directory path
+        assert _sha256_file(tmp_path) is None
+
+    def test_git_head_sha_outside_repo_returns_none(self, tmp_path):
+        """A non-git directory must not raise — provenance is best-effort."""
+        from bts.picks import _git_head_sha
+        result = _git_head_sha(tmp_path)
+        assert result is None or (isinstance(result, str) and len(result) == 40)
+
+    def test_compute_provenance_with_all_artifacts_present(self, tmp_path):
+        from bts.picks import compute_provenance
+        blend_path = tmp_path / "blend.bin"
+        policy_path = tmp_path / "policy.bin"
+        blend_path.write_bytes(b"blend content")
+        policy_path.write_bytes(b"policy content")
+
+        prov = compute_provenance(
+            blend_path=blend_path,
+            policy_path=policy_path,
+            cwd=tmp_path,
+        )
+        assert set(prov.keys()) == {"model_git_sha", "model_pickle_sha256", "policy_npz_sha256"}
+        assert prov["model_pickle_sha256"] is not None
+        assert len(prov["model_pickle_sha256"]) == 64
+        assert prov["policy_npz_sha256"] is not None
+        assert len(prov["policy_npz_sha256"]) == 64
+        assert prov["model_git_sha"] is None or len(prov["model_git_sha"]) == 40
+
+    def test_compute_provenance_with_missing_artifacts(self, tmp_path):
+        from bts.picks import compute_provenance
+        prov = compute_provenance(
+            blend_path=tmp_path / "missing_blend.bin",
+            policy_path=tmp_path / "missing_policy.bin",
+            cwd=tmp_path,
+        )
+        assert prov["model_pickle_sha256"] is None
+        assert prov["policy_npz_sha256"] is None
+
+    def test_compute_provenance_with_none_paths(self, tmp_path):
+        from bts.picks import compute_provenance
+        prov = compute_provenance(blend_path=None, policy_path=None, cwd=tmp_path)
+        assert prov["model_pickle_sha256"] is None
+        assert prov["policy_npz_sha256"] is None
+
+    def test_attach_provenance_mutates_and_returns(self, tmp_path):
+        from bts.picks import attach_provenance
+        blend_path = tmp_path / "blend.bin"
+        blend_path.write_bytes(b"blend")
+        daily = _sample_daily()
+        assert daily.model_pickle_sha256 is None
+
+        result = attach_provenance(daily, blend_path=blend_path, policy_path=None, cwd=tmp_path)
+
+        assert result is daily
+        assert daily.model_pickle_sha256 is not None
+        assert len(daily.model_pickle_sha256) == 64
+
+    def test_attach_provenance_handles_failure_silently(self, tmp_path):
+        """Attach with all-missing artifacts must not raise; fields stay None."""
+        from bts.picks import attach_provenance
+        daily = _sample_daily()
+        attach_provenance(daily, blend_path=tmp_path / "x", policy_path=tmp_path / "y")
+        assert daily.model_pickle_sha256 is None
+        assert daily.policy_npz_sha256 is None
+
 
 class TestPickFromRow:
     def _row(self, **overrides):

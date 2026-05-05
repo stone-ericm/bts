@@ -434,7 +434,15 @@ def run_single_check(
                 "pick_name": pick_result.daily.pick.batter_name,
                 "pick_p": pick_result.daily.pick.p_game_hit}
 
-    # Save candidate pick
+    # Save candidate pick — attach provenance v1 fields first (per Codex #168).
+    from bts.picks import attach_provenance
+    from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    models_dir = config["orchestrator"].get("models_dir", "data/models")
+    attach_provenance(
+        pick_result.daily,
+        blend_path=Path(models_dir) / f"blend_{date}.pkl",
+        policy_path=DEFAULT_POLICY_PATH,
+    )
     save_pick(pick_result.daily, picks_dir)
 
     # Check if we should lock — only consider picks from pickable games
@@ -478,13 +486,22 @@ def run_single_check(
 
 
 def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -> None:
-    """Run shadow model prediction and save result. Never raises."""
+    """Run shadow model prediction and save result. Never raises.
+
+    Threads ``data_dir`` and ``models_dir`` from the orchestrator config
+    into both the prediction call and provenance attachment so the
+    blend-artifact hash reflects the artifact actually loaded (per
+    Codex bus #170/#172). A non-default TOML must not produce a path
+    that loads one blend artifact while hashing another.
+    """
     from bts.picks import load_streak
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
+    data_dir = config["orchestrator"].get("data_dir", "data/processed")
+    models_dir = config["orchestrator"].get("models_dir", "data/models")
 
     try:
-        predictions = predict_local_shadow(date)
+        predictions = predict_local_shadow(date, data_dir=data_dir, models_dir=models_dir)
         if predictions is None:
             print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
             return
@@ -495,6 +512,15 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             print("  [SHADOW MODEL] Skip (below threshold).", file=sys.stderr)
             return
 
+        # Shadow picks are also fresh DailyPick JSONs — attach provenance v1
+        # using the same models_dir as the prediction call (per Codex #172).
+        from bts.picks import attach_provenance
+        from bts.simulate.mdp import DEFAULT_POLICY_PATH
+        attach_provenance(
+            result.daily,
+            blend_path=Path(models_dir) / f"blend_{date}_shadow.pkl",
+            policy_path=DEFAULT_POLICY_PATH,
+        )
         save_shadow_pick(result.daily, picks_dir)
         shadow_name = result.daily.pick.batter_name
         shadow_team = result.daily.pick.team
@@ -550,6 +576,15 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
             file=sys.stderr,
         )
 
+    # Fresh pick from a re-prediction — attach provenance v1 fields per Codex #168.
+    from bts.picks import attach_provenance
+    from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    models_dir = config["orchestrator"].get("models_dir", "data/models")
+    attach_provenance(
+        fresh,
+        blend_path=Path(models_dir) / f"blend_{date}.pkl",
+        policy_path=DEFAULT_POLICY_PATH,
+    )
     save_pick(fresh, picks_dir)
     return fresh
 

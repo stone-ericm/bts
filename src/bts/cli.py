@@ -1142,8 +1142,15 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
                 click.echo(f"  Bluesky catch-up post failed: {e}", err=True)
         return
 
-    # New or updated pick
+    # New or updated pick — attach provenance v1 fields per Codex #168.
     daily = result.daily
+    from bts.picks import attach_provenance
+    from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    attach_provenance(
+        daily,
+        blend_path=models_path / f"blend_{date}.pkl",
+        policy_path=DEFAULT_POLICY_PATH,
+    )
     click.echo(f"Pick: {daily.pick.batter_name} ({daily.pick.p_game_hit:.1%}) "
                f"vs {daily.pick.pitcher_name}")
     if daily.double_down:
@@ -1239,6 +1246,15 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         return
 
     daily = result.daily
+    # Preview path also gets provenance v1 fields per Codex #168.
+    from bts.picks import attach_provenance
+    from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    models_path_preview = Path(models_dir)
+    attach_provenance(
+        daily,
+        blend_path=models_path_preview / f"blend_{date}.pkl",
+        policy_path=DEFAULT_POLICY_PATH,
+    )
     save_pick(daily, picks_path)
     click.echo(f"[preview] {daily.pick.batter_name} ({daily.pick.team}) "
                f"{daily.pick.p_game_hit:.1%} vs {daily.pick.pitcher_name}")

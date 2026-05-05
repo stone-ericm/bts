@@ -313,8 +313,16 @@ def orchestrate(config_path: Path, date: str) -> bool:
                 print(f"  Bluesky catch-up failed: {e}", file=sys.stderr)
         return True
 
-    # New pick
+    # New pick — attach provenance v1 fields before saving (per Codex #168).
     daily = result.daily
+    from bts.picks import attach_provenance
+    from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    models_dir = config["orchestrator"].get("models_dir", "data/models")
+    attach_provenance(
+        daily,
+        blend_path=Path(models_dir) / f"blend_{date}.pkl",
+        policy_path=DEFAULT_POLICY_PATH,
+    )
     save_pick(daily, picks_dir)
     print(
         f"Pick ({tier_name}): {daily.pick.batter_name} "
