@@ -32,7 +32,11 @@ done
 
 # ---- Sanity checks ----
 
-VULTR_TOKEN=$(security find-generic-password -a "claude-cli" -s "vultr-api-token" -w)
+# Tolerate missing Keychain item (or non-macOS env) without aborting before
+# the explicit ERROR — `set -euo pipefail` would otherwise kill the script
+# silently when `security find-generic-password` exits non-zero, swallowing
+# the error message we want the operator to see.
+VULTR_TOKEN=$(security find-generic-password -a "claude-cli" -s "vultr-api-token" -w 2>/dev/null || true)
 if [ -z "$VULTR_TOKEN" ]; then
   echo "ERROR: vultr-api-token not found in Keychain" >&2
   exit 1
@@ -43,8 +47,12 @@ if [ ! -d "data/simulation" ]; then
   exit 1
 fi
 
-PROFILES_COUNT=$(ls data/simulation/profiles_seed*_season*.parquet 2>/dev/null | wc -l | tr -d ' ')
-PA_COUNT=$(ls data/simulation/pa_predictions_seed*_season*.parquet 2>/dev/null | wc -l | tr -d ' ')
+# Use `find` instead of `ls` so a no-match returns rc=0 (with empty stdout)
+# rather than rc=1/2 — otherwise `set -euo pipefail` aborts the assignment
+# before the explicit missing-parquets error path below can fire. Same
+# class of bug as the Keychain `|| true` fix above.
+PROFILES_COUNT=$(find data/simulation -maxdepth 1 -name 'profiles_seed*_season*.parquet' 2>/dev/null | wc -l | tr -d ' ')
+PA_COUNT=$(find data/simulation -maxdepth 1 -name 'pa_predictions_seed*_season*.parquet' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$PROFILES_COUNT" -eq 0 ] || [ "$PA_COUNT" -eq 0 ]; then
   echo "ERROR: data/simulation/ parquets missing (profiles=$PROFILES_COUNT pa=$PA_COUNT)" >&2
   echo "  Expected: profiles_seed*_season*.parquet and pa_predictions_seed*_season*.parquet" >&2
