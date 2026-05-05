@@ -5,6 +5,13 @@ every production pick (primary + double_down) with explicit lineage and
 regime labels, so downstream calibration analyses cannot silently repool
 contaminated data.
 
+α P0 (Codex bus #203, 2026-05-05) added per-game environment attribution: the
+five `pick_*` / `is_park_driven` columns at the end of the schema. Environment
+is joined by `pick.game_pk` against a per-game env table built from the PA
+frame; this is independent of whether the picked batter actually had a PA in
+the game and unambiguous on doubleheader days. `actual_hit` attribution
+remains on (batter_id, date) per Codex's "do not broaden scope" guidance.
+
 Output schema columns:
 - source_file       — name of the pick JSON (e.g. "2026-04-22.json")
 - date              — game date the pick was for (ISO date)
@@ -29,6 +36,21 @@ Output schema columns:
                         compare PA-frame attribution against the streak-level
                         result that the pick JSON carries (NOT used as the
                         attribution source for actual_hit; see Codex bus #156)
+- pick_venue_id       — int (nullable Int64), MLB venue id of the pick's game
+- pick_roof_type      — str (object), raw roof_type from the PA frame
+                        ("Open" / "Dome" / "Retractable" / "Closed", typically
+                        capitalized; None if game_pk not in PA frame)
+- pick_weather_temp   — float, weather temperature reported in the PA frame
+                        for the pick's game (NaN if game_pk not in PA frame)
+- pick_is_indoor      — bool (nullable BooleanDtype), True iff
+                        roof_type.lower() in {"dome","closed","retractable"}
+                        (matches src/bts/features/compute.py:557-559); NA when
+                        game_pk is not in the PA frame
+- is_park_driven      — bool (nullable BooleanDtype), env-leverage proxy:
+                        (pick_venue_id == COORS_VENUE_ID)
+                        OR (pick_weather_temp >= 85.0 AND NOT pick_is_indoor)
+                        NA when game_pk is not in the PA frame. NOT a feature-
+                        attribution measure; do not use as deploy authorization.
 
 Pending rows are included in the output (so the canonical view is complete)
 but downstream analysis MUST exclude them from metric denominators.
@@ -92,6 +114,22 @@ PRE_POOLED_MDP_CUTOFF = RegimeCutoff(
 ALL_REGIMES = [CURRENT_MODEL_CUTOFF, ARCHITECTURE_REGIME_CUTOFF, PRE_POOLED_MDP_CUTOFF]
 
 
+# α P0 (Codex bus #203): per-game environment attribution.
+# Coors Field is structurally the highest park-factor venue in MLB (mile-high
+# air, no day-to-day humidor variance comparable to a coastal park). MLB API
+# venue_id 19 = Coors Field; treated as a constant per Codex's #203 D answer
+# ("do not add a mandatory raw-JSON dependency to canonicalization").
+COORS_VENUE_ID = 19
+
+# Production indoor convention from src/bts/features/compute.py:557-559: the
+# raw roof_type values arrive capitalized ("Dome" / "Retractable" / "Open" /
+# "Closed") but production lowercases before isin. Match that convention here.
+INDOOR_ROOF_TYPES = frozenset({"dome", "closed", "retractable"})
+
+# Statcast-era convention: ball-flight aerodynamics shift measurably above ~85F.
+HOT_WEATHER_F = 85.0
+
+
 def assign_regime(run_time_iso: str) -> RegimeCutoff:
     """First regime whose cutoff_iso_utc <= run_time_iso wins."""
     for regime in ALL_REGIMES:
@@ -111,6 +149,86 @@ def build_day_hit_lookup(pa_path: Path) -> dict[tuple[int, str], bool]:
     df["date"] = pd.to_datetime(df["date"]).dt.date.astype(str)
     daily = df.groupby(["batter_id", "date"])["is_hit"].max().reset_index()
     return {(int(r.batter_id), r.date): bool(r.is_hit) for r in daily.itertuples(index=False)}
+
+
+def build_game_env_lookup(pa_path: Path) -> dict[int, dict]:
+    """game_pk -> {venue_id, roof_type, weather_temp, is_indoor} from PA frame.
+
+    Env fields are game-level constants in the PA frame (verified on 2026 PA
+    frame: 0 of 443 game_pks had multi-valued venue/roof/temp). Group-by-first
+    is therefore safe.
+
+    Each value is None/NaN-clean: pandas NaN, pd.NA, NaN-like string scalars,
+    and Python None are all coerced to Python None so downstream NA-derivation
+    is unambiguous. We use `pd.isna` (handles None / float NaN / pd.NA / NaT)
+    rather than narrower isinstance(float) checks.
+    """
+    df = pd.read_parquet(
+        pa_path,
+        columns=["game_pk", "venue_id", "roof_type", "weather_temp"],
+    )
+    first = df.groupby("game_pk").first().reset_index()
+    out: dict[int, dict] = {}
+    for r in first.itertuples(index=False):
+        rt = r.roof_type
+        rt_clean: str | None
+        is_indoor: bool | None
+        if rt is None or pd.isna(rt):
+            rt_clean = None
+            is_indoor = None
+        else:
+            rt_clean = str(rt)
+            is_indoor = rt_clean.lower() in INDOOR_ROOF_TYPES
+        venue_id = None if pd.isna(r.venue_id) else int(r.venue_id)
+        weather = None if pd.isna(r.weather_temp) else float(r.weather_temp)
+        out[int(r.game_pk)] = {
+            "venue_id": venue_id,
+            "roof_type": rt_clean,
+            "weather_temp": weather,
+            "is_indoor": is_indoor,
+        }
+    return out
+
+
+def derive_is_park_driven(env: dict | None) -> bool | None:
+    """Env-leverage proxy: Coors OR (hot AND outdoor). NA when env is missing.
+
+    Decision tree (per Codex bus #205):
+      env is None                                    -> None
+      venue_id is None                               -> None  (partial env)
+      venue_id == COORS_VENUE_ID                     -> True
+      weather_temp is None                           -> None  (partial env)
+      weather_temp < HOT_WEATHER_F                   -> False (rule says no)
+      weather_temp >= HOT_WEATHER_F, is_indoor None  -> None  (partial env)
+      weather_temp >= HOT_WEATHER_F, is_indoor False -> True
+      weather_temp >= HOT_WEATHER_F, is_indoor True  -> False (rule says no)
+
+    The contract: False means "observed environment, rule says no." None means
+    "we cannot evaluate the rule because some required env field is missing."
+    Future analysts can therefore distinguish "park-leverage absent" from
+    "park-leverage status unknown" without re-reading the source data.
+
+    NOT a feature-attribution measure. The strategic-question hypothesis is
+    that low-skill park-driven picks at predicted 0.65-0.80 realize HIGHER
+    than predicted; this boolean flags candidate environments for that cut,
+    leaving the downstream memo to draw the inference.
+    """
+    if env is None:
+        return None
+    venue_id = env.get("venue_id")
+    if venue_id is None:
+        return None
+    if venue_id == COORS_VENUE_ID:
+        return True
+    temp = env.get("weather_temp")
+    if temp is None:
+        return None
+    if temp < HOT_WEATHER_F:
+        return False
+    indoor = env.get("is_indoor")
+    if indoor is None:
+        return None
+    return indoor is False
 
 
 def extract_picks(pick_json: dict, source_file: str) -> list[dict]:
@@ -149,6 +267,7 @@ def extract_picks(pick_json: dict, source_file: str) -> list[dict]:
 
 def canonicalize(picks_dir: Path, pa_path: Path) -> pd.DataFrame:
     day_hit = build_day_hit_lookup(pa_path)
+    game_env = build_game_env_lookup(pa_path)
 
     rows: list[dict] = []
     for f in sorted(picks_dir.glob("2026-*.json")):
@@ -165,7 +284,8 @@ def canonicalize(picks_dir: Path, pa_path: Path) -> pd.DataFrame:
     if df.empty:
         return df
 
-    # Attribution: PA frame is authoritative for resolved hits.
+    # Attribution: PA frame is authoritative for resolved hits. Per Codex bus
+    # #203, this stays on (batter_id, date); env lookup below uses game_pk.
     actual_hit_list: list[bool | None] = []
     for r in df.itertuples(index=False):
         bid = r.batter_id
@@ -186,12 +306,45 @@ def canonicalize(picks_dir: Path, pa_path: Path) -> pd.DataFrame:
     df["model_cutoff_label"] = [r.label for r in regime_objs]
     df["cutoff_iso"] = [r.cutoff_iso_utc for r in regime_objs]
 
+    # α P0 env attachment: lookup by pick.game_pk against the per-game env
+    # table. Missing game_pk in the PA frame -> NA across all 5 derived cols.
+    venue_ids: list[int | None] = []
+    roof_types: list[str | None] = []
+    weather_temps: list[float | None] = []
+    is_indoors: list[bool | None] = []
+    park_drivens: list[bool | None] = []
+    for r in df.itertuples(index=False):
+        gp = r.game_pk
+        env = None
+        if gp is not None and not pd.isna(gp):
+            env = game_env.get(int(gp))
+        if env is None:
+            venue_ids.append(None)
+            roof_types.append(None)
+            weather_temps.append(None)
+            is_indoors.append(None)
+            park_drivens.append(None)
+        else:
+            venue_ids.append(env["venue_id"])
+            roof_types.append(env["roof_type"])
+            weather_temps.append(env["weather_temp"])
+            is_indoors.append(env["is_indoor"])
+            park_drivens.append(derive_is_park_driven(env))
+
+    df["pick_venue_id"] = pd.array(venue_ids, dtype="Int64")
+    df["pick_roof_type"] = roof_types
+    df["pick_weather_temp"] = weather_temps
+    df["pick_is_indoor"] = pd.array(is_indoors, dtype="boolean")
+    df["is_park_driven"] = pd.array(park_drivens, dtype="boolean")
+
     column_order = [
         "source_file", "date", "run_time", "slot",
         "batter_id", "batter_name", "pitcher_id", "game_pk",
         "p_game_hit", "actual_hit", "result_status",
         "projected_lineup", "pick_file_result",
         "regime", "model_cutoff_label", "cutoff_iso", "attribution_source",
+        "pick_venue_id", "pick_roof_type", "pick_weather_temp",
+        "pick_is_indoor", "is_park_driven",
     ]
     df = df[column_order]
     return df
@@ -281,6 +434,61 @@ def print_summary(df: pd.DataFrame) -> None:
             mp = float(s["p_game_hit"].mean())
             gap = mp - rate
             print(f"  {slot:<14} n={n:>3} hits={n_hit}/{n} ({rate:.3f}) mean_p={mp:.3f} gap={gap:+.3f}")
+
+    # α P0 (Codex bus #203): env-cut tables. Cells with NA is_park_driven (no
+    # game_pk env match) are excluded from the cut so cell counts denote
+    # only rows where the rule could be evaluated.
+    print()
+    print("=" * 78)
+    print("ENV-CUT A — regime × is_park_driven (resolved-only, env-attributed)")
+    print("=" * 78)
+    print(f"{'regime':<28} {'env':<18} {'n':>3} {'hits':>4} {'rate':>6} {'mean_p':>7} {'gap':>7} {'wilson_lo':>10} {'wilson_hi':>10}")
+    print("-" * 100)
+    for regime in ["post_bpm", "post_pooled_mdp_pre_bpm", "pre_pooled_mdp"]:
+        sub = resolved[resolved["regime"] == regime]
+        if len(sub) == 0:
+            continue
+        for pd_val, label in [(True, "park_driven"), (False, "not_park_driven")]:
+            s = sub[sub["is_park_driven"] == pd_val]
+            n = len(s)
+            if n == 0:
+                print(f"{regime:<28} {label:<18} {n:>3} {'-':>4} {'-':>6} {'-':>7} {'-':>7} {'-':>10} {'-':>10}")
+                continue
+            n_hit = int(s["actual_hit"].sum())
+            rate = n_hit / n
+            mp = float(s["p_game_hit"].mean())
+            gap = mp - rate
+            lo_w, hi_w = _wilson_ci(n_hit, n)
+            print(f"{regime:<28} {label:<18} {n:>3} {n_hit:>4} {rate:>6.3f} {mp:>7.3f} {gap:>+7.3f} {lo_w:>10.3f} {hi_w:>10.3f}")
+        # NA count for transparency
+        na_n = int(sub["is_park_driven"].isna().sum())
+        if na_n > 0:
+            print(f"{regime:<28} {'(env-NA, excluded)':<18} {na_n:>3}")
+
+    print()
+    print("=" * 78)
+    print("ENV-CUT B — regime × slot × is_park_driven (resolved-only)")
+    print("Cells with n<5 are exploratory; do not interpret directionally.")
+    print("=" * 78)
+    print(f"{'regime':<28} {'slot':<13} {'env':<18} {'n':>3} {'hits':>4} {'rate':>6} {'mean_p':>7} {'gap':>7} {'note':<14}")
+    print("-" * 110)
+    for regime in ["post_bpm", "post_pooled_mdp_pre_bpm", "pre_pooled_mdp"]:
+        sub = resolved[resolved["regime"] == regime]
+        if len(sub) == 0:
+            continue
+        for slot in ["primary", "double_down"]:
+            for pd_val, label in [(True, "park_driven"), (False, "not_park_driven")]:
+                s = sub[(sub["slot"] == slot) & (sub["is_park_driven"] == pd_val)]
+                n = len(s)
+                note = "exploratory" if 0 < n < 5 else ""
+                if n == 0:
+                    print(f"{regime:<28} {slot:<13} {label:<18} {n:>3} {'-':>4} {'-':>6} {'-':>7} {'-':>7} {note:<14}")
+                    continue
+                n_hit = int(s["actual_hit"].sum())
+                rate = n_hit / n
+                mp = float(s["p_game_hit"].mean())
+                gap = mp - rate
+                print(f"{regime:<28} {slot:<13} {label:<18} {n:>3} {n_hit:>4} {rate:>6.3f} {mp:>7.3f} {gap:>+7.3f} {note:<14}")
 
 
 def main() -> int:
