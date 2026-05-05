@@ -129,6 +129,16 @@ INDOOR_ROOF_TYPES = frozenset({"dome", "closed", "retractable"})
 # Statcast-era convention: ball-flight aerodynamics shift measurably above ~85F.
 HOT_WEATHER_F = 85.0
 
+# α P1 (Codex bus #215/#216): batter skill quartile attribution.
+# Threshold for league-pool eligibility (also threshold below which the
+# pick batter's quartile is NA). Justified by 2026-05-05 preflight: at the
+# canonical artifact's snapshot, threshold=50 gives 30/30 support in the
+# strategic-question target stratum (post_pooled_mdp_pre_bpm) AND preserves
+# the n=1 DD park_driven cell (prior_pa=83); threshold=100 zeros that cell
+# and halves the stratum to 16/30. 100 documented in the memo as the future-
+# /career-data alternative once prior-season PA history is available.
+MIN_PRIOR_PA = 50
+
 
 def assign_regime(run_time_iso: str) -> RegimeCutoff:
     """First regime whose cutoff_iso_utc <= run_time_iso wins."""
@@ -188,6 +198,93 @@ def build_game_env_lookup(pa_path: Path) -> dict[int, dict]:
             "is_indoor": is_indoor,
         }
     return out
+
+
+def build_skill_pool_lookup(
+    pa_path: Path,
+    unique_pick_dates,
+    *,
+    min_prior_pa: int = MIN_PRIOR_PA,
+) -> dict:
+    """For each unique pick.date, build (per-batter prior info, quartile bounds).
+
+    Per Codex bus #215/#216:
+    - As-of-pick-date: only PA rows with date < pick.date strictly
+      (no same-day, no future leakage).
+    - League pool: ALL PA-frame batters with prior_pa >= min_prior_pa
+      as-of pick.date (NOT restricted to picked batters; that would
+      blur skill with selection per #215 A).
+    - Quartile bounds: q25/q50/q75 of the eligible pool's prior_hit_rate
+      distribution, computed via pandas linear-interp quantile.
+
+    Returns: {pick_date_str: {
+        "per_batter": {batter_id: {"prior_pa": int, "prior_hit_rate": float}},
+        "bounds": (q25, q50, q75) | (None, None, None),
+    }}
+
+    Per-batter dict includes ALL batters (eligible AND ineligible) so the
+    pick row can populate prior_pa + prior_hit_rate for audit even when
+    the quartile is NA (below threshold).
+    """
+    df = pd.read_parquet(pa_path, columns=["batter_id", "date", "is_hit"])
+    df["date"] = pd.to_datetime(df["date"]).dt.date.astype(str)
+
+    out: dict = {}
+    for pick_date in unique_pick_dates:
+        prior = df[df["date"] < pick_date]
+        if prior.empty:
+            out[pick_date] = {"per_batter": {}, "bounds": (None, None, None)}
+            continue
+        per_batter = prior.groupby("batter_id").agg(
+            prior_pa=("is_hit", "size"),
+            prior_hit_rate=("is_hit", "mean"),
+        )
+        eligible = per_batter[per_batter["prior_pa"] >= min_prior_pa]
+        if len(eligible) > 0:
+            q25 = float(eligible["prior_hit_rate"].quantile(0.25))
+            q50 = float(eligible["prior_hit_rate"].quantile(0.50))
+            q75 = float(eligible["prior_hit_rate"].quantile(0.75))
+            bounds = (q25, q50, q75)
+        else:
+            bounds = (None, None, None)
+        per_batter_dict = {
+            int(idx): {
+                "prior_pa": int(r["prior_pa"]),
+                "prior_hit_rate": float(r["prior_hit_rate"]),
+            }
+            for idx, r in per_batter.iterrows()
+        }
+        out[pick_date] = {"per_batter": per_batter_dict, "bounds": bounds}
+    return out
+
+
+def assign_quartile(
+    prior_hit_rate: float | None,
+    q25: float | None,
+    q50: float | None,
+    q75: float | None,
+) -> int | None:
+    """Deterministic quartile assignment with <= comparisons (ties go low).
+
+    Returns None if prior_hit_rate is None or any boundary is None. Otherwise:
+        prior_hit_rate <= q25  -> 1
+        prior_hit_rate <= q50  -> 2
+        prior_hit_rate <= q75  -> 3
+        else                   -> 4
+
+    The lower-quartile-bias on ties is documented and tested explicitly. The
+    alternative (pd.qcut / fractional ranking) hides tie behavior; <= keeps
+    the rule transparent and the column auditable from primary data.
+    """
+    if prior_hit_rate is None or q25 is None or q50 is None or q75 is None:
+        return None
+    if prior_hit_rate <= q25:
+        return 1
+    if prior_hit_rate <= q50:
+        return 2
+    if prior_hit_rate <= q75:
+        return 3
+    return 4
 
 
 def derive_is_park_driven(env: dict | None) -> bool | None:
@@ -337,6 +434,44 @@ def canonicalize(picks_dir: Path, pa_path: Path) -> pd.DataFrame:
     df["pick_is_indoor"] = pd.array(is_indoors, dtype="boolean")
     df["is_park_driven"] = pd.array(park_drivens, dtype="boolean")
 
+    # α P1 (Codex bus #215/#216): season-to-date skill attribution. Quartile
+    # snapshots built per unique pick date so the as-of-pick-date semantics
+    # are preserved without scanning the PA frame N times for N picks.
+    unique_dates = sorted(df["date"].unique().tolist())
+    skill_pool = build_skill_pool_lookup(pa_path, unique_dates)
+    prior_pa_list: list[int | None] = []
+    prior_rate_list: list[float | None] = []
+    quartile_list: list[int | None] = []
+    for r in df.itertuples(index=False):
+        snapshot = skill_pool.get(r.date)
+        bid = r.batter_id
+        # Pick batter must have a usable batter_id; otherwise skill is NA.
+        if bid is None or pd.isna(bid) or snapshot is None:
+            prior_pa_list.append(None)
+            prior_rate_list.append(None)
+            quartile_list.append(None)
+            continue
+        info = snapshot["per_batter"].get(int(bid))
+        if info is None:
+            # No prior PAs at all on this pick.date.
+            prior_pa_list.append(0)
+            prior_rate_list.append(None)
+            quartile_list.append(None)
+            continue
+        prior_pa_list.append(info["prior_pa"])
+        prior_rate_list.append(info["prior_hit_rate"])
+        if info["prior_pa"] >= MIN_PRIOR_PA:
+            q25, q50, q75 = snapshot["bounds"]
+            quartile_list.append(
+                assign_quartile(info["prior_hit_rate"], q25, q50, q75)
+            )
+        else:
+            quartile_list.append(None)
+
+    df["batter_skill_prior_pa"] = pd.array(prior_pa_list, dtype="Int64")
+    df["batter_skill_prior_hit_rate"] = pd.array(prior_rate_list, dtype="Float64")
+    df["batter_skill_quartile"] = pd.array(quartile_list, dtype="Int64")
+
     column_order = [
         "source_file", "date", "run_time", "slot",
         "batter_id", "batter_name", "pitcher_id", "game_pk",
@@ -345,6 +480,8 @@ def canonicalize(picks_dir: Path, pa_path: Path) -> pd.DataFrame:
         "regime", "model_cutoff_label", "cutoff_iso", "attribution_source",
         "pick_venue_id", "pick_roof_type", "pick_weather_temp",
         "pick_is_indoor", "is_park_driven",
+        "batter_skill_prior_pa", "batter_skill_prior_hit_rate",
+        "batter_skill_quartile",
     ]
     df = df[column_order]
     return df
@@ -489,6 +626,42 @@ def print_summary(df: pd.DataFrame) -> None:
                 mp = float(s["p_game_hit"].mean())
                 gap = mp - rate
                 print(f"{regime:<28} {slot:<13} {label:<18} {n:>3} {n_hit:>4} {rate:>6.3f} {mp:>7.3f} {gap:>+7.3f} {note:<14}")
+
+    # α P1 (Codex bus #215/#216): skill cut. Reports all four quartiles plus an
+    # explicit (skill-NA, excluded) line analogous to env-NA so support loss
+    # is visible. n<5 cells marked exploratory.
+    print()
+    print("=" * 78)
+    print("ENV-CUT C — regime × slot × is_park_driven × skill_quartile")
+    print("(resolved-only. n<5 exploratory; interpret only Q1 vs Q4 contrasts where n>=5.)")
+    print("=" * 78)
+    print(f"{'regime':<28} {'slot':<13} {'env':<18} {'Q':<3} {'n':>3} {'hits':>4} {'rate':>6} {'mean_p':>7} {'gap':>7} {'note':<14}")
+    print("-" * 115)
+    for regime in ["post_bpm", "post_pooled_mdp_pre_bpm", "pre_pooled_mdp"]:
+        sub = resolved[resolved["regime"] == regime]
+        if len(sub) == 0:
+            continue
+        for slot in ["primary", "double_down"]:
+            for pd_val, label in [(True, "park_driven"), (False, "not_park_driven")]:
+                cell = sub[(sub["slot"] == slot) & (sub["is_park_driven"] == pd_val)]
+                if len(cell) == 0:
+                    continue
+                for q in [1, 2, 3, 4]:
+                    s = cell[cell["batter_skill_quartile"] == q]
+                    n = len(s)
+                    note = "exploratory" if 0 < n < 5 else ""
+                    if n == 0:
+                        print(f"{regime:<28} {slot:<13} {label:<18} {f'Q{q}':<3} {n:>3} {'-':>4} {'-':>6} {'-':>7} {'-':>7} {note:<14}")
+                        continue
+                    n_hit = int(s["actual_hit"].sum())
+                    rate = n_hit / n
+                    mp = float(s["p_game_hit"].mean())
+                    gap = mp - rate
+                    print(f"{regime:<28} {slot:<13} {label:<18} {f'Q{q}':<3} {n:>3} {n_hit:>4} {rate:>6.3f} {mp:>7.3f} {gap:>+7.3f} {note:<14}")
+                # Explicit skill-NA line for support transparency (Codex #215/#216).
+                na_n = int(cell["batter_skill_quartile"].isna().sum())
+                if na_n > 0:
+                    print(f"{regime:<28} {slot:<13} {label:<18} {'NA':<3} {na_n:>3} {'(skill-NA, excluded from Q cells)':<60}")
 
 
 def main() -> int:
