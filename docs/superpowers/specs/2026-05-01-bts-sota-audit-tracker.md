@@ -1,8 +1,8 @@
 # BTS State-of-the-Art Audit — Master Tracker
 
 **Date created**: 2026-05-01
-**Last updated**: 2026-05-04 (post-v2.5/v2.6 reconciliation)
-**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04) — but full SOTA targets for #13/#14/#15 remain open. **Next active area: #12 probabilistic forecast evaluation suite.**
+**Last updated**: 2026-05-06 (post-MDP objective audit + DR-MDP gap screen)
+**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04) — but full SOTA targets for #13/#14/#15 remain open. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface.
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
@@ -17,13 +17,30 @@ This document is the operating tracker for the audit. It's structured for rollin
 - v2.5 point-estimate attribution survives with precise framing: B (per-bin rho_pair) and C (per-fold MDP solve) each shift +1.67pp single-mode; combined B+C shift +2.50pp via one extra 2023 fold success. A (fold-local params) has no observable effect at current resolution AND is ~3.5× slower in this runner — keep A as leakage-hygiene methodology for final audits, use pooled for exploratory screens.
 - See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md` for full memo + v2.6 addendum.
 
-**What v2.6 did NOT close**: areas #13 (OPE), #14 (rare-event MC), and #15 (PA/cross-game dependence modeling) shipped **v1 simplifications** inside the Task 13 falsification harness, but their full SOTA targets remain open: **#13 sequential DR/FQE remains open; #14 richer per-step/per-action CE-IS or subset-simulation variants remain deferred; #15 fuller out-of-fold PA/cross-game residual-dependence modeling remains open.** Areas #5 (nested CV/lockbox), #11 (binary-y conformal validation), #12 (probabilistic forecast evaluation suite) are still unstarted. **The falsification-harness path is NOT complete; it has a CI-robustness piece shipped on top of v1 simplifications.**
+**What v2.6 did NOT close**: areas #13 (OPE), #14 (rare-event MC), and #15 (PA/cross-game dependence modeling) shipped **v1 simplifications** inside the Task 13 falsification harness, but their full SOTA targets remain open: **#13 sequential DR/FQE remains open; #14 richer per-step/per-action CE-IS or subset-simulation variants remain deferred; #15 fuller out-of-fold PA/cross-game residual-dependence modeling remains open.** Areas #5 (nested CV/lockbox) and #11 (binary-y conformal validation) remain open. #12 is no longer unstarted: phase 1 proper scoring, phase 2 realized-picks calibration, phase 3 realized-picks attribution, and the realized-picks FDR baseline have shipped, but the current-model sample remains too small for a deployable calibration verdict. **The falsification-harness path is NOT complete; it has a CI-robustness piece shipped on top of v1 simplifications.**
 
 **Current production recommendation**: keep policy as-is. The harness work has not produced grounds to redeploy.
 
 **Strategic question reframe**: avoid framing the next project as "distribution-shift remediation." The strategic-gaps memo flagged that the original production-overconfidence diagnosis was iteration-contaminated. The current open production question is **whether current-model top-of-slate under-confidence is real and exploitable** — and #12 (probabilistic forecast evaluation suite) is the cheapest foundation for testing that.
 
-**Next active SOTA item**: **#12 probabilistic forecast evaluation suite** (per existing "suggested execution order" item 2 below). #12 is the prerequisite for #5, #8, #9, #11, #16, #17 — foundation for everything else.
+**Next active SOTA item**: **bin-side / multi-seed pooling measurement**, using #12's proper-scoring and realized-picks artifacts as the honesty layer. The immediate solver-side DR-MDP screen did not justify production solver work on the explicit 2021-2025 canonical surface.
+
+## Status update — 2026-05-06 (MDP objective audit + DR-MDP gap screen)
+
+**PR #26 merged** at commit `c02142b` on 2026-05-06 — documents that `solve_mdp` already optimizes reachability P(57), not expected streak length. CVaR-over-streak is ruled out as the wrong objective topology for the BTS win condition. The only solver-side candidate left by that memo is DR-MDP over bin-parameter ambiguity, and it must be measured before any production solver work.
+
+**PR #27 merged** at commit `d96388a` on 2026-05-06 — adds `scripts/dr_mdp_gap_measure.py`, focused tests, and the DR-MDP measurement plan. The first durable run is recorded at `data/validation/dr_mdp_gap_2021_2025.json` and summarized in `docs/sota_audit/2026-05-06-dr-mdp-gap-result.md`.
+
+**DR-MDP screen outcome on explicit 2021-2025 canonical profiles**:
+- `point_p57=0.039960`
+- `max_delta_p57=0.035678`
+- inherited v2.6 cell-111 CI half-width: `0.083333`
+- both finite rectangular constructions stayed within that CI half-width
+- the intended 24-seed pivoted profile files were not present locally, so this closes only the explicit single-seed 2021-2025 surface
+
+**Current production recommendation**: keep policy as-is. No deploy and no MDP solver change are justified by this screen.
+
+**Next active SOTA item**: bin-side / multi-seed pooling. #12 is no longer an implementation blank; it is now an evidence layer to use when measuring whether bin pooling or multi-seed surfaces improve the top-of-slate decision problem.
 
 ## Audit framework
 
@@ -54,8 +71,9 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ## Audit area inventory (17 items)
 
-### 1. MDP decision layer — distributional DP / DR-MDP / CVaR  [⏳ partial — corrected transitions shipped 2026-05-02 via Task 13 falsification harness]
+### 1. MDP decision layer — distributional DP / DR-MDP / CVaR  [⏳ partial — objective audit + DR-MDP screen shipped 2026-05-06]
 
+- **Status update 2026-05-06**: PR #26 audited the current MDP and established that `solve_mdp` already maximizes reachability P(57), not E[streak]. CVaR-over-streak is ruled out. PR #27 added `scripts/dr_mdp_gap_measure.py`, a finite-candidate rectangular DR-MDP measurement screen. Initial run on explicit 2021-2025 canonical profiles produced `point_p57=0.039960`, `max_delta_p57=0.035678`, below the inherited v2.6 CI half-width of `0.083333`. No production solver change is justified on this surface. The stronger 24-seed profile surface is absent locally and would need regeneration before making a stronger solver-side claim.
 - **Status update 2026-05-02**: The two-knob mean correction (PA dependence + cross-game pair) on the existing tabular MDP IS now live in `bts.validate.dependence.build_corrected_transition_table` and exercised by the falsification harness. CVaR-MDP and full DR-MDP are NOT yet implemented; the corrected transitions feed the SAME vanilla value iteration. Real-data run produced corrected_pipeline_p57 = 0.83% [0, 3.75%] vs headline 8.17% — verdict HEADLINE_BROKEN. See `data/validation/falsification_harness_2026-05-02.json` and `project_bts_2026_05_02_task13_verdict.md`.
 - **Current**: Vanilla value iteration on point estimates of P(hit). Single policy table indexed by (streak, days_remaining, saver, quality_bin). Last solved 2026-04-15.
 - **SOTA target** (sequence, immediate to advanced):
@@ -63,11 +81,11 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
   2. **Distributionally Robust MDP** (Iyengar 2005, Wiesemann et al. 2013) — explicit parameter-uncertainty handling.
   3. **CVaR-MDP** (Chow & Ghavamzadeh 2014) — explicit tail-risk objective.
   4. (Far end) Distributional RL (C51 / QR-DQN / IQN, Bellemare et al. 2017, Dabney et al. 2018) — only if abandoning the tabular MDP, likely overkill given 103K states.
-- **Speculative ΔP(57)**: +1.0–1.5pp (highest single-area direct impact)
+- **Speculative ΔP(57)**: unknown; initial DR-MDP screen found no solver-side production-change signal on the explicit 2021-2025 canonical surface.
 - **Effort**: L
 - **Prerequisites**: (a) Fresh post-bpm 24-seed pooled backtest; (b) **Offline policy evaluation infrastructure (#13) for honest comparison against current vanilla VI**.
-- **Status**: unstarted; deprioritized in execution order behind validation work (Codex critique: don't jump to deep RL on a 103K-state tabular problem).
-- **Next action**: Build OPE infra first (#13). Then design brainstorm for robust VI vs CVaR vs full distributional.
+- **Status**: measurement-gated; current solver objective is correct for P(57), CVaR-over-streak is ruled out, and DR-MDP did not clear the CI bar on the explicit 2021-2025 canonical surface.
+- **Next action**: Do not build production DR-MDP unless a regenerated 24-seed profile surface or a materially different bin manifold clears the `scripts/dr_mdp_gap_measure.py` screen. Prefer bin-side / multi-seed pooling first.
 
 ### 2. Calibration — Beta / Venn-Abers / spline + binary-y conformal
 
@@ -179,14 +197,15 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ### 12. (NEW, 2026-05-01 evening) Probabilistic forecast evaluation suite
 
-- **Current**: Primary metric is P@1 game-level accuracy. No proper-scoring-rule evaluation, no Brier decomposition, no sharpness-vs-reliability framework. P@1 is too blunt for a chained probabilistic decision system.
+- **Status update 2026-05-06**: #12 is no longer unstarted. Phase 1 shipped as `src/bts/validate/proper_scoring.py`, `tests/validate/test_proper_scoring.py`, and scorecard integration (`bts validate scorecard` includes `proper_scoring`). Phase 2 shipped realized-picks calibration (`docs/sota_audit/2026-05-04-realized-picks-calibration.md`, `data/validation/realized_picks_canonical_2026-05-04.parquet`). Phase 3 shipped realized-picks attribution P0/P1 and the p-value BH/BY FDR baseline (`docs/sota_audit/2026-05-05-realized-picks-attribution*.md`, `docs/sota_audit/2026-05-05-realized-picks-fdr.md`, `data/validation/realized_picks_fdr_2026-05-05.json`). Strict current-model realized-picks evidence remains underpowered; re-run phase 2/3 after more post-bpm picks resolve.
+- **Current**: Proper-scoring-rule evaluation is implemented and wired into scorecard output. Realized-picks calibration/attribution artifacts exist, but the strict current-model sample is still too small for a deployable calibration verdict. External benchmark reconciliation remains only partially addressed and should be folded into future scoring surfaces.
 - **SOTA target**: **Proper scoring rules** (Gneiting & Raftery 2007 "Strictly Proper Scoring Rules, Prediction, and Estimation"); **Brier decomposition** into reliability/resolution/uncertainty (Murphy 1973); **top-decile calibration** specifically (the picks live there); **sharpness-vs-reliability framework** (Gneiting et al. 2007); **CRPS** for ranked outputs. Plus **decision-bucket calibration** (calibration restricted to days where the pick is actually selectable as rank-1).
 - **Scope expansion (added 2026-05-04 per Codex post-v2.6 review)**: External benchmark reconciliation is part of #12. Garnett 2026 / lokikg-style P@K comparisons must be evaluated under identical temporal guardrails, proper scoring rules, and decision-bucket calibration to be honest; headline P@1 / P(57) reported in different papers under different temporal-leak rules and different calibration conditions are NOT directly comparable. #12 should produce the apples-to-apples external-benchmark reconciliation as part of its first deliverable, not as a downstream task.
 - **Speculative ΔP(57)**: 0.0pp directly; foundational for honest model comparison and for replacing P@1 in tuning loops with decision-aware scoring (#16).
 - **Effort**: S (most of these are one-pass calculations on existing OOF predictions).
 - **Prerequisites**: None.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). **Designated next active SOTA item per 2026-05-04 reconciliation.**
-- **Next action**: Read Gneiting & Raftery 2007. Implement `bts.validate.proper_scoring` module: log loss, Brier, Brier decomposition, reliability diagram with bootstrap bands, sharpness-vs-reliability scatter, decision-bucket calibration. Add to `bts validate scorecard` output. As part of first deliverable, produce external-benchmark reconciliation table comparing BTS P@K and proper-score performance to published P@K claims under matched temporal guardrails.
+- **Status**: shipped in phases 1/2/3 for proper scoring + realized-picks calibration/attribution; external benchmark reconciliation remains an open analysis obligation when a comparable surface is available.
+- **Next action**: Re-run realized-picks phase 2/3 once the post-bpm sample reaches a useful size. Use the proper-scoring and realized-picks artifacts as the evidence layer for bin-side / multi-seed pooling work.
 
 ### 13. (NEW, 2026-05-01 evening) Offline policy evaluation (OPE)  [✅ shipped 2026-05-02 — falsification harness Task 13]
 
@@ -262,10 +281,10 @@ The original execution order put TreeSHAP first as a quick win. Codex's review r
 Revised order:
 
 1. **Falsification harness for the 8.17% claim** = #13 OPE + #14 rare-event MC + #15 dependence modeling, designed and built together. Goal: try to break the 8.17% number with honest decision-level evaluation under correlated rare-event variance. ~~First concrete area to execute.~~ **(2026-05-04 update: v1 harness path shipped + v2.5 attribution + v2.6 block-bootstrap CI; full-SOTA #13/#14/#15 remains open.)**
-2. **#12 Probabilistic forecast evaluation suite** — replace P@1-centric evaluation. Foundation for everything else. **(2026-05-04 update: designated next active item per post-v2.6 reconciliation.)**
+2. **#12 Probabilistic forecast evaluation suite** — replace P@1-centric evaluation. Foundation for everything else. **(2026-05-06 update: phase 1/2/3 surfaces shipped; realized-picks verdict remains sample-size-limited; external benchmark reconciliation remains open.)**
 3. **#11 Binary-y validation methodology** — unblocks parked conformal v1.
 4. **#5 Nested rolling-origin CV + lockbox** — methodology foundation; should happen before any further model-class or feature audits.
-5. **#1 MDP robustness (distributional DP / robust VI)** — once OPE infra is in place.
+5. **#1 MDP robustness (distributional DP / robust VI)** — measurement-gated; current objective is already P(57), CVaR-over-streak is ruled out, and DR-MDP did not clear the CI bar on the explicit 2021-2025 canonical surface.
 6. **#16 Decision-aware learning** — try lightweight SPO/reweighting; depends on #12 + #13.
 7. **#10 Predictive stacking** — variance reduction with proper-score weighting.
 8. **#4 e-values / e-processes for sequential audits** — audit-compute reduction.
