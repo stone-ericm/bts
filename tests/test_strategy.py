@@ -81,8 +81,11 @@ class TestSelectPick:
 
         assert result.daily.double_down is None
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "F", "detailed": "Final"},
+    })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "F"})
-    def test_locked_when_game_started(self, mock_statuses, tmp_path):
+    def test_locked_when_game_started(self, mock_statuses, _detailed_statuses, tmp_path):
         from bts.strategy import select_pick
 
         existing = DailyPick(
@@ -103,6 +106,128 @@ class TestSelectPick:
 
         assert result.locked
         assert result.daily.pick.batter_name == "Wilson"
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "F", "detailed": "Postponed"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "F", 778900: "P"})
+    def test_existing_postponed_unposted_reselects_fresh_candidate(
+        self, mock_statuses, _detailed_statuses, tmp_path
+    ):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Stale Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is not None
+        assert result.locked is False
+        assert result.daily.pick.batter_name == "Fresh Pick"
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    def test_existing_preview_unposted_does_not_lock(self, mock_statuses, _detailed_statuses, tmp_path):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Morning Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=True,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([
+            {"batter_name": "Refreshed Pick", "p_game_hit": 0.84, "game_pk": 778899},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is not None
+        assert result.locked is False
+        assert result.daily.pick.batter_name == "Refreshed Pick"
+
+    @pytest.mark.parametrize(
+        ("abstract", "detailed"),
+        [
+            ("L", "Warmup"),
+            ("L", "In Progress"),
+            ("L", "Suspended"),
+            ("F", "Final"),
+            ("F", "Game Over"),
+        ],
+    )
+    def test_existing_started_or_final_statuses_lock(self, abstract, detailed, tmp_path):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Locked Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([{"batter_name": "New Pick", "game_pk": 778899}])
+        with patch("bts.picks.get_game_statuses_detailed", return_value={
+            778899: {"abstract": abstract, "detailed": detailed},
+        }), patch("bts.strategy.get_game_statuses", return_value={778899: abstract}):
+            result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is not None
+        assert result.locked is True
+        assert result.daily.pick.batter_name == "Locked Pick"
+
+    @patch("bts.picks.get_game_statuses", side_effect=OSError("abstract unavailable"))
+    @patch("bts.picks.get_game_statuses_detailed", side_effect=OSError("detailed unavailable"))
+    def test_existing_status_lookup_failure_locks(self, _detailed_statuses, _abstract_statuses, tmp_path):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Conservative Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([{"batter_name": "New Pick", "game_pk": 778899}])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is not None
+        assert result.locked is True
+        assert result.daily.pick.batter_name == "Conservative Pick"
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_locked_when_already_posted(self, mock_statuses, tmp_path):

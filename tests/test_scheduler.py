@@ -26,6 +26,40 @@ def _game(game_pk: int, time_et: str, team_away: str = "NYM", team_home: str = "
     }
 
 
+def _daily_pick(
+    game_pk: int,
+    *,
+    batter_name: str = "Díaz",
+    double_down_game_pk: int | None = None,
+    bluesky_posted: bool = False,
+):
+    from bts.picks import Pick, DailyPick
+
+    pick = Pick(
+        batter_name=batter_name, batter_id=1, team="TB",
+        lineup_position=1, pitcher_name="Abel", pitcher_id=2,
+        p_game_hit=0.72, flags=[], projected_lineup=False,
+        game_pk=game_pk, game_time="2026-04-04T23:10:00Z",
+    )
+    double_down = None
+    if double_down_game_pk is not None:
+        double_down = Pick(
+            batter_name="Double", batter_id=3, team="MIN",
+            lineup_position=1, pitcher_name="Gray", pitcher_id=4,
+            p_game_hit=0.71, flags=[], projected_lineup=False,
+            game_pk=double_down_game_pk, game_time="2026-04-04T23:15:00Z",
+        )
+    return DailyPick(
+        date="2026-04-04",
+        run_time="2026-04-04T22:00:00+00:00",
+        pick=pick,
+        double_down=double_down,
+        runner_up=None,
+        bluesky_posted=bluesky_posted,
+        bluesky_uri="at://did:plc:test/post/123" if bluesky_posted else None,
+    )
+
+
 class TestComputeRunTimes:
     def test_single_game(self):
         from bts.scheduler import compute_run_times
@@ -337,27 +371,19 @@ class TestSchedulerRun:
         assert result["pick_p"] is not None
 
     @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "L", "detailed": "In Progress"},
+    })
     @patch("bts.picks.get_game_statuses", return_value={100: "L"})
-    def test_short_circuits_when_pick_locked(self, _statuses, mock_lineups, tmp_path):
+    def test_short_circuits_when_pick_locked(self, _statuses, _detailed_statuses, mock_lineups, tmp_path):
         """Skip the expensive SSH cascade when pick is already locked."""
         from bts.scheduler import run_single_check
-        from bts.picks import Pick, DailyPick, save_pick
+        from bts.picks import save_pick
 
         mock_lineups.return_value = {100: {"home", "away"}}
 
         # Pre-save a pick whose game has started (status L)
-        existing = DailyPick(
-            date="2026-04-04",
-            run_time="2026-04-04T22:00:00+00:00",
-            pick=Pick(
-                batter_name="Díaz", batter_id=1, team="TB",
-                lineup_position=1, pitcher_name="Abel", pitcher_id=2,
-                p_game_hit=0.72, flags=[], projected_lineup=False,
-                game_pk=100, game_time="2026-04-04T23:10:00Z",
-            ),
-            double_down=None, runner_up=None,
-        )
-        save_pick(existing, tmp_path)
+        save_pick(_daily_pick(100), tmp_path)
 
         result = run_single_check(
             date="2026-04-04",
@@ -374,6 +400,164 @@ class TestSchedulerRun:
         assert result["pick_name"] == "Díaz"
         # No cascade should have been attempted — check_confirmed_lineups
         # was called but run_cascade was NOT (not even imported/mocked)
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "F", "detailed": "Postponed"},
+        200: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_primary_postponed_regenerates(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+
+        save_pick(_daily_pick(100, batter_name="Stale"), tmp_path)
+        mock_lineups.return_value = {200: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Fresh", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 200, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[200],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["pick_result"].locked is False
+        assert result["pick_name"] == "Fresh"
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "P", "detailed": "Pre-Game"},
+        200: {"abstract": "F", "detailed": "Postponed"},
+        300: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "F", 300: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "F", 300: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_double_down_postponed_regenerates_whole_pick(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        mock_lineups.return_value = {300: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Replacement", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 300, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[300],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["pick_result"].locked is False
+        assert result["pick_name"] == "Replacement"
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        200: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={200: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_missing_primary_game_regenerates(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+
+        save_pick(_daily_pick(100, batter_name="Missing"), tmp_path)
+        mock_lineups.return_value = {200: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Fresh Missing Replacement", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 200, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[200],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["pick_result"].locked is False
+        assert result["pick_name"] == "Fresh Missing Replacement"
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "F", "detailed": "Postponed"},
+    })
+    def test_bluesky_posted_locks_even_if_postponed(
+        self, _detailed_statuses, mock_cascade, mock_lineups, tmp_path
+    ):
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+
+        save_pick(_daily_pick(100, bluesky_posted=True), tmp_path)
+        mock_lineups.return_value = {100: {"home", "away"}}
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[100],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["pick_result"].locked is True
+        assert result["pick_name"] == "Díaz"
+        mock_cascade.assert_not_called()
 
 
 class TestPollResults:

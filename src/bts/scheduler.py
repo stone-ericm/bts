@@ -398,7 +398,7 @@ def run_single_check(
              "pick_p": float | None}.
     """
     from bts.orchestrator import run_and_pick
-    from bts.picks import save_pick, get_game_statuses, load_pick
+    from bts.picks import save_pick, get_game_statuses, load_pick, classify_pick_lock_state
     from bts.strategy import should_lock, PickResult
 
     new_count = count_new_confirmations(all_game_pks, confirmed_sides)
@@ -407,9 +407,17 @@ def run_single_check(
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     existing = load_pick(date, picks_dir)
     if existing:
-        statuses = get_game_statuses(date)
-        if statuses.get(existing.pick.game_pk) != "P" or existing.bluesky_posted:
-            print(f"  Pick already locked — skipping cascade.", file=sys.stderr)
+        lock_state = classify_pick_lock_state(existing, date)
+        if lock_state.stale:
+            print(
+                f"  Existing pick stale ({lock_state.reason}); regenerating.",
+                file=sys.stderr,
+            )
+        elif lock_state.locked:
+            print(
+                f"  Pick already locked ({lock_state.reason}) — skipping cascade.",
+                file=sys.stderr,
+            )
             return {"skipped": False, "new_lineups": new_count, "should_post": False,
                     "pick_result": PickResult(daily=existing, locked=True),
                     "pick_name": existing.pick.batter_name,
