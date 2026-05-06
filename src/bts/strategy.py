@@ -17,7 +17,7 @@ import pandas as pd
 
 from bts.picks import (
     DailyPick, Pick, pick_from_row, load_pick, get_game_statuses,
-    load_saver_available,
+    load_saver_available, classify_pick_lock_state,
 )
 
 
@@ -139,23 +139,35 @@ def select_pick(
     Returns PickResult with the selected DailyPick, or None if there's
     nothing to pick (no games, all started, empty predictions).
 
-    When ``for_shadow=True``, the production-lock short-circuit is bypassed
-    so the shadow model always computes its own pick from its own predictions.
-    (Without this, shadow calls made after production locks would silently
-    return production's DailyPick and corrupt {date}.shadow.json.)
+    Existing production picks are classified before reuse. Posted picks and
+    picks whose committed games have started remain locked; unposted picks
+    whose committed games are postponed, cancelled, or missing from today's
+    schedule are treated as stale and can be replaced by fresh predictions.
+
+    When ``for_shadow=True``, production pick reuse is bypassed so the shadow
+    model always computes its own pick from its own predictions. (Without this,
+    shadow calls made after production locks would silently return production's
+    DailyPick and corrupt {date}.shadow.json.)
     """
     if predictions.empty:
         return None
 
-    statuses = get_game_statuses(date)
-
     current = None
     if not for_shadow:
         current = load_pick(date, picks_dir)
-        if current and (
-            statuses.get(current.pick.game_pk) != "P" or current.bluesky_posted
-        ):
+        if current:
+            lock_state = classify_pick_lock_state(current, date)
+            if lock_state.stale:
+                current = None
+            elif lock_state.locked:
+                return PickResult(daily=current, locked=True)
+
+    try:
+        statuses = get_game_statuses(date)
+    except Exception:
+        if current:
             return PickResult(daily=current, locked=True)
+        return None
 
     # Filter to games not yet started
     not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")

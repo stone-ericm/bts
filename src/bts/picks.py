@@ -139,6 +139,18 @@ class DailyPick:
     policy_npz_sha256: str | None = None  # sha256 of mdp_policy.npz if loaded
 
 
+@dataclass(frozen=True)
+class PickLockState:
+    """Classification for whether an existing pick can be reused."""
+
+    locked: bool
+    stale: bool = False
+    reason: str = ""
+    game_pk: int | None = None
+    abstract: str | None = None
+    detailed: str | None = None
+
+
 def pick_from_row(row) -> Pick:
     """Create a Pick from a prediction DataFrame row."""
     flags_str = row.get("flags", "")
@@ -368,6 +380,76 @@ def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
                 "detailed": g["status"].get("detailedState", ""),
             }
     return statuses
+
+
+_STALE_DETAILED_STATES = {"Postponed", "Cancelled", "Canceled"}
+
+
+def _committed_pick_game_pks(daily: DailyPick) -> list[int]:
+    game_pks = [daily.pick.game_pk]
+    if daily.double_down and daily.double_down.game_pk not in game_pks:
+        game_pks.append(daily.double_down.game_pk)
+    return game_pks
+
+
+def classify_pick_lock_state(daily: DailyPick, date: str) -> PickLockState:
+    """Classify an existing pick as locked, stale, or refreshable.
+
+    Posted public picks are always locked. Unposted picks become stale when
+    any committed pick game is missing from today's schedule or is explicitly
+    postponed/cancelled. Status lookup failures fail closed to avoid duplicate
+    or incorrect public picks.
+    """
+    if daily.bluesky_posted:
+        return PickLockState(locked=True, reason="bluesky_posted")
+
+    game_pks = _committed_pick_game_pks(daily)
+    try:
+        detailed_statuses = get_game_statuses_detailed(date)
+    except Exception:
+        try:
+            abstract_statuses = get_game_statuses(date)
+        except Exception:
+            return PickLockState(locked=True, reason="status_lookup_failed")
+        for game_pk in game_pks:
+            abstract = abstract_statuses.get(game_pk)
+            if abstract != "P":
+                return PickLockState(
+                    locked=True,
+                    reason="fallback_status_locked",
+                    game_pk=game_pk,
+                    abstract=abstract,
+                )
+        return PickLockState(locked=False, reason="fallback_all_preview")
+
+    for game_pk in game_pks:
+        status = detailed_statuses.get(game_pk)
+        if status is None:
+            return PickLockState(stale=True, locked=False, reason="missing_from_schedule", game_pk=game_pk)
+        detailed = status.get("detailed", "")
+        if detailed in _STALE_DETAILED_STATES:
+            return PickLockState(
+                stale=True,
+                locked=False,
+                reason="stale_game_status",
+                game_pk=game_pk,
+                abstract=status.get("abstract"),
+                detailed=detailed,
+            )
+
+    for game_pk in game_pks:
+        status = detailed_statuses[game_pk]
+        abstract = status.get("abstract")
+        if abstract != "P":
+            return PickLockState(
+                locked=True,
+                reason="game_started_or_final",
+                game_pk=game_pk,
+                abstract=abstract,
+                detailed=status.get("detailed", ""),
+            )
+
+    return PickLockState(locked=False, reason="all_preview")
 
 
 def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = None) -> bool | None:
