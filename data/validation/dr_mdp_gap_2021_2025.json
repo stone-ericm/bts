@@ -1,0 +1,150 @@
+{
+  "bin_stats": [
+    {
+      "frequency": 0.20065789473684212,
+      "index": 0,
+      "n": 183,
+      "n_both": 116,
+      "n_hit": 141,
+      "p_both": 0.6338797814207651,
+      "p_hit": 0.7704918032786885,
+      "p_range": [
+        0.732903426792985,
+        0.7943211304562233
+      ]
+    },
+    {
+      "frequency": 0.19956140350877194,
+      "index": 1,
+      "n": 182,
+      "n_both": 135,
+      "n_hit": 159,
+      "p_both": 0.7417582417582418,
+      "p_hit": 0.8736263736263736,
+      "p_range": [
+        0.7944763424840106,
+        0.8110163996583784
+      ]
+    },
+    {
+      "frequency": 0.19956140350877194,
+      "index": 2,
+      "n": 182,
+      "n_both": 131,
+      "n_hit": 160,
+      "p_both": 0.7197802197802198,
+      "p_hit": 0.8791208791208791,
+      "p_range": [
+        0.8110259497985903,
+        0.8240239625280495
+      ]
+    },
+    {
+      "frequency": 0.19956140350877194,
+      "index": 3,
+      "n": 182,
+      "n_both": 141,
+      "n_hit": 165,
+      "p_both": 0.7747252747252747,
+      "p_hit": 0.9065934065934066,
+      "p_range": [
+        0.8240568643861652,
+        0.8409847482403342
+      ]
+    },
+    {
+      "frequency": 0.20065789473684212,
+      "index": 4,
+      "n": 183,
+      "n_both": 149,
+      "n_hit": 164,
+      "p_both": 0.8142076502732241,
+      "p_hit": 0.8961748633879781,
+      "p_range": [
+        0.841147835617144,
+        0.9183262886957164
+      ]
+    }
+  ],
+  "ci_half_width": 0.08333333333333334,
+  "constructions": [
+    {
+      "delta_p57": 0.03567785244076768,
+      "exceeds_ci_half_width": false,
+      "initial_frequency_candidate": [
+        0.2278821234616002,
+        0.19276468248283785,
+        0.19276468248283785,
+        0.19276468248283785,
+        0.1938238290898864
+      ],
+      "initial_frequency_candidate_index": 2,
+      "metadata": {
+        "frequency_interval": "Wilson cell bounds projected to simplex candidates",
+        "hit_interval": "per-bin Wilson intervals for p_hit and p_both",
+        "z": 1.96
+      },
+      "n_frequency_candidates": 11,
+      "n_hit_candidates_by_bin": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "name": "wilson_simplex",
+      "policy_disagreement_rate": 0.1321866758399266,
+      "robust_p57": 0.004281961941675956
+    },
+    {
+      "delta_p57": 0.03516098841418227,
+      "exceeds_ci_half_width": false,
+      "initial_frequency_candidate": [
+        0.22587719298245615,
+        0.1932652275407311,
+        0.1932652275407311,
+        0.1932652275407311,
+        0.1943271243953505
+      ],
+      "initial_frequency_candidate_index": 2,
+      "metadata": {
+        "alpha": 0.05,
+        "frequency_interval": "bootstrap frequency quantiles projected to simplex candidates",
+        "hit_interval": "paired-day bootstrap quantiles for p_hit and p_both",
+        "n_bootstrap": 500,
+        "seed": 42
+      },
+      "n_frequency_candidates": 11,
+      "n_hit_candidates_by_bin": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "name": "paired_day_bootstrap_multinomial",
+      "policy_disagreement_rate": 0.11831212016970531,
+      "robust_p57": 0.004798825968261366
+    }
+  ],
+  "max_delta_exceeds_ci_half_width": false,
+  "max_delta_p57": 0.03567785244076768,
+  "method": "finite_candidate_rectangular_dr_mdp_screen",
+  "n_bins": 5,
+  "n_pair_rows": 912,
+  "n_profile_rows": 9120,
+  "notes": [
+    "Robust values are exact for the finite candidate grid only.",
+    "This is a measurement screen; it does not alter production MDP or strategy code."
+  ],
+  "point_p57": 0.039959814382443636,
+  "schema_version": 1,
+  "season_length": 153,
+  "source_profiles": [
+    "/Users/stone/projects/bts/data/simulation/backtest_2021.parquet",
+    "/Users/stone/projects/bts/data/simulation/backtest_2022.parquet",
+    "/Users/stone/projects/bts/data/simulation/backtest_2023.parquet",
+    "/Users/stone/projects/bts/data/simulation/backtest_2024.parquet",
+    "/Users/stone/projects/bts/data/simulation/backtest_2025.parquet"
+  ]
+}
