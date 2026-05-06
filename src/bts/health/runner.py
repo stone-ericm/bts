@@ -22,6 +22,7 @@ from bts.health import (
     pitcher_sparsity,
     pooled_training,
     post_failure,
+    postponed_pick,
     predicted_vs_realized,
     projected_lineup,
     realized_calibration,
@@ -81,6 +82,9 @@ def run_all_checks(
             pooled_dir=pooled_dir, today=today,
         )))
     alerts.extend(_safe_run("post_failure", lambda: post_failure.check(
+        picks_dir, today=today,
+    )))
+    alerts.extend(_safe_run("postponed_pick", lambda: postponed_pick.check(
         picks_dir, today=today,
     )))
     if current_nrestarts is not None:
