@@ -54,6 +54,32 @@ def _format_estimate(point: float, ci_lo: float | None, ci_hi: float | None) -> 
     return f"{point:.4f} [{ci_lo:.4f}, {ci_hi:.4f}]"
 
 
+def _load_policy_table_for_bins(policy_file: Path, bins) -> tuple[np.ndarray, dict]:
+    """Load a saved MDP policy and validate it against this harness bin count."""
+    from bts.simulate.mdp import load_policy
+
+    policy_table, boundaries, season_length = load_policy(policy_file)
+    n_bins = len(bins.bins)
+    if policy_table.ndim != 4:
+        raise ValueError(f"{policy_file} policy_table must be 4D, got shape {policy_table.shape}")
+    if policy_table.shape[3] != n_bins:
+        raise ValueError(
+            f"{policy_file} policy_table has {policy_table.shape[3]} quality bins, "
+            f"but harness data produced {n_bins} bins"
+        )
+    if len(boundaries) != len(bins.boundaries):
+        raise ValueError(
+            f"{policy_file} has {len(boundaries)} boundaries, "
+            f"but harness data produced {len(bins.boundaries)} boundaries"
+        )
+    return policy_table, {
+        "path": str(policy_file),
+        "season_length": int(season_length),
+        "n_bins": int(n_bins),
+        "boundaries": boundaries,
+    }
+
+
 def _classify_verdict(
     corrected_pipeline_point: float,
     corrected_pipeline_lo: float,
@@ -131,6 +157,7 @@ def run_harness(
     policy_mode: str = "per-fold",
     n_block_bootstrap: int = 0,
     expected_block_length: int = 7,
+    policy_file: Path | None = None,
 ) -> dict:
     """Top-level harness driver. Returns the verdict dict and writes it to output_path."""
     seasons = sorted(profiles["season"].unique().tolist())
@@ -139,11 +166,18 @@ def run_harness(
     # Step 1: Headline policy — bins + MDP solved on all seasons.
     bins_full = _compute_bins_from_direct_profiles(profiles)
     headline_solution = solve_mdp(bins_full, season_length=153, late_phase_days=30)
+    external_policy_table = None
+    external_policy_metadata = None
+    if policy_file is not None:
+        external_policy_table, external_policy_metadata = _load_policy_table_for_bins(
+            Path(policy_file), bins_full
+        )
+    headline_policy_table = external_policy_table if external_policy_table is not None else headline_solution.policy_table
 
     # Step 2: Fixed-policy audit on held-out season.
     fixed_result = audit_fixed_policy(
         profiles,
-        frozen_policy={"action_table": headline_solution.policy_table},
+        frozen_policy={"action_table": headline_policy_table},
         test_seasons=[held_out],
         n_bootstrap=n_bootstrap,
         seed=seed,
@@ -227,11 +261,15 @@ def run_harness(
         n_pa_per_game=5,
     )
     corrected_solution = solve_mdp(corrected_bins, season_length=153, late_phase_days=30)
+    corrected_fixed_policy_table = (
+        external_policy_table if external_policy_table is not None
+        else corrected_solution.policy_table
+    )
 
     # Step 7: Corrected-policy audit on held-out season (fixed-policy mode).
     corrected_fixed_result = audit_fixed_policy(
         profiles,
-        frozen_policy={"action_table": corrected_solution.policy_table},
+        frozen_policy={"action_table": corrected_fixed_policy_table},
         test_seasons=[held_out],
         n_bootstrap=n_bootstrap,
         seed=seed,
@@ -244,6 +282,13 @@ def run_harness(
     # on ALL data and just replayed it, inflating in-sample P(57) dramatically).
     def _solve_for_v2(corrected_bins_arg):
         """Closure: solve MDP on a fold's corrected bins."""
+        if external_policy_table is not None:
+            if external_policy_table.shape[3] != len(corrected_bins_arg.bins):
+                raise ValueError(
+                    f"external policy has {external_policy_table.shape[3]} bins but "
+                    f"fold corrected bins have {len(corrected_bins_arg.bins)} bins"
+                )
+            return external_policy_table
         return solve_mdp(corrected_bins_arg, season_length=153, late_phase_days=30)
 
     corrected_v2 = corrected_audit_pipeline(
@@ -325,6 +370,7 @@ def run_harness(
         "rho_pair_mode": rho_pair_mode,
         "rho_pair_scope": "full" if policy_mode == "global" else "fold-local",
         "policy_mode": policy_mode,
+        "external_policy": external_policy_metadata,
         "n_block_bootstrap": n_block_bootstrap,
         "expected_block_length": expected_block_length,
         "fixed_policy_terminal_r_mc_p57": _format_estimate(
@@ -416,6 +462,10 @@ def main():
         "--expected-block-length", default=7, type=int,
         help="Mean block length (days) for stationary bootstrap when --n-block-bootstrap > 0.",
     )
+    parser.add_argument(
+        "--policy-file", default=None,
+        help="Optional saved MDP policy .npz to replay instead of solving policies inside the harness.",
+    )
     args = parser.parse_args()
 
     profiles = pd.concat(pd.read_parquet(p) for p in sorted(Path().glob(args.profiles_glob)))
@@ -434,6 +484,7 @@ def main():
         policy_mode=args.policy_mode,
         n_block_bootstrap=args.n_block_bootstrap,
         expected_block_length=args.expected_block_length,
+        policy_file=Path(args.policy_file) if args.policy_file else None,
     )
     print(json.dumps(out, indent=2))
 

@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 from bts.simulate.quality_bins import QualityBin, QualityBins
-from bts.simulate.exact import exact_p57, build_transition_matrix
+from bts.simulate.exact import exact_p57, exact_p57_policy_table, build_transition_matrix
+from bts.simulate.mdp import solve_mdp
 from bts.simulate.strategies import Strategy
 
 
@@ -97,3 +98,50 @@ class TestExactP57:
         p_no = exact_p57(no_saver, bins, season_length=180)
         p_yes = exact_p57(with_saver, bins, season_length=180)
         assert p_yes >= p_no
+
+
+class TestExactP57PolicyTable:
+    def test_solved_policy_matches_mdp_objective(self):
+        bins = _two_bins()
+        sol = solve_mdp(bins, season_length=80)
+
+        p = exact_p57_policy_table(sol.policy_table, bins, season_length=80)
+
+        assert p == pytest.approx(sol.optimal_p57)
+
+    def test_always_skip_policy_has_zero_p57(self):
+        bins = _simple_bins()
+        policy = np.zeros((57, 31, 2, len(bins.bins)), dtype=np.int8)
+
+        p = exact_p57_policy_table(policy, bins, season_length=30)
+
+        assert p == 0.0
+
+    def test_always_single_policy_reaches_with_perfect_hits(self):
+        bins = QualityBins(
+            bins=[QualityBin(index=0, p_range=(1.0, 1.0), p_hit=1.0, p_both=1.0, frequency=1.0)],
+            boundaries=[],
+        )
+        policy = np.ones((57, 58, 2, len(bins.bins)), dtype=np.int8)
+
+        p = exact_p57_policy_table(policy, bins, season_length=57)
+
+        assert p == 1.0
+
+    def test_requested_season_length_clamps_to_policy_table_length(self):
+        bins = QualityBins(
+            bins=[QualityBin(index=0, p_range=(1.0, 1.0), p_hit=1.0, p_both=1.0, frequency=1.0)],
+            boundaries=[],
+        )
+        policy = np.ones((57, 58, 2, len(bins.bins)), dtype=np.int8)
+
+        p = exact_p57_policy_table(policy, bins, season_length=200)
+
+        assert p == exact_p57_policy_table(policy, bins, season_length=57)
+
+    def test_policy_bin_count_must_match_bins(self):
+        bins = _two_bins()
+        policy = np.ones((57, 31, 2, 1), dtype=np.int8)
+
+        with pytest.raises(ValueError, match="quality-bin dimension"):
+            exact_p57_policy_table(policy, bins, season_length=30)
