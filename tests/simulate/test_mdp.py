@@ -90,3 +90,80 @@ class TestSolveMDP:
         sol = solve_mdp(bins, season_length=100)
         action = sol.policy(streak=20, days_remaining=80, saver=False, quality_bin=0)
         assert action == "skip"
+
+
+class TestMDPObjectiveSpec:
+    """Tests-as-documentation for the reachability semantics of solve_mdp.
+
+    See docs/sota_audit/2026-05-06-mdp-objective-audit.md for the formal
+    specification these tests harden. The contract is that solve_mdp returns
+    a value table V where V[s, d, saver, q] is the optimal probability of
+    reaching streak 57 within d remaining days when the agent acts optimally.
+    """
+
+    def test_value_equals_closed_form_reachability_on_tiny_mdp(self):
+        """Hand-computed reachability values on a 1-bin MDP, no saver zone.
+
+        With p_hit=0.9, p_both=0.8, freq=1.0 and saver=0 outside [10,15]:
+          V[57, *, *, *] = 1                    (terminal)
+          V[s, 0, *, *]  = 0  for s < 57         (no days left)
+          V[56, 1, 0, 0] = max(skip=0,
+                               single=0.9*1 + 0.1*0 = 0.9,
+                               double=0.8*1 + 0.2*0 = 0.8)
+                         = 0.9                   (single)
+          V[55, 1, 0, 0] = max(skip=0,
+                               single=0.9*V[56,0]+0.1*V[0,0] = 0,
+                               double=0.8*1 + 0.2*0 = 0.8)
+                         = 0.8                   (double)
+          V[55, 2, 0, 0] = max(skip=V[55,1,0,0]=0.8,
+                               single=0.9*V[56,1,0,0]+0.1*V[0,1,0,0]
+                                     =0.9*0.9 + 0.1*0 = 0.81,
+                               double=0.8*V[57,1,0,0]+0.2*V[0,1,0,0]
+                                     =0.8*1.0 + 0.2*0 = 0.8)
+                         = 0.81                  (single)
+          V[0, 1, 0, 0]  = 0                     (cannot reach 57 in 1 day from 0)
+        """
+        bins = _simple_bins()
+        sol = solve_mdp(bins, season_length=10)
+        V = sol.value_table
+
+        assert V[57, 1, 0, 0] == pytest.approx(1.0)
+        assert V[56, 0, 0, 0] == pytest.approx(0.0)
+        assert V[56, 1, 0, 0] == pytest.approx(0.9, abs=1e-12)
+        assert V[55, 1, 0, 0] == pytest.approx(0.8, abs=1e-12)
+        assert V[55, 2, 0, 0] == pytest.approx(0.81, abs=1e-12)
+        assert V[0, 1, 0, 0] == pytest.approx(0.0)
+
+        # And the policy at the diagnostic states matches the closed-form argmax.
+        assert sol.policy(streak=56, days_remaining=1, saver=False, quality_bin=0) == "single"
+        assert sol.policy(streak=55, days_remaining=1, saver=False, quality_bin=0) == "double"
+        assert sol.policy(streak=55, days_remaining=2, saver=False, quality_bin=0) == "single"
+
+    def test_optimal_p57_matches_initial_state_expectation(self):
+        """sol.optimal_p57 equals freq[q]-weighted V[0, season_length, 1, q].
+
+        This locks in the contract of mdp.py:205 — the reported headline metric
+        is the bin-frequency expectation of the initial-state value, computed
+        with the early-phase frequencies (or late-phase if late_bins is set;
+        here we use single-phase only).
+        """
+        bins = _two_bins()
+        season_length = 100
+        sol = solve_mdp(bins, season_length=season_length)
+        freq = np.array([b.frequency for b in bins.bins])
+        V_initial = sol.value_table[0, season_length, 1, :]
+        expected = float(np.dot(freq, V_initial))
+        assert sol.optimal_p57 == pytest.approx(expected, abs=1e-12)
+
+    def test_value_function_is_probability_in_unit_interval(self):
+        """Every V entry lies in [0, 1] — necessary for any reachability semantic.
+
+        Catches a future objective change that allows V outside [0, 1] (e.g.,
+        signed rewards, expected-streak-length, etc.) by having the existing
+        test suite fail loudly rather than silently inheriting the new contract.
+        """
+        bins = _two_bins()
+        sol = solve_mdp(bins, season_length=80)
+        V = sol.value_table
+        assert V.min() >= 0.0
+        assert V.max() <= 1.0 + 1e-12

@@ -154,3 +154,52 @@ def test_run_harness_forwards_block_bootstrap_kwargs(monkeypatch, tmp_path: Path
     assert captured.get("expected_block_length") == 14, (
         f"expected_block_length not forwarded; captured kwargs: {list(captured)}"
     )
+
+
+def test_run_harness_replays_external_policy_file(monkeypatch, tmp_path: Path):
+    """A saved policy file should be replayable through the corrected harness path."""
+    import scripts.run_falsification_harness as rfh
+    from bts.validate.ope import DROPEResult
+
+    rng = np.random.default_rng(2)
+    profiles = _make_smoke_profiles(rng)
+    pa_df = _make_smoke_pa_df(rng)
+
+    policy_table = np.ones((57, 154, 2, 5), dtype=np.int8)
+    policy_path = tmp_path / "external_policy.npz"
+    np.savez_compressed(
+        policy_path,
+        policy_table=policy_table,
+        boundaries=np.array([0.2, 0.4, 0.6, 0.8]),
+        season_length=np.array(153),
+        optimal_p57=np.array(0.0),
+    )
+
+    captured: dict = {}
+
+    def fake_corrected(profiles_arg, _pa_df, *, mdp_solve_fn, **_kwargs):
+        bins = rfh._compute_bins_from_direct_profiles(profiles_arg)
+        captured["policy_table"] = mdp_solve_fn(bins)
+        return DROPEResult(
+            point_estimate=0.0,
+            ci_lower=None,
+            ci_upper=None,
+            n_trajectories=0,
+            fold_metadata=[],
+        )
+
+    monkeypatch.setattr(rfh, "corrected_audit_pipeline", fake_corrected)
+
+    result = rfh.run_harness(
+        profiles, pa_df,
+        output_path=tmp_path / "verdict.json",
+        n_bootstrap=10,
+        n_permutations=10,
+        pa_n_bootstrap=10,
+        n_final=100,
+        policy_file=policy_path,
+    )
+
+    assert np.array_equal(captured["policy_table"], policy_table)
+    assert result["external_policy"]["path"] == str(policy_path)
+    assert result["external_policy"]["season_length"] == 153

@@ -3,7 +3,12 @@
 import numpy as np
 import pandas as pd
 import pytest
-from bts.simulate.quality_bins import QualityBin, QualityBins, compute_bins
+from bts.simulate.quality_bins import (
+    QualityBin,
+    QualityBins,
+    compute_bins,
+    compute_bins_with_boundaries,
+)
 
 
 def _make_profiles(n_days=100):
@@ -61,3 +66,23 @@ class TestComputeBins:
         bins = compute_bins(df)
         assert bins.classify(0.50) == 0  # below all boundaries → lowest bin
         assert bins.classify(0.99) == 4  # above all boundaries → highest bin
+
+    def test_fixed_boundaries_are_preserved(self):
+        df = _make_profiles()
+        boundaries = [0.78, 0.81, 0.84, 0.87]
+
+        bins = compute_bins_with_boundaries(df, boundaries)
+
+        assert bins.boundaries == boundaries
+        assert len(bins.bins) == 5
+        assert sum(b.frequency for b in bins.bins) == pytest.approx(1.0)
+
+    def test_fixed_boundaries_keep_empty_bins_for_policy_shape(self):
+        df = _make_profiles()
+        boundaries = [0.1, 0.2, 0.3, 0.4]
+
+        bins = compute_bins_with_boundaries(df, boundaries)
+
+        assert len(bins.bins) == 5
+        assert [b.frequency for b in bins.bins[:4]] == [0.0, 0.0, 0.0, 0.0]
+        assert bins.bins[4].frequency == 1.0

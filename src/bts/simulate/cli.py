@@ -206,29 +206,50 @@ def solve(profiles_dir: str, season_length: int, policy_path: str | None):
               help="Directory with backtest profile parquets")
 @click.option("--strategy", "strategy_name", default="combined",
               help="Strategy to evaluate (default: combined)")
+@click.option("--policy-file", default=None, type=click.Path(exists=True),
+              help="Evaluate a saved MDP policy .npz instead of a named heuristic strategy")
 @click.option("--season-length", default=180, type=int, help="Days per season")
-def exact(profiles_dir: str, strategy_name: str, season_length: int):
+def exact(profiles_dir: str, strategy_name: str, policy_file: str | None, season_length: int):
     """Compute exact P(57) for a named strategy via absorbing chain."""
     from rich.console import Console
-    from bts.simulate.quality_bins import compute_bins
-    from bts.simulate.exact import exact_p57
+    from bts.simulate.quality_bins import compute_bins, compute_bins_with_boundaries
+    from bts.simulate.exact import exact_p57, exact_p57_policy_table
 
     import pandas as pd
 
     console = Console()
     profiles_path = Path(profiles_dir)
 
-    if strategy_name not in ALL_STRATEGIES:
-        click.echo(f"Unknown strategy: {strategy_name}. "
-                   f"Options: {', '.join(ALL_STRATEGIES.keys())}", err=True)
-        raise SystemExit(1)
-
     dfs = [pd.read_parquet(p) for p in sorted(profiles_path.glob("backtest_*.parquet"))]
     if not dfs:
         click.echo("No profile parquets found.", err=True)
         raise SystemExit(1)
     profiles_df = pd.concat(dfs, ignore_index=True)
+    if policy_file:
+        from bts.simulate.mdp import load_policy
+
+        policy_table, boundaries, policy_season_length = load_policy(policy_file)
+        policy_bins = compute_bins_with_boundaries(profiles_df, boundaries)
+        effective_policy_length = policy_table.shape[1] - 1
+        if season_length > effective_policy_length:
+            click.echo(
+                f"Requested {season_length}-day season exceeds policy table length "
+                f"{effective_policy_length}; evaluating at {effective_policy_length} days.",
+                err=True,
+            )
+        p = exact_p57_policy_table(policy_table, policy_bins, season_length=season_length)
+        console.print(
+            f"{policy_file}: P(57) = {p:.4%}  "
+            f"(exact, requested={season_length}-day season, policy_length={policy_season_length})"
+        )
+        return
+
     bins = compute_bins(profiles_df)
+
+    if strategy_name not in ALL_STRATEGIES:
+        click.echo(f"Unknown strategy: {strategy_name}. "
+                   f"Options: {', '.join(ALL_STRATEGIES.keys())}", err=True)
+        raise SystemExit(1)
 
     strategy = ALL_STRATEGIES[strategy_name]
     p = exact_p57(strategy, bins, season_length=season_length)
