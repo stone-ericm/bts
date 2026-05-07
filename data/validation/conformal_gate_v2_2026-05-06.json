@@ -1,0 +1,4668 @@
+{
+  "alphas": [
+    0.05,
+    0.1,
+    0.2
+  ],
+  "created_at": "2026-05-07T01:47:54Z",
+  "lockbox": {
+    "description": "last 30 game-days of 2025",
+    "end_date": "2025-09-28",
+    "start_date": "2025-08-30"
+  },
+  "lockbox_held_out": true,
+  "manifest_metadata": {
+    "created_at": "2026-05-07T01:47:42Z",
+    "manifest_path": "data/validation/split_manifest_conformal_2026-05-06.json",
+    "schema_version": "v1",
+    "split_params": {
+      "embargo_game_days": 7,
+      "min_train_game_days": 365,
+      "mode": "rolling_origin",
+      "n_folds": 5,
+      "purge_game_days": 7
+    },
+    "universe": {
+      "first_date": "2021-04-01",
+      "last_date": "2025-09-28",
+      "n_dates": 912
+    }
+  },
+  "method_alpha_matrix": {
+    "bucket_wilson__alpha=0.05": {
+      "alpha": 0.05,
+      "fail_reasons": [
+        "fold 0: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]",
+        "fold 1: validity fail buckets [0.775, 0.8, 0.825]",
+        "fold 2: validity fail buckets [0.725, 0.8, 0.825]",
+        "fold 3: validity fail buckets [0.775, 0.8, 0.825]",
+        "fold 4: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.1595915864755212,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1595915864755212,
+              "n_bins": 5,
+              "recomposition_error": 0.0002620169531769023,
+              "reliability": 0.0013387466038419932,
+              "resolution": 0.0016034474673216432,
+              "uncertainty": 0.16011830429217777
+            },
+            "n_finite": 1014,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": -0.03147885953330071,
+            "n_finite": 1014,
+            "p90_width": 0.021491565832105815,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.5769253124065806,
+                "mean_bound": 0.5769253124065806,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.5769253124065806,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.708344986210238,
+                "mean_bound": 0.7083449862102381,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.708344986210238,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8008497711448886,
+                "mean_bound": 0.8008497711448885,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.8008497711448886,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8162941076826381,
+                "mean_bound": 0.8162941076826383,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.8162941076826381,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8413624049769528,
+                "mean_bound": 0.8413624049769525,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.8413624049769528,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8708842187498107,
+                "mean_bound": 0.8708842187498105,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8708842187498107,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.883170835099093,
+                "mean_bound": 0.883170835099093,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.883170835099093,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 6,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.13848441361184194,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.13848441361184194,
+              "n_bins": 4,
+              "recomposition_error": 0.0003305062692165184,
+              "reliability": 0.0012536133505219958,
+              "resolution": 0.0006652225070044745,
+              "uncertainty": 0.13822652903754093
+            },
+            "n_finite": 1008,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": -0.028450136357526357,
+            "n_finite": 1008,
+            "p90_width": -0.014226903055831406,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6357518625712728,
+                "mean_bound": 0.6357518625712728,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.6357518625712728,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7072740366964639,
+                "mean_bound": 0.7072740366964637,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.7072740366964639,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7960027415038762,
+                "mean_bound": 0.7960027415038761,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.7960027415038762,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8137994828371926,
+                "mean_bound": 0.8137994828371927,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.8137994828371926,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8348049492041797,
+                "mean_bound": 0.8348049492041798,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.8348049492041797,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8804406227527856,
+                "mean_bound": 0.8804406227527856,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8804406227527856,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8988983797540065,
+                "mean_bound": 0.8988983797540065,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.8988983797540065,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 12,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.1286181725309742,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1286181725309742,
+              "n_bins": 4,
+              "recomposition_error": 0.0001960903248396373,
+              "reliability": 0.0023147413933954225,
+              "resolution": 0.0008280040781187912,
+              "uncertainty": 0.12732752554053722
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": -0.029663061464553997,
+            "n_finite": 1015,
+            "p90_width": -0.01335310498829471,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6317593292003325,
+                "mean_bound": 0.6317593292003325,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.6317593292003325,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.717647622099972,
+                "mean_bound": 0.7176476220999721,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.717647622099972,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7981330358469277,
+                "mean_bound": 0.7981330358469279,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.7981330358469277,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.811507096730212,
+                "mean_bound": 0.811507096730212,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.811507096730212,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.839316874317855,
+                "mean_bound": 0.839316874317855,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.839316874317855,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.880180246045199,
+                "mean_bound": 0.8801802460451991,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.880180246045199,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9014652237748435,
+                "mean_bound": 0.9014652237748435,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.9014652237748435,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.13856547602236918,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.13856547602236918,
+              "n_bins": 5,
+              "recomposition_error": 2.6238812282086688e-06,
+              "reliability": 0.0019517728540578718,
+              "resolution": 0.00047685578995216064,
+              "uncertainty": 0.13709318283949168
+            },
+            "n_finite": 994,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": -0.03431465946198731,
+            "n_finite": 994,
+            "p90_width": 0.011330664857251318,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6308592944927521,
+                "mean_bound": 0.6308592944927521,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.6308592944927521,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7304810272486177,
+                "mean_bound": 0.7304810272486176,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.7304810272486177,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8044244116357091,
+                "mean_bound": 0.8044244116357094,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.8044244116357091,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8175972367471609,
+                "mean_bound": 0.8175972367471608,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.8175972367471609,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8390164082488862,
+                "mean_bound": 0.8390164082488859,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.8390164082488862,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8864026183416067,
+                "mean_bound": 0.8864026183416066,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.8864026183416067,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.908542723245696,
+                "mean_bound": 0.908542723245696,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.908542723245696,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 26,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.1484875537494067,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1484875537494067,
+              "n_bins": 4,
+              "recomposition_error": 8.860025865040089e-05,
+              "reliability": 0.00041515343441103945,
+              "resolution": 0.0008841109311223088,
+              "uncertainty": 0.14904511150476837
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": -0.03641918323362758,
+            "n_finite": 1015,
+            "p90_width": -0.02067130475799248,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6873910033445267,
+                "mean_bound": 0.6873910033445267,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.6873910033445267,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7422543460450454,
+                "mean_bound": 0.7422543460450451,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.7422543460450454,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8074612231682377,
+                "mean_bound": 0.8074612231682375,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.8074612231682377,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8197334609654052,
+                "mean_bound": 0.8197334609654056,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.8197334609654052,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.840450183308805,
+                "mean_bound": 0.8404501833088049,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.840450183308805,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8848209407105357,
+                "mean_bound": 0.8848209407105355,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.8848209407105357,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.889226236538337,
+                "mean_bound": 0.8892262365383369,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.889226236538337,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "bucket_wilson",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    },
+    "bucket_wilson__alpha=0.1": {
+      "alpha": 0.1,
+      "fail_reasons": [
+        "fold 0: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]",
+        "fold 1: validity fail buckets [0.75, 0.775, 0.8, 0.825]",
+        "fold 2: validity fail buckets [0.725, 0.8, 0.825]",
+        "fold 3: validity fail buckets [0.775, 0.8, 0.825]",
+        "fold 4: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.1594301330167625,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1594301330167625,
+              "n_bins": 5,
+              "recomposition_error": 0.0003036273722120675,
+              "reliability": 0.0012189035641184472,
+              "resolution": 0.0016034474673216432,
+              "uncertainty": 0.16011830429217777
+            },
+            "n_finite": 1014,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": -0.03650513838873087,
+            "n_finite": 1014,
+            "p90_width": 0.01109759699330531,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6085585323076813,
+                "mean_bound": 0.6085585323076812,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.6085585323076813,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7187389550490385,
+                "mean_bound": 0.7187389550490383,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.7187389550490385,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8055891150691021,
+                "mean_bound": 0.805589115069102,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.8055891150691021,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8202856227248377,
+                "mean_bound": 0.8202856227248377,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.8202856227248377,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8466244530450884,
+                "mean_bound": 0.8466244530450883,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.8466244530450884,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8794649780805337,
+                "mean_bound": 0.8794649780805336,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8794649780805337,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9020443915162641,
+                "mean_bound": 0.9020443915162643,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.9020443915162641,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 6,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.13820063089504822,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.13820063089504822,
+              "n_bins": 4,
+              "recomposition_error": 0.0002994859938172667,
+              "reliability": 0.0009388103583290275,
+              "resolution": 0.0006652225070044745,
+              "uncertainty": 0.13822652903754093
+            },
+            "n_finite": 1008,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": -0.03249844576058253,
+            "n_finite": 1008,
+            "p90_width": -0.01815463252296768,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6625350112471394,
+                "mean_bound": 0.6625350112471394,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.6625350112471394,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7162321393310994,
+                "mean_bound": 0.7162321393310993,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.7162321393310994,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8001422215694228,
+                "mean_bound": 0.8001422215694226,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.8001422215694228,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8173312786253261,
+                "mean_bound": 0.8173312786253262,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.8173312786253261,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8395996764365744,
+                "mean_bound": 0.8395996764365743,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.8395996764365744,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8879929859496187,
+                "mean_bound": 0.8879929859496185,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8879929859496187,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9154277152110702,
+                "mean_bound": 0.9154277152110702,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.9154277152110702,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 12,
+            "n_passing": 1,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.12826977675909054,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.12826977675909054,
+              "n_bins": 4,
+              "recomposition_error": 0.00019250067022855144,
+              "reliability": 0.0019627559669006507,
+              "resolution": 0.0008280040781187912,
+              "uncertainty": 0.12732752554053722
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": -0.0331944644042903,
+            "n_finite": 1015,
+            "p90_width": -0.01654369960821715,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6562181207294537,
+                "mean_bound": 0.6562181207294537,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.6562181207294537,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7258222255916432,
+                "mean_bound": 0.7258222255916431,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.7258222255916432,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.801835416136472,
+                "mean_bound": 0.8018354161364717,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.801835416136472,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8146976913501345,
+                "mean_bound": 0.8146976913501345,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.8146976913501345,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8436660939505739,
+                "mean_bound": 0.843666093950574,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.8436660939505739,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8869449397027822,
+                "mean_bound": 0.886944939702782,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.8869449397027822,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9158876678749137,
+                "mean_bound": 0.9158876678749137,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.9158876678749137,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.1381228747293164,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1381228747293164,
+              "n_bins": 5,
+              "recomposition_error": 9.758531084563815e-06,
+              "reliability": 0.0014967891486923107,
+              "resolution": 0.00047685578995216064,
+              "uncertainty": 0.13709318283949168
+            },
+            "n_finite": 994,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": -0.03770517592399425,
+            "n_finite": 994,
+            "p90_width": 0.004030045656700732,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6546668434104568,
+                "mean_bound": 0.6546668434104568,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.6546668434104568,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7377816464491683,
+                "mean_bound": 0.7377816464491682,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.7377816464491683,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8076930760501948,
+                "mean_bound": 0.8076930760501948,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.8076930760501948,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8205232909934506,
+                "mean_bound": 0.8205232909934504,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.8205232909934506,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8430810866619988,
+                "mean_bound": 0.8430810866619985,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.8430810866619988,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8926655558363586,
+                "mean_bound": 0.8926655558363586,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.8926655558363586,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9219991980764529,
+                "mean_bound": 0.9219991980764529,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.9219991980764529,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 26,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.1484836472602222,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1484836472602222,
+              "n_bins": 4,
+              "recomposition_error": 7.6416869968704e-05,
+              "reliability": 0.00039906355654483573,
+              "resolution": 0.0008841109311223088,
+              "uncertainty": 0.14904511150476837
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": -0.03969598383954498,
+            "n_finite": 1015,
+            "p90_width": -0.024177670112744985,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.707064816206995,
+                "mean_bound": 0.7070648162069949,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.707064816206995,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7487150612611881,
+                "mean_bound": 0.7487150612611879,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.7487150612611881,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8104684616750075,
+                "mean_bound": 0.8104684616750075,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.8104684616750075,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8224685695888294,
+                "mean_bound": 0.8224685695888296,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.8224685695888294,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8442644016898879,
+                "mean_bound": 0.8442644016898875,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.8442644016898879,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8907054531867773,
+                "mean_bound": 0.8907054531867773,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.8907054531867773,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9028230753865903,
+                "mean_bound": 0.9028230753865903,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.9028230753865903,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "bucket_wilson",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    },
+    "bucket_wilson__alpha=0.2": {
+      "alpha": 0.2,
+      "fail_reasons": [
+        "fold 0: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]",
+        "fold 1: validity fail buckets [0.75, 0.775, 0.8, 0.825]",
+        "fold 2: validity fail buckets [0.725, 0.8, 0.825]",
+        "fold 3: validity fail buckets [0.75, 0.775, 0.8, 0.825]",
+        "fold 4: validity fail buckets [0.725, 0.75, 0.775, 0.8, 0.825]"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.15936748637752615,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.15936748637752615,
+              "n_bins": 5,
+              "recomposition_error": 0.0003424141165261907,
+              "reliability": 0.0011950436691962236,
+              "resolution": 0.0016034474673216432,
+              "uncertainty": 0.16011830429217777
+            },
+            "n_finite": 1014,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": -0.0419372378521099,
+            "n_finite": 1014,
+            "p90_width": -0.00121212422423506,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6462673238700752,
+                "mean_bound": 0.6462673238700753,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.6462673238700752,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7310486762665789,
+                "mean_bound": 0.7310486762665791,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.7310486762665789,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8112176936290261,
+                "mean_bound": 0.8112176936290262,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.8112176936290261,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.825031207866246,
+                "mean_bound": 0.825031207866246,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.825031207866246,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.852813372825733,
+                "mean_bound": 0.8528133728257331,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.852813372825733,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8892483630687172,
+                "mean_bound": 0.8892483630687174,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8892483630687172,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9219059463568532,
+                "mean_bound": 0.9219059463568533,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.9219059463568532,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 6,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.1379483137366663,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.1379483137366663,
+              "n_bins": 4,
+              "recomposition_error": 0.0002528990682910959,
+              "reliability": 0.0006399062744209287,
+              "resolution": 0.0006652225070044745,
+              "uncertainty": 0.13822652903754093
+            },
+            "n_finite": 1008,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": -0.037146546831529625,
+            "n_finite": 1008,
+            "p90_width": -0.02273683004647223,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6940205862795259,
+                "mean_bound": 0.6940205862795259,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.6940205862795259,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7268742420966678,
+                "mean_bound": 0.7268742420966678,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.7268742420966678,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8050731135005712,
+                "mean_bound": 0.805073113500571,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.8050731135005712,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8215402944621872,
+                "mean_bound": 0.8215402944621869,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.8215402944621872,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8452608838785033,
+                "mean_bound": 0.8452608838785036,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.8452608838785033,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8966207187901816,
+                "mean_bound": 0.8966207187901816,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8966207187901816,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9327265180767997,
+                "mean_bound": 0.9327265180767997,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.9327265180767997,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 12,
+            "n_passing": 1,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.12791280637186692,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.12791280637186692,
+              "n_bins": 4,
+              "recomposition_error": 0.0001848343562925181,
+              "reliability": 0.0015981192657409924,
+              "resolution": 0.0008280040781187912,
+              "uncertainty": 0.12732752554053722
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": -0.03740188807881262,
+            "n_finite": 1015,
+            "p90_width": -0.02035279691472495,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.685062773719388,
+                "mean_bound": 0.685062773719388,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.685062773719388,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7355366930288995,
+                "mean_bound": 0.7355366930288996,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.7355366930288995,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.806252213213759,
+                "mean_bound": 0.8062522132137588,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.806252213213759,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8185067886566423,
+                "mean_bound": 0.8185067886566423,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.8185067886566423,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8488088753265045,
+                "mean_bound": 0.8488088753265044,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.8488088753265045,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8947194193899694,
+                "mean_bound": 0.8947194193899696,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.8947194193899694,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9311813492162841,
+                "mean_bound": 0.9311813492162843,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.9311813492162841,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.13768550197781482,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.13768550197781482,
+              "n_bins": 5,
+              "recomposition_error": 2.356381073129188e-05,
+              "reliability": 0.0010456111175439935,
+              "resolution": 0.00047685578995216064,
+              "uncertainty": 0.13709318283949168
+            },
+            "n_finite": 994,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": -0.04165348246898837,
+            "n_finite": 994,
+            "p90_width": -0.004649474289421306,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.6827663875274453,
+                "mean_bound": 0.6827663875274451,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.6827663875274453,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7464611663952904,
+                "mean_bound": 0.7464611663952904,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.7464611663952904,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8115968608713917,
+                "mean_bound": 0.8115968608713916,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.8115968608713917,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8240185555630727,
+                "mean_bound": 0.8240185555630726,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.8240185555630727,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.847895027596961,
+                "mean_bound": 0.8478950275969608,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.847895027596961,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8998682951682748,
+                "mean_bound": 0.899868295168275,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.8998682951682748,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9362373883328297,
+                "mean_bound": 0.9362373883328295,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.9362373883328297,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 26,
+            "n_passing": 1,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.14852261012414586,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.14852261012414586,
+              "n_bins": 4,
+              "recomposition_error": 5.8205406200301235e-05,
+              "reliability": 0.00041981495670010045,
+              "resolution": 0.0008841109311223088,
+              "uncertainty": 0.14904511150476837
+            },
+            "n_finite": 1015,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": -0.04339231898490947,
+            "n_finite": 1015,
+            "p90_width": -0.027772088324983145,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.7300749821943027,
+                "mean_bound": 0.7300749821943026,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.7300749821943027,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.7564015777933475,
+                "mean_bound": 0.7564015777933476,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.7564015777933475,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.8140629438280077,
+                "mean_bound": 0.8140629438280077,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.8140629438280077,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.8257379548340729,
+                "mean_bound": 0.8257379548340732,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.8257379548340729,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8487867222118559,
+                "mean_bound": 0.8487867222118559,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.8487867222118559,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8974986832689817,
+                "mean_bound": 0.8974986832689819,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.8974986832689817,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.9175617169767213,
+                "mean_bound": 0.9175617169767213,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.9175617169767213,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 5,
+            "n_passing": 0,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 2,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "bucket_wilson",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    },
+    "weighted_mondrian_conformal__alpha=0.05": {
+      "alpha": 0.05,
+      "fail_reasons": [
+        "fold 0: tightness median=0.7799 > threshold=0.3000",
+        "fold 1: tightness median=0.7809 > threshold=0.3000",
+        "fold 2: tightness median=0.7772 > threshold=0.3000",
+        "fold 3: tightness median=0.7691 > threshold=0.3000",
+        "fold 4: tightness median=0.7816 > threshold=0.3000"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.7960789967660611,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.7960789967660611,
+              "n_bins": 4,
+              "recomposition_error": 8.604050016780551e-05,
+              "reliability": 0.6362993262759504,
+              "resolution": 0.000721563135057945,
+              "uncertainty": 0.16058727412533638
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": 0.7799482590622148,
+            "n_finite": 1020,
+            "p90_width": 0.8117724652205218,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6924618034852205,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.003233567731314113,
+                "mean_bound": 0.0004895450281124925,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.002143023180809722,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.005824144210698323,
+                "mean_bound": 0.0008931737815576146,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.004028806108274587,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.008858416325949192,
+                "mean_bound": 0.0012411511380182763,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.005612239885851883,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.013100591161701591,
+                "mean_bound": 0.0022602122528914527,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.008316686572046816,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.01318930188601486,
+                "mean_bound": 0.0026600355876034154,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.010213589120414339,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.018688631515884735,
+                "mean_bound": 0.00755448353294752,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.014052983259349892,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.10487032405610808,
+                "mean_bound": 0.09466715131646417,
+                "mean_p": 0.8865938745505046,
+                "n": 4,
+                "observed_rate": 1.0,
+                "p90_bound": 0.10292142021518849,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5965213747972955
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.8286112673370776,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.8286112673370776,
+              "n_bins": 4,
+              "recomposition_error": 0.0001184522469066529,
+              "reliability": 0.6885329095593312,
+              "resolution": 0.00023232822540781062,
+              "uncertainty": 0.14019223375624756
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": 0.7808643354501736,
+            "n_finite": 1020,
+            "p90_width": 0.812984788263909,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6413127227438926,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6567161438845804,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6889532688673254,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.0037986427893589303,
+                "mean_bound": 0.0004748303486698663,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.0011395928368076783,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.002817214061481055,
+                "mean_bound": 0.00024952290681174463,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.0011955054677990735,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.005705101574151494,
+                "mean_bound": 0.0008707536554774574,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.0039452491069377005,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.008925952769564316,
+                "mean_bound": 0.0012143572921088672,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.005421191958161288,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.011586073434619149,
+                "mean_bound": 0.002463834936316385,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.008777647303932514,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.015008824608875981,
+                "mean_bound": 0.003038332622553857,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.009641241800582246,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.02144563888817208,
+                "mean_bound": 0.010072585287787955,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.01952662052423526,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.08457604602155189,
+                "mean_bound": 0.08412390484113985,
+                "mean_p": 0.8756519164688686,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.08448561778546948,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.11698497955421117,
+                "mean_bound": 0.11698497955421117,
+                "mean_p": 0.90851299118194,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.11698497955421117,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 7,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.8478765270368697,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.8478765270368697,
+              "n_bins": 4,
+              "recomposition_error": 9.252770195744553e-05,
+              "reliability": 0.7215012127000507,
+              "resolution": 0.0003449222826385454,
+              "uncertainty": 0.12681276432141486
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": 0.7772058050250433,
+            "n_finite": 1020,
+            "p90_width": 0.812984788263909,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.002756177519542047,
+                "mean_bound": 0.0005185828378533148,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.0021635236601902476,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.005769411956649373,
+                "mean_bound": 0.0008438298360366601,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.0036197732160842553,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.008644048744296917,
+                "mean_bound": 0.0010808541436273579,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.005139521455513572,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.01194033849848708,
+                "mean_bound": 0.0021423412618829405,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.007601720450797422,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.015980828331942254,
+                "mean_bound": 0.0036601009222971127,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.010239531545901492,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.012345576757166965,
+                "mean_bound": 0.007296081932148862,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.01200651819145473,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.09982607978604163,
+                "mean_bound": 0.09380559422000787,
+                "mean_p": 0.8855258338723347,
+                "n": 5,
+                "observed_rate": 1.0,
+                "p90_bound": 0.09797681246280751,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.648883499234899
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 3,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.8274172383029442,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.8274172383029442,
+              "n_bins": 3,
+              "recomposition_error": 9.590897019706723e-05,
+              "reliability": 0.6873459039052059,
+              "resolution": 0.0006737793156478282,
+              "uncertainty": 0.1408410226835832
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": 0.7690902520650629,
+            "n_finite": 1020,
+            "p90_width": 0.8124768994289056,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.6,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6109922204548808,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6366088101845447,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6638042055545953,
+                "n": 3,
+                "observed_rate": 0.3333333333333333,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.07826572633372847
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6903497554127718,
+                "n": 11,
+                "observed_rate": 0.6363636363636364,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.39402626106995275
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.0033567075645103417,
+                "mean_bound": 0.0003483274735089518,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.0009025428911818126,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.002255065300798109,
+                "mean_bound": 0.0002326281092432546,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.0011919278181823367,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.005877616554442744,
+                "mean_bound": 0.0006408837900575485,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.0034000059672997483,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.008917123602400934,
+                "mean_bound": 0.0010173627917268663,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.004587755384394998,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.012188717466352528,
+                "mean_bound": 0.0027356844092614485,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.009846722892768136,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.016894401611346144,
+                "mean_bound": 0.004344094129607867,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.01313926867679459,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.011551535218046638,
+                "mean_bound": 0.0068583303030329374,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.011218737494279929,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.10137288468867556,
+                "mean_bound": 0.09606505925990032,
+                "mean_p": 0.8863340791778449,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.10033277035309404,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.12671088187913127,
+                "mean_bound": 0.12132047801090895,
+                "mean_p": 0.9115894979288536,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.1256328011054868,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 8,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.814985897679188,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.814985897679188,
+              "n_bins": 4,
+              "recomposition_error": 6.140177870184171e-05,
+              "reliability": 0.6673170308798705,
+              "resolution": 0.0007462789037183508,
+              "uncertainty": 0.1484765474817378
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": 0.7816166271763105,
+            "n_finite": 1020,
+            "p90_width": 0.8131197111698627,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.0022181888408304706,
+                "mean_bound": 0.00026634430869969684,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.0012096546924999288,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.006158089766334696,
+                "mean_bound": 0.0010066911063635606,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.004235284894095759,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.009469762635336831,
+                "mean_bound": 0.0013434552752370787,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.005598387897552137,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.011666742610570102,
+                "mean_bound": 0.001969599887022923,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.007915903234758593,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.0159076443678412,
+                "mean_bound": 0.0049971291006382515,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.013828521379082614,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.020185101139336026,
+                "mean_bound": 0.007009000938369863,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.01947743404918789,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.1022761000239687,
+                "mean_bound": 0.09692585166125973,
+                "mean_p": 0.8865610353479694,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.10121376823914671,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.12869110500900682,
+                "mean_bound": 0.12005431708621372,
+                "mean_p": 0.9096895007729233,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.12696374742444821,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "weighted_mondrian_conformal",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    },
+    "weighted_mondrian_conformal__alpha=0.1": {
+      "alpha": 0.1,
+      "fail_reasons": [
+        "fold 0: tightness median=0.7763 > threshold=0.3000",
+        "fold 1: tightness median=0.7764 > threshold=0.3000",
+        "fold 2: tightness median=0.7640 > threshold=0.3000",
+        "fold 3: validity fail buckets [0.825]",
+        "fold 3: tightness median=0.7636 > threshold=0.3000",
+        "fold 4: validity fail buckets [0.825]",
+        "fold 4: tightness median=0.7774 > threshold=0.3000"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.7354245518458291,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.7354245518458291,
+              "n_bins": 7,
+              "recomposition_error": 0.014006357907500933,
+              "reliability": 0.5630007583366365,
+              "resolution": 0.00216983852364475,
+              "uncertainty": 0.16058727412533638
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": 0.7762854038444136,
+            "n_finite": 1020,
+            "p90_width": 0.8044072693941631,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6924618034852205,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.00734944918522018,
+                "mean_bound": 0.001960459679134108,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.006048421405241212,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.005732047927685446,
+                "mean_bound": 0.0015024166628868495,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.0046415033771810554,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.011837967731222587,
+                "mean_bound": 0.003517050154078303,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.01004262962879885,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.015729780704458074,
+                "mean_bound": 0.004110601573375035,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.012483604264360765,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.02046578698806034,
+                "mean_bound": 0.006524864528011017,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.015681882398405567,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8497484103246967,
+                "mean_bound": 0.8358131566079905,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8467726975590962,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.871018482044877,
+                "mean_bound": 0.8597600056361039,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8663828337883421,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.12469962782230937,
+                "mean_bound": 0.11449645508266545,
+                "mean_p": 0.8865938745505046,
+                "n": 4,
+                "observed_rate": 1.0,
+                "p90_bound": 0.12275072398138978,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5965213747972955
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.7640445047329107,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.7640445047329107,
+              "n_bins": 7,
+              "recomposition_error": 0.010184813019545325,
+              "reliability": 0.6151245898294746,
+              "resolution": 0.001457131872356787,
+              "uncertainty": 0.14019223375624756
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": 0.7764044847934657,
+            "n_finite": 1020,
+            "p90_width": 0.805375956884719,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6413127227438926,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6567161438845804,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6889532688673254,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.011502744348384275,
+                "mean_bound": 0.004447663707558072,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.00809731743960499,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.00536035986082839,
+                "mean_bound": 0.0010963460234069847,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.0037386512671464087,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.011150486563039186,
+                "mean_bound": 0.003202477029939071,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.009390634095825393,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.015764587112273798,
+                "mean_bound": 0.00413772515565493,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.012259826300870769,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.019194904813809144,
+                "mean_bound": 0.0067312253142284085,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.01638647868312251,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.849098505425048,
+                "mean_bound": 0.8346237495963552,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8437309226167542,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8737754894171643,
+                "mean_bound": 0.8623146239724921,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.8718564710532275,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.10351138453307984,
+                "mean_bound": 0.1030592433526678,
+                "mean_p": 0.8756519164688686,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.10342095629699743,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.13592031806573912,
+                "mean_bound": 0.13592031806573912,
+                "mean_p": 0.90851299118194,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.13592031806573912,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 7,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.8008390981301643,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.8008390981301643,
+              "n_bins": 6,
+              "recomposition_error": 0.012995344224046357,
+              "reliability": 0.6617268757823194,
+              "resolution": 0.0006958861976163014,
+              "uncertainty": 0.12681276432141486
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": 0.7640192761782422,
+            "n_finite": 1020,
+            "p90_width": 0.8047046479222209,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.006775450232896496,
+                "mean_bound": 0.004843501722662791,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.0064721990125630405,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.004999607157376351,
+                "mean_bound": 0.0014411800414327828,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.004406953298024552,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.010924133254342494,
+                "mean_bound": 0.0030955573343753053,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.008774494513777377,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.01574365085594931,
+                "mean_bound": 0.003709653745332391,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.012239123567165965,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.020220478840175193,
+                "mean_bound": 0.006380083884130186,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.015881860792485537,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8489092931102165,
+                "mean_bound": 0.8351426846361978,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.8431679963241757,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8646754272861592,
+                "mean_bound": 0.8596259324611412,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.864336368720447,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.11850167090829777,
+                "mean_bound": 0.112481185342264,
+                "mean_p": 0.8855258338723347,
+                "n": 5,
+                "observed_rate": 1.0,
+                "p90_bound": 0.11665240358506365,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.648883499234899
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 3,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.7784172041154489,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.7784172041154489,
+              "n_bins": 6,
+              "recomposition_error": 0.014683991670712215,
+              "reliability": 0.6244002635789159,
+              "resolution": 0.0015080738177623966,
+              "uncertainty": 0.1408410226835832
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": 0.7635948551294615,
+            "n_finite": 1020,
+            "p90_width": 0.8044350135270769,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.6,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6109922204548808,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6366088101845447,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6638042055545953,
+                "n": 3,
+                "observed_rate": 0.3333333333333333,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.07826572633372847
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.0,
+                "mean_bound": 0.0,
+                "mean_p": 0.6903497554127718,
+                "n": 11,
+                "observed_rate": 0.6363636363636364,
+                "p90_bound": 0.0,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.39402626106995275
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.009749173746301909,
+                "mean_bound": 0.0036816720983355944,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.00729500907297338,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.005356290797209895,
+                "mean_bound": 0.0010365363388088712,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.0042931533145941225,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.01137301349004416,
+                "mean_bound": 0.0024203641798148812,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.008895402902901164,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.01613045946863645,
+                "mean_bound": 0.0038346390519033422,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.011801091250630514,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.02002379099471463,
+                "mean_bound": 0.0074643489017258225,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.017681796421130238,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8488815125221646,
+                "mean_bound": 0.8345821784184652,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.845126379587613,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8638813857470389,
+                "mean_bound": 0.8590984172739331,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.8635485880232722,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.12038417289602299,
+                "mean_bound": 0.11507634746724775,
+                "mean_p": 0.8863340791778449,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.11934405856044147,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.1457221700864787,
+                "mean_bound": 0.14033176621825638,
+                "mean_p": 0.9115894979288536,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.14464408931283423,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 4,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 8,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.7512001119009574,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.7512001119009574,
+              "n_bins": 7,
+              "recomposition_error": 0.012447097274755237,
+              "reliability": 0.5910237758718769,
+              "resolution": 0.000747308727412535,
+              "uncertainty": 0.1484765474817378
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": 0.7773569428205591,
+            "n_finite": 1020,
+            "p90_width": 0.8047806829809765,
+            "passes_tightness": false,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.004423010647390924,
+                "mean_bound": 0.001942647541192925,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.003819394913150309,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.005060316422702327,
+                "mean_bound": 0.0010198104515735963,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.004051782274371785,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.011724442746023689,
+                "mean_bound": 0.0037867440784666246,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.009801637873784753,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.016574072610849866,
+                "mean_bound": 0.00448567175208843,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.012702697873065171,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.020005770799456313,
+                "mean_bound": 0.0068395337411176265,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.016254931423644804,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8499973251840132,
+                "mean_bound": 0.8373487257626236,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.8479182021952546,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8729985287611107,
+                "mean_bound": 0.8596464087434109,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.8722908616709626,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.12149656607018344,
+                "mean_bound": 0.11614631770747448,
+                "mean_p": 0.8865610353479694,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.12043423428536146,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.14791157105522157,
+                "mean_bound": 0.13927478313242847,
+                "mean_p": 0.9096895007729233,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.14618421347066296,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 4,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "weighted_mondrian_conformal",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    },
+    "weighted_mondrian_conformal__alpha=0.2": {
+      "alpha": 0.2,
+      "fail_reasons": [
+        "fold 0: validity fail buckets [0.75, 0.775, 0.8]",
+        "fold 2: validity fail buckets [0.8]",
+        "fold 3: validity fail buckets [0.825]",
+        "fold 4: validity fail buckets [0.75, 0.8, 0.825]"
+      ],
+      "fold_results": [
+        {
+          "fold_idx": 0,
+          "lower_bound_diagnostics": {
+            "brier": 0.21302099390021448,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.21302099390021448,
+              "n_bins": 10,
+              "recomposition_error": 0.0006219259769292551,
+              "reliability": 0.054219521594949985,
+              "resolution": 0.0024077277970011527,
+              "uncertainty": 0.16058727412533638
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 3650,
+          "tightness": {
+            "median_width": 0.0,
+            "n_finite": 1020,
+            "p90_width": 0.7049607216555411,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.6940723731195887,
+                "mean_bound": 0.6924618034852205,
+                "mean_p": 0.6924618034852205,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.693750259192715,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.013702812789669672,
+                "mean_bound": 0.006199718759698912,
+                "mean_p": 0.7135238100688718,
+                "n": 14,
+                "observed_rate": 0.8571428571428571,
+                "p90_bound": 0.012401785009690703,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6470626062241376
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.017727863823308154,
+                "mean_bound": 0.009727387378505559,
+                "mean_p": 0.7417127007140172,
+                "n": 91,
+                "observed_rate": 0.7142857142857143,
+                "p90_bound": 0.016637319272803763,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6310876949236137
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7749981416866336,
+                "mean_bound": 0.7640120382944332,
+                "mean_p": 0.7640120382944332,
+                "n": 313,
+                "observed_rate": 0.7763578274760383,
+                "p90_bound": 0.7732028035842099,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7353429132650771
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.7998206920516711,
+                "mean_bound": 0.7861826252911478,
+                "mean_p": 0.7861826252911478,
+                "n": 372,
+                "observed_rate": 0.803763440860215,
+                "p90_bound": 0.7965745156115738,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.767751845884504
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8248730563822234,
+                "mean_bound": 0.8103882771825189,
+                "mean_p": 0.8103882771825189,
+                "n": 156,
+                "observed_rate": 0.8269230769230769,
+                "p90_bound": 0.8200891517925686,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7716413728449327
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8497484103246967,
+                "mean_bound": 0.8358131566079905,
+                "mean_p": 0.8358131566079905,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8467726975590962,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.871018482044877,
+                "mean_bound": 0.8597600056361039,
+                "mean_p": 0.8597600056361039,
+                "n": 10,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8663828337883421,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.787058029916593
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.8967970472901485,
+                "mean_bound": 0.8865938745505046,
+                "mean_p": 0.8865938745505046,
+                "n": 4,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8948481434492289,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5965213747972955
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 1,
+          "lower_bound_diagnostics": {
+            "brier": 0.18741403154873879,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.18741403154873879,
+              "n_bins": 10,
+              "recomposition_error": 0.009260949078908454,
+              "reliability": 0.040513712996550856,
+              "resolution": 0.00255286428296809,
+              "uncertainty": 0.14019223375624756
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 4670,
+          "tightness": {
+            "median_width": 0.0,
+            "n_finite": 1020,
+            "p90_width": 0.0,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": true,
+            "bin_results": [
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.6413127227438926,
+                "mean_bound": 0.6413127227438926,
+                "mean_p": 0.6413127227438926,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.6413127227438926,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.6611451242111186,
+                "mean_bound": 0.6567161438845804,
+                "mean_p": 0.6567161438845804,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.6606863393032245,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.6977592179642027,
+                "mean_bound": 0.6889532688673254,
+                "mean_p": 0.6889532688673254,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.6937047228192652,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.020289473285436066,
+                "mean_bound": 0.011037710410346915,
+                "mean_p": 0.7146172262035255,
+                "n": 8,
+                "observed_rate": 0.625,
+                "p90_bound": 0.01688404637665678,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.34799143840473273
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.01654493162349513,
+                "mean_bound": 0.00856529317613021,
+                "mean_p": 0.7413744582007622,
+                "n": 67,
+                "observed_rate": 0.8208955223880597,
+                "p90_bound": 0.014923223029813148,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7318780173123894
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7749799384556575,
+                "mean_bound": 0.7644144514799167,
+                "mean_p": 0.7644144514799167,
+                "n": 317,
+                "observed_rate": 0.8264984227129337,
+                "p90_bound": 0.7732200859884437,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.788790260568518
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.799865643557396,
+                "mean_bound": 0.7861954971371976,
+                "mean_p": 0.7861954971371976,
+                "n": 383,
+                "observed_rate": 0.8198433420365535,
+                "p90_bound": 0.7963608827459929,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7853339980772847
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8245708616985281,
+                "mean_bound": 0.8111028881215157,
+                "mean_p": 0.8111028881215157,
+                "n": 159,
+                "observed_rate": 0.8616352201257862,
+                "p90_bound": 0.8217624355678415,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8105144846371637
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.849098505425048,
+                "mean_bound": 0.8346237495963552,
+                "mean_p": 0.8346237495963552,
+                "n": 58,
+                "observed_rate": 0.9137931034482759,
+                "p90_bound": 0.8437309226167542,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8332946984910797
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8737754894171643,
+                "mean_bound": 0.8623146239724921,
+                "mean_p": 0.8623146239724921,
+                "n": 16,
+                "observed_rate": 0.9375,
+                "p90_bound": 0.8718564710532275,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7625102861984763
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.8761040576492807,
+                "mean_bound": 0.8756519164688686,
+                "mean_p": 0.8756519164688686,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8760136294131983,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.90851299118194,
+                "mean_bound": 0.90851299118194,
+                "mean_p": 0.90851299118194,
+                "n": 1,
+                "observed_rate": 0.0,
+                "p90_bound": 0.90851299118194,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 5,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 7,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 2,
+          "lower_bound_diagnostics": {
+            "brier": 0.18144253224501278,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.18144253224501278,
+              "n_bins": 10,
+              "recomposition_error": 0.005147880280579692,
+              "reliability": 0.050708339007877884,
+              "resolution": 0.0012264513648596689,
+              "uncertainty": 0.12681276432141486
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 5690,
+          "tightness": {
+            "median_width": 0.0,
+            "n_finite": 1020,
+            "p90_width": 0.0,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.016873814547182064,
+                "mean_bound": 0.014941866036948359,
+                "mean_p": 0.7195640994095404,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.016570563326848607,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.017481698304240734,
+                "mean_bound": 0.010165184330753236,
+                "mean_p": 0.7422950662085136,
+                "n": 84,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.016889044444888934,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7037702391447929
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7749434094325847,
+                "mean_bound": 0.7645458924112953,
+                "mean_p": 0.7645458924112953,
+                "n": 382,
+                "observed_rate": 0.8324607329842932,
+                "p90_bound": 0.7727937706920196,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.798716795917204
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.7999952691082445,
+                "mean_bound": 0.7856788744489394,
+                "mean_p": 0.7856788744489394,
+                "n": 334,
+                "observed_rate": 0.8772455089820359,
+                "p90_bound": 0.7964907418194611,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.844642588931783
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.824925126762396,
+                "mean_bound": 0.8102900967386096,
+                "mean_p": 0.8102900967386096,
+                "n": 160,
+                "observed_rate": 0.85,
+                "p90_bound": 0.8205865087147064,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7977688179863711
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8489092931102165,
+                "mean_bound": 0.8351426846361978,
+                "mean_p": 0.8351426846361978,
+                "n": 43,
+                "observed_rate": 0.9302325581395349,
+                "p90_bound": 0.8431679963241757,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8377547648822101
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8646754272861592,
+                "mean_bound": 0.8596259324611412,
+                "mean_p": 0.8596259324611412,
+                "n": 9,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.864336368720447,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6231987354644576
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.8915463194383685,
+                "mean_bound": 0.8855258338723347,
+                "mean_p": 0.8855258338723347,
+                "n": 5,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8896970521151344,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.648883499234899
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 4,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 3,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 3,
+          "lower_bound_diagnostics": {
+            "brier": 0.24008197065284978,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.24008197065284978,
+              "n_bins": 10,
+              "recomposition_error": 0.015646005193080126,
+              "reliability": 0.08534523112682083,
+              "resolution": 0.0017502883506343727,
+              "uncertainty": 0.1408410226835832
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 6710,
+          "tightness": {
+            "median_width": 0.0,
+            "n_finite": 1020,
+            "p90_width": 0.7322143521850372,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.6,
+                "max_bound": 0.6210091384986174,
+                "mean_bound": 0.6109922204548808,
+                "mean_p": 0.6109922204548808,
+                "n": 2,
+                "observed_rate": 0.0,
+                "p90_bound": 0.6190057548898701,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.0
+              },
+              {
+                "bucket_low": 0.625,
+                "max_bound": 0.6490515868933304,
+                "mean_bound": 0.6366088101845447,
+                "mean_p": 0.6366088101845447,
+                "n": 5,
+                "observed_rate": 0.6,
+                "p90_bound": 0.6456439677130069,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.2724831718661929
+              },
+              {
+                "bucket_low": 0.65,
+                "max_bound": 0.6702121981543215,
+                "mean_bound": 0.6638042055545953,
+                "mean_p": 0.6638042055545953,
+                "n": 3,
+                "observed_rate": 0.3333333333333333,
+                "p90_bound": 0.6701644879743526,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.07826572633372847
+              },
+              {
+                "bucket_low": 0.675,
+                "max_bound": 0.697528364865232,
+                "mean_bound": 0.6903497554127718,
+                "mean_p": 0.6903497554127718,
+                "n": 11,
+                "observed_rate": 0.6363636363636364,
+                "p90_bound": 0.6972602556471916,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.39402626106995275
+              },
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.019847538060587477,
+                "mean_bound": 0.012007134010673758,
+                "mean_p": 0.7165536623774844,
+                "n": 28,
+                "observed_rate": 0.7857142857142857,
+                "p90_bound": 0.017393373387258947,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.6361646143826805
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.017749911215966585,
+                "mean_bound": 0.008935128358363048,
+                "mean_p": 0.740728891814545,
+                "n": 131,
+                "observed_rate": 0.8091603053435115,
+                "p90_bound": 0.016686773733350813,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.746656428180139
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7749678686195056,
+                "mean_bound": 0.7623987386304129,
+                "mean_p": 0.7623987386304129,
+                "n": 347,
+                "observed_rate": 0.8357348703170029,
+                "p90_bound": 0.7724902580323626,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8004441721154032
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.7998226817510818,
+                "mean_bound": 0.7855057942292234,
+                "mean_p": 0.7855057942292234,
+                "n": 303,
+                "observed_rate": 0.8283828382838284,
+                "p90_bound": 0.795493313533076,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7898868948728289
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8246656168952581,
+                "mean_bound": 0.8115752521694726,
+                "mean_p": 0.8115752521694726,
+                "n": 127,
+                "observed_rate": 0.8661417322834646,
+                "p90_bound": 0.8223236223216737,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8087374719547289
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8488815125221646,
+                "mean_bound": 0.8345821784184652,
+                "mean_p": 0.8345821784184652,
+                "n": 52,
+                "observed_rate": 0.9038461538461539,
+                "p90_bound": 0.845126379587613,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.8153380219618134
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8638813857470389,
+                "mean_bound": 0.8590984172739331,
+                "mean_p": 0.8590984172739331,
+                "n": 6,
+                "observed_rate": 0.8333333333333334,
+                "p90_bound": 0.8635485880232722,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.4975829158754002
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.8916419046066202,
+                "mean_bound": 0.8863340791778449,
+                "mean_p": 0.8863340791778449,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8906017902710387,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.9169799017970759,
+                "mean_bound": 0.9115894979288536,
+                "mean_p": 0.9115894979288536,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.9159018210234314,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 4,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 8,
+            "wilson_alpha": 0.05
+          }
+        },
+        {
+          "fold_idx": 4,
+          "lower_bound_diagnostics": {
+            "brier": 0.19250204835097515,
+            "murphy_decomposition": {
+              "binning": "quantile",
+              "brier": 0.19250204835097515,
+              "n_bins": 10,
+              "recomposition_error": 0.016449446887026598,
+              "reliability": 0.02940708051046911,
+              "resolution": 0.001831026528258363,
+              "uncertainty": 0.1484765474817378
+            },
+            "n_finite": 1020,
+            "note": "diagnostic only \u2014 does NOT affect verdict"
+          },
+          "n_holdout": 1020,
+          "n_train": 7730,
+          "tightness": {
+            "median_width": 0.0,
+            "n_finite": 1020,
+            "p90_width": 0.0,
+            "passes_tightness": true,
+            "threshold": 0.3
+          },
+          "validity": {
+            "all_populated_pass": false,
+            "bin_results": [
+              {
+                "bucket_low": 0.7,
+                "max_bound": 0.014806067419572688,
+                "mean_bound": 0.011738234842734063,
+                "mean_p": 0.7163204551175099,
+                "n": 3,
+                "observed_rate": 0.6666666666666666,
+                "p90_bound": 0.014202451685332074,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.25353386828122426
+              },
+              {
+                "bucket_low": 0.725,
+                "max_bound": 0.018513786156972967,
+                "mean_bound": 0.010485752507870493,
+                "mean_p": 0.7412600451954535,
+                "n": 70,
+                "observed_rate": 0.8,
+                "p90_bound": 0.017505252008642426,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7108709031592853
+              },
+              {
+                "bucket_low": 0.75,
+                "max_bound": 0.7749698641183684,
+                "mean_bound": 0.7646201241629403,
+                "mean_p": 0.7646201241629403,
+                "n": 318,
+                "observed_rate": 0.7830188679245284,
+                "p90_bound": 0.7730470592461295,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7426968714358411
+              },
+              {
+                "bucket_low": 0.775,
+                "max_bound": 0.7999129353226841,
+                "mean_bound": 0.7862278982449483,
+                "mean_p": 0.7862278982449483,
+                "n": 379,
+                "observed_rate": 0.8232189973614775,
+                "p90_bound": 0.7960415605848995,
+                "passes_validity": true,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.78872914027111
+              },
+              {
+                "bucket_low": 0.8,
+                "max_bound": 0.8247864537804328,
+                "mean_bound": 0.8109643132548203,
+                "mean_p": 0.8109643132548203,
+                "n": 167,
+                "observed_rate": 0.8502994011976048,
+                "p90_bound": 0.8210356144046213,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.799321728253862
+              },
+              {
+                "bucket_low": 0.825,
+                "max_bound": 0.8499973251840132,
+                "mean_bound": 0.8373487257626236,
+                "mean_p": 0.8373487257626236,
+                "n": 60,
+                "observed_rate": 0.8833333333333333,
+                "p90_bound": 0.8479182021952546,
+                "passes_validity": false,
+                "sparse": false,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7980909188912355
+              },
+              {
+                "bucket_low": 0.85,
+                "max_bound": 0.8729985287611107,
+                "mean_bound": 0.8596464087434109,
+                "mean_p": 0.8596464087434109,
+                "n": 18,
+                "observed_rate": 0.8888888888888888,
+                "p90_bound": 0.8722908616709626,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.7136244370337036
+              },
+              {
+                "bucket_low": 0.875,
+                "max_bound": 0.8919112837106783,
+                "mean_bound": 0.8865610353479694,
+                "mean_p": 0.8865610353479694,
+                "n": 3,
+                "observed_rate": 1.0,
+                "p90_bound": 0.8908489519258563,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.5258044258424874
+              },
+              {
+                "bucket_low": 0.9,
+                "max_bound": 0.9183262886957164,
+                "mean_bound": 0.9096895007729233,
+                "mean_p": 0.9096895007729233,
+                "n": 2,
+                "observed_rate": 1.0,
+                "p90_bound": 0.9165989311111578,
+                "passes_validity": false,
+                "sparse": true,
+                "validity_tolerance": 0.01,
+                "wilson_lower": 0.42503060900634654
+              }
+            ],
+            "bucket_width": 0.025,
+            "min_bucket_n": 30,
+            "n_excluded_no_bound": 0,
+            "n_passing": 2,
+            "n_populated_bins": 5,
+            "n_sparse_bins": 4,
+            "wilson_alpha": 0.05
+          }
+        }
+      ],
+      "method": "weighted_mondrian_conformal",
+      "thresholds": {
+        "bucket_width": 0.025,
+        "min_bucket_n": 30,
+        "tightness_threshold": 0.3,
+        "validity_tolerance": 0.01,
+        "wilson_alpha": 0.05
+      },
+      "verdict": "FAIL"
+    }
+  },
+  "methods": [
+    "bucket_wilson",
+    "weighted_mondrian_conformal"
+  ],
+  "schema_version": "conformal_validation_v2",
+  "ship_set": [],
+  "thresholds": {
+    "bucket_width": 0.025,
+    "min_bucket_n": 30,
+    "tightness_threshold": 0.3,
+    "validity_tolerance": 0.01,
+    "wilson_alpha": 0.05
+  },
+  "verdict": "NO_PRODUCTION_DEPLOY"
+}
