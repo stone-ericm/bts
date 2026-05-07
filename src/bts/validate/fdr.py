@@ -93,6 +93,50 @@ def by_qvalues(pvalues: np.ndarray) -> np.ndarray:
     return np.minimum(bh * c_m, 1.0)
 
 
+# ---- Permutation p-values for small paired audit families ----
+
+
+def sign_flip_permutation_pvalue(deltas: np.ndarray) -> dict[str, Any]:
+    """Exact paired sign-flip p-value for a mean-delta audit statistic.
+
+    This is a small-n randomization baseline for audit verdicts with paired
+    season deltas. Under a sharp null of no treatment effect and exchangeable
+    signs, all sign flips of the observed absolute deltas are equally likely.
+
+    Returns two-sided and one-sided p-values for the observed mean delta. It is
+    exact by enumeration and intentionally raises for large families rather
+    than silently switching to an approximate Monte Carlo p-value.
+    """
+    values = np.asarray(deltas, dtype=float)
+    if values.size == 0:
+        raise ValueError("deltas cannot be empty")
+    if np.any(np.isnan(values)):
+        raise ValueError("deltas contain NaN")
+    if values.size > 20:
+        raise ValueError("exact sign-flip enumeration is limited to <= 20 deltas")
+
+    observed = float(values.mean())
+    magnitudes = np.abs(values)
+    n = len(magnitudes)
+    n_flips = 2 ** n
+    means = np.empty(n_flips, dtype=float)
+    for mask in range(n_flips):
+        signs = np.ones(n, dtype=float)
+        for bit in range(n):
+            if mask & (1 << bit):
+                signs[bit] = -1.0
+        means[mask] = float(np.mean(signs * magnitudes))
+
+    eps = 1e-15
+    return {
+        "n": int(n),
+        "observed_mean_delta": observed,
+        "p_two_sided": float(np.mean(np.abs(means) >= abs(observed) - eps)),
+        "p_one_sided_positive": float(np.mean(means >= observed - eps)),
+        "p_one_sided_negative": float(np.mean(means <= observed + eps)),
+    }
+
+
 # ---- Poisson-binomial cell p-values ----
 
 
