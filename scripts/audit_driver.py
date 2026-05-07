@@ -49,7 +49,7 @@ Requires:
         ~/.oci/config (via `oci setup config`) OR keychain entries:
             oci-tenancy-ocid, oci-user-ocid, oci-fingerprint,
             oci-api-private-key, oci-region
-        plus keychain entry `oci-subnet-ocid` for a public subnet.
+        plus `oci-subnet-ocid` for a public subnet, from Keychain or env.
     - SSH pubkey at ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub
     - /Users/stone/projects/bts/{src,data/processed,data/models,pyproject.toml,uv.lock}
     - For --provider oci: `uv add oci` (oci-python-sdk) and a service limit
@@ -178,13 +178,16 @@ class Provider:
         raise NotImplementedError
 
 
-def _keychain(service: str) -> str:
+def _keychain(service: str, *, env_aliases: tuple[str, ...] = ()) -> str:
     """Fetch a secret by service name, falling back to env var on non-macOS hosts.
 
     Tries macOS Keychain via `security` first. On Linux (bts-hetzner, Pi5),
     `security` is absent or errors, so we fall back to an env var named
     BTS_SECRET_<SERVICE_UPPER_WITH_UNDERSCORES>. Example: service
     "hetzner-cloud-token" -> env var BTS_SECRET_HETZNER_CLOUD_TOKEN.
+
+    `env_aliases` allows provider-native names for operator-facing secrets,
+    e.g. OCI_SUBNET_OCID in addition to BTS_SECRET_OCI_SUBNET_OCID.
     """
     try:
         r = subprocess.run(
@@ -196,13 +199,14 @@ def _keychain(service: str) -> str:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass  # non-macOS or hung — fall through to env var
 
-    env_name = "BTS_SECRET_" + service.upper().replace("-", "_")
-    val = os.environ.get(env_name)
-    if val:
-        return val
+    env_names = ("BTS_SECRET_" + service.upper().replace("-", "_"), *env_aliases)
+    for env_name in env_names:
+        val = os.environ.get(env_name)
+        if val:
+            return val
     raise RuntimeError(
         f"No secret for {service!r}: tried macOS Keychain (service={service!r}) "
-        f"and env var {env_name!r}"
+        f"and env vars {', '.join(repr(name) for name in env_names)}"
     )
 
 
@@ -389,8 +393,9 @@ class OCIProvider(Provider):
       - ~/.oci/config (via `oci setup config`) OR keychain entries:
         oci-tenancy-ocid, oci-user-ocid, oci-fingerprint,
         oci-api-private-key, oci-region
-      - Keychain entry `oci-subnet-ocid` pointing to a public subnet in the
-        home region (create via OCI Console → Networking → VCN Wizard).
+      - Keychain entry `oci-subnet-ocid`, `BTS_SECRET_OCI_SUBNET_OCID`, or
+        `OCI_SUBNET_OCID` pointing to a public subnet in the home region
+        (create via OCI Console → Networking → VCN Wizard).
       - Service limit increase for VM.Standard.E5.Flex AMD OCPUs — new
         accounts default to 0 and you can't launch without filing a ticket.
     """
@@ -423,10 +428,16 @@ class OCIProvider(Provider):
         oci.config.validate_config(self.config)
 
         try:
-            self.compartment_id = _keychain("oci-compartment-ocid")
-        except subprocess.CalledProcessError:
+            self.compartment_id = _keychain(
+                "oci-compartment-ocid",
+                env_aliases=("OCI_COMPARTMENT_OCID",),
+            )
+        except RuntimeError:
             self.compartment_id = self.config["tenancy"]
-        self.subnet_id = _keychain("oci-subnet-ocid")
+        self.subnet_id = _keychain(
+            "oci-subnet-ocid",
+            env_aliases=("OCI_SUBNET_OCID",),
+        )
 
         self.compute = oci.core.ComputeClient(self.config)
         self.network = oci.core.VirtualNetworkClient(self.config)
@@ -450,6 +461,7 @@ class OCIProvider(Provider):
 
         self._image_id: str | None = None
         self._ad_fallbacks: list[str] = []
+        self._next_ad_idx = 0
 
     def _resolve_once(self):
         if self._image_id is not None:
@@ -478,6 +490,29 @@ class OCIProvider(Provider):
         if self._image_id is None:
             raise RuntimeError("OCI: no Ubuntu 24.04 x86_64 image found for E5.Flex")
 
+    def _ordered_ads_for_create(self) -> list[str]:
+        if not self._ad_fallbacks:
+            return []
+        start = self._next_ad_idx % len(self._ad_fallbacks)
+        return self._ad_fallbacks[start:] + self._ad_fallbacks[:start]
+
+    def _mark_ad_used(self, ad: str) -> None:
+        try:
+            used_idx = self._ad_fallbacks.index(ad)
+        except ValueError:
+            return
+        self._next_ad_idx = used_idx + 1
+
+    @staticmethod
+    def _should_try_next_ad(error) -> bool:
+        code = getattr(error, "code", "") or ""
+        status = getattr(error, "status", None)
+        return (
+            "OutOfCapacity" in code
+            or "LimitExceeded" in code
+            or status in (500, 503)
+        )
+
     def create(self, label: str) -> Box:
         self._resolve_once()
         oci = self._oci
@@ -489,7 +524,7 @@ class OCIProvider(Provider):
         user_data_b64 = base64.b64encode(USER_DATA_OCI.encode()).decode()
 
         last_err = None
-        for ad in self._ad_fallbacks:
+        for ad in self._ordered_ads_for_create():
             try:
                 launch = oci.core.models.LaunchInstanceDetails(
                     availability_domain=ad,
@@ -533,14 +568,12 @@ class OCIProvider(Provider):
                         f"OCI work request {wr.id} succeeded but no instance "
                         f"in resources list"
                     )
+                self._mark_ad_used(ad)
                 return Box(id=inst_ocid, name=label, ipv4="", region=ad)
             except oci.exceptions.ServiceError as e:
                 last_err = e
-                code = e.code or ""
-                if "OutOfCapacity" in code or e.status in (500, 503):
+                if self._should_try_next_ad(e):
                     continue  # try next AD
-                # LimitExceeded should have been handled by retry_strategy;
-                # if we get here with LimitExceeded, all retries exhausted.
                 raise RuntimeError(
                     f"OCI launch failed: {e.status} {e.code} {str(e)[:200]}"
                 ) from e

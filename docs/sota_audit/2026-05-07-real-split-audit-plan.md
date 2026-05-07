@@ -10,7 +10,7 @@ Do not run the real split audit yet.
 
 The SOTA closeout did not surface a deployable candidate stack. The correct current plan verdict is `plan_blocked_no_viable_candidate`, not a ceremonial run of the split flags. A real split audit becomes runnable only after Eric names a concrete candidate stack and compute budget, and after the cloud resource/provenance inventory is completed.
 
-There is also an orchestration gap: PR #37 added `--selection-seasons` and `--outer-eval-seasons` to `bts experiment screen/select`, but `scripts/audit_driver.py` still launches remote screening with legacy `--test-seasons 2024,2025`. Do not use the current cloud driver for the real split audit until it passes the split flags through or a dedicated split-audit launcher is written.
+The original remote-screen orchestration gap is now closed for `scripts/audit_driver.py`: the driver passes `--selection-seasons` and `--outer-eval-seasons` through remote Phase 1 screening and records split metadata. `bts experiment select` remains local unless a future audit explicitly adds remote select orchestration.
 
 ## Candidate Intake Checklist
 
@@ -44,11 +44,11 @@ Current local knowledge:
 | --- | --- | --- | --- |
 | Hetzner | `cpx62`, Ubuntu 24.04, locations `fsn1`, `nbg1`, `hel1`, `sin` | 4-box 48-seed scorecard surface in `data/hetzner_results/audit_full_48seed_v2`; 16-seed Phase 1 in `data/hetzner_results/audit_phase1`; 24-seed raw pooled-bin surface across `pooled_bins_run` and `pooled_bins_run_trackc` | Best default for reproducible large runs. User-provided current cap is `5` machines; quota increase request possible in about `4` days. |
 | Vultr | `voc-c-16c-32gb-300s-amd` then `voc-c-16c-32gb-500s-amd`, European fallback regions | 26-box / 52-`phase1_seed*` extended surface in `data/vultr_results/audit_ext_n100_v4` | Best burst capacity fallback. User-provided current cap is `30` machines / `$2500`; record actual boxes and check deterministic-runtime overhead against the spend ceiling. |
-| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally | Eric authorized read-only OCI verification on 2026-05-07. OCI CLI checks verified `83` E5 OCPU and `1250` GB E5 memory available with `0` used in each of 3 Ashburn ADs. At the planned shape, quota supports 10 boxes per AD / 30 boxes total. Treat OCI as a serious accelerator only after the driver has subnet configuration, a one-seed retrieval canary passes, and AD spreading is added before using more than about 10 OCI boxes. |
+| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally | Eric authorized read-only OCI verification on 2026-05-07. OCI CLI checks verified `83` E5 OCPU and `1250` GB E5 memory available with `0` used in each of 3 Ashburn ADs. At the planned shape, quota supports 10 boxes per AD / 30 boxes total. Treat OCI as a serious accelerator only after the subnet OCID is supplied through Keychain/env, a one-seed retrieval canary passes, and the driver's AD-rotation/fallback path is live-verified before using more than about 10 OCI boxes. |
 
 The docs plan scopes the inventory only. The OCI service-limit checks above were read-only and did not launch instances. Any provisioning, canary launch, or provider spend is still a separate authorized operational slice.
 
-Eric's 2026-05-07 capacity notes plus read-only OCI quota checks are partial inventory only: Hetzner `5` machines with an increase request possible in about `4` days, Vultr `30` machines / `$2500`, and OCI E5 quota verified at 30 planned boxes across Ashburn. The full inventory still needs launch canaries, credential/subnet readiness, cost re-quotes, artifact retrieval checks, AD-spreading support for larger OCI launches, and provenance recording before compute.
+Eric's 2026-05-07 capacity notes plus read-only OCI quota checks are partial inventory only: Hetzner `5` machines with an increase request possible in about `4` days, Vultr `30` machines / `$2500`, and OCI E5 quota verified at 30 planned boxes across Ashburn. The full inventory still needs launch canaries, credential/subnet readiness, cost re-quotes, artifact retrieval checks, live verification of larger OCI multi-AD launches, and provenance recording before compute.
 
 The inventory must record:
 
