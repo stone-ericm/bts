@@ -62,6 +62,16 @@ This document is the operating tracker for the audit. It's structured for rollin
 
 **Next active SOTA item**: decide whether to spend the heavier compute/implementation on a profile-level bootstrap check or move to the next bin-side lever. If profile-level work proceeds, it must tag seed from raw-profile paths before pairing rank-1/rank-2 rows.
 
+## Status update — 2026-05-06 (24-seed raw-surface DR-MDP screen)
+
+**Seed-tagged raw-surface ingestion added** as shared pooled-policy loader code and wired into `scripts/dr_mdp_gap_measure.py`. The loader now auto-populates or validates `seed` from `seedN`/`simulation_seedN` path segments when profile paths contain seed markers, preventing silent cross-seed rank pairing when raw pooled parquets omit seed metadata. `--derive-seed-from-path` remains available to force strict path-seed parsing.
+
+**24-seed raw pooled-bin surface measured** as `data/validation/dr_mdp_gap_pooled_24seed_raw_2026-05-06.json`, summarized in `docs/sota_audit/2026-05-06-dr-mdp-gap-pooled-24seed.md`. The run consumed `120` backtest parquets from `data/hetzner_results/pooled_bins_run` plus `data/hetzner_results/pooled_bins_run_trackc`, yielding `218750` profile rows, `21888` rank-1/rank-2 pair rows, and `24` path-derived seeds.
+
+**Result**: point P(57) is `0.052882`. The largest finite-candidate robust gap is the paired-day bootstrap construction: robust P(57) `0.009665`, delta `0.043218`, policy disagreement `0.105240`. That delta remains below the inherited v2.6 CI half-width `0.083333`, so no production DR-MDP solver change is justified by this screen.
+
+**Scope caveat**: this still depends on local untracked raw parquet provenance and path-derived seed identity. It measures solver-side robust sensitivity on the pooled raw surface; it does not replace a profile block-bootstrap for the pooled-policy A/B gap.
+
 ## Audit framework
 
 For each area, we capture:

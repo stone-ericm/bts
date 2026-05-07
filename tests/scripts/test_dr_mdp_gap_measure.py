@@ -11,6 +11,7 @@ from bts.simulate.mdp import solve_mdp
 from bts.simulate.quality_bins import QualityBin, QualityBins
 from scripts.dr_mdp_gap_measure import (
     build_simplex_frequency_candidates,
+    load_profiles,
     main,
     measure_gap,
     pair_frame_from_profiles,
@@ -113,6 +114,65 @@ def test_pair_frame_supports_ranked_schema_without_cross_seed_join():
     assert len(pairs) == 2
     assert set(pairs["seed"]) == {1, 2}
     assert set(pairs.columns).issuperset({"p_game_hit", "actual_hit", "top2_hit"})
+
+
+def test_load_profiles_auto_derives_seed_from_path(tmp_path: Path):
+    seed_dir = tmp_path / "simulation_seed11"
+    seed_dir.mkdir()
+    profiles_path = seed_dir / "backtest_2025.parquet"
+    pd.DataFrame([
+        {"date": "2025-04-01", "rank": 1, "p_game_hit": 0.80, "actual_hit": 1},
+        {"date": "2025-04-01", "rank": 2, "p_game_hit": 0.70, "actual_hit": 0},
+    ]).to_parquet(profiles_path)
+
+    profiles, loaded_paths = load_profiles([str(profiles_path)])
+
+    assert loaded_paths == [str(profiles_path.resolve())]
+    assert set(profiles["seed"]) == {11}
+    pairs = pair_frame_from_profiles(profiles)
+    assert len(pairs) == 1
+    assert pairs.loc[0, "seed"] == 11
+
+
+def test_load_profiles_keeps_single_untagged_surface_untagged(tmp_path: Path):
+    profiles_path = tmp_path / "backtest_2025.parquet"
+    pd.DataFrame([
+        {"date": "2025-04-01", "rank": 1, "p_game_hit": 0.80, "actual_hit": 1},
+        {"date": "2025-04-01", "rank": 2, "p_game_hit": 0.70, "actual_hit": 0},
+    ]).to_parquet(profiles_path)
+
+    profiles, _loaded_paths = load_profiles([str(profiles_path)])
+
+    assert "seed" not in profiles.columns
+    assert len(pair_frame_from_profiles(profiles)) == 1
+
+
+def test_load_profiles_rejects_mixed_seed_and_untagged_paths(tmp_path: Path):
+    seed_dir = tmp_path / "simulation_seed11"
+    seed_dir.mkdir()
+    seed_path = seed_dir / "backtest_2025.parquet"
+    untagged_path = tmp_path / "backtest_2025.parquet"
+    for path in [seed_path, untagged_path]:
+        pd.DataFrame([
+            {"date": "2025-04-01", "rank": 1, "p_game_hit": 0.80, "actual_hit": 1},
+            {"date": "2025-04-01", "rank": 2, "p_game_hit": 0.70, "actual_hit": 0},
+        ]).to_parquet(path)
+
+    with pytest.raises(ValueError, match="cannot mix seed-tagged and untagged"):
+        load_profiles([str(seed_path), str(untagged_path)])
+
+
+def test_load_profiles_rejects_embedded_seed_mismatch(tmp_path: Path):
+    seed_dir = tmp_path / "simulation_seed11"
+    seed_dir.mkdir()
+    profiles_path = seed_dir / "backtest_2025.parquet"
+    pd.DataFrame([
+        {"date": "2025-04-01", "seed": 12, "rank": 1, "p_game_hit": 0.80, "actual_hit": 1},
+        {"date": "2025-04-01", "seed": 12, "rank": 2, "p_game_hit": 0.70, "actual_hit": 0},
+    ]).to_parquet(profiles_path)
+
+    with pytest.raises(ValueError, match="does not match path-derived seed 11"):
+        load_profiles([str(profiles_path)])
 
 
 def test_measure_gap_emits_both_constructions():

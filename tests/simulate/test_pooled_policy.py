@@ -12,7 +12,9 @@ from bts.simulate.pooled_policy import (
     compute_pooled_bins,
     evaluate_mdp_policy,
     load_pooled_profiles,
+    load_seed_tagged_profiles,
     parse_seed_from_path,
+    seed_from_path,
     split_by_phase_pooled,
 )
 from bts.simulate.quality_bins import compute_bins as compute_bins_single
@@ -58,6 +60,9 @@ class TestParseSeedFromPath:
     def test_string_accepted(self):
         assert parse_seed_from_path("path/to/seed1024/x") == 1024
 
+    def test_none_when_missing(self):
+        assert seed_from_path(Path("no_seed_here")) is None
+
     def test_raises_when_missing(self):
         with pytest.raises(ValueError):
             parse_seed_from_path(Path("no_seed_here"))
@@ -94,6 +99,64 @@ class TestLoadPooledProfiles:
     def test_raises_when_no_dirs(self):
         with pytest.raises(ValueError, match="no seed_dirs"):
             load_pooled_profiles([])
+
+
+class TestLoadSeedTaggedProfiles:
+    def test_reads_arbitrary_seed_paths(self, tmp_path):
+        paths = []
+        for seed in [11, 12]:
+            seed_dir = tmp_path / "box-a" / f"simulation_seed{seed}"
+            seed_dir.mkdir(parents=True)
+            path = seed_dir / "backtest_2025.parquet"
+            _fake_profiles(n_days=3, season=2025).to_parquet(path, index=False)
+            paths.append(path)
+
+        loaded = load_seed_tagged_profiles(paths)
+
+        assert set(loaded["seed"]) == {11, 12}
+        assert len(loaded) == 2 * 3 * 5
+
+    def test_rejects_schema_violation(self, tmp_path):
+        seed_dir = tmp_path / "simulation_seed11"
+        seed_dir.mkdir()
+        path = seed_dir / "backtest_2025.parquet"
+        _fake_profiles(n_days=2, season=2025).drop(columns=["rank"]).to_parquet(path, index=False)
+
+        with pytest.raises(ValueError, match="missing required ranked-profile columns"):
+            load_seed_tagged_profiles([path])
+
+    def test_rejects_missing_rank_pair(self, tmp_path):
+        seed_dir = tmp_path / "simulation_seed11"
+        seed_dir.mkdir()
+        path = seed_dir / "backtest_2025.parquet"
+        frame = _fake_profiles(n_days=2, season=2025)
+        frame = frame[frame["rank"] != 2]
+        frame.to_parquet(path, index=False)
+
+        with pytest.raises(ValueError, match="missing rank-1/rank-2 pair"):
+            load_seed_tagged_profiles([path])
+
+    def test_rejects_duplicate_seed_date_rank(self, tmp_path):
+        seed_dir = tmp_path / "simulation_seed11"
+        seed_dir.mkdir()
+        path = seed_dir / "backtest_2025.parquet"
+        frame = _fake_profiles(n_days=2, season=2025)
+        frame = pd.concat([frame, frame.head(1)], ignore_index=True)
+        frame.to_parquet(path, index=False)
+
+        with pytest.raises(ValueError, match="duplicate rank row"):
+            load_seed_tagged_profiles([path])
+
+    def test_rejects_embedded_seed_mismatch(self, tmp_path):
+        seed_dir = tmp_path / "simulation_seed11"
+        seed_dir.mkdir()
+        path = seed_dir / "backtest_2025.parquet"
+        frame = _fake_profiles(n_days=2, season=2025)
+        frame["seed"] = 12
+        frame.to_parquet(path, index=False)
+
+        with pytest.raises(ValueError, match="does not match path-derived seed 11"):
+            load_seed_tagged_profiles([path])
 
 
 class TestComputePooledBins:
