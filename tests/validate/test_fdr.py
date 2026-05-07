@@ -25,6 +25,7 @@ from bts.validate.fdr import (
     by_qvalues,
     cell_pvalue,
     cell_pvalues_from_artifact,
+    sign_flip_permutation_pvalue,
 )
 
 
@@ -139,6 +140,34 @@ def test_bh_raises_on_out_of_range() -> None:
         bh_qvalues(np.array([0.5, -0.01]))
     with pytest.raises(ValueError):
         bh_qvalues(np.array([0.5, 1.01]))
+
+
+# ---- Paired sign-flip audit p-values ----
+
+
+def test_sign_flip_permutation_two_positive_deltas() -> None:
+    result = sign_flip_permutation_pvalue(np.array([1.0, 2.0]))
+
+    assert result["n"] == 2
+    assert result["observed_mean_delta"] == pytest.approx(1.5)
+    assert result["p_two_sided"] == pytest.approx(0.5)
+    assert result["p_one_sided_positive"] == pytest.approx(0.25)
+
+
+def test_sign_flip_permutation_mixed_deltas_gives_no_signal() -> None:
+    result = sign_flip_permutation_pvalue(np.array([1.0, -1.0]))
+
+    assert result["observed_mean_delta"] == pytest.approx(0.0)
+    assert result["p_two_sided"] == pytest.approx(1.0)
+
+
+def test_sign_flip_permutation_validates_input() -> None:
+    with pytest.raises(ValueError, match="empty"):
+        sign_flip_permutation_pvalue(np.array([]))
+    with pytest.raises(ValueError, match="NaN"):
+        sign_flip_permutation_pvalue(np.array([0.1, np.nan]))
+    with pytest.raises(ValueError, match="<= 20"):
+        sign_flip_permutation_pvalue(np.ones(21))
 
 
 # ---- Poisson-binomial cell p-values ----
