@@ -1,8 +1,8 @@
 # BTS State-of-the-Art Audit — Master Tracker
 
 **Date created**: 2026-05-01
-**Last updated**: 2026-05-06 (post-MDP objective audit + DR-MDP gap screen)
-**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04); full-SOTA variants for #13/#14/#15 remain conditional/deferred rather than immediate blockers. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface. #5 has opt-in season-level split support for experiment runner adoption. #11 conformal-gate v2 exists and currently blocks deploy because `ship_set=[]`, not because binary-y validation is unimplemented.
+**Last updated**: 2026-05-07 (candidate-generation closeout before split audit)
+**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04); full-SOTA variants for #13/#14/#15 remain conditional/deferred rather than immediate blockers. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface. #5 has opt-in season-level split support for experiment runner adoption. #11 conformal-gate v2 exists and currently blocks deploy because `ship_set=[]`, not because binary-y validation is unimplemented. #16/#17 are parked as post-audit candidate-generation directions unless Eric names a concrete candidate stack and compute budget; split-audit planning now requires a Hetzner/Vultr/OCI resource and provenance inventory first.
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
@@ -80,13 +80,13 @@ This document is the operating tracker for the audit. It's structured for rollin
 
 **Verdict**: C0 remains `positive_screen_unchanged`, but the determinism/provenance caveat is not resolved. The iid-seed determinism contribution is `not_evaluable_from_existing_artifacts`; a direct bound requires paired same-seed deterministic/non-deterministic reruns on the same pooled-policy gap estimand or embedded deterministic/provider metadata in the raw surfaces.
 
-## SOTA closeout posture before real split audit — 2026-05-06
+## SOTA closeout posture before real split audit — 2026-05-06, amended 2026-05-07
 
-Before running a real split audit on a deployable candidate stack, finish or explicitly park the remaining SOTA items that can change the audit's evidentiary standard. The split audit only produces useful output if a concrete candidate Phase 2 stack exists to evaluate against the new selection/outer-evaluation split. Prior Phase 2 winners under legacy `--test-seasons` are legacy selection-on-evaluation-span evidence; if no candidate stack is in flight after closeout, the split-audit plan should report `plan_blocked_no_viable_candidate` instead of manufacturing a candidate to exercise the flags.
+Before running a real split audit on a deployable candidate stack, finish or explicitly park the remaining SOTA items that can change the audit's evidentiary standard. The split audit only produces useful output if a concrete candidate Phase 2 stack exists to evaluate against the new selection/outer-evaluation split. Prior Phase 2 winners under legacy `--test-seasons` are legacy selection-on-evaluation-span evidence; if no candidate stack is in flight after closeout, the split-audit plan should report `plan_blocked_no_viable_candidate` instead of manufacturing a candidate to exercise the flags. Split-audit planning also requires a cloud resource/provenance inventory across Hetzner, Vultr, and OCI before setting seed count, parallelism, deadline, or provider allocation.
 
 1. **#10 pooled-policy uncertainty layer**: blocked on a determinism-state precondition. The existing saved 24-seed gap remains `positive_screen_unchanged`, but PR #33 established that further analytical work on existing artifacts cannot resolve whether iid seed variation or provider/model nondeterminism drives the gap. The next move is one of: generate a determinism-certified paired same-seed surface and re-run the C0/DR-MDP screens, explicitly park #10 at the current verdict, or treat #10 only as candidate-generation evidence.
 2. **#7 audit-level multiple-testing control**: realized-picks BH/BY and Phase 1 audit-verdict permutation/FDR baselines exist. Treat them as historical p-value truth-up; true e-BH/online-FDR remains deferred until valid e-values/e-processes are designed before a future audit cycle.
-3. **#16/#17 candidate-generation methods**: decide whether lightweight decision-aware learning or model-class bakeoff must precede the split audit, or explicitly park them as post-audit candidate-generation work.
+3. **#16/#17 candidate-generation methods**: parked as post-audit candidate-generation work unless Eric names a concrete candidate stack and compute budget. Legacy CatBoost, LambdaRank, XE-NDCG, decision-calibration, and quantile variants are negative or zero on the saved Phase 1 artifacts and cannot seed the real split audit. See `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`.
 4. **Conditional full-SOTA variants for #13/#14/#15**: keep deferred unless #10, #16, #17, or another candidate creates a deployment-grade policy comparison the v1 falsification harness cannot answer.
 
 ## Audit framework
@@ -313,8 +313,9 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Speculative ΔP(57)**: +0.2-1.0pp speculative; high uncertainty. **The decoupling between PA-Brier and downstream-MDP-value may explain part of why feature-engineering returns are diminishing** (today's morning verdicts).
 - **Effort**: M (reweighting) to L (full SPO surrogate).
 - **Prerequisites**: #12 probabilistic-scoring-suite + #13 OPE for honest measurement.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
-- **Next action**: Read Elmachtoub & Grigas 2022 SPO. Try the lightweight version first: weight training rows by `|MDP-value-gradient w.r.t. p_PA|` from a simulator pass. Compare downstream P(57) to baseline.
+- **Status update 2026-05-07**: Parked as post-audit candidate generation in `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`. #16 remains plausible, but starting a new SPO/reweighting implementation now would create a fresh exploratory candidate before the project has named the real split-audit target.
+- **Status**: parked as post-audit candidate generation unless Eric names this as the next concrete candidate stack and allocates compute.
+- **Next action**: If reactivated, pre-register the decision-aware training variant, train it as a candidate-generation cycle, and evaluate with proper scoring plus downstream policy value before any outer-evaluation split audit. Otherwise keep parked.
 
 ### 17. (NEW, 2026-05-01 evening) Model-class challenge
 
@@ -323,8 +324,9 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Speculative ΔP(57)**: -0.2 to +0.5pp. Mostly an honest-comparison move — if LightGBM is genuinely best, Codex's "too comfortable" critique gets formally rebutted.
 - **Effort**: M
 - **Prerequisites**: #5 nested CV + #12 proper scoring rules for honest comparison.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review).
-- **Next action**: After #5 + #12 are in place, run a single-pass model-class bake-off: LightGBM (current) vs CatBoost ordered vs NGBoost vs EBM under proper-scoring evaluation. Time-bounded to one week; if no model beats LightGBM under proper scores, stop.
+- **Status update 2026-05-07**: Parked as post-audit candidate generation in `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`. Saved CatBoost, LambdaRank, and XE-NDCG surfaces are negative on the legacy Phase 1 artifacts; they do not nominate a model-class stack for the real split audit.
+- **Status**: parked as post-audit candidate generation unless Eric names a specific model-class stack and compute budget.
+- **Next action**: If reactivated, run a pre-registered model-class bakeoff under proper-score and downstream-value metrics, then nominate a winner only if it clears that candidate-generation gate. Otherwise keep parked.
 
 ---
 
@@ -339,10 +341,10 @@ Revised order:
 3. **#11 Binary-y validation methodology** — unblocks parked conformal v1.
 4. **#5 Nested rolling-origin CV + lockbox** — methodology foundation; should happen before any further model-class or feature audits.
 5. **#1 MDP robustness (distributional DP / robust VI)** — measurement-gated; current objective is already P(57), CVaR-over-streak is ruled out, and DR-MDP did not clear the CI bar on the explicit 2021-2025 canonical surface.
-6. **#16 Decision-aware learning** — try lightweight SPO/reweighting; depends on #12 + #13.
+6. **#16 Decision-aware learning** — parked as post-audit candidate generation unless selected as the next concrete candidate stack.
 7. **#10 Predictive stacking** — variance reduction with proper-score weighting.
 8. **#4 e-values / e-processes for sequential audits** — audit-compute reduction.
-9. **#17 Model-class challenge** — depends on #5 + #12.
+9. **#17 Model-class challenge** — parked as post-audit candidate generation unless a specific stack is selected and budgeted.
 10. **#7 e-BH / online FDR retrospective** — truth-up on past audits.
 11. **#6 BOCPD drift detection** — production monitoring.
 12. **#3 TreeSHAP + ALE** — interpretability after the heavy lifting; use for diagnosis when uncomfortable picks land.
