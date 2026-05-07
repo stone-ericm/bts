@@ -42,11 +42,13 @@ Current local knowledge:
 
 | Provider | Driver default | Existing local surfaces | Current use in plan |
 | --- | --- | --- | --- |
-| Hetzner | `cpx62`, Ubuntu 24.04, locations `fsn1`, `nbg1`, `hel1`, `sin` | 4-box 48-seed scorecard surface in `data/hetzner_results/audit_full_48seed_v2`; 16-seed Phase 1 in `data/hetzner_results/audit_phase1`; 24-seed raw pooled-bin surface across `pooled_bins_run` and `pooled_bins_run_trackc` | Best default for reproducible large runs if live quota and locations are healthy. |
-| Vultr | `voc-c-16c-32gb-300s-amd` then `voc-c-16c-32gb-500s-amd`, European fallback regions | 26-box / 52-`phase1_seed*` extended surface in `data/vultr_results/audit_ext_n100_v4` | Best burst capacity fallback; record actual boxes because provider availability can degrade. |
-| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally | Treat as capacity candidate only after live service limit and retrieval path are verified. |
+| Hetzner | `cpx62`, Ubuntu 24.04, locations `fsn1`, `nbg1`, `hel1`, `sin` | 4-box 48-seed scorecard surface in `data/hetzner_results/audit_full_48seed_v2`; 16-seed Phase 1 in `data/hetzner_results/audit_phase1`; 24-seed raw pooled-bin surface across `pooled_bins_run` and `pooled_bins_run_trackc` | Best default for reproducible large runs. User-provided current cap is `5` machines; quota increase request possible in about `4` days. |
+| Vultr | `voc-c-16c-32gb-300s-amd` then `voc-c-16c-32gb-500s-amd`, European fallback regions | 26-box / 52-`phase1_seed*` extended surface in `data/vultr_results/audit_ext_n100_v4` | Best burst capacity fallback. User-provided current cap is `30` machines / `$2500`; record actual boxes and check deterministic-runtime overhead against the spend ceiling. |
+| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally | Treat as capacity candidate only after live service limit and retrieval path are verified. User-provided limit is currently unknown. |
 
 The docs plan scopes the inventory only. The actual live inventory is a separate authorized operational slice, because it requires checking credentials, quotas, provider APIs, and possibly live capacity. Do not run cloud API or provisioning commands until Eric explicitly authorizes that operational slice.
+
+Eric's 2026-05-07 capacity notes are partial inventory only: Hetzner `5` machines with an increase request possible in about `4` days, Vultr `30` machines / `$2500`, and OCI unknown. The full inventory still needs live verification before compute.
 
 The inventory must record:
 

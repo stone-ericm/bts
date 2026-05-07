@@ -8,7 +8,7 @@
 
 Structured verdict: `budget_options_documented_blocked_on_activation`.
 
-The tiers are ready for planning, but none should run until candidate intake, live resource inventory, and split-aware cloud orchestration are complete. If this pricing snapshot is more than 30 days old when activated, re-quote provider rates before provisioning.
+The tiers are ready for planning, but none should run until candidate intake, live resource inventory, and split-aware cloud orchestration are complete. Eric's 2026-05-07 capacity numbers are recorded below as partial inventory, not a substitute for live quota, credential, cost, and artifact-provenance checks. If this pricing snapshot is more than 30 days old when activated, re-quote provider rates before provisioning.
 
 ## Recommendation
 
@@ -19,8 +19,18 @@ Use **budget** only as a smoke audit or falsification pass. Use **luxury** only 
 All tiers remain blocked until:
 
 - candidate intake is complete
-- live Hetzner/Vultr/OCI resource inventory is authorized and recorded
+- live Hetzner/Vultr/OCI resource inventory is authorized and recorded; Eric's capacity notes below are partial inventory only
 - `scripts/audit_driver.py` gets split-flag pass-through or a dedicated split-audit launcher exists
+
+## User-Provided Capacity Snapshot
+
+Eric provided this live capacity snapshot on 2026-05-07:
+
+| Provider | Current limit | Increase path / lead time | Evidence source | Planning implication |
+| --- | --- | --- | --- | --- |
+| Hetzner | `5` machines | Eric can ask for an increase in about `4` days | User-provided 2026-05-07 | Use up to five `CPX62` boxes now. Revisit medium/luxury wall-clock estimates after the quota increase request is available. |
+| Vultr | `30` machines / `$2500` ceiling | Not specified | User-provided 2026-05-07 | Enough for the default luxury Vultr leg and likely enough for all-Vultr raw compute, but overhead and deterministic-runtime buffer must be checked against the `$2500` ceiling before launch. |
+| OCI | unknown | Must be checked live | User-provided 2026-05-07 | Keep OCI to the one-seed canary path until live service limits are verified. |
 
 ## Pricing Snapshot
 
@@ -51,15 +61,17 @@ Cross-provider pooling has a determinism caveat. `CLAUDE.md` records that OCI E5
 
 ## Budget Tier
 
-**Shape**: 4 Hetzner `CPX62` boxes, 16 seeds.
+**Shape**: 4-5 Hetzner `CPX62` boxes, 16 seeds.
 
 **Expected cost**: about `$22` raw compute; plan for `$25`-`40` with overhead.
 
 Cost math: `16 seeds * 14.10h/seed * $0.0953/h = $21.50`, plus provisioning, idle, retrieve, retry, and deterministic-runtime overhead.
 
-**Expected wall clock**: about `2.5`-`3` days with four boxes.
+**Expected wall clock**: about `2.5`-`3` days with four boxes; about `2` days with the current five-machine Hetzner cap, before deterministic-runtime buffer.
 
 Activation blockers: candidate intake, authorized live resource inventory, and split-aware cloud launcher.
+
+Capacity feasibility: fits inside the current Hetzner `5`-machine cap.
 
 **Use when**:
 
@@ -76,15 +88,17 @@ Activation blockers: candidate intake, authorized live resource inventory, and s
 
 ## Medium Tier
 
-**Shape**: 4 Hetzner `CPX62` boxes, 48 seeds.
+**Shape**: 5 Hetzner `CPX62` boxes, 48 seeds.
 
 **Expected cost**: about `$65` raw compute; plan for `$70`-`100` with overhead.
 
 Cost math: `48 seeds * 14.10h/seed * $0.0953/h = $64.51`, plus provisioning, idle, retrieve, retry, and deterministic-runtime overhead.
 
-**Expected wall clock**: about `7` days with four boxes.
+**Expected wall clock**: about `5.5`-`6` days with the current five-machine Hetzner cap; plan for `6`-`7` days with deterministic-runtime buffer. With the previous four-box surface, this was about `7` days.
 
 Activation blockers: candidate intake, authorized live resource inventory, and split-aware cloud launcher.
+
+Capacity feasibility: fits inside the current Hetzner `5`-machine cap, but uses all five boxes. A single provisioning failure degrades throughput unless the run waits for the quota increase or reallocates to another provider. Any faster Hetzner-only medium variant needs the quota increase Eric can request in about `4` days.
 
 **Use when**:
 
@@ -104,7 +118,7 @@ Activation blockers: candidate intake, authorized live resource inventory, and s
 
 Default allocation:
 
-- 48 Hetzner seeds on 4 `CPX62` boxes
+- 48 Hetzner seeds on 5 `CPX62` boxes
 - 52 Vultr seeds on 26 optimized 16 vCPU / 32 GB boxes
 - optional OCI E5 Flex canary only after live quota and retrieval checks pass
 
@@ -120,10 +134,15 @@ Cost math for all-Vultr burst upper bound: `100 seeds * 38.04h/seed * $0.476/h =
 
 **Expected wall clock**:
 
-- about `7` days if the Hetzner 48-seed leg remains the critical path
-- about `3`-`4` days only if the run is heavily burst onto Vultr or another proven provider pool
+- about `5.5`-`7` days under the current five-Hetzner / 30-Vultr caps, depending on deterministic-runtime overhead and whether the Hetzner 48-seed leg remains the critical path
+- about `6`-`8` days for a 100-seed all-Vultr burst under the current 30-machine cap, unless the actual candidate workload is materially faster than the historical broad Phase 1 surface
+- faster luxury runs require either a Hetzner quota increase, a shorter candidate workload, or a different proven provider pool
 
 Activation blockers: candidate intake, authorized live resource inventory, and split-aware cloud launcher.
+
+Vultr cap check: the all-Vultr raw compute estimate is about `$1,810`, but a `10%`-`20%` deterministic-runtime buffer plus provisioning/retry overhead can push the launch close to the user-reported `$2500` ceiling. Re-quote before provisioning.
+
+Capacity feasibility: the default luxury allocation fits inside the current Hetzner `5`-machine cap and Vultr `30`-machine cap, using 5 Hetzner boxes and 26 Vultr boxes. A 100-seed all-Vultr burst also fits the 30-machine cap, but must be re-costed against the `$2500` ceiling immediately before launch.
 
 OCI inclusion rule:
 
