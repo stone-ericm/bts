@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -37,6 +38,138 @@ class TestKeychainFallback:
 
         with pytest.raises(RuntimeError):
             _keychain(service)
+
+    def test_fallback_to_env_alias_when_primary_env_misses(self, monkeypatch):
+        from audit_driver import _keychain
+
+        service = "unit-test-fake-service-for-keychain-alias"
+        primary_env = "BTS_SECRET_UNIT_TEST_FAKE_SERVICE_FOR_KEYCHAIN_ALIAS"
+        alias_env = "UNIT_TEST_ALIAS_SECRET"
+        monkeypatch.delenv(primary_env, raising=False)
+        monkeypatch.setenv(alias_env, "alias-sentinel-67890")
+
+        assert _keychain(service, env_aliases=(alias_env,)) == "alias-sentinel-67890"
+
+    def test_error_mentions_env_aliases(self, monkeypatch):
+        from audit_driver import _keychain
+
+        service = "unit-test-missing-service-with-alias"
+        primary_env = "BTS_SECRET_UNIT_TEST_MISSING_SERVICE_WITH_ALIAS"
+        alias_env = "UNIT_TEST_MISSING_ALIAS"
+        monkeypatch.delenv(primary_env, raising=False)
+        monkeypatch.delenv(alias_env, raising=False)
+
+        with pytest.raises(RuntimeError) as exc:
+            _keychain(service, env_aliases=(alias_env,))
+
+        assert primary_env in str(exc.value)
+        assert alias_env in str(exc.value)
+
+
+class TestOCIReadinessHelpers:
+    def _provider(self, ads: list[str], cursor: int = 0):
+        from audit_driver import OCIProvider
+
+        provider = object.__new__(OCIProvider)
+        provider._ad_fallbacks = ads
+        provider._next_ad_idx = cursor
+        return provider
+
+    def test_ad_order_rotates_from_next_cursor(self):
+        provider = self._provider(["AD-1", "AD-2", "AD-3"], cursor=1)
+
+        assert provider._ordered_ads_for_create() == ["AD-2", "AD-3", "AD-1"]
+
+    def test_mark_ad_used_advances_next_cursor(self):
+        provider = self._provider(["AD-1", "AD-2", "AD-3"])
+
+        provider._mark_ad_used("AD-2")
+
+        assert provider._next_ad_idx == 2
+        assert provider._ordered_ads_for_create() == ["AD-3", "AD-1", "AD-2"]
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (SimpleNamespace(code="LimitExceeded", status=400), True),
+            (SimpleNamespace(code="OutOfCapacity", status=400), True),
+            (SimpleNamespace(code=None, status=503), True),
+            (SimpleNamespace(code="NotAuthorizedOrNotFound", status=404), False),
+        ],
+    )
+    def test_service_error_classification_for_next_ad(self, error, expected):
+        from audit_driver import OCIProvider
+
+        assert OCIProvider._should_try_next_ad(error) is expected
+
+    def test_create_tries_next_ad_after_limit_exceeded(
+        self, monkeypatch, tmp_path,
+    ):
+        import audit_driver
+
+        class FakeServiceError(Exception):
+            def __init__(self, status, code):
+                super().__init__(f"{status} {code}")
+                self.status = status
+                self.code = code
+
+        class KwargsModel:
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
+
+        attempts: list[str] = []
+
+        class FakeComposite:
+            def launch_instance_and_wait_for_work_request(
+                self, launch, operation_kwargs,
+            ):
+                attempts.append(launch.availability_domain)
+                if launch.availability_domain == "AD-1":
+                    raise FakeServiceError(status=400, code="LimitExceeded")
+                return SimpleNamespace(
+                    data=SimpleNamespace(
+                        id="wr-ok",
+                        resources=[
+                            SimpleNamespace(
+                                entity_type="instance",
+                                identifier="ocid1.instance.oc1",
+                            )
+                        ],
+                    )
+                )
+
+        pubkey = tmp_path / "id_ed25519.pub"
+        pubkey.write_text("ssh-ed25519 unit-test\n")
+        monkeypatch.setattr(
+            audit_driver.os.path,
+            "expanduser",
+            lambda path: str(pubkey) if path.startswith("~/.ssh/") else path,
+        )
+
+        fake_models = SimpleNamespace(
+            LaunchInstanceDetails=KwargsModel,
+            LaunchInstanceShapeConfigDetails=KwargsModel,
+            InstanceSourceViaImageDetails=KwargsModel,
+            CreateVnicDetails=KwargsModel,
+        )
+        provider = self._provider(["AD-1", "AD-2"])
+        provider._resolve_once = lambda: None
+        provider._oci = SimpleNamespace(
+            core=SimpleNamespace(models=fake_models),
+            exceptions=SimpleNamespace(ServiceError=FakeServiceError),
+        )
+        provider.compartment_id = "compartment"
+        provider.subnet_id = "subnet"
+        provider._image_id = "image"
+        provider.retry_strategy = object()
+        provider.composite = FakeComposite()
+
+        box = provider.create("bts-audit-oci")
+
+        assert attempts == ["AD-1", "AD-2"]
+        assert box.id == "ocid1.instance.oc1"
+        assert box.region == "AD-2"
+        assert provider._next_ad_idx == 2
 
 
 # ---------------------------------------------------------------------------

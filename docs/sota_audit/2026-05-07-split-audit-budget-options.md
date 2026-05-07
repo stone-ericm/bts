@@ -20,8 +20,8 @@ All tiers remain blocked until:
 
 - candidate intake is complete
 - live Hetzner/Vultr/OCI resource inventory is authorized and recorded; the capacity notes below are partial inventory only
-- `scripts/audit_driver.py` gets split-flag pass-through or a dedicated split-audit launcher exists
-- OCI-specific launch readiness is fixed before any OCI box is requested: `oci-subnet-ocid` must be available to the driver, a one-seed canary must retrieve artifacts end-to-end, and AD spreading must exist before requesting more than about 10 OCI E5 boxes
+- the launch path uses the screen-side split-aware orchestration now present in `scripts/audit_driver.py`; remote screening passes split flags and records split metadata, while `bts experiment select` remains local unless a future remote-select launcher is added
+- OCI-specific launch readiness is fixed before any OCI box is requested: `oci-subnet-ocid` must be available to the driver through Keychain or env, a one-seed canary must retrieve artifacts end-to-end, and multi-AD launches must pass a live canary before requesting more than about 10 OCI E5 boxes
 
 ## Capacity Snapshot
 
@@ -35,9 +35,9 @@ Eric provided Hetzner/Vultr capacity on 2026-05-07. Eric then authorized OCI ver
 
 OCI quota math: `83 OCPU/AD / 8 OCPU/box = 10` full boxes per AD, with OCPU as the binding constraint. Memory is not binding because `1250 GB/AD / 32 GB/box = 39` boxes per AD. Across three Ashburn ADs, the verified quota is `3 * 10 = 30` planned boxes.
 
-OCI launch readiness is not complete. `~/.oci/config` works for read-only service-limit queries, `VM.Standard.E5.Flex` is available in Ashburn, the project already depends on `oci>=2.170.0`, and a public subnet named `public subnet-bts-audit-vcn` exists with public IP assignment allowed. However, `scripts/audit_driver.py` currently requires the subnet OCID in the macOS Keychain entry `oci-subnet-ocid`, and that entry was missing during verification. Add that secret or teach the driver a config/env fallback before running the one-seed canary.
+OCI launch readiness is not complete. `~/.oci/config` works for read-only service-limit queries, `VM.Standard.E5.Flex` is available in Ashburn, the project already depends on `oci>=2.170.0`, and a public subnet named `public subnet-bts-audit-vcn` exists with public IP assignment allowed. `scripts/audit_driver.py` can now read the subnet OCID from macOS Keychain entry `oci-subnet-ocid`, env var `BTS_SECRET_OCI_SUBNET_OCID`, or env var `OCI_SUBNET_OCID`. That value still must be supplied before running the one-seed canary; the 2026-05-07 verification found the Keychain entry missing and did not prove the env path was populated.
 
-Using the full 30-box OCI quota also likely needs a small driver change. The current `OCIProvider.create()` resolves all ADs, but each create attempt starts from the first AD and treats exhausted `LimitExceeded` retries as fatal instead of trying the next AD. That is acceptable for 1-4 box canaries, but scaling beyond roughly 10 E5 boxes needs explicit AD spreading or LimitExceeded fallback to reach the verified cross-AD capacity.
+Using the full 30-box OCI quota also needs live launch evidence, not only read-only quota math. `OCIProvider.create()` now rotates successful launches across resolved ADs and treats exhausted `LimitExceeded`, `OutOfCapacity`, and transient 5xx launch failures as next-AD fallbacks. That makes the driver eligible for a multi-AD canary, but scaling beyond roughly 10 E5 boxes still requires a live canary proving subnet compatibility, artifact retrieval, teardown, and provider provenance across ADs.
 
 ## Pricing Snapshot
 
@@ -75,9 +75,9 @@ If OCI runtime matches Hetzner's `14.10h/seed` anchor, plausible acceleration lo
 
 | Variant | Shape | Raw compute sensitivity | Wall-clock sensitivity | Extra blockers |
 | --- | --- | ---: | ---: | --- |
-| Medium acceleration | 48 seeds on 5 Hetzner + 4 OCI | about `$156` | about `3.1` days before deterministic-runtime buffer | Does not need full cross-AD scaling, but still needs `oci-subnet-ocid` and one-seed retrieval canary. |
+| Medium acceleration | 48 seeds on 5 Hetzner + 4 OCI | about `$156` | about `3.1` days before deterministic-runtime buffer | Does not need full cross-AD scaling, but still needs `oci-subnet-ocid` via Keychain/env and one-seed retrieval canary. |
 | Luxury balanced | 48 seeds on 5 Hetzner + 4 OCI, plus 52 Vultr seeds on 26 Vultr boxes | about `$1,098` | about `3.2` days before deterministic-runtime buffer | Same as medium acceleration; keeps Vultr provider-diversity leg. |
-| Luxury OCI-heavy | 100 seeds on 5 Hetzner + 20 OCI | about `$476` | about `2.4` days before deterministic-runtime buffer | Requires multi-box OCI canary and driver AD-spreading support. |
+| Luxury OCI-heavy | 100 seeds on 5 Hetzner + 20 OCI | about `$476` | about `2.4` days before deterministic-runtime buffer | Requires a multi-box OCI canary proving the driver's AD-rotation/fallback path in live launch and retrieval conditions. |
 
 If OCI runtime lands closer to Vultr than Hetzner, these wall-clock and cost sensitivities degrade. Do not use the OCI variants as budget commitments until the canary supplies measured runtime, retrieve status, determinism metadata, and provider provenance.
 
@@ -164,14 +164,14 @@ Activation blockers: candidate intake, authorized live resource inventory, and s
 
 Vultr cap check: the all-Vultr raw compute estimate is about `$1,810`, but a `10%`-`20%` deterministic-runtime buffer plus provisioning/retry overhead can push the launch close to the user-reported `$2500` ceiling. Re-quote before provisioning.
 
-Capacity feasibility: the default luxury allocation fits inside the current Hetzner `5`-machine cap and Vultr `30`-machine cap, using 5 Hetzner boxes and 26 Vultr boxes. A 100-seed all-Vultr burst also fits the 30-machine cap, but must be re-costed against the `$2500` ceiling immediately before launch. Verified OCI E5 quota supports up to 30 planned OCI boxes across Ashburn, but OCI remains opt-in until launch readiness, canary evidence, and driver AD-spreading for variants above about 10 OCI boxes.
+Capacity feasibility: the default luxury allocation fits inside the current Hetzner `5`-machine cap and Vultr `30`-machine cap, using 5 Hetzner boxes and 26 Vultr boxes. A 100-seed all-Vultr burst also fits the 30-machine cap, but must be re-costed against the `$2500` ceiling immediately before launch. Verified OCI E5 quota supports up to 30 planned OCI boxes across Ashburn, and the driver now has AD-rotation/fallback support, but OCI remains opt-in until launch readiness, canary evidence, and live multi-AD verification for variants above about 10 OCI boxes.
 
 OCI inclusion rule:
 
 - live `VM.Standard.E5.Flex` capacity: verified read-only on 2026-05-07, re-check if stale at launch time
-- credentials/launch readiness: outstanding; `~/.oci/config` works, but `oci-subnet-ocid` was missing from Keychain
+- credentials/launch readiness: outstanding; `~/.oci/config` works, and `oci-subnet-ocid` can come from Keychain, `BTS_SECRET_OCI_SUBNET_OCID`, or `OCI_SUBNET_OCID`, but the subnet secret has not been confirmed present in a launch context
 - one-seed retrieval canary: outstanding; must finish end-to-end before scaling
-- AD spreading or LimitExceeded-to-next-AD fallback: outstanding before requesting more than about 10 OCI E5 boxes
+- AD spreading or LimitExceeded-to-next-AD fallback: driver support exists, but live multi-AD launch/retrieval verification is outstanding before requesting more than about 10 OCI E5 boxes
 - determinism/provider tags: outstanding; keep OCI out of the pooled luxury result unless tags are recorded
 
 The OCI one-seed retrieval canary is a small spend if it runs at the planned shape: `1 seed * 14.10h/seed * $0.3984/h = $5.62`, before overhead.
