@@ -98,6 +98,21 @@ def _save_json(data: dict, path: Path) -> None:
     path.write_text(json.dumps(data, indent=2, default=_json_default))
 
 
+def attach_split_metadata(
+    payload: dict,
+    split_metadata: dict | None,
+    artifact_role: str,
+) -> dict:
+    """Return payload with opt-in validation split metadata attached."""
+    if split_metadata is None:
+        return payload
+    tagged = dict(payload)
+    metadata = dict(split_metadata)
+    metadata["artifact_role"] = artifact_role
+    tagged["validation_split"] = metadata
+    return tagged
+
+
 # ---------------------------------------------------------------------------
 # Phase 0 — Diagnostics
 # ---------------------------------------------------------------------------
@@ -198,6 +213,8 @@ def run_single_screening(
     baseline_profiles: pd.DataFrame | None = None,
     use_factored: bool = False,
     blend_cache_dir: Path | None = None,
+    split_metadata: dict | None = None,
+    artifact_role: str = "selection_only",
 ) -> dict:
     """Run a single Phase 1 experiment: walk-forward → scorecard → diff → pass/fail.
 
@@ -223,6 +240,25 @@ def run_single_screening(
 
     Returns dict with keys: scorecard, diff, passed, reason, name.
     """
+    def _tag_result(result: dict) -> dict:
+        if split_metadata is None:
+            return result
+        tagged = dict(result)
+        if isinstance(tagged.get("scorecard"), dict):
+            tagged["scorecard"] = attach_split_metadata(
+                tagged["scorecard"], split_metadata, artifact_role
+            )
+            _save_json(
+                tagged["scorecard"],
+                results_dir / experiment.name / "scorecard.json",
+            )
+        if isinstance(tagged.get("diff"), dict):
+            tagged["diff"] = attach_split_metadata(
+                tagged["diff"], split_metadata, artifact_role
+            )
+            _save_json(tagged["diff"], results_dir / experiment.name / "diff.json")
+        return tagged
+
     if use_factored:
         import sys as _sys
         from bts.experiment.runner_factored import (
@@ -234,9 +270,9 @@ def run_single_screening(
         strat_ok, _ = _is_eligible_for_strategy_fast_path(experiment)
         if strat_ok:
             if baseline_profiles is not None:
-                return run_strategy_experiment_fast(
+                return _tag_result(run_strategy_experiment_fast(
                     experiment, baseline_profiles, baseline_scorecard, results_dir,
-                )
+                ))
             # Strategy-eligible but caller forgot baseline_profiles. This is
             # a silent regression to the slow path — warn loudly so it shows
             # up in audit logs (especially after Task 7b flips default to True).
@@ -247,10 +283,10 @@ def run_single_screening(
             )
         model_swap_ok, _ = _is_eligible_for_model_swap_fast_path(experiment)
         if model_swap_ok:
-            return run_model_swap_experiment_fast(
+            return _tag_result(run_model_swap_experiment_fast(
                 experiment, pa_df, baseline_scorecard, test_seasons, results_dir,
                 retrain_every=retrain_every, cache_dir=blend_cache_dir,
-            )
+            ))
         # Fall through to current implementation when:
         # - experiment is not eligible for any fast path
         # - strategy-eligible but baseline_profiles=None (warned above)
@@ -320,6 +356,8 @@ def run_single_screening(
     scorecard = compute_full_scorecard(combined_profiles)
     diff = diff_scorecards(baseline_scorecard, scorecard)
     passed, reason = evaluate_pass_fail(diff)
+    scorecard = attach_split_metadata(scorecard, split_metadata, artifact_role)
+    diff = attach_split_metadata(diff, split_metadata, artifact_role)
 
     # Save results
     exp_dir = results_dir / experiment.name
@@ -351,6 +389,8 @@ def run_screening(
     baseline_profiles: pd.DataFrame | None = None,
     use_factored: bool = False,
     blend_cache_dir: Path | None = None,
+    split_metadata: dict | None = None,
+    artifact_role: str = "selection_only",
 ) -> list[dict]:
     """Run Phase 1 screening for all experiments.
 
@@ -370,6 +410,8 @@ def run_screening(
             baseline_profiles=baseline_profiles,
             use_factored=use_factored,
             blend_cache_dir=blend_cache_dir,
+            split_metadata=split_metadata,
+            artifact_role=artifact_role,
         )
         results.append(result)
     return results
@@ -404,6 +446,8 @@ def run_selection(
     seeds: list[int] | None = None,
     keep_t_threshold: float = 1.5,
     min_effect_size: float | None = None,
+    outer_eval_seasons: list[int] | None = None,
+    split_metadata: dict | None = None,
 ) -> dict:
     """Run Phase 2: forward stepwise selection + backward elimination.
 
@@ -432,6 +476,10 @@ def run_selection(
             regardless of t-stat if ``|mean| >= min_effect_size``. Useful
             when n is small enough that t-stat is low-power but the
             effect itself is large. None disables this branch.
+        outer_eval_seasons: Optional disjoint season list used once after
+            selection decisions are complete.
+        split_metadata: Optional metadata copied into selection and
+            outer-evaluation artifacts.
 
     Returns:
         Dict with forward_log, backward_log, final_scorecard, final_diff, included.
@@ -450,10 +498,10 @@ def run_selection(
         file=sys.stderr,
     )
 
-    def _walk(df, blend_configs, lgb_params, capture):
-        """Run walk-forward across all test_seasons with the given blend args."""
+    def _walk(df, blend_configs, lgb_params, capture, seasons):
+        """Run walk-forward across the supplied seasons with the given blend args."""
         out = []
-        for season in test_seasons:
+        for season in seasons:
             profiles = blend_walk_forward(
                 df, season,
                 retrain_every=retrain_every,
@@ -465,13 +513,14 @@ def run_selection(
             out.append(profiles)
         return pd.concat(out, ignore_index=True)
 
-    def _evaluate(df, stacked_experiments):
+    def _evaluate(df, stacked_experiments, seasons=None):
         """Run walk-forward + scorecard at each seed in eval_seeds.
 
         Returns (mean_p57, p57_per_seed_dict, scorecard_at_first_seed).
         scorecard_at_first_seed is the scorecard from the first seed, used
         for downstream diff/save (matching pre-existing single-seed semantics).
         """
+        seasons_to_run = test_seasons if seasons is None else seasons
         bc, lp, cap = compose_blend_args(stacked_experiments)
         p57_per_seed = {}
         first_scorecard = None
@@ -482,7 +531,7 @@ def run_selection(
                 prev_env = os.environ.get("BTS_LGBM_RANDOM_STATE")
                 os.environ["BTS_LGBM_RANDOM_STATE"] = str(seed)
             try:
-                combined = _walk(df, bc, lp, cap)
+                combined = _walk(df, bc, lp, cap, seasons_to_run)
             finally:
                 if seed is not None:
                     if prev_env is None:
@@ -647,21 +696,79 @@ def run_selection(
     final_stacked = [experiments_by_name[n] for n in included]
     final_p57, final_p57_per_seed, final_scorecard, _ = _evaluate(final_df, final_stacked)
     final_diff = diff_scorecards(baseline_scorecard, final_scorecard)
+    baseline_scorecard = attach_split_metadata(
+        baseline_scorecard, split_metadata, "selection_only"
+    )
+    final_scorecard = attach_split_metadata(
+        final_scorecard, split_metadata, "selection_only"
+    )
+    final_diff = attach_split_metadata(final_diff, split_metadata, "selection_only")
+
+    outer_baseline_scorecard = None
+    outer_eval_scorecard = None
+    outer_eval_diff = None
+    outer_eval_p57_per_seed = None
+    if outer_eval_seasons is not None:
+        _, _, outer_baseline_scorecard, _ = _evaluate(pa_df, [], outer_eval_seasons)
+        _, outer_eval_p57_per_seed, outer_eval_scorecard, _ = _evaluate(
+            final_df, final_stacked, outer_eval_seasons
+        )
+        outer_eval_diff = diff_scorecards(outer_baseline_scorecard, outer_eval_scorecard)
+        outer_baseline_scorecard = attach_split_metadata(
+            outer_baseline_scorecard, split_metadata, "outer_evaluation"
+        )
+        outer_eval_scorecard = attach_split_metadata(
+            outer_eval_scorecard, split_metadata, "outer_evaluation"
+        )
+        outer_eval_diff = attach_split_metadata(
+            outer_eval_diff, split_metadata, "outer_evaluation"
+        )
+
+    if split_metadata is not None:
+        forward_log = [
+            attach_split_metadata(step, split_metadata, "selection_only")
+            for step in forward_log
+        ]
+        backward_log = [
+            attach_split_metadata(step, split_metadata, "selection_only")
+            for step in backward_log
+        ]
 
     # Save
     results_dir.mkdir(parents=True, exist_ok=True)
     _save_json(forward_log, results_dir / "forward_selection_log.json")
     _save_json(backward_log, results_dir / "backward_elimination_log.json")
+    if split_metadata is not None:
+        _save_json(
+            attach_split_metadata({}, split_metadata, "selection_only"),
+            results_dir / "split_metadata.json",
+        )
+        save_scorecard(baseline_scorecard, results_dir / "baseline_scorecard.json")
     save_scorecard(final_scorecard, results_dir / "final_scorecard.json")
     _save_json(final_diff, results_dir / "final_diff.json")
+    if outer_eval_scorecard is not None and outer_eval_diff is not None:
+        save_scorecard(
+            outer_baseline_scorecard,
+            results_dir / "outer_eval_baseline_scorecard.json",
+        )
+        save_scorecard(outer_eval_scorecard, results_dir / "outer_eval_scorecard.json")
+        _save_json(outer_eval_diff, results_dir / "outer_eval_diff.json")
 
     print(f"\n  Final model: {included}", file=sys.stderr)
     print(f"  Final P(57): {final_scorecard.get('p_57_mdp', 'N/A')}", file=sys.stderr)
 
-    return {
+    result = {
         "included": included,
         "forward_log": forward_log,
         "backward_log": backward_log,
         "final_scorecard": final_scorecard,
         "final_diff": final_diff,
     }
+    if split_metadata is not None:
+        result["split_metadata"] = split_metadata
+    if outer_eval_scorecard is not None and outer_eval_diff is not None:
+        result["outer_eval_scorecard"] = outer_eval_scorecard
+        result["outer_eval_diff"] = outer_eval_diff
+        if outer_eval_p57_per_seed is not None:
+            result["outer_eval_p57_per_seed"] = outer_eval_p57_per_seed
+    return result

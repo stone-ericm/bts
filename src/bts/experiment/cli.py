@@ -8,6 +8,67 @@ import click
 
 
 RESULTS_BASE = Path("experiments/results")
+DEFAULT_TEST_SEASONS = "2024,2025"
+
+
+def _parse_season_list(value: str, flag_name: str) -> list[int]:
+    seasons: list[int] = []
+    for raw in value.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        try:
+            seasons.append(int(item))
+        except ValueError as exc:
+            raise click.UsageError(
+                f"{flag_name} must be a comma-separated list of integer seasons."
+            ) from exc
+    if not seasons:
+        raise click.UsageError(f"{flag_name} must include at least one season.")
+    if len(set(seasons)) != len(seasons):
+        raise click.UsageError(f"{flag_name} must not contain duplicate seasons.")
+    return seasons
+
+
+def _resolve_season_split(
+    *,
+    test_seasons: str | None,
+    selection_seasons: str | None,
+    outer_eval_seasons: str | None,
+) -> tuple[list[int], list[int] | None, dict | None]:
+    """Resolve legacy or opt-in split season arguments."""
+    has_selection = selection_seasons is not None
+    has_outer = outer_eval_seasons is not None
+    if has_selection != has_outer:
+        raise click.UsageError(
+            "--selection-seasons and --outer-eval-seasons must be supplied together."
+        )
+    if has_selection and test_seasons is not None:
+        raise click.UsageError(
+            "--test-seasons cannot be combined with --selection-seasons/--outer-eval-seasons."
+        )
+
+    if has_selection and selection_seasons is not None and outer_eval_seasons is not None:
+        selection = _parse_season_list(selection_seasons, "--selection-seasons")
+        outer = _parse_season_list(outer_eval_seasons, "--outer-eval-seasons")
+        overlap = sorted(set(selection) & set(outer))
+        if overlap:
+            raise click.UsageError(
+                "--selection-seasons and --outer-eval-seasons must be disjoint; "
+                f"overlap: {overlap}"
+            )
+        metadata = {
+            "split_mode": "season_level_selection_outer_eval",
+            "selection_seasons": selection,
+            "outer_eval_seasons": outer,
+            "lockbox_used": False,
+            "lockbox_manifest": None,
+            "production_deploy_claim": False,
+        }
+        return selection, outer, metadata
+
+    seasons = _parse_season_list(test_seasons or DEFAULT_TEST_SEASONS, "--test-seasons")
+    return seasons, None, None
 
 
 @click.group()
@@ -59,7 +120,21 @@ def diagnostics(data_dir: str, profiles_dir: str):
 @click.option("--data-dir", default="data/processed", type=click.Path())
 @click.option("--subset", default=None, help="Comma-separated experiment names to run")
 @click.option("--retrain-every", default=7, type=int)
-@click.option("--test-seasons", default="2024,2025", help="Comma-separated test seasons")
+@click.option(
+    "--test-seasons",
+    default=None,
+    help="Comma-separated test seasons for the legacy path (default: 2024,2025)",
+)
+@click.option(
+    "--selection-seasons",
+    default=None,
+    help="Comma-separated seasons used for opt-in feature/model selection.",
+)
+@click.option(
+    "--outer-eval-seasons",
+    default=None,
+    help="Comma-separated later seasons reserved for the final outer evaluation.",
+)
 @click.option(
     "--use-factored/--no-use-factored",
     default=True,
@@ -93,7 +168,9 @@ def screen(
     data_dir: str,
     subset: str | None,
     retrain_every: int,
-    test_seasons: str,
+    test_seasons: str | None,
+    selection_seasons: str | None,
+    outer_eval_seasons: str | None,
     use_factored: bool,
     blend_cache_dir: str | None,
     seeds: str | None,
@@ -134,7 +211,11 @@ def screen(
         )
 
     load_all_experiments()
-    seasons = [int(s.strip()) for s in test_seasons.split(",")]
+    seasons, outer_seasons, split_metadata = _resolve_season_split(
+        test_seasons=test_seasons,
+        selection_seasons=selection_seasons,
+        outer_eval_seasons=outer_eval_seasons,
+    )
 
     if subset:
         experiments = [get_experiment(n.strip()) for n in subset.split(",")]
@@ -145,7 +226,13 @@ def screen(
         click.echo("No Phase 1 experiments to run.")
         return
 
-    click.echo(f"Screening {len(experiments)} experiments on seasons {seasons}")
+    if split_metadata is None:
+        click.echo(f"Screening {len(experiments)} experiments on seasons {seasons}")
+    else:
+        click.echo(
+            f"Screening {len(experiments)} experiments on selection seasons {seasons}; "
+            f"outer-eval seasons reserved for final stack: {outer_seasons}"
+        )
 
     proc = Path(data_dir)
     dfs = [pd.read_parquet(p) for p in sorted(proc.glob("pa_*.parquet"))]
@@ -157,7 +244,7 @@ def screen(
         baseline_path = results_dir / "baseline_scorecard.json"
         baseline_combined: pd.DataFrame | None = None
 
-        if baseline_path.exists() and not use_factored:
+        if baseline_path.exists() and not use_factored and split_metadata is None:
             baseline_scorecard = json.loads(baseline_path.read_text())
             click.echo(f"  Loaded cached baseline scorecard from {baseline_path}.")
         else:
@@ -175,6 +262,12 @@ def screen(
                 baseline_profiles_list.append(profiles)
             baseline_combined = pd.concat(baseline_profiles_list, ignore_index=True)
             baseline_scorecard = compute_full_scorecard(baseline_combined)
+            if split_metadata is not None:
+                from bts.experiment.runner import attach_split_metadata
+
+                baseline_scorecard = attach_split_metadata(
+                    baseline_scorecard, split_metadata, "selection_only"
+                )
             save_scorecard(baseline_scorecard, baseline_path)
 
         return run_screening(
@@ -183,6 +276,8 @@ def screen(
             baseline_profiles=baseline_combined if use_factored else None,
             use_factored=use_factored,
             blend_cache_dir=Path(blend_cache_dir) if blend_cache_dir else None,
+            split_metadata=split_metadata,
+            artifact_role="selection_only",
         )
 
     if seed_list is None:
@@ -211,7 +306,21 @@ def screen(
 @experiment.command()
 @click.option("--data-dir", default="data/processed", type=click.Path())
 @click.option("--retrain-every", default=7, type=int)
-@click.option("--test-seasons", default="2024,2025")
+@click.option(
+    "--test-seasons",
+    default=None,
+    help="Comma-separated test seasons for the legacy path (default: 2024,2025)",
+)
+@click.option(
+    "--selection-seasons",
+    default=None,
+    help="Comma-separated seasons used for opt-in feature/model selection.",
+)
+@click.option(
+    "--outer-eval-seasons",
+    default=None,
+    help="Comma-separated later seasons reserved for the final outer evaluation.",
+)
 @click.option(
     "--seeds",
     default=None,
@@ -247,7 +356,9 @@ def screen(
 def select(
     data_dir: str,
     retrain_every: int,
-    test_seasons: str,
+    test_seasons: str | None,
+    selection_seasons: str | None,
+    outer_eval_seasons: str | None,
     seeds: str | None,
     seed_set: str | None,
     keep_t_threshold: float,
@@ -265,7 +376,11 @@ def select(
     from bts.experiment.reporting import format_phase2_log
 
     load_all_experiments()
-    seasons = [int(s.strip()) for s in test_seasons.split(",")]
+    seasons, outer_seasons, split_metadata = _resolve_season_split(
+        test_seasons=test_seasons,
+        selection_seasons=selection_seasons,
+        outer_eval_seasons=outer_eval_seasons,
+    )
 
     phase1_dir = RESULTS_BASE / "phase1"
     results = []
@@ -289,7 +404,13 @@ def select(
         click.echo("No winners from Phase 1. Nothing to select.")
         return
 
-    click.echo(f"Forward selection with {len(winners)} winners")
+    if split_metadata is None:
+        click.echo(f"Forward selection with {len(winners)} winners")
+    else:
+        click.echo(
+            f"Forward selection with {len(winners)} winners on selection seasons {seasons}; "
+            f"outer-eval seasons reserved for final stack: {outer_seasons}"
+        )
 
     proc = Path(data_dir)
     dfs = [pd.read_parquet(p) for p in sorted(proc.glob("pa_*.parquet"))]
@@ -325,6 +446,8 @@ def select(
         seeds=seed_list,
         keep_t_threshold=keep_t_threshold,
         min_effect_size=min_effect_size,
+        outer_eval_seasons=outer_seasons,
+        split_metadata=split_metadata,
     )
 
     click.echo(format_phase2_log(selection_result))
