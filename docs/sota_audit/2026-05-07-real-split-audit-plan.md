@@ -36,6 +36,8 @@ If any row is missing, stop before compute.
 
 Do the resource/provenance inventory before setting seed count, parallelism, deadline, or provider allocation. The inventory should be saved as a durable artifact, for example `docs/sota_audit/<date>-split-audit-cloud-inventory.md` plus an optional JSON summary.
 
+Compute tier options are scoped in `docs/sota_audit/2026-05-07-split-audit-budget-options.md`.
+
 Current local knowledge:
 
 | Provider | Driver default | Existing local surfaces | Current use in plan |
