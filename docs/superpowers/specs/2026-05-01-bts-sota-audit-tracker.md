@@ -2,7 +2,7 @@
 
 **Date created**: 2026-05-01
 **Last updated**: 2026-05-06 (post-MDP objective audit + DR-MDP gap screen)
-**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04) — but full SOTA targets for #13/#14/#15 remain open. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface.
+**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04); full-SOTA variants for #13/#14/#15 remain conditional/deferred rather than immediate blockers. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface. #5 has opt-in season-level split support for experiment runner adoption. #11 conformal-gate v2 exists and currently blocks deploy because `ship_set=[]`, not because binary-y validation is unimplemented.
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
@@ -17,7 +17,7 @@ This document is the operating tracker for the audit. It's structured for rollin
 - v2.5 point-estimate attribution survives with precise framing: B (per-bin rho_pair) and C (per-fold MDP solve) each shift +1.67pp single-mode; combined B+C shift +2.50pp via one extra 2023 fold success. A (fold-local params) has no observable effect at current resolution AND is ~3.5× slower in this runner — keep A as leakage-hygiene methodology for final audits, use pooled for exploratory screens.
 - See `docs/sota_audit/2026-05-03-harness-v2.5-attribution.md` for full memo + v2.6 addendum.
 
-**What v2.6 did NOT close**: areas #13 (OPE), #14 (rare-event MC), and #15 (PA/cross-game dependence modeling) shipped **v1 simplifications** inside the Task 13 falsification harness, but their full SOTA targets remain open: **#13 sequential DR/FQE remains open; #14 richer per-step/per-action CE-IS or subset-simulation variants remain deferred; #15 fuller out-of-fold PA/cross-game residual-dependence modeling remains open.** Areas #5 (nested CV/lockbox) and #11 (binary-y conformal validation) remain open. #12 is no longer unstarted: phase 1 proper scoring, phase 2 realized-picks calibration, phase 3 realized-picks attribution, and the realized-picks FDR baseline have shipped, but the current-model sample remains too small for a deployable calibration verdict. **The falsification-harness path is NOT complete; it has a CI-robustness piece shipped on top of v1 simplifications.**
+**What v2.6 did NOT close**: areas #13 (OPE), #14 (rare-event MC), and #15 (PA/cross-game dependence modeling) shipped **v1 simplifications** inside the Task 13 falsification harness, but their full SOTA variants remain open conditionally: **#13 sequential DR/FQE remains deferred; #14 richer per-step/per-action CE-IS or subset-simulation variants remain deferred; #15 fuller out-of-fold PA/cross-game residual-dependence modeling remains deferred.** These should be implemented when a new policy candidate or split audit produces a deployment-grade question the v1 harness cannot answer. #5 now has opt-in experiment-runner split support; adoption on real candidate artifacts is still pending. #11 has conformal-gate v2 infrastructure and a current `NO_PRODUCTION_DEPLOY` result. #12 is no longer unstarted: phase 1 proper scoring, phase 2 realized-picks calibration, phase 3 realized-picks attribution, and the realized-picks FDR baseline have shipped, but the current-model sample remains too small for a deployable calibration verdict.
 
 **Current production recommendation**: keep policy as-is. The harness work has not produced grounds to redeploy.
 
@@ -79,6 +79,15 @@ This document is the operating tracker for the audit. It's structured for rollin
 **Result**: current artifacts do not provide a direct paired bound on nondeterminism inside the pooled-policy seed gaps. The n=100 deterministic baseline shows no detectable P(57) distribution shift versus the prior non-deterministic baseline summary (`mean_delta=-0.000003`, `z_vs_prior_std=-0.000204`), but that is a distribution-level screen, not the C0 pooled-policy A/B estimand. The post-cutover deterministic feature screen also shows substantial deterministic seed variation: median per-experiment `delta_p_57_mdp` std `0.015771`, with `21/32` feature experiments at or above the C0 LOO gap std `0.012666`.
 
 **Verdict**: C0 remains `positive_screen_unchanged`, but the determinism/provenance caveat is not resolved. The iid-seed determinism contribution is `not_evaluable_from_existing_artifacts`; a direct bound requires paired same-seed deterministic/non-deterministic reruns on the same pooled-policy gap estimand or embedded deterministic/provider metadata in the raw surfaces.
+
+## SOTA closeout posture before real split audit — 2026-05-06
+
+Before running a real split audit on a deployable candidate stack, finish or explicitly park the remaining SOTA items that can change the audit's evidentiary standard:
+
+1. **#10 pooled-policy uncertainty layer**: still the next active implementation item. The existing saved 24-seed gap is positive, but the profile-level day-block bootstrap / provenance question is not resolved.
+2. **#7 audit-level multiple-testing control**: realized-picks BH/BY baseline exists, but valid e-values/e-processes or an honest permutation/FDR layer for sequential audit verdicts remains open.
+3. **#16/#17 candidate-generation methods**: decide whether lightweight decision-aware learning or model-class bakeoff must precede the split audit, or explicitly park them as post-audit candidate-generation work.
+4. **Conditional full-SOTA variants for #13/#14/#15**: keep deferred unless #10, #16, #17, or another candidate creates a deployment-grade policy comparison the v1 falsification harness cannot answer.
 
 ## Audit framework
 
@@ -179,13 +188,14 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ### 7. Multiple testing across audits — e-BH / online FDR
 
-- **Current**: Nothing applied. Phase 1's "8 unshipped KEEPs all DROPped against bpm-baseline" is partly explainable as multiple-testing inflation that wasn't controlled for.
+- **Status update 2026-05-06**: A p-value BH/BY baseline shipped for realized-picks attribution cells in PR #23 (`src/bts/validate/fdr.py`, `tests/validate/test_fdr.py`, `scripts/run_realized_picks_fdr.py`, `docs/sota_audit/2026-05-05-realized-picks-fdr.md`, `data/validation/realized_picks_fdr_2026-05-05.json`). That artifact tested the Cut C family (`m=22`) and found all `q_BH = q_BY = 1.000`. This is useful as a classical FDR baseline, but it does **not** close the #7 e-BH / online-FDR target: `1/p` is not a valid e-value construction here, and no sequential audit-level e-process has been designed.
+- **Current**: Classical p-value FDR support exists for realized-picks attribution families. Audit-level sequential multiple-testing control is still absent. Phase 1's "8 unshipped KEEPs all DROPped against bpm-baseline" remains partly explainable as multiple-testing inflation that was not controlled for.
 - **SOTA target**: **e-BH / online FDR** for sequential audits (Wang & Ramdas 2022). **Knockoffs** (Barber & Candès 2015) attractive in principle but hard under temporal dependence. **Randomization/permutation tests** around the whole audit pipeline. Classical BH (1995) and Storey q-values (2002) are baselines, not SOTA.
 - **Speculative ΔP(57)**: 0.0pp directly; honest interpretation of which features ARE legitimate KEEPs vs noise. May trigger re-investigation of historically-shipped features.
 - **Effort**: S (BH/eBH is one function call given an array of p-values or e-values).
 - **Prerequisites**: None.
-- **Status**: unstarted.
-- **Next action**: Run e-BH retrospectively on the audit verdicts collected in `experiments/results/`. Surface findings: how many shipped features survive FDR correction at q=0.05?
+- **Status**: classical p-value baseline shipped for realized-picks attribution / e-BH and online-FDR deferred.
+- **Next action**: Do not claim e-BH complete from the realized-picks BH/BY baseline. First design a valid e-value/e-process or permutation-test layer for audit verdicts collected in `experiments/results/`, then surface how many historically shipped features survive the chosen FDR correction at q=0.05.
 
 ### 8. Streaming calibration alert — ACI / RCPS
 
@@ -222,7 +232,7 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Speculative ΔP(57)**: +0.2–0.5pp variance reduction; potentially more if combined with #1 (CVaR-MDP) which can directly use ensemble variance.
 - **Effort**: M
 - **Prerequisites**: Compute budget for multi-seed daily training (~10x current cost); #12 proper-scoring suite for stacking weights.
-- **Status**: unstarted; rejection from 2026-04-29 should be re-evaluated.
+- **Status**: pooled-policy screen positive / production cutover not cleared; predictive-stacking implementation still unstarted.
 - **Next action**: Decide whether the next increment should be the heavier profile-level day-block bootstrap on the raw 24-seed surface, or a different bin-side lever. Keep predictive stacking / pooled-prediction cutover separate until proper-scoring evidence clears the 2026-04-29 Brier failure.
 
 ### 11. Validation methodology for binary classification calibrators
@@ -233,8 +243,8 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Speculative ΔP(57)**: 0.0pp directly; unblocks the conformal v1 ship which then enables #8 + parts of #1.
 - **Effort**: M
 - **Prerequisites**: None (the parked conformal v1 branch has the calibrator infrastructure ready).
-- **Status**: surfaced 2026-05-01 evening when validation gate fired 0/6 SHIP. unstarted.
-- **Next action**: Brainstorm session on binary-y validation methodology specifically. Read Sesia & Romano 2021 + Vovk's class-conditional conformal. Redesign `evaluate_fold` to use per-bucket coverage + reliability diagram + Brier decomposition. Re-run gate; if non-empty SHIP set, unblock conformal v1 deploy.
+- **Status**: conformal-gate v2 shipped / production deploy blocked by empty `ship_set`.
+- **Next action**: Do not revisit the old per-row coverage gate. Re-run this area only when a non-empty method/alpha candidate appears or a new calibration method is proposed; use #12 proper-scoring and decision/selectable-row diagnostics as the supporting evidence before unblocking any conformal lower-bound deploy.
 
 ---
 
@@ -255,26 +265,26 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Status (2026-05-02)**: SHIPPED as part of the Task 13 falsification harness. `bts.validate.ope` module includes `audit_fixed_policy` (frozen-policy held-out), `audit_pipeline` (LOSO refit + re-solve per fold), `corrected_audit_pipeline` (LOSO with global corrected policy), paired hierarchical block bootstrap, and policy regret table. Real-data run on 24-seed × 5-season backtest verdict: HEADLINE_BROKEN. v1 simplification: terminal-reward MC, not full sequential DR; documented inline.
 
 
-- **Current**: MDP policy is offline-trained on walk-forward predictions; "evaluation" is `evaluate_mdp_policy` which uses the same point-estimate value function the policy was solved against (not honest cross-validated policy value).
+- **Current**: `bts.validate.ope` now provides the v1 falsification-harness OPE path: frozen-policy held-out audit, LOSO pipeline refit/re-solve, corrected-pipeline audit, paired hierarchical block bootstrap, and policy regret tables. This is stronger than the old `evaluate_mdp_policy` self-score, but it remains terminal-reward MC rather than full sequential DR-OPE or per-decision IS.
 - **SOTA target**: **Doubly-robust OPE** (Jiang & Li 2016 "Doubly Robust Off-policy Value Evaluation"); **per-decision IS estimators** (Precup et al. 2000); **Q-evaluation with held-out fitted Q**; **policy regret against baseline policies**; **uncertainty intervals around policy value** (bootstrap or bayes). The MDP layer is a fully offline batch-RL problem and should be evaluated as such.
 - **Speculative ΔP(57)**: 0.0pp directly; foundational. Currently we **can't honestly compare** a CVaR-MDP policy to vanilla VI without OPE infra. Also: this is the right place to find out if the 8.17% claim is real (component of the falsification harness).
 - **Effort**: M
 - **Prerequisites**: None.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). **Hard prerequisite for area #1 and the falsification harness.**
-- **Next action**: Read Jiang & Li 2016. Design DR-OPE estimator over the existing walk-forward backtest profiles. Include policy-regret bounds against (a) "always-skip" baseline, (b) "always-rank1" baseline, (c) the heuristic strategy.
+- **Status**: v1 falsification harness shipped / full sequential DR-OPE deferred.
+- **Next action**: Only implement full sequential DR-OPE or per-decision IS if a policy candidate needs deployment-grade comparison beyond the current harness. Until then, use the existing `bts.validate.ope` harness and keep its v1 simplification documented in any production argument.
 
 ### 14. (NEW, 2026-05-01 evening) Rare-event Monte Carlo with variance reduction  [✅ shipped 2026-05-02 — falsification harness Task 13]
 
 - **Status (2026-05-02)**: SHIPPED as `bts.simulate.rare_event_mc` — direct deterministic-theta CE-IS sampler (bypassing the planned LatentFactorSimulator after a structural-bug discovery; documented), unbiasedness gate validated against `bts.simulate.exact`. Real-data verdict from harness: rare_event_ce_p57 = 0.0034 [0.0025, 0.0045], independently corroborates the HEADLINE_BROKEN verdict (the CE-IS estimate is even lower than the corrected pipeline estimate). v1 fits only theta_0 constant logit shift; per-step / per-action tilt deferred to v1.5.
 
 
-- **Current**: P(57) estimated via straightforward Monte Carlo (`bts.simulate.monte_carlo`) and analytical absorbing Markov chain (`exact.py`). Bootstrap CIs reported but use naive sampling that may undercount variance for an extreme survival probability.
+- **Current**: `bts.simulate.rare_event_mc` provides a deterministic-theta CE-IS sampler and unbiasedness tests against `bts.simulate.exact`. Naive MC and analytical absorbing-chain estimates still exist; richer variance-reduction variants are not implemented.
 - **SOTA target**: **Cross-entropy importance sampling** (Rubinstein 1997, Rubinstein & Kroese 2017); **subset simulation** (Au & Beck 2001); **multilevel Monte Carlo** (Giles 2008) if applicable. P(57) is an extreme survival event — naive MC needs ~10^4-10^5 trials to estimate with reasonable variance, and correlated game-day outcomes inflate variance further.
 - **Speculative ΔP(57)**: 0.0pp directly; provides honest CIs around the 8.17% number. **Critical component of the falsification harness** — if the honest CI on 8.17% is `[2pp, 14pp]` rather than the implied tight band, that changes the audit posture entirely.
 - **Effort**: M
 - **Prerequisites**: None.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). Component of the falsification harness.
-- **Next action**: Read Rubinstein-style CE methods + Au & Beck subset simulation. Implement `bts.simulate.rare_event_mc` with cross-entropy IS for P(57). Compare CIs against current naive-MC CIs.
+- **Status**: CE-IS v1 shipped / advanced tilts deferred.
+- **Next action**: Add per-step/per-action tilt, subset simulation, or multilevel MC only if the current CE-IS CI or methodology sensitivity becomes a blocker for the real split audit or a deployment-grade policy comparison.
 
 ### 15. (NEW, 2026-05-01 evening) PA-independence and cross-game dependence modeling  [✅ shipped 2026-05-02 — falsification harness Task 13 (v1) + Issue #7 (v2)]
 
@@ -287,13 +297,13 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Status (v1, 2026-05-02)**: SHIPPED as `bts.validate.dependence` — Pearson residuals + within-batter-game residual correlation via cluster bootstrap, logistic-normal random-intercept fit (cross-pair products + brentq inversion, NOT the textbook `tau^2 ≈ var-1` which Codex round 2 caught as backwards), cross-game pair-residual permutation test, and `build_corrected_transition_table` (two-knob mean correction). Real-data findings: rho_PA_within_game = 0.0012 [0.0009, 0.0015] (small but nonzero), rho_pair_cross_game = -0.0074 [-0.0607, 0.0476] (essentially zero). The PA-correction collapses corrected_pipeline_p57 by ~10× — this is the dominant signal that drove the v1 HEADLINE_BROKEN verdict, partly relaxed in v2 to HEADLINE_REDUCED.
 
 
-- **Current**: Game-level aggregation `1 - prod(1 - p_PA)` assumes conditional PA independence given features. Double-down policy treats two games as independent. Neither assumption is tested.
+- **Current**: v1/v2/v2.5/v2.6 dependence harnesses test and model parts of PA and cross-game dependence: residual correlation diagnostics, within-batter-game bootstrap, logistic-normal random-intercept correction, cross-game pair-residual permutation tests, per-bin `rho_pair`, fold-local parameter estimation, factorial attribution, and profile-level block-bootstrap CI. The remaining open target is fuller out-of-fold PA/cross-game residual-dependence modeling, not basic assumption testing.
 - **SOTA target**: **Test PA independence empirically** — fit a within-game-residual covariance model, compare to independent-baseline log-likelihood. **Test cross-game dependence** — same weather slate, same modeling errors, correlated bullpen availability, cross-game park effects on the same day. Methods: copula approaches; conditional residual models; permutation tests for independence (Romano 1989). Decision implication: if dependence is non-trivial, the double-down policy under-weights correlation risk and CVaR-MDP becomes more important.
 - **Speculative ΔP(57)**: -0.5 to +0.5pp depending on direction. May reduce the headline number (good — honest) and shift policy toward more conservative doubles.
 - **Effort**: M
 - **Prerequisites**: None.
-- **Status**: unstarted; surfaced 2026-05-01 evening (Codex review). Component of the falsification harness.
-- **Next action**: Design a within-game PA residual covariance test on backtest data. Then a cross-game day-correlation test on rank-1/rank-2 picks. Quantify the dependence and feed it into MDP simulation as variance inflation.
+- **Status**: v1/v2/v2.5/v2.6 shipped / full residual-dependence model deferred.
+- **Next action**: Build fuller out-of-fold residual/covariance modeling only if it blocks a new candidate audit or materially changes a deployment argument. Otherwise use the existing harness conclusions and carry the v1/v2 simplification caveats forward.
 
 ### 16. (NEW, 2026-05-01 evening) Decision-aware learning
 
