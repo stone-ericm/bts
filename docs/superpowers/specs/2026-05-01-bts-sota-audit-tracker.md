@@ -157,13 +157,14 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 
 ### 5. Validation methodology — nested purged blocked CV + lockbox
 
-- **Current**: Walk-forward CV (single fold-per-day) + multi-seed pooling for audits.
+- **Status update 2026-05-06**: #5 is no longer accurately described as unstarted. The manifest path shipped as `bts validate split-manifest` / `src/bts/validate/splits.py`, and manifest-bound validators (`scorecard --manifest`, `conformal-gate`, `policy-value-eval`, `rare-event-ce-is`) carry `lockbox_held_out` + `manifest_metadata`. A current split inventory is recorded at `data/validation/nested_cv_lockbox_inventory_2026-05-06.json`; summary memo: `docs/sota_audit/2026-05-06-nested-cv-lockbox-scoping.md`. Remaining #5 work is uniform adoption and nested tuning discipline, especially `bts experiment screen/select` and the falsification harness.
+- **Current**: Manifest-based rolling-origin CV + lockbox infrastructure exists and is tested, but not every validation/audit path consumes it. Feature/model selection still needs a time-respecting inner split before #5 can be called adoption-complete.
 - **SOTA target**: **Nested rolling-origin CV with purging/embargo** as the more general target (per Codex). **Combinatorial Purged CV** (López de Prado 2018) is finance-derived; useful but not the only SOTA. Plus **reverse-CV diagnostics** for selection-bias detection. Plus **untouched lockbox** (final season/month never seen during audit) for honest final assessment. **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) for selection-bias correction across audit batches.
 - **Speculative ΔP(57)**: 0.0pp directly; better honesty about which "shipped" features are real signal vs selection bias. **May shrink the historical 8.17% claim** when prior audits get re-evaluated.
 - **Effort**: M
 - **Prerequisites**: None (but compounds badly if started after lots of audits already executed — plan now).
-- **Status**: unstarted.
-- **Next action**: Read López de Prado 2018 ch. 7 + 14. **Carve a recent 2025 month-block as untouched lockbox before any further audit work.** Design retrofit into `bts.experiment.runner`.
+- **Status**: scoped / infrastructure-present; adoption incomplete.
+- **Next action**: Pick one non-uniform path and retrofit the contract: either add manifest/lockbox mode to the falsification harness, or add a nested time-respecting inner split to `bts experiment screen/select` so feature selection is separated from outer evaluation.
 
 ### 6. Distribution shift handling — BOCPD + drift-aware health check
 
