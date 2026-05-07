@@ -22,6 +22,12 @@ Usage:
         --experiments scripts/audit_experiments.txt \\
         --label bts-oci-validate
 
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit_driver.py \\
+        --run-kind profiles --provider oci --boxes 1 --seeds 1 \\
+        --selection-seasons 2023,2024 --outer-eval-seasons 2025 \\
+        --label bts-oci-profile-canary \\
+        --out data/oci_results/pooled_profile_canary
+
 Fixes 4 bugs from the 2026-04-14/15 overnight runs:
     1. rsync paths missing root@{ip}: prefix (Phase 1 profile retrieve)
     2. Silent degradation when boxes < requested (Vultr 3/20 issue)
@@ -74,6 +80,7 @@ from pathlib import Path
 
 LOCAL_BTS = Path("/Users/stone/projects/bts")
 DEFAULT_TEST_SEASONS = "2024,2025"
+DEFAULT_PROFILE_SEASONS = "2021,2022,2023,2024,2025"
 SSH_OPTS = [
     "-o", "StrictHostKeyChecking=no",
     "-o", "UserKnownHostsFile=/dev/null",
@@ -157,6 +164,12 @@ class ValidationSplit:
             "lockbox_manifest": None,
             "production_deploy_claim": False,
         }
+
+    def all_referenced_seasons(self) -> list[int]:
+        if self.mode == "legacy_test_seasons":
+            return list(self.test_seasons or [])
+        seasons = list(self.selection_seasons or []) + list(self.outer_eval_seasons or [])
+        return sorted(seasons)
 
 
 class Provider:
@@ -795,14 +808,50 @@ def resolve_validation_split(
     )
 
 
+def resolve_profile_seasons(
+    *,
+    profile_seasons: str | None,
+    split: ValidationSplit,
+) -> list[int]:
+    """Resolve seasons for raw `bts simulate backtest` profile generation.
+
+    Defaults to the full five-season profile surface used by the pooled-policy
+    tooling, plus any explicit selection/outer-eval seasons not already in
+    that surface. The split itself is applied later by downstream analysis;
+    seed generation should not shrink the raw surface just because split
+    metadata is recorded.
+    """
+    if profile_seasons is not None:
+        seasons = _parse_season_list(profile_seasons, "--profile-seasons")
+        if split.mode == "season_level_selection_outer_eval":
+            required = set(split.all_referenced_seasons())
+            missing = sorted(required - set(seasons))
+            if missing:
+                raise ValueError(
+                    "--profile-seasons must include every selection/outer-eval "
+                    f"season in split mode; missing: {missing}"
+                )
+        return seasons
+    seasons = _parse_season_list(DEFAULT_PROFILE_SEASONS, "--profile-seasons")
+    if split.mode == "season_level_selection_outer_eval":
+        seasons = sorted(set(seasons) | set(split.all_referenced_seasons()))
+    return seasons
+
+
 def _write_validation_split_metadata(
     out_root: Path,
     split: ValidationSplit,
     *,
     audit_driver: dict | None = None,
+    artifact_role: str | None = None,
+    profile_seasons: list[int] | None = None,
 ) -> None:
     out_root.mkdir(parents=True, exist_ok=True)
     payload = split.metadata()
+    if artifact_role is not None:
+        payload["artifact_role"] = artifact_role
+    if profile_seasons is not None:
+        payload["profile_seasons"] = profile_seasons
     if audit_driver is not None:
         payload["audit_driver"] = audit_driver
     (out_root / "audit_validation_split.json").write_text(
@@ -821,6 +870,12 @@ def _audit_driver_provenance_base() -> dict[str, object]:
     }
 
 
+def _queue_mode_for_run_kind(run_kind: str) -> str:
+    if run_kind == "profiles":
+        return "backtest"
+    return run_kind
+
+
 def _box_region_semantics(provider_name: str) -> str:
     if provider_name == "oci":
         return "oci_availability_domain"
@@ -832,15 +887,26 @@ def _seed_audit_metadata(
     *,
     provider_name: str,
     box: Box,
+    artifact_role: str | None = None,
+    profile_seasons: list[int] | None = None,
+    run_kind: str | None = None,
 ) -> dict[str, object]:
     payload = split.metadata()
-    payload["audit_driver"] = _audit_driver_provenance_base() | {
+    if artifact_role is not None:
+        payload["artifact_role"] = artifact_role
+    if profile_seasons is not None:
+        payload["profile_seasons"] = profile_seasons
+    audit_driver = _audit_driver_provenance_base() | {
         "provider": provider_name,
         "box_id": box.id,
         "box_name": box.name,
         "box_region": box.region,
         "box_region_semantics": _box_region_semantics(provider_name),
     }
+    if run_kind is not None:
+        audit_driver["run_kind"] = run_kind
+        audit_driver["queue_mode"] = _queue_mode_for_run_kind(run_kind)
+    payload["audit_driver"] = audit_driver
     return payload
 
 
@@ -849,6 +915,21 @@ def render_screen_command(exp_list: str, split: ValidationSplit) -> str:
     return (
         f'uv run bts experiment screen --subset "{exp_list}" \\\n'
         f"    {split.screen_cli_args()}"
+    )
+
+
+def render_profile_command(
+    profile_seasons: list[int],
+    *,
+    log_pa_predictions: bool,
+) -> str:
+    """Render the `bts simulate backtest` command tail for raw profile audits."""
+    pa_flag = "--log-pa-predictions" if log_pa_predictions else "--no-log-pa-predictions"
+    return (
+        "uv run bts simulate backtest \\\n"
+        f"    --seasons {_format_seasons(profile_seasons)} \\\n"
+        "    --output-dir data/simulation \\\n"
+        f"    {pa_flag}"
     )
 
 
@@ -871,7 +952,12 @@ def launch_box_queue(
 
     BTS = "/root/projects/bts"
     metadata_json = json.dumps(
-        _seed_audit_metadata(split, provider_name=provider_name, box=box),
+        _seed_audit_metadata(
+            split,
+            provider_name=provider_name,
+            box=box,
+            run_kind="screen",
+        ),
         sort_keys=True,
     )
     screen_command = render_screen_command(exp_list, split)
@@ -897,6 +983,68 @@ echo "queue done at $(date)" > /root/audit.done
 ' > /dev/null 2>&1 &
 disown
 echo "launched seeds={seed_list_str}"
+"""
+    r = ssh_run(ip, cmd, timeout=30)
+    return (name, r.returncode, r.stdout.strip())
+
+
+def launch_profile_queue(
+    box: Box,
+    seeds: list[int],
+    split: ValidationSplit,
+    provider_name: str,
+    profile_seasons: list[int],
+    *,
+    log_pa_predictions: bool,
+) -> tuple[str, int, str]:
+    """Launch a deterministic raw backtest/profile seed queue on one box.
+
+    Each seed runs `bts simulate backtest`, moves `data/simulation` to
+    `data/simulation_seed$SEED`, and writes the same split/provenance metadata
+    pattern used by the remote screening path.
+    """
+    ip = box.ipv4
+    name = box.name
+    seed_list_str = " ".join(str(s) for s in seeds)
+
+    BTS = "/root/projects/bts"
+    metadata_json = json.dumps(
+        _seed_audit_metadata(
+            split,
+            provider_name=provider_name,
+            box=box,
+            artifact_role="raw_backtest_profile_surface",
+            profile_seasons=profile_seasons,
+            run_kind="profiles",
+        ),
+        sort_keys=True,
+    )
+    profile_command = render_profile_command(
+        profile_seasons,
+        log_pa_predictions=log_pa_predictions,
+    )
+    cmd = f"""
+rm -f /root/audit.log /root/audit.done
+nohup bash -c '
+set +e
+for SEED in {seed_list_str}; do
+  echo "=== seed=$SEED starting at $(date) ===" >> /root/audit.log
+  rm -rf {BTS}/data/simulation
+  mkdir -p {BTS}/data/simulation
+  cd {BTS}
+  BTS_LGBM_RANDOM_STATE=$SEED BTS_LGBM_DETERMINISTIC=1 {ENV} \\
+    {profile_command} >> /root/audit.log 2>&1
+  rc=$?
+  mv {BTS}/data/simulation {BTS}/data/simulation_seed$SEED
+  cat > {BTS}/data/simulation_seed$SEED/audit_validation_split.json <<'JSON'
+{metadata_json}
+JSON
+  echo "=== seed=$SEED done at $(date) rc=$rc ===" >> /root/audit.log
+done
+echo "queue done at $(date)" > /root/audit.done
+' > /dev/null 2>&1 &
+disown
+echo "launched profile seeds={seed_list_str}"
 """
     r = ssh_run(ip, cmd, timeout=30)
     return (name, r.returncode, r.stdout.strip())
@@ -979,6 +1127,45 @@ def retrieve_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, str, 
     return (name, "ok" if not errors else "partial", errors[:3])
 
 
+def retrieve_profile_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, str, list[str]]:
+    """Rsync raw profile results off a box.
+
+    The profile mode produces `data/simulation_seedN/` directories containing
+    `backtest_*.parquet`, optional `pa_predictions_*.parquet`, and per-seed
+    audit metadata.
+    """
+    name = box.name
+    ip = box.ipv4
+    box_out = out_root / f"{name}"
+    box_out.mkdir(parents=True, exist_ok=True)
+    ssh_arg = "ssh " + " ".join(SSH_OPTS)
+    errors: list[str] = []
+
+    for remote, local in [
+        ("/root/audit.log", box_out / "audit.log"),
+        ("/root/audit.done", box_out / "audit.done"),
+    ]:
+        r = subprocess.run(
+            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local)],
+            capture_output=True, text=True, timeout=300,
+        )
+        if r.returncode != 0:
+            errors.append(f"{remote}: {r.stderr[:120]}")
+
+    for seed in seeds:
+        remote = f"/root/projects/bts/data/simulation_seed{seed}/"
+        local = box_out / f"simulation_seed{seed}"
+        local.mkdir(exist_ok=True)
+        r = subprocess.run(
+            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local) + "/"],
+            capture_output=True, text=True, timeout=600,
+        )
+        if r.returncode != 0:
+            errors.append(f"simulation_seed{seed}: {r.stderr[:120]}")
+
+    return (name, "ok" if not errors else "partial", errors[:3])
+
+
 def teardown_all(provider: Provider, boxes: list[Box]) -> int:
     """Unconditional teardown. Called from finally blocks to guarantee cleanup
     even if the main flow fails. Fixes the 2026-04-14 Hetzner retrieve-cascade
@@ -1025,6 +1212,7 @@ def _retrieve_all(
     boxes: list[Box],
     out_root: Path,
     queues: dict[str, list[int]],
+    retrieve_fn=retrieve_one,
 ) -> dict[str, str]:
     """Rsync results off all boxes in parallel. Returns {box_name: status}.
 
@@ -1035,7 +1223,7 @@ def _retrieve_all(
     log("=== RETRIEVE ===")
     results: dict[str, str] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-        futures = [ex.submit(retrieve_one, b, out_root, queues[b.name]) for b in boxes]
+        futures = [ex.submit(retrieve_fn, b, out_root, queues[b.name]) for b in boxes]
         for fut in concurrent.futures.as_completed(futures):
             nm, status, errs = fut.result()
             results[nm] = status
@@ -1149,6 +1337,8 @@ DEFAULT_SEEDS = [
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--run-kind", choices=["screen", "profiles"], default="screen",
+                    help="Remote workload: experiment screening or raw backtest profiles")
     ap.add_argument("--provider", choices=["hetzner", "vultr", "oci"], required=True)
     ap.add_argument("--boxes", type=int, required=True, help="Max boxes to request (graceful if provider gives fewer)")
     ap.add_argument("--seeds", type=int, default=20, help="Number of seeds to run (first N from DEFAULT_SEEDS)")
@@ -1156,13 +1346,19 @@ def main():
                     help="Read seed list from file (whitespace or comma separated). Overrides --seeds.")
     ap.add_argument("--vultr-plan", default=None,
                     help="Override Vultr plan id (default: first available in VultrProvider.PLAN_FALLBACKS)")
-    ap.add_argument("--experiments", type=Path, required=True, help="Path to a file with comma-separated experiment names")
+    ap.add_argument("--experiments", type=Path, default=None,
+                    help="Path to a file with comma-separated experiment names (required for --run-kind screen)")
     ap.add_argument("--test-seasons", default=None,
                     help=f"Legacy test seasons for remote screening (default: {DEFAULT_TEST_SEASONS})")
     ap.add_argument("--selection-seasons", default=None,
                     help="Selection seasons for split-aware remote screening")
     ap.add_argument("--outer-eval-seasons", default=None,
                     help="Outer-evaluation seasons reserved for the final split audit")
+    ap.add_argument("--profile-seasons", default=None,
+                    help=f"Raw backtest seasons for --run-kind profiles (default: {DEFAULT_PROFILE_SEASONS} "
+                         "plus any split seasons)")
+    ap.add_argument("--log-pa-predictions", action=argparse.BooleanOptionalAction, default=True,
+                    help="In --run-kind profiles, persist pa_predictions_*.parquet for downstream falsification")
     ap.add_argument("--label", default=None, help="Box name prefix (default: bts-audit-{provider})")
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
     ap.add_argument("--poll-interval", type=int, default=900, help="Poll interval in seconds")
@@ -1175,19 +1371,31 @@ def main():
                     help="Stage-2 additional seed count for survivors (only used with --two-stage)")
     args = ap.parse_args()
 
+    if args.run_kind == "profiles" and args.two_stage:
+        ap.error("--two-stage is only supported with --run-kind screen")
+    if args.run_kind == "screen" and args.experiments is None:
+        ap.error("--experiments is required with --run-kind screen")
+
     try:
         validation_split = resolve_validation_split(
             test_seasons=args.test_seasons,
             selection_seasons=args.selection_seasons,
             outer_eval_seasons=args.outer_eval_seasons,
         )
+        profile_seasons = resolve_profile_seasons(
+            profile_seasons=args.profile_seasons,
+            split=validation_split,
+        )
     except ValueError as exc:
         ap.error(str(exc))
 
-    experiments = args.experiments.read_text().strip()
-    if not experiments:
-        log("ERROR: experiments file empty")
-        sys.exit(1)
+    experiments = ""
+    if args.run_kind == "screen":
+        assert args.experiments is not None
+        experiments = args.experiments.read_text().strip()
+        if not experiments:
+            log("ERROR: experiments file empty")
+            sys.exit(1)
     if args.seeds_file:
         raw = args.seeds_file.read_text().replace(",", " ").split()
         seeds = [int(x) for x in raw if x.strip()]
@@ -1199,8 +1407,12 @@ def main():
             p for p in VultrProvider.PLAN_FALLBACKS if p != args.vultr_plan
         ]
         log(f"Vultr plan override: {args.vultr_plan} (falls back to {VultrProvider.PLAN_FALLBACKS[1:]})")
-    log(f"Audit: {len(seeds)} seeds × {len(experiments.split(','))} experiments "
-        f"on up to {args.boxes} {args.provider} boxes")
+    if args.run_kind == "screen":
+        log(f"Audit: {len(seeds)} seeds × {len(experiments.split(','))} experiments "
+            f"on up to {args.boxes} {args.provider} boxes")
+    else:
+        log(f"Profile audit: {len(seeds)} seeds × {len(profile_seasons)} seasons "
+            f"on up to {args.boxes} {args.provider} boxes")
     if validation_split.mode == "legacy_test_seasons":
         log(f"Validation split: test seasons {_format_seasons(validation_split.test_seasons or [])}")
     else:
@@ -1210,22 +1422,38 @@ def main():
             "outer-eval seasons "
             f"{_format_seasons(validation_split.outer_eval_seasons or [])}"
         )
+    if args.run_kind == "profiles":
+        log(
+            "Profile seasons: "
+            f"{_format_seasons(profile_seasons)} "
+            f"(log_pa_predictions={args.log_pa_predictions})"
+        )
 
     label_prefix = args.label or f"bts-audit-{args.provider}"
     provider = make_provider(args.provider)
     args.out.mkdir(parents=True, exist_ok=True)
     audit_driver_metadata = {
+        "run_kind": args.run_kind,
+        "queue_mode": _queue_mode_for_run_kind(args.run_kind),
         "provider": args.provider,
         "requested_boxes": args.boxes,
         "actual_boxes_obtained": None,
         "label": label_prefix,
         "two_stage": args.two_stage,
+        "profile_seasons": profile_seasons if args.run_kind == "profiles" else None,
+        "log_pa_predictions": args.log_pa_predictions if args.run_kind == "profiles" else None,
         **_audit_driver_provenance_base(),
     }
+    metadata_artifact_role = (
+        "raw_backtest_profile_surface" if args.run_kind == "profiles" else None
+    )
+    metadata_profile_seasons = profile_seasons if args.run_kind == "profiles" else None
     _write_validation_split_metadata(
         args.out,
         validation_split,
         audit_driver=audit_driver_metadata,
+        artifact_role=metadata_artifact_role,
+        profile_seasons=metadata_profile_seasons,
     )
 
     boxes: list[Box] = []
@@ -1250,6 +1478,8 @@ def main():
             args.out,
             validation_split,
             audit_driver=audit_driver_metadata,
+            artifact_role=metadata_artifact_role,
+            profile_seasons=metadata_profile_seasons,
         )
 
         provision_parallelism = min(3, len(boxes))
@@ -1276,6 +1506,8 @@ def main():
                 args.out,
                 validation_split,
                 audit_driver=audit_driver_metadata,
+                artifact_role=metadata_artifact_role,
+                profile_seasons=metadata_profile_seasons,
             )
             return
         if len(ready_boxes) < len(boxes):
@@ -1297,9 +1529,41 @@ def main():
             args.out,
             validation_split,
             audit_driver=audit_driver_metadata,
+            artifact_role=metadata_artifact_role,
+            profile_seasons=metadata_profile_seasons,
         )
 
-        if args.two_stage:
+        if args.run_kind == "profiles":
+            # ---- Raw backtest/profile flow for pooled-policy audits ----
+            queues = distribute_seeds(boxes, seeds)
+            log("Profile seed distribution:")
+            for nm, sl in queues.items():
+                log(f"  {nm}: {sl}")
+
+            log("Launching profile queues...")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
+                futures = [ex.submit(
+                    launch_profile_queue,
+                    b,
+                    queues[b.name],
+                    validation_split,
+                    args.provider,
+                    profile_seasons,
+                    log_pa_predictions=args.log_pa_predictions,
+                ) for b in boxes]
+                for fut in concurrent.futures.as_completed(futures):
+                    nm, rc, out = fut.result()
+                    log(f"  [{nm}] rc={rc}  {out}")
+
+            _poll_until_done(boxes, args)
+            stage_retrieve = _retrieve_all(
+                boxes,
+                args.out,
+                queues,
+                retrieve_fn=retrieve_profile_one,
+            )
+            retrieve_results.update(stage_retrieve)
+        elif args.two_stage:
             # ---- Two-stage screening ----
             log("WARN: --two-stage active; audit_attach.py is not stage-aware. "
                 "Mid-stage-2 deadline-exceeded recovery requires manual rsync "

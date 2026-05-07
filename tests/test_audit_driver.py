@@ -209,6 +209,53 @@ class TestValidationSplit:
         assert split.metadata()["artifact_role"] == "selection_only"
         assert split.metadata()["production_deploy_claim"] is False
 
+    def test_profile_seasons_default_to_full_surface_for_legacy_split(self):
+        from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons=None,
+            outer_eval_seasons=None,
+        )
+
+        assert resolve_profile_seasons(profile_seasons=None, split=split) == [
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+        ]
+
+    def test_profile_seasons_default_to_full_surface_plus_split_seasons(self):
+        from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2026",
+        )
+
+        assert resolve_profile_seasons(profile_seasons=None, split=split) == [
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026,
+        ]
+
+    def test_profile_seasons_reject_missing_split_season(self):
+        from audit_driver import resolve_profile_seasons, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+
+        with pytest.raises(ValueError, match="missing: \\[2025\\]"):
+            resolve_profile_seasons(profile_seasons="2023,2024", split=split)
+
     def test_rejects_mixed_legacy_and_split_flags(self):
         from audit_driver import resolve_validation_split
 
@@ -374,8 +421,110 @@ class TestValidationSplit:
         assert '"box_name": "box1"' in command
         assert '"determinism_intent": true' in command
         assert '"launch_command_env":' in command
+        assert '"run_kind": "screen"' in command
+        assert '"queue_mode": "screen"' in command
         assert '"BTS_LGBM_RANDOM_STATE": "per_seed_loop"' in command
         assert '"cross_provider_pooling_validated": false' in command
+
+    def test_render_profile_command_logs_pa_predictions(self):
+        from audit_driver import render_profile_command
+
+        command = render_profile_command(
+            [2023, 2024, 2025],
+            log_pa_predictions=True,
+        )
+
+        assert command == (
+            "uv run bts simulate backtest \\\n"
+            "    --seasons 2023,2024,2025 \\\n"
+            "    --output-dir data/simulation \\\n"
+            "    --log-pa-predictions"
+        )
+
+    def test_launch_profile_queue_command_uses_profile_artifacts_and_metadata(
+        self, monkeypatch,
+    ):
+        import audit_driver
+        from audit_driver import Box, launch_profile_queue, resolve_validation_split
+
+        captured: dict[str, str] = {}
+
+        def fake_ssh_run(ip, cmd, timeout=60):
+            captured["ip"] = ip
+            captured["cmd"] = cmd
+            return subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout="launched profile seeds=42",
+                stderr="",
+            )
+
+        monkeypatch.setattr(audit_driver, "ssh_run", fake_ssh_run)
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+
+        name, rc, out = launch_profile_queue(
+            Box(id="box-id", name="box1", ipv4="10.0.0.1", region="AD-1"),
+            [42],
+            split,
+            "oci",
+            [2023, 2024, 2025],
+            log_pa_predictions=True,
+        )
+
+        assert name == "box1"
+        assert rc == 0
+        assert out == "launched profile seeds=42"
+        assert captured["ip"] == "10.0.0.1"
+        command = captured["cmd"]
+        assert "uv run bts simulate backtest" in command
+        assert "--seasons 2023,2024,2025" in command
+        assert "--output-dir data/simulation" in command
+        assert "--log-pa-predictions" in command
+        assert "BTS_LGBM_RANDOM_STATE=$SEED BTS_LGBM_DETERMINISTIC=1" in command
+        assert "data/simulation_seed$SEED/audit_validation_split.json" in command
+        assert "bts experiment screen" not in command
+        assert '"artifact_role": "raw_backtest_profile_surface"' in command
+        assert '"profile_seasons": [2023, 2024, 2025]' in command
+        assert '"provider": "oci"' in command
+        assert '"box_region": "AD-1"' in command
+        assert '"run_kind": "profiles"' in command
+        assert '"queue_mode": "backtest"' in command
+        assert '"cross_provider_pooling_validated": false' in command
+
+    def test_retrieve_profile_one_fetches_simulation_seed_dirs(
+        self, monkeypatch, tmp_path,
+    ):
+        import audit_driver
+        from audit_driver import Box, retrieve_profile_one
+
+        calls: list[list[str]] = []
+
+        def fake_run(args, **kwargs):
+            calls.append(args)
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(audit_driver.subprocess, "run", fake_run)
+
+        name, status, errs = retrieve_profile_one(
+            Box(id="box-id", name="box1", ipv4="10.0.0.1"),
+            tmp_path,
+            [42],
+        )
+
+        assert name == "box1"
+        assert status == "ok"
+        assert errs == []
+        assert any("/root/audit.log" in part for call in calls for part in call)
+        assert any(
+            "/root/projects/bts/data/simulation_seed42/" in part
+            for call in calls
+            for part in call
+        )
+        assert (tmp_path / "box1" / "simulation_seed42").is_dir()
 
 
 # ---------------------------------------------------------------------------

@@ -1,16 +1,46 @@
 # Real Split-Audit Plan
 
 - **Generated**: 2026-05-07
-- **Status**: `plan_blocked_no_viable_candidate`
+- **Status**: `candidate_selected_pending_profile_launcher_and_canaries`
 - **Depends on**: `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`
 
 ## Verdict
 
-Do not run the real split audit yet.
+Do not run the real split audit yet, but the candidate intake blocker is now
+resolved.
 
-The SOTA closeout did not surface a deployable candidate stack. The correct current plan verdict is `plan_blocked_no_viable_candidate`, not a ceremonial run of the split flags. A real split audit becomes runnable only after Eric names a concrete candidate stack and compute budget, and after the cloud resource/provenance inventory is completed.
+After Codex/Claude review and Eric's 2026-05-07 budget authorization, the audit
+candidate is the pooled-policy methodology on a determinism-certified raw
+profile surface. The current verdict is
+`candidate_selected_pending_profile_launcher_and_canaries`, not deploy-ready.
+The audit becomes runnable only after the raw profile launcher is merged, the
+OCI one-seed retrieval canary passes, and the provider/provenance inventory is
+recorded for the exact run.
 
-The original remote-screen orchestration gap is now closed for `scripts/audit_driver.py`: the driver passes `--selection-seasons` and `--outer-eval-seasons` through remote Phase 1 screening and records split metadata. `bts experiment select` remains local unless a future audit explicitly adds remote select orchestration.
+The original remote-screen orchestration gap is now closed for `scripts/audit_driver.py`: the driver passes `--selection-seasons` and `--outer-eval-seasons` through remote Phase 1 screening and records split metadata. The pooled-policy path needs raw `bts simulate backtest` artifacts, not `bts experiment screen` score JSONs, so the next orchestration slice is the `--run-kind profiles` launcher that writes and retrieves `data/simulation_seed*/backtest_*.parquet` with provider/determinism metadata.
+
+## Selected Candidate
+
+Candidate stack: pooled-policy methodology, not pooled prediction.
+
+Pre-registered implementation target:
+
+- generate deterministic per-seed `bts simulate backtest` profiles with `BTS_LGBM_RANDOM_STATE=<seed>` and `BTS_LGBM_DETERMINISTIC=1`
+- retain `backtest_*.parquet` and `pa_predictions_*.parquet` under `simulation_seed<seed>/`
+- tag each seed by provider, box, region, run kind, queue mode, deterministic-env intent, and profile seasons
+- build pooled policy bins from seed-tagged rank-1/rank-2 profiles
+- solve/evaluate the pooled policy table against the current production policy table
+- keep production unchanged until separate production gates clear
+
+Reason for choosing it: the saved pooled-policy artifacts are the only current positive signal large enough to justify a SOTA audit:
+
+| Artifact | Signal |
+| --- | --- |
+| `data/validation/pooled_policy_ab_24seed_consolidated.json` | leave-one-out mean P(57) gap `+0.019290`; `24/24` seeds positive |
+| `data/validation/pooled_policy_gap_ci_2026-05-06.json` | seed-bootstrap CI `[+0.014468, +0.024308]`; exact sign-test two-sided p `1.192e-07` |
+| `data/validation/pooled_policy_ab_trackd_crosspath.json` | cross-path mean P(57) gap `+0.015846`; `8/8` seeds positive |
+
+Caveat: the existing positive raw surfaces did not embed complete determinism/provider metadata, so they nominate the candidate but do not certify deployment. The new audit surface must be generated with metadata embedded before cross-provider pooling is interpreted as seed variation.
 
 ## Candidate Intake Checklist
 
@@ -18,13 +48,13 @@ The audit can start only when these inputs are fixed before looking at outer-eva
 
 | Input | Required decision |
 | --- | --- |
-| Candidate stack | Exact experiment/model/policy changes to evaluate. No post-hoc additions after outer evaluation starts. |
+| Candidate stack | Pooled-policy methodology on deterministic raw backtest/profile surfaces. No post-hoc additions after outer evaluation starts. |
 | Commit | Git SHA containing the candidate and runner code. |
 | Selection seasons | Seasons used for Phase 1/2 keep/drop and any threshold or feature decisions; must be earlier than the outer-evaluation seasons. |
 | Outer-evaluation seasons | Disjoint later seasons evaluated once after selection. |
 | Seed family | Pre-registered seed list and stopping rule. |
-| Compute budget | Number of seeds, target wall-clock time, cost cap, and expected provider mix. |
-| Provider allocation | Hetzner/Vultr/OCI box targets and fallback policy. |
+| Compute budget | Eric authorized up to `$1000` on 2026-05-07 for audit/canary planning. Target plan is `$700`-`800` after canaries, not a blank check for deploy. |
+| Provider allocation | Default tri-provider plan after canaries: 48 Hetzner seeds, 24 OCI seeds, 24 Vultr seeds; fall back to Hetzner+Vultr or Hetzner-only if OCI canary fails. |
 | Artifact roots | Output paths for selection artifacts, outer-evaluation artifacts, resource inventory, and final memo. |
 | Metrics | Pre-registered metrics: P@1, P(57) MDP/exact, #12 proper-scoring metrics, and any candidate-specific diagnostic. |
 | Gate family | Pre-registered test family for BH/BY or future e-value control. |
@@ -63,12 +93,13 @@ The inventory must record:
 
 ## Orchestration Work Before Compute
 
-1. Add split-audit flags to the cloud orchestration path, or create a dedicated split-audit launcher.
-2. Fail closed if the remote command would use legacy `--test-seasons` for the real audit.
+1. Add the raw profile launch path to `scripts/audit_driver.py`: `--run-kind profiles` should run `bts simulate backtest`, not `bts experiment screen`.
+2. Fail closed if split-mode profile seasons omit any selection or outer-evaluation season.
 3. Persist the resolved split metadata beside every remote seed output.
-4. Write `boxes.json` before launch and record actual boxes obtained.
-5. Preserve boxes on partial retrieve. Do not tear down a box unless its retrieve status is `ok`.
-6. Add a small dry-run or command-rendering test proving the remote command contains `--selection-seasons` and `--outer-eval-seasons`.
+4. Persist provider, box, region, run kind, queue mode, deterministic-env intent, and `cross_provider_pooling_validated=false` beside every seed output.
+5. Write `boxes.json` before launch and record actual boxes obtained.
+6. Preserve boxes on partial retrieve. Do not tear down a box unless its retrieve status is `ok`.
+7. Add command-rendering tests proving the remote command uses `bts simulate backtest`, `BTS_LGBM_DETERMINISTIC=1`, `--log-pa-predictions`, and `simulation_seed*` retrieval.
 
 This is separate from `bts experiment screen/select`, which already has the season-level split API. The gap is cloud orchestration.
 
@@ -121,12 +152,13 @@ This mirrors the existing split-design memo and keeps the outer span later than 
 
 ## Expected Current Outcome
 
-With no candidate stack named, the plan should stop at:
+With pooled-policy selected but canaries still pending, the plan should stop at:
 
 ```json
 {
-  "verdict": "plan_blocked_no_viable_candidate",
-  "reason": "SOTA closeout did not nominate a deployable candidate stack; cloud split-audit orchestration still needs split-flag pass-through."
+  "verdict": "candidate_selected_pending_profile_launcher_and_canaries",
+  "candidate": "pooled_policy_methodology",
+  "reason": "Candidate intake is complete, but the raw profile launcher, OCI canary retrieval, and provider/provenance inventory must pass before scaled cloud spend."
 }
 ```
 
