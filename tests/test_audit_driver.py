@@ -1,6 +1,8 @@
 """Tests for scripts/audit_driver.py secret lookup."""
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -35,6 +37,153 @@ class TestKeychainFallback:
 
         with pytest.raises(RuntimeError):
             _keychain(service)
+
+
+# ---------------------------------------------------------------------------
+# split-aware remote command rendering tests
+# ---------------------------------------------------------------------------
+
+
+class TestValidationSplit:
+    def test_default_legacy_split_renders_test_seasons(self):
+        from audit_driver import render_screen_command, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons=None,
+            outer_eval_seasons=None,
+        )
+
+        assert split.metadata()["split_mode"] == "legacy_test_seasons"
+        assert render_screen_command("exp_a,exp_b", split) == (
+            'uv run bts experiment screen --subset "exp_a,exp_b" \\\n'
+            "    --test-seasons 2024,2025"
+        )
+
+    def test_split_flags_render_without_legacy_test_seasons(self):
+        from audit_driver import render_screen_command, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+        command = render_screen_command("exp_a", split)
+
+        assert "--selection-seasons 2023,2024" in command
+        assert "--outer-eval-seasons 2025" in command
+        assert "--test-seasons" not in command
+        assert split.metadata()["artifact_role"] == "selection_only"
+        assert split.metadata()["production_deploy_claim"] is False
+
+    def test_rejects_mixed_legacy_and_split_flags(self):
+        from audit_driver import resolve_validation_split
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            resolve_validation_split(
+                test_seasons="2024",
+                selection_seasons="2023",
+                outer_eval_seasons="2025",
+            )
+
+    def test_rejects_half_specified_split_flags(self):
+        from audit_driver import resolve_validation_split
+
+        with pytest.raises(ValueError, match="must be supplied together"):
+            resolve_validation_split(
+                test_seasons=None,
+                selection_seasons="2023",
+                outer_eval_seasons=None,
+            )
+        with pytest.raises(ValueError, match="must be supplied together"):
+            resolve_validation_split(
+                test_seasons=None,
+                selection_seasons=None,
+                outer_eval_seasons="2025",
+            )
+
+    def test_rejects_overlapping_split_flags(self):
+        from audit_driver import resolve_validation_split
+
+        with pytest.raises(ValueError, match="disjoint"):
+            resolve_validation_split(
+                test_seasons=None,
+                selection_seasons="2024",
+                outer_eval_seasons="2024,2025",
+            )
+
+    def test_writes_local_split_metadata(self, tmp_path):
+        from audit_driver import _write_validation_split_metadata, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+
+        _write_validation_split_metadata(
+            tmp_path,
+            split,
+            audit_driver={
+                "provider": "hetzner",
+                "requested_boxes": 5,
+                "actual_boxes_obtained": 4,
+                "label": "bts-audit-hetzner",
+                "two_stage": False,
+            },
+        )
+
+        payload = json.loads((tmp_path / "audit_validation_split.json").read_text())
+        assert payload["split_mode"] == "season_level_selection_outer_eval"
+        assert payload["selection_seasons"] == [2023, 2024]
+        assert payload["outer_eval_seasons"] == [2025]
+        assert payload["production_deploy_claim"] is False
+        assert payload["audit_driver"]["provider"] == "hetzner"
+        assert payload["audit_driver"]["requested_boxes"] == 5
+        assert payload["audit_driver"]["actual_boxes_obtained"] == 4
+
+    def test_launch_queue_command_uses_split_flags_and_seed_metadata(
+        self, monkeypatch,
+    ):
+        import audit_driver
+        from audit_driver import Box, launch_box_queue, resolve_validation_split
+
+        captured: dict[str, str] = {}
+
+        def fake_ssh_run(ip, cmd, timeout=60):
+            captured["ip"] = ip
+            captured["cmd"] = cmd
+            return subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout="launched seeds=42",
+                stderr="",
+            )
+
+        monkeypatch.setattr(audit_driver, "ssh_run", fake_ssh_run)
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+
+        name, rc, out = launch_box_queue(
+            Box(id="box-id", name="box1", ipv4="10.0.0.1"),
+            [42],
+            "exp_a",
+            split,
+        )
+
+        assert name == "box1"
+        assert rc == 0
+        assert out == "launched seeds=42"
+        assert captured["ip"] == "10.0.0.1"
+        command = captured["cmd"]
+        assert "--selection-seasons 2023,2024" in command
+        assert "--outer-eval-seasons 2025" in command
+        assert "--test-seasons" not in command
+        assert "phase1_seed$SEED/audit_validation_split.json" in command
+        assert '"split_mode": "season_level_selection_outer_eval"' in command
 
 
 # ---------------------------------------------------------------------------
