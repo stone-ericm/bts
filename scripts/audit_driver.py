@@ -810,6 +810,40 @@ def _write_validation_split_metadata(
     )
 
 
+def _audit_driver_provenance_base() -> dict[str, object]:
+    return {
+        "determinism_intent": True,
+        "launch_command_env": {
+            "BTS_LGBM_DETERMINISTIC": "1",
+            "BTS_LGBM_RANDOM_STATE": "per_seed_loop",
+        },
+        "cross_provider_pooling_validated": False,
+    }
+
+
+def _box_region_semantics(provider_name: str) -> str:
+    if provider_name == "oci":
+        return "oci_availability_domain"
+    return "provider_region"
+
+
+def _seed_audit_metadata(
+    split: ValidationSplit,
+    *,
+    provider_name: str,
+    box: Box,
+) -> dict[str, object]:
+    payload = split.metadata()
+    payload["audit_driver"] = _audit_driver_provenance_base() | {
+        "provider": provider_name,
+        "box_id": box.id,
+        "box_name": box.name,
+        "box_region": box.region,
+        "box_region_semantics": _box_region_semantics(provider_name),
+    }
+    return payload
+
+
 def render_screen_command(exp_list: str, split: ValidationSplit) -> str:
     """Render the `bts experiment screen` command tail used on remote boxes."""
     return (
@@ -823,6 +857,7 @@ def launch_box_queue(
     seeds: list[int],
     exp_list: str,
     split: ValidationSplit,
+    provider_name: str,
 ) -> tuple[str, int, str]:
     """Launch a shell-based seed queue on one box.
 
@@ -835,7 +870,10 @@ def launch_box_queue(
     seed_list_str = " ".join(str(s) for s in seeds)
 
     BTS = "/root/projects/bts"
-    metadata_json = json.dumps(split.metadata(), sort_keys=True)
+    metadata_json = json.dumps(
+        _seed_audit_metadata(split, provider_name=provider_name, box=box),
+        sort_keys=True,
+    )
     screen_command = render_screen_command(exp_list, split)
     cmd = f"""
 rm -f /root/audit.log /root/audit.done
@@ -850,7 +888,7 @@ for SEED in {seed_list_str}; do
     {screen_command} >> /root/audit.log 2>&1
   rc=$?
   mv {BTS}/experiments/results/phase1 {BTS}/experiments/results/phase1_seed$SEED
-  cat > {BTS}/experiments/results/phase1_seed$SEED/audit_validation_split.json <<JSON
+  cat > {BTS}/experiments/results/phase1_seed$SEED/audit_validation_split.json <<'JSON'
 {metadata_json}
 JSON
   echo "=== seed=$SEED done at $(date) rc=$rc ===" >> /root/audit.log
@@ -1182,6 +1220,7 @@ def main():
         "actual_boxes_obtained": None,
         "label": label_prefix,
         "two_stage": args.two_stage,
+        **_audit_driver_provenance_base(),
     }
     _write_validation_split_metadata(
         args.out,
@@ -1293,6 +1332,7 @@ def main():
                     queues_s1[b.name],
                     experiments,
                     validation_split,
+                    args.provider,
                 )
                            for b in boxes]
                 for fut in concurrent.futures.as_completed(futures):
@@ -1355,6 +1395,7 @@ def main():
                         queues_s2[b.name],
                         survivor_subset,
                         validation_split,
+                        args.provider,
                     ) for b in boxes]
                     for fut in concurrent.futures.as_completed(futures):
                         nm, rc, out = fut.result()
@@ -1387,6 +1428,7 @@ def main():
                     queues[b.name],
                     experiments,
                     validation_split,
+                    args.provider,
                 ) for b in boxes]
                 for fut in concurrent.futures.as_completed(futures):
                     nm, rc, out = fut.result()
