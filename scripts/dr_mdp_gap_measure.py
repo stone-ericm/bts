@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from bts.simulate.mdp import solve_mdp
+from bts.simulate.pooled_policy import load_seed_tagged_profiles, seed_from_path
 from bts.simulate.quality_bins import QualityBin, QualityBins
 
 
@@ -440,8 +441,18 @@ def policy_disagreement_rate(point_policy: np.ndarray, robust_policy: np.ndarray
     return float(np.mean(point_slice != robust_slice))
 
 
-def load_profiles(paths_or_globs: list[str]) -> tuple[pd.DataFrame, list[str]]:
-    """Load profile parquet files from one or more paths/globs."""
+def load_profiles(
+    paths_or_globs: list[str],
+    *,
+    derive_seed_from_path: bool = False,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Load profile parquet files from one or more paths/globs.
+
+    ``derive_seed_from_path`` is intended for pooled raw surfaces whose parquet
+    payloads omit seed metadata but live under ``seedN``/``simulation_seedN``
+    directories. When enabled, any embedded seed column must agree with the
+    path-derived seed.
+    """
     paths: list[Path] = []
     for item in paths_or_globs:
         matches = sorted(glob.glob(item))
@@ -456,7 +467,18 @@ def load_profiles(paths_or_globs: list[str]) -> tuple[pd.DataFrame, list[str]]:
     if not unique_paths:
         raise FileNotFoundError(f"no profile parquet files matched: {paths_or_globs}")
 
-    frames = [pd.read_parquet(path) for path in unique_paths]
+    path_seeds = {path: seed_from_path(path) for path in unique_paths}
+    has_path_seed = any(seed is not None for seed in path_seeds.values())
+    if derive_seed_from_path or has_path_seed:
+        missing_seed_paths = [str(path) for path, seed in path_seeds.items() if seed is None]
+        if missing_seed_paths:
+            raise ValueError(
+                "cannot mix seed-tagged and untagged profile paths; "
+                f"missing seed marker in: {missing_seed_paths}"
+            )
+        frames = [load_seed_tagged_profiles(unique_paths)]
+    else:
+        frames = [pd.read_parquet(path) for path in unique_paths]
     return pd.concat(frames, ignore_index=True), [str(path) for path in unique_paths]
 
 
@@ -474,6 +496,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ci-half-width", type=float, default=None)
     parser.add_argument("--z", type=float, default=1.96, help="Wilson z value for interval construction.")
     parser.add_argument(
+        "--derive-seed-from-path",
+        action="store_true",
+        help=(
+            "Populate/validate a seed column by parsing seedN from each profile path. "
+            "Use for pooled raw surfaces whose parquet payloads omit seed metadata."
+        ),
+    )
+    parser.add_argument(
         "--n-bootstrap-candidates",
         type=int,
         default=250,
@@ -484,7 +514,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     profile_globs = args.profiles_glob or ["data/simulation/backtest_*.parquet"]
-    profiles, loaded_paths = load_profiles(profile_globs)
+    profiles, loaded_paths = load_profiles(
+        profile_globs,
+        derive_seed_from_path=args.derive_seed_from_path,
+    )
     result = measure_gap(
         profiles,
         season_length=args.season_length,
@@ -495,6 +528,18 @@ def main(argv: list[str] | None = None) -> int:
         seed=args.seed,
         source_profiles=loaded_paths,
     )
+    result["profile_loader"] = {
+        "derive_seed_from_path": bool(args.derive_seed_from_path),
+        "path_seed_marker_count": int(sum(
+            seed_from_path(path) is not None
+            for path in loaded_paths
+        )),
+        "seed_column_present": "seed" in profiles.columns,
+        "n_seeds": (
+            int(profiles["seed"].nunique())
+            if "seed" in profiles.columns else None
+        ),
+    }
 
     text = json.dumps(result, allow_nan=False, indent=2 if args.pretty else None, sort_keys=True)
     if args.out:

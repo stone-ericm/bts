@@ -15,6 +15,7 @@ resulting policy is robust to any single seed's luck.
 Public API:
     parse_seed_from_path      — extract seed id from 'seedN' in any path segment
     load_pooled_profiles      — load + tag-with-seed across per-seed dirs
+    load_seed_tagged_profiles — load + tag arbitrary parquet paths with path seeds
     compute_pooled_bins       — quality bins with seed-aware rank-1/rank-2 merge
     split_by_phase_pooled     — phase split preserving the seed column
     build_pooled_policy       — full pipeline: profiles → bins → MDPSolution
@@ -33,15 +34,24 @@ from bts.simulate.quality_bins import QualityBin, QualityBins
 
 
 SEED_RE = re.compile(r"seed(\d+)")
+RANKED_PROFILE_REQUIRED_COLUMNS = frozenset({"date", "rank", "p_game_hit", "actual_hit"})
 
 
-def parse_seed_from_path(path: Path | str) -> int:
-    """Extract integer seed from any path segment matching 'seed(\\d+)'."""
+def seed_from_path(path: Path | str) -> int | None:
+    """Extract integer seed from any path segment matching 'seed(\\d+)'; return None if absent."""
     path = Path(path)
     for part in path.parts:
         m = SEED_RE.search(part)
         if m:
             return int(m.group(1))
+    return None
+
+
+def parse_seed_from_path(path: Path | str) -> int:
+    """Extract integer seed from any path segment matching 'seed(\\d+)'."""
+    seed = seed_from_path(path)
+    if seed is not None:
+        return seed
     raise ValueError(f"Cannot extract seed from path: {path}")
 
 
@@ -74,6 +84,77 @@ def load_pooled_profiles(seed_dirs: list[Path | str]) -> pd.DataFrame:
             df["seed"] = seed
             dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
+
+
+def load_seed_tagged_profiles(paths: list[Path | str]) -> pd.DataFrame:
+    """Load arbitrary profile parquet paths and tag/validate seed identity.
+
+    This is the path-list equivalent of ``load_pooled_profiles``. It is used by
+    measurement scripts that accept globbed parquet files rather than seed
+    directories. Every path must contain a ``seedN`` segment, and any embedded
+    seed column must agree with that path-derived seed.
+    """
+    if not paths:
+        raise ValueError("no profile paths provided")
+
+    frames: list[pd.DataFrame] = []
+    for item in paths:
+        path = Path(item)
+        seed = parse_seed_from_path(path)
+        frame = pd.read_parquet(path)
+        _validate_ranked_profile_schema(frame, path)
+        frame = _with_validated_seed(frame, seed, path)
+        frames.append(frame)
+
+    profiles = pd.concat(frames, ignore_index=True)
+    _validate_rank_pair_integrity(profiles)
+    return profiles
+
+
+def _validate_ranked_profile_schema(frame: pd.DataFrame, path: Path) -> None:
+    missing = sorted(RANKED_PROFILE_REQUIRED_COLUMNS.difference(frame.columns))
+    if missing:
+        raise ValueError(f"{path} missing required ranked-profile columns: {missing}")
+
+
+def _with_validated_seed(frame: pd.DataFrame, seed: int, path: Path) -> pd.DataFrame:
+    out = frame.copy()
+    if "seed" in out.columns:
+        embedded = pd.to_numeric(out["seed"], errors="raise")
+        embedded_non_null = embedded.dropna()
+        if not np.all(np.equal(np.mod(embedded_non_null, 1), 0)):
+            raise ValueError(f"seed column in {path} must contain integer seed ids")
+        embedded_seeds = set(int(s) for s in embedded_non_null.unique())
+        if embedded_seeds and embedded_seeds != {seed}:
+            raise ValueError(
+                f"seed column in {path} does not match path-derived seed {seed}: "
+                f"{sorted(embedded_seeds)}"
+            )
+    out["seed"] = seed
+    return out
+
+
+def _validate_rank_pair_integrity(profiles: pd.DataFrame) -> None:
+    needed = profiles[profiles["rank"].isin([1, 2])]
+    duplicate_counts = needed.groupby(["seed", "date", "rank"], dropna=False).size()
+    duplicates = duplicate_counts[duplicate_counts > 1]
+    if not duplicates.empty:
+        first = duplicates.index[0]
+        raise ValueError(f"duplicate rank row for seed/date/rank: {first}")
+
+    all_seed_dates = pd.MultiIndex.from_frame(
+        profiles[["seed", "date"]].drop_duplicates()
+    )
+    rank_counts = (
+        needed.drop_duplicates(["seed", "date", "rank"])
+        .groupby(["seed", "date"], dropna=False)["rank"]
+        .nunique()
+        .reindex(all_seed_dates, fill_value=0)
+    )
+    missing = rank_counts[rank_counts < 2]
+    if not missing.empty:
+        first = missing.index[0]
+        raise ValueError(f"missing rank-1/rank-2 pair for seed/date: {first}")
 
 
 def compute_pooled_bins(profiles_df: pd.DataFrame, n_bins: int = 5) -> QualityBins:
