@@ -1,0 +1,157 @@
+{
+  "deterministic_baseline": {
+    "comparison_verdict": "no shift detected \u2014 det flag preserves performance distribution",
+    "corpus": "n=100 deterministic baseline (post-cutover canonical)",
+    "flags": {
+      "BTS_LGBM_DETERMINISTIC": 1,
+      "BTS_LGBM_RANDOM_STATE": "per-seed"
+    },
+    "metric_shifts": {
+      "p_57_mdp": {
+        "deterministic_mean": 0.033646715966110394,
+        "deterministic_n": 100,
+        "deterministic_std": 0.01606097032635783,
+        "mean_delta": -3.284033889605631e-06,
+        "mean_delta_abs": 3.284033889605631e-06,
+        "metric": "p_57_mdp",
+        "prior_non_deterministic_mean": 0.03365,
+        "prior_non_deterministic_std": 0.01606,
+        "z_vs_prior_std": -0.000204485298231982
+      },
+      "p_at_1_avg": {
+        "deterministic_mean": 0.8551673031727379,
+        "deterministic_n": 100,
+        "deterministic_std": 0.006852065028296236,
+        "mean_delta": 7.73031727379081e-05,
+        "mean_delta_abs": 7.73031727379081e-05,
+        "metric": "p_at_1_avg",
+        "prior_non_deterministic_mean": 0.85509,
+        "prior_non_deterministic_std": 0.00685,
+        "z_vs_prior_std": 0.011285134706263956
+      }
+    },
+    "seed_pool_size": 100
+  },
+  "deterministic_feature_delta_proxy": {
+    "corpus": "Phase 1 multi-seed screening, post-determinism cutover",
+    "flags": {
+      "BTS_LGBM_DETERMINISTIC": 1
+    },
+    "interpretation": "This is a deterministic-only feature-delta proxy, not the pooled-policy A/B estimand. It shows the scale of seed variation that remains after the deterministic cutover.",
+    "metric": "per-experiment deterministic delta_p_57_mdp across seeds",
+    "n_experiments": 32,
+    "n_experiments_std_ge_reference": 21,
+    "n_seeds": 10,
+    "reference_std": 0.012665870926300307,
+    "std_max": 0.034542865802119134,
+    "std_median": 0.01577081864128838,
+    "std_min": 0.0,
+    "std_min_nonzero": 0.005283221041438654,
+    "top_by_std": [
+      {
+        "experiment": "wind_vector",
+        "mean": 0.02059685446428841,
+        "n": 10,
+        "se": 0.010923413284423561,
+        "std": 0.034542865802119134,
+        "t": 1.885569457823121
+      },
+      {
+        "experiment": "decision_calibration",
+        "mean": -4.025739957041717e-05,
+        "n": 10,
+        "se": 0.009589179768259664,
+        "std": 0.030323648960506135,
+        "t": -0.004198210956860961
+      },
+      {
+        "experiment": "batter_pitcher_matchup",
+        "mean": 0.027674694321694143,
+        "n": 10,
+        "se": 0.008258240884913694,
+        "std": 0.026114850662651727,
+        "t": 3.3511609442454966
+      },
+      {
+        "experiment": "xendcg",
+        "mean": 0.018299173104286824,
+        "n": 10,
+        "se": 0.008062813059400101,
+        "std": 0.025496853615854808,
+        "t": 2.269576755590603
+      },
+      {
+        "experiment": "statcast_add_batter_hard_hit_rate",
+        "mean": 0.014637447527742322,
+        "n": 10,
+        "se": 0.007981687648292896,
+        "std": 0.025240312540638517,
+        "t": 1.833878770096064
+      }
+    ]
+  },
+  "generated_at": "2026-05-07T01:40:33.811668+00:00",
+  "inputs": {
+    "deterministic_baseline": "data/validation/baseline_n100_deterministic_2026-04-27.json",
+    "deterministic_feature_delta_screen": "data/validation/screen_pooled_n10_2026-04-28.json",
+    "pooled_policy_gap_ci": "data/validation/pooled_policy_gap_ci_2026-05-06.json"
+  },
+  "methodology": {
+    "available_screen": "distribution-shift comparison between deterministic n=100 baseline and prior non-deterministic baseline summary",
+    "direct_bound_missing_reason": [
+      "No paired same-seed deterministic vs non-deterministic rerun artifact is available for the pooled-policy A/B gaps.",
+      "The pooled-policy gap artifact does not embed deterministic training flags or provider determinism metadata.",
+      "The deterministic n=100 baseline is a distribution-level screen on canonical baseline seeds, not the same paired seed-gap estimand as the pooled-policy A/B artifact."
+    ],
+    "direct_paired_bound_available": false,
+    "estimand": "whether existing artifacts bound nondeterminism contribution to pooled-policy seed-gap variance"
+  },
+  "pooled_policy_gap": {
+    "leave_one_out": {
+      "max_gap": 0.03928625411495196,
+      "mean_gap": 0.019290094818937648,
+      "min_gap": 0.0023508695084511477,
+      "n": 24,
+      "n_negative": 0,
+      "n_positive": 24,
+      "n_zero": 0,
+      "se_gap": 0.0025854100764490227,
+      "sign_flip_margin": 0.0023508695084511477,
+      "smallest_positive_gap": 0.0023508695084511477,
+      "std_gap": 0.012665870926300307
+    },
+    "within_pool": {
+      "max_gap": 0.04096883363504955,
+      "mean_gap": 0.020815988953459003,
+      "min_gap": 0.0042102336809540925,
+      "n": 24,
+      "n_negative": 0,
+      "n_positive": 24,
+      "n_zero": 0,
+      "se_gap": 0.0025720517602249946,
+      "sign_flip_margin": 0.0042102336809540925,
+      "smallest_positive_gap": 0.0042102336809540925,
+      "std_gap": 0.012600428809157084
+    }
+  },
+  "scale_comparison": {
+    "abs_p57_distribution_mean_delta": 3.284033889605631e-06,
+    "deterministic_p57_mdp_seed_std": 0.01606097032635783,
+    "loo_gap_std": 0.012665870926300307,
+    "loo_gap_std_over_deterministic_p57_mdp_seed_std": 0.7886118129185639,
+    "loo_mean_gap": 0.019290094818937648,
+    "loo_mean_gap_over_abs_p57_distribution_mean_delta": 5873.902483160468
+  },
+  "schema_version": "determinism_gap_bound_v1",
+  "verdict": {
+    "c0_determinism_caveat_resolved": false,
+    "iid_seed_assumption_verdict": "not_evaluable_from_existing_artifacts",
+    "interpretation": "Existing deterministic-baseline evidence does not show a distribution shift, and deterministic-only feature-delta screens show substantial seed variation remains after the deterministic cutover. These are not paired bounds on nondeterminism inside the pooled-policy seed gaps. The C0 positive screen remains standing, with the determinism/provenance caveat still open.",
+    "next_required_evidence": [
+      "paired same-seed deterministic and non-deterministic reruns on the same policy-gap estimand",
+      "embedded deterministic/provider metadata in raw pooled-policy profile artifacts"
+    ],
+    "pooled_gap_screen_status": "unchanged",
+    "status": "distribution_shift_not_detected_but_direct_bound_missing"
+  }
+}
