@@ -82,9 +82,9 @@ This document is the operating tracker for the audit. It's structured for rollin
 
 ## SOTA closeout posture before real split audit — 2026-05-06
 
-Before running a real split audit on a deployable candidate stack, finish or explicitly park the remaining SOTA items that can change the audit's evidentiary standard:
+Before running a real split audit on a deployable candidate stack, finish or explicitly park the remaining SOTA items that can change the audit's evidentiary standard. The split audit only produces useful output if a concrete candidate Phase 2 stack exists to evaluate against the new selection/outer-evaluation split. Prior Phase 2 winners under legacy `--test-seasons` are legacy selection-on-evaluation-span evidence; if no candidate stack is in flight after closeout, the split-audit plan should report `plan_blocked_no_viable_candidate` instead of manufacturing a candidate to exercise the flags.
 
-1. **#10 pooled-policy uncertainty layer**: still the next active implementation item. The existing saved 24-seed gap is positive, but the profile-level day-block bootstrap / provenance question is not resolved.
+1. **#10 pooled-policy uncertainty layer**: blocked on a determinism-state precondition. The existing saved 24-seed gap remains `positive_screen_unchanged`, but PR #33 established that further analytical work on existing artifacts cannot resolve whether iid seed variation or provider/model nondeterminism drives the gap. The next move is one of: generate a determinism-certified paired same-seed surface and re-run the C0/DR-MDP screens, explicitly park #10 at the current verdict, or treat #10 only as candidate-generation evidence.
 2. **#7 audit-level multiple-testing control**: realized-picks BH/BY baseline exists, but valid e-values/e-processes or an honest permutation/FDR layer for sequential audit verdicts remains open.
 3. **#16/#17 candidate-generation methods**: decide whether lightweight decision-aware learning or model-class bakeoff must precede the split audit, or explicitly park them as post-audit candidate-generation work.
 4. **Conditional full-SOTA variants for #13/#14/#15**: keep deferred unless #10, #16, #17, or another candidate creates a deployment-grade policy comparison the v1 falsification harness cannot answer.
@@ -233,7 +233,7 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Effort**: M
 - **Prerequisites**: Compute budget for multi-seed daily training (~10x current cost); #12 proper-scoring suite for stacking weights.
 - **Status**: pooled-policy screen positive / production cutover not cleared; predictive-stacking implementation still unstarted.
-- **Next action**: Decide whether the next increment should be the heavier profile-level day-block bootstrap on the raw 24-seed surface, or a different bin-side lever. Keep predictive stacking / pooled-prediction cutover separate until proper-scoring evidence clears the 2026-04-29 Brier failure.
+- **Next action**: Do not spend more analytical work on the existing determinism-uncertified raw surface as if it can clear deployment evidence. Either (i) generate a determinism-certified paired same-seed deterministic/non-deterministic surface and re-run the C0 + DR-MDP screens, (ii) explicitly park #10 with the current `positive_screen_unchanged` verdict, or (iii) treat #10 as candidate-generation evidence rather than a pooled-policy deployment claim. Keep predictive stacking / pooled-prediction cutover separate until proper-scoring evidence clears the 2026-04-29 Brier failure.
 
 ### 11. Validation methodology for binary classification calibrators
 
