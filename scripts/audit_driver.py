@@ -73,6 +73,7 @@ from pathlib import Path
 
 
 LOCAL_BTS = Path("/Users/stone/projects/bts")
+DEFAULT_TEST_SEASONS = "2024,2025"
 SSH_OPTS = [
     "-o", "StrictHostKeyChecking=no",
     "-o", "UserKnownHostsFile=/dev/null",
@@ -118,6 +119,44 @@ class Box:
     name: str
     ipv4: str = ""
     region: str = ""
+
+
+@dataclass(frozen=True)
+class ValidationSplit:
+    """Resolved validation split for remote `bts experiment screen` calls."""
+
+    mode: str
+    test_seasons: list[int] | None = None
+    selection_seasons: list[int] | None = None
+    outer_eval_seasons: list[int] | None = None
+
+    def screen_cli_args(self) -> str:
+        if self.mode == "legacy_test_seasons":
+            return f"--test-seasons {_format_seasons(self.test_seasons or [])}"
+        if self.mode == "season_level_selection_outer_eval":
+            return (
+                f"--selection-seasons {_format_seasons(self.selection_seasons or [])} "
+                f"--outer-eval-seasons {_format_seasons(self.outer_eval_seasons or [])}"
+            )
+        raise ValueError(f"unknown validation split mode: {self.mode}")
+
+    def metadata(self) -> dict:
+        if self.mode == "legacy_test_seasons":
+            return {
+                "split_mode": self.mode,
+                "test_seasons": self.test_seasons,
+                "artifact_role": "legacy_phase1_screen",
+                "production_deploy_claim": False,
+            }
+        return {
+            "split_mode": self.mode,
+            "selection_seasons": self.selection_seasons,
+            "outer_eval_seasons": self.outer_eval_seasons,
+            "artifact_role": "selection_only",
+            "lockbox_used": False,
+            "lockbox_manifest": None,
+            "production_deploy_claim": False,
+        }
 
 
 class Provider:
@@ -661,7 +700,97 @@ def distribute_seeds(boxes: list[Box], seeds: list[int]) -> dict[str, list[int]]
     return queues
 
 
-def launch_box_queue(box: Box, seeds: list[int], exp_list: str) -> tuple[str, int, str]:
+def _parse_season_list(raw: str, flag_name: str) -> list[int]:
+    seasons: list[int] = []
+    for part in raw.split(","):
+        item = part.strip()
+        if not item:
+            continue
+        try:
+            seasons.append(int(item))
+        except ValueError as exc:
+            raise ValueError(
+                f"{flag_name} must be a comma-separated list of integer seasons."
+            ) from exc
+    if not seasons:
+        raise ValueError(f"{flag_name} must include at least one season.")
+    if len(set(seasons)) != len(seasons):
+        raise ValueError(f"{flag_name} must not contain duplicate seasons.")
+    return seasons
+
+
+def _format_seasons(seasons: list[int]) -> str:
+    return ",".join(str(s) for s in seasons)
+
+
+def resolve_validation_split(
+    *,
+    test_seasons: str | None,
+    selection_seasons: str | None,
+    outer_eval_seasons: str | None,
+) -> ValidationSplit:
+    """Resolve legacy or split-audit season flags for the cloud driver."""
+    has_selection = selection_seasons is not None
+    has_outer = outer_eval_seasons is not None
+    if has_selection != has_outer:
+        raise ValueError(
+            "--selection-seasons and --outer-eval-seasons must be supplied together."
+        )
+    if has_selection and test_seasons is not None:
+        raise ValueError(
+            "--test-seasons cannot be combined with --selection-seasons/--outer-eval-seasons."
+        )
+
+    if has_selection and selection_seasons is not None and outer_eval_seasons is not None:
+        selection = _parse_season_list(selection_seasons, "--selection-seasons")
+        outer = _parse_season_list(outer_eval_seasons, "--outer-eval-seasons")
+        overlap = sorted(set(selection) & set(outer))
+        if overlap:
+            raise ValueError(
+                "--selection-seasons and --outer-eval-seasons must be disjoint; "
+                f"overlap: {overlap}"
+            )
+        return ValidationSplit(
+            mode="season_level_selection_outer_eval",
+            selection_seasons=selection,
+            outer_eval_seasons=outer,
+        )
+
+    return ValidationSplit(
+        mode="legacy_test_seasons",
+        test_seasons=_parse_season_list(test_seasons or DEFAULT_TEST_SEASONS, "--test-seasons"),
+    )
+
+
+def _write_validation_split_metadata(
+    out_root: Path,
+    split: ValidationSplit,
+    *,
+    audit_driver: dict | None = None,
+) -> None:
+    out_root.mkdir(parents=True, exist_ok=True)
+    payload = split.metadata()
+    if audit_driver is not None:
+        payload["audit_driver"] = audit_driver
+    (out_root / "audit_validation_split.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    )
+
+
+def render_screen_command(exp_list: str, split: ValidationSplit) -> str:
+    """Render the `bts experiment screen` command tail used on remote boxes."""
+    return (
+        f'uv run bts experiment screen --subset "{exp_list}" \\\n'
+        f"    {split.screen_cli_args()}"
+    )
+
+
+def launch_box_queue(
+    box: Box,
+    seeds: list[int],
+    exp_list: str,
+    split: ValidationSplit,
+) -> tuple[str, int, str]:
     """Launch a shell-based seed queue on one box.
 
     Uses ABSOLUTE paths to eliminate cwd drift. Each seed runs:
@@ -673,6 +802,8 @@ def launch_box_queue(box: Box, seeds: list[int], exp_list: str) -> tuple[str, in
     seed_list_str = " ".join(str(s) for s in seeds)
 
     BTS = "/root/projects/bts"
+    metadata_json = json.dumps(split.metadata(), sort_keys=True)
+    screen_command = render_screen_command(exp_list, split)
     cmd = f"""
 rm -f /root/audit.log /root/audit.done
 nohup bash -c '
@@ -683,10 +814,12 @@ for SEED in {seed_list_str}; do
   mkdir -p {BTS}/experiments/results/phase1
   cd {BTS}
   BTS_LGBM_RANDOM_STATE=$SEED BTS_LGBM_DETERMINISTIC=1 {ENV} \\
-    uv run bts experiment screen --subset "{exp_list}" \\
-    --test-seasons 2024,2025 >> /root/audit.log 2>&1
+    {screen_command} >> /root/audit.log 2>&1
   rc=$?
   mv {BTS}/experiments/results/phase1 {BTS}/experiments/results/phase1_seed$SEED
+  cat > {BTS}/experiments/results/phase1_seed$SEED/audit_validation_split.json <<JSON
+{metadata_json}
+JSON
   echo "=== seed=$SEED done at $(date) rc=$rc ===" >> /root/audit.log
 done
 echo "queue done at $(date)" > /root/audit.done
@@ -953,6 +1086,12 @@ def main():
     ap.add_argument("--vultr-plan", default=None,
                     help="Override Vultr plan id (default: first available in VultrProvider.PLAN_FALLBACKS)")
     ap.add_argument("--experiments", type=Path, required=True, help="Path to a file with comma-separated experiment names")
+    ap.add_argument("--test-seasons", default=None,
+                    help=f"Legacy test seasons for remote screening (default: {DEFAULT_TEST_SEASONS})")
+    ap.add_argument("--selection-seasons", default=None,
+                    help="Selection seasons for split-aware remote screening")
+    ap.add_argument("--outer-eval-seasons", default=None,
+                    help="Outer-evaluation seasons reserved for the final split audit")
     ap.add_argument("--label", default=None, help="Box name prefix (default: bts-audit-{provider})")
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
     ap.add_argument("--poll-interval", type=int, default=900, help="Poll interval in seconds")
@@ -964,6 +1103,15 @@ def main():
     ap.add_argument("--stage-two-seeds", type=int, default=40,
                     help="Stage-2 additional seed count for survivors (only used with --two-stage)")
     args = ap.parse_args()
+
+    try:
+        validation_split = resolve_validation_split(
+            test_seasons=args.test_seasons,
+            selection_seasons=args.selection_seasons,
+            outer_eval_seasons=args.outer_eval_seasons,
+        )
+    except ValueError as exc:
+        ap.error(str(exc))
 
     experiments = args.experiments.read_text().strip()
     if not experiments:
@@ -982,10 +1130,31 @@ def main():
         log(f"Vultr plan override: {args.vultr_plan} (falls back to {VultrProvider.PLAN_FALLBACKS[1:]})")
     log(f"Audit: {len(seeds)} seeds × {len(experiments.split(','))} experiments "
         f"on up to {args.boxes} {args.provider} boxes")
+    if validation_split.mode == "legacy_test_seasons":
+        log(f"Validation split: test seasons {_format_seasons(validation_split.test_seasons or [])}")
+    else:
+        log(
+            "Validation split: selection seasons "
+            f"{_format_seasons(validation_split.selection_seasons or [])}; "
+            "outer-eval seasons "
+            f"{_format_seasons(validation_split.outer_eval_seasons or [])}"
+        )
 
     label_prefix = args.label or f"bts-audit-{args.provider}"
     provider = make_provider(args.provider)
     args.out.mkdir(parents=True, exist_ok=True)
+    audit_driver_metadata = {
+        "provider": args.provider,
+        "requested_boxes": args.boxes,
+        "actual_boxes_obtained": None,
+        "label": label_prefix,
+        "two_stage": args.two_stage,
+    }
+    _write_validation_split_metadata(
+        args.out,
+        validation_split,
+        audit_driver=audit_driver_metadata,
+    )
 
     boxes: list[Box] = []
     retrieve_results: dict[str, str] = {}
@@ -1001,6 +1170,15 @@ def main():
             [{"id": b.id, "name": b.name, "ipv4": b.ipv4, "region": b.region} for b in boxes],
             indent=2,
         ))
+        audit_driver_metadata["actual_boxes_obtained"] = len(boxes)
+        audit_driver_metadata["boxes"] = [
+            {"name": b.name, "region": b.region} for b in boxes
+        ]
+        _write_validation_split_metadata(
+            args.out,
+            validation_split,
+            audit_driver=audit_driver_metadata,
+        )
 
         provision_parallelism = min(3, len(boxes))
         log(f"Provisioning {len(boxes)} boxes (parallelism={provision_parallelism}, "
@@ -1021,6 +1199,12 @@ def main():
                     log(f"  [{b.name}] provision EXCEPTION: {type(e).__name__}: {str(e)[:200]} — dropping")
         if not ready_boxes:
             log("No boxes became ready — aborting before seed launch")
+            audit_driver_metadata["ready_boxes"] = 0
+            _write_validation_split_metadata(
+                args.out,
+                validation_split,
+                audit_driver=audit_driver_metadata,
+            )
             return
         if len(ready_boxes) < len(boxes):
             log(f"Continuing with {len(ready_boxes)}/{len(boxes)} ready boxes")
@@ -1033,6 +1217,15 @@ def main():
                 except Exception as e:
                     log(f"  FAILED to release {b.name}: {e}")
             boxes = ready_boxes
+        audit_driver_metadata["ready_boxes"] = len(boxes)
+        audit_driver_metadata["boxes"] = [
+            {"name": b.name, "region": b.region} for b in boxes
+        ]
+        _write_validation_split_metadata(
+            args.out,
+            validation_split,
+            audit_driver=audit_driver_metadata,
+        )
 
         if args.two_stage:
             # ---- Two-stage screening ----
@@ -1061,7 +1254,13 @@ def main():
 
             log("Launching stage-1 queues (all experiments)...")
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-                futures = [ex.submit(launch_box_queue, b, queues_s1[b.name], experiments)
+                futures = [ex.submit(
+                    launch_box_queue,
+                    b,
+                    queues_s1[b.name],
+                    experiments,
+                    validation_split,
+                )
                            for b in boxes]
                 for fut in concurrent.futures.as_completed(futures):
                     nm, rc, out = fut.result()
@@ -1117,8 +1316,13 @@ def main():
                 # args.out/stage1/<box>/audit.log above, so the overwrite is
                 # intentional and safe.
                 with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-                    futures = [ex.submit(launch_box_queue, b, queues_s2[b.name],
-                                         survivor_subset) for b in boxes]
+                    futures = [ex.submit(
+                        launch_box_queue,
+                        b,
+                        queues_s2[b.name],
+                        survivor_subset,
+                        validation_split,
+                    ) for b in boxes]
                     for fut in concurrent.futures.as_completed(futures):
                         nm, rc, out = fut.result()
                         log(f"  [{nm}] rc={rc}  {out}")
@@ -1144,7 +1348,13 @@ def main():
 
             log("Launching queues...")
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-                futures = [ex.submit(launch_box_queue, b, queues[b.name], experiments) for b in boxes]
+                futures = [ex.submit(
+                    launch_box_queue,
+                    b,
+                    queues[b.name],
+                    experiments,
+                    validation_split,
+                ) for b in boxes]
                 for fut in concurrent.futures.as_completed(futures):
                     nm, rc, out = fut.result()
                     log(f"  [{nm}] rc={rc}  {out}")

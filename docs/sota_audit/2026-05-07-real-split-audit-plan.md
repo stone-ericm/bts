@@ -71,6 +71,8 @@ The inventory must record:
 
 This is separate from `bts experiment screen/select`, which already has the season-level split API. The gap is cloud orchestration.
 
+`scripts/audit_driver.py` currently orchestrates remote Phase 1 screening only. `bts experiment select` remains local; if a future audit needs remote select orchestration, it should use the same split-flag pass-through and metadata pattern rather than falling back to legacy `--test-seasons`.
+
 ## Load-Bearing Gates
 
 The real split audit inherits these constraints from the SOTA closeout cycle:
