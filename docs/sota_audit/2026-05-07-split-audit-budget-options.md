@@ -2,25 +2,38 @@
 
 - **Generated**: 2026-05-07
 - **Depends on**: `docs/sota_audit/2026-05-07-real-split-audit-plan.md`
-- **Current plan verdict**: `plan_blocked_no_viable_candidate`
+- **Current plan verdict**: `candidate_selected_budget_authorized_pending_canaries`
 
 ## Verdict
 
-Structured verdict: `budget_options_documented_blocked_on_activation`.
+Structured verdict: `candidate_selected_budget_authorized_pending_canaries`.
 
-The tiers are ready for planning, but none should run until candidate intake, live resource inventory, and split-aware cloud orchestration are complete. Eric's 2026-05-07 Hetzner/Vultr capacity numbers and the read-only OCI quota checks are recorded below as partial inventory, not a substitute for launch canaries, cost re-quotes, and artifact-provenance checks. If this pricing snapshot is more than 30 days old when activated, re-quote provider rates before provisioning.
+The candidate is now pooled-policy methodology on a determinism-certified raw profile surface, and Eric authorized up to `$1000` on 2026-05-07 for the audit/canary plan. No provider spend should run until the raw profile launcher is merged, the OCI one-seed retrieval canary passes, and cost/runtime assumptions are refreshed for the exact command. If this pricing snapshot is more than 30 days old when activated, re-quote provider rates before provisioning.
 
 ## Recommendation
 
-Use the **medium** tier as the default once Eric names a candidate stack and compute budget. It gives a 48-seed audit comparable to the existing Hetzner 48-seed evidence, keeps spend controlled, and avoids the large Vultr premium unless wall-clock time or provider-diversity evidence is worth paying for.
+Use the **tri-provider pooled-policy audit** as the default once the code-only launcher and canaries pass. This is the best fit for the stated goal: SOTA methodology and winning BTS, under the `$1000` ceiling.
 
-Use **budget** only as a smoke audit or falsification pass. Use **luxury** only for a candidate that has already survived the medium tier or for a candidate Eric is seriously considering taking through production gates.
+Default active allocation:
+
+- 48 Hetzner seeds on up to 5 `CPX62` boxes
+- 24 OCI seeds after a one-seed OCI retrieval canary
+- 24 Vultr seeds on about 12 optimized 16 vCPU / 32 GB boxes
+
+Planning cost: about `$700`-`800` with deterministic/retry buffer if OCI runtime is close to the Hetzner anchor. If OCI canary fails, fall back to Hetzner+Vultr or Hetzner-only rather than forcing cross-provider pooling on unproven artifacts.
+
+The older **medium** tier remains the cheapest serious fallback. It gives a 48-seed audit comparable to the existing Hetzner 48-seed evidence, but it has weaker provider-diversity evidence and slower wall-clock under the current five-machine Hetzner cap.
+
+The tier sections below remain reference baselines. The active decision rule is
+the tri-provider plan above, then fallback by canary result. Use **budget** only
+as a smoke audit or falsification pass; treat the old **luxury** tier as a
+larger confirmation option, not the first launch under the `$1000` ceiling.
 
 All tiers remain blocked until:
 
-- candidate intake is complete
+- the selected pooled-policy candidate is pre-registered at a commit SHA
 - live Hetzner/Vultr/OCI resource inventory is authorized and recorded; the capacity notes below are partial inventory only
-- the launch path uses the screen-side split-aware orchestration now present in `scripts/audit_driver.py`; remote screening passes split flags and records split metadata, while `bts experiment select` remains local unless a future remote-select launcher is added
+- the launch path uses the raw-profile orchestration now being added to `scripts/audit_driver.py`; pooled-policy audits need `simulation_seed*/backtest_*.parquet`, not only remote `phase1_seed*` screen JSONs
 - OCI-specific launch readiness is fixed before any OCI box is requested: `oci-subnet-ocid` must be available to the driver through Keychain or env, a one-seed canary must retrieve artifacts end-to-end, and multi-AD launches must pass a live canary before requesting more than about 10 OCI E5 boxes
 
 ## Capacity Snapshot
@@ -91,7 +104,7 @@ Cost math: `16 seeds * 14.10h/seed * $0.0953/h = $21.50`, plus provisioning, idl
 
 **Expected wall clock**: about `2.5`-`3` days with four boxes; about `2` days with the current five-machine Hetzner cap, before deterministic-runtime buffer.
 
-Activation blockers: candidate intake, authorized live resource inventory, and split-aware cloud launcher.
+Activation blockers: raw profile launcher merge, live resource inventory, and canary retrieval.
 
 Capacity feasibility: fits inside the current Hetzner `5`-machine cap.
 
@@ -124,13 +137,13 @@ Capacity feasibility: the Hetzner-only default fits inside the current Hetzner `
 
 **Use when**:
 
-- candidate intake is complete
-- Eric wants the default serious split audit
+- candidate is pre-registered at a commit SHA
+- Eric wants the cheapest serious split audit fallback
 - low cost is more important than fast turnaround
 
 **Evidence posture**:
 
-- Recommended default.
+- Cheapest serious fallback, no longer the recommended default under the `$1000` ceiling.
 - Comparable scale to the existing Hetzner 48-seed surface.
 - Strong enough to decide whether a candidate deserves luxury/provider-diverse confirmation or should be stopped.
 
@@ -160,7 +173,7 @@ Cost math for all-Vultr burst upper bound: `100 seeds * 38.04h/seed * $0.476/h =
 - about `6`-`8` days for a 100-seed all-Vultr burst under the current 30-machine cap, unless the actual candidate workload is materially faster than the historical broad Phase 1 surface
 - faster luxury runs require either a Hetzner quota increase, a shorter candidate workload, or a proven OCI provider pool; see the OCI acceleration sensitivity section for non-commitment upside estimates
 
-Activation blockers: candidate intake, authorized live resource inventory, and split-aware cloud launcher.
+Activation blockers: raw profile launcher merge, live resource inventory, and canary retrieval.
 
 Vultr cap check: the all-Vultr raw compute estimate is about `$1,810`, but a `10%`-`20%` deterministic-runtime buffer plus provisioning/retry overhead can push the launch close to the user-reported `$2500` ceiling. Re-quote before provisioning.
 
@@ -172,7 +185,7 @@ OCI inclusion rule:
 - credentials/launch readiness: outstanding; `~/.oci/config` works, and `oci-subnet-ocid` can come from Keychain, `BTS_SECRET_OCI_SUBNET_OCID`, or `OCI_SUBNET_OCID`, but the subnet secret has not been confirmed present in a launch context
 - one-seed retrieval canary: outstanding; must finish end-to-end before scaling
 - AD spreading or LimitExceeded-to-next-AD fallback: driver support exists, but live multi-AD launch/retrieval verification is outstanding before requesting more than about 10 OCI E5 boxes
-- determinism/provider tags: driver metadata support exists for remote screen seeds (`provider`, `box_name`, `box_region`, `determinism_intent`, `launch_command_env`); keep OCI out of the pooled luxury result unless retrieved artifacts are checked and any final analysis preserves provider tags
+- determinism/provider tags: driver metadata support exists for remote profile seeds (`provider`, `box_name`, `box_region`, `run_kind`, `queue_mode`, `determinism_intent`, `launch_command_env`, `profile_seasons`); keep OCI out of the pooled result unless retrieved artifacts are checked and any final analysis preserves provider tags
 
 The OCI one-seed retrieval canary is a small spend if it runs at the planned shape: `1 seed * 14.10h/seed * $0.3984/h = $5.62`, before overhead.
 
@@ -191,11 +204,12 @@ The OCI one-seed retrieval canary is a small spend if it runs at the planned sha
 
 ## Decision Rule
 
-1. Start at **budget** if the candidate is weak or exploratory.
-2. Start at **medium** if the candidate is credible and Eric wants the real split audit.
-3. Use **luxury** only after medium produces a result worth confirming, or when turnaround/provider diversity is worth a four-figure spend.
+1. Run the OCI one-seed retrieval canary first after the raw profile launcher lands.
+2. If the canary passes, run the tri-provider pooled-policy audit under the `$1000` ceiling.
+3. If OCI fails, fall back to Hetzner+Vultr or the Hetzner-only medium tier depending on the failure mode and desired wall-clock.
+4. Use the old budget tier only for a smoke/falsification pass, not for the main deployment-grade argument.
 
-If no candidate stack is named, keep the split-audit state at `plan_blocked_no_viable_candidate`.
+If the candidate changes, stop and re-pre-register before spending.
 
 ## Source Links
 
