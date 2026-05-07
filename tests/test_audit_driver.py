@@ -275,6 +275,57 @@ class TestValidationSplit:
         assert payload["audit_driver"]["requested_boxes"] == 5
         assert payload["audit_driver"]["actual_boxes_obtained"] == 4
 
+    def test_seed_metadata_records_provider_box_and_determinism(self):
+        from audit_driver import Box, _seed_audit_metadata, resolve_validation_split
+
+        split = resolve_validation_split(
+            test_seasons=None,
+            selection_seasons="2023,2024",
+            outer_eval_seasons="2025",
+        )
+
+        payload = _seed_audit_metadata(
+            split,
+            provider_name="oci",
+            box=Box(
+                id="ocid1.instance.oc1.unit",
+                name="bts-audit-oci-1",
+                ipv4="10.0.0.1",
+                region="AD-2",
+            ),
+        )
+
+        assert payload["audit_driver"]["provider"] == "oci"
+        assert payload["audit_driver"]["box_id"] == "ocid1.instance.oc1.unit"
+        assert payload["audit_driver"]["box_name"] == "bts-audit-oci-1"
+        assert payload["audit_driver"]["box_region"] == "AD-2"
+        assert payload["audit_driver"]["box_region_semantics"] == "oci_availability_domain"
+        assert payload["audit_driver"]["determinism_intent"] is True
+        assert payload["audit_driver"]["launch_command_env"] == {
+            "BTS_LGBM_DETERMINISTIC": "1",
+            "BTS_LGBM_RANDOM_STATE": "per_seed_loop",
+        }
+        assert payload["audit_driver"]["cross_provider_pooling_validated"] is False
+
+        hetzner_payload = _seed_audit_metadata(
+            split,
+            provider_name="hetzner",
+            box=Box(id="123", name="bts-audit-hetzner-1", region="fsn1"),
+        )
+        assert hetzner_payload["audit_driver"]["box_region_semantics"] == "provider_region"
+
+    def test_audit_driver_provenance_base_records_determinism_intent(self):
+        from audit_driver import _audit_driver_provenance_base
+
+        payload = _audit_driver_provenance_base()
+
+        assert payload["determinism_intent"] is True
+        assert payload["launch_command_env"] == {
+            "BTS_LGBM_DETERMINISTIC": "1",
+            "BTS_LGBM_RANDOM_STATE": "per_seed_loop",
+        }
+        assert payload["cross_provider_pooling_validated"] is False
+
     def test_launch_queue_command_uses_split_flags_and_seed_metadata(
         self, monkeypatch,
     ):
@@ -305,6 +356,7 @@ class TestValidationSplit:
             [42],
             "exp_a",
             split,
+            "oci",
         )
 
         assert name == "box1"
@@ -316,7 +368,14 @@ class TestValidationSplit:
         assert "--outer-eval-seasons 2025" in command
         assert "--test-seasons" not in command
         assert "phase1_seed$SEED/audit_validation_split.json" in command
+        assert "<<'JSON'" in command
         assert '"split_mode": "season_level_selection_outer_eval"' in command
+        assert '"provider": "oci"' in command
+        assert '"box_name": "box1"' in command
+        assert '"determinism_intent": true' in command
+        assert '"launch_command_env":' in command
+        assert '"BTS_LGBM_RANDOM_STATE": "per_seed_loop"' in command
+        assert '"cross_provider_pooling_validated": false' in command
 
 
 # ---------------------------------------------------------------------------

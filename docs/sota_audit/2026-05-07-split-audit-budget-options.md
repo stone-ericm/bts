@@ -49,7 +49,7 @@ Cloud compute prices were checked on 2026-05-07. Treat these as planning estimat
 | Vultr | Optimized Cloud Compute, 16 vCPU / 32 GB / 300 GB | `$0.476/hour` | Vultr pricing page |
 | OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB | about `$0.3984/hour` | Oracle E5 Flex OCPU + memory pricing |
 
-OCI remains canary/retrieval-gated in this repo even though live quota is now verified. Use it as an accelerator only after a one-seed launch retrieves artifacts cleanly and records provider/determinism provenance.
+OCI remains canary/retrieval-gated in this repo even though live quota is now verified. Use it as an accelerator only after a one-seed launch retrieves artifacts cleanly and the resulting provider/determinism provenance is checked.
 
 ## Runtime Calibration
 
@@ -172,7 +172,7 @@ OCI inclusion rule:
 - credentials/launch readiness: outstanding; `~/.oci/config` works, and `oci-subnet-ocid` can come from Keychain, `BTS_SECRET_OCI_SUBNET_OCID`, or `OCI_SUBNET_OCID`, but the subnet secret has not been confirmed present in a launch context
 - one-seed retrieval canary: outstanding; must finish end-to-end before scaling
 - AD spreading or LimitExceeded-to-next-AD fallback: driver support exists, but live multi-AD launch/retrieval verification is outstanding before requesting more than about 10 OCI E5 boxes
-- determinism/provider tags: outstanding; keep OCI out of the pooled luxury result unless tags are recorded
+- determinism/provider tags: driver metadata support exists for remote screen seeds (`provider`, `box_name`, `box_region`, `determinism_intent`, `launch_command_env`); keep OCI out of the pooled luxury result unless retrieved artifacts are checked and any final analysis preserves provider tags
 
 The OCI one-seed retrieval canary is a small spend if it runs at the planned shape: `1 seed * 14.10h/seed * $0.3984/h = $5.62`, before overhead.
 

@@ -57,6 +57,7 @@ The inventory must record:
 - actual instance shape/plan obtained, not only requested shape
 - expected cost and wall-clock time at the chosen seed count
 - whether provider/model determinism metadata is embedded in produced artifacts
+- whether remote seed artifacts record provider, box, region, and deterministic-env intent before any cross-provider pooling
 - whether each existing artifact surface is selection evidence, outer-evaluation evidence, raw policy-bin evidence, or only operational provenance
 - teardown/retrieve safety status, including any preserved boxes after partial retrieval
 
