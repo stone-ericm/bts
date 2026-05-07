@@ -164,7 +164,7 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Effort**: M
 - **Prerequisites**: None (but compounds badly if started after lots of audits already executed — plan now).
 - **Status**: scoped / infrastructure-present; adoption incomplete.
-- **Next action**: Pick one non-uniform path and retrofit the contract: either add manifest/lockbox mode to the falsification harness, or add a nested time-respecting inner split to `bts experiment screen/select` so feature selection is separated from outer evaluation.
+- **Next action**: Implement the `bts experiment screen/select` season-level opt-in split from `docs/sota_audit/2026-05-06-experiment-runner-nested-split-design.md`: selection seasons and outer-evaluation seasons must be disjoint, selection decisions must use only the selection span, and the final selected stack must be re-evaluated once on the outer span before any lockbox-certification claim.
 
 ### 6. Distribution shift handling — BOCPD + drift-aware health check
 
