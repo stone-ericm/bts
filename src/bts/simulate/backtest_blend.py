@@ -228,6 +228,114 @@ def _train_vrex_lgbm(
     return model
 
 
+def _decision_sensitivity_sample_weights(
+    available: "pd.DataFrame",
+    pa_hit_probs,
+    *,
+    top_n: int = 10,
+    alpha: float = 2.0,
+    rank_scale: float = 3.0,
+    clip_min: float = 0.25,
+    clip_max: float = 4.0,
+):
+    """Return PA sample weights from an in-training top-slate sensitivity map.
+
+    The map is intentionally local to the training window. It uses probe-model
+    PA hit probabilities to estimate each batter-game's hit probability, then
+    upweights PA rows belonging to the top projected daily candidates. This is
+    a lightweight decision-aware proxy: rows that can plausibly move the daily
+    BTS ranking get more training mass; rows far from the slate top stay near
+    unit weight.
+    """
+    import numpy as np
+    import pandas as pd
+
+    required = {"date", "batter_id", "game_pk"}
+    if not required.issubset(available.columns):
+        return np.ones(len(available), dtype=float)
+
+    probs = np.asarray(pa_hit_probs, dtype=float)
+    if len(probs) != len(available):
+        raise ValueError("pa_hit_probs length must match available rows")
+
+    if len(probs) == 0:
+        return np.ones(0, dtype=float)
+
+    frame = available[["date", "batter_id", "game_pk"]].copy()
+    frame["_row_order"] = np.arange(len(frame))
+    frame["_p_hit"] = np.clip(probs, 1e-6, 1 - 1e-6)
+
+    def _game_hit_prob(s: pd.Series) -> float:
+        return float(1.0 - np.prod(1.0 - s.to_numpy(dtype=float)))
+
+    batter_games = (
+        frame.groupby(["date", "batter_id", "game_pk"], sort=False)["_p_hit"]
+        .agg(_game_hit_prob)
+        .reset_index(name="_p_game_hit")
+    )
+    batter_games["_daily_rank"] = batter_games.groupby("date")["_p_game_hit"].rank(
+        method="first",
+        ascending=False,
+    )
+
+    rank_component = np.where(
+        batter_games["_daily_rank"].to_numpy(dtype=float) <= float(top_n),
+        np.exp(-(batter_games["_daily_rank"].to_numpy(dtype=float) - 1.0) / rank_scale),
+        0.0,
+    )
+    # Bernoulli slope proxy: zero at 0/1, largest near uncertain hit outcomes.
+    p_game = batter_games["_p_game_hit"].to_numpy(dtype=float)
+    uncertainty_component = 4.0 * p_game * (1.0 - p_game)
+    batter_games["_weight"] = 1.0 + alpha * rank_component * uncertainty_component
+
+    weighted = frame.merge(
+        batter_games[["date", "batter_id", "game_pk", "_weight"]],
+        on=["date", "batter_id", "game_pk"],
+        how="left",
+        sort=False,
+    ).sort_values("_row_order")
+
+    weights = weighted["_weight"].fillna(1.0).to_numpy(dtype=float)
+    mean_weight = float(np.mean(weights)) if len(weights) else 1.0
+    if not np.isfinite(mean_weight) or mean_weight <= 0:
+        return np.ones(len(available), dtype=float)
+    weights = weights / mean_weight
+    return np.clip(weights, clip_min, clip_max)
+
+
+def _pop_decision_weight_params(merged_params: dict) -> tuple[dict, dict | None]:
+    """Split LightGBM params from decision-weighting control params."""
+    lgb_only_params = {
+        k: v for k, v in merged_params.items()
+        if not k.startswith("vrex_")
+        and not k.startswith("decision_weight_")
+        and k != "engine"
+        and k != "has_time"
+    }
+    mode = merged_params.get("decision_weight_mode")
+    if mode is None:
+        return lgb_only_params, None
+    if mode != "top_slate_v0":
+        raise ValueError(f"unknown decision_weight_mode: {mode!r}")
+    top_n = int(merged_params.get("decision_weight_top_n", 10))
+    rank_scale = float(merged_params.get("decision_weight_rank_scale", 3.0))
+    clip_min = float(merged_params.get("decision_weight_clip_min", 0.25))
+    clip_max = float(merged_params.get("decision_weight_clip_max", 4.0))
+    if top_n <= 0:
+        raise ValueError("decision_weight_top_n must be positive")
+    if rank_scale <= 0:
+        raise ValueError("decision_weight_rank_scale must be positive")
+    if clip_min <= 0 or clip_max < clip_min:
+        raise ValueError("decision_weight clip bounds are invalid")
+    return lgb_only_params, {
+        "top_n": top_n,
+        "alpha": float(merged_params.get("decision_weight_alpha", 2.0)),
+        "rank_scale": rank_scale,
+        "clip_min": clip_min,
+        "clip_max": clip_max,
+    }
+
+
 def _train_lgbm_classifier(
     available: "pd.DataFrame",
     cols: list[str],
@@ -241,12 +349,22 @@ def _train_lgbm_classifier(
     mask = train_X.notna().any(axis=1)
 
     # Strip non-LightGBM params
-    lgb_only_params = {
-        k: v for k, v in merged_params.items()
-        if not k.startswith("vrex_") and k != "engine" and k != "has_time"
-    }
+    lgb_only_params, decision_weight_params = _pop_decision_weight_params(merged_params)
     model = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
-    model.fit(train_X[mask], train_y[mask])
+    if decision_weight_params is None:
+        model.fit(train_X[mask], train_y[mask])
+    else:
+        X = train_X[mask]
+        y = train_y[mask]
+        probe = lgb.LGBMClassifier(**lgb_only_params, random_state=_rs())
+        probe.fit(X, y)
+        probe_probs = probe.predict_proba(X)[:, 1]
+        weights = _decision_sensitivity_sample_weights(
+            available.loc[mask],
+            probe_probs,
+            **decision_weight_params,
+        )
+        model.fit(X, y, sample_weight=weights)
     return model
 
 
@@ -328,8 +446,11 @@ def _train_blend_for_day(
         # produce duplicate column names, which LightGBM rejects.
         cols = list(dict.fromkeys(cols))
 
-        # If a cached model was provided for this config, reuse it
-        if cached_models and name in cached_models:
+        # If a cached model was provided for this plain baseline config, reuse
+        # it. Configs with extra params may alter the learned model without
+        # changing feature columns, so the feature-hash cache key is not enough
+        # to prove reuse is safe.
+        if cached_models and name in cached_models and not extra_params:
             blend[name] = cached_models[name]
             if _is_regressor(extra_params):
                 side_channel_names.add(name)

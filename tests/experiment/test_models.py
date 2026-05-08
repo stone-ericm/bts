@@ -1,6 +1,7 @@
 from bts.experiment.models import (
     LambdaRankExperiment,
     CatBoostExperiment,
+    DecisionWeightedLightGBMExperiment,
     XENDCGExperiment,
     VRExExperiment,
 )
@@ -45,3 +46,19 @@ def test_vrex_adds_blend_member_with_extra_params():
     assert "vrex_beta" in extras
     assert extras["vrex_beta"] == 10.0
     assert extras["vrex_rounds"] == 5
+
+
+def test_decision_weighted_lgbm_rewrites_existing_blend_configs():
+    """The v0 decision-aware candidate should keep the production 12-model
+    blend shape and opt each member into the training-weight hook."""
+    exp = DecisionWeightedLightGBMExperiment()
+    configs = list(BLEND_CONFIGS)
+    new_configs = exp.modify_blend_configs(configs)
+    assert len(new_configs) == len(configs)
+    assert [cfg[0] for cfg in new_configs] == [cfg[0] for cfg in configs]
+
+    for config in new_configs:
+        assert len(config) == 3
+        _, _, extras = config
+        assert extras["decision_weight_mode"] == "top_slate_v0"
+        assert extras["decision_weight_top_n"] == 10

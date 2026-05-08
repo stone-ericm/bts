@@ -1,7 +1,7 @@
 # Fresh Audit Pre-Registration: Decision-Aware Learning Candidate Cycle
 
 - **Generated**: 2026-05-08
-- **Status**: `draft_pre_registration_candidate_unfrozen`
+- **Status**: `candidate_training_hook_implemented_pending_evaluation_freeze`
 - **Prior cycle**: `cycle_closed_no_deployable_candidate`
 - **Production deploy claim**: `false`
 - **Current launch posture**: do not launch cloud compute or production changes
@@ -40,6 +40,27 @@ the absolute change in BTS policy value from changing a PA hit probability near
 the decision boundary. The first implementation must not use an SPO surrogate
 or decision-bucket calibration-error reweighting unless this memo is amended
 before any evaluation launch.
+
+The implemented v0 weighting mode is `top_slate_v0`:
+
+- train an in-window probe LightGBM model with the same feature columns,
+  LightGBM parameters, and random state as the final model;
+- predict probe PA hit probabilities on the same training window;
+- aggregate probe PA probabilities to batter-game hit probabilities;
+- rank batter-games within each historical date;
+- upweight PA rows attached to the top `10` projected daily batter-games with
+  `1 + alpha * exp(-(rank - 1) / rank_scale) * 4 * p_game * (1 - p_game)`;
+- use `alpha=2.0`, `rank_scale=3.0`, `clip_min=0.25`, and `clip_max=4.0`;
+- normalize final PA weights to mean `1.0`.
+
+The probe/final coupling is intentional in v0: the probe uses the same feature
+columns, hyperparameters, random state, and training window as the final model.
+Because the probe predicts on its own training data, its absolute probabilities
+may be overfit. The v0 guardrail is that these probabilities only define a
+within-date rank-and-sensitivity weight, with clipping and mean normalization;
+they are not reported as evaluation forecasts. A later v1 can replace this with
+cross-fitted out-of-fold probe predictions if the v0 candidate survives local
+screening and needs a cleaner estimator.
 
 Baseline reference:
 
@@ -80,6 +101,29 @@ be computed only from development seasons named before launch.
 
 The current memo is not enough to launch. The launch-ready pre-registration
 must name the exact commit SHA after the candidate code and tests land.
+
+## 2a. Implementation Freeze Status
+
+Training hook frozen in the implementation PR:
+
+- `src/bts/simulate/backtest_blend.py` adds `decision_weight_mode=top_slate_v0`
+  for LightGBM classifier configs only.
+- `src/bts/experiment/models.py` registers
+  `decision_weighted_lgbm_v0`, which rewrites the existing production 12-model
+  blend configs instead of appending a 13th model.
+- Production defaults are unchanged because the hook is inactive unless an
+  experiment config supplies `decision_weight_mode`.
+- The fast-path experiment runner rejects `decision_weighted_lgbm_v0` because it
+  modifies baseline blend configs rather than adding a standalone side model;
+  this is covered by `test_model_swap_eligibility_rejects_ineligible`.
+
+Launch remains blocked until a later slice freezes:
+
+1. the candidate-vs-production prediction artifact schema;
+2. the historical local screen command;
+3. the fresh-target live-forward logging command;
+4. the comparison script and verdict artifact schema;
+5. the launch commit SHA after those pieces land.
 
 ## 3. Family-Control Rule
 

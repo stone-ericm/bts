@@ -124,8 +124,47 @@ class VRExExperiment(ExperimentDef):
         ]
 
 
+class DecisionWeightedLightGBMExperiment(ExperimentDef):
+    """Train the production blend with top-slate decision-sensitivity weights.
+
+    This is the smallest #16 decision-aware learning candidate: keep the
+    production feature set and blend membership, but alter LightGBM training
+    mass toward PA rows that a probe model maps into top daily BTS candidates.
+    It is an experiment-only path and does not affect production training.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="decision_weighted_lgbm_v0",
+            phase=1,
+            category="model",
+            description="Production blend retrained with top-slate decision-sensitivity PA weights",
+        )
+
+    def modify_blend_configs(self, configs):
+        weighted = []
+        for config in configs:
+            if len(config) == 2:
+                name, cols = config
+                extras = {}
+            else:
+                name, cols, extras = config
+                extras = dict(extras)
+            extras.update({
+                "decision_weight_mode": "top_slate_v0",
+                "decision_weight_top_n": 10,
+                "decision_weight_alpha": 2.0,
+                "decision_weight_rank_scale": 3.0,
+                "decision_weight_clip_min": 0.25,
+                "decision_weight_clip_max": 4.0,
+            })
+            weighted.append((name, cols, extras))
+        return weighted
+
+
 register(LambdaRankExperiment())
 register(LambdaRankTop1Experiment())
 register(CatBoostExperiment())
 register(XENDCGExperiment())
 register(VRExExperiment())
+register(DecisionWeightedLightGBMExperiment())

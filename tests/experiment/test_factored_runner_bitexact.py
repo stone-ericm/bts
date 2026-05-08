@@ -127,6 +127,7 @@ def test_model_swap_eligibility_accepts_model_add(exp_name):
         ("wind_vector", "modifies features"),
         ("kl_divergence", "modifies features"),
         ("decision_calibration", "doesn't add a new model"),
+        ("decision_weighted_lgbm_v0", "modifies or removes baseline blend configs"),
     ],
 )
 def test_model_swap_eligibility_rejects_ineligible(exp_name, reason_substr):
