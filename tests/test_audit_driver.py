@@ -703,6 +703,42 @@ class TestTeardownAllReturn:
         assert provider.deleted == ["1", "3"]
 
 
+class TestAuditAttachRetrieveMode:
+    def test_screen_mode_uses_phase1_retrieve(self):
+        import audit_attach
+        import audit_driver
+
+        assert audit_attach.retrieve_fn_for_run_kind("screen") is audit_driver.retrieve_one
+
+    def test_profiles_mode_uses_simulation_seed_retrieve(self):
+        import audit_attach
+        import audit_driver
+
+        assert (
+            audit_attach.retrieve_fn_for_run_kind("profiles")
+            is audit_driver.retrieve_profile_one
+        )
+
+    def test_unknown_mode_raises(self):
+        import audit_attach
+
+        with pytest.raises(ValueError, match="unknown run kind"):
+            audit_attach.retrieve_fn_for_run_kind("invalid")
+
+    def test_select_boxes_for_attach_preserves_original_order(self, boxes):
+        import audit_attach
+
+        selected = audit_attach.select_boxes_for_attach(boxes, ["b3", "b1"])
+
+        assert [box.name for box in selected] == ["b1", "b3"]
+
+    def test_select_boxes_for_attach_rejects_unknown_box(self, boxes):
+        import audit_attach
+
+        with pytest.raises(ValueError, match="--only-box did not match"):
+            audit_attach.select_boxes_for_attach(boxes, ["missing"])
+
+
 class TestPollResilience:
     """A single box's SSH timeout must not kill the whole poll cycle.
 

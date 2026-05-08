@@ -1,0 +1,364 @@
+{
+  "artifact_role": "phase_d_postmortem_diagnostic",
+  "bin_manifold": {
+    "early": {
+      "bins": [
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.020623291182501724,
+          "delta_p_hit": 0.08648752563226247,
+          "index": 0,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.6451298701298701,
+          "outer_p_hit": 0.8519480519480519,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.6245065789473684,
+          "selection_p_hit": 0.7654605263157894
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": -0.005897556390977443,
+          "delta_p_hit": 0.036877349624060085,
+          "index": 1,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.6857142857142857,
+          "outer_p_hit": 0.8785714285714286,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.6916118421052632,
+          "selection_p_hit": 0.8416940789473685
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.0693075017088175,
+          "delta_p_hit": 0.020910586124401886,
+          "index": 2,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.7951298701298701,
+          "outer_p_hit": 0.9045454545454545,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.7258223684210526,
+          "selection_p_hit": 0.8836348684210527
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.0442775974025974,
+          "delta_p_hit": 0.046428571428571375,
+          "index": 3,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.8224025974025974,
+          "outer_p_hit": 0.9714285714285714,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.778125,
+          "selection_p_hit": 0.925
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.026230348598769715,
+          "delta_p_hit": 0.033243976418318444,
+          "index": 4,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.8314935064935065,
+          "outer_p_hit": 0.9422077922077922,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.8052631578947368,
+          "selection_p_hit": 0.9089638157894737
+        }
+      ],
+      "boundary_deltas": [
+        -0.0007078137603041545,
+        0.0008420395330288599,
+        -0.002412891758634239,
+        -0.0029348979603474046
+      ],
+      "outer_boundaries": [
+        0.7963452581510937,
+        0.812445571141711,
+        0.8240802998995894,
+        0.8386625326881234
+      ],
+      "selection_boundaries": [
+        0.7970530719113978,
+        0.8116035316086821,
+        0.8264931916582237,
+        0.8415974306484708
+      ]
+    },
+    "late": {
+      "bins": [
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": -0.09624999999999995,
+          "delta_p_hit": -0.1383333333333333,
+          "index": 0,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.6033333333333334,
+          "outer_p_hit": 0.68,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.6995833333333333,
+          "selection_p_hit": 0.8183333333333334
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": -0.18541666666666673,
+          "delta_p_hit": -0.12708333333333333,
+          "index": 1,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.4633333333333333,
+          "outer_p_hit": 0.68,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.64875,
+          "selection_p_hit": 0.8070833333333334
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.08958333333333335,
+          "delta_p_hit": 0.0004166666666666208,
+          "index": 2,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.75,
+          "outer_p_hit": 0.815,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.6604166666666667,
+          "selection_p_hit": 0.8145833333333333
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": 0.0008333333333333526,
+          "delta_p_hit": 0.0658333333333333,
+          "index": 3,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.8516666666666667,
+          "outer_p_hit": 1.0,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.8508333333333333,
+          "selection_p_hit": 0.9341666666666667
+        },
+        {
+          "delta_frequency": 0.0,
+          "delta_p_both": -0.17458333333333342,
+          "delta_p_hit": -0.29875000000000007,
+          "index": 4,
+          "outer_frequency": 0.2,
+          "outer_p_both": 0.6666666666666666,
+          "outer_p_hit": 0.6666666666666666,
+          "selection_frequency": 0.2,
+          "selection_p_both": 0.84125,
+          "selection_p_hit": 0.9654166666666667
+        }
+      ],
+      "boundary_deltas": [
+        -0.004217966312576205,
+        -0.005974770100545701,
+        -0.007210130035379958,
+        2.0201708468947643e-05
+      ],
+      "outer_boundaries": [
+        0.7871910843860688,
+        0.7996476861861239,
+        0.8155137134902035,
+        0.8410232779081227
+      ],
+      "selection_boundaries": [
+        0.791409050698645,
+        0.8056224562866696,
+        0.8227238435255835,
+        0.8410030761996538
+      ]
+    },
+    "outer_diagnostics": {
+      "early_bin_count": 5,
+      "late_bin_count": 5,
+      "late_bins_status": "used",
+      "n_dates": 184,
+      "n_rank1_rows": 18400,
+      "n_rows": 184000
+    },
+    "selection_diagnostics": {
+      "early_bin_count": 5,
+      "late_bin_count": 5,
+      "late_bins_status": "used",
+      "n_dates": 728,
+      "n_rank1_rows": 72800,
+      "n_rows": 728000
+    }
+  },
+  "generated_at": "2026-05-08T15:51:03.555754+00:00",
+  "interpretation": {
+    "diagnostic_only": true,
+    "next_candidate_direction": "Treat plain pooled-policy as falsified under temporal outer evaluation. Use rolling-origin candidate selection for any recency-weighted, drift-aware, or robust-policy successor, with a fresh lockbox/live evaluation target.",
+    "summary": "This artifact explains the Phase D failure mode. It must not be used as a production deployment claim because it includes hindsight policy references trained on the outer-evaluation surface."
+  },
+  "policy_diagnostics": {
+    "action_counts": {
+      "full_surface_pooled_leaky_diagnostic": {
+        "double": 22701,
+        "single": 25317,
+        "skip": 54582
+      },
+      "outer_only_hindsight_oracle": {
+        "double": 23629,
+        "single": 27957,
+        "skip": 51014
+      },
+      "production_shipped": {
+        "double": 19287,
+        "single": 29069,
+        "skip": 54244
+      },
+      "selection_pooled_candidate": {
+        "double": 22471,
+        "single": 20889,
+        "skip": 59240
+      }
+    },
+    "action_transitions_vs_production": {
+      "full_surface_pooled_leaky_diagnostic": {
+        "differing_fraction": 0.12774853801169592,
+        "differing_states": 13107,
+        "total_decision_states": 102600,
+        "transition_counts": {
+          "double->double": 17569,
+          "double->single": 1453,
+          "double->skip": 265,
+          "single->double": 5094,
+          "single->single": 20791,
+          "single->skip": 3184,
+          "skip->double": 38,
+          "skip->single": 3073,
+          "skip->skip": 51133
+        }
+      },
+      "outer_only_hindsight_oracle": {
+        "differing_fraction": 0.20028265107212476,
+        "differing_states": 20549,
+        "total_decision_states": 102600,
+        "transition_counts": {
+          "double->double": 16026,
+          "double->single": 2492,
+          "double->skip": 769,
+          "single->double": 6951,
+          "single->single": 18949,
+          "single->skip": 3169,
+          "skip->double": 652,
+          "skip->single": 6516,
+          "skip->skip": 47076
+        }
+      },
+      "selection_pooled_candidate": {
+        "differing_fraction": 0.1362962962962963,
+        "differing_states": 13984,
+        "total_decision_states": 102600,
+        "transition_counts": {
+          "double->double": 16811,
+          "double->single": 1784,
+          "double->skip": 692,
+          "single->double": 5398,
+          "single->single": 18464,
+          "single->skip": 5207,
+          "skip->double": 262,
+          "skip->single": 641,
+          "skip->skip": 53341
+        }
+      }
+    },
+    "evaluations": {
+      "outer": {
+        "full_surface_pooled_leaky_diagnostic": 0.29001519531031317,
+        "outer_only_hindsight_oracle": 0.35759642738003716,
+        "production_shipped": 0.12535306905279797,
+        "selection_pooled_candidate": 0.060967744572193616
+      },
+      "selection": {
+        "full_surface_pooled_leaky_diagnostic": 0.08085116383783378,
+        "outer_only_hindsight_oracle": 0.058768089399819236,
+        "production_shipped": 0.06704926063872174,
+        "selection_pooled_candidate": 0.09637776936844006
+      }
+    },
+    "full_surface_solution": {
+      "diagnostic_only": true,
+      "optimal_p57": 0.0918832436315982
+    },
+    "outer_oracle_solution": {
+      "diagnostic_only": true,
+      "optimal_p57": 0.35759642738003716
+    },
+    "policy_references": {
+      "full_surface_pooled_leaky_diagnostic": "Pooled policy built from 2021-2025 profiles; diagnostic only because it uses the outer-evaluation year.",
+      "outer_only_hindsight_oracle": "Pooled policy built from 2025 profiles only; diagnostic oracle only.",
+      "production_shipped": "Fixed local production policy loaded from data/models/mdp_policy.npz.",
+      "selection_pooled_candidate": "Pooled policy built from 2021-2024 profiles only."
+    },
+    "production_policy": {
+      "boundaries": [
+        0.7959788446395174,
+        0.8114907020399261,
+        0.8252474190317034,
+        0.8407401966749947
+      ],
+      "path": "data/models/mdp_policy.npz",
+      "season_length": 180
+    },
+    "selection_solution": {
+      "optimal_p57": 0.09637776936844006
+    }
+  },
+  "production_deploy_claim": false,
+  "schema_version": "phase_d_pooled_policy_postmortem_v1",
+  "seed_pool": {
+    "n": 100,
+    "providers": {
+      "hetzner": 48,
+      "oci": 52
+    }
+  },
+  "split": {
+    "outer_eval_seasons": [
+      2025
+    ],
+    "selection_seasons": [
+      2021,
+      2022,
+      2023,
+      2024
+    ]
+  },
+  "surface_metrics": {
+    "outer": {
+      "n_rows": 184000,
+      "n_seed_dates": 18400,
+      "n_seeds": 100,
+      "rank1_actual_hit_rate": 0.8866847826086957,
+      "rank1_calibration_gap_mean_p_minus_actual": -0.06830316699390648,
+      "rank1_mean_p_game_hit": 0.8183816156147892,
+      "rank1_rank2_both_hit_rate": 0.7414673913043478,
+      "rank2_actual_hit_rate": 0.8430434782608696,
+      "seasons": [
+        2025
+      ]
+    },
+    "outer_minus_selection": {
+      "rank1_actual_hit_rate": 0.02124522216913527,
+      "rank1_calibration_gap_mean_p_minus_actual": -0.021938035781785548,
+      "rank1_mean_p_game_hit": -0.0006928136126502782,
+      "rank1_rank2_both_hit_rate": 0.013912446249402799,
+      "rank2_actual_hit_rate": 0.0008868848542761265
+    },
+    "selection": {
+      "n_rows": 728000,
+      "n_seed_dates": 72800,
+      "n_seeds": 100,
+      "rank1_actual_hit_rate": 0.8654395604395604,
+      "rank1_calibration_gap_mean_p_minus_actual": -0.046365131212120936,
+      "rank1_mean_p_game_hit": 0.8190744292274394,
+      "rank1_rank2_both_hit_rate": 0.727554945054945,
+      "rank2_actual_hit_rate": 0.8421565934065934,
+      "seasons": [
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    }
+  }
+}

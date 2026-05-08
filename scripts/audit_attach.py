@@ -4,10 +4,23 @@
 Does NOT spin up new boxes. Reads boxes.json from --out, re-derives the
 seed queue deterministically from DEFAULT_SEEDS + distribute_seeds(), polls
 until all boxes report done or the new deadline hits, then retrieves and
-tears down.
+tears down. Use --run-kind profiles for raw backtest/profile audits so
+retrieve looks for data/simulation_seed*/ artifacts instead of phase1_seed*/.
 
 Used when the original driver's --deadline-hours is too short and needs to
-be extended without losing the running VMs. Workflow:
+be extended without losing the running VMs. Preferred recovery workflow:
+
+    # 1. Let audit_driver reach its deadline. It retrieves complete boxes,
+    #    tears down boxes whose retrieve is clean, and logs PRESERVED lines for
+    #    boxes with incomplete or partial results.
+    # 2. Re-attach only to preserved boxes with the original output directory,
+    #    seed source, and run kind.
+    python3 scripts/audit_attach.py --provider oci --run-kind profiles \\
+        --out data/oci_results/phase_c_pooled_policy_profiles_2026-05-07 \\
+        --seeds-file scripts/audit_seeds_extension_n100.txt \\
+        --only-box bts-phasec-profile-oci-r2-4 --deadline-hours 24
+
+Proactive extension is possible, but it is an operator-controlled exception:
 
     # 1. SIGKILL the original driver (SIGKILL skips its finally:teardown_all)
     kill -9 <original-driver-pid>
@@ -35,14 +48,36 @@ from audit_driver import (
     log,
     make_provider,
     poll,
+    retrieve_profile_one,
     retrieve_one,
     teardown_all,
     teardown_retrieved,
 )
 
 
+def retrieve_fn_for_run_kind(run_kind: str):
+    if run_kind == "screen":
+        return retrieve_one
+    if run_kind == "profiles":
+        return retrieve_profile_one
+    raise ValueError(f"unknown run kind: {run_kind}")
+
+
+def select_boxes_for_attach(boxes: list[Box], only_boxes: list[str] | None) -> list[Box]:
+    if not only_boxes:
+        return boxes
+    requested = set(only_boxes)
+    by_name = {box.name: box for box in boxes}
+    missing = sorted(requested - set(by_name))
+    if missing:
+        raise ValueError(f"--only-box did not match boxes.json entries: {missing}")
+    return [box for box in boxes if box.name in requested]
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--run-kind", choices=["screen", "profiles"], default="screen",
+                    help="Original audit_driver run kind; controls retrieve layout")
     ap.add_argument("--provider", choices=["hetzner", "vultr", "oci"], required=True)
     ap.add_argument("--out", type=Path, required=True,
                     help="Output dir containing boxes.json (same --out used by audit_driver)")
@@ -57,14 +92,16 @@ def main():
                     help="Skip VM teardown after retrieve (debug only)")
     ap.add_argument("--skip-alive-check", action="store_true",
                     help="Skip provider.is_active() preflight check")
+    ap.add_argument("--only-box", action="append", default=None,
+                    help="Restrict attach to this box name; repeat for multiple boxes")
     args = ap.parse_args()
 
     boxes_path = args.out / "boxes.json"
     raw = json.loads(boxes_path.read_text())
-    boxes = [Box(id=b["id"], name=b["name"], ipv4=b["ipv4"], region=b.get("region", ""))
-             for b in raw]
-    log(f"Attached to {len(boxes)} boxes from {boxes_path}")
-    for b in boxes:
+    all_boxes = [Box(id=b["id"], name=b["name"], ipv4=b["ipv4"], region=b.get("region", ""))
+                 for b in raw]
+    log(f"Attached to {len(all_boxes)} boxes from {boxes_path}")
+    for b in all_boxes:
         log(f"  {b.name} id={b.id} ipv4={b.ipv4}")
 
     if args.seeds_file:
@@ -76,10 +113,16 @@ def main():
         log(f"Seeds: {len(seeds)} from DEFAULT_SEEDS[:{args.seeds}]")
     else:
         raise SystemExit("must specify --seeds OR --seeds-file")
-    queues = distribute_seeds(boxes, seeds)
+    queues = distribute_seeds(all_boxes, seeds)
     log("Seed distribution (for retrieve):")
     for nm, sl in queues.items():
         log(f"  {nm}: {sl}")
+    boxes = select_boxes_for_attach(all_boxes, args.only_box)
+    if len(boxes) != len(all_boxes):
+        log(f"Restricting attach to {len(boxes)}/{len(all_boxes)} boxes: "
+            f"{[box.name for box in boxes]}")
+    retrieve_fn = retrieve_fn_for_run_kind(args.run_kind)
+    log(f"Run kind: {args.run_kind}")
 
     provider = make_provider(args.provider)
 
@@ -122,7 +165,7 @@ def main():
 
         log("=== RETRIEVE ===")
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(boxes)) as ex:
-            futures = [ex.submit(retrieve_one, b, args.out, queues[b.name]) for b in boxes]
+            futures = [ex.submit(retrieve_fn, b, args.out, queues[b.name]) for b in boxes]
             for fut in concurrent.futures.as_completed(futures):
                 nm, status, errs = fut.result()
                 retrieve_results[nm] = status

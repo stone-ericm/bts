@@ -1,0 +1,3174 @@
+{
+  "artifact_role": "phase_d_outer_eval_validation",
+  "generated_at": "2026-05-08T15:39:19.993235+00:00",
+  "inputs": {
+    "prod_policy_path": "data/models/mdp_policy.npz",
+    "profile_roots": [
+      "data/hetzner_results/phase_c_pooled_policy_profiles_2026-05-07",
+      "data/oci_results/phase_c_pooled_policy_profiles_2026-05-07"
+    ],
+    "root_metadata": [
+      {
+        "metadata": {
+          "artifact_role": "raw_backtest_profile_surface",
+          "audit_driver": {
+            "actual_boxes_obtained": 4,
+            "boxes": [
+              {
+                "name": "bts-phasec-profile-hetzner-1",
+                "region": "fsn1"
+              },
+              {
+                "name": "bts-phasec-profile-hetzner-2",
+                "region": "fsn1"
+              },
+              {
+                "name": "bts-phasec-profile-hetzner-3",
+                "region": "fsn1"
+              },
+              {
+                "name": "bts-phasec-profile-hetzner-4",
+                "region": "fsn1"
+              }
+            ],
+            "cross_provider_pooling_validated": false,
+            "determinism_intent": true,
+            "label": "bts-phasec-profile-hetzner",
+            "launch_command_env": {
+              "BTS_LGBM_DETERMINISTIC": "1",
+              "BTS_LGBM_RANDOM_STATE": "per_seed_loop"
+            },
+            "log_pa_predictions": true,
+            "profile_seasons": [
+              2021,
+              2022,
+              2023,
+              2024,
+              2025
+            ],
+            "provider": "hetzner",
+            "queue_mode": "backtest",
+            "ready_boxes": 4,
+            "requested_boxes": 5,
+            "run_kind": "profiles",
+            "two_stage": false
+          },
+          "lockbox_manifest": null,
+          "lockbox_used": false,
+          "outer_eval_seasons": [
+            2025
+          ],
+          "production_deploy_claim": false,
+          "profile_seasons": [
+            2021,
+            2022,
+            2023,
+            2024,
+            2025
+          ],
+          "selection_seasons": [
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "split_mode": "season_level_selection_outer_eval"
+        },
+        "root": "data/hetzner_results/phase_c_pooled_policy_profiles_2026-05-07"
+      },
+      {
+        "metadata": {
+          "artifact_role": "raw_backtest_profile_surface",
+          "audit_driver": {
+            "actual_boxes_obtained": 4,
+            "boxes": [
+              {
+                "name": "bts-phasec-profile-oci-r2-1",
+                "region": "ILYb:US-ASHBURN-AD-1"
+              },
+              {
+                "name": "bts-phasec-profile-oci-r2-2",
+                "region": "ILYb:US-ASHBURN-AD-2"
+              },
+              {
+                "name": "bts-phasec-profile-oci-r2-3",
+                "region": "ILYb:US-ASHBURN-AD-3"
+              },
+              {
+                "name": "bts-phasec-profile-oci-r2-4",
+                "region": "ILYb:US-ASHBURN-AD-1"
+              }
+            ],
+            "cross_provider_pooling_validated": false,
+            "determinism_intent": true,
+            "label": "bts-phasec-profile-oci-r2",
+            "launch_command_env": {
+              "BTS_LGBM_DETERMINISTIC": "1",
+              "BTS_LGBM_RANDOM_STATE": "per_seed_loop"
+            },
+            "log_pa_predictions": true,
+            "profile_seasons": [
+              2021,
+              2022,
+              2023,
+              2024,
+              2025
+            ],
+            "provider": "oci",
+            "queue_mode": "backtest",
+            "ready_boxes": 4,
+            "requested_boxes": 4,
+            "run_kind": "profiles",
+            "two_stage": false
+          },
+          "lockbox_manifest": null,
+          "lockbox_used": false,
+          "outer_eval_seasons": [
+            2025
+          ],
+          "production_deploy_claim": false,
+          "profile_seasons": [
+            2021,
+            2022,
+            2023,
+            2024,
+            2025
+          ],
+          "selection_seasons": [
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "split_mode": "season_level_selection_outer_eval"
+        },
+        "root": "data/oci_results/phase_c_pooled_policy_profiles_2026-05-07"
+      }
+    ]
+  },
+  "methodology": {
+    "candidate_policy": "pooled MDP policy built from all Phase C seeds on selection seasons only",
+    "comparison": "fixed production policy table vs fixed pooled candidate policy table, evaluated on each seed's 2025 outer-evaluation bins",
+    "late_phase_days": 30,
+    "n_bins": 5,
+    "primary_uncertainty": "provider_stratified_seed_bootstrap_preserving_provider_counts",
+    "season_length": 180,
+    "secondary_uncertainty": "iid_seed_bootstrap"
+  },
+  "p57_outer_eval": {
+    "overall": {
+      "bootstrap": {
+        "ci_lower": -0.06525032280489435,
+        "ci_upper": -0.06075686724432749,
+        "kind": "provider_stratified_seed_bootstrap",
+        "n_bootstrap": 20000,
+        "prob_mean_gt_zero": 0.0,
+        "seed": 42
+      },
+      "exact_sign_p_two_sided": 1.5777218104420236e-30,
+      "max_gap": -0.03494575694670257,
+      "mean_gap": -0.0629872422774106,
+      "mean_pooled": 0.06469098990010591,
+      "mean_prod": 0.1276782321775165,
+      "min_gap": -0.09515404768259807,
+      "n": 100,
+      "n_negative": 100,
+      "n_positive": 0,
+      "n_zero": 0,
+      "se_gap": 0.0011510954289082878,
+      "std_gap": 0.011510954289082878
+    },
+    "overall_iid_seed_bootstrap": {
+      "bootstrap": {
+        "ci_lower": -0.06524149804996834,
+        "ci_upper": -0.060746320817333055,
+        "kind": "iid_seed_bootstrap",
+        "n_bootstrap": 20000,
+        "prob_mean_gt_zero": 0.0,
+        "seed": 43
+      },
+      "exact_sign_p_two_sided": 1.5777218104420236e-30,
+      "max_gap": -0.03494575694670257,
+      "mean_gap": -0.0629872422774106,
+      "mean_pooled": 0.06469098990010591,
+      "mean_prod": 0.1276782321775165,
+      "min_gap": -0.09515404768259807,
+      "n": 100,
+      "n_negative": 100,
+      "n_positive": 0,
+      "n_zero": 0,
+      "se_gap": 0.0011510954289082878,
+      "std_gap": 0.011510954289082878
+    },
+    "providers": {
+      "hetzner": {
+        "bootstrap": {
+          "ci_lower": -0.06530620382979925,
+          "ci_upper": -0.058879075549653,
+          "kind": "iid_seed_bootstrap",
+          "n_bootstrap": 20000,
+          "prob_mean_gt_zero": 0.0,
+          "seed": 143
+        },
+        "exact_sign_p_two_sided": 7.105427357601002e-15,
+        "max_gap": -0.03494575694670257,
+        "mean_gap": -0.062095475827949144,
+        "mean_pooled": 0.061820236320385434,
+        "mean_prod": 0.12391571214833459,
+        "min_gap": -0.09515404768259807,
+        "n": 48,
+        "n_negative": 48,
+        "n_positive": 0,
+        "n_zero": 0,
+        "p_at_1": {
+          "gap_candidate_vs_prod": null,
+          "gap_not_applicable_reason": "The Phase D candidate changes only the MDP policy table. It does not change the rank-1 probability model, so raw outer-surface P@1 is a shared calibration diagnostic rather than a candidate-vs-production gap.",
+          "mean_seed_outer_p_at_1": 0.8871150362318841,
+          "n": 48,
+          "std_seed_outer_p_at_1": 0.007540628480001703
+        },
+        "se_gap": 0.0016311031872092794,
+        "std_gap": 0.011300614370536007
+      },
+      "oci": {
+        "bootstrap": {
+          "ci_lower": -0.06697270098950123,
+          "ci_upper": -0.06062725953010073,
+          "kind": "iid_seed_bootstrap",
+          "n_bootstrap": 20000,
+          "prob_mean_gt_zero": 0.0,
+          "seed": 144
+        },
+        "exact_sign_p_two_sided": 4.440892098500626e-16,
+        "max_gap": -0.03547301275570776,
+        "mean_gap": -0.0638104113076827,
+        "mean_pooled": 0.06734091628138635,
+        "mean_prod": 0.13115132758906906,
+        "min_gap": -0.08883334596157694,
+        "n": 52,
+        "n_negative": 52,
+        "n_positive": 0,
+        "n_zero": 0,
+        "p_at_1": {
+          "gap_candidate_vs_prod": null,
+          "gap_not_applicable_reason": "The Phase D candidate changes only the MDP policy table. It does not change the rank-1 probability model, so raw outer-surface P@1 is a shared calibration diagnostic rather than a candidate-vs-production gap.",
+          "mean_seed_outer_p_at_1": 0.88628762541806,
+          "n": 52,
+          "std_seed_outer_p_at_1": 0.007207334656116732
+        },
+        "se_gap": 0.0016295506812798136,
+        "std_gap": 0.011750857074643288
+      }
+    },
+    "rows": [
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0683764596152163,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 1,
+        "v_pooled": 0.057256747983198186,
+        "v_prod": 0.12563320759841448
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05976350881784232,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 7,
+        "v_pooled": 0.055963531489479044,
+        "v_prod": 0.11572704030732137
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04646404309399506,
+        "outer_p_at_1": 0.875,
+        "provider": "hetzner",
+        "seed": 11,
+        "v_pooled": 0.04691044633924707,
+        "v_prod": 0.09337448943324213
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07216356143005062,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 23,
+        "v_pooled": 0.041799165789173226,
+        "v_prod": 0.11396272721922385
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05740361303142976,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 42,
+        "v_pooled": 0.054670070682226284,
+        "v_prod": 0.11207368371365604
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06439059350135762,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 73,
+        "v_pooled": 0.04057756681600717,
+        "v_prod": 0.10496816031736478
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05982529521223692,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 137,
+        "v_pooled": 0.08424218583356932,
+        "v_prod": 0.14406748104580624
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.03494575694670257,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 199,
+        "v_pooled": 0.10106996877917637,
+        "v_prod": 0.13601572572587894
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07677071810151023,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "hetzner",
+        "seed": 1024,
+        "v_pooled": 0.03994979340720816,
+        "v_prod": 0.1167205115087184
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06276452230457195,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "hetzner",
+        "seed": 2048,
+        "v_pooled": 0.09172153639890147,
+        "v_prod": 0.15448605870347343
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04636268168261187,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 8192,
+        "v_pooled": 0.05323906294143238,
+        "v_prod": 0.09960174462404425
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0668064722877524,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 16384,
+        "v_pooled": 0.0567675625311113,
+        "v_prod": 0.1235740348188637
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.058968819170219386,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 65536,
+        "v_pooled": 0.05580444935469368,
+        "v_prod": 0.11477326852491307
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05635403442388817,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 131072,
+        "v_pooled": 0.037297642472868375,
+        "v_prod": 0.09365167689675655
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07810007554083223,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 524288,
+        "v_pooled": 0.08838528441828583,
+        "v_prod": 0.16648535995911806
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05847080512099931,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 999979,
+        "v_pooled": 0.05238353092048738,
+        "v_prod": 0.11085433604148669
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07057584823983136,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 999983,
+        "v_pooled": 0.05937478489477495,
+        "v_prod": 0.1299506331346063
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07816852677990499,
+        "outer_p_at_1": 0.9021739130434783,
+        "provider": "hetzner",
+        "seed": 1048576,
+        "v_pooled": 0.043696542237538216,
+        "v_prod": 0.1218650690174432
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06657601358354207,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 2041769,
+        "v_pooled": 0.07955493455805171,
+        "v_prod": 0.14613094814159377
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.059264441350387456,
+        "outer_p_at_1": 0.875,
+        "provider": "hetzner",
+        "seed": 2273360,
+        "v_pooled": 0.0849188358829308,
+        "v_prod": 0.14418327723331825
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05641004436344976,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 3167584,
+        "v_pooled": 0.07905648816963445,
+        "v_prod": 0.13546653253308422
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05518409860828669,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 3911096,
+        "v_pooled": 0.05390060134586366,
+        "v_prod": 0.10908469995415035
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0707347208177978,
+        "outer_p_at_1": 0.875,
+        "provider": "hetzner",
+        "seed": 4083538,
+        "v_pooled": 0.059504316121216816,
+        "v_prod": 0.13023903693901462
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0572884851108083,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 4546720,
+        "v_pooled": 0.036962179858117415,
+        "v_prod": 0.09425066496892572
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06553172053477911,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 5573027,
+        "v_pooled": 0.05347546303511859,
+        "v_prod": 0.1190071835698977
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06920111555731584,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 6335168,
+        "v_pooled": 0.05895596322599431,
+        "v_prod": 0.12815707878331015
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.09515404768259807,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 6426836,
+        "v_pooled": 0.06700755324042225,
+        "v_prod": 0.16216160092302032
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.055807387226243586,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "hetzner",
+        "seed": 6762547,
+        "v_pooled": 0.05559053817423996,
+        "v_prod": 0.11139792540048354
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05686177842880567,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 6992150,
+        "v_pooled": 0.05177162847325216,
+        "v_prod": 0.10863340690205783
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.058766513580424694,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "hetzner",
+        "seed": 7777777,
+        "v_pooled": 0.056593761540858774,
+        "v_prod": 0.11536027512128347
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08140853778488599,
+        "outer_p_at_1": 0.9021739130434783,
+        "provider": "hetzner",
+        "seed": 7822192,
+        "v_pooled": 0.0946518081376018,
+        "v_prod": 0.1760603459224878
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.060163779745674724,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 7886470,
+        "v_pooled": 0.05332747300276285,
+        "v_prod": 0.11349125274843758
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07389503922581014,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 7973654,
+        "v_pooled": 0.09006363179860752,
+        "v_prod": 0.16395867102441766
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06275278850805935,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 9884564,
+        "v_pooled": 0.09361198049709532,
+        "v_prod": 0.15636476900515467
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06197357141043428,
+        "outer_p_at_1": 0.875,
+        "provider": "hetzner",
+        "seed": 9934256,
+        "v_pooled": 0.033709573464323676,
+        "v_prod": 0.09568314487475796
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06843320456726883,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "hetzner",
+        "seed": 12853672,
+        "v_pooled": 0.09649649164342743,
+        "v_prod": 0.16492969621069625
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05598988675482515,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 13525094,
+        "v_pooled": 0.05432543802205095,
+        "v_prod": 0.1103153247768761
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05857761610777781,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 13984300,
+        "v_pooled": 0.055642164663947453,
+        "v_prod": 0.11421978077172526
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06689168829472014,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 33619740,
+        "v_pooled": 0.05801830128926627,
+        "v_prod": 0.12490998958398641
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.057769932310343206,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 82054048,
+        "v_pooled": 0.05282252165643937,
+        "v_prod": 0.11059245396678258
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08086224191161592,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 85415891,
+        "v_pooled": 0.06520184029796616,
+        "v_prod": 0.14606408220958209
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.03599806158294834,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "hetzner",
+        "seed": 120749711,
+        "v_pooled": 0.034695622730171335,
+        "v_prod": 0.07069368431311968
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04421038138579794,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 124613597,
+        "v_pooled": 0.032384097260584374,
+        "v_prod": 0.07659447864638232
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06481319687105835,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 138311401,
+        "v_pooled": 0.09417537631994244,
+        "v_prod": 0.1589885731910008
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-3",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.059871718337702995,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "hetzner",
+        "seed": 147270468,
+        "v_pooled": 0.09309241028120063,
+        "v_prod": 0.15296412861890363
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0481567164806989,
+        "outer_p_at_1": 0.8695652173913043,
+        "provider": "hetzner",
+        "seed": 181677080,
+        "v_pooled": 0.031886168816943714,
+        "v_prod": 0.08004288529764261
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-4",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05900058060864996,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 189192333,
+        "v_pooled": 0.08479865419010732,
+        "v_prod": 0.14379923479875728
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0628949732757911,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 209676233,
+        "v_pooled": 0.05340295619324056,
+        "v_prod": 0.11629792946903167
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-2",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.055082206791734145,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "hetzner",
+        "seed": 244383382,
+        "v_pooled": 0.08810862987011292,
+        "v_prod": 0.14319083666184707
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05178344937912571,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 260991262,
+        "v_pooled": 0.04913957935954845,
+        "v_prod": 0.10092302873867416
+      },
+      {
+        "box": "bts-phasec-profile-hetzner-1",
+        "box_region": "fsn1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06608918578721912,
+        "outer_p_at_1": 0.9021739130434783,
+        "provider": "hetzner",
+        "seed": 262244879,
+        "v_pooled": 0.05613239884081261,
+        "v_prod": 0.12222158462803173
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06695263113133182,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 373632746,
+        "v_pooled": 0.03989091441916475,
+        "v_prod": 0.10684354555049658
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07641222140644309,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "oci",
+        "seed": 539182906,
+        "v_pooled": 0.04242498278534319,
+        "v_prod": 0.11883720419178628
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06458913932708132,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 649967798,
+        "v_pooled": 0.09471765328097084,
+        "v_prod": 0.15930679260805217
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06065805159031554,
+        "outer_p_at_1": 0.8695652173913043,
+        "provider": "oci",
+        "seed": 679009850,
+        "v_pooled": 0.0845701963951638,
+        "v_prod": 0.14522824798547934
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05220718086319494,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 721623611,
+        "v_pooled": 0.08423562184269483,
+        "v_prod": 0.13644280270588977
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08195225615075794,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 892873545,
+        "v_pooled": 0.06087442137201123,
+        "v_prod": 0.14282667752276917
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06335175394305219,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 899344708,
+        "v_pooled": 0.05566053669503482,
+        "v_prod": 0.119012290638087
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07233494657814249,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 928803847,
+        "v_pooled": 0.06127773553278388,
+        "v_prod": 0.13361268211092636
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06428558952209225,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 1059727775,
+        "v_pooled": 0.09246565891797003,
+        "v_prod": 0.15675124844006227
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05934055303154972,
+        "outer_p_at_1": 0.875,
+        "provider": "oci",
+        "seed": 1163502954,
+        "v_pooled": 0.055017069022517816,
+        "v_prod": 0.11435762205406753
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08456719604744983,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 1206587983,
+        "v_pooled": 0.041201999066757235,
+        "v_prod": 0.12576919511420706
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0597345627452045,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 1277948386,
+        "v_pooled": 0.05567181951279035,
+        "v_prod": 0.11540638225799485
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.056899508531746384,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 1291617207,
+        "v_pooled": 0.026382098086938293,
+        "v_prod": 0.08328160661868468
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.061145992801199575,
+        "outer_p_at_1": 0.875,
+        "provider": "oci",
+        "seed": 1292117916,
+        "v_pooled": 0.04959206609181509,
+        "v_prod": 0.11073805889301466
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04729047290196817,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 1513140100,
+        "v_pooled": 0.035565519940247106,
+        "v_prod": 0.08285599284221527
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06131608278027183,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 1681333894,
+        "v_pooled": 0.09230957168917327,
+        "v_prod": 0.1536256544694451
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05789649309905771,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 1681751850,
+        "v_pooled": 0.05533623469658467,
+        "v_prod": 0.11323272779564238
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08083641771915141,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 1712240077,
+        "v_pooled": 0.09889671215437319,
+        "v_prod": 0.1797331298735246
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08381920636317892,
+        "outer_p_at_1": 0.9021739130434783,
+        "provider": "oci",
+        "seed": 1746737973,
+        "v_pooled": 0.06084908648461888,
+        "v_prod": 0.1446682928477978
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05566623761324581,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 1891172782,
+        "v_pooled": 0.05040658893024946,
+        "v_prod": 0.10607282654349527
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0770052069398476,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "oci",
+        "seed": 1993950335,
+        "v_pooled": 0.06504509228355408,
+        "v_prod": 0.14205029922340168
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.044278614344065284,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 2070080477,
+        "v_pooled": 0.029041914325274382,
+        "v_prod": 0.07332052866933966
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06973405273438811,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "oci",
+        "seed": 2207587974,
+        "v_pooled": 0.09572593236246203,
+        "v_prod": 0.16545998509685014
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07061045188074354,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 2318242210,
+        "v_pooled": 0.09466461953358964,
+        "v_prod": 0.16527507141433317
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05432484398433133,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 2406721030,
+        "v_pooled": 0.0539615392221836,
+        "v_prod": 0.10828638320651493
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05969024672325632,
+        "outer_p_at_1": 0.875,
+        "provider": "oci",
+        "seed": 2675988121,
+        "v_pooled": 0.07045509627113003,
+        "v_prod": 0.13014534299438635
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.053955253421910154,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 2736951565,
+        "v_pooled": 0.09064792362647861,
+        "v_prod": 0.14460317704838876
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04998967318561606,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 2821536431,
+        "v_pooled": 0.10833222673941736,
+        "v_prod": 0.15832189992503343
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07476594715198619,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 2826575855,
+        "v_pooled": 0.05386583039223987,
+        "v_prod": 0.12863177754422606
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.0643546584392502,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 2915831506,
+        "v_pooled": 0.054165085158756905,
+        "v_prod": 0.11851974359800711
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07024940677123268,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 3109529006,
+        "v_pooled": 0.0954961537393603,
+        "v_prod": 0.16574556051059297
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06651720703133149,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 3146262904,
+        "v_pooled": 0.05815142923091665,
+        "v_prod": 0.12466863626224814
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06048513185173938,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 3170105529,
+        "v_pooled": 0.03929145918068568,
+        "v_prod": 0.09977659103242506
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04758712847117816,
+        "outer_p_at_1": 0.875,
+        "provider": "oci",
+        "seed": 3208297029,
+        "v_pooled": 0.051557085208113945,
+        "v_prod": 0.0991442136792921
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08270286974268216,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 3219332220,
+        "v_pooled": 0.0936483734958276,
+        "v_prod": 0.17635124323850976
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.08883334596157694,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 3316254155,
+        "v_pooled": 0.06745992801812872,
+        "v_prod": 0.15629327397970566
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04920688229615246,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 3629294338,
+        "v_pooled": 0.0742583815501153,
+        "v_prod": 0.12346526384626776
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.04477910313044338,
+        "outer_p_at_1": 0.8695652173913043,
+        "provider": "oci",
+        "seed": 3805262628,
+        "v_pooled": 0.06711850251775649,
+        "v_prod": 0.11189760564819987
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05568735017140851,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 3823714639,
+        "v_pooled": 0.03484807179800341,
+        "v_prod": 0.09053542196941192
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07735822471327335,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "oci",
+        "seed": 3839786322,
+        "v_pooled": 0.09352029426957749,
+        "v_prod": 0.17087851898285084
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07502336543607907,
+        "outer_p_at_1": 0.9021739130434783,
+        "provider": "oci",
+        "seed": 3840478523,
+        "v_pooled": 0.09202414968969042,
+        "v_prod": 0.16704751512576949
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06387509176202588,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 3845969983,
+        "v_pooled": 0.0570903955781063,
+        "v_prod": 0.12096548734013218
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.058325888423983084,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 3861495031,
+        "v_pooled": 0.055243683246102536,
+        "v_prod": 0.11356957167008562
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06946301452560272,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 3935376874,
+        "v_pooled": 0.09447806251202645,
+        "v_prod": 0.16394107703762917
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-3",
+        "box_region": "ILYb:US-ASHBURN-AD-3",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06183841616899929,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 3937198363,
+        "v_pooled": 0.05306282985048894,
+        "v_prod": 0.11490124601948823
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.07964801466851985,
+        "outer_p_at_1": 0.8967391304347826,
+        "provider": "oci",
+        "seed": 3969817174,
+        "v_pooled": 0.05546724796477619,
+        "v_prod": 0.13511526263329604
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-2",
+        "box_region": "ILYb:US-ASHBURN-AD-2",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.06527703894205407,
+        "outer_p_at_1": 0.8858695652173914,
+        "provider": "oci",
+        "seed": 4006398547,
+        "v_pooled": 0.07536637139162645,
+        "v_prod": 0.14064341033368052
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-4",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.03547301275570776,
+        "outer_p_at_1": 0.8913043478260869,
+        "provider": "oci",
+        "seed": 4189561475,
+        "v_pooled": 0.10258604541235043,
+        "v_prod": 0.1380590581680582
+      },
+      {
+        "box": "bts-phasec-profile-oci-r2-1",
+        "box_region": "ILYb:US-ASHBURN-AD-1",
+        "eval_diagnostics": {
+          "early_bin_count": 5,
+          "late_bin_count": 5,
+          "late_bins_status": "used",
+          "n_dates": 184,
+          "n_rank1_rows": 184,
+          "n_rows": 1840
+        },
+        "gap": -0.05635383269770455,
+        "outer_p_at_1": 0.8804347826086957,
+        "provider": "oci",
+        "seed": 4231920729,
+        "v_pooled": 0.09108952327341596,
+        "v_prod": 0.14744335597112052
+      }
+    ]
+  },
+  "p_at_1_outer_eval": {
+    "overall": {
+      "gap_candidate_vs_prod": null,
+      "gap_not_applicable_reason": "The Phase D candidate changes only the MDP policy table. It does not change the rank-1 probability model, so raw outer-surface P@1 is a shared calibration diagnostic rather than a candidate-vs-production gap.",
+      "mean_seed_outer_p_at_1": 0.8866847826086958,
+      "n": 100,
+      "std_seed_outer_p_at_1": 0.007343510711336138
+    },
+    "providers": {
+      "hetzner": {
+        "gap_candidate_vs_prod": null,
+        "gap_not_applicable_reason": "The Phase D candidate changes only the MDP policy table. It does not change the rank-1 probability model, so raw outer-surface P@1 is a shared calibration diagnostic rather than a candidate-vs-production gap.",
+        "mean_seed_outer_p_at_1": 0.8871150362318841,
+        "n": 48,
+        "std_seed_outer_p_at_1": 0.007540628480001703
+      },
+      "oci": {
+        "gap_candidate_vs_prod": null,
+        "gap_not_applicable_reason": "The Phase D candidate changes only the MDP policy table. It does not change the rank-1 probability model, so raw outer-surface P@1 is a shared calibration diagnostic rather than a candidate-vs-production gap.",
+        "mean_seed_outer_p_at_1": 0.88628762541806,
+        "n": 52,
+        "std_seed_outer_p_at_1": 0.007207334656116732
+      }
+    }
+  },
+  "policy_metadata": {
+    "pooled_candidate": {
+      "action_counts": {
+        "double": 22471,
+        "single": 20889,
+        "skip": 61620
+      },
+      "built_in_memory_only": true,
+      "evaluated_p57_on_selection_surface": 0.09637776936844006,
+      "optimal_p57_on_selection_surface": 0.09637776936844006,
+      "selection_diagnostics": {
+        "early_bin_count": 5,
+        "late_bin_count": 5,
+        "late_bins_status": "used",
+        "n_dates": 728,
+        "n_rank1_rows": 72800,
+        "n_rows": 728000
+      },
+      "selection_early_bins": {
+        "bins": [
+          {
+            "frequency": 0.2,
+            "index": 0,
+            "p_both": 0.6245065789473684,
+            "p_hit": 0.7654605263157894,
+            "p_range": [
+              0.7191068031967266,
+              0.7970492575925243
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 1,
+            "p_both": 0.6916118421052632,
+            "p_hit": 0.8416940789473685,
+            "p_range": [
+              0.7970540254911163,
+              0.8116035286390838
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 2,
+            "p_both": 0.7258223684210526,
+            "p_hit": 0.8836348684210527,
+            "p_range": [
+              0.8116035335884144,
+              0.826492810572885
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 3,
+            "p_both": 0.778125,
+            "p_hit": 0.925,
+            "p_range": [
+              0.8264937632862315,
+              0.8415970488817581
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 4,
+            "p_both": 0.8052631578947368,
+            "p_hit": 0.9089638157894737,
+            "p_range": [
+              0.8415989577153218,
+              0.9163066243060172
+            ]
+          }
+        ],
+        "boundaries": [
+          0.7970530719113978,
+          0.8116035316086821,
+          0.8264931916582237,
+          0.8415974306484708
+        ]
+      },
+      "selection_late_bins": {
+        "bins": [
+          {
+            "frequency": 0.2,
+            "index": 0,
+            "p_both": 0.6995833333333333,
+            "p_hit": 0.8183333333333334,
+            "p_range": [
+              0.7421131386747044,
+              0.7913918420403387
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 1,
+            "p_both": 0.64875,
+            "p_hit": 0.8070833333333334,
+            "p_range": [
+              0.7914133528632216,
+              0.8056212753584381
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 2,
+            "p_both": 0.6604166666666667,
+            "p_hit": 0.8145833333333333,
+            "p_range": [
+              0.8056232435721573,
+              0.8227233298456688
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 3,
+            "p_both": 0.8508333333333333,
+            "p_hit": 0.9341666666666667,
+            "p_range": [
+              0.8227246140454556,
+              0.841003024116493
+            ]
+          },
+          {
+            "frequency": 0.2,
+            "index": 4,
+            "p_both": 0.84125,
+            "p_hit": 0.9654166666666667,
+            "p_range": [
+              0.841003284532297,
+              0.9136429376550026
+            ]
+          }
+        ],
+        "boundaries": [
+          0.791409050698645,
+          0.8056224562866696,
+          0.8227238435255835,
+          0.8410030761996538
+        ]
+      },
+      "selection_surface_gap_vs_production": 0.029328508729718317,
+      "table_shape": [
+        58,
+        181,
+        2,
+        5
+      ]
+    },
+    "production_policy": {
+      "action_counts": {
+        "double": 19287,
+        "single": 29069,
+        "skip": 56624
+      },
+      "boundaries": [
+        0.7959788446395174,
+        0.8114907020399261,
+        0.8252474190317034,
+        0.8407401966749947
+      ],
+      "path": "data/models/mdp_policy.npz",
+      "season_length": 180,
+      "table_shape": [
+        58,
+        181,
+        2,
+        5
+      ]
+    },
+    "selection_surface_baseline": {
+      "gap": 0.029328508729718317,
+      "interpretation": "The candidate improves the pre-registered selection surface but is judged by the disjoint 2025 outer-evaluation surface.",
+      "pooled_candidate_p57": 0.09637776936844006,
+      "production_p57": 0.06704926063872174
+    }
+  },
+  "production_deploy_claim": false,
+  "proper_scoring_outer_eval": {
+    "interpretation": "Proper scoring is reported on the shared 2025 outer profile surface. It is a calibration/falsification diagnostic for the probability model, not a direct P(57) policy-value gap.",
+    "overall": {
+      "all_top10": {
+        "brier": 0.14460266118917608,
+        "decomposition": {
+          "binning": "quantile",
+          "brier": 0.14460266118917608,
+          "n_bins": 10,
+          "recomposition_error": 0.0003207582180653479,
+          "reliability": 0.0027717470301147533,
+          "resolution": 0.0018910014177693777,
+          "uncertainty": 0.14404267379489605
+        },
+        "log_loss": 0.4645359012597578,
+        "n": 184000,
+        "reliability_table": [
+          {
+            "bin_idx": 0,
+            "ci_hi": 0.7607837143161739,
+            "ci_lo": 0.7483491180376972,
+            "mean_p": 0.7296399613599053,
+            "mean_y": 0.7546195652173913,
+            "n": 18400,
+            "p_hi": 0.7473969595370334,
+            "p_lo": 0.603784619205032
+          },
+          {
+            "bin_idx": 1,
+            "ci_hi": 0.8559969625215806,
+            "ci_lo": 0.8457043605326235,
+            "mean_p": 0.7527864474512801,
+            "mean_y": 0.8509239130434783,
+            "n": 18400,
+            "p_hi": 0.7575513999964866,
+            "p_lo": 0.7473981408874601
+          },
+          {
+            "bin_idx": 2,
+            "ci_hi": 0.8154423973689644,
+            "ci_lo": 0.8041021655444656,
+            "mean_p": 0.7617314686090094,
+            "mean_y": 0.8098369565217391,
+            "n": 18400,
+            "p_hi": 0.7656750698778021,
+            "p_lo": 0.757552885234956
+          },
+          {
+            "bin_idx": 3,
+            "ci_hi": 0.7823214592321327,
+            "ci_lo": 0.7702805583814073,
+            "mean_p": 0.7688806414399344,
+            "mean_y": 0.7763586956521739,
+            "n": 18400,
+            "p_hi": 0.7718823486938022,
+            "p_lo": 0.7656750912941268
+          },
+          {
+            "bin_idx": 4,
+            "ci_hi": 0.8136696504271451,
+            "ci_lo": 0.8022887047023622,
+            "mean_p": 0.7747738062169399,
+            "mean_y": 0.8080434782608695,
+            "n": 18400,
+            "p_hi": 0.7776370050284376,
+            "p_lo": 0.7718823606143215
+          },
+          {
+            "bin_idx": 5,
+            "ci_hi": 0.8231757435233684,
+            "ci_lo": 0.8120177260835424,
+            "mean_p": 0.7809084455557871,
+            "mean_y": 0.8176630434782609,
+            "n": 18400,
+            "p_hi": 0.7841847240241309,
+            "p_lo": 0.7776376208214664
+          },
+          {
+            "bin_idx": 6,
+            "ci_hi": 0.8547649497943401,
+            "ci_lo": 0.844436895107433,
+            "mean_p": 0.7875704399497861,
+            "mean_y": 0.8496739130434783,
+            "n": 18400,
+            "p_hi": 0.7912761445452214,
+            "p_lo": 0.7841852038145257
+          },
+          {
+            "bin_idx": 7,
+            "ci_hi": 0.8164092693828776,
+            "ci_lo": 0.8050914068672376,
+            "mean_p": 0.795819513883747,
+            "mean_y": 0.8108152173913044,
+            "n": 18400,
+            "p_hi": 0.8013313282543513,
+            "p_lo": 0.7912762487330456
+          },
+          {
+            "bin_idx": 8,
+            "ci_hi": 0.8665441648445562,
+            "ci_lo": 0.8565657319500348,
+            "mean_p": 0.8095972133476841,
+            "mean_y": 0.8616304347826087,
+            "n": 18400,
+            "p_hi": 0.8189223896005081,
+            "p_lo": 0.8013314737488438
+          },
+          {
+            "bin_idx": 9,
+            "ci_hi": 0.9194751931230687,
+            "ci_lo": 0.911438283115501,
+            "mean_p": 0.8390874248441976,
+            "mean_y": 0.9155434782608696,
+            "n": 18400,
+            "p_hi": 0.9313974505976723,
+            "p_lo": 0.8189245959793966
+          }
+        ],
+        "top_bin": {
+          "ci_hi": 0.9194751931230687,
+          "ci_lo": 0.911438283115501,
+          "gap": -0.07645605341667194,
+          "mean_p": 0.8390874248441976,
+          "mean_y": 0.9155434782608696,
+          "n": 18400
+        }
+      },
+      "metadata": {
+        "binning": "quantile",
+        "interval_method": "wilson",
+        "n_bins": 10,
+        "p_col": "p_game_hit",
+        "rank_col": "rank",
+        "y_col": "actual_hit"
+      },
+      "rank1": {
+        "brier": 0.10333805482484001,
+        "decomposition": {
+          "binning": "quantile",
+          "brier": 0.10333805482484001,
+          "n_bins": 10,
+          "recomposition_error": 0.0001249231924619898,
+          "reliability": 0.007614177213899359,
+          "resolution": 0.004626078095463137,
+          "uncertainty": 0.10047487889886578
+        },
+        "log_loss": 0.3644728900661834,
+        "n": 18400,
+        "reliability_table": [
+          {
+            "bin_idx": 0,
+            "ci_hi": 0.7507441261979865,
+            "ci_lo": 0.7102499201452569,
+            "mean_p": 0.7712177968524299,
+            "mean_y": 0.7309782608695652,
+            "n": 1840,
+            "p_hi": 0.7850615616007804,
+            "p_lo": 0.7260405684215373
+          },
+          {
+            "bin_idx": 1,
+            "ci_hi": 0.9082959706529158,
+            "ci_lo": 0.8802750215624674,
+            "mean_p": 0.7903311863583932,
+            "mean_y": 0.8951086956521739,
+            "n": 1840,
+            "p_hi": 0.7941288501148199,
+            "p_lo": 0.7850699671330845
+          },
+          {
+            "bin_idx": 2,
+            "ci_hi": 0.8307216231946748,
+            "ci_lo": 0.7951455879583875,
+            "mean_p": 0.7990583171531781,
+            "mean_y": 0.8135869565217392,
+            "n": 1840,
+            "p_hi": 0.8040890860484882,
+            "p_lo": 0.7941288539221328
+          },
+          {
+            "bin_idx": 3,
+            "ci_hi": 0.9006261141057015,
+            "ci_lo": 0.8716745000034496,
+            "mean_p": 0.8074988250177153,
+            "mean_y": 0.8869565217391304,
+            "n": 1840,
+            "p_hi": 0.8105650252324461,
+            "p_lo": 0.8040932188933467
+          },
+          {
+            "bin_idx": 4,
+            "ci_hi": 0.9210193724592418,
+            "ci_lo": 0.8946689165998617,
+            "mean_p": 0.8140909406012762,
+            "mean_y": 0.908695652173913,
+            "n": 1840,
+            "p_hi": 0.8170532284174498,
+            "p_lo": 0.810568037246633
+          },
+          {
+            "bin_idx": 5,
+            "ci_hi": 0.9098268832172002,
+            "ci_lo": 0.8819981846194295,
+            "mean_p": 0.8196995803211982,
+            "mean_y": 0.8967391304347826,
+            "n": 1840,
+            "p_hi": 0.8229750904161716,
+            "p_lo": 0.8170551137721607
+          },
+          {
+            "bin_idx": 6,
+            "ci_hi": 0.9619974320672452,
+            "ci_lo": 0.9426355906392606,
+            "mean_p": 0.8271709642471489,
+            "mean_y": 0.9532608695652174,
+            "n": 1840,
+            "p_hi": 0.830496920892483,
+            "p_lo": 0.8229775740637358
+          },
+          {
+            "bin_idx": 7,
+            "ci_hi": 0.991219330556017,
+            "ci_lo": 0.9806645883229149,
+            "mean_p": 0.8342351900856774,
+            "mean_y": 0.9869565217391304,
+            "n": 1840,
+            "p_hi": 0.8386708124600042,
+            "p_lo": 0.8304991093466868
+          },
+          {
+            "bin_idx": 8,
+            "ci_hi": 0.8862470739294783,
+            "ci_lo": 0.8556821677147062,
+            "mean_p": 0.8439372516504012,
+            "mean_y": 0.8717391304347826,
+            "n": 1840,
+            "p_hi": 0.8538517582852283,
+            "p_lo": 0.838671966757861
+          },
+          {
+            "bin_idx": 9,
+            "ci_hi": 0.9341581353579983,
+            "ci_lo": 0.9097321424185741,
+            "mean_p": 0.8765761038604736,
+            "mean_y": 0.9228260869565217,
+            "n": 1840,
+            "p_hi": 0.9313974505976723,
+            "p_lo": 0.8538696612588106
+          }
+        ],
+        "top_bin": {
+          "ci_hi": 0.9341581353579983,
+          "ci_lo": 0.9097321424185741,
+          "gap": -0.04624998309604811,
+          "mean_p": 0.8765761038604736,
+          "mean_y": 0.9228260869565217,
+          "n": 1840
+        }
+      }
+    },
+    "providers": {
+      "hetzner": {
+        "all_top10": {
+          "brier": 0.1447627028232751,
+          "decomposition": {
+            "binning": "quantile",
+            "brier": 0.1447627028232751,
+            "n_bins": 10,
+            "recomposition_error": 0.00030950156210254876,
+            "reliability": 0.0027476041175768114,
+            "resolution": 0.001888426452393142,
+            "uncertainty": 0.14421302672019398
+          },
+          "log_loss": 0.464899372616969,
+          "n": 88320,
+          "reliability_table": [
+            {
+              "bin_idx": 0,
+              "ci_hi": 0.764510433392843,
+              "ci_lo": 0.7465897203265266,
+              "mean_p": 0.7296280934917799,
+              "mean_y": 0.755661231884058,
+              "n": 8832,
+              "p_hi": 0.7473715940060112,
+              "p_lo": 0.6040555569389381
+            },
+            {
+              "bin_idx": 1,
+              "ci_hi": 0.857494320129361,
+              "ci_lo": 0.8426087690885353,
+              "mean_p": 0.7527784469582379,
+              "mean_y": 0.850203804347826,
+              "n": 8832,
+              "p_hi": 0.7575152663011353,
+              "p_lo": 0.7473722213613208
+            },
+            {
+              "bin_idx": 2,
+              "ci_hi": 0.8161627567615306,
+              "ci_lo": 0.7997378270606148,
+              "mean_p": 0.7617296211720038,
+              "mean_y": 0.8080842391304348,
+              "n": 8832,
+              "p_hi": 0.7657161429821346,
+              "p_lo": 0.7575156505238463
+            },
+            {
+              "bin_idx": 3,
+              "ci_hi": 0.7837223167393427,
+              "ci_lo": 0.7663101781845137,
+              "mean_p": 0.768889504428076,
+              "mean_y": 0.7751358695652174,
+              "n": 8832,
+              "p_hi": 0.7718727340307094,
+              "p_lo": 0.7657172703105903
+            },
+            {
+              "bin_idx": 4,
+              "ci_hi": 0.8173873148765981,
+              "ci_lo": 0.8010031279760667,
+              "mean_p": 0.774774289954063,
+              "mean_y": 0.8093297101449275,
+              "n": 8832,
+              "p_hi": 0.7776276865775972,
+              "p_lo": 0.7718728798637804
+            },
+            {
+              "bin_idx": 5,
+              "ci_hi": 0.8253992662983185,
+              "ci_lo": 0.8092884356632015,
+              "mean_p": 0.78088235876243,
+              "mean_y": 0.8174818840579711,
+              "n": 8832,
+              "p_hi": 0.7841654584438202,
+              "p_lo": 0.7776279737114958
+            },
+            {
+              "bin_idx": 6,
+              "ci_hi": 0.8564965195738125,
+              "ci_lo": 0.841569412255477,
+              "mean_p": 0.7875439052417238,
+              "mean_y": 0.8491847826086957,
+              "n": 8832,
+              "p_hi": 0.7912099671291342,
+              "p_lo": 0.7841658646843788
+            },
+            {
+              "bin_idx": 7,
+              "ci_hi": 0.8183891269725175,
+              "ci_lo": 0.8020384732687543,
+              "mean_p": 0.7957913799131175,
+              "mean_y": 0.810348731884058,
+              "n": 8832,
+              "p_hi": 0.8012919022981537,
+              "p_lo": 0.7912101167279597
+            },
+            {
+              "bin_idx": 8,
+              "ci_hi": 0.8682406250652387,
+              "ci_lo": 0.8538184937854206,
+              "mean_p": 0.809541969163624,
+              "mean_y": 0.8611865942028986,
+              "n": 8832,
+              "p_hi": 0.8188310048588656,
+              "p_lo": 0.8012921897858348
+            },
+            {
+              "bin_idx": 9,
+              "ci_hi": 0.9214839243893155,
+              "ci_lo": 0.9099026409832461,
+              "mean_p": 0.8390199136765296,
+              "mean_y": 0.9158740942028986,
+              "n": 8832,
+              "p_hi": 0.9244057092002803,
+              "p_lo": 0.8188336956753965
+            }
+          ],
+          "top_bin": {
+            "ci_hi": 0.9214839243893155,
+            "ci_lo": 0.9099026409832461,
+            "gap": -0.07685418052636894,
+            "mean_p": 0.8390199136765296,
+            "mean_y": 0.9158740942028986,
+            "n": 8832
+          }
+        },
+        "metadata": {
+          "binning": "quantile",
+          "interval_method": "wilson",
+          "n_bins": 10,
+          "p_col": "p_game_hit",
+          "rank_col": "rank",
+          "y_col": "actual_hit"
+        },
+        "rank1": {
+          "brier": 0.10309724690011844,
+          "decomposition": {
+            "binning": "quantile",
+            "brier": 0.10309724690011844,
+            "n_bins": 10,
+            "recomposition_error": 0.00014743376320595913,
+            "reliability": 0.007643710114144436,
+            "resolution": 0.004540978174007145,
+            "uncertainty": 0.10014194872318712
+          },
+          "log_loss": 0.36393346111128216,
+          "n": 8832,
+          "reliability_table": [
+            {
+              "bin_idx": 0,
+              "ci_hi": 0.760052491443555,
+              "ci_lo": 0.7017415943483248,
+              "mean_p": 0.7712027719738719,
+              "mean_y": 0.7319004524886877,
+              "n": 884,
+              "p_hi": 0.7852121338216344,
+              "p_lo": 0.7260405684215373
+            },
+            {
+              "bin_idx": 1,
+              "ci_hi": 0.9142754822984107,
+              "ci_lo": 0.873914877738827,
+              "mean_p": 0.7904361049445374,
+              "mean_y": 0.8958097395243488,
+              "n": 883,
+              "p_hi": 0.7942220561445018,
+              "p_lo": 0.7852390143374288
+            },
+            {
+              "bin_idx": 2,
+              "ci_hi": 0.8374716934257961,
+              "ci_lo": 0.7860894926980843,
+              "mean_p": 0.7990889196170716,
+              "mean_y": 0.8131370328425821,
+              "n": 883,
+              "p_hi": 0.8040375198681274,
+              "p_lo": 0.7942393519798974
+            },
+            {
+              "bin_idx": 3,
+              "ci_hi": 0.9122104498277358,
+              "ci_lo": 0.8714695218831084,
+              "mean_p": 0.8073855659607699,
+              "mean_y": 0.8935447338618346,
+              "n": 883,
+              "p_hi": 0.8105075061474698,
+              "p_lo": 0.8040408573985112
+            },
+            {
+              "bin_idx": 4,
+              "ci_hi": 0.9296638942611943,
+              "ci_lo": 0.8923543782239935,
+              "mean_p": 0.8140926198338263,
+              "mean_y": 0.912797281993205,
+              "n": 883,
+              "p_hi": 0.817055953266637,
+              "p_lo": 0.8105299121209119
+            },
+            {
+              "bin_idx": 5,
+              "ci_hi": 0.9142754822984107,
+              "ci_lo": 0.873914877738827,
+              "mean_p": 0.8196736771445325,
+              "mean_y": 0.8958097395243488,
+              "n": 883,
+              "p_hi": 0.8228486363206515,
+              "p_lo": 0.8170639502823309
+            },
+            {
+              "bin_idx": 6,
+              "ci_hi": 0.9597381554562318,
+              "ci_lo": 0.9299359419248564,
+              "mean_p": 0.8271567893134832,
+              "mean_y": 0.9467723669309174,
+              "n": 883,
+              "p_hi": 0.8304575084489947,
+              "p_lo": 0.8228587480195961
+            },
+            {
+              "bin_idx": 7,
+              "ci_hi": 0.9930299663426362,
+              "ci_lo": 0.9778311209135321,
+              "mean_p": 0.8342282216251025,
+              "mean_y": 0.9875424688561721,
+              "n": 883,
+              "p_hi": 0.8386129088478106,
+              "p_lo": 0.8304632629616897
+            },
+            {
+              "bin_idx": 8,
+              "ci_hi": 0.8935060526029583,
+              "ci_lo": 0.8495804241703457,
+              "mean_p": 0.8438356389934801,
+              "mean_y": 0.8731596828992072,
+              "n": 883,
+              "p_hi": 0.8537317021522839,
+              "p_lo": 0.8386142201383971
+            },
+            {
+              "bin_idx": 9,
+              "ci_hi": 0.9368489630316165,
+              "ci_lo": 0.9011383536248679,
+              "mean_p": 0.8764404634419526,
+              "mean_y": 0.920814479638009,
+              "n": 884,
+              "p_hi": 0.9244057092002803,
+              "p_lo": 0.8538064626874544
+            }
+          ],
+          "top_bin": {
+            "ci_hi": 0.9368489630316165,
+            "ci_lo": 0.9011383536248679,
+            "gap": -0.04437401619605641,
+            "mean_p": 0.8764404634419526,
+            "mean_y": 0.920814479638009,
+            "n": 884
+          }
+        }
+      },
+      "oci": {
+        "all_top10": {
+          "brier": 0.1444549304500078,
+          "decomposition": {
+            "binning": "quantile",
+            "brier": 0.1444549304500078,
+            "n_bins": 10,
+            "recomposition_error": 0.00032777158675695306,
+            "reliability": 0.002792806265185021,
+            "resolution": 0.0018954075248039733,
+            "uncertainty": 0.1438853032963837
+          },
+          "log_loss": 0.46420038923771667,
+          "n": 95680,
+          "reliability_table": [
+            {
+              "bin_idx": 0,
+              "ci_hi": 0.762188887770345,
+              "ci_lo": 0.7449235575505219,
+              "mean_p": 0.729650946877238,
+              "mean_y": 0.7536580267558528,
+              "n": 9568,
+              "p_hi": 0.7474150075525567,
+              "p_lo": 0.603784619205032
+            },
+            {
+              "bin_idx": 1,
+              "ci_hi": 0.8587758031394717,
+              "ci_lo": 0.8445371309149323,
+              "mean_p": 0.752793941271423,
+              "mean_y": 0.8517976588628763,
+              "n": 9568,
+              "p_hi": 0.757588316095724,
+              "p_lo": 0.7474153196956139
+            },
+            {
+              "bin_idx": 2,
+              "ci_hi": 0.8183444303895243,
+              "ci_lo": 0.8026436979556001,
+              "mean_p": 0.7617331785295134,
+              "mean_y": 0.81061872909699,
+              "n": 9568,
+              "p_hi": 0.7656465108462036,
+              "p_lo": 0.757589487374718
+            },
+            {
+              "bin_idx": 3,
+              "ci_hi": 0.7864309874548979,
+              "ci_lo": 0.7697838166011993,
+              "mean_p": 0.7688723318617692,
+              "mean_y": 0.7782190635451505,
+              "n": 9568,
+              "p_hi": 0.7718899566288996,
+              "p_lo": 0.7656478414950452
+            },
+            {
+              "bin_idx": 4,
+              "ci_hi": 0.8146425398693867,
+              "ci_lo": 0.798823525009915,
+              "mean_p": 0.7747733657152456,
+              "mean_y": 0.8068561872909699,
+              "n": 9568,
+              "p_hi": 0.7776484999749764,
+              "p_lo": 0.7718900882821766
+            },
+            {
+              "bin_idx": 5,
+              "ci_hi": 0.8253336540351891,
+              "ci_lo": 0.8098628164120444,
+              "mean_p": 0.7809325693664338,
+              "mean_y": 0.8177257525083612,
+              "n": 9568,
+              "p_hi": 0.7842065743325473,
+              "p_lo": 0.7776487417057815
+            },
+            {
+              "bin_idx": 6,
+              "ci_hi": 0.8569323855938733,
+              "ci_lo": 0.8426195167276194,
+              "mean_p": 0.7875952321109206,
+              "mean_y": 0.8499163879598662,
+              "n": 9568,
+              "p_hi": 0.791327196800474,
+              "p_lo": 0.7842084558914405
+            },
+            {
+              "bin_idx": 7,
+              "ci_hi": 0.8190641064822891,
+              "ci_lo": 0.803386645314523,
+              "mean_p": 0.7958452039010371,
+              "mean_y": 0.8113503344481605,
+              "n": 9568,
+              "p_hi": 0.8013610632161088,
+              "p_lo": 0.7913272353488878
+            },
+            {
+              "bin_idx": 8,
+              "ci_hi": 0.868498257564487,
+              "ci_lo": 0.8546645661913931,
+              "mean_p": 0.8096485087879867,
+              "mean_y": 0.8617265886287625,
+              "n": 9568,
+              "p_hi": 0.8190206564911636,
+              "p_lo": 0.8013672230924942
+            },
+            {
+              "bin_idx": 9,
+              "ci_hi": 0.9210594108028681,
+              "ci_lo": 0.9099196559631343,
+              "mean_p": 0.8391493579874904,
+              "mean_y": 0.9156563545150501,
+              "n": 9568,
+              "p_hi": 0.9313974505976723,
+              "p_lo": 0.8190216708462024
+            }
+          ],
+          "top_bin": {
+            "ci_hi": 0.9210594108028681,
+            "ci_lo": 0.9099196559631343,
+            "gap": -0.07650699652755977,
+            "mean_p": 0.8391493579874904,
+            "mean_y": 0.9156563545150501,
+            "n": 9568
+          }
+        },
+        "metadata": {
+          "binning": "quantile",
+          "interval_method": "wilson",
+          "n_bins": 10,
+          "p_col": "p_game_hit",
+          "rank_col": "rank",
+          "y_col": "actual_hit"
+        },
+        "rank1": {
+          "brier": 0.10356033906304456,
+          "decomposition": {
+            "binning": "quantile",
+            "brier": 0.10356033906304456,
+            "n_bins": 10,
+            "recomposition_error": 0.00010552516216306984,
+            "reliability": 0.007667271743717707,
+            "resolution": 0.004783277967386519,
+            "uncertainty": 0.10078187044887643
+          },
+          "log_loss": 0.36497082448609214,
+          "n": 9568,
+          "reliability_table": [
+            {
+              "bin_idx": 0,
+              "ci_hi": 0.7555464807301625,
+              "ci_lo": 0.699263136172353,
+              "mean_p": 0.7712473636666991,
+              "mean_y": 0.7283176593521421,
+              "n": 957,
+              "p_hi": 0.7848881333789082,
+              "p_lo": 0.7346463963809821
+            },
+            {
+              "bin_idx": 1,
+              "ci_hi": 0.9161974908870574,
+              "ci_lo": 0.8778980187161904,
+              "mean_p": 0.7902441153582996,
+              "mean_y": 0.8986415882967607,
+              "n": 957,
+              "p_hi": 0.7940322394789685,
+              "p_lo": 0.7849612238734089
+            },
+            {
+              "bin_idx": 2,
+              "ci_hi": 0.8363943099280178,
+              "ci_lo": 0.7870174990527758,
+              "mean_p": 0.7990392933296675,
+              "mean_y": 0.812957157784744,
+              "n": 957,
+              "p_hi": 0.8041340129272699,
+              "p_lo": 0.7940429775409902
+            },
+            {
+              "bin_idx": 3,
+              "ci_hi": 0.8988234328189301,
+              "ci_lo": 0.8575513690233739,
+              "mean_p": 0.8076074219383749,
+              "mean_y": 0.8797071129707112,
+              "n": 956,
+              "p_hi": 0.8106327245252137,
+              "p_lo": 0.8041391143277205
+            },
+            {
+              "bin_idx": 4,
+              "ci_hi": 0.9219108301457546,
+              "ci_lo": 0.884673730722551,
+              "mean_p": 0.8140886904346896,
+              "mean_y": 0.9049111807732497,
+              "n": 957,
+              "p_hi": 0.8170506697249029,
+              "p_lo": 0.8106404883125011
+            },
+            {
+              "bin_idx": 5,
+              "ci_hi": 0.9171513122787187,
+              "ci_lo": 0.8790257058687054,
+              "mean_p": 0.8197238517229338,
+              "mean_y": 0.8996865203761756,
+              "n": 957,
+              "p_hi": 0.8230171014689631,
+              "p_lo": 0.8170528153954537
+            },
+            {
+              "bin_idx": 6,
+              "ci_hi": 0.9682307936538784,
+              "ci_lo": 0.9423361165529723,
+              "mean_p": 0.8271803852734694,
+              "mean_y": 0.9571129707112971,
+              "n": 956,
+              "p_hi": 0.8305210408780479,
+              "p_lo": 0.8230222274714889
+            },
+            {
+              "bin_idx": 7,
+              "ci_hi": 0.9920444781148399,
+              "ci_lo": 0.9768977491992148,
+              "mean_p": 0.834233785445361,
+              "mean_y": 0.9864158829676071,
+              "n": 957,
+              "p_hi": 0.8387926971148079,
+              "p_lo": 0.8305211249986142
+            },
+            {
+              "bin_idx": 8,
+              "ci_hi": 0.8902339405037563,
+              "ci_lo": 0.8476608384067323,
+              "mean_p": 0.8440145141652662,
+              "mean_y": 0.8704284221525601,
+              "n": 957,
+              "p_hi": 0.8539545508463484,
+              "p_lo": 0.8387955477763205
+            },
+            {
+              "bin_idx": 9,
+              "ci_hi": 0.9398313184883571,
+              "ci_lo": 0.9063019047192977,
+              "mean_p": 0.8766773910566474,
+              "mean_y": 0.9247648902821317,
+              "n": 957,
+              "p_hi": 0.9313974505976723,
+              "p_lo": 0.8539740814940155
+            }
+          ],
+          "top_bin": {
+            "ci_hi": 0.9398313184883571,
+            "ci_lo": 0.9063019047192977,
+            "gap": -0.048087499225484276,
+            "mean_p": 0.8766773910566474,
+            "mean_y": 0.9247648902821317,
+            "n": 957
+          }
+        }
+      }
+    }
+  },
+  "schema_version": "phase_d_pooled_policy_outer_eval_v1",
+  "seed_pool": {
+    "n": 100,
+    "providers": {
+      "hetzner": 48,
+      "oci": 52
+    },
+    "seeds": [
+      1,
+      7,
+      11,
+      23,
+      42,
+      73,
+      137,
+      199,
+      1024,
+      2048,
+      8192,
+      16384,
+      65536,
+      131072,
+      524288,
+      999979,
+      999983,
+      1048576,
+      2041769,
+      2273360,
+      3167584,
+      3911096,
+      4083538,
+      4546720,
+      5573027,
+      6335168,
+      6426836,
+      6762547,
+      6992150,
+      7777777,
+      7822192,
+      7886470,
+      7973654,
+      9884564,
+      9934256,
+      12853672,
+      13525094,
+      13984300,
+      33619740,
+      82054048,
+      85415891,
+      120749711,
+      124613597,
+      147270468,
+      181677080,
+      189192333,
+      244383382,
+      262244879,
+      138311401,
+      209676233,
+      260991262,
+      373632746,
+      539182906,
+      649967798,
+      679009850,
+      721623611,
+      892873545,
+      899344708,
+      928803847,
+      1059727775,
+      1163502954,
+      1206587983,
+      1277948386,
+      1291617207,
+      1292117916,
+      1513140100,
+      1681333894,
+      1681751850,
+      1712240077,
+      1746737973,
+      1891172782,
+      1993950335,
+      2070080477,
+      2207587974,
+      2318242210,
+      2406721030,
+      2675988121,
+      2736951565,
+      2821536431,
+      2826575855,
+      2915831506,
+      3109529006,
+      3146262904,
+      3170105529,
+      3208297029,
+      3219332220,
+      3316254155,
+      3629294338,
+      3805262628,
+      3823714639,
+      3839786322,
+      3840478523,
+      3845969983,
+      3861495031,
+      3935376874,
+      3937198363,
+      3969817174,
+      4006398547,
+      4189561475,
+      4231920729
+    ]
+  },
+  "split": {
+    "mode": "season_level_selection_outer_eval",
+    "outer_eval_seasons": [
+      2025
+    ],
+    "selection_seasons": [
+      2021,
+      2022,
+      2023,
+      2024
+    ]
+  },
+  "verdict": {
+    "production_deploy_ready": false,
+    "reasons": [
+      "pooled-policy gap is non-positive on the 2025 outer-evaluation surface"
+    ],
+    "verdict": "falsified"
+  }
+}
