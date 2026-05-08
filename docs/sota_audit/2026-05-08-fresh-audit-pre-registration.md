@@ -1,7 +1,7 @@
 # Fresh Audit Pre-Registration: Decision-Aware Learning Candidate Cycle
 
 - **Generated**: 2026-05-08
-- **Status**: `candidate_artifact_schema_implemented_pending_live_forward_freeze`
+- **Status**: `candidate_live_forward_logging_implemented_pending_launch_sha`
 - **Prior cycle**: `cycle_closed_no_deployable_candidate`
 - **Production deploy claim**: `false`
 - **Current launch posture**: do not launch cloud compute or production changes
@@ -125,6 +125,8 @@ PR:
 - Each profile parquet carries `artifact_schema_version`, `run_kind`, `variant`,
   `model_name`, `generated_at`, `git_commit`, `date`, `season`, `rank`,
   `batter_id`, `game_pk`, `p_game_hit`, `actual_hit`, and `n_pas`.
+  For `live_forward_preoutcome` artifacts, `actual_hit` and `n_pas` are null
+  until outcomes are joined later.
 - `manifest.json` records schema version, git commit, run kind, season list,
   retraining cadence, top-N, environment seed/determinism variables, profile
   paths, row counts, day counts, `production_deploy_claim=false`, and whether
@@ -160,10 +162,32 @@ Carlo streak metrics are ancillary. It does not yet compute bootstrap CIs,
 family-control statistics, or the full `survives_fresh_target` verdict. Those
 belong to the fresh-target live-forward slice.
 
-Launch remains blocked until a later slice freezes:
+Frozen fresh-target live-forward logging command:
 
-1. the fresh-target live-forward logging command;
-2. the launch commit SHA after live-forward logging lands.
+```bash
+BTS_LGBM_DETERMINISTIC=1 bts experiment export-live-candidate-artifacts \
+  --date YYYY-MM-DD \
+  --candidate decision_weighted_lgbm_v0 \
+  --output-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
+  --data-dir data/processed \
+  --top-n 10 \
+  --no-refresh-data
+```
+
+The live command writes only research artifacts under `--output-dir`: paired
+production/candidate pre-outcome ranked-slate parquets plus `manifest.json`.
+It does not write `data/picks`, `data/models`, production posts, cloud assets,
+or the `deploy` branch. The default `--no-refresh-data` assumes routine data
+refresh has already completed, so the normal invocation is after the production
+daily data refresh has produced the data snapshot. Operators can pass
+`--refresh-data` only when they intentionally want this logging command to
+refresh current-season data. Use a separate `--output-dir` per date, as shown
+above, because the v0 live manifest is one date per directory and would be
+overwritten if multiple dates reused the same directory.
+
+Launch remains blocked until a later slice records:
+
+1. the exact launch commit SHA after live-forward logging lands.
 
 ## 3. Family-Control Rule
 

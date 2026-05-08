@@ -70,3 +70,42 @@ def test_compare_candidate_artifacts_cli_reports_primary_delta(tmp_path, monkeyp
     assert result.exit_code == 0, result.output
     assert "Saved comparison" in result.output
     assert "Primary delta (p_57_mdp): +0.012300" in result.output
+
+
+def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, monkeypatch):
+    from bts.cli import cli
+    import bts.experiment.artifacts as artifacts_mod
+
+    output_dir = tmp_path / "live-artifact"
+    captured = {}
+
+    def fake_materialize_live(**kwargs):
+        captured.update(kwargs)
+        return {
+            "profile_paths": {
+                "production": {"2026-05-09": "profiles/production/live_2026-05-09.parquet"},
+                "candidate": {"2026-05-09": "profiles/candidate/live_2026-05-09.parquet"},
+            }
+        }
+
+    monkeypatch.setattr(
+        artifacts_mod,
+        "materialize_live_candidate_profile_pair",
+        fake_materialize_live,
+    )
+    result = CliRunner().invoke(cli, [
+        "experiment", "export-live-candidate-artifacts",
+        "--date", "2026-05-09",
+        "--candidate", "decision_weighted_lgbm_v0",
+        "--output-dir", str(output_dir),
+        "--data-dir", "data/processed",
+        "--top-n", "2",
+        "--no-refresh-data",
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert captured["date"] == "2026-05-09"
+    assert captured["candidate"].name == "decision_weighted_lgbm_v0"
+    assert captured["top_n"] == 2
+    assert captured["refresh_data"] is False
+    assert "Saved manifest" in result.output

@@ -391,6 +391,51 @@ def compare_candidate_artifacts(
     click.echo(f"Primary delta ({comparison['primary_metric']}): {delta_text}")
 
 
+@experiment.command("export-live-candidate-artifacts")
+@click.option("--date", required=True, help="Prediction date (YYYY-MM-DD)")
+@click.option("--candidate", required=True,
+              help="Experiment name to export against the production baseline")
+@click.option("--output-dir", required=True, type=click.Path(),
+              help="Directory for manifest.json and paired live profile parquets")
+@click.option("--data-dir", default="data/processed", type=click.Path(),
+              help="Processed parquet directory")
+@click.option("--top-n", default=10, type=int,
+              help="Number of ranked candidates to keep in the pre-outcome slate")
+@click.option("--refresh-data/--no-refresh-data", default=False,
+              help="Refresh current-season data before production prediction "
+                   "(default: no refresh; run after routine data refresh)")
+def export_live_candidate_artifacts(
+    date: str,
+    candidate: str,
+    output_dir: str,
+    data_dir: str,
+    top_n: int,
+    refresh_data: bool,
+):
+    """Export pre-outcome production/candidate ranked slates for one date."""
+    from bts.experiment.registry import load_all_experiments, get_experiment
+    from bts.experiment.artifacts import materialize_live_candidate_profile_pair
+
+    load_all_experiments()
+    candidate_exp = get_experiment(candidate)
+    click.echo(
+        f"Exporting live pre-outcome {candidate} vs production for {date} "
+        f"to {output_dir}"
+    )
+    manifest = materialize_live_candidate_profile_pair(
+        date=date,
+        candidate=candidate_exp,
+        output_dir=output_dir,
+        data_dir=data_dir,
+        top_n=top_n,
+        refresh_data=refresh_data,
+    )
+    click.echo(f"Saved manifest: {Path(output_dir) / 'manifest.json'}")
+    for variant, paths_by_key in manifest["profile_paths"].items():
+        for key, rel_path in paths_by_key.items():
+            click.echo(f"  {variant} {key}: {Path(output_dir) / rel_path}")
+
+
 @experiment.command()
 @click.option("--data-dir", default="data/processed", type=click.Path())
 @click.option("--retrain-every", default=7, type=int)

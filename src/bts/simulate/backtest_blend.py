@@ -16,7 +16,7 @@ import os
 import sys
 from pathlib import Path
 
-PROFILE_COLUMNS = ["date", "rank", "batter_id", "p_game_hit", "actual_hit", "n_pas"]
+PROFILE_COLUMNS = ["date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit", "n_pas"]
 
 
 def _rs() -> int:

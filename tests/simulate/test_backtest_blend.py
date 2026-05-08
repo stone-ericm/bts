@@ -9,7 +9,10 @@ class TestBlendBacktestOutput:
     def test_output_schema(self):
         """Verify the output parquet has the expected columns."""
         from bts.simulate.backtest_blend import PROFILE_COLUMNS
-        assert PROFILE_COLUMNS == ["date", "rank", "batter_id", "p_game_hit", "actual_hit", "n_pas"]
+        assert PROFILE_COLUMNS == [
+            "date", "rank", "batter_id", "game_pk",
+            "p_game_hit", "actual_hit", "n_pas",
+        ]
 
     def test_load_saved_profiles(self, tmp_path):
         """Round-trip: save profiles, load them back."""
@@ -20,6 +23,7 @@ class TestBlendBacktestOutput:
             "date": ["2024-04-01"] * 10,
             "rank": list(range(1, 11)),
             "batter_id": [i * 1000 for i in range(1, 11)],
+            "game_pk": [1000 + i for i in range(10)],
             "p_game_hit": [0.90 - i * 0.02 for i in range(10)],
             "actual_hit": [1, 1, 1, 0, 1, 0, 1, 0, 0, 1],
             "n_pas": [4] * 10,
