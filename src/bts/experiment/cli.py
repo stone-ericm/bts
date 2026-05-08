@@ -303,6 +303,94 @@ def screen(
         )
 
 
+@experiment.command("export-candidate-artifacts")
+@click.option("--data-dir", default="data/processed", type=click.Path(),
+              help="Processed parquet directory")
+@click.option("--candidate", required=True,
+              help="Experiment name to export against the production baseline")
+@click.option("--seasons", default=DEFAULT_TEST_SEASONS,
+              help="Comma-separated historical seasons to materialize")
+@click.option("--output-dir", required=True, type=click.Path(),
+              help="Directory for manifest.json and paired profile parquets")
+@click.option("--retrain-every", default=7, type=int)
+@click.option("--top-n", default=10, type=int,
+              help="Number of ranked candidates to keep per slate")
+def export_candidate_artifacts(
+    data_dir: str,
+    candidate: str,
+    seasons: str,
+    output_dir: str,
+    retrain_every: int,
+    top_n: int,
+):
+    """Export paired production/candidate ranked-slate artifacts."""
+    import pandas as pd
+    from bts.features.compute import compute_all_features
+    from bts.experiment.registry import load_all_experiments, get_experiment
+    from bts.experiment.artifacts import materialize_candidate_profile_pair
+
+    load_all_experiments()
+    candidate_exp = get_experiment(candidate)
+    season_list = _parse_season_list(seasons, "--seasons")
+
+    proc = Path(data_dir)
+    dfs = [pd.read_parquet(p) for p in sorted(proc.glob("pa_*.parquet"))]
+    if not dfs:
+        raise click.ClickException("No parquet files found. Run 'bts data build' first.")
+    df = compute_all_features(pd.concat(dfs, ignore_index=True))
+
+    click.echo(
+        f"Exporting {candidate} vs production for seasons {season_list} "
+        f"to {output_dir}"
+    )
+    manifest = materialize_candidate_profile_pair(
+        pa_df=df,
+        candidate=candidate_exp,
+        seasons=season_list,
+        output_dir=output_dir,
+        retrain_every=retrain_every,
+        top_n=top_n,
+        data_dir=data_dir,
+    )
+    click.echo(f"Saved manifest: {Path(output_dir) / 'manifest.json'}")
+    for variant, paths_by_season in manifest["profile_paths"].items():
+        for season, rel_path in paths_by_season.items():
+            click.echo(f"  {variant} {season}: {Path(output_dir) / rel_path}")
+
+
+@experiment.command("compare-candidate-artifacts")
+@click.option("--artifact-dir", required=True, type=click.Path(exists=True),
+              help="Directory containing manifest.json from export-candidate-artifacts")
+@click.option("--mc-trials", default=10_000, type=int,
+              help="Monte Carlo trials for scorecard computation")
+@click.option("--season-length", default=180, type=int,
+              help="Days per simulated season")
+@click.option("--save", "save_path", default=None, type=click.Path(),
+              help="Comparison JSON path (default: ARTIFACT_DIR/comparison.json)")
+def compare_candidate_artifacts(
+    artifact_dir: str,
+    mc_trials: int,
+    season_length: int,
+    save_path: str | None,
+):
+    """Compare a frozen production/candidate ranked-slate artifact pair."""
+    from bts.experiment.artifacts import compare_candidate_profile_pair
+
+    comparison = compare_candidate_profile_pair(
+        artifact_dir=artifact_dir,
+        mc_trials=mc_trials,
+        season_length=season_length,
+        save_path=save_path,
+    )
+    primary_delta = comparison.get("primary_delta")
+    if primary_delta is None:
+        delta_text = "N/A"
+    else:
+        delta_text = f"{primary_delta:+.6f}"
+    click.echo(f"Saved comparison: {comparison['comparison_path']}")
+    click.echo(f"Primary delta ({comparison['primary_metric']}): {delta_text}")
+
+
 @experiment.command()
 @click.option("--data-dir", default="data/processed", type=click.Path())
 @click.option("--retrain-every", default=7, type=int)

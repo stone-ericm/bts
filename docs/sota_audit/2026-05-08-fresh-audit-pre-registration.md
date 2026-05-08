@@ -1,7 +1,7 @@
 # Fresh Audit Pre-Registration: Decision-Aware Learning Candidate Cycle
 
 - **Generated**: 2026-05-08
-- **Status**: `candidate_training_hook_implemented_pending_evaluation_freeze`
+- **Status**: `candidate_artifact_schema_implemented_pending_live_forward_freeze`
 - **Prior cycle**: `cycle_closed_no_deployable_candidate`
 - **Production deploy claim**: `false`
 - **Current launch posture**: do not launch cloud compute or production changes
@@ -117,13 +117,53 @@ Training hook frozen in the implementation PR:
   modifies baseline blend configs rather than adding a standalone side model;
   this is covered by `test_model_swap_eligibility_rejects_ineligible`.
 
+Artifact schema and historical comparison path frozen in the next implementation
+PR:
+
+- `bts_candidate_ranked_slate_pair_v1` is the paired production/candidate
+  ranked-slate schema.
+- Each profile parquet carries `artifact_schema_version`, `run_kind`, `variant`,
+  `model_name`, `generated_at`, `git_commit`, `date`, `season`, `rank`,
+  `batter_id`, `game_pk`, `p_game_hit`, `actual_hit`, and `n_pas`.
+- `manifest.json` records schema version, git commit, run kind, season list,
+  retraining cadence, top-N, environment seed/determinism variables, profile
+  paths, row counts, day counts, `production_deploy_claim=false`, and whether
+  the artifact is a fresh-target claim.
+
+Frozen local historical screen command:
+
+```bash
+BTS_LGBM_DETERMINISTIC=1 bts experiment export-candidate-artifacts \
+  --candidate decision_weighted_lgbm_v0 \
+  --seasons 2024,2025 \
+  --output-dir data/validation/decision_weighted_lgbm_v0_historical_local \
+  --retrain-every 7 \
+  --top-n 10
+```
+
+The `2024,2025` season list is the frozen default local screen. Operators may
+override `--seasons` for wider historical diagnostics, including
+`2021,2022,2023,2024,2025`, but those widened runs remain development evidence,
+not fresh-target deployment evidence.
+
+Frozen historical comparison command:
+
+```bash
+bts experiment compare-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_historical_local \
+  --save data/validation/decision_weighted_lgbm_v0_historical_local/comparison.json
+```
+
+This comparison emits production and candidate scorecards plus deltas. Its
+primary field is the `p_57_mdp` delta when the scorecard can compute it; Monte
+Carlo streak metrics are ancillary. It does not yet compute bootstrap CIs,
+family-control statistics, or the full `survives_fresh_target` verdict. Those
+belong to the fresh-target live-forward slice.
+
 Launch remains blocked until a later slice freezes:
 
-1. the candidate-vs-production prediction artifact schema;
-2. the historical local screen command;
-3. the fresh-target live-forward logging command;
-4. the comparison script and verdict artifact schema;
-5. the launch commit SHA after those pieces land.
+1. the fresh-target live-forward logging command;
+2. the launch commit SHA after live-forward logging lands.
 
 ## 3. Family-Control Rule
 
