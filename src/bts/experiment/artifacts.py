@@ -96,6 +96,12 @@ def _relative(path: Path, root: Path) -> str:
         return str(path)
 
 
+def _profile_path_sort_key(key: str) -> tuple[int, int | str]:
+    if key.isdigit():
+        return (0, int(key))
+    return (1, key)
+
+
 def validate_ranked_profiles(frame: pd.DataFrame, *, label: str) -> None:
     """Validate the ranked-slate profile columns used by the artifact schema."""
     missing = sorted(PROFILE_REQUIRED_COLUMNS - set(frame.columns))
@@ -140,6 +146,28 @@ def save_ranked_profiles(profiles: pd.DataFrame, path: str | Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     profiles.to_parquet(path, index=False)
     return path
+
+
+def predictions_to_ranked_profiles(
+    predictions: pd.DataFrame,
+    *,
+    date: str,
+    top_n: int,
+) -> pd.DataFrame:
+    """Convert live prediction rows to the ranked profile shape pre-outcome."""
+    required = {"batter_id", "game_pk", "p_game_hit"}
+    missing = sorted(required - set(predictions.columns))
+    if missing:
+        raise ValueError(f"live predictions missing columns: {missing}")
+
+    profile = predictions.dropna(subset=["p_game_hit"]).head(top_n).copy()
+    if profile.empty:
+        raise ValueError(f"live predictions for {date} have no scored rows")
+    profile["date"] = pd.Timestamp(date).date()
+    profile["rank"] = range(1, len(profile) + 1)
+    profile["actual_hit"] = pd.NA
+    profile["n_pas"] = pd.NA
+    return profile[["date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit", "n_pas"]]
 
 
 def materialize_candidate_profile_pair(
@@ -274,6 +302,125 @@ def materialize_candidate_profile_pair(
     return manifest
 
 
+def materialize_live_candidate_profile_pair(
+    *,
+    date: str,
+    candidate: ExperimentDef,
+    output_dir: str | Path,
+    data_dir: str | Path = "data/processed",
+    top_n: int = 10,
+    refresh_data: bool = False,
+    baseline_name: str = "production_lgbm_v0",
+    git_commit: str | None = None,
+    generated_at: str | None = None,
+) -> dict:
+    """Materialize pre-outcome production/candidate ranked slates for one date.
+
+    This is the fresh-target logging path. It intentionally writes only
+    research artifacts under ``output_dir``: no pick JSON, no model cache, no
+    posting side effects, and no deploy files.
+    """
+    from bts.model.predict import run_pipeline
+
+    if candidate.touches_features() or candidate.feature_cols() is not None:
+        raise ValueError(
+            "live candidate artifact logging currently supports training/blend "
+            "config experiments only"
+        )
+
+    output_root = Path(output_dir)
+    output_root.mkdir(parents=True, exist_ok=True)
+    generated_at = generated_at or utc_timestamp()
+    git_commit = git_commit if git_commit is not None else current_git_commit()
+
+    candidate_configs, candidate_params, _ = compose_blend_args([candidate])
+    production_predictions = run_pipeline(
+        date,
+        data_dir=str(data_dir),
+        refresh_data=refresh_data,
+    )
+    candidate_predictions = run_pipeline(
+        date,
+        data_dir=str(data_dir),
+        refresh_data=False,
+        blend_configs_override=candidate_configs,
+        lgb_params_override=candidate_params,
+    )
+
+    production_profiles = predictions_to_ranked_profiles(
+        production_predictions,
+        date=date,
+        top_n=top_n,
+    )
+    candidate_profiles = predictions_to_ranked_profiles(
+        candidate_predictions,
+        date=date,
+        top_n=top_n,
+    )
+    season = pd.Timestamp(date).year
+    tagged_production = tag_ranked_profiles(
+        production_profiles,
+        variant="production",
+        model_name=baseline_name,
+        season=season,
+        run_kind="live_forward_preoutcome",
+        generated_at=generated_at,
+        git_commit=git_commit,
+    )
+    tagged_candidate = tag_ranked_profiles(
+        candidate_profiles,
+        variant="candidate",
+        model_name=candidate.name,
+        season=season,
+        run_kind="live_forward_preoutcome",
+        generated_at=generated_at,
+        git_commit=git_commit,
+    )
+
+    date_key = str(date)
+    prod_path = output_root / "profiles" / "production" / f"live_{date_key}.parquet"
+    cand_path = output_root / "profiles" / "candidate" / f"live_{date_key}.parquet"
+    save_ranked_profiles(tagged_production, prod_path)
+    save_ranked_profiles(tagged_candidate, cand_path)
+
+    manifest = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "git_commit": git_commit,
+        "run_kind": "live_forward_preoutcome",
+        "production_deploy_claim": False,
+        "fresh_target_claim": True,
+        "candidate_name": candidate.name,
+        "baseline_name": baseline_name,
+        "date": date_key,
+        "dates": [date_key],
+        "seasons": [int(season)],
+        "top_n": int(top_n),
+        "retrain_every": None,
+        "data_dir": str(data_dir),
+        "refresh_data": bool(refresh_data),
+        "environment": {
+            "BTS_LGBM_RANDOM_STATE": os.environ.get("BTS_LGBM_RANDOM_STATE"),
+            "BTS_LGBM_DETERMINISTIC": os.environ.get("BTS_LGBM_DETERMINISTIC"),
+        },
+        "profile_schema_columns": list(PROFILE_SCHEMA_COLUMNS),
+        "profile_paths": {
+            "production": {date_key: _relative(prod_path, output_root)},
+            "candidate": {date_key: _relative(cand_path, output_root)},
+        },
+        "row_counts": {
+            "production": {date_key: int(len(tagged_production))},
+            "candidate": {date_key: int(len(tagged_candidate))},
+        },
+        "day_counts": {
+            "production": {date_key: int(tagged_production["date"].nunique())},
+            "candidate": {date_key: int(tagged_candidate["date"].nunique())},
+        },
+    }
+    _write_json(manifest, output_root / "manifest.json")
+    return manifest
+
+
 def load_manifest(artifact_dir: str | Path) -> dict:
     path = Path(artifact_dir) / "manifest.json"
     manifest = json.loads(path.read_text())
@@ -292,7 +439,7 @@ def _load_variant_profiles(
 ) -> pd.DataFrame:
     frames = []
     paths = manifest.get("profile_paths", {}).get(variant, {})
-    for season_key in sorted(paths, key=int):
+    for season_key in sorted(paths, key=_profile_path_sort_key):
         path = artifact_dir / paths[season_key]
         frame = pd.read_parquet(path)
         validate_ranked_profiles(frame, label=f"{variant} {season_key}")

@@ -79,23 +79,49 @@ def train_model(df: pd.DataFrame, feature_cols: list[str] | None = None) -> lgb.
     return model
 
 
-def train_blend(df: pd.DataFrame, base_feature_cols: list[str] | None = None) -> dict:
+def train_blend(
+    df: pd.DataFrame,
+    base_feature_cols: list[str] | None = None,
+    blend_configs: list | None = None,
+    lgb_params: dict | None = None,
+) -> dict:
     """Train 12-model blend on historical PA data (2019+).
 
     Returns dict of {name: (model, feature_cols)} for each blend variant.
     When base_feature_cols is provided, uses it instead of FEATURE_COLS
     as the base for all blend configs (shadow model).
+    ``blend_configs``/``lgb_params`` are an opt-in experiment path used by
+    live-forward audit artifact logging; the default production path is
+    unchanged when they are not supplied.
     """
-    configs = _build_blend_configs(base_feature_cols)
+    configs = blend_configs or _build_blend_configs(base_feature_cols)
+    params = lgb_params or LGB_PARAMS
     train = df[df["season"] >= TRAIN_START_YEAR]
     train_y = train["is_hit"]
     blend = {}
 
-    for name, cols in configs:
-        train_X = train[cols]
-        mask = train_X.notna().any(axis=1)
-        model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
-        model.fit(train_X[mask], train_y[mask])
+    for config in configs:
+        if len(config) == 2:
+            name, cols = config
+            extra_params = {}
+        else:
+            name, cols, extra_params = config
+
+        if extra_params:
+            unsupported = extra_params.get("engine") or extra_params.get("objective")
+            if unsupported:
+                raise ValueError(
+                    "live prediction blend overrides only support LightGBM "
+                    f"classifier configs; {name!r} has unsupported {unsupported!r}"
+                )
+            from bts.simulate.backtest_blend import _train_lgbm_classifier
+
+            model = _train_lgbm_classifier(train, cols, {**params, **extra_params})
+        else:
+            train_X = train[cols]
+            mask = train_X.notna().any(axis=1)
+            model = lgb.LGBMClassifier(**params, random_state=42)
+            model.fit(train_X[mask], train_y[mask])
         blend[name] = (model, cols)
 
     return blend
@@ -720,6 +746,8 @@ def run_pipeline(
     save_blend_path=None,
     refresh_data: bool = True,
     feature_cols_override: list[str] | None = None,
+    blend_configs_override: list | None = None,
+    lgb_params_override: dict | None = None,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
@@ -733,6 +761,9 @@ def run_pipeline(
             blend (including single model) to this path.
         refresh_data: Pull latest game feeds and rebuild current season
             parquet before running. Set False for backtesting.
+        blend_configs_override/lgb_params_override: Experiment-only blend
+            training overrides for audit artifact logging. Production callers
+            leave these as None.
     """
     if refresh_data:
         _refresh_season_data(date, processed_dir=data_dir)
@@ -771,7 +802,12 @@ def run_pipeline(
         blend = cached_blend
     else:
         model = train_model(df, feature_cols=feature_cols_override)
-        blend = train_blend(df, base_feature_cols=feature_cols_override)
+        blend = train_blend(
+            df,
+            base_feature_cols=feature_cols_override,
+            blend_configs=blend_configs_override,
+            lgb_params=lgb_params_override,
+        )
         if save_blend_path:
             to_save = {**blend, "_model": model}
             save_blend(to_save, save_blend_path)
