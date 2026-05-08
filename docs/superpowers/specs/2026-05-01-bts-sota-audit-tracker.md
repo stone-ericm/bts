@@ -2,7 +2,7 @@
 
 **Date created**: 2026-05-01
 **Last updated**: 2026-05-08 (fresh audit pre-registration)
-**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04); full-SOTA variants for #13/#14/#15 remain conditional/deferred rather than immediate blockers. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface. #5 has opt-in season-level split support for experiment runner adoption. #10 pooled-policy candidate generation is closed under `cycle_closed_no_deployable_candidate`: Phase D falsified the 24-seed C0 signal under a 100-seed temporal split, and the follow-up recency/hybrid/segment screens did not produce a deployable candidate. #11 conformal-gate v2 exists and currently blocks deploy because `ship_set=[]`, not because binary-y validation is unimplemented. #16 is reactivated as the next concrete candidate-cycle direction via `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`; the `top_slate_v0` training-weight hook, historical candidate-vs-production artifact schema/comparison commands, and fresh-target live-forward logging command are implemented, but evaluation launch remains blocked until the launch commit SHA is frozen. #17 remains parked unless Eric names a specific model-class stack and compute budget. Real split-audit planning is documented at `docs/sota_audit/2026-05-07-real-split-audit-plan.md`; after the pooled-policy closeout it remains blocked on a fully frozen fresh candidate implementation and live-forward evaluation target, not on a need to mine the consumed 2021-2025 surface again.
+**Status**: Active; 17 audit areas. Falsification-harness path shipped v1 + v2.5 attribution + v2.6 CI piece (PR #8 merged at `1a0eefb` on 2026-05-04); full-SOTA variants for #13/#14/#15 remain conditional/deferred rather than immediate blockers. #12 phase 1/2/3 surfaces have shipped; strict current-model realized-picks evidence is still underpowered. #1 solver-side DR-MDP is measurement-gated and produced no production-change signal on the explicit 2021-2025 canonical surface. #5 has opt-in season-level split support for experiment runner adoption. #10 pooled-policy candidate generation is closed under `cycle_closed_no_deployable_candidate`: Phase D falsified the 24-seed C0 signal under a 100-seed temporal split, and the follow-up recency/hybrid/segment screens did not produce a deployable candidate. #11 conformal-gate v2 exists and currently blocks deploy because `ship_set=[]`, not because binary-y validation is unimplemented. #16 is reactivated as the next concrete candidate-cycle direction via `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`; the `top_slate_v0` training-weight hook, historical candidate-vs-production artifact schema/comparison commands, fresh-target live-forward logging command, and launch SHA are frozen at `5004b1c8b093da0f8acb11bd728430ebacbf92d3`, clearing research live-forward logging on eligible post-freeze slates only. #17 remains parked unless Eric names a specific model-class stack and compute budget. Real split-audit planning is documented at `docs/sota_audit/2026-05-07-real-split-audit-plan.md`; after the pooled-policy closeout it now depends on frozen #16 live-forward evidence, not on mining the consumed 2021-2025 surface again.
 **Origin**: `project_bts_state_of_art_audit_2026_05_01.md` — Eric committed to project-wide SOTA audit after observing pattern of Claude defaulting to "existing codebase" or "Eric-friendly" rather than state-of-the-art.
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
@@ -103,14 +103,14 @@ Before running a real split audit on a deployable candidate stack, finish or exp
 
 **Fresh-audit pre-registration draft added** as `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`. The draft chooses #16 decision-aware learning as the next concrete candidate-cycle direction, with candidate code name `decision_weighted_lgbm_v0`.
 
-**Launch posture**: `draft_pre_registration_candidate_unfrozen`. No cloud run, production change, or deploy branch action is cleared by this memo. The next implementation PR must freeze the exact sample-weight function, feature/blend membership, LightGBM parameter deltas, deterministic seed settings, prediction artifact schema, and comparison script before any fresh-target launch.
+**Launch posture**: `candidate_frozen_live_forward_logging_ready`. No cloud run, production change, or deploy branch action is cleared by this memo. The candidate implementation and live-forward logging command are frozen at `5004b1c8b093da0f8acb11bd728430ebacbf92d3` for pre-outcome research artifact logging only.
 
 **Fresh target**: post-registration 2026 live-forward slates generated after candidate freeze, with `2026-05-09` as the earliest eligible calendar date and a `120` eligible-slate minimum unless amended before outcomes are inspected. Pre-memo 2026 data is conservative development/sanity-check data because local `pa_2026`, `backtest_2026`, pick, realized-picks, and validation artifacts already exist.
 
-**Budget posture**: spend `$0` cloud before code freeze. Use local tests and historical screens first; only escalate to 4-16 deterministic cloud smoke if the candidate is stable and non-negative locally.
+**Budget posture**: spend `$0` cloud for the initial live-forward logging launch. Use local tests and historical screens first; only escalate to 4-16 deterministic cloud smoke if the candidate is stable, non-negative locally, and separately authorized.
 
-**Implementation slice**: `decision_weighted_lgbm_v0` now has a candidate
-training hook in progress: `decision_weight_mode=top_slate_v0` uses an
+**Implementation slice**: `decision_weighted_lgbm_v0` now has a frozen
+candidate training hook: `decision_weight_mode=top_slate_v0` uses an
 in-window probe LightGBM model to upweight PA rows attached to top projected
 daily batter-games. The probe uses the same feature columns, hyperparameters,
 random state, and training window as the final model; v0 accepts same-window
@@ -118,8 +118,8 @@ probe overfit risk because it only uses the probe for rank-based, clipped,
 mean-normalized training weights. Production defaults remain unchanged because
 the hook is inactive unless an experiment config opts in, and the fast-path
 experiment runner rejects this experiment because it rewrites baseline blend
-configs. The next blocker is not model training code or logging code; it is
-recording the exact launch commit SHA. The historical artifact schema/comparison
+configs. The implementation and logging freeze is now recorded at
+`5004b1c8b093da0f8acb11bd728430ebacbf92d3`. The historical artifact schema/comparison
 slice is `bts_candidate_ranked_slate_pair_v1`, using
 `bts experiment export-candidate-artifacts` followed by
 `bts experiment compare-candidate-artifacts`. The comparison emits scorecard
@@ -129,7 +129,8 @@ pre-outcome logging command is `bts experiment export-live-candidate-artifacts`;
 it writes research artifacts only and does not write picks, cached production
 models, posts, cloud assets, or `deploy`. Run it after the production daily
 data refresh and use one output directory per date because the v0 manifest is
-single-date.
+single-date. This clears pre-outcome research logging only; production deploy
+remains blocked by fresh-target evidence plus the separate production gates.
 
 ## Audit framework
 
@@ -358,8 +359,8 @@ Per Eric's stated lens (2026-05-01 brainstorm): "the best anyone could possibly 
 - **Prerequisites**: #12 probabilistic-scoring-suite + #13 OPE for honest measurement.
 - **Status update 2026-05-07**: Parked as post-audit candidate generation in `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`. #16 remains plausible, but starting a new SPO/reweighting implementation now would create a fresh exploratory candidate before the project has named the real split-audit target.
 - **Status update 2026-05-08**: Reactivated as the next concrete candidate-cycle direction after pooled-policy closeout. Pre-registration draft: `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`. The draft names `decision_weighted_lgbm_v0` as a sensitivity-weighted LightGBM candidate. The v0 training hook is `top_slate_v0`: train an in-window probe LightGBM model using the same feature columns, hyperparameters, random state, and training window as the final model; aggregate probe PA probabilities to batter-game probabilities; rank batter-games within date; and upweight PA rows attached to top projected daily candidates before fitting the final model. Same-window probe overfit risk is accepted for v0 because the probe is used only for clipped, rank-based training weights, not evaluation probabilities. The historical paired-artifact schema is `bts_candidate_ranked_slate_pair_v1`, exported with `bts experiment export-candidate-artifacts` and scored with `bts experiment compare-candidate-artifacts`; the comparison path is a local scorecard-delta screen and intentionally does not claim fresh-target CI/family-control survival. The fresh-target logging command is `bts experiment export-live-candidate-artifacts`, which emits pre-outcome production/candidate slates without writing production picks or model caches.
-- **Status**: training hook, historical artifact/comparison path, and live-forward logging command implemented / launch SHA still blocked.
-- **Next action**: Record the launch commit SHA before any cloud smoke or live-forward fresh-target evaluation.
+- **Status**: candidate frozen for research live-forward logging at `5004b1c8b093da0f8acb11bd728430ebacbf92d3`; production deploy not claimed.
+- **Next action**: Run the frozen pre-outcome logging command on eligible 2026 slates after production daily data refresh, then join outcomes and analyze only under the pre-registered CI/family-control rules. Do not launch cloud compute, production changes, or deploy branch updates from this memo alone.
 
 ### 17. (NEW, 2026-05-01 evening) Model-class challenge
 
