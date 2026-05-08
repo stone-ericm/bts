@@ -1,11 +1,13 @@
 # Fresh Audit Pre-Registration: Decision-Aware Learning Candidate Cycle
 
 - **Generated**: 2026-05-08
-- **Status**: `candidate_live_forward_logging_implemented_pending_launch_sha`
+- **Status**: `candidate_frozen_live_forward_logging_ready`
 - **Prior cycle**: `cycle_closed_no_deployable_candidate`
 - **Production deploy claim**: `false`
-- **Current launch posture**: do not launch cloud compute or production changes
-  until the candidate implementation is frozen at a commit SHA.
+- **Current launch posture**: candidate implementation and pre-outcome
+  live-forward logging are frozen at commit
+  `5004b1c8b093da0f8acb11bd728430ebacbf92d3`; this clears research artifact
+  logging only, not cloud compute, production changes, or deploy branch changes.
 
 ## 1. Cycle Context
 
@@ -99,10 +101,19 @@ The sample-weight function must not be fit on the fresh evaluation target. If
 it uses historical estimates of state/action sensitivity, those estimates must
 be computed only from development seasons named before launch.
 
-The current memo is not enough to launch. The launch-ready pre-registration
-must name the exact commit SHA after the candidate code and tests land.
+This memo is launch-ready only for pre-outcome research artifact logging after
+the commit freeze recorded below. It is not a production deployment memo.
 
 ## 2a. Implementation Freeze Status
+
+Frozen launch commit SHA for `decision_weighted_lgbm_v0` research logging:
+
+- `5004b1c8b093da0f8acb11bd728430ebacbf92d3` (PR #54, merged 2026-05-08).
+- This SHA includes the #16 `top_slate_v0` training hook, historical
+  candidate-vs-production artifact schema and comparison command, and
+  live-forward pre-outcome export command.
+- `production_deploy_claim=false` remains in force. This SHA is the research
+  logging freeze, not a deploy branch or production-pick change.
 
 Training hook frozen in the implementation PR:
 
@@ -185,9 +196,12 @@ refresh current-season data. Use a separate `--output-dir` per date, as shown
 above, because the v0 live manifest is one date per directory and would be
 overwritten if multiple dates reused the same directory.
 
-Launch remains blocked until a later slice records:
-
-1. the exact launch commit SHA after live-forward logging lands.
+Candidate implementation and live-forward logging are frozen at
+`5004b1c8b093da0f8acb11bd728430ebacbf92d3`. Fresh-target research logging may
+begin only for eligible slates whose artifacts are generated after this freeze,
+using the command above and a distinct date output directory. The first eligible
+calendar date remains `2026-05-09`; if no eligible slate is generated after the
+freeze on that date, use the first later eligible regular-season slate.
 
 ## 3. Family-Control Rule
 
