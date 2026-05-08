@@ -1,21 +1,41 @@
 # Real Split-Audit Plan
 
 - **Generated**: 2026-05-07
-- **Status**: `candidate_selected_pending_profile_launcher_and_canaries`
+- **Status**: `phase_d_outer_eval_falsified`
 - **Depends on**: `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`
 
 ## Verdict
 
-Do not run the real split audit yet, but the candidate intake blocker is now
-resolved.
+The real split audit has now run through Phase D, and the pooled-policy
+candidate is falsified on the disjoint 2025 outer-evaluation surface.
 
 After Codex/Claude review and Eric's 2026-05-07 budget authorization, the audit
 candidate is the pooled-policy methodology on a determinism-certified raw
-profile surface. The current verdict is
-`candidate_selected_pending_profile_launcher_and_canaries`, not deploy-ready.
-The audit becomes runnable only after the raw profile launcher is merged, the
-OCI one-seed retrieval canary passes, and the provider/provenance inventory is
-recorded for the exact run.
+profile surface. Phase A has shipped, the Phase B one-seed OCI profile canary
+passed, and the Phase B2 three-box OCI scaling canary passed across all three
+Ashburn availability domains. Codex and Claude then chose a 100-unique-seed
+Hetzner-plus-OCI Phase C allocation using existing seed files only. Phase C
+profile generation completed for the full 100 unique seed set, with clean
+retrieval and teardown on both providers. Phase D then evaluated the pooled
+candidate against the current production policy on the pre-registered 2025
+outer-evaluation surface.
+
+Phase D result:
+
+- artifact: `data/validation/phase_d_pooled_policy_outer_eval_2026-05-08.json`
+- selection gap, 2021-2024: `+0.029329`
+- outer-evaluation gap, 2025: `-0.062987`
+- 95% provider-stratified seed-bootstrap CI: `[-0.065250, -0.060757]`
+- positive seed-level gaps: `0/100`
+- provider mean gaps: Hetzner `-0.062095`, OCI `-0.063810`
+
+The current verdict is `phase_d_outer_eval_falsified`, not deploy-ready.
+
+Detailed result memo:
+`docs/sota_audit/2026-05-08-phase-d-pooled-policy-outer-eval.md`.
+
+Post-mortem and next-candidate plan:
+`docs/sota_audit/2026-05-08-pooled-policy-postmortem-next-candidates.md`.
 
 The original remote-screen orchestration gap is now closed for `scripts/audit_driver.py`: the driver passes `--selection-seasons` and `--outer-eval-seasons` through remote Phase 1 screening and records split metadata. The pooled-policy path needs raw `bts simulate backtest` artifacts, not `bts experiment screen` score JSONs, so the next orchestration slice is the `--run-kind profiles` launcher that writes and retrieves `data/simulation_seed*/backtest_*.parquet` with provider/determinism metadata.
 
@@ -53,8 +73,8 @@ The audit can start only when these inputs are fixed before looking at outer-eva
 | Selection seasons | Seasons used for Phase 1/2 keep/drop and any threshold or feature decisions; must be earlier than the outer-evaluation seasons. |
 | Outer-evaluation seasons | Disjoint later seasons evaluated once after selection. |
 | Seed family | Pre-registered seed list and stopping rule. |
-| Compute budget | Eric authorized up to `$1000` on 2026-05-07 for audit/canary planning. Target plan is `$700`-`800` after canaries, not a blank check for deploy. |
-| Provider allocation | Default tri-provider plan after canaries: 48 Hetzner seeds, 24 OCI seeds, 24 Vultr seeds; fall back to Hetzner+Vultr or Hetzner-only if OCI canary fails. |
+| Compute budget | Eric authorized up to `$1000` on 2026-05-07 for audit/canary planning. The OCI canary shows raw-profile generation is much cheaper than the prior broad-screening estimate. |
+| Provider allocation | Completed Phase C allocation: 48 Hetzner seeds from `scripts/audit_seeds_default48.txt` plus 52 OCI seeds from `scripts/audit_seeds_extension_n100.txt`; Vultr deferred because the API IP allowlist is blocked. |
 | Artifact roots | Output paths for selection artifacts, outer-evaluation artifacts, resource inventory, and final memo. |
 | Metrics | Pre-registered metrics: P@1, P(57) MDP/exact, #12 proper-scoring metrics, and any candidate-specific diagnostic. |
 | Gate family | Pre-registered test family for BH/BY or future e-value control. |
@@ -73,12 +93,13 @@ Current local knowledge:
 | Provider | Driver default | Existing local surfaces | Current use in plan |
 | --- | --- | --- | --- |
 | Hetzner | `cpx62`, Ubuntu 24.04, locations `fsn1`, `nbg1`, `hel1`, `sin` | 4-box 48-seed scorecard surface in `data/hetzner_results/audit_full_48seed_v2`; 16-seed Phase 1 in `data/hetzner_results/audit_phase1`; 24-seed raw pooled-bin surface across `pooled_bins_run` and `pooled_bins_run_trackc` | Best default for reproducible large runs. User-provided current cap is `5` machines; quota increase request possible in about `4` days. |
-| Vultr | `voc-c-16c-32gb-300s-amd` then `voc-c-16c-32gb-500s-amd`, European fallback regions | 26-box / 52-`phase1_seed*` extended surface in `data/vultr_results/audit_ext_n100_v4` | Best burst capacity fallback. User-provided current cap is `30` machines / `$2500`; record actual boxes and check deterministic-runtime overhead against the spend ceiling. |
-| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally | Eric authorized read-only OCI verification on 2026-05-07. OCI CLI checks verified `83` E5 OCPU and `1250` GB E5 memory available with `0` used in each of 3 Ashburn ADs. At the planned shape, quota supports 10 boxes per AD / 30 boxes total. Treat OCI as a serious accelerator only after the subnet OCID is supplied through Keychain/env, a one-seed retrieval canary passes, and the driver's AD-rotation/fallback path is live-verified before using more than about 10 OCI boxes. |
+| Vultr | `voc-c-16c-32gb-300s-amd` then `voc-c-16c-32gb-500s-amd`, European fallback regions | 26-box / 52-`phase1_seed*` extended surface in `data/vultr_results/audit_ext_n100_v4` | Best burst capacity fallback, but currently blocked for this session by API IP allowlisting: current egress IP `2600:4041:5976:5800:e82e:1bd3:c1f2:1210` returned Vultr HTTP 401. Use only if the allowlist is fixed before Phase C launch. |
+| OCI | `VM.Standard.E5.Flex`, 8 OCPU / 32 GB, Ubuntu 24.04 x86_64 | `data/oci_results/audit_n48` has 4 Ashburn boxes in `batch_01/boxes.json` and 31 queued seeds, but no retrieved `phase1_seed*` scoring artifacts locally; `data/oci_results/pooled_profile_canary_2026-05-07` has one retrieved raw-profile canary seed; `data/oci_results/pooled_profile_scaling_canary_2026-05-07` has three retrieved raw-profile canary seeds across all three Ashburn ADs; `data/oci_results/phase_c_pooled_policy_profiles_2026-05-07` has the completed 52-seed Phase C raw-profile leg | Eric authorized OCI verification on 2026-05-07. OCI CLI checks verified `83` E5 OCPU and `1250` GB E5 memory available with `0` used in each of 3 Ashburn ADs. At the planned shape, quota supports 10 boxes per AD / 30 boxes total. The one-seed canary, three-box multi-AD scaling canary, and four-box Phase C leg all passed with retrieval and teardown clean. |
 
-The docs plan scopes the inventory only. The OCI service-limit checks above were read-only and did not launch instances. Any provisioning, canary launch, or provider spend is still a separate authorized operational slice.
+The docs plan now records inventory plus completed one-seed, multi-AD OCI, and
+full Phase C Hetzner-plus-OCI raw-profile runs.
 
-Eric's 2026-05-07 capacity notes plus read-only OCI quota checks are partial inventory only: Hetzner `5` machines with an increase request possible in about `4` days, Vultr `30` machines / `$2500`, and OCI E5 quota verified at 30 planned boxes across Ashburn. The full inventory still needs launch canaries, credential/subnet readiness, cost re-quotes, artifact retrieval checks, live verification of larger OCI multi-AD launches, and provenance recording before compute.
+Eric's 2026-05-07 capacity notes plus read-only OCI quota checks are partial inventory only: Hetzner `5` machines with an increase request possible in about `4` days, Vultr `30` machines / `$2500`, and OCI E5 quota verified at 30 planned boxes across Ashburn. OCI launch canaries, credential/subnet readiness, artifact retrieval checks, live multi-AD launch verification, teardown, and provenance recording now have live evidence for raw profile generation. Vultr remains blocked by API IP allowlisting unless the allowlist is updated before Phase C.
 
 The inventory must record:
 
@@ -150,15 +171,16 @@ Use a conservative first pass unless Eric chooses otherwise:
 
 This mirrors the existing split-design memo and keeps the outer span later than the selection span. If the candidate needs a different temporal split, pre-register the reason before running.
 
-## Expected Current Outcome
+## Current Outcome
 
-With pooled-policy selected but canaries still pending, the plan should stop at:
+With pooled-policy selected and Phase C profile generation completed, the plan
+should stop at:
 
 ```json
 {
-  "verdict": "candidate_selected_pending_profile_launcher_and_canaries",
+  "verdict": "phase_c_profiles_completed_pending_phase_d",
   "candidate": "pooled_policy_methodology",
-  "reason": "Candidate intake is complete, but the raw profile launcher, OCI canary retrieval, and provider/provenance inventory must pass before scaled cloud spend."
+  "reason": "Candidate intake plus OCI canaries passed; Phase C completed 48 Hetzner seeds plus 52 OCI seeds using existing disjoint seed files, with clean retrieval and teardown."
 }
 ```
 
