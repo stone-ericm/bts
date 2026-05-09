@@ -17,9 +17,9 @@ does not clear production model changes.
   `data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD`
 - Current production deploy branch before the fix:
   `15da954142da62089bb198873a7cca94e69c659c`
-- Next deploy target: `origin/main` containing PR #64 and PR #66. At the
-  time of this runbook, that commit is
-  `150ed4c97d84a65ce7977c48ce52698598645abc`.
+- Next deploy target: `origin/main` containing PR #64 and PR #66 plus any
+  later merged runbook or research-tooling PRs. Verify the exact SHA with
+  `git rev-parse origin/main` immediately before pushing `deploy`.
 
 The pre-registration document is
 `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`. It clears
