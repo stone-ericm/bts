@@ -502,14 +502,27 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
     Codex bus #170/#172). A non-default TOML must not produce a path
     that loads one blend artifact while hashing another.
     """
-    from bts.picks import load_streak
+    from bts.picks import load_shadow_pick, load_streak
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     data_dir = config["orchestrator"].get("data_dir", "data/processed")
     models_dir = config["orchestrator"].get("models_dir", "data/models")
+    heartbeat_path = Path(
+        config["orchestrator"].get("heartbeat_path", picks_dir.parent / ".heartbeat")
+    )
 
     try:
-        predictions = predict_local_shadow(date, data_dir=data_dir, models_dir=models_dir)
+        # Shadow picks are single-shot daily artifacts; skipping an existing
+        # file prevents scheduler restart loops after a successful write.
+        existing = load_shadow_pick(date, picks_dir)
+        if existing is not None:
+            print("  [SHADOW MODEL] Existing shadow pick found; skipping.", file=sys.stderr)
+            return
+
+        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+            predictions = predict_local_shadow(
+                date, data_dir=data_dir, models_dir=models_dir
+            )
         if predictions is None:
             print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
             return

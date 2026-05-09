@@ -1,5 +1,6 @@
 """Test shadow model integration in scheduler."""
 
+from contextlib import nullcontext
 import json
 from unittest.mock import patch, MagicMock
 from pathlib import Path
@@ -7,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from bts.picks import DailyPick, Pick, save_pick
+from bts.picks import DailyPick, Pick, save_pick, save_shadow_pick
 from bts.scheduler import _run_shadow_prediction
 
 
@@ -19,6 +20,59 @@ def _disable_mdp():
 
 
 class TestRunShadowPrediction:
+    def test_wraps_prediction_with_heartbeat_watchdog(self, tmp_path):
+        mock_predictions = MagicMock()
+        mock_result = MagicMock()
+        mock_result.daily.date = "2026-04-10"
+        mock_result.daily.pick.batter_name = "Luis Arraez"
+        mock_result.daily.pick.p_game_hit = 0.767
+        heartbeat_path = tmp_path / "heartbeat.json"
+
+        with (
+            patch("bts.scheduler.heartbeat_watchdog", return_value=nullcontext()) as mock_watchdog,
+            patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions),
+            patch("bts.scheduler.select_pick", return_value=mock_result),
+            patch("bts.scheduler.save_shadow_pick"),
+        ):
+            _run_shadow_prediction(
+                config={
+                    "orchestrator": {
+                        "picks_dir": str(tmp_path),
+                        "heartbeat_path": str(heartbeat_path),
+                    }
+                },
+                date="2026-04-10",
+                production_pick_name="Luis Arraez",
+            )
+
+        mock_watchdog.assert_called_once_with(heartbeat_path, interval_sec=60)
+
+    def test_skips_existing_shadow_pick(self, tmp_path, capsys):
+        existing = DailyPick(
+            date="2026-04-10",
+            run_time="2026-04-10T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Existing Shadow", batter_id=1, team="SF",
+                lineup_position=1, pitcher_name="Test Pitcher", pitcher_id=2,
+                p_game_hit=0.75, flags=[], projected_lineup=False,
+                game_pk=999999, game_time="2026-04-10T20:00:00Z",
+            ),
+            double_down=None,
+            runner_up=None,
+        )
+        save_shadow_pick(existing, tmp_path)
+
+        with patch("bts.scheduler.predict_local_shadow") as mock_predict:
+            _run_shadow_prediction(
+                config={"orchestrator": {"picks_dir": str(tmp_path)}},
+                date="2026-04-10",
+                production_pick_name="Luis Arraez",
+            )
+
+        mock_predict.assert_not_called()
+        captured = capsys.readouterr()
+        assert "Existing shadow pick found; skipping." in captured.err
+
     def test_saves_shadow_pick(self, tmp_path):
         mock_predictions = MagicMock()
         mock_result = MagicMock()
