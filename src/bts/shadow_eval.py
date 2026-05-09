@@ -1,4 +1,11 @@
-"""Shadow pick result backfill and quality evaluation helpers."""
+"""Shadow pick result backfill, status, and quality evaluation helpers.
+
+The context-stack shadow model uses semantic local versioning
+(``context_stack_shadow_v1`` -> ``v2`` when the shadow feature stack or
+selection code changes). This is intentionally different from #16's
+frozen-launch-SHA candidate-cycle discipline: shadow status is an operational
+monitor for an ongoing sidecar model, not a deployment claim.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +14,7 @@ import json
 import math
 import random
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -19,6 +27,9 @@ from bts.picks import (
 HitChecker = Callable[[int | None, int, str | None, str | None, str | None], bool | None]
 
 RESULT_VALUES = {"hit", "miss"}
+SHADOW_MODEL_NAME = "context_stack_shadow_v1"
+SHADOW_STATUS_SCHEMA_VERSION = "bts_shadow_cycle_status_v1"
+SHADOW_STATUS_DEFAULT_MIN_DAYS = 30
 
 
 def _now_iso() -> str:
@@ -33,6 +44,21 @@ def _sha256_file(path: Path) -> str | None:
         for chunk in iter(lambda: f.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _current_git_commit(cwd: str | Path = ".") -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(cwd),
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return None
+    return result.stdout.strip() or None
 
 
 def _date_from_shadow_file(path: Path) -> str:
@@ -371,6 +397,198 @@ def compute_shadow_quality(
             "Live shadow sample is small; treat this as an operational diagnostic, "
             "not promotion-grade evidence."
         ),
+    }
+
+
+def _recorded_quality_row(
+    *,
+    date: str,
+    production: DailyPick | None,
+    shadow: DailyPick | None,
+) -> dict:
+    return {
+        "date": date,
+        "production_decision": _daily_decision_summary(production),
+        "shadow_decision": _daily_decision_summary(shadow),
+        "production": {
+            "recorded_result": production.result if production else None,
+            "evaluated_result": production.result if production else None,
+        },
+        "shadow": {
+            "recorded_result": shadow.result if shadow else None,
+            "evaluated_result": shadow.result if shadow else None,
+        },
+    }
+
+
+def _pick_summary(daily: DailyPick | None) -> dict | None:
+    if daily is None:
+        return None
+    return {
+        "primary": {
+            "batter_name": daily.pick.batter_name,
+            "batter_id": daily.pick.batter_id,
+            "team": daily.pick.team,
+            "game_pk": daily.pick.game_pk,
+            "p_game_hit": daily.pick.p_game_hit,
+        },
+        "double_down": (
+            {
+                "batter_name": daily.double_down.batter_name,
+                "batter_id": daily.double_down.batter_id,
+                "team": daily.double_down.team,
+                "game_pk": daily.double_down.game_pk,
+                "p_game_hit": daily.double_down.p_game_hit,
+            }
+            if daily.double_down
+            else None
+        ),
+        "result": daily.result,
+        "run_time": daily.run_time,
+    }
+
+
+def build_shadow_cycle_status(
+    picks_dir: Path,
+    *,
+    min_days: int = SHADOW_STATUS_DEFAULT_MIN_DAYS,
+    generated_at: str | None = None,
+    git_commit: str | None = None,
+) -> dict:
+    """Build a read-only status artifact for the live context-stack shadow cycle.
+
+    This status uses recorded production/shadow pick files only. It is cheap
+    enough for daily cron/safety-net runs and deliberately does not re-query
+    MLB boxscores. Use ``shadow-backfill-results`` when a full DD-aware
+    recompute/audit manifest is needed.
+    """
+    picks_dir = Path(picks_dir)
+    generated_at = generated_at or _now_iso()
+    git_commit = git_commit if git_commit is not None else _current_git_commit()
+
+    rows = []
+    quality_rows = []
+    for shadow_path in sorted(picks_dir.glob("*.shadow.json")):
+        date = _date_from_shadow_file(shadow_path)
+        prod_path = picks_dir / f"{date}.json"
+        shadow = load_shadow_pick(date, picks_dir)
+        production = load_pick(date, picks_dir) if prod_path.exists() else None
+        prod_result = production.result if production else None
+        shadow_result = shadow.result if shadow else None
+        production_decision = _daily_decision_summary(production)
+        shadow_decision = _daily_decision_summary(shadow)
+        primary_agree = production_decision["primary_key"] == shadow_decision["primary_key"]
+        pair_agree = (
+            production_decision["pair_keys_unordered"]
+            == shadow_decision["pair_keys_unordered"]
+        )
+        rows.append({
+            "date": date,
+            "production_file": str(prod_path) if prod_path.exists() else None,
+            "shadow_file": str(shadow_path),
+            "shadow_file_sha256": _sha256_file(shadow_path),
+            "production": _pick_summary(production),
+            "shadow": _pick_summary(shadow),
+            "primary_agree": primary_agree,
+            "pair_agree": pair_agree,
+            "production_result_resolved": prod_result in RESULT_VALUES,
+            "shadow_result_resolved": shadow_result in RESULT_VALUES,
+        })
+        quality_rows.append(_recorded_quality_row(
+            date=date,
+            production=production,
+            shadow=shadow,
+        ))
+
+    shadow_files = len(rows)
+    paired_files = sum(1 for row in rows if row["production_file"] is not None)
+    resolved_shadow = sum(1 for row in rows if row["shadow_result_resolved"])
+    unresolved_shadow_dates = [
+        row["date"] for row in rows if not row["shadow_result_resolved"]
+    ]
+    missing_production_dates = [
+        row["date"] for row in rows if row["production_file"] is None
+    ]
+    resolved_paired = sum(
+        1 for row in rows
+        if row["production_result_resolved"] and row["shadow_result_resolved"]
+    )
+    primary_agree = sum(1 for row in rows if row["primary_agree"])
+    pair_agree = sum(1 for row in rows if row["pair_agree"])
+
+    if shadow_files == 0:
+        cycle_state = "no_shadow_files"
+    elif missing_production_dates or unresolved_shadow_dates:
+        cycle_state = "needs_result_reconciliation"
+    elif resolved_paired < min_days:
+        cycle_state = "collecting_live_forward"
+    else:
+        cycle_state = "ready_for_manual_review"
+
+    action_items = []
+    if shadow_files == 0:
+        action_items.append("Verify scheduler.shadow_model=true and production scheduler logs.")
+    if unresolved_shadow_dates:
+        action_items.append(
+            "Run bts check-results for unresolved dates or use "
+            "bts shadow-backfill-results for a reviewed DD-aware recompute."
+        )
+    if missing_production_dates:
+        action_items.append("Investigate shadow files without paired production pick files.")
+    if cycle_state == "ready_for_manual_review":
+        action_items.append(
+            "Review shadow quality under a separate promotion pre-registration before any production change."
+        )
+    if not action_items:
+        action_items.append("Continue collecting live-forward shadow outcomes.")
+
+    return {
+        "schema_version": SHADOW_STATUS_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "git_commit": git_commit,
+        "model": {
+            "name": SHADOW_MODEL_NAME,
+            "description": "Context-stack shadow model using FEATURE_COLS + CONTEXT_COLS.",
+            "activation_config": "scheduler.shadow_model=true",
+            "production_deploy_claim": False,
+            "artifact_role": "live_shadow_monitoring_status",
+            "pick_file_pattern": "*.shadow.json",
+            "min_days_for_review": int(min_days),
+            "versioning_policy": (
+                "Semantic local version; bump when CONTEXT_COLS or shadow "
+                "selection code changes. Distinct from #16 frozen-launch-SHA discipline."
+            ),
+        },
+        "history_policy": (
+            "This status is a single latest-state artifact intended to be overwritten "
+            "by daily monitoring. Snapshot separately if a historical status trail is needed."
+        ),
+        "picks_dir": str(picks_dir),
+        "cycle_state": cycle_state,
+        "counts": {
+            "shadow_files": shadow_files,
+            "paired_production_files": paired_files,
+            "resolved_shadow_results": resolved_shadow,
+            "unresolved_shadow_results": len(unresolved_shadow_dates),
+            "resolved_paired_days": resolved_paired,
+            "days_to_review_threshold": max(0, int(min_days) - resolved_paired),
+            "primary_agreements": primary_agree,
+            "pair_agreements": pair_agree,
+        },
+        "coverage": {
+            "first_shadow_date": rows[0]["date"] if rows else None,
+            "latest_shadow_date": rows[-1]["date"] if rows else None,
+            "unresolved_shadow_dates": unresolved_shadow_dates,
+            "missing_production_dates": missing_production_dates,
+        },
+        "quality_recorded": compute_shadow_quality(quality_rows, n_bootstrap=0),
+        "action_items": action_items,
+        "methodology_note": (
+            "Recorded status is an operational monitor, not promotion-grade evidence. "
+            "Use shadow-backfill-results for reviewed result reconciliation and a "
+            "separate pre-registration before promoting CONTEXT_COLS."
+        ),
+        "rows": rows,
     }
 
 

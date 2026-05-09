@@ -9,7 +9,11 @@ from unittest.mock import patch
 
 from bts.cli import cli
 from bts.picks import DailyPick, Pick, load_shadow_pick, save_pick, save_shadow_pick
-from bts.shadow_eval import build_shadow_backfill_manifest, apply_shadow_backfill_manifest
+from bts.shadow_eval import (
+    apply_shadow_backfill_manifest,
+    build_shadow_backfill_manifest,
+    build_shadow_cycle_status,
+)
 
 
 def _pick(name: str, batter_id: int, *, game_pk: int | None = None) -> Pick:
@@ -216,6 +220,74 @@ def test_build_shadow_backfill_manifest_reports_production_mismatch(tmp_path):
         "recorded_result": "hit",
         "evaluated_result": "miss",
     }]
+
+
+def test_build_shadow_cycle_status_tracks_recorded_monitoring_state(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    save_pick(_daily("2026-04-01", _pick("Same", 1), result="hit"), picks_dir)
+    save_shadow_pick(_daily("2026-04-01", _pick("Same", 1), result="hit"), picks_dir)
+    save_pick(_daily("2026-04-02", _pick("Prod", 2), result="miss"), picks_dir)
+    save_shadow_pick(_daily("2026-04-02", _pick("Shadow", 3), result=None), picks_dir)
+
+    status = build_shadow_cycle_status(
+        picks_dir,
+        min_days=2,
+        generated_at="2026-05-09T00:00:00+00:00",
+        git_commit="test-sha",
+    )
+
+    assert status["schema_version"] == "bts_shadow_cycle_status_v1"
+    assert status["model"]["name"] == "context_stack_shadow_v1"
+    assert status["model"]["production_deploy_claim"] is False
+    assert status["cycle_state"] == "needs_result_reconciliation"
+    assert status["counts"]["shadow_files"] == 2
+    assert status["counts"]["resolved_paired_days"] == 1
+    assert status["counts"]["unresolved_shadow_results"] == 1
+    assert status["coverage"]["unresolved_shadow_dates"] == ["2026-04-02"]
+    assert status["quality_recorded"]["production_day_hit_rate"]["hits"] == 1
+    assert status["quality_recorded"]["shadow_day_hit_rate"]["hits"] == 1
+    assert "separate pre-registration" in status["methodology_note"]
+    assert "Semantic local version" in status["model"]["versioning_policy"]
+    assert "single latest-state artifact" in status["history_policy"]
+
+
+def test_build_shadow_cycle_status_no_shadow_files(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+
+    status = build_shadow_cycle_status(
+        picks_dir,
+        generated_at="2026-05-09T00:00:00+00:00",
+        git_commit="test-sha",
+    )
+
+    assert status["cycle_state"] == "no_shadow_files"
+    assert status["counts"]["shadow_files"] == 0
+    assert status["counts"]["resolved_paired_days"] == 0
+    assert "Verify scheduler.shadow_model=true" in status["action_items"][0]
+
+
+def test_shadow_status_cli_writes_status_artifact(tmp_path):
+    picks_dir = tmp_path / "picks"
+    output = tmp_path / "status.json"
+    picks_dir.mkdir()
+    save_pick(_daily("2026-04-01", _pick("Prod", 1), result="hit"), picks_dir)
+    save_shadow_pick(_daily("2026-04-01", _pick("Shadow", 2), result="miss"), picks_dir)
+
+    result = CliRunner().invoke(cli, [
+        "shadow-status",
+        "--picks-dir", str(picks_dir),
+        "--output", str(output),
+        "--min-days", "1",
+    ])
+
+    assert result.exit_code == 0
+    assert "Shadow cycle status: ready_for_manual_review" in result.output
+    assert output.exists()
+    payload = json.loads(output.read_text())
+    assert payload["schema_version"] == "bts_shadow_cycle_status_v1"
+    assert payload["counts"]["resolved_paired_days"] == 1
 
 
 def test_shadow_backfill_results_apply_requires_backup_dir(tmp_path):

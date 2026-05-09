@@ -249,6 +249,10 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts check-results --date 2026-03-31
 # Shadow model comparison report
 UV_CACHE_DIR=/tmp/uv-cache uv run bts shadow-report
 
+# Shadow model monitoring status artifact
+UV_CACHE_DIR=/tmp/uv-cache uv run bts shadow-status \
+  --output data/validation/context_stack_shadow_status.json
+
 # --- Strategy simulation ---
 
 # Run blend backtest for strategy analysis (5 seasons, ~2-3 hours)

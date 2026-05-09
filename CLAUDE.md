@@ -70,7 +70,7 @@ See `ARCHITECTURE.md` for full details. Key points:
 - PA-level LightGBM → game-level probability aggregation
 - 15 baseline features (FEATURE_COLS) + 4 shadow context features (CONTEXT_COLS) + 9 Statcast features, all provably leak-free (date-level shift(1))
 - 12-model blend: baseline + single-Statcast variants. `--no-blend` for single model.
-- **Shadow model**: `CONTEXT_COLS` (ump_hr, wind, hardness, indoor) run alongside production via `feature_cols_override`. Picks saved to `{date}.shadow.json`. Report: `bts shadow-report`
+- **Shadow model**: `CONTEXT_COLS` (ump_hr, wind, hardness, indoor) run alongside production via `feature_cols_override`. Picks saved to `{date}.shadow.json`. Monitor with `bts shadow-status`; result reconciliation via `bts check-results` now writes `data/validation/context_stack_shadow_status.json` by default when shadow files exist. Use `bts shadow-backfill-results` for reviewed DD-aware recompute/audit manifests before any promotion discussion.
 - **MDP-optimal strategy**: auto-loads `data/models/mdp_policy.npz` for skip/single/double decisions. Falls back to heuristic if absent.
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15

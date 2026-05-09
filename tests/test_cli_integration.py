@@ -271,6 +271,69 @@ class TestBtsCheckResults:
         assert load_streak(picks_dir) == 2
 
     @patch("bts.picks.check_hit")
+    def test_check_results_writes_shadow_status_artifact(self, mock_check, tmp_path):
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+        status_path = tmp_path / "shadow_status.json"
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.return_value = True
+
+        result = CliRunner().invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+            "--shadow-status-output", str(status_path),
+        ])
+
+        assert result.exit_code == 0
+        assert "Shadow status:" in result.output
+        payload = json.loads(status_path.read_text())
+        assert payload["schema_version"] == "bts_shadow_cycle_status_v1"
+        assert payload["counts"]["resolved_shadow_results"] == 1
+        assert payload["coverage"]["unresolved_shadow_dates"] == []
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_shadow_status_failure_does_not_crash(self, mock_check, tmp_path):
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.return_value = True
+
+        with patch(
+            "bts.shadow_eval.build_shadow_cycle_status",
+            side_effect=RuntimeError("status failed"),
+        ):
+            result = CliRunner().invoke(cli, [
+                "check-results", "--date", "2026-04-01",
+                "--picks-dir", str(picks_dir),
+            ])
+
+        assert result.exit_code == 0
+        assert "WARNING: Failed to write shadow status" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
+
+    @patch("bts.picks.check_hit")
     def test_check_results_skips_already_resolved_shadow(self, mock_check, tmp_path):
         """Shadow reconciliation should be idempotent for resolved shadow files."""
         picks_dir = tmp_path / "picks"

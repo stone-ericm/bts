@@ -1370,7 +1370,15 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
 @cli.command(name="check-results")
 @click.option("--date", required=True, help="Date to check results for (YYYY-MM-DD)")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
-def check_results(date: str, picks_dir: str):
+@click.option(
+    "--shadow-status-output",
+    type=click.Path(),
+    help=(
+        "Write context-stack shadow monitoring status JSON. "
+        "Defaults to <picks parent>/validation/context_stack_shadow_status.json."
+    ),
+)
+def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
     """Check if yesterday's pick got a hit and update the streak.
 
     Designed to run via cron at 1am ET (after all games finish).
@@ -1383,6 +1391,23 @@ def check_results(date: str, picks_dir: str):
 
     picks_path = Path(picks_dir)
     daily = load_pick(date, picks_path)
+
+    def write_shadow_status_artifact() -> None:
+        shadow_files = list(picks_path.glob("*.shadow.json"))
+        if not shadow_files:
+            return
+        try:
+            from bts.shadow_eval import build_shadow_cycle_status, write_manifest_json
+            output_path = (
+                Path(shadow_status_output)
+                if shadow_status_output
+                else picks_path.parent / "validation" / "context_stack_shadow_status.json"
+            )
+            status = build_shadow_cycle_status(picks_path)
+            write_manifest_json(status, output_path)
+            click.echo(f"  Shadow status: {output_path}")
+        except Exception as e:
+            click.echo(f"WARNING: Failed to write shadow status — {e}", err=True)
 
     if daily is None:
         click.echo(f"No pick found for {date}.")
@@ -1430,6 +1455,7 @@ def check_results(date: str, picks_dir: str):
     # Skip if scheduler already resolved this pick (avoid double-counting streak)
     if daily.result in ("hit", "miss"):
         reconcile_shadow_result()
+        write_shadow_status_artifact()
         click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
         return
 
@@ -1479,6 +1505,7 @@ def check_results(date: str, picks_dir: str):
     save_pick(daily, picks_path)
 
     reconcile_shadow_result()
+    write_shadow_status_artifact()
 
     # Report
     if all(results):
@@ -1619,6 +1646,50 @@ def shadow_report(picks_dir: str):
             sp_str = f"{sp:.1%}" if sp else "?"
             res_str = res or "pending"
             click.echo(f"{date:<12} {pn:<15} {pp_str:<4}  {sn:<15} {sp_str:<4}  {res_str}")
+
+
+@cli.command(name="shadow-status")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+@click.option("--output", type=click.Path(), help="Write status JSON to this path")
+@click.option("--min-days", default=30, type=int, help="Resolved paired days needed before review")
+def shadow_status(picks_dir: str, output: str | None, min_days: int):
+    """Emit the live context-stack shadow monitoring status artifact.
+
+    This is the lightweight daily monitor: it reads recorded production and
+    shadow pick files only. Use ``shadow-backfill-results`` for the heavier
+    DD-aware recompute/audit path.
+    """
+    from bts.shadow_eval import build_shadow_cycle_status, write_manifest_json
+
+    status = build_shadow_cycle_status(Path(picks_dir), min_days=min_days)
+    counts = status["counts"]
+    click.echo(
+        f"Shadow cycle status: {status['cycle_state']} "
+        f"({counts['resolved_paired_days']}/{min_days} resolved paired days)"
+    )
+    click.echo(
+        f"Files: {counts['shadow_files']} shadow, "
+        f"{counts['paired_production_files']} paired production, "
+        f"{counts['unresolved_shadow_results']} unresolved shadow"
+    )
+    quality = status["quality_recorded"]
+    prod_rate = quality["production_day_hit_rate"]["rate"]
+    shadow_rate = quality["shadow_day_hit_rate"]["rate"]
+    gap = quality["shadow_minus_production_hit_rate"]["value"]
+    if prod_rate is not None and shadow_rate is not None and gap is not None:
+        click.echo(
+            f"Recorded quality: production {prod_rate:.1%}, "
+            f"shadow {shadow_rate:.1%}, gap {gap:+.1%} "
+            f"(n={quality['n_evaluable_days']})"
+        )
+    if status["coverage"]["unresolved_shadow_dates"]:
+        click.echo(
+            "Unresolved shadow dates: "
+            + ", ".join(status["coverage"]["unresolved_shadow_dates"])
+        )
+    if output:
+        write_manifest_json(status, Path(output))
+        click.echo(f"Wrote status: {output}")
 
 
 @cli.command(name="shadow-backfill-results")
