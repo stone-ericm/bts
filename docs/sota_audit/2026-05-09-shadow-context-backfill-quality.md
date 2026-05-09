@@ -6,6 +6,7 @@
 - Production deploy claim: `false`
 - Shadow promotion claim: `false`
 - Evaluation code SHA: `96b6e4f`
+- Production apply addendum: completed 2026-05-08 23:32 ET
 
 ## Scope Boundary
 
@@ -184,3 +185,43 @@ A safe apply sequence should be:
 4. Verify backup count, result-only diffs, and idempotency.
 5. Separately deploy the shadow reconciliation/backfill code only when the
    normal production deploy window is authorized.
+
+## Production Apply Addendum
+
+Production apply was authorized and executed on 2026-05-08 at 23:32 ET from a
+separate `bts-hetzner` worktree pinned to `96b6e4f`. The live production
+checkout was not used for the apply.
+
+Production manifests:
+
+- Read-only dry run:
+  `/home/bts/projects/bts/data/validation/shadow_backfill_dryrun_2026-05-09.json`
+- Apply:
+  `/home/bts/projects/bts/data/validation/shadow_backfill_apply_2026-05-09.json`
+- Post-apply idempotency:
+  `/home/bts/projects/bts/data/validation/shadow_backfill_post_apply_idempotency_2026-05-09.json`
+- Backup directory:
+  `/home/bts/projects/bts/data/picks/backup_shadow_2026-05-09`
+
+The production dry run matched the pre-apply evidence counts: 29 shadow files,
+29 resolved, 0 unresolved, 0 errors, and 28 would change. The change-class
+breakdown was new `27`, changed `1`, unchanged `1`, skipped `0`, and error `0`.
+The single changed row remained `2026-04-11`.
+
+The apply wrote 28 `.shadow.json` files and skipped the unchanged
+`2026-04-24` row. The backup directory contains 28 `.shadow.json` files.
+Backup-vs-applied verification found no non-result JSON differences
+(`non_result_violations=[]`), so the apply changed only the `result` field.
+
+Post-apply idempotency returned 29 resolved files, 0 would change, and
+29 unchanged rows. The applied `2026-05-08.shadow.json` result is `miss` for
+Yandy Diaz plus Nico Hoerner.
+
+The deploy bundle containing PRs #56, #57, #58, and #59 was deployed via the
+`deploy` branch at `293ce51` on 2026-05-08 at 23:34 ET. A later narrow health
+hotfix deployed `52db4d7`; it did not change shadow selection, scoring, or
+backfill behavior.
+
+The 2026-05-08 shadow result was already populated by the apply, so the next
+empirical going-forward cron verification is the 2026-05-10 01:00 ET check for
+the 2026-05-09 shadow row.
