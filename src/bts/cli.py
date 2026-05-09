@@ -1376,7 +1376,10 @@ def check_results(date: str, picks_dir: str):
     Designed to run via cron at 1am ET (after all games finish).
     """
     from pathlib import Path
-    from bts.picks import load_pick, check_hit, update_streak, save_pick
+    from bts.picks import (
+        load_pick, check_hit, update_streak, save_pick,
+        load_shadow_pick, save_shadow_pick,
+    )
 
     picks_path = Path(picks_dir)
     daily = load_pick(date, picks_path)
@@ -1385,8 +1388,48 @@ def check_results(date: str, picks_dir: str):
         click.echo(f"No pick found for {date}.")
         return
 
+    def reconcile_shadow_result() -> tuple[bool, str | None]:
+        """Resolve the shadow pick independently from production streak state."""
+        shadow = load_shadow_pick(date, picks_path)
+        if shadow is None or shadow.result in ("hit", "miss"):
+            return False, shadow.result if shadow else None
+
+        shadow_slots = [shadow.pick]
+        if shadow.double_down:
+            shadow_slots.append(shadow.double_down)
+
+        shadow_results = []
+        for slot in shadow_slots:
+            try:
+                slot_result = check_hit(
+                    slot.game_pk, slot.batter_id,
+                    batter_name=slot.batter_name, date=date, team=slot.team,
+                )
+            except Exception as e:
+                click.echo(f"ERROR: Failed to check shadow result — {e}", err=True)
+                return False, None
+
+            if slot_result is None:
+                click.echo(
+                    f"WARNING: Shadow pick {slot.batter_name} not found in boxscore "
+                    f"or game not final. Shadow result unchanged."
+                )
+                return False, None
+
+            shadow_results.append(slot_result)
+
+        shadow.result = "hit" if all(shadow_results) else "miss"
+        save_shadow_pick(shadow, picks_path)
+        shadow_names = [slot.batter_name for slot in shadow_slots]
+        click.echo(
+            f"  Shadow: {' + '.join(shadow_names)} — "
+            f"{'HIT' if all(shadow_results) else 'MISS'}"
+        )
+        return True, shadow.result
+
     # Skip if scheduler already resolved this pick (avoid double-counting streak)
     if daily.result in ("hit", "miss"):
+        reconcile_shadow_result()
         click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
         return
 
@@ -1435,18 +1478,7 @@ def check_results(date: str, picks_dir: str):
     daily.result = "hit" if all(results) else "miss"
     save_pick(daily, picks_path)
 
-    # Check shadow pick result if shadow file exists
-    from bts.picks import load_shadow_pick, save_shadow_pick
-    shadow = load_shadow_pick(date, picks_path)
-    if shadow and shadow.result is None:
-        shadow_hit = check_hit(
-            shadow.pick.game_pk, shadow.pick.batter_id,
-            batter_name=shadow.pick.batter_name, date=date, team=shadow.pick.team,
-        )
-        if shadow_hit is not None:
-            shadow.result = "hit" if shadow_hit else "miss"
-            save_shadow_pick(shadow, picks_path)
-            click.echo(f"  Shadow: {shadow.pick.batter_name} — {'HIT' if shadow_hit else 'MISS'}")
+    reconcile_shadow_result()
 
     # Report
     if all(results):
@@ -1530,12 +1562,14 @@ def shadow_report(picks_dir: str):
     disagrees = []
     prod_hits = 0
     shadow_hits = 0
-    resolved = 0
+    prod_resolved = 0
+    shadow_resolved = 0
 
     for date, prod, shadow in pairs:
         prod_name = prod["pick"]["batter_name"]
         shadow_name = shadow["pick"]["batter_name"]
         prod_result = prod.get("result")
+        shadow_result = shadow.get("result")
 
         if prod_name == shadow_name:
             agrees += 1
@@ -1545,12 +1579,13 @@ def shadow_report(picks_dir: str):
                               prod_result))
 
         if prod_result in ("hit", "miss"):
-            resolved += 1
+            prod_resolved += 1
             if prod_result == "hit":
                 prod_hits += 1
-            if prod_name == shadow_name:
-                if prod_result == "hit":
-                    shadow_hits += 1
+        if shadow_result in ("hit", "miss"):
+            shadow_resolved += 1
+            if shadow_result == "hit":
+                shadow_hits += 1
 
     total = len(pairs)
     pct = agrees / total * 100
@@ -1558,10 +1593,20 @@ def shadow_report(picks_dir: str):
     click.echo(f"Shadow Model Report ({total} days, {30 - total} remaining to threshold)")
     click.echo(f"{'='*60}")
     click.echo(f"Agreement rate: {agrees}/{total} ({pct:.1f}%)")
-    if resolved > 0:
+    if prod_resolved > 0:
         click.echo(
             f"Production day hit rate (DD-aware): "
-            f"{prod_hits}/{resolved} ({prod_hits/resolved*100:.1f}%)"
+            f"{prod_hits}/{prod_resolved} ({prod_hits/prod_resolved*100:.1f}%)"
+        )
+    if shadow_resolved > 0:
+        click.echo(
+            f"Shadow recorded day hit rate: "
+            f"{shadow_hits}/{shadow_resolved} ({shadow_hits/shadow_resolved*100:.1f}%)"
+        )
+    if shadow_resolved < total:
+        click.echo(
+            f"Shadow results unresolved: {total - shadow_resolved}/{total} "
+            f"(shadow hit rate incomplete until reconciliation/backfill)"
         )
     click.echo()
 

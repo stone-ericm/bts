@@ -58,3 +58,20 @@ class TestShadowReport:
         result = runner.invoke(cli, ["shadow-report", "--picks-dir", str(tmp_path)])
         assert "Arraez" in result.output
         assert "Marte" in result.output
+
+    def test_reports_shadow_hit_rate_from_shadow_results(self, tmp_path):
+        _write_pick_pair(
+            tmp_path, "2026-04-01", "Arraez", 0.77, "hit", "Arraez", 0.76, "hit",
+        )
+        _write_pick_pair(
+            tmp_path, "2026-04-02", "Kwan", 0.72, "hit", "Marte", 0.73, "miss",
+        )
+        _write_pick_pair(
+            tmp_path, "2026-04-03", "Nimmo", 0.70, "miss", "Nimmo", 0.71, None,
+        )
+        runner = CliRunner()
+        result = runner.invoke(cli, ["shadow-report", "--picks-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Production day hit rate (DD-aware): 2/3 (66.7%)" in result.output
+        assert "Shadow recorded day hit rate: 1/2 (50.0%)" in result.output
+        assert "Shadow results unresolved: 1/3" in result.output

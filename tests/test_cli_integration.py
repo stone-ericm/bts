@@ -7,7 +7,10 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from bts.cli import cli
-from bts.picks import Pick, DailyPick, save_pick, save_streak
+from bts.picks import (
+    Pick, DailyPick, save_pick, save_streak,
+    save_shadow_pick, load_shadow_pick,
+)
 
 
 def _sample_pick(**overrides):
@@ -228,6 +231,170 @@ class TestBtsCheckResults:
         # Streak must NOT be incremented
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 2
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_resolves_shadow_when_production_already_resolved(
+        self, mock_check, tmp_path,
+    ):
+        """Already-resolved production picks should still reconcile shadow results."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.return_value = True
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Shadow: Shadow Batter — HIT" in result.output
+        assert "Already resolved" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
+        mock_check.assert_called_once_with(
+            999, 111,
+            batter_name="Shadow Batter", date="2026-04-01", team="BOS",
+        )
+        from bts.picks import load_streak
+        assert load_streak(picks_dir) == 2
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_skips_already_resolved_shadow(self, mock_check, tmp_path):
+        """Shadow reconciliation should be idempotent for resolved shadow files."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result="hit",
+        ), picks_dir)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Already resolved" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
+        mock_check.assert_not_called()
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_resolves_shadow_with_unresolved_production(
+        self, mock_check, tmp_path,
+    ):
+        """The normal unresolved-production path should still resolve shadow results."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.side_effect = [True, True]
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "HIT!" in result.output
+        assert "Shadow: Shadow Batter — HIT" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_shadow_double_down_is_dd_aware(self, mock_check, tmp_path):
+        """Shadow double-down days only count as a hit when both picks hit."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_streak(2, picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Primary",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            double_down=_sample_pick(
+                batter_name="Shadow Double",
+                batter_id=222,
+                team="LAD",
+                game_pk=1000,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.side_effect = [True, False]
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Shadow: Shadow Primary + Shadow Double — MISS" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result == "miss"
+
+    @patch("bts.picks.check_hit")
+    def test_check_results_shadow_error_leaves_shadow_unresolved(
+        self, mock_check, tmp_path,
+    ):
+        """Shadow API failures should not overwrite an unresolved shadow file."""
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        save_pick(_sample_daily(result="hit"), picks_dir)
+        save_shadow_pick(_sample_daily(
+            pick=_sample_pick(
+                batter_name="Shadow Batter",
+                batter_id=111,
+                team="BOS",
+                game_pk=999,
+            ),
+            result=None,
+        ), picks_dir)
+        mock_check.side_effect = RuntimeError("boxscore unavailable")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "ERROR: Failed to check shadow result" in result.output
+        assert load_shadow_pick("2026-04-01", picks_dir).result is None
 
     def test_check_results_no_pick_found(self, tmp_path):
         picks_dir = tmp_path / "picks"
