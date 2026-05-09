@@ -18,6 +18,19 @@ results_cap_hour_et = 5
 default_init_hour_et = 10
 early_game_buffer_min = 60
 
+[scheduler.live_candidate_artifacts]
+enabled = false
+candidate = "decision_weighted_lgbm_v0"
+worktree_dir = "/home/bts/projects/bts-live-forward"
+command = "/home/bts/projects/bts-live-forward/.venv/bin/bts"
+output_dir = "/home/bts/projects/bts/data/validation/{candidate}_live_forward/{date}"
+data_dir = "/home/bts/projects/bts/data/processed"
+top_n = 10
+refresh_data = false
+deterministic = true
+random_state = 42
+timeout_sec = 1800
+
 [[tiers]]
 name = "mac"
 ssh_host = "mac"

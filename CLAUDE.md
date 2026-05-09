@@ -71,6 +71,7 @@ See `ARCHITECTURE.md` for full details. Key points:
 - 15 baseline features (FEATURE_COLS) + 4 shadow context features (CONTEXT_COLS) + 9 Statcast features, all provably leak-free (date-level shift(1))
 - 12-model blend: baseline + single-Statcast variants. `--no-blend` for single model.
 - **Shadow model**: `CONTEXT_COLS` (ump_hr, wind, hardness, indoor) run alongside production via `feature_cols_override`. Picks saved to `{date}.shadow.json`. Report: `bts shadow-report`
+- **Live candidate artifacts**: optional `[scheduler.live_candidate_artifacts]` post-lock sidecar runs the frozen `decision_weighted_lgbm_v0` live-forward export from its configured worktree. In production, keep `worktree_dir` on `/home/bts/projects/bts-live-forward`, run its own `.venv/bin/bts` (after `UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model` in that worktree), and point `data_dir`/`output_dir` at `/home/bts/projects/bts/...`. It sets deterministic LightGBM + random_state=42 by default and writes research artifacts only, never picks/posts/models/deploy.
 - **MDP-optimal strategy**: auto-loads `data/models/mdp_policy.npz` for skip/single/double decisions. Falls back to heuristic if absent.
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15

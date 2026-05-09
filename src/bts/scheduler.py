@@ -6,6 +6,9 @@ and commits picks only when confirmed lineup + gap threshold met.
 """
 
 import json
+import os
+import shlex
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, asdict
@@ -541,6 +544,162 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
         print(f"  [SHADOW MODEL] Failed: {e}", file=sys.stderr)
 
 
+def _live_candidate_artifacts_config(config: dict) -> dict | None:
+    """Return enabled live-candidate artifact config, or None."""
+    raw = config.get("scheduler", {}).get("live_candidate_artifacts", {})
+    if isinstance(raw, bool):
+        if not raw:
+            return None
+        enabled = True
+        raw = {}
+    elif isinstance(raw, dict):
+        enabled = bool(raw.get("enabled", False))
+    else:
+        return None
+    if not enabled:
+        return None
+
+    candidate = raw.get("candidate", "decision_weighted_lgbm_v0")
+    worktree_dir = raw.get("worktree_dir")
+    default_command = (
+        str(Path(worktree_dir) / ".venv" / "bin" / "bts")
+        if worktree_dir
+        else "bts"
+    )
+    output_template = raw.get(
+        "output_dir",
+        "data/validation/{candidate}_live_forward/{date}",
+    )
+
+    return {
+        "candidate": candidate,
+        "command": raw.get("command", default_command),
+        "worktree_dir": worktree_dir,
+        "output_dir_template": str(output_template),
+        "data_dir": raw.get(
+            "data_dir",
+            config.get("orchestrator", {}).get("data_dir", "data/processed"),
+        ),
+        "top_n": int(raw.get("top_n", 10)),
+        "refresh_data": bool(raw.get("refresh_data", False)),
+        "deterministic": bool(raw.get("deterministic", True)),
+        "random_state": raw.get("random_state", 42),
+        "env": raw.get("env", {}),
+        "timeout_sec": int(raw.get("timeout_sec", 1800)),
+        "overwrite": bool(raw.get("overwrite", False)),
+    }
+
+
+def _coerce_live_candidate_command(command: str | list[str]) -> list[str]:
+    if isinstance(command, str):
+        return shlex.split(command)
+    return [str(part) for part in command]
+
+
+def _run_live_candidate_artifacts(config: dict, date: str) -> None:
+    """Run frozen live-forward candidate artifact logging. Never raises.
+
+    This is intentionally subprocess-based: the production scheduler can point
+    at the frozen research worktree recorded in the pre-registration, preserving
+    the artifact manifest's git SHA instead of importing whatever code is
+    currently deployed for production picks.
+    """
+    live_config = _live_candidate_artifacts_config(config)
+    if live_config is None:
+        return
+
+    try:
+        candidate = live_config["candidate"]
+        output_dir = Path(live_config["output_dir_template"].format(
+            candidate=candidate,
+            date=date,
+        ))
+        manifest_path = output_dir / "manifest.json"
+        if manifest_path.exists() and not live_config["overwrite"]:
+            print(
+                f"  [LIVE CANDIDATE] {candidate} already logged for {date}: "
+                f"{manifest_path}",
+                file=sys.stderr,
+            )
+            return
+
+        command = _coerce_live_candidate_command(live_config["command"])
+        if not command:
+            raise ValueError("live_candidate_artifacts.command cannot be empty")
+
+        cmd = [
+            *command,
+            "experiment",
+            "export-live-candidate-artifacts",
+            "--date", date,
+            "--candidate", candidate,
+            "--output-dir", str(output_dir),
+            "--data-dir", str(live_config["data_dir"]),
+            "--top-n", str(live_config["top_n"]),
+        ]
+        cmd.append("--refresh-data" if live_config["refresh_data"] else "--no-refresh-data")
+
+        env = os.environ.copy()
+        env.setdefault("UV_CACHE_DIR", "/tmp/uv-cache")
+        if live_config["deterministic"]:
+            env["BTS_LGBM_DETERMINISTIC"] = "1"
+        if live_config["random_state"] is not None:
+            env["BTS_LGBM_RANDOM_STATE"] = str(live_config["random_state"])
+        for key, value in live_config["env"].items():
+            if value is None:
+                env.pop(str(key), None)
+            else:
+                env[str(key)] = str(value)
+
+        cwd = live_config["worktree_dir"]
+        heartbeat_path = Path(config.get("orchestrator", {}).get(
+            "heartbeat_path",
+            "data/.heartbeat",
+        ))
+        print(
+            f"  [LIVE CANDIDATE] Exporting {candidate} artifacts for {date}...",
+            file=sys.stderr,
+        )
+        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+            result = subprocess.run(
+                cmd,
+                cwd=Path(cwd) if cwd else None,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=live_config["timeout_sec"],
+            )
+
+        if result.returncode != 0:
+            print(
+                f"  [LIVE CANDIDATE] Failed: exit {result.returncode}",
+                file=sys.stderr,
+            )
+            for line in result.stderr.strip().splitlines()[-10:]:
+                print(f"    {line}", file=sys.stderr)
+            return
+
+        print(
+            f"  [LIVE CANDIDATE] Saved {candidate} artifacts: {output_dir}",
+            file=sys.stderr,
+        )
+    except subprocess.TimeoutExpired as e:
+        print(
+            f"  [LIVE CANDIDATE] Failed: timed out after {e.timeout}s",
+            file=sys.stderr,
+        )
+    except Exception as e:
+        print(f"  [LIVE CANDIDATE] Failed: {e}", file=sys.stderr)
+
+
+def _run_post_lock_research(config: dict, date: str, daily, shadow_model_enabled: bool) -> None:
+    """Run non-production research sidecars after the production pick is locked."""
+    if shadow_model_enabled and daily:
+        _run_shadow_prediction(config, date, daily.pick.batter_name)
+    if _live_candidate_artifacts_config(config) is not None:
+        _run_live_candidate_artifacts(config, date)
+
+
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
     """Re-run predictions right before the fallback post so any late-arriving
     lineups can update the pick. If the refreshed pick differs from the cached
@@ -806,6 +965,9 @@ def run_day(
     shadow_model_enabled = sched_config.get("shadow_model", False)
     if shadow_model_enabled:
         print("  [SHADOW MODEL] Context stack shadow model enabled.", file=sys.stderr)
+    if _live_candidate_artifacts_config(config) is not None:
+        print("  [LIVE CANDIDATE] Live-forward research artifact export enabled.",
+              file=sys.stderr)
     offset_min = sched_config.get("lineup_check_offset_min", 45)
     cluster_min = sched_config.get("cluster_min", 10)
     dh_recheck_min = sched_config.get("doubleheader_recheck_min", 15)
@@ -952,10 +1114,14 @@ def run_day(
                     print(f"  Bluesky post failed: {e}", file=sys.stderr)
 
         if state.pick_locked:
-            # Run shadow model if enabled (after production pick is resolved)
-            if shadow_model_enabled and result.get("pick_result") and result["pick_result"].daily:
-                prod_name = result["pick_result"].daily.pick.batter_name
-                _run_shadow_prediction(config, date, prod_name)
+            # Run research sidecars after the production pick is resolved.
+            if result.get("pick_result") and result["pick_result"].daily:
+                _run_post_lock_research(
+                    config,
+                    date,
+                    result["pick_result"].daily,
+                    shadow_model_enabled,
+                )
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
             break
 
@@ -1031,8 +1197,8 @@ def run_day(
                             print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
 
                 if state.pick_locked:
-                    if shadow_model_enabled and daily:
-                        _run_shadow_prediction(config, date, daily.pick.batter_name)
+                    if daily:
+                        _run_post_lock_research(config, date, daily, shadow_model_enabled)
                     print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
                     break
 
@@ -1082,8 +1248,8 @@ def run_day(
                     except Exception as e:
                         print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
 
-        if state.pick_locked and shadow_model_enabled and daily:
-            _run_shadow_prediction(config, date, daily.pick.batter_name)
+        if state.pick_locked and daily:
+            _run_post_lock_research(config, date, daily, shadow_model_enabled)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:

@@ -1,6 +1,7 @@
 """Test shadow model integration in scheduler."""
 
 import json
+import subprocess
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
@@ -8,7 +9,11 @@ import pandas as pd
 import pytest
 
 from bts.picks import DailyPick, Pick, save_pick
-from bts.scheduler import _run_shadow_prediction
+from bts.scheduler import (
+    _live_candidate_artifacts_config,
+    _run_live_candidate_artifacts,
+    _run_shadow_prediction,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -219,3 +224,133 @@ class TestRunShadowPrediction:
                 date="2026-04-10",
                 production_pick_name="Luis Arraez",
             )
+
+
+class TestRunLiveCandidateArtifacts:
+    def _config(self, tmp_path, **overrides):
+        live_config = {
+            "enabled": True,
+            "command": ["/fake/bin/bts"],
+            "worktree_dir": str(tmp_path / "frozen-worktree"),
+            "output_dir": str(tmp_path / "live" / "{date}"),
+            "data_dir": str(tmp_path / "processed"),
+            "top_n": 7,
+            "refresh_data": False,
+            "timeout_sec": 123,
+        }
+        live_config.update(overrides)
+        return {
+            "orchestrator": {
+                "picks_dir": str(tmp_path / "picks"),
+                "heartbeat_path": str(tmp_path / ".heartbeat"),
+            },
+            "scheduler": {"live_candidate_artifacts": live_config},
+        }
+
+    def test_runs_frozen_cli_with_preoutcome_defaults(self, tmp_path):
+        config = self._config(tmp_path)
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            mock_run.return_value = subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        mock_run.assert_called_once()
+        args = mock_run.call_args.args[0]
+        kwargs = mock_run.call_args.kwargs
+        assert args == [
+            "/fake/bin/bts",
+            "experiment",
+            "export-live-candidate-artifacts",
+            "--date", "2026-05-09",
+            "--candidate", "decision_weighted_lgbm_v0",
+            "--output-dir", str(tmp_path / "live" / "2026-05-09"),
+            "--data-dir", str(tmp_path / "processed"),
+            "--top-n", "7",
+            "--no-refresh-data",
+        ]
+        assert kwargs["cwd"] == tmp_path / "frozen-worktree"
+        assert kwargs["timeout"] == 123
+        assert kwargs["env"]["BTS_LGBM_DETERMINISTIC"] == "1"
+        assert kwargs["env"]["BTS_LGBM_RANDOM_STATE"] == "42"
+        assert kwargs["env"]["UV_CACHE_DIR"] == "/tmp/uv-cache"
+
+    def test_worktree_defaults_to_its_own_venv_binary(self, tmp_path):
+        worktree = tmp_path / "frozen-worktree"
+        config = self._config(tmp_path, command=None, worktree_dir=str(worktree))
+        del config["scheduler"]["live_candidate_artifacts"]["command"]
+
+        live_config = _live_candidate_artifacts_config(config)
+
+        assert live_config is not None
+        assert live_config["command"] == str(worktree / ".venv" / "bin" / "bts")
+
+    def test_skips_existing_manifest(self, tmp_path, capsys):
+        out_dir = tmp_path / "live" / "2026-05-09"
+        out_dir.mkdir(parents=True)
+        (out_dir / "manifest.json").write_text("{}")
+        config = self._config(tmp_path)
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        mock_run.assert_not_called()
+        captured = capsys.readouterr()
+        assert "already logged" in captured.err
+
+    def test_disabled_does_not_run(self, tmp_path):
+        config = self._config(tmp_path, enabled=False)
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        mock_run.assert_not_called()
+
+    def test_absent_section_does_not_run(self, tmp_path):
+        config = {
+            "orchestrator": {
+                "picks_dir": str(tmp_path / "picks"),
+                "heartbeat_path": str(tmp_path / ".heartbeat"),
+            },
+            "scheduler": {},
+        }
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        mock_run.assert_not_called()
+
+    def test_failure_does_not_raise(self, tmp_path, capsys):
+        config = self._config(tmp_path)
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            mock_run.return_value = subprocess.CompletedProcess(
+                args=[],
+                returncode=2,
+                stdout="",
+                stderr="failure details\n",
+            )
+
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        captured = capsys.readouterr()
+        assert "Failed: exit 2" in captured.err
+        assert "failure details" in captured.err
+
+    def test_missing_binary_failure_does_not_fall_back(self, tmp_path, capsys):
+        config = self._config(tmp_path, command="/missing/frozen/bts")
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("missing frozen bts")
+
+            _run_live_candidate_artifacts(config, "2026-05-09")
+
+        mock_run.assert_called_once()
+        assert mock_run.call_args.args[0][0] == "/missing/frozen/bts"
+        captured = capsys.readouterr()
+        assert "Failed: missing frozen bts" in captured.err

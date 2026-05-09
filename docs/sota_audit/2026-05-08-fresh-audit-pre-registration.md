@@ -196,6 +196,19 @@ refresh current-season data. Use a separate `--output-dir` per date, as shown
 above, because the v0 live manifest is one date per directory and would be
 overwritten if multiple dates reused the same directory.
 
+Operational automation may invoke the same frozen command from the production
+scheduler's post-lock research sidecar via `[scheduler.live_candidate_artifacts]`.
+That sidecar must point at the frozen research worktree and must remain
+research-only: no picks, posts, model cache writes, or deploy-branch actions.
+When the frozen worktree is separate from the production checkout, configure
+absolute `data_dir` and `output_dir` paths so the sidecar reads the production
+data snapshot and writes the canonical validation artifact directory.
+The frozen worktree must use its own environment, built from the frozen
+checkout with `UV_CACHE_DIR=/tmp/uv-cache uv sync --extra model`; do not run
+the sidecar through the production checkout's virtualenv. The scheduler
+sidecar sets `BTS_LGBM_DETERMINISTIC=1` and `BTS_LGBM_RANDOM_STATE=42` by
+default for this cycle.
+
 Candidate implementation and live-forward logging are frozen at
 `5004b1c8b093da0f8acb11bd728430ebacbf92d3`. Fresh-target research logging may
 begin only for eligible slates whose artifacts are generated after this freeze,
