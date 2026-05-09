@@ -33,6 +33,18 @@ class TestComputeMetrics:
         m = compute_metrics(tmp_path, today=date(2026, 4, 27))
         assert m.pair_days == []
 
+    def test_skips_partial_void_pair(self, tmp_path):
+        data = {
+            "date": "2026-04-27",
+            "pick": {"batter_name": "X", "p_game_hit": 0.75},
+            "double_down": {"batter_name": "Y", "p_game_hit": 0.72},
+            "result": "hit",
+            "slot_results": {"pick": "void", "double_down": "hit"},
+        }
+        (tmp_path / "2026-04-27.json").write_text(json.dumps(data))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+        assert m.pair_days == []
+
     def test_computes_independence_baseline(self, tmp_path):
         # 4 pair days, all p1=0.8 pdd=0.7 → predicted 0.56 each
         # Realized: 2 hits, 2 misses → mean realized 0.5

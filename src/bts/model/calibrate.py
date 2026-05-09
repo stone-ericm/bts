@@ -90,7 +90,10 @@ def _resolve_pick_outcomes(
         # Only use days where the streak result is resolved (means we know per-PA hits)
         if data.get("result") not in ("hit", "miss"):
             continue
+        slot_results = data.get("slot_results") or {}
         for slot_key in ("pick", "double_down"):
+            if slot_results.get(slot_key) == "void":
+                continue
             slot = data.get(slot_key)
             if not slot:
                 continue

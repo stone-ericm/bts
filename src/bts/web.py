@@ -775,10 +775,14 @@ def render_page():
         pitcher = pick.get("pitcher_name", "?")
         pct = pick.get("p_game_hit", 0)
         result = p.get("result")
+        slot_results = p.get("slot_results") or {}
+        pick_slot_result = slot_results.get("pick")
         if result == "hit":
             result_html = '<span class="result-hit">&#10003;</span>'
         elif result == "miss":
             result_html = '<span class="result-miss">&#10007;</span>'
+        elif result == "void":
+            result_html = '<span class="result-void">VOID</span>'
         else:
             result_html = '<span class="result-pending">&ndash;</span>'
 
@@ -789,7 +793,9 @@ def render_page():
         p_logo_img = f'<img src="{p_logo}" class="team-logo" alt="{p_team}"> ' if p_logo else ""
 
         # Lineup status emoji
-        if result in ("suspended", "unresolved"):
+        if pick_slot_result == "void":
+            lineup_icon = '<span title="Void">VOID</span>'
+        elif result in ("suspended", "unresolved"):
             lineup_icon = '<span title="Void">&#9888;&#65039;</span>'
         elif pick.get("projected_lineup"):
             lineup_icon = '<span title="Projected">&#128203;</span>'
@@ -828,12 +834,15 @@ def render_page():
             d_team = double.get("team", "?")
             d_pitcher = double.get("pitcher_name", "?")
             d_pct = double.get("p_game_hit", 0)
+            double_slot_result = slot_results.get("double_down")
             d_logo = team_logo_url(d_team)
             d_logo_img = f'<img src="{d_logo}" class="team-logo" alt="{d_team}">' if d_logo else ""
             dp_team = double.get("pitcher_team", "")
             dp_logo = team_logo_url(dp_team) if dp_team else ""
             dp_logo_img = f'<img src="{dp_logo}" class="team-logo" alt="{dp_team}"> ' if dp_logo else ""
-            if result in ("suspended", "unresolved"):
+            if double_slot_result == "void":
+                d_lineup_icon = '<span title="Void">VOID</span>'
+            elif result in ("suspended", "unresolved"):
                 d_lineup_icon = '<span title="Void">&#9888;&#65039;</span>'
             elif double.get("projected_lineup"):
                 d_lineup_icon = '<span title="Projected">&#128203;</span>'
@@ -908,6 +917,9 @@ def render_page():
             posted_badge = ""
         elif result == "miss":
             status_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
+            posted_badge = ""
+        elif result == "void":
+            status_badge = '<span class="lock-badge locked" style="background:#6b7280;">VOID</span>'
             posted_badge = ""
         else:
             if is_locked:
@@ -1136,6 +1148,7 @@ def render_page():
         .result-cell {{ text-align: center; font-size: 1.1em; }}
         .result-hit {{ color: #2e7d32; font-weight: 800; }}
         .result-miss {{ color: #D50032; font-weight: 800; }}
+        .result-void {{ color: #6b7280; font-weight: 800; font-size: 0.65em; }}
         .result-pending {{ color: #ccc; }}
 
         .posts {{ margin-top: 8px; }}

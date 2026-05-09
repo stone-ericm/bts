@@ -86,6 +86,7 @@ def _pick_to_historical(pick_data: dict) -> dict:
         "pick": _project_pick(pick_data.get("pick")),
         "double_down": _project_pick(pick_data.get("double_down")) if pick_data.get("double_down") else None,
         "result": pick_data.get("result"),
+        "slot_results": pick_data.get("slot_results"),
         "bluesky_posted": pick_data.get("bluesky_posted", False),
         "bluesky_uri": pick_data.get("bluesky_uri"),
     }

@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak, load_saver_available
 from bts.picks import pick_from_row
 from bts.picks import get_game_statuses, get_game_statuses_detailed, check_hit
+from bts.picks import active_streak_results, effective_daily_result, streak_increment_for_resolved_hit
 
 
 def _sample_pick(**overrides):
@@ -155,6 +156,19 @@ class TestPickFileIO:
         assert raw["model_git_sha"] is None
         assert raw["model_pickle_sha256"] is None
         assert raw["policy_npz_sha256"] is None
+
+    def test_slot_results_round_trip_for_partial_void(self, tmp_path):
+        double = _sample_pick(batter_name="Carlos Cortes", batter_id=666126, game_pk=778900)
+        daily = _sample_daily(double_down=double, result="hit")
+        daily.slot_results = {"pick": "void", "double_down": "hit"}
+        save_pick(daily, tmp_path)
+
+        loaded = load_pick("2026-04-01", tmp_path)
+
+        assert loaded.slot_results == {"pick": "void", "double_down": "hit"}
+        assert active_streak_results(loaded.slot_results) == [True]
+        assert effective_daily_result(loaded.slot_results) == "hit"
+        assert streak_increment_for_resolved_hit(loaded) == 1
 
 
 class TestProvenance:
@@ -528,7 +542,8 @@ class TestReconcileResults:
         save_pick(daily, tmp_path)
         save_streak(1, tmp_path)
 
-        with patch("bts.picks.check_hit", return_value=True):
+        with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
+             patch("bts.picks.check_hit", return_value=True):
             corrections = reconcile_results(tmp_path, lookback_days=8)
         assert corrections == []
 
@@ -551,7 +566,8 @@ class TestReconcileResults:
         save_pick(daily, tmp_path)
         save_streak(1, tmp_path)
 
-        with patch("bts.picks.check_hit", return_value=False):
+        with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
+             patch("bts.picks.check_hit", return_value=False):
             corrections = reconcile_results(tmp_path, lookback_days=8)
         assert len(corrections) == 1
         assert corrections[0]["old_result"] == "hit"
@@ -603,7 +619,8 @@ class TestReconcileResults:
 
         save_streak(2, tmp_path)  # pre-existing state from before reconcile
 
-        with patch("bts.picks.check_hit", return_value=True):
+        with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
+             patch("bts.picks.check_hit", return_value=True):
             corrections = reconcile_results(tmp_path, lookback_days=8)
 
         # The today preview file must not reset the streak; the walk should
@@ -612,6 +629,38 @@ class TestReconcileResults:
             f"Today's preview pick with result=None broke the backward walk "
             f"and reset streak. Expected 2, got {load_streak(tmp_path)}."
         )
+
+    def test_partial_void_hit_counts_as_single_streak_day(self, tmp_path):
+        from datetime import date as date_cls, timedelta
+        from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
+
+        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+        primary = Pick(
+            batter_name="Voided", batter_id=123, team="TB", lineup_position=1,
+            pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
+            projected_lineup=False, game_pk=100, game_time=f"{yesterday}T23:00:00Z",
+        )
+        double = Pick(
+            batter_name="Active", batter_id=124, team="ATH", lineup_position=1,
+            pitcher_name="P2", pitcher_id=457, p_game_hit=0.78, flags=[],
+            projected_lineup=False, game_pk=200, game_time=f"{yesterday}T23:10:00Z",
+        )
+        daily = DailyPick(
+            date=yesterday, run_time=f"{yesterday}T20:00:00Z",
+            pick=primary, double_down=double, runner_up=None,
+            result="hit", slot_results={"pick": "void", "double_down": "hit"},
+        )
+        save_pick(daily, tmp_path)
+        save_streak(0, tmp_path)
+
+        with patch("bts.picks.get_game_statuses_detailed", return_value={
+            100: {"abstract": "F", "detailed": "Postponed"},
+            200: {"abstract": "F", "detailed": "Final"},
+        }), patch("bts.picks.check_hit", return_value=True):
+            corrections = reconcile_results(tmp_path, lookback_days=8)
+
+        assert corrections == []
+        assert load_streak(tmp_path) == 1
 
     def test_shadow_pick_files_are_ignored_in_streak_walk(self, tmp_path):
         """Shadow pick files (stem like '2026-04-14.shadow') should not
@@ -639,7 +688,8 @@ class TestReconcileResults:
 
         save_streak(0, tmp_path)
 
-        with patch("bts.picks.check_hit", return_value=True):
+        with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
+             patch("bts.picks.check_hit", return_value=True):
             reconcile_results(tmp_path, lookback_days=8)
 
         assert load_streak(tmp_path) == 1, (

@@ -75,7 +75,12 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
         pick = data.get("pick") or {}
         predicted = pick.get("p_game_hit")
         result = data.get("result")
-        if predicted is None or result not in ("hit", "miss"):
+        slot_results = data.get("slot_results") or {}
+        if (
+            predicted is None
+            or result not in ("hit", "miss")
+            or slot_results.get("pick") == "void"
+        ):
             continue
         daily[data.get("date") or p.stem] = {
             "predicted": float(predicted),

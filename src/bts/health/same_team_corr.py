@@ -73,9 +73,16 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
         p1 = pick.get("p_game_hit")
         pdd = dd.get("p_game_hit")
         result = data.get("result")
+        slot_results = data.get("slot_results") or {}
         # Need both picks resolved. Treat pair_realized as 1 only when result=="hit"
         # (BTS DD scoring: streak only advances if BOTH picks hit).
-        if p1 is None or pdd is None or result not in ("hit", "miss"):
+        if (
+            p1 is None
+            or pdd is None
+            or result not in ("hit", "miss")
+            or slot_results.get("pick") == "void"
+            or slot_results.get("double_down") == "void"
+        ):
             continue
         pair_days.append({
             "date": data.get("date") or p.stem,

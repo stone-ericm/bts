@@ -167,10 +167,13 @@ def check(
         result = body.get("result")
         if result not in ("hit", "miss"):
             continue
+        slot_results = body.get("slot_results") or {}
         # Iterate primary + double_down so both picks contribute to the bucket
         # under the proper PA-frame attribution path. The biased fallback path
         # uses primary-only because streak result misattributes DD picks.
         for slot_key in ("pick", "double_down"):
+            if slot_results.get(slot_key) == "void":
+                continue
             slot = body.get(slot_key) or {}
             p = slot.get("p_game_hit")
             if p is None:

@@ -130,7 +130,8 @@ class DailyPick:
     runner_up: dict | None  # {"batter_name": str, "p_game_hit": float}
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
-    result: str | None = None  # "hit", "miss", "suspended", "unresolved", or None (pending)
+    result: str | None = None  # "hit", "miss", "void", "suspended", "unresolved", or None (pending)
+    slot_results: dict[str, str] | None = None  # {"pick": "hit|miss|void", "double_down": ...}
     # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
     # old picks lack these fields and load_pick backfills via .get(...).
     # See bts.picks.compute_provenance for the helper that populates them.
@@ -257,6 +258,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
         result=data.get("result"),
+        slot_results=data.get("slot_results"),
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
         policy_npz_sha256=data.get("policy_npz_sha256"),
@@ -282,6 +284,7 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
         result=data.get("result"),
+        slot_results=data.get("slot_results"),
         # Provenance v1 — defaults to None for picks saved before these fields existed.
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
@@ -325,6 +328,8 @@ def update_streak(results: list[bool], picks_dir: Path) -> int:
 
     Single pick: [True] -> +1, [False] -> 0
     Double-down: [True, True] -> +2, anything else -> 0
+    Voided postponed/cancelled slots must be omitted by callers; voids do not
+    advance the streak, reset it, or consume the streak saver.
 
     Handles streak saver: if miss at streak 10-15 with saver available,
     streak holds and saver is consumed.
@@ -385,6 +390,97 @@ def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
 
 
 _STALE_DETAILED_STATES = {"Postponed", "Cancelled", "Canceled"}
+_VOID_DETAILED_STATES = {state.lower() for state in _STALE_DETAILED_STATES}
+
+
+def _is_void_detailed_state(detailed: str | None) -> bool:
+    return (detailed or "").strip().lower() in _VOID_DETAILED_STATES
+
+
+def iter_daily_pick_slots(daily: DailyPick) -> list[tuple[str, Pick]]:
+    """Return score-bearing pick slots in stable contest order."""
+    slots = [("pick", daily.pick)]
+    if daily.double_down:
+        slots.append(("double_down", daily.double_down))
+    return slots
+
+
+def _slot_is_voided(pick: Pick, detailed_statuses: dict[int, dict[str, str]]) -> bool:
+    status = detailed_statuses.get(pick.game_pk)
+    return bool(status and _is_void_detailed_state(status.get("detailed")))
+
+
+def resolve_pick_slot_result(
+    pick: Pick,
+    date: str,
+    detailed_statuses: dict[int, dict[str, str]] | None = None,
+) -> str | None:
+    """Resolve one locked BTS slot as "hit", "miss", "void", or pending.
+
+    A postponed/cancelled locked game is void for that slot only. It does not
+    count as a miss and does not wait for the future makeup game.
+    """
+    if detailed_statuses is None:
+        try:
+            detailed_statuses = get_game_statuses_detailed(date)
+        except Exception:
+            detailed_statuses = {}
+
+    if _slot_is_voided(pick, detailed_statuses):
+        return "void"
+
+    hit = check_hit(
+        pick.game_pk,
+        pick.batter_id,
+        batter_name=pick.batter_name,
+        date=date,
+        team=pick.team,
+    )
+    if hit is None:
+        return None
+    return "hit" if hit else "miss"
+
+
+def resolve_daily_slot_results(daily: DailyPick, date: str) -> dict[str, str] | None:
+    """Resolve all score-bearing slots, or return None if any active slot is pending."""
+    try:
+        detailed_statuses = get_game_statuses_detailed(date)
+    except Exception:
+        detailed_statuses = {}
+
+    slot_results: dict[str, str] = {}
+    for slot_key, pick in iter_daily_pick_slots(daily):
+        result = resolve_pick_slot_result(pick, date, detailed_statuses=detailed_statuses)
+        if result is None:
+            return None
+        slot_results[slot_key] = result
+    return slot_results
+
+
+def active_streak_results(slot_results: dict[str, str]) -> list[bool]:
+    """Convert resolved slot results into the non-void booleans used for streaks."""
+    return [result == "hit" for result in slot_results.values() if result != "void"]
+
+
+def effective_daily_result(slot_results: dict[str, str]) -> str:
+    """Return the day-level BTS result after removing voided slots."""
+    active_results = active_streak_results(slot_results)
+    if not active_results:
+        return "void"
+    return "hit" if all(active_results) else "miss"
+
+
+def streak_increment_for_resolved_hit(daily: DailyPick) -> int:
+    """Return how many streak days a resolved hit should add.
+
+    Legacy double-down hit files lack slot_results and still count as +2.
+    Partial-void files with slot_results count only non-void hit slots.
+    """
+    if daily.result != "hit":
+        return 0
+    if daily.slot_results is not None:
+        return sum(1 for result in daily.slot_results.values() if result == "hit")
+    return 2 if daily.double_down else 1
 
 
 def _committed_pick_game_pks(daily: DailyPick) -> list[int]:
@@ -429,7 +525,7 @@ def classify_pick_lock_state(daily: DailyPick, date: str) -> PickLockState:
         if status is None:
             return PickLockState(stale=True, locked=False, reason="missing_from_schedule", game_pk=game_pk)
         detailed = status.get("detailed", "")
-        if detailed in _STALE_DETAILED_STATES:
+        if _is_void_detailed_state(detailed):
             return PickLockState(
                 stale=True,
                 locked=False,
@@ -559,29 +655,14 @@ def reconcile_results(
     for i in range(1, lookback_days + 1):
         d = (today - td(days=i)).isoformat()
         daily = load_pick(d, picks_dir)
-        if not daily or daily.result not in ("hit", "miss"):
+        if not daily or daily.result not in ("hit", "miss", "void"):
             continue
 
-        # Re-check primary pick
-        primary = check_hit(
-            daily.pick.game_pk, daily.pick.batter_id,
-            batter_name=daily.pick.batter_name,
-            date=d, team=daily.pick.team,
-        )
-        if primary is None:
+        slot_results = resolve_daily_slot_results(daily, d)
+        if slot_results is None:
             continue
 
-        results = [primary]
-        if daily.double_down:
-            double = check_hit(
-                daily.double_down.game_pk, daily.double_down.batter_id,
-                batter_name=daily.double_down.batter_name,
-                date=d, team=daily.double_down.team,
-            )
-            if double is not None:
-                results.append(double)
-
-        current_result = "hit" if all(results) else "miss"
+        current_result = effective_daily_result(slot_results)
         if current_result != daily.result:
             corrections.append({
                 "date": d,
@@ -590,6 +671,10 @@ def reconcile_results(
                 "new_result": current_result,
             })
             daily.result = current_result
+            daily.slot_results = slot_results
+            save_pick(daily, picks_dir)
+        elif slot_results != daily.slot_results:
+            daily.slot_results = slot_results
             save_pick(daily, picks_dir)
 
     # Always recalculate streak from scratch — catches both result corrections
@@ -613,10 +698,14 @@ def reconcile_results(
             continue
         r = data.get("result")
         if r == "hit":
-            dd = data.get("double_down")
-            streak += 2 if dd else 1
+            daily = load_pick(f.stem, picks_dir)
+            if daily is None:
+                break
+            streak += streak_increment_for_resolved_hit(daily)
         elif r == "miss":
             break
+        elif r == "void":
+            continue
         else:
             break
     save_streak(streak, picks_dir)

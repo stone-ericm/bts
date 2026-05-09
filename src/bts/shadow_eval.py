@@ -21,12 +21,15 @@ from typing import Callable
 
 from bts.picks import API_BASE, _check_hit_in_game
 from bts.picks import (
-    DailyPick, Pick, check_hit, load_pick, load_shadow_pick,
+    DailyPick, Pick, load_pick, load_shadow_pick,
+    resolve_pick_slot_result,
 )
 
-HitChecker = Callable[[int | None, int, str | None, str | None, str | None], bool | None]
+HitChecker = Callable[[int | None, int, str | None, str | None, str | None], bool | str | None]
 
 RESULT_VALUES = {"hit", "miss"}
+RESOLVED_RESULT_VALUES = {"hit", "miss", "void"}
+VOID_DETAILED_STATES = {"postponed", "cancelled", "canceled"}
 SHADOW_MODEL_NAME = "context_stack_shadow_v1"
 SHADOW_STATUS_SCHEMA_VERSION = "bts_shadow_cycle_status_v1"
 SHADOW_STATUS_DEFAULT_MIN_DAYS = 30
@@ -74,13 +77,36 @@ def _pick_key(pick: Pick | None) -> str | None:
 
 
 def _pick_slots(daily: DailyPick) -> list[tuple[str, Pick]]:
-    slots = [("primary", daily.pick)]
+    slots = [("pick", daily.pick)]
     if daily.double_down is not None:
         slots.append(("double_down", daily.double_down))
     return slots
 
 
-def _slot_summary(role: str, pick: Pick, result: bool | None = None) -> dict:
+def _hit_to_slot_result(hit: bool | str | None) -> str | None:
+    if hit == "void":
+        return "void"
+    if hit is None:
+        return None
+    return "hit" if bool(hit) else "miss"
+
+
+def _slot_result_to_hit(result: str | None) -> bool | None:
+    if result == "hit":
+        return True
+    if result == "miss":
+        return False
+    return None
+
+
+def _is_void_status(data: dict) -> bool:
+    status = data.get("gameData", {}).get("status", {})
+    detailed = (status.get("detailedState") or "").strip().lower()
+    coded = (status.get("codedGameState") or status.get("statusCode") or "").strip().upper()
+    return detailed in VOID_DETAILED_STATES or coded in {"D", "C", "DR"}
+
+
+def _slot_summary(role: str, pick: Pick, result: str | None = None) -> dict:
     return {
         "role": role,
         "batter_name": pick.batter_name,
@@ -88,25 +114,10 @@ def _slot_summary(role: str, pick: Pick, result: bool | None = None) -> dict:
         "team": pick.team,
         "game_pk": pick.game_pk,
         "p_game_hit": pick.p_game_hit,
-        "hit": result,
+        "hit": _slot_result_to_hit(result),
+        "slot_result": result,
         "data_source": None,
     }
-
-
-def _default_hit_checker(
-    game_pk: int | None,
-    batter_id: int,
-    batter_name: str | None,
-    date: str | None,
-    team: str | None,
-) -> bool | None:
-    return check_hit(
-        game_pk,
-        batter_id,
-        batter_name=batter_name,
-        date=date,
-        team=team,
-    )
 
 
 def _cached_game_path(raw_dir: Path | None, date: str, game_pk: int | None) -> Path | None:
@@ -124,35 +135,35 @@ def _resolve_hit(
 ) -> dict:
     if hit_checker is not None:
         hit = hit_checker(pick.game_pk, pick.batter_id, pick.batter_name, date, pick.team)
+        slot_result = _hit_to_slot_result(hit)
         return {
-            "hit": hit,
+            "hit": _slot_result_to_hit(slot_result),
+            "slot_result": slot_result,
             "data_source": "test",
             "api_calls": [],
-            "response_summary": f"test_hit={hit}",
+            "response_summary": f"test_slot_result={slot_result}",
         }
 
     cached_path = _cached_game_path(raw_dir, date, pick.game_pk)
     if cached_path is not None and cached_path.exists():
         data = json.loads(cached_path.read_text())
         status = data["gameData"]["status"]["abstractGameCode"]
-        hit = None
-        if status == "F":
+        slot_result = None
+        if _is_void_status(data):
+            slot_result = "void"
+        elif status == "F":
             hit = _check_hit_in_game(data, pick.batter_id, pick.batter_name)
+            slot_result = _hit_to_slot_result(hit)
         return {
-            "hit": hit,
+            "hit": _slot_result_to_hit(slot_result),
+            "slot_result": slot_result,
             "data_source": "cached_game_json",
             "api_calls": [],
-            "response_summary": f"cached_status={status}; hit={hit}",
+            "response_summary": f"cached_status={status}; slot_result={slot_result}",
         }
 
     checked_at = _now_iso()
-    hit = _default_hit_checker(
-        pick.game_pk,
-        pick.batter_id,
-        pick.batter_name,
-        date,
-        pick.team,
-    )
+    slot_result = resolve_pick_slot_result(pick, date)
     api_calls = [{
         "checked_at": checked_at,
         "endpoint": (
@@ -160,7 +171,7 @@ def _resolve_hit(
             if pick.game_pk is not None
             else f"{API_BASE}/api/v1/schedule?sportId=1&date={date}"
         ),
-        "response_summary": f"check_hit_return={hit}",
+        "response_summary": f"slot_result={slot_result}",
     }]
     if pick.game_pk is not None:
         api_calls.append({
@@ -169,10 +180,11 @@ def _resolve_hit(
             "response_summary": "possible fallback if batter was not found in primary game feed",
         })
     return {
-        "hit": hit,
+        "hit": _slot_result_to_hit(slot_result),
+        "slot_result": slot_result,
         "data_source": "mlb_api",
         "api_calls": api_calls,
-        "response_summary": f"check_hit_return={hit}",
+        "response_summary": f"slot_result={slot_result}",
     }
 
 
@@ -196,7 +208,8 @@ def evaluate_daily_pick(
 
     slots = []
     api_calls = []
-    results: list[bool] = []
+    active_results: list[bool] = []
+    slot_results: dict[str, str] = {}
     for role, pick in _pick_slots(daily):
         try:
             evidence = _resolve_hit(
@@ -211,32 +224,41 @@ def evaluate_daily_pick(
                 "status": "error",
                 "recorded_result": daily.result,
                 "evaluated_result": None,
+                "slot_results": slot_results,
                 "slots": slots,
                 "api_calls": api_calls,
                 "error": str(exc),
             }
-        hit = evidence["hit"]
-        slot = _slot_summary(role, pick, hit)
+        slot_result = evidence["slot_result"]
+        slot = _slot_summary(role, pick, slot_result)
         slot["data_source"] = evidence["data_source"]
         slot["response_summary"] = evidence["response_summary"]
         slots.append(slot)
         api_calls.extend(evidence["api_calls"])
-        if hit is None:
+        if slot_result is None:
             return {
                 "status": "unresolved",
                 "recorded_result": daily.result,
                 "evaluated_result": None,
+                "slot_results": slot_results,
                 "slots": slots,
                 "api_calls": api_calls,
                 "error": None,
             }
-        results.append(hit)
+        slot_results[role] = slot_result
+        if slot_result != "void":
+            active_results.append(slot_result == "hit")
 
-    evaluated = "hit" if all(results) else "miss"
+    evaluated = (
+        "void"
+        if not active_results
+        else "hit" if all(active_results) else "miss"
+    )
     return {
         "status": "resolved",
         "recorded_result": daily.result,
         "evaluated_result": evaluated,
+        "slot_results": slot_results,
         "slots": slots,
         "api_calls": api_calls,
         "error": None,
@@ -308,10 +330,14 @@ def compute_shadow_quality(
     both_hit = both_miss = prod_only = shadow_only = 0
     primary_agree = pair_agree = 0
     production_mismatches = []
+    production_counts = {"hit": 0, "miss": 0, "void": 0, "unresolved": 0}
+    shadow_counts = {"hit": 0, "miss": 0, "void": 0, "unresolved": 0}
 
     for row in rows:
         prod_eval = row["production"]["evaluated_result"]
         shadow_eval = row["shadow"]["evaluated_result"]
+        production_counts[prod_eval if prod_eval in RESOLVED_RESULT_VALUES else "unresolved"] += 1
+        shadow_counts[shadow_eval if shadow_eval in RESOLVED_RESULT_VALUES else "unresolved"] += 1
         if row["production"]["recorded_result"] in RESULT_VALUES and prod_eval in RESULT_VALUES:
             if row["production"]["recorded_result"] != prod_eval:
                 production_mismatches.append({
@@ -380,6 +406,10 @@ def compute_shadow_quality(
             "shadow_only_hit": shadow_only,
             "sign_test_p_two_sided": _sign_test_p_two_sided(prod_only, shadow_only),
         },
+        "outcome_counts": {
+            "production": production_counts,
+            "shadow": shadow_counts,
+        },
         "decision_agreement": {
             "primary": {
                 "count": primary_agree,
@@ -413,10 +443,12 @@ def _recorded_quality_row(
         "production": {
             "recorded_result": production.result if production else None,
             "evaluated_result": production.result if production else None,
+            "slot_results": production.slot_results if production else None,
         },
         "shadow": {
             "recorded_result": shadow.result if shadow else None,
             "evaluated_result": shadow.result if shadow else None,
+            "slot_results": shadow.slot_results if shadow else None,
         },
     }
 
@@ -444,6 +476,7 @@ def _pick_summary(daily: DailyPick | None) -> dict | None:
             else None
         ),
         "result": daily.result,
+        "slot_results": daily.slot_results,
         "run_time": daily.run_time,
     }
 
@@ -482,6 +515,10 @@ def build_shadow_cycle_status(
             production_decision["pair_keys_unordered"]
             == shadow_decision["pair_keys_unordered"]
         )
+        prod_resolved = prod_result in RESOLVED_RESULT_VALUES
+        shadow_resolved = shadow_result in RESOLVED_RESULT_VALUES
+        prod_evaluable = prod_result in RESULT_VALUES
+        shadow_evaluable = shadow_result in RESULT_VALUES
         rows.append({
             "date": date,
             "production_file": str(prod_path) if prod_path.exists() else None,
@@ -491,8 +528,10 @@ def build_shadow_cycle_status(
             "shadow": _pick_summary(shadow),
             "primary_agree": primary_agree,
             "pair_agree": pair_agree,
-            "production_result_resolved": prod_result in RESULT_VALUES,
-            "shadow_result_resolved": shadow_result in RESULT_VALUES,
+            "production_result_resolved": prod_resolved,
+            "shadow_result_resolved": shadow_resolved,
+            "production_result_evaluable": prod_evaluable,
+            "shadow_result_evaluable": shadow_evaluable,
         })
         quality_rows.append(_recorded_quality_row(
             date=date,
@@ -503,6 +542,14 @@ def build_shadow_cycle_status(
     shadow_files = len(rows)
     paired_files = sum(1 for row in rows if row["production_file"] is not None)
     resolved_shadow = sum(1 for row in rows if row["shadow_result_resolved"])
+    void_shadow = sum(
+        1 for row in rows
+        if row["shadow"] and row["shadow"].get("result") == "void"
+    )
+    void_production = sum(
+        1 for row in rows
+        if row["production"] and row["production"].get("result") == "void"
+    )
     unresolved_shadow_dates = [
         row["date"] for row in rows if not row["shadow_result_resolved"]
     ]
@@ -510,6 +557,10 @@ def build_shadow_cycle_status(
         row["date"] for row in rows if row["production_file"] is None
     ]
     resolved_paired = sum(
+        1 for row in rows
+        if row["production_result_evaluable"] and row["shadow_result_evaluable"]
+    )
+    resolved_or_void_paired = sum(
         1 for row in rows
         if row["production_result_resolved"] and row["shadow_result_resolved"]
     )
@@ -570,7 +621,10 @@ def build_shadow_cycle_status(
             "paired_production_files": paired_files,
             "resolved_shadow_results": resolved_shadow,
             "unresolved_shadow_results": len(unresolved_shadow_dates),
+            "void_shadow_results": void_shadow,
+            "void_production_results": void_production,
             "resolved_paired_days": resolved_paired,
+            "resolved_or_void_paired_days": resolved_or_void_paired,
             "days_to_review_threshold": max(0, int(min_days) - resolved_paired),
             "primary_agreements": primary_agree,
             "pair_agreements": pair_agree,
@@ -657,6 +711,7 @@ def build_shadow_backfill_manifest(
         "resolved": sum(1 for row in rows if row["shadow"]["status"] == "resolved"),
         "unresolved": sum(1 for row in rows if row["shadow"]["status"] == "unresolved"),
         "errors": sum(1 for row in rows if row["shadow"]["status"] == "error"),
+        "void": sum(1 for row in rows if row["shadow"]["evaluated_result"] == "void"),
         "would_change": sum(1 for row in rows if row["would_change"]),
         "apply_eligible": sum(1 for row in rows if row["apply_eligible"]),
         "change_class": {
@@ -707,6 +762,7 @@ def apply_shadow_backfill_manifest(
             continue
         shadow_data = json.loads(shadow_path.read_text())
         shadow_data["result"] = row.get("new_shadow_result")
+        shadow_data["slot_results"] = row.get("shadow", {}).get("slot_results")
         shadow_path.write_text(json.dumps(shadow_data, indent=2))
         applied.append({
             "date": row["date"],

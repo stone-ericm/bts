@@ -47,7 +47,7 @@ def _daily(date: str, pick: Pick, *, double_down: Pick | None = None,
     )
 
 
-def _hit_checker(results: dict[int, bool | None]):
+def _hit_checker(results: dict[int, bool | str | None]):
     def check(game_pk, batter_id, batter_name, date, team):
         return results[batter_id]
     return check
@@ -90,6 +90,59 @@ def test_build_shadow_backfill_manifest_recomputes_all_results(tmp_path):
     assert manifest["quality_if_applied"]["paired_outcomes"]["production_only_hit"] == 1
 
 
+def test_shadow_backfill_voids_primary_and_scores_double_only(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+
+    save_pick(_daily("2026-04-01", _pick("Prod Hit", 1), result="hit"), picks_dir)
+    save_shadow_pick(_daily(
+        "2026-04-01",
+        _pick("Shadow Void", 2),
+        double_down=_pick("Shadow Active", 3),
+        result=None,
+    ), picks_dir)
+
+    manifest = build_shadow_backfill_manifest(
+        picks_dir,
+        n_bootstrap=0,
+        hit_checker=_hit_checker({1: True, 2: "void", 3: True}),
+    )
+
+    row = manifest["rows"][0]
+    assert row["new_shadow_result"] == "hit"
+    assert row["shadow"]["slot_results"] == {"pick": "void", "double_down": "hit"}
+    assert row["shadow"]["slots"][0]["slot_result"] == "void"
+    assert row["shadow"]["slots"][1]["slot_result"] == "hit"
+    assert manifest["counts"]["void"] == 0
+
+
+def test_shadow_backfill_both_void_is_resolved_void(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+
+    save_pick(_daily("2026-04-01", _pick("Prod Void", 1), result="void"), picks_dir)
+    save_shadow_pick(_daily(
+        "2026-04-01",
+        _pick("Shadow Void", 2),
+        double_down=_pick("Shadow Void 2", 3),
+        result=None,
+    ), picks_dir)
+
+    manifest = build_shadow_backfill_manifest(
+        picks_dir,
+        n_bootstrap=0,
+        hit_checker=_hit_checker({1: "void", 2: "void", 3: "void"}),
+    )
+
+    row = manifest["rows"][0]
+    assert row["shadow"]["status"] == "resolved"
+    assert row["new_shadow_result"] == "void"
+    assert row["change_class"] == "new"
+    assert manifest["counts"]["void"] == 1
+    assert manifest["quality_if_applied"]["n_evaluable_days"] == 0
+    assert manifest["quality_if_applied"]["outcome_counts"]["shadow"]["void"] == 1
+
+
 def test_apply_shadow_backfill_manifest_preserves_backup(tmp_path):
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
@@ -106,6 +159,30 @@ def test_apply_shadow_backfill_manifest_preserves_backup(tmp_path):
     assert result["applied"][0]["date"] == "2026-04-01"
     assert (tmp_path / "backups" / "2026-04-01.shadow.json").exists()
     assert load_shadow_pick("2026-04-01", picks_dir).result == "miss"
+
+
+def test_apply_shadow_backfill_manifest_writes_slot_results(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    save_pick(_daily("2026-04-01", _pick("Prod Hit", 1), result="hit"), picks_dir)
+    save_shadow_pick(_daily(
+        "2026-04-01",
+        _pick("Shadow Void", 2),
+        double_down=_pick("Shadow Active", 3),
+        result=None,
+    ), picks_dir)
+
+    manifest = build_shadow_backfill_manifest(
+        picks_dir,
+        n_bootstrap=0,
+        hit_checker=_hit_checker({1: True, 2: "void", 3: True}),
+    )
+    apply_shadow_backfill_manifest(manifest, backup_dir=tmp_path / "backups")
+
+    loaded = load_shadow_pick("2026-04-01", picks_dir)
+    assert loaded.result == "hit"
+    assert loaded.slot_results == {"pick": "void", "double_down": "hit"}
+
 
 
 def test_build_shadow_backfill_manifest_is_idempotent(tmp_path):
@@ -161,7 +238,10 @@ def test_shadow_backfill_results_cli_is_dry_run_by_default(tmp_path):
     save_pick(_daily("2026-04-01", _pick("Prod Hit", 1), result="hit"), picks_dir)
     save_shadow_pick(_daily("2026-04-01", _pick("Shadow Miss", 2), result="hit"), picks_dir)
 
-    with patch("bts.shadow_eval.check_hit", side_effect=lambda *args, **kwargs: args[1] == 1):
+    with patch(
+        "bts.shadow_eval.resolve_pick_slot_result",
+        side_effect=lambda pick, date: "hit" if pick.batter_id == 1 else "miss",
+    ):
         result = CliRunner().invoke(cli, [
             "shadow-backfill-results",
             "--picks-dir", str(picks_dir),
@@ -250,6 +330,31 @@ def test_build_shadow_cycle_status_tracks_recorded_monitoring_state(tmp_path):
     assert "separate pre-registration" in status["methodology_note"]
     assert "Semantic local version" in status["model"]["versioning_policy"]
     assert "single latest-state artifact" in status["history_policy"]
+
+
+def test_build_shadow_cycle_status_counts_void_as_resolved_but_not_evaluable(tmp_path):
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    save_pick(_daily("2026-04-01", _pick("Prod", 1), result="hit"), picks_dir)
+    shadow = _daily("2026-04-01", _pick("Shadow", 2), result="void")
+    shadow.slot_results = {"pick": "void"}
+    save_shadow_pick(shadow, picks_dir)
+
+    status = build_shadow_cycle_status(
+        picks_dir,
+        min_days=1,
+        generated_at="2026-05-09T00:00:00+00:00",
+        git_commit="test-sha",
+    )
+
+    assert status["cycle_state"] == "collecting_live_forward"
+    assert status["counts"]["resolved_shadow_results"] == 1
+    assert status["counts"]["unresolved_shadow_results"] == 0
+    assert status["counts"]["void_shadow_results"] == 1
+    assert status["counts"]["resolved_paired_days"] == 0
+    assert status["counts"]["resolved_or_void_paired_days"] == 1
+    assert status["coverage"]["unresolved_shadow_dates"] == []
+    assert status["quality_recorded"]["outcome_counts"]["shadow"]["void"] == 1
 
 
 def test_build_shadow_cycle_status_no_shadow_files(tmp_path):

@@ -113,3 +113,7 @@ class TestFormatResultReply:
         text = format_result_reply("miss", 0)
         assert "\u274c" in text
         assert "Streak reset to 0" in text
+
+    def test_void_reply(self):
+        text = format_result_reply("void", 6)
+        assert text == "Void. Streak: 6"
