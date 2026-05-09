@@ -620,50 +620,101 @@ class TestRenderLiveGameSection:
         assert "PRE" in html
         assert 'id="scorecard"' not in html
 
-    def test_scorecard_section_renders_bip_xba_inside_scorecard(self):
+    def test_scorecard_section_renders_bip_xba_under_pa_diamond(self):
         from bts.web import render_scorecard_section
 
         sc = self._basic_scorecard("L")
-        sc["batters"][0]["bip_count"] = 5
-        sc["batters"][0]["bip_xba"] = 0.474
+        sc["batters"][0]["pas"] = [{
+            "result": "8",
+            "is_hit": False,
+            "out_number": 1,
+            "rbi": 0,
+            "pitches": [{"number": 1, "call": "X", "is_strike": False}],
+            "hit_trajectory": {
+                "type": "fly_ball",
+                "x": 180.0,
+                "y": 90.0,
+                "live_xba": 0.474,
+                "is_terminal_bip": True,
+            },
+            "runners": [],
+        }]
 
         html = render_scorecard_section(sc)
 
         assert 'id="scorecard"' in html
-        assert "BIP xBA" in html
-        assert ".474" in html
-        assert "5 BIP" in html
-        assert html.index("BIP xBA") > html.index("</table>")
+        assert "xBA .474" in html
+        assert html.index("xBA .474") > html.index("</svg>")
+        assert "Live BIP xBA est." not in html
 
-    def test_scorecard_section_omits_bip_xba_without_balls_in_play(self):
+    def test_scorecard_section_omits_bip_xba_without_terminal_ball_in_play(self):
         from bts.web import render_scorecard_section
 
         sc = self._basic_scorecard("L")
-        sc["batters"][0]["bip_count"] = 0
-        sc["batters"][0]["bip_xba"] = 0.000
+        sc["batters"][0]["pas"] = [{
+            "result": "K",
+            "is_hit": False,
+            "out_number": 1,
+            "rbi": 0,
+            "pitches": [{"number": 1, "call": "S", "is_strike": True}],
+            "hit_trajectory": {
+                "type": "line_drive",
+                "x": 180.0,
+                "y": 90.0,
+                "live_xba": 0.474,
+                "is_terminal_bip": False,
+            },
+            "runners": [],
+        }]
 
         html = render_scorecard_section(sc)
 
-        assert "BIP xBA" not in html
+        assert "xBA .474" not in html
 
-    def test_scorecard_section_renders_combined_bip_xba_for_double_down(self):
+    def test_scorecard_section_renders_per_pa_bip_xba_for_double_down(self):
         from bts.web import render_scorecard_section
 
         sc = self._basic_scorecard("L")
         sc["batters"] = [
             {"name": "Anthony", "batter_id": 1, "lineup_position": 1,
-             "position": "RF", "slash_line": ".280/.350/.450", "pas": [],
-             "bip_count": 2, "bip_xba": 0.400},
+             "position": "RF", "slash_line": ".280/.350/.450", "pas": [{
+                 "result": "7",
+                 "is_hit": False,
+                 "out_number": 1,
+                 "rbi": 0,
+                 "pitches": [{"number": 1, "call": "X", "is_strike": False}],
+                 "hit_trajectory": {
+                     "type": "fly_ball",
+                     "x": 180.0,
+                     "y": 90.0,
+                     "live_xba": 0.400,
+                     "is_terminal_bip": True,
+                 },
+                 "runners": [],
+             }]},
             {"name": "Diaz", "batter_id": 2, "lineup_position": 2,
-             "position": "DH", "slash_line": ".300/.380/.500", "pas": [],
-             "bip_count": 3, "bip_xba": 0.600},
+             "position": "DH", "slash_line": ".300/.380/.500", "pas": [{
+                 "result": "1B",
+                 "is_hit": True,
+                 "out_number": None,
+                 "rbi": 0,
+                 "pitches": [{"number": 1, "call": "X", "is_strike": False}],
+                 "hit_trajectory": {
+                     "type": "ground_ball",
+                     "x": 120.0,
+                     "y": 160.0,
+                     "live_xba": 0.600,
+                     "is_terminal_bip": True,
+                 },
+                 "runners": [{"start": None, "end": "1B", "is_out": False}],
+             }]},
         ]
 
         html = render_scorecard_section(sc)
 
-        assert "Combined" in html
-        assert ".520" in html
-        assert "5 BIP" in html
+        assert "xBA .400" in html
+        assert "xBA .600" in html
+        assert "Combined" not in html
 
 
 class TestBatterWithZeroPas:
