@@ -603,6 +603,46 @@ class TestPollResults:
         status = poll_game_result(12345)
         assert status == "suspended"
 
+    @patch("bts.scheduler.retry_urlopen")
+    def test_returns_final_for_postponed_preview(self, mock_urlopen):
+        from bts.scheduler import poll_game_result
+
+        mock_urlopen.return_value.read.return_value = json.dumps({
+            "gameData": {"status": {
+                "abstractGameCode": "P",
+                "detailedState": "Postponed",
+            }},
+        }).encode()
+
+        status = poll_game_result(12345)
+        assert status == "final"
+
+    @patch("bts.scheduler.poll_game_result", return_value="final")
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_run_result_polling_voids_primary_and_scores_double_once(
+        self, mock_check, mock_statuses, _mock_poll, tmp_path,
+    ):
+        from bts.picks import load_pick, load_streak, save_pick, save_streak
+        from bts.scheduler import run_result_polling
+
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        save_streak(3, tmp_path)
+        mock_statuses.return_value = {
+            100: {"abstract": "F", "detailed": "Postponed"},
+            200: {"abstract": "F", "detailed": "Final"},
+        }
+        mock_check.return_value = True
+
+        status = run_result_polling(100, "2026-04-04", tmp_path)
+
+        assert status == "final"
+        daily = load_pick("2026-04-04", tmp_path)
+        assert daily.result == "hit"
+        assert daily.slot_results == {"pick": "void", "double_down": "hit"}
+        assert load_streak(tmp_path) == 4
+        mock_check.assert_called_once()
+
 
 class TestRunDay:
     @patch("bts.scheduler.fetch_schedule")

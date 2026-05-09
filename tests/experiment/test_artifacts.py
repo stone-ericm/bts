@@ -34,6 +34,62 @@ def _fake_profiles(season: int, *, candidate: bool) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _write_live_preoutcome_artifact(artifact_dir, *, date: str = "2026-05-09") -> dict:
+    profile_paths = {
+        "production": {date: f"profiles/production/live_{date}.parquet"},
+        "candidate": {date: f"profiles/candidate/live_{date}.parquet"},
+    }
+    for variant, base, model_name in (
+        ("production", 0.64, "production_lgbm_v0"),
+        ("candidate", 0.74, "decision_weighted_lgbm_v0"),
+    ):
+        frame = pd.DataFrame({
+            "artifact_schema_version": [ARTIFACT_SCHEMA_VERSION, ARTIFACT_SCHEMA_VERSION],
+            "run_kind": ["live_forward_preoutcome", "live_forward_preoutcome"],
+            "variant": [variant, variant],
+            "model_name": [model_name, model_name],
+            "generated_at": [
+                "2026-05-08T02:00:00+00:00",
+                "2026-05-08T02:00:00+00:00",
+            ],
+            "git_commit": ["def456", "def456"],
+            "date": [pd.Timestamp(date).date(), pd.Timestamp(date).date()],
+            "season": [pd.Timestamp(date).year, pd.Timestamp(date).year],
+            "rank": [1, 2],
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [base, base - 0.05],
+            "actual_hit": [pd.NA, pd.NA],
+            "n_pas": [pd.NA, pd.NA],
+        })[PROFILE_SCHEMA_COLUMNS]
+        path = artifact_dir / profile_paths[variant][date]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_parquet(path, index=False)
+
+    manifest = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at": "2026-05-08T02:00:00+00:00",
+        "git_commit": "def456",
+        "run_kind": "live_forward_preoutcome",
+        "production_deploy_claim": False,
+        "fresh_target_claim": True,
+        "candidate_name": "decision_weighted_lgbm_v0",
+        "baseline_name": "production_lgbm_v0",
+        "date": date,
+        "dates": [date],
+        "seasons": [pd.Timestamp(date).year],
+        "top_n": 2,
+        "retrain_every": None,
+        "profile_schema_columns": list(PROFILE_SCHEMA_COLUMNS),
+        "profile_paths": profile_paths,
+        "row_counts": {"production": {date: 2}, "candidate": {date: 2}},
+        "day_counts": {"production": {date: 1}, "candidate": {date: 1}},
+    }
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    (artifact_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return manifest
+
+
 def test_materialize_candidate_profile_pair_writes_manifest_and_profiles(
     mini_pa_df,
     tmp_path,
@@ -314,33 +370,13 @@ def test_verify_candidate_artifact_pair_flags_non_null_live_outcomes(
 
 def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
     tmp_path,
-    monkeypatch,
 ):
-    import bts.model.predict as predict_mod
-
     artifact_dir = tmp_path / "preoutcome"
     resolved_dir = tmp_path / "resolved"
     data_dir = tmp_path / "processed"
     data_dir.mkdir()
 
-    def fake_run_pipeline(date, **kwargs):
-        is_candidate = kwargs.get("blend_configs_override") is not None
-        base = 0.74 if is_candidate else 0.64
-        return pd.DataFrame({
-            "batter_id": [11, 22],
-            "game_pk": [1001, 1002],
-            "p_game_hit": [base, base - 0.05],
-        })
-
-    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
-    manifest = materialize_live_candidate_profile_pair(
-        date="2026-05-09",
-        candidate=DecisionWeightedLightGBMExperiment(),
-        output_dir=artifact_dir,
-        top_n=2,
-        git_commit="def456",
-        generated_at="2026-05-08T02:00:00+00:00",
-    )
+    manifest = _write_live_preoutcome_artifact(artifact_dir)
     pd.DataFrame([
         {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 0},
         {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
@@ -363,6 +399,8 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
     assert resolved_manifest["run_kind"] == "live_forward_resolved"
     assert resolved_manifest["source_run_kind"] == "live_forward_preoutcome"
     assert resolved_manifest["outcome_missing_total"] == 0
+    assert "never coerced to actual_hit=0" in resolved_manifest["outcome_missing_semantics"]
+    assert "never coerced to actual_hit=0" in report["missing_semantics"]
 
     source_production = pd.read_parquet(
         artifact_dir / manifest["profile_paths"]["production"]["2026-05-09"]
@@ -380,31 +418,13 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
 
 def test_resolve_live_candidate_artifact_pair_fails_missing_outcome(
     tmp_path,
-    monkeypatch,
 ):
-    import bts.model.predict as predict_mod
-
     artifact_dir = tmp_path / "preoutcome"
     resolved_dir = tmp_path / "resolved"
     data_dir = tmp_path / "processed"
     data_dir.mkdir()
 
-    def fake_run_pipeline(date, **kwargs):
-        return pd.DataFrame({
-            "batter_id": [11, 22],
-            "game_pk": [1001, 1002],
-            "p_game_hit": [0.64, 0.59],
-        })
-
-    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
-    materialize_live_candidate_profile_pair(
-        date="2026-05-09",
-        candidate=DecisionWeightedLightGBMExperiment(),
-        output_dir=artifact_dir,
-        top_n=2,
-        git_commit="def456",
-        generated_at="2026-05-08T02:00:00+00:00",
-    )
+    _write_live_preoutcome_artifact(artifact_dir)
     pd.DataFrame([
         {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
     ]).to_parquet(data_dir / "pa_2026.parquet", index=False)

@@ -151,8 +151,9 @@ class TestBtsRun:
 
 
 class TestBtsCheckResults:
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_hit_updates_streak(self, mock_check, tmp_path):
+    def test_check_results_hit_updates_streak(self, mock_check, _mock_statuses, tmp_path):
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
@@ -170,8 +171,9 @@ class TestBtsCheckResults:
         assert "HIT!" in result.output
         assert "Streak: 4" in result.output
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_miss_resets_streak(self, mock_check, tmp_path):
+    def test_check_results_miss_resets_streak(self, mock_check, _mock_statuses, tmp_path):
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
@@ -189,8 +191,9 @@ class TestBtsCheckResults:
         assert "MISS" in result.output
         assert "Streak reset to 0" in result.output
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_none_warns_scratched(self, mock_check, tmp_path):
+    def test_check_results_none_warns_scratched(self, mock_check, _mock_statuses, tmp_path):
         """Scratched player (None result) should warn, not change streak."""
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
@@ -210,6 +213,122 @@ class TestBtsCheckResults:
         # Streak should be unchanged
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 3
+
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_check_results_voids_primary_and_scores_double_once(
+        self, mock_check, mock_statuses, tmp_path,
+    ):
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        double = _sample_pick(
+            batter_name="Carlos Cortes",
+            batter_id=666126,
+            team="ATH",
+            game_pk=778900,
+        )
+        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_streak(3, picks_dir)
+        mock_statuses.return_value = {
+            778899: {"abstract": "F", "detailed": "Postponed"},
+            778900: {"abstract": "F", "detailed": "Final"},
+        }
+        mock_check.return_value = True
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "VOID: Jacob Wilson." in result.output
+        assert "HIT! Carlos Cortes. Streak: 4" in result.output
+
+        from bts.picks import load_pick, load_streak
+        loaded = load_pick("2026-04-01", picks_dir)
+        assert loaded.result == "hit"
+        assert loaded.slot_results == {"pick": "void", "double_down": "hit"}
+        assert load_streak(picks_dir) == 4
+        mock_check.assert_called_once()
+
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_check_results_voids_double_and_scores_primary_once(
+        self, mock_check, mock_statuses, tmp_path,
+    ):
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        double = _sample_pick(
+            batter_name="Carlos Cortes",
+            batter_id=666126,
+            team="ATH",
+            game_pk=778900,
+        )
+        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_streak(3, picks_dir)
+        mock_statuses.return_value = {
+            778899: {"abstract": "F", "detailed": "Final"},
+            778900: {"abstract": "F", "detailed": "Postponed"},
+        }
+        mock_check.return_value = True
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "VOID: Carlos Cortes." in result.output
+        assert "HIT! Jacob Wilson. Streak: 4" in result.output
+
+        from bts.picks import load_pick, load_streak
+        loaded = load_pick("2026-04-01", picks_dir)
+        assert loaded.result == "hit"
+        assert loaded.slot_results == {"pick": "hit", "double_down": "void"}
+        assert load_streak(picks_dir) == 4
+        mock_check.assert_called_once()
+
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_check_results_all_void_keeps_streak(
+        self, mock_check, mock_statuses, tmp_path,
+    ):
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+
+        double = _sample_pick(
+            batter_name="Carlos Cortes",
+            batter_id=666126,
+            team="ATH",
+            game_pk=778900,
+        )
+        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_streak(3, picks_dir)
+        mock_statuses.return_value = {
+            778899: {"abstract": "F", "detailed": "Postponed"},
+            778900: {"abstract": "F", "detailed": "Canceled"},
+        }
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "check-results", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "VOID: Jacob Wilson, Carlos Cortes." in result.output
+        assert "All picks void. Streak unchanged: 3" in result.output
+
+        from bts.picks import load_pick, load_streak
+        loaded = load_pick("2026-04-01", picks_dir)
+        assert loaded.result == "void"
+        assert loaded.slot_results == {"pick": "void", "double_down": "void"}
+        assert load_streak(picks_dir) == 3
+        mock_check.assert_not_called()
 
     def test_check_results_skips_already_resolved(self, tmp_path):
         """Scheduler already set result — check-results should not double-count streak."""
@@ -232,9 +351,10 @@ class TestBtsCheckResults:
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 2
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
     def test_check_results_resolves_shadow_when_production_already_resolved(
-        self, mock_check, tmp_path,
+        self, mock_check, _mock_statuses, tmp_path,
     ):
         """Already-resolved production picks should still reconcile shadow results."""
         picks_dir = tmp_path / "picks"
@@ -270,8 +390,11 @@ class TestBtsCheckResults:
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 2
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_writes_shadow_status_artifact(self, mock_check, tmp_path):
+    def test_check_results_writes_shadow_status_artifact(
+        self, mock_check, _mock_statuses, tmp_path,
+    ):
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
         status_path = tmp_path / "shadow_status.json"
@@ -302,8 +425,11 @@ class TestBtsCheckResults:
         assert payload["counts"]["resolved_shadow_results"] == 1
         assert payload["coverage"]["unresolved_shadow_dates"] == []
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_shadow_status_failure_does_not_crash(self, mock_check, tmp_path):
+    def test_check_results_shadow_status_failure_does_not_crash(
+        self, mock_check, _mock_statuses, tmp_path,
+    ):
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
@@ -362,9 +488,10 @@ class TestBtsCheckResults:
         assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
         mock_check.assert_not_called()
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
     def test_check_results_resolves_shadow_with_unresolved_production(
-        self, mock_check, tmp_path,
+        self, mock_check, _mock_statuses, tmp_path,
     ):
         """The normal unresolved-production path should still resolve shadow results."""
         picks_dir = tmp_path / "picks"
@@ -394,8 +521,11 @@ class TestBtsCheckResults:
         assert "Shadow: Shadow Batter — HIT" in result.output
         assert load_shadow_pick("2026-04-01", picks_dir).result == "hit"
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
-    def test_check_results_shadow_double_down_is_dd_aware(self, mock_check, tmp_path):
+    def test_check_results_shadow_double_down_is_dd_aware(
+        self, mock_check, _mock_statuses, tmp_path,
+    ):
         """Shadow double-down days only count as a hit when both picks hit."""
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
@@ -429,9 +559,10 @@ class TestBtsCheckResults:
         assert "Shadow: Shadow Primary + Shadow Double — MISS" in result.output
         assert load_shadow_pick("2026-04-01", picks_dir).result == "miss"
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
     @patch("bts.picks.check_hit")
     def test_check_results_shadow_error_leaves_shadow_unresolved(
-        self, mock_check, tmp_path,
+        self, mock_check, _mock_statuses, tmp_path,
     ):
         """Shadow API failures should not overwrite an unresolved shadow file."""
         picks_dir = tmp_path / "picks"

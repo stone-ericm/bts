@@ -626,6 +626,8 @@ def poll_game_result(game_pk: int) -> str:
     abstract = resp["gameData"]["status"]["abstractGameCode"]
     detailed = resp["gameData"]["status"].get("detailedState", "")
 
+    if detailed.strip().lower() in {"postponed", "cancelled", "canceled"}:
+        return "final"
     if abstract == "F":
         return "final"
     if "suspend" in detailed.lower():
@@ -678,7 +680,15 @@ def run_result_polling(
     Posts reply as soon as all picks have hits (early exit) or when
     game goes Final/Suspended. Returns "final", "suspended", or "unresolved".
     """
-    from bts.picks import load_pick, check_hit, update_streak, save_pick
+    from bts.picks import (
+        active_streak_results,
+        effective_daily_result,
+        load_pick,
+        load_streak,
+        resolve_daily_slot_results,
+        save_pick,
+        update_streak,
+    )
 
     early_replied = False
 
@@ -717,7 +727,7 @@ def run_result_polling(
         any_suspended = any(s == "suspended" for s in statuses.values())
 
         # Check for mid-game hits (even if games are still live)
-        if not early_replied and any_live_or_final:
+        if not early_replied and any_live_or_final and not all_final:
             hit_checks = _check_hits_midgame(daily, date)
             n_picks = 1 + (1 if daily.double_down else 0)
             confirmed_hits = [h for h in hit_checks[:n_picks] if h is True]
@@ -742,31 +752,16 @@ def run_result_polling(
         if all_final:
             if not early_replied:
                 # All games over, haven't replied yet — do final check
-                primary_result = check_hit(
-                    daily.pick.game_pk, daily.pick.batter_id,
-                    batter_name=daily.pick.batter_name,
-                    date=date, team=daily.pick.team,
-                )
-                if primary_result is None:
+                slot_results = resolve_daily_slot_results(daily, date)
+                if slot_results is None:
                     daily.result = "unresolved"
                     save_pick(daily, picks_dir)
                     return "unresolved"
 
-                results = [primary_result]
-                if daily.double_down:
-                    double_result = check_hit(
-                        daily.double_down.game_pk, daily.double_down.batter_id,
-                        batter_name=daily.double_down.batter_name,
-                        date=date, team=daily.double_down.team,
-                    )
-                    if double_result is None:
-                        daily.result = "unresolved"
-                        save_pick(daily, picks_dir)
-                        return "unresolved"
-                    results.append(double_result)
-
-                new_streak = update_streak(results, picks_dir)
-                daily.result = "hit" if all(results) else "miss"
+                results = active_streak_results(slot_results)
+                new_streak = update_streak(results, picks_dir) if results else load_streak(picks_dir)
+                daily.slot_results = slot_results
+                daily.result = effective_daily_result(slot_results)
                 save_pick(daily, picks_dir)
                 print(f"  Result: {daily.result}. Streak: {new_streak}.", file=sys.stderr)
 

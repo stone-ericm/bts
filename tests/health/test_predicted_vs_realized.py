@@ -33,6 +33,17 @@ class TestComputeMetrics:
         m = compute_metrics(tmp_path, today=date(2026, 4, 27))
         assert m.daily == {}
 
+    def test_skips_primary_void(self, tmp_path):
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.75},
+            "double_down": {"p_game_hit": 0.72},
+            "result": "hit",
+            "slot_results": {"pick": "void", "double_down": "hit"},
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+        assert m.daily == {}
+
     def test_computes_gaps(self, tmp_path):
         # 28 days. First 14: pred=0.74, realized 8/14 (0.571). Gap 0.169.
         # Last 14: pred=0.74, realized 6/14 (0.429). Gap 0.311.

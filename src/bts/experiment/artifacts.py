@@ -676,6 +676,11 @@ def resolve_live_candidate_artifact_pair(
     resolved_manifest["outcome_data_dir"] = str(data_dir)
     resolved_manifest["outcome_allow_partial"] = bool(allow_partial)
     resolved_manifest["outcome_missing_total"] = int(total_missing)
+    resolved_manifest["outcome_missing_semantics"] = (
+        "Missing outcome rows mean no PA evidence was available for that "
+        "date/batter/game key, including postponed or void games. They are "
+        "never coerced to actual_hit=0."
+    )
     resolved_manifest["outcome_missing_by_variant"] = {
         variant: report["missing_outcomes"]
         for variant, report in variant_reports.items()
@@ -692,6 +697,7 @@ def resolve_live_candidate_artifact_pair(
         "dates": date_keys,
         "complete": total_missing == 0,
         "missing_count": int(total_missing),
+        "missing_semantics": resolved_manifest["outcome_missing_semantics"],
         "missing_examples": missing_examples[:20],
         "variants": variant_reports,
     }

@@ -1385,8 +1385,10 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
     """
     from pathlib import Path
     from bts.picks import (
-        load_pick, check_hit, update_streak, save_pick,
+        load_pick, update_streak, save_pick, load_streak,
         load_shadow_pick, save_shadow_pick,
+        active_streak_results, effective_daily_result,
+        iter_daily_pick_slots, resolve_daily_slot_results,
     )
 
     picks_path = Path(picks_dir)
@@ -1416,109 +1418,101 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
     def reconcile_shadow_result() -> tuple[bool, str | None]:
         """Resolve the shadow pick independently from production streak state."""
         shadow = load_shadow_pick(date, picks_path)
-        if shadow is None or shadow.result in ("hit", "miss"):
+        if shadow is None or shadow.result in ("hit", "miss", "void"):
             return False, shadow.result if shadow else None
 
-        shadow_slots = [shadow.pick]
-        if shadow.double_down:
-            shadow_slots.append(shadow.double_down)
+        try:
+            slot_results = resolve_daily_slot_results(shadow, date)
+        except Exception as e:
+            click.echo(f"ERROR: Failed to check shadow result — {e}", err=True)
+            return False, None
 
-        shadow_results = []
-        for slot in shadow_slots:
-            try:
-                slot_result = check_hit(
-                    slot.game_pk, slot.batter_id,
-                    batter_name=slot.batter_name, date=date, team=slot.team,
-                )
-            except Exception as e:
-                click.echo(f"ERROR: Failed to check shadow result — {e}", err=True)
-                return False, None
+        if slot_results is None:
+            click.echo(
+                "WARNING: Shadow pick has an active game not final or batter not found. "
+                "Shadow result unchanged."
+            )
+            return False, None
 
-            if slot_result is None:
-                click.echo(
-                    f"WARNING: Shadow pick {slot.batter_name} not found in boxscore "
-                    f"or game not final. Shadow result unchanged."
-                )
-                return False, None
-
-            shadow_results.append(slot_result)
-
-        shadow.result = "hit" if all(shadow_results) else "miss"
+        shadow.slot_results = slot_results
+        shadow.result = effective_daily_result(slot_results)
         save_shadow_pick(shadow, picks_path)
-        shadow_names = [slot.batter_name for slot in shadow_slots]
+        shadow_names = [
+            slot.batter_name
+            for slot_key, slot in iter_daily_pick_slots(shadow)
+            if slot_results.get(slot_key) != "void"
+        ]
+        void_names = [
+            slot.batter_name
+            for slot_key, slot in iter_daily_pick_slots(shadow)
+            if slot_results.get(slot_key) == "void"
+        ]
+        if void_names:
+            click.echo(f"  Shadow void: {', '.join(void_names)}")
         click.echo(
-            f"  Shadow: {' + '.join(shadow_names)} — "
-            f"{'HIT' if all(shadow_results) else 'MISS'}"
+            f"  Shadow: {' + '.join(shadow_names) if shadow_names else 'all picks void'} — "
+            f"{shadow.result.upper()}"
         )
         return True, shadow.result
 
     # Skip if scheduler already resolved this pick (avoid double-counting streak)
-    if daily.result in ("hit", "miss"):
+    if daily.result in ("hit", "miss", "void"):
         reconcile_shadow_result()
         write_shadow_status_artifact()
         click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
         return
 
-    # Check primary pick
-    click.echo(f"Checking {daily.pick.batter_name} (game {daily.pick.game_pk})...")
+    for _, slot in iter_daily_pick_slots(daily):
+        click.echo(f"Checking {slot.batter_name} (game {slot.game_pk})...")
+
     try:
-        primary_result = check_hit(
-            daily.pick.game_pk, daily.pick.batter_id,
-            batter_name=daily.pick.batter_name,
-            date=date, team=daily.pick.team,
-        )
+        slot_results = resolve_daily_slot_results(daily, date)
     except Exception as e:
         click.echo(f"ERROR: Failed to check game result — {e}", err=True)
         return
 
-    if primary_result is None:
-        # Could be game not final OR batter scratched
-        click.echo(f"WARNING: {daily.pick.batter_name} not found in boxscore or game not final. "
-                    f"Streak unchanged. Check manually.")
+    if slot_results is None:
+        click.echo("WARNING: Active pick game not final or batter not found. "
+                   "Streak unchanged. Check manually.")
         return
 
-    results = [primary_result]
-
-    # Check double-down if applicable
-    if daily.double_down:
-        click.echo(f"Checking {daily.double_down.batter_name} (game {daily.double_down.game_pk})...")
-        try:
-            double_result = check_hit(
-                daily.double_down.game_pk, daily.double_down.batter_id,
-                batter_name=daily.double_down.batter_name,
-                date=date, team=daily.double_down.team,
-            )
-        except Exception as e:
-            click.echo(f"ERROR: Failed to check double-down result — {e}", err=True)
-            return
-        if double_result is None:
-            click.echo(f"WARNING: {daily.double_down.batter_name} not found in boxscore or game not final. "
-                        f"Streak unchanged. Check manually.")
-            return
-        results.append(double_result)
+    results = active_streak_results(slot_results)
 
     # Update streak
-    new_streak = update_streak(results, picks_path)
+    new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
 
     # Save result back to pick file
-    daily.result = "hit" if all(results) else "miss"
+    daily.slot_results = slot_results
+    daily.result = effective_daily_result(slot_results)
     save_pick(daily, picks_path)
 
     reconcile_shadow_result()
     write_shadow_status_artifact()
 
     # Report
-    if all(results):
-        hit_names = [daily.pick.batter_name]
-        if daily.double_down:
-            hit_names.append(daily.double_down.batter_name)
+    void_names = [
+        slot.batter_name
+        for slot_key, slot in iter_daily_pick_slots(daily)
+        if slot_results.get(slot_key) == "void"
+    ]
+    if void_names:
+        click.echo(f"VOID: {', '.join(void_names)}.")
+
+    if daily.result == "void":
+        click.echo(f"All picks void. Streak unchanged: {new_streak}")
+    elif daily.result == "hit":
+        hit_names = [
+            slot.batter_name
+            for slot_key, slot in iter_daily_pick_slots(daily)
+            if slot_results.get(slot_key) == "hit"
+        ]
         click.echo(f"HIT! {' + '.join(hit_names)}. Streak: {new_streak}")
     else:
-        miss_names = []
-        if not results[0]:
-            miss_names.append(daily.pick.batter_name)
-        if len(results) > 1 and not results[1]:
-            miss_names.append(daily.double_down.batter_name)
+        miss_names = [
+            slot.batter_name
+            for slot_key, slot in iter_daily_pick_slots(daily)
+            if slot_results.get(slot_key) == "miss"
+        ]
         click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
 
     # Bluesky result reply is handled by the scheduler's result polling.

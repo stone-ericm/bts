@@ -148,6 +148,19 @@ If outcomes are incomplete, the resolver fails closed by default. Use
 partial. Do not count partial artifacts toward the primary fresh-target slate
 count.
 
+Postponement handling:
+
+- For actual BTS scoring, a locked pick whose game is postponed or cancelled is
+  void for that slot only. It is neither a hit nor a miss and it does not wait
+  for the future makeup game.
+- If the other double-down slot played, score the day from the played slot only:
+  void + hit advances by one; void + miss resets; both void leaves the streak
+  unchanged.
+- For live-forward artifacts, a postponed or void game normally has no PA row in
+  `pa_YEAR.parquet`. The resolver must treat the left-only join as missing
+  outcome evidence and fail closed unless `--allow-partial` is explicitly used;
+  never coerce a missing/postponed outcome to `actual_hit = 0`.
+
 Verify the resolved copy without the live pre-outcome null-outcome flag:
 
 ```bash

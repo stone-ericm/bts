@@ -142,3 +142,43 @@ def test_dashboard_polling_refreshes_live_game_section(monkeypatch):
     assert 'document.getElementById("live-game-section")' in html
     assert 'fetch("/api/live-html?date=" + date)' in html
     assert 'document.getElementById("scorecard")' not in html
+
+
+def test_render_page_shows_void_slot(monkeypatch):
+    import bts.web
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    monkeypatch.setattr(bts.web, "load_streak", lambda: 4)
+    monkeypatch.setattr(bts.web, "fetch_bluesky_posts", lambda: [])
+    monkeypatch.setattr(bts.web, "load_scheduler_state", lambda date: {"pick_locked": True})
+    monkeypatch.setattr(bts.web, "_build_live_game_data", lambda pick_data: ([], None))
+    monkeypatch.setattr(bts.web, "load_all_picks", lambda: [{
+        "date": today,
+        "pick": {
+            "batter_name": "Voided Batter",
+            "batter_id": 1,
+            "team": "BOS",
+            "pitcher_name": "Pitcher",
+            "p_game_hit": 0.7,
+            "game_pk": 123,
+            "game_time": f"{today}T23:00:00+00:00",
+        },
+        "double_down": {
+            "batter_name": "Active Batter",
+            "batter_id": 2,
+            "team": "ATH",
+            "pitcher_name": "Pitcher 2",
+            "p_game_hit": 0.69,
+            "game_pk": 456,
+            "game_time": f"{today}T23:10:00+00:00",
+        },
+        "result": "hit",
+        "slot_results": {"pick": "void", "double_down": "hit"},
+        "bluesky_posted": True,
+    }])
+
+    html = bts.web.render_page()
+
+    assert "Voided Batter" in html
+    assert '<span title="Void">VOID</span>' in html
+    assert "HIT" in html

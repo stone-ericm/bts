@@ -217,6 +217,8 @@ def format_result_reply(result: str, streak: int) -> str:
     """Format the result reply text."""
     if result == "hit":
         return f"\u2705 Streak: {streak}"
+    if result == "void":
+        return f"Void. Streak: {streak}"
     else:
         return f"\u274c Streak reset to 0"
 
