@@ -508,6 +508,199 @@ def _candidate_verification_report(
     return report
 
 
+def _manifest_date_keys(manifest: dict) -> list[str]:
+    dates = manifest.get("dates")
+    if dates is None:
+        date = manifest.get("date")
+        dates = [date] if date else []
+    date_keys = [str(date) for date in dates if date is not None]
+    if not date_keys:
+        raise ValueError("manifest has no live-forward dates to resolve")
+    return date_keys
+
+
+def _load_outcomes_from_pa(
+    *,
+    data_dir: str | Path,
+    date_keys: list[str],
+) -> pd.DataFrame:
+    """Load batter-game outcomes for the artifact dates from processed PA data."""
+    data_root = Path(data_dir)
+    years = sorted({pd.Timestamp(date_key).year for date_key in date_keys})
+    frames = []
+    for year in years:
+        path = data_root / f"pa_{year}.parquet"
+        if not path.exists():
+            raise FileNotFoundError(f"missing processed PA parquet: {path}")
+        frames.append(
+            pd.read_parquet(
+                path,
+                columns=["date", "batter_id", "game_pk", "is_hit"],
+            )
+        )
+    if not frames:
+        return pd.DataFrame(
+            columns=["_outcome_date_key", "batter_id", "game_pk", "actual_hit", "n_pas"]
+        )
+
+    pa = pd.concat(frames, ignore_index=True)
+    pa["_outcome_date_key"] = pd.to_datetime(pa["date"]).dt.strftime("%Y-%m-%d")
+    pa = pa[pa["_outcome_date_key"].isin(date_keys)]
+    if pa.empty:
+        return pd.DataFrame(
+            columns=["_outcome_date_key", "batter_id", "game_pk", "actual_hit", "n_pas"]
+        )
+
+    # Absence from processed PA data is treated as missing outcome evidence, not
+    # as a 0-PA game, because game finality is checked outside this artifact join.
+    outcomes = (
+        pa.groupby(["_outcome_date_key", "batter_id", "game_pk"], as_index=False)
+        .agg(actual_hit=("is_hit", "max"), n_pas=("is_hit", "count"))
+    )
+    outcomes["actual_hit"] = outcomes["actual_hit"].astype(int)
+    outcomes["n_pas"] = outcomes["n_pas"].astype(int)
+    return outcomes
+
+
+def resolve_live_candidate_artifact_pair(
+    *,
+    artifact_dir: str | Path,
+    output_dir: str | Path,
+    data_dir: str | Path = "data/processed",
+    allow_partial: bool = False,
+    overwrite: bool = False,
+    generated_at: str | None = None,
+    save_path: str | Path | None = None,
+) -> dict:
+    """Join post-game outcomes onto a live-forward pre-outcome artifact copy.
+
+    The source artifact is left unchanged. The resolved copy can be passed to
+    ``compare-candidate-artifacts`` once all outcome rows are present.
+    """
+    artifact_root = Path(artifact_dir)
+    output_root = Path(output_dir)
+    if artifact_root.resolve() == output_root.resolve():
+        raise ValueError("output_dir must differ from artifact_dir")
+    if output_root.exists() and any(output_root.iterdir()) and not overwrite:
+        raise ValueError(
+            f"resolved output_dir is not empty: {output_root}; "
+            "pass overwrite=True to replace it"
+        )
+
+    manifest = load_manifest(artifact_root)
+    if manifest.get("run_kind") != "live_forward_preoutcome":
+        raise ValueError(
+            "resolve-live-candidate-artifacts requires run_kind "
+            f"'live_forward_preoutcome', found {manifest.get('run_kind')!r}"
+        )
+
+    date_keys = _manifest_date_keys(manifest)
+    outcomes = _load_outcomes_from_pa(data_dir=data_dir, date_keys=date_keys)
+    generated_at = generated_at or utc_timestamp()
+
+    resolved_items: list[tuple[Path, pd.DataFrame]] = []
+    variant_reports: dict[str, dict[str, Any]] = {}
+    total_missing = 0
+    missing_examples: list[dict[str, Any]] = []
+
+    for variant in ("production", "candidate"):
+        variant_paths = manifest.get("profile_paths", {}).get(variant, {})
+        paths_report = {}
+        variant_missing = 0
+        for key in sorted(variant_paths, key=_profile_path_sort_key):
+            rel_path = variant_paths[key]
+            source_path = artifact_root / rel_path
+            frame = pd.read_parquet(source_path)
+            validate_ranked_profiles(frame, label=f"{variant} {key}")
+
+            joinable = frame.drop(columns=["actual_hit", "n_pas"], errors="ignore").copy()
+            joinable["_outcome_date_key"] = pd.to_datetime(joinable["date"]).dt.strftime(
+                "%Y-%m-%d"
+            )
+            resolved = joinable.merge(
+                outcomes,
+                on=["_outcome_date_key", "batter_id", "game_pk"],
+                how="left",
+                indicator=True,
+            )
+            missing_mask = resolved["_merge"] == "left_only"
+            missing_count = int(missing_mask.sum())
+            total_missing += missing_count
+            variant_missing += missing_count
+            if missing_count:
+                example_rows = resolved.loc[
+                    missing_mask,
+                    ["date", "rank", "batter_id", "game_pk"],
+                ].head(10)
+                for row in example_rows.to_dict(orient="records"):
+                    row["date"] = str(row.get("date"))
+                    row["variant"] = variant
+                    row["profile_key"] = key
+                    missing_examples.append(row)
+
+            resolved = resolved.drop(columns=["_outcome_date_key", "_merge"])
+            resolved["run_kind"] = "live_forward_resolved"
+            resolved["actual_hit"] = resolved["actual_hit"].astype("Int64")
+            resolved["n_pas"] = resolved["n_pas"].astype("Int64")
+            resolved = resolved[PROFILE_SCHEMA_COLUMNS]
+
+            target_path = output_root / rel_path
+            resolved_items.append((target_path, resolved))
+            paths_report[key] = {
+                "source_path": str(source_path),
+                "resolved_path": str(target_path),
+                "rows": int(len(resolved)),
+                "missing_outcomes": missing_count,
+            }
+
+        variant_reports[variant] = {
+            "rows": int(sum(item["rows"] for item in paths_report.values())),
+            "missing_outcomes": variant_missing,
+            "paths": paths_report,
+        }
+
+    if total_missing and not allow_partial:
+        raise ValueError(
+            f"missing outcomes for {total_missing} live-forward artifact rows; "
+            f"examples={missing_examples[:10]!r}"
+        )
+
+    for target_path, frame in resolved_items:
+        save_ranked_profiles(frame, target_path)
+
+    resolved_manifest = json.loads(json.dumps(manifest, default=_json_default))
+    resolved_manifest["run_kind"] = "live_forward_resolved"
+    resolved_manifest["source_run_kind"] = manifest.get("run_kind")
+    resolved_manifest["source_manifest"] = str(artifact_root / "manifest.json")
+    resolved_manifest["outcomes_resolved_at"] = generated_at
+    resolved_manifest["outcome_data_dir"] = str(data_dir)
+    resolved_manifest["outcome_allow_partial"] = bool(allow_partial)
+    resolved_manifest["outcome_missing_total"] = int(total_missing)
+    resolved_manifest["outcome_missing_by_variant"] = {
+        variant: report["missing_outcomes"]
+        for variant, report in variant_reports.items()
+    }
+    _write_json(resolved_manifest, output_root / "manifest.json")
+
+    report = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "source_manifest": str(artifact_root / "manifest.json"),
+        "resolved_manifest": str(output_root / "manifest.json"),
+        "run_kind": "live_forward_resolved",
+        "candidate_name": manifest.get("candidate_name"),
+        "dates": date_keys,
+        "complete": total_missing == 0,
+        "missing_count": int(total_missing),
+        "missing_examples": missing_examples[:20],
+        "variants": variant_reports,
+    }
+    if save_path is not None:
+        _write_json(report, Path(save_path))
+        report["resolution_path"] = str(save_path)
+    return report
+
+
 def verify_candidate_artifact_pair(
     *,
     artifact_dir: str | Path,

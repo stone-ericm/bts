@@ -13,6 +13,8 @@ does not clear production model changes.
 - Artifact family: `bts_candidate_ranked_slate_pair_v1`
 - Live-forward output root:
   `data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD`
+- Resolved artifact output root:
+  `data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD`
 - Current production deploy branch before the fix:
   `15da954142da62089bb198873a7cca94e69c659c`
 - Next deploy target: `origin/main` containing PR #64 and PR #66. At the
@@ -118,6 +120,60 @@ Expected verifier posture:
 
 If the verifier fails, do not hand-edit the artifacts. Preserve the failure
 report and investigate the export code or data snapshot.
+
+## Post-Outcome Resolution
+
+After the slate is final and the processed PA data includes the game outcomes,
+resolve outcomes into a copied artifact directory. Do not mutate the original
+pre-outcome artifact.
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/bts experiment resolve-live-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
+  --output-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD \
+  --data-dir data/processed \
+  --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/resolution.json
+```
+
+Expected resolver posture:
+
+- `complete = true`
+- `missing_count = 0`
+- resolved manifest `run_kind = live_forward_resolved`
+- source manifest remains unchanged with null outcomes
+
+If outcomes are incomplete, the resolver fails closed by default. Use
+`--allow-partial` only for explicit forensics, and label those artifacts as
+partial. Do not count partial artifacts toward the primary fresh-target slate
+count.
+
+Verify the resolved copy without the live pre-outcome null-outcome flag:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/bts experiment verify-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD \
+  --expected-run-kind live_forward_resolved \
+  --expected-candidate decision_weighted_lgbm_v0 \
+  --expected-date YYYY-MM-DD \
+  --expected-git-commit 5004b1c8b093da0f8acb11bd728430ebacbf92d3 \
+  --expected-top-n 10 \
+  --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/verification.json
+```
+
+Once resolved, a local comparison can be generated:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/bts experiment compare-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD \
+  --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/comparison.json
+```
+
+Single-day comparisons are monitoring evidence only. The #16 cycle verdict
+requires the pre-registered accumulated fresh-target analysis, not a one-day
+scorecard delta.
 
 ## Deploy PR #64 and PR #66
 
