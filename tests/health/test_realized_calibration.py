@@ -91,6 +91,16 @@ class TestRealizedCalibration:
         picks_dir = tmp_path / "no_picks_yet"
         assert check(picks_dir, today=date(2026, 4, 29)) == []
 
+    def test_skips_appledouble_and_invalid_utf8_files(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        _write_pick(picks_dir, today - timedelta(days=1), 0.78, "hit")
+        (picks_dir / "._2026-04-28.json").write_bytes(
+            bytes.fromhex("00051607000200004d6163204f5320582020202020202020a3")
+        )
+        (picks_dir / "2026-04-27.json").write_bytes(b"\x80not utf-8")
+        assert check(picks_dir, today=today) == []
+
     def test_no_alert_when_only_unresolved_picks(self, tmp_path):
         # Picks without a `result` field (e.g. tomorrow's preview) are excluded
         picks_dir = tmp_path / "picks"
