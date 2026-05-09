@@ -5,6 +5,8 @@ endpoint) to avoid mixing concerns.
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 
 from bts.web import _render_pa_cell
@@ -91,3 +93,52 @@ class TestRenderPaCellFilledPrecedence:
         html = _render_pa_cell(pa, lineup_status="on_deck", batters_away=1)
         assert "ON DECK" not in html
         assert "AB" in html
+
+
+def test_dashboard_polling_refreshes_live_game_section(monkeypatch):
+    import bts.web
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    monkeypatch.setattr(bts.web, "load_streak", lambda: 0)
+    monkeypatch.setattr(bts.web, "fetch_bluesky_posts", lambda: [])
+    monkeypatch.setattr(bts.web, "load_scheduler_state", lambda date: {})
+    monkeypatch.setattr(bts.web, "load_all_picks", lambda: [{
+        "date": today,
+        "pick": {
+            "batter_name": "Test Batter",
+            "batter_id": 1,
+            "team": "BOS",
+            "pitcher_name": "Pitcher",
+            "p_game_hit": 0.7,
+            "game_pk": 123,
+            "game_time": f"{today}T23:00:00+00:00",
+        },
+        "double_down": None,
+        "result": None,
+        "bluesky_posted": False,
+    }])
+    monkeypatch.setattr(bts.web, "_build_live_game_data", lambda pick_data: ([
+        {
+            "game_status": "L",
+            "inning": "Top 1st",
+            "away_team": "BOS",
+            "home_team": "NYY",
+            "score": {"away": 0, "home": 0},
+            "batters": [],
+        }
+    ], {
+        "game_status": "L",
+        "inning": "Top 1st",
+        "away_team": "BOS",
+        "home_team": "NYY",
+        "score": {"away": 0, "home": 0},
+        "batters": [],
+    }))
+
+    html = bts.web.render_page()
+
+    assert 'id="live-game-section"' in html
+    assert 'data-game-status="L"' in html
+    assert 'document.getElementById("live-game-section")' in html
+    assert 'fetch("/api/live-html?date=" + date)' in html
+    assert 'document.getElementById("scorecard")' not in html

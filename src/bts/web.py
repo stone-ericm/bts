@@ -464,36 +464,7 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
     if game_status not in ("L", "F"):
         return ""
 
-    inning = scorecard_data.get("inning", "")
-    away_team = scorecard_data.get("away_team", "")
-    home_team = scorecard_data.get("home_team", "")
-    score = scorecard_data.get("score", {})
     batters = scorecard_data.get("batters", [])
-
-    away_runs = score.get("away", 0)
-    home_runs = score.get("home", 0)
-    # score_label is set by merge_scorecards() when picks are in different games
-    score_str = scorecard_data.get("score_label") or f"{away_team} {away_runs} – {home_runs} {home_team}"
-
-    live_badge = ""
-    if game_status == "L":
-        live_badge = (
-            '<span style="background:#c41e3a;color:#fff;font-size:9px;'
-            'font-weight:700;padding:2px 6px;border-radius:3px;'
-            'letter-spacing:1px;margin-right:8px;vertical-align:middle;">'
-            'LIVE</span>'
-        )
-    elif game_status == "F":
-        live_badge = (
-            '<span style="background:#666;color:#fff;font-size:9px;'
-            'font-weight:700;padding:2px 6px;border-radius:3px;'
-            'letter-spacing:1px;margin-right:8px;vertical-align:middle;">'
-            'FINAL</span>'
-        )
-
-    # score_label already includes per-game innings for double-downs
-    has_score_label = scorecard_data.get("score_label") is not None
-    inning_display = f" &middot; {inning}" if inning and game_status == "L" and not has_score_label else ""
 
     # Build table header: # | BATTERS | POS | up to 5 PA columns
     max_pas = max((len(b.get("pas", [])) for b in batters), default=0)
@@ -607,14 +578,7 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
 </table>
 </div>"""
 
-    header_html = (
-        f'<div style="margin-bottom:8px;font-size:13px;color:#041E42;'
-        f'font-weight:600;display:flex;align-items:center;">'
-        f'{live_badge}<span>{score_str}{inning_display}</span></div>'
-    )
-
     return f"""<div id="scorecard">
-{header_html}
 {table_html}
 {banner_html}
 </div>"""
@@ -662,6 +626,54 @@ def _render_game_tags(scorecards: list[dict | None]) -> str:
         '<div style="display:flex;gap:8px;justify-content:center;'
         'margin:8px 0 16px;">' + "".join(tags) + '</div>'
     )
+
+
+def render_live_game_section(
+    scorecards: list[dict | None],
+    scorecard_data: dict | None,
+) -> str:
+    """Render the auto-refreshed game-progress + scorecard dashboard block."""
+    game_tags_html = _render_game_tags(scorecards)
+    scorecard_html = render_scorecard_section(scorecard_data)
+    if not game_tags_html and not scorecard_html:
+        return ""
+    game_status = scorecard_data.get("game_status") if scorecard_data else ""
+    return (
+        f'<div id="live-game-section" data-game-status="{game_status or ""}">'
+        f'{game_tags_html}'
+        f'{scorecard_html}'
+        f'</div>'
+    )
+
+
+def _build_live_game_data(pick_data: dict) -> tuple[list[dict | None], dict | None]:
+    """Fetch scorecards for a pick file and return per-game + merged data."""
+    from bts.scorecard import fetch_live_scorecard, merge_scorecards
+
+    pick = pick_data.get("pick", {})
+    primary_game_pk = pick.get("game_pk")
+    if not primary_game_pk:
+        return [], None
+
+    dd = pick_data.get("double_down")
+    dd_game_pk = dd.get("game_pk") if dd else None
+    if dd_game_pk and dd_game_pk != primary_game_pk:
+        primary_ids = {pick.get("batter_id")}
+        primary_ids.discard(None)
+        dd_ids = {dd.get("batter_id")}
+        dd_ids.discard(None)
+        scorecards = [
+            fetch_live_scorecard(primary_game_pk, primary_ids),
+            fetch_live_scorecard(dd_game_pk, dd_ids),
+        ]
+        return scorecards, merge_scorecards(scorecards[0], scorecards[1])
+
+    batter_ids = {pick.get("batter_id")}
+    if dd:
+        batter_ids.add(dd.get("batter_id"))
+    batter_ids.discard(None)
+    scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
+    return [scorecard_data], scorecard_data
 
 
 def render_page():
@@ -936,37 +948,10 @@ def render_page():
         </div>"""
 
     # Live scorecard (between hero and pick history)
-    scorecard_html = ""
-    game_tags_html = ""
+    live_game_html = ""
     if today_pick:
-        tp = today_pick["pick"]
-        primary_game_pk = tp.get("game_pk")
-        if primary_game_pk:
-            dd = today_pick.get("double_down")
-            dd_game_pk = dd.get("game_pk") if dd else None
-
-            from bts.scorecard import fetch_live_scorecard, merge_scorecards
-
-            if dd_game_pk and dd_game_pk != primary_game_pk:
-                # Double-down is in a different game — fetch both and merge
-                primary_ids = {tp.get("batter_id")}
-                primary_ids.discard(None)
-                dd_ids = {dd.get("batter_id")}
-                dd_ids.discard(None)
-                sc1 = fetch_live_scorecard(primary_game_pk, primary_ids)
-                sc2 = fetch_live_scorecard(dd_game_pk, dd_ids)
-                scorecard_data = merge_scorecards(sc1, sc2)
-                game_tags_html = _render_game_tags([sc1, sc2])
-            else:
-                # Same game (or no double-down) — fetch once with both batter IDs
-                batter_ids = {tp.get("batter_id")}
-                if dd:
-                    batter_ids.add(dd.get("batter_id"))
-                batter_ids.discard(None)
-                scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
-                game_tags_html = _render_game_tags([scorecard_data])
-
-            scorecard_html = render_scorecard_section(scorecard_data)
+        scorecards, scorecard_data = _build_live_game_data(today_pick)
+        live_game_html = render_live_game_section(scorecards, scorecard_data)
 
     # MLB logo SVG (silhouette batter)
     mlb_logo = '<img src="https://www.mlbstatic.com/team-logos/league-on-dark/1.svg" class="mlb-logo" alt="MLB">'
@@ -1129,9 +1114,7 @@ def render_page():
 
         {hero}
 
-        {game_tags_html}
-
-        {scorecard_html}
+        {live_game_html}
 
         <div class="section-header">Pick History</div>
         <table>
@@ -1156,17 +1139,17 @@ def render_page():
     <script>
 (function() {{
     var date = "{today}";
-    var sc = document.getElementById("scorecard");
-    if (!sc) return;
+    var live = document.getElementById("live-game-section");
+    if (!live) return;
     var timer = setInterval(function() {{
         fetch("/api/live-html?date=" + date)
             .then(function(r) {{ return r.text(); }})
             .then(function(html) {{
                 if (!html || html.length < 10) return;
-                sc.outerHTML = html;
-                sc = document.getElementById("scorecard");
-                if (!sc) clearInterval(timer);
-                if (html.indexOf("FINAL") > -1) clearInterval(timer);
+                live.outerHTML = html;
+                live = document.getElementById("live-game-section");
+                if (!live) clearInterval(timer);
+                if (live && live.dataset.gameStatus === "F") clearInterval(timer);
             }})
             .catch(function() {{}});
     }}, 30000);
@@ -1274,76 +1257,29 @@ class Handler(BaseHTTPRequestHandler):
 
     def _handle_api_live(self, params):
         """Return live scorecard JSON for today's picked batters."""
-        from bts.scorecard import fetch_live_scorecard, merge_scorecards
         date = params.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
         pick_path = PICKS_DIR / f"{date}.json"
         if not pick_path.exists():
             self._json_response({"game_status": None})
             return
         pick_data = json.loads(pick_path.read_text())
-        pick = pick_data.get("pick", {})
-        primary_game_pk = pick.get("game_pk")
-        if not primary_game_pk:
+        _, result = _build_live_game_data(pick_data)
+        if result is None:
             self._json_response({"game_status": None})
             return
-        dd = pick_data.get("double_down")
-        dd_game_pk = dd.get("game_pk") if dd else None
 
-        if dd_game_pk and dd_game_pk != primary_game_pk:
-            # Double-down is in a different game — fetch both and merge
-            primary_ids = {pick.get("batter_id")}
-            primary_ids.discard(None)
-            dd_ids = {dd.get("batter_id")}
-            dd_ids.discard(None)
-            result = merge_scorecards(
-                fetch_live_scorecard(primary_game_pk, primary_ids),
-                fetch_live_scorecard(dd_game_pk, dd_ids),
-            )
-        else:
-            # Same game (or no double-down) — fetch once with both batter IDs
-            batter_ids = {pick.get("batter_id")}
-            if dd:
-                batter_ids.add(dd.get("batter_id"))
-            batter_ids.discard(None)
-            result = fetch_live_scorecard(primary_game_pk, batter_ids)
-
-        if result is None:
-            self._json_response({"game_status": None, "error": "feed unavailable"})
-            return
         self._json_response(result)
 
     def _handle_api_live_html(self, params):
-        """Return rendered scorecard HTML fragment for live polling."""
-        from bts.scorecard import fetch_live_scorecard, merge_scorecards
+        """Return rendered game-progress + scorecard HTML fragment for polling."""
         date = params.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
         pick_path = PICKS_DIR / f"{date}.json"
         if not pick_path.exists():
             self._html_response("")
             return
         pick_data = json.loads(pick_path.read_text())
-        pick = pick_data.get("pick", {})
-        primary_game_pk = pick.get("game_pk")
-        if not primary_game_pk:
-            self._html_response("")
-            return
-        dd = pick_data.get("double_down")
-        dd_game_pk = dd.get("game_pk") if dd else None
-        if dd_game_pk and dd_game_pk != primary_game_pk:
-            primary_ids = {pick.get("batter_id")}
-            primary_ids.discard(None)
-            dd_ids = {dd.get("batter_id")}
-            dd_ids.discard(None)
-            scorecard_data = merge_scorecards(
-                fetch_live_scorecard(primary_game_pk, primary_ids),
-                fetch_live_scorecard(dd_game_pk, dd_ids),
-            )
-        else:
-            batter_ids = {pick.get("batter_id")}
-            if dd:
-                batter_ids.add(dd.get("batter_id"))
-            batter_ids.discard(None)
-            scorecard_data = fetch_live_scorecard(primary_game_pk, batter_ids)
-        html = render_scorecard_section(scorecard_data)
+        scorecards, scorecard_data = _build_live_game_data(pick_data)
+        html = render_live_game_section(scorecards, scorecard_data)
         self._html_response(html)
 
     def _html_response(self, html):

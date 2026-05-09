@@ -446,12 +446,11 @@ class TestMergeScorecard:
         assert merged["game_status"] == "P"
 
 
-class TestRenderScorecardHeader:
-    """render_scorecard_section must include a header with LIVE/FINAL badge
-    and the combined score label. Without this, the #scorecard div polled
-    every 30s lacks any live status indicator — the only badges on the
-    dashboard come from _render_game_tags above the scorecard, and those
-    aren't in the polling payload so they go stale after page load.
+class TestRenderLiveGameSection:
+    """The compact game-progress tags are the single progress indicator.
+
+    They live in the same refreshed wrapper as the scorecard so the dashboard
+    does not show a stale progress pill above a fresh scorecard.
     """
 
     def _basic_scorecard(self, game_status, score_label=None):
@@ -468,40 +467,59 @@ class TestRenderScorecardHeader:
             ],
         }
 
-    def test_live_badge_present_when_game_live(self):
+    def test_scorecard_section_omits_duplicate_progress_header(self):
         from bts.web import render_scorecard_section
         html = render_scorecard_section(self._basic_scorecard("L"))
-        assert "LIVE" in html
+        assert "LIVE" not in html
         assert "FINAL" not in html
+        assert "BOS 1" not in html
+        assert 'id="scorecard"' in html
 
-    def test_final_badge_present_when_game_final(self):
-        from bts.web import render_scorecard_section
-        html = render_scorecard_section(self._basic_scorecard("F"))
-        assert "FINAL" in html
+    def test_live_game_section_has_live_progress_tag_and_scorecard(self):
+        from bts.web import render_live_game_section
+        sc = self._basic_scorecard("L")
+        html = render_live_game_section([sc], sc)
+
+        assert 'id="live-game-section"' in html
+        assert 'data-game-status="L"' in html
+        assert "Bot 3rd" in html
+        assert "BOS 1" in html
+        assert 'id="scorecard"' in html
         assert "LIVE" not in html
 
-    def test_score_label_rendered_for_double_down(self):
-        """When score_label is set (double-down across games), it should
-        appear in the header verbatim so the polling payload shows both
-        scores + innings."""
-        from bts.web import render_scorecard_section
-        label = "HOU 0-0 SEA · Top 1st | BOS 3-1 STL · Bot 3rd"
-        html = render_scorecard_section(self._basic_scorecard("L", score_label=label))
-        assert label in html
+    def test_live_game_section_has_final_progress_tag(self):
+        from bts.web import render_live_game_section
+        sc = self._basic_scorecard("F")
+        html = render_live_game_section([sc], sc)
 
-    def test_single_game_score_fallback(self):
-        """When no score_label (single pick), header should show the basic
-        away/home score line."""
-        from bts.web import render_scorecard_section
-        html = render_scorecard_section(self._basic_scorecard("L"))
-        # away team + runs + home team should all be in the header
-        assert "BOS" in html
+        assert 'data-game-status="F"' in html
+        assert "FINAL" in html
+        assert 'id="scorecard"' in html
+
+    def test_live_game_section_renders_each_double_down_game_tag(self):
+        """Double-downs in separate games show one compact tag per game."""
+        from bts.web import render_live_game_section
+        sc1 = self._basic_scorecard("L")
+        sc1["away_team"] = "HOU"
+        sc1["home_team"] = "SEA"
+        sc1["score"] = {"away": 0, "home": 0}
+        sc1["inning"] = "Top 1st"
+        sc2 = self._basic_scorecard("L")
+        merged = self._basic_scorecard("L", score_label="merged")
+        html = render_live_game_section([sc1, sc2], merged)
+
+        assert "HOU 0" in html
+        assert "SEA" in html
+        assert "BOS 1" in html
         assert "STL" in html
 
     def test_preview_status_still_returns_empty(self):
         """Status P must continue to return empty — no scorecard to render."""
-        from bts.web import render_scorecard_section
+        from bts.web import render_live_game_section, render_scorecard_section
         assert render_scorecard_section(self._basic_scorecard("P")) == ""
+        html = render_live_game_section([self._basic_scorecard("P")], self._basic_scorecard("P"))
+        assert "PRE" in html
+        assert 'id="scorecard"' not in html
 
 
 class TestBatterWithZeroPas:
