@@ -643,6 +643,53 @@ class TestPollResults:
         assert load_streak(tmp_path) == 4
         mock_check.assert_called_once()
 
+    @patch("bts.scheduler.poll_game_result")
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_run_result_polling_uses_schedule_void_when_live_feed_preview(
+        self, mock_check, mock_statuses, mock_poll, tmp_path,
+    ):
+        from bts.picks import load_pick, load_streak, save_pick, save_streak
+        from bts.scheduler import run_result_polling
+
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        save_streak(3, tmp_path)
+        mock_poll.side_effect = lambda game_pk: "preview" if game_pk == 100 else "final"
+        mock_statuses.return_value = {
+            100: {"abstract": "F", "detailed": "Postponed"},
+            200: {"abstract": "F", "detailed": "Final"},
+        }
+        mock_check.return_value = True
+
+        status = run_result_polling(100, "2026-04-04", tmp_path)
+
+        assert status == "final"
+        daily = load_pick("2026-04-04", tmp_path)
+        assert daily.result == "hit"
+        assert daily.slot_results == {"pick": "void", "double_down": "hit"}
+        assert load_streak(tmp_path) == 4
+        mock_check.assert_called_once()
+
+    @patch("bts.scheduler._now_et")
+    def test_run_result_polling_cap_does_not_overwrite_resolved_result(
+        self, mock_now, tmp_path,
+    ):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from bts.picks import load_pick, save_pick
+        from bts.scheduler import run_result_polling
+
+        daily = _daily_pick(100)
+        daily.result = "hit"
+        daily.slot_results = {"pick": "hit"}
+        save_pick(daily, tmp_path)
+        mock_now.return_value = datetime(2026, 4, 4, 5, 1, tzinfo=ZoneInfo("America/New_York"))
+
+        status = run_result_polling(100, "2026-04-04", tmp_path)
+
+        assert status == "final"
+        assert load_pick("2026-04-04", tmp_path).result == "hit"
+
 
 class TestRunDay:
     @patch("bts.scheduler.fetch_schedule")
