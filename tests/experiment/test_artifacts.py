@@ -10,6 +10,7 @@ from bts.experiment.artifacts import (
     compare_candidate_profile_pair,
     materialize_candidate_profile_pair,
     materialize_live_candidate_profile_pair,
+    verify_candidate_artifact_pair,
 )
 from bts.experiment.models import DecisionWeightedLightGBMExperiment
 
@@ -185,3 +186,125 @@ def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
     assert production["n_pas"].isna().all()
     assert candidate["variant"].unique().tolist() == ["candidate"]
     assert candidate["p_game_hit"].mean() > production["p_game_hit"].mean()
+
+
+def test_verify_candidate_artifact_pair_accepts_live_preoutcome_artifact(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    def fake_run_pipeline(date, **kwargs):
+        is_candidate = kwargs.get("blend_configs_override") is not None
+        base = 0.74 if is_candidate else 0.64
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [base, base - 0.05],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=tmp_path,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+
+    report = verify_candidate_artifact_pair(
+        artifact_dir=tmp_path,
+        expected_run_kind="live_forward_preoutcome",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=2,
+        require_live_preoutcome=True,
+        generated_at="2026-05-09T00:00:00+00:00",
+    )
+
+    assert report["ok"] is True
+    assert report["failure_count"] == 0
+    assert report["manifest"]["git_commit"] == "def456"
+    assert report["variants"]["production"]["rows"] == 2
+    assert report["variants"]["candidate"]["dates"] == ["2026-05-09"]
+
+
+def test_verify_candidate_artifact_pair_flags_wrong_git_commit(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    def fake_run_pipeline(date, **kwargs):
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [0.64, 0.59],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=tmp_path,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+
+    report = verify_candidate_artifact_pair(
+        artifact_dir=tmp_path,
+        expected_git_commit="wrong",
+        require_live_preoutcome=True,
+    )
+
+    assert report["ok"] is False
+    failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
+    assert "expected_git_commit" in failed_names
+
+
+def test_verify_candidate_artifact_pair_reports_missing_manifest(tmp_path):
+    report = verify_candidate_artifact_pair(artifact_dir=tmp_path)
+
+    assert report["ok"] is False
+    assert report["failure_count"] == 1
+    assert report["checks"][0]["name"] == "manifest_exists"
+
+
+def test_verify_candidate_artifact_pair_flags_non_null_live_outcomes(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    def fake_run_pipeline(date, **kwargs):
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [0.64, 0.59],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    manifest = materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=tmp_path,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+    production_path = tmp_path / manifest["profile_paths"]["production"]["2026-05-09"]
+    production = pd.read_parquet(production_path)
+    production.loc[0, "actual_hit"] = 1
+    production.to_parquet(production_path, index=False)
+
+    report = verify_candidate_artifact_pair(
+        artifact_dir=tmp_path,
+        require_live_preoutcome=True,
+    )
+
+    assert report["ok"] is False
+    failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
+    assert "production_2026-05-09_actual_hit_null" in failed_names

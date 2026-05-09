@@ -449,6 +449,361 @@ def _load_variant_profiles(
     return pd.concat(frames, ignore_index=True)
 
 
+def _append_check(
+    checks: list[dict[str, Any]],
+    name: str,
+    passed: bool,
+    detail: str | None = None,
+) -> None:
+    row = {"name": name, "status": "pass" if passed else "fail"}
+    if detail:
+        row["detail"] = detail
+    checks.append(row)
+
+
+def _series_all_equal(frame: pd.DataFrame, column: str, expected: Any) -> bool:
+    if column not in frame.columns:
+        return False
+    values = frame[column].dropna().unique().tolist()
+    if expected is None:
+        return len(values) == 0
+    return values == [expected]
+
+
+def _candidate_verification_report(
+    *,
+    artifact_root: Path,
+    manifest: dict,
+    variant_reports: dict[str, dict[str, Any]],
+    checks: list[dict[str, Any]],
+    generated_at: str | None,
+    save_path: str | Path | None,
+) -> dict:
+    failed = [check for check in checks if check["status"] != "pass"]
+    report = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at": generated_at or utc_timestamp(),
+        "artifact_dir": str(artifact_root),
+        "ok": not failed,
+        "failure_count": len(failed),
+        "manifest": {
+            "schema_version": manifest.get("schema_version"),
+            "git_commit": manifest.get("git_commit"),
+            "run_kind": manifest.get("run_kind"),
+            "production_deploy_claim": manifest.get("production_deploy_claim"),
+            "fresh_target_claim": manifest.get("fresh_target_claim"),
+            "candidate_name": manifest.get("candidate_name"),
+            "baseline_name": manifest.get("baseline_name"),
+            "date": manifest.get("date"),
+            "dates": manifest.get("dates"),
+            "top_n": manifest.get("top_n"),
+        },
+        "variants": variant_reports,
+        "checks": checks,
+    }
+
+    if save_path is not None:
+        _write_json(report, Path(save_path))
+        report["verification_path"] = str(save_path)
+    return report
+
+
+def verify_candidate_artifact_pair(
+    *,
+    artifact_dir: str | Path,
+    expected_run_kind: str | None = None,
+    expected_candidate: str | None = None,
+    expected_date: str | None = None,
+    expected_git_commit: str | None = None,
+    expected_top_n: int | None = None,
+    require_live_preoutcome: bool = False,
+    generated_at: str | None = None,
+    save_path: str | Path | None = None,
+) -> dict:
+    """Verify paired production/candidate ranked-slate artifact integrity.
+
+    This is a read-only post-export gate. It validates manifest fields,
+    referenced profile parquets, row-count metadata, and the stricter null
+    outcome contract for live pre-outcome artifacts.
+    """
+    artifact_root = Path(artifact_dir)
+    checks: list[dict[str, Any]] = []
+    manifest_path = artifact_root / "manifest.json"
+    _append_check(checks, "manifest_exists", manifest_path.exists(), str(manifest_path))
+    if not manifest_path.exists():
+        return _candidate_verification_report(
+            artifact_root=artifact_root,
+            manifest={},
+            variant_reports={},
+            checks=checks,
+            generated_at=generated_at,
+            save_path=save_path,
+        )
+
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except Exception as exc:
+        _append_check(checks, "manifest_json_readable", False, str(exc))
+        return _candidate_verification_report(
+            artifact_root=artifact_root,
+            manifest={},
+            variant_reports={},
+            checks=checks,
+            generated_at=generated_at,
+            save_path=save_path,
+        )
+    _append_check(checks, "manifest_json_readable", True)
+    _append_check(
+        checks,
+        "manifest_schema_version",
+        manifest.get("schema_version") == ARTIFACT_SCHEMA_VERSION,
+        f"expected {ARTIFACT_SCHEMA_VERSION!r}, found {manifest.get('schema_version')!r}",
+    )
+
+    run_kind = manifest.get("run_kind")
+    candidate_name = manifest.get("candidate_name")
+    date_key = expected_date or manifest.get("date")
+    if expected_run_kind is not None:
+        _append_check(
+            checks,
+            "expected_run_kind",
+            run_kind == expected_run_kind,
+            f"expected {expected_run_kind!r}, found {run_kind!r}",
+        )
+    if expected_candidate is not None:
+        _append_check(
+            checks,
+            "expected_candidate",
+            candidate_name == expected_candidate,
+            f"expected {expected_candidate!r}, found {candidate_name!r}",
+        )
+    if expected_date is not None:
+        _append_check(
+            checks,
+            "expected_date",
+            manifest.get("date") == expected_date
+            and manifest.get("dates") == [expected_date],
+            f"expected {expected_date!r}, found date={manifest.get('date')!r} "
+            f"dates={manifest.get('dates')!r}",
+        )
+    if expected_git_commit is not None:
+        _append_check(
+            checks,
+            "expected_git_commit",
+            manifest.get("git_commit") == expected_git_commit,
+            f"expected {expected_git_commit!r}, found {manifest.get('git_commit')!r}",
+        )
+    if expected_top_n is not None:
+        _append_check(
+            checks,
+            "expected_top_n",
+            manifest.get("top_n") == expected_top_n,
+            f"expected {expected_top_n}, found {manifest.get('top_n')!r}",
+        )
+
+    if require_live_preoutcome:
+        _append_check(
+            checks,
+            "live_run_kind",
+            run_kind == "live_forward_preoutcome",
+            f"found {run_kind!r}",
+        )
+        _append_check(
+            checks,
+            "live_fresh_target_claim",
+            manifest.get("fresh_target_claim") is True,
+            f"found {manifest.get('fresh_target_claim')!r}",
+        )
+        _append_check(
+            checks,
+            "live_production_deploy_claim",
+            manifest.get("production_deploy_claim") is False,
+            f"found {manifest.get('production_deploy_claim')!r}",
+        )
+        _append_check(
+            checks,
+            "live_git_commit_present",
+            bool(manifest.get("git_commit")),
+            f"found {manifest.get('git_commit')!r}",
+        )
+        _append_check(
+            checks,
+            "live_candidate_name_present",
+            bool(candidate_name),
+            f"found {candidate_name!r}",
+        )
+        _append_check(
+            checks,
+            "live_date_present",
+            bool(manifest.get("date")),
+            f"found {manifest.get('date')!r}",
+        )
+        _append_check(
+            checks,
+            "live_top_n_present",
+            manifest.get("top_n") is not None,
+            f"found {manifest.get('top_n')!r}",
+        )
+
+    profile_paths = manifest.get("profile_paths", {})
+    row_counts = manifest.get("row_counts", {})
+    day_counts = manifest.get("day_counts", {})
+    row_top_n = expected_top_n
+    if row_top_n is None and require_live_preoutcome:
+        row_top_n = manifest.get("top_n")
+    variant_reports: dict[str, dict[str, Any]] = {}
+
+    for variant in ("production", "candidate"):
+        variant_paths = profile_paths.get(variant, {})
+        _append_check(
+            checks,
+            f"{variant}_paths_present",
+            bool(variant_paths),
+            f"paths={variant_paths!r}",
+        )
+        frames = []
+        paths_report = {}
+        for key in sorted(variant_paths, key=_profile_path_sort_key):
+            rel_path = variant_paths[key]
+            path = artifact_root / rel_path
+            path_exists = path.exists()
+            _append_check(
+                checks,
+                f"{variant}_{key}_path_exists",
+                path_exists,
+                str(path),
+            )
+            if not path_exists:
+                continue
+            try:
+                frame = pd.read_parquet(path)
+            except Exception as exc:
+                _append_check(checks, f"{variant}_{key}_parquet_readable", False, str(exc))
+                continue
+            _append_check(checks, f"{variant}_{key}_parquet_readable", True)
+            frames.append(frame)
+            paths_report[key] = {
+                "path": str(path),
+                "rows": int(len(frame)),
+                "dates": sorted(str(d) for d in frame["date"].dropna().unique())
+                if "date" in frame.columns else [],
+            }
+
+            _append_check(
+                checks,
+                f"{variant}_{key}_columns",
+                list(frame.columns) == PROFILE_SCHEMA_COLUMNS,
+                f"found {list(frame.columns)!r}",
+            )
+            try:
+                validate_ranked_profiles(frame, label=f"{variant} {key}")
+            except ValueError as exc:
+                _append_check(checks, f"{variant}_{key}_ranked_schema", False, str(exc))
+            else:
+                _append_check(checks, f"{variant}_{key}_ranked_schema", True)
+
+            _append_check(
+                checks,
+                f"{variant}_{key}_artifact_schema_column",
+                _series_all_equal(frame, "artifact_schema_version", ARTIFACT_SCHEMA_VERSION),
+                f"expected {ARTIFACT_SCHEMA_VERSION!r}",
+            )
+            _append_check(
+                checks,
+                f"{variant}_{key}_run_kind_column",
+                _series_all_equal(frame, "run_kind", run_kind),
+                f"expected {run_kind!r}",
+            )
+            _append_check(
+                checks,
+                f"{variant}_{key}_variant_column",
+                _series_all_equal(frame, "variant", variant),
+                f"expected {variant!r}",
+            )
+            expected_model = (
+                manifest.get("baseline_name")
+                if variant == "production"
+                else manifest.get("candidate_name")
+            )
+            _append_check(
+                checks,
+                f"{variant}_{key}_model_name_column",
+                _series_all_equal(frame, "model_name", expected_model),
+                f"expected {expected_model!r}",
+            )
+            _append_check(
+                checks,
+                f"{variant}_{key}_git_commit_column",
+                _series_all_equal(frame, "git_commit", manifest.get("git_commit")),
+                f"expected {manifest.get('git_commit')!r}",
+            )
+
+            expected_rows = row_counts.get(variant, {}).get(key)
+            _append_check(
+                checks,
+                f"{variant}_{key}_row_count",
+                expected_rows == len(frame),
+                f"manifest={expected_rows!r}, actual={len(frame)}",
+            )
+            expected_days = day_counts.get(variant, {}).get(key)
+            actual_days = int(frame["date"].nunique()) if "date" in frame.columns else None
+            _append_check(
+                checks,
+                f"{variant}_{key}_day_count",
+                expected_days == actual_days,
+                f"manifest={expected_days!r}, actual={actual_days!r}",
+            )
+
+            if row_top_n is not None and "date" in frame.columns:
+                per_date_counts = frame.groupby("date").size()
+                _append_check(
+                    checks,
+                    f"{variant}_{key}_top_n_rows_per_date",
+                    (per_date_counts == row_top_n).all(),
+                    f"counts={per_date_counts.to_dict()!r}",
+                )
+            if require_live_preoutcome:
+                _append_check(
+                    checks,
+                    f"{variant}_{key}_actual_hit_null",
+                    "actual_hit" in frame.columns and frame["actual_hit"].isna().all(),
+                )
+                _append_check(
+                    checks,
+                    f"{variant}_{key}_n_pas_null",
+                    "n_pas" in frame.columns and frame["n_pas"].isna().all(),
+                )
+
+        if frames:
+            combined = pd.concat(frames, ignore_index=True)
+            variant_reports[variant] = {
+                "rows": int(len(combined)),
+                "dates": sorted(str(d) for d in combined["date"].dropna().unique())
+                if "date" in combined.columns else [],
+                "paths": paths_report,
+            }
+        else:
+            variant_reports[variant] = {"rows": 0, "dates": [], "paths": paths_report}
+
+    if require_live_preoutcome and date_key is not None:
+        for variant, summary in variant_reports.items():
+            _append_check(
+                checks,
+                f"{variant}_live_date_only",
+                summary["dates"] == [date_key],
+                f"expected {[date_key]!r}, found {summary['dates']!r}",
+            )
+
+    return _candidate_verification_report(
+        artifact_root=artifact_root,
+        manifest=manifest,
+        variant_reports=variant_reports,
+        checks=checks,
+        generated_at=generated_at,
+        save_path=save_path,
+    )
+
+
 def compare_candidate_profile_pair(
     *,
     artifact_dir: str | Path,

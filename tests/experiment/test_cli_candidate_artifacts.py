@@ -72,6 +72,75 @@ def test_compare_candidate_artifacts_cli_reports_primary_delta(tmp_path, monkeyp
     assert "Primary delta (p_57_mdp): +0.012300" in result.output
 
 
+def test_verify_candidate_artifacts_cli_reports_pass(tmp_path, monkeypatch):
+    from bts.cli import cli
+    import bts.experiment.artifacts as artifacts_mod
+
+    artifact_dir = tmp_path / "artifact"
+    artifact_dir.mkdir()
+    captured = {}
+
+    def fake_verify(**kwargs):
+        captured.update(kwargs)
+        return {
+            "ok": True,
+            "failure_count": 0,
+            "checks": [],
+        }
+
+    monkeypatch.setattr(artifacts_mod, "verify_candidate_artifact_pair", fake_verify)
+    result = CliRunner().invoke(cli, [
+        "experiment", "verify-candidate-artifacts",
+        "--artifact-dir", str(artifact_dir),
+        "--expected-run-kind", "live_forward_preoutcome",
+        "--expected-candidate", "decision_weighted_lgbm_v0",
+        "--expected-date", "2026-05-09",
+        "--expected-git-commit", "abc123",
+        "--expected-top-n", "10",
+        "--require-live-preoutcome",
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert captured["expected_run_kind"] == "live_forward_preoutcome"
+    assert captured["expected_candidate"] == "decision_weighted_lgbm_v0"
+    assert captured["expected_date"] == "2026-05-09"
+    assert captured["expected_git_commit"] == "abc123"
+    assert captured["expected_top_n"] == 10
+    assert captured["require_live_preoutcome"] is True
+    assert "Candidate artifact verification: PASS" in result.output
+
+
+def test_verify_candidate_artifacts_cli_fails_on_failed_check(tmp_path, monkeypatch):
+    from bts.cli import cli
+    import bts.experiment.artifacts as artifacts_mod
+
+    artifact_dir = tmp_path / "artifact"
+    artifact_dir.mkdir()
+
+    def fake_verify(**kwargs):
+        return {
+            "ok": False,
+            "failure_count": 1,
+            "checks": [
+                {
+                    "name": "expected_git_commit",
+                    "status": "fail",
+                    "detail": "expected abc123, found def456",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(artifacts_mod, "verify_candidate_artifact_pair", fake_verify)
+    result = CliRunner().invoke(cli, [
+        "experiment", "verify-candidate-artifacts",
+        "--artifact-dir", str(artifact_dir),
+    ])
+
+    assert result.exit_code != 0
+    assert "Candidate artifact verification: FAIL" in result.output
+    assert "FAIL expected_git_commit" in result.output
+
+
 def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, monkeypatch):
     from bts.cli import cli
     import bts.experiment.artifacts as artifacts_mod
