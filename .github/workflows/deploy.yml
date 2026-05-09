@@ -66,10 +66,23 @@ jobs:
             FAILED=0
             FAILURE_REASONS=""
 
-            # Check 1: scheduler service is active
-            if ! sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler; then
-              FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - bts-scheduler.service is not active"
+            # Check 1: scheduler service is active, or it exited cleanly after
+            # completing the day and is waiting for Restart=always to relaunch.
+            SCHEDULER_ACTIVE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active bts-scheduler 2>/dev/null)
+            if [ "$SCHEDULER_ACTIVE" != "active" ]; then
+              SCHEDULER_ACTIVE_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ActiveState --value)
+              SCHEDULER_SUB_STATE=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p SubState --value)
+              SCHEDULER_RESULT=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p Result --value)
+              SCHEDULER_EXIT_STATUS=$(sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user show bts-scheduler -p ExecMainStatus --value)
+              if [ "$SCHEDULER_ACTIVE_STATE" = "activating" ] && \
+                 [ "$SCHEDULER_SUB_STATE" = "auto-restart" ] && \
+                 [ "$SCHEDULER_RESULT" = "success" ] && \
+                 [ "$SCHEDULER_EXIT_STATUS" = "0" ]; then
+                echo "bts-scheduler.service completed cleanly and is waiting for Restart=always relaunch"
+              else
+                FAILED=1
+                FAILURE_REASONS="$FAILURE_REASONS\n  - bts-scheduler.service is not healthy (active=$SCHEDULER_ACTIVE active_state=$SCHEDULER_ACTIVE_STATE sub_state=$SCHEDULER_SUB_STATE result=$SCHEDULER_RESULT exit_status=$SCHEDULER_EXIT_STATUS)"
+              fi
             fi
 
             # Check 2: dashboard service is active
