@@ -391,6 +391,62 @@ def compare_candidate_artifacts(
     click.echo(f"Primary delta ({comparison['primary_metric']}): {delta_text}")
 
 
+@experiment.command("verify-candidate-artifacts")
+@click.option("--artifact-dir", required=True, type=click.Path(exists=True),
+              help="Directory containing manifest.json and profile parquets")
+@click.option("--expected-run-kind", default=None,
+              help="Require a specific manifest run_kind")
+@click.option("--expected-candidate", default=None,
+              help="Require a specific candidate name")
+@click.option("--expected-date", default=None,
+              help="Require a specific live artifact date (YYYY-MM-DD)")
+@click.option("--expected-git-commit", default=None,
+              help="Require the frozen git commit recorded in manifest/profiles")
+@click.option("--expected-top-n", default=None, type=int,
+              help="Require exactly this many rows per variant/date")
+@click.option("--require-live-preoutcome", is_flag=True,
+              help="Require live_forward_preoutcome posture and null outcomes")
+@click.option("--save", "save_path", default=None, type=click.Path(),
+              help="Optional verification report JSON path")
+def verify_candidate_artifacts(
+    artifact_dir: str,
+    expected_run_kind: str | None,
+    expected_candidate: str | None,
+    expected_date: str | None,
+    expected_git_commit: str | None,
+    expected_top_n: int | None,
+    require_live_preoutcome: bool,
+    save_path: str | None,
+):
+    """Verify paired production/candidate ranked-slate artifacts."""
+    from bts.experiment.artifacts import verify_candidate_artifact_pair
+
+    report = verify_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        expected_run_kind=expected_run_kind,
+        expected_candidate=expected_candidate,
+        expected_date=expected_date,
+        expected_git_commit=expected_git_commit,
+        expected_top_n=expected_top_n,
+        require_live_preoutcome=require_live_preoutcome,
+        save_path=save_path,
+    )
+    status = "PASS" if report["ok"] else "FAIL"
+    click.echo(
+        f"Candidate artifact verification: {status} "
+        f"({report['failure_count']} failures)"
+    )
+    click.echo(f"Manifest: {Path(artifact_dir) / 'manifest.json'}")
+    if save_path is not None:
+        click.echo(f"Saved verification: {save_path}")
+    if not report["ok"]:
+        failed = [check for check in report["checks"] if check["status"] != "pass"]
+        for check in failed[:10]:
+            detail = f" — {check['detail']}" if check.get("detail") else ""
+            click.echo(f"  FAIL {check['name']}{detail}")
+        raise click.ClickException("candidate artifact verification failed")
+
+
 @experiment.command("export-live-candidate-artifacts")
 @click.option("--date", required=True, help="Prediction date (YYYY-MM-DD)")
 @click.option("--candidate", required=True,
