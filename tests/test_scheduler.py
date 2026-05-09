@@ -122,6 +122,14 @@ class TestComputeWakeUpTime:
         assert wakeup.hour == 10
         assert wakeup.minute == 0
 
+    def test_default_uses_game_date_for_tomorrow_lookahead(self):
+        from bts.scheduler import compute_wakeup_time
+        games = [_game(100, "19:05", date="2026-04-05")]
+        wakeup = compute_wakeup_time(games, default_hour_et=10, early_buffer_min=60)
+        assert wakeup.date().isoformat() == "2026-04-05"
+        assert wakeup.hour == 10
+        assert wakeup.minute == 0
+
     def test_early_wakeup_for_international_game(self):
         from bts.scheduler import compute_wakeup_time
         games = [_game(100, "06:10"), _game(200, "19:05")]

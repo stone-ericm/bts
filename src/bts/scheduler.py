@@ -114,18 +114,17 @@ def compute_wakeup_time(
     If any game starts before the default init hour, wakes up
     early_buffer_min before the earliest game.
     """
-    today_et = datetime.now(ET).replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
-
     if not games:
-        return today_et
+        return datetime.now(ET).replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
 
     earliest = min(game_time_et(g) for g in games)
+    default_wakeup = earliest.replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
     early_wake = earliest - timedelta(minutes=early_buffer_min)
 
-    if early_wake < today_et:
+    if early_wake < default_wakeup:
         return early_wake
 
-    return today_et
+    return default_wakeup
 
 
 def resolve_fallback_deadline_min(
