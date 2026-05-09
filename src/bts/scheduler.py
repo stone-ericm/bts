@@ -681,8 +681,10 @@ def run_result_polling(
     game goes Final/Suspended. Returns "final", "suspended", or "unresolved".
     """
     from bts.picks import (
+        _is_void_detailed_state,
         active_streak_results,
         effective_daily_result,
+        get_game_statuses_detailed,
         load_pick,
         load_streak,
         resolve_daily_slot_results,
@@ -708,6 +710,8 @@ def run_result_polling(
             print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
                   file=sys.stderr)
             daily = load_pick(date, picks_dir)
+            if daily and daily.result in ("hit", "miss", "void"):
+                return "final"
             if daily:
                 daily.result = "unresolved"
                 save_pick(daily, picks_dir)
@@ -716,9 +720,19 @@ def run_result_polling(
         daily = load_pick(date, picks_dir)
         if not daily:
             return "unresolved"
+        if daily.result in ("hit", "miss", "void"):
+            return "final"
 
         # Check status of ALL games involved in today's picks
         statuses = {pk: poll_game_result(pk) for pk in all_game_pks}
+        try:
+            detailed_statuses = get_game_statuses_detailed(date)
+        except Exception:
+            detailed_statuses = {}
+        for pk in all_game_pks:
+            detailed = detailed_statuses.get(pk, {}).get("detailed")
+            if detailed and _is_void_detailed_state(detailed):
+                statuses[pk] = "final"
         status_summary = ", ".join(f"{pk}: {s}" for pk, s in statuses.items())
         print(f"  [{now.strftime('%H:%M ET')}] Games: {status_summary}", file=sys.stderr)
 
