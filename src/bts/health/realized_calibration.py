@@ -144,11 +144,13 @@ def check(
         log.warning(f"could not list {picks_dir}: {e}")
         return []
     for f in files:
+        if f.name.startswith("._"):
+            continue
         if ".shadow." in f.name or "scheduler" in f.name or "streak" in f.name:
             continue
         try:
             body = json.loads(f.read_text())
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
             continue
         try:
             pick_date = date.fromisoformat(body.get("date", ""))
