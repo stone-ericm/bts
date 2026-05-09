@@ -419,6 +419,7 @@ def _render_pa_cell(
 
     pitch_grid_html = _render_pitch_grid(pitches)
     diamond_html = _render_diamond(pa)
+    xba_html = _render_pa_xba(pa)
 
     # Out number: circled in MLB red
     out_html = ""
@@ -444,12 +445,15 @@ def _render_pa_cell(
     <div>{result_html}</div>
     <div>{pitch_grid_html}</div>
 </div>
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:2px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:2px;">
     <div>
         {out_html}
         {rbi_html}
     </div>
-    <div>{diamond_html}</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+        {diamond_html}
+        {xba_html}
+    </div>
 </div>"""
 
     return f'<td style="{td_style}">{inner}</td>'
@@ -462,66 +466,24 @@ def _format_xba(value: float) -> str:
     return rendered
 
 
-def _render_bip_xba_summary(scorecard_data: dict) -> str:
-    rows = []
-    for batter in scorecard_data.get("batters", []):
-        xba = batter.get("bip_xba")
-        bip_count = batter.get("bip_count")
-        if xba is None or not bip_count:
-            continue
-        try:
-            xba_value = float(xba)
-            bip_value = int(bip_count)
-        except (TypeError, ValueError):
-            continue
-        if xba_value < 0 or xba_value > 1 or bip_value <= 0:
-            continue
-        rows.append(
-            {
-                "name": batter.get("name", "Batter"),
-                "xba": xba_value,
-                "bip_count": bip_value,
-            }
-        )
-
-    if not rows:
+def _render_pa_xba(pa: dict) -> str:
+    hit_trajectory = pa.get("hit_trajectory") or {}
+    if not hit_trajectory.get("is_terminal_bip"):
         return ""
 
-    total_bip = sum(row["bip_count"] for row in rows)
-    combined_html = ""
-    if len(rows) > 1 and total_bip:
-        combined = sum(row["xba"] * row["bip_count"] for row in rows) / total_bip
-        combined_html = (
-            '<div style="display:flex;flex-direction:column;gap:2px;'
-            'min-width:104px;padding:7px 10px;border-radius:6px;'
-            'background:#041E42;color:#fff;">'
-            '<span style="font-size:10px;font-weight:600;text-transform:uppercase;">Combined</span>'
-            f'<span style="font-size:18px;font-weight:800;line-height:1;">{_format_xba(combined)}</span>'
-            f'<span style="font-size:10px;color:#dbeafe;">{total_bip} BIP</span>'
-            '</div>'
-        )
-
-    batter_html = "".join(
-        '<div style="display:flex;align-items:center;justify-content:space-between;'
-        'gap:12px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;'
-        'background:#fff;min-width:150px;">'
-        '<div style="min-width:0;">'
-        f'<div style="font-size:12px;font-weight:700;color:#041E42;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{row["name"]}</div>'
-        f'<div style="font-size:10px;color:#64748b;">{row["bip_count"]} BIP</div>'
-        '</div>'
-        f'<div style="font-size:18px;font-weight:800;color:#0f172a;">{_format_xba(row["xba"])}</div>'
-        '</div>'
-        for row in rows
-    )
+    xba = hit_trajectory.get("live_xba")
+    try:
+        xba_value = float(xba)
+    except (TypeError, ValueError):
+        return ""
+    if xba_value < 0 or xba_value > 1:
+        return ""
 
     return (
-        '<div style="margin-top:8px;padding:9px 10px;border:1px solid #e5e7eb;'
-        'border-radius:6px;background:#f8fafc;">'
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-        '<div style="font-size:11px;font-weight:700;color:#475569;'
-        'text-transform:uppercase;margin-right:2px;">Live BIP xBA est.</div>'
-        f'{combined_html}{batter_html}'
-        '</div>'
+        '<div title="Live estimated xBA" style="font-size:9px;font-weight:700;'
+        'line-height:1;color:#0f172a;background:#e0f2fe;border:1px solid #bae6fd;'
+        'border-radius:4px;padding:2px 4px;white-space:nowrap;">'
+        f'xBA {_format_xba(xba_value)}'
         '</div>'
     )
 
@@ -649,11 +611,8 @@ overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);table-layout:auto;">
 </table>
 </div>"""
 
-    bip_xba_html = _render_bip_xba_summary(scorecard_data)
-
     return f"""<div id="scorecard">
 {table_html}
-{bip_xba_html}
 {banner_html}
 </div>"""
 
