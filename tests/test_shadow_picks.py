@@ -81,3 +81,20 @@ class TestLoadShadowPick:
         assert loaded is not None
         assert loaded.bluesky_posted is True
         assert loaded.bluesky_uri == "at://did:plc:test/post/corrupt"
+
+    def test_load_backfills_double_down_pitcher_team(self, tmp_path):
+        daily = _make_daily("2026-04-13")
+        daily.double_down = Pick(
+            batter_name="Steven Kwan", batter_id=680757, team="CLE",
+            lineup_position=1, pitcher_name="Pitcher", pitcher_id=123,
+            p_game_hit=0.741, flags=[], projected_lineup=False,
+            game_pk=824859, game_time="2026-04-13T23:15:00Z",
+        )
+        data = asdict(daily)
+        data["double_down"].pop("pitcher_team")
+        (tmp_path / "2026-04-13.shadow.json").write_text(json.dumps(data))
+
+        loaded = load_shadow_pick("2026-04-13", tmp_path)
+        assert loaded is not None
+        assert loaded.double_down is not None
+        assert loaded.double_down.pitcher_team is None

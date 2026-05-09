@@ -247,6 +247,8 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         return None
     data = json.loads(path.read_text())
     data["pick"].setdefault("pitcher_team", None)
+    if data.get("double_down"):
+        data["double_down"].setdefault("pitcher_team", None)
     pick = Pick(**data["pick"])
     dd = Pick(**data["double_down"]) if data.get("double_down") else None
     return DailyPick(

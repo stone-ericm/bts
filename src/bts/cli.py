@@ -1621,6 +1621,102 @@ def shadow_report(picks_dir: str):
             click.echo(f"{date:<12} {pn:<15} {pp_str:<4}  {sn:<15} {sp_str:<4}  {res_str}")
 
 
+@cli.command(name="shadow-backfill-results")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+@click.option("--raw-dir", type=click.Path(), help="Cached raw game-feed directory; defaults to picks parent/raw")
+@click.option("--output", type=click.Path(), help="Write manifest JSON to this path")
+@click.option("--apply", "apply_changes", is_flag=True, help="Apply reviewed manifest changes")
+@click.option("--backup-dir", type=click.Path(), help="Required with --apply; stores pre-change shadow files")
+@click.option("--bootstrap", default=10_000, type=int, help="Bootstrap replicates for hit-rate gap CI")
+def shadow_backfill_results(
+    picks_dir: str,
+    raw_dir: str | None,
+    output: str | None,
+    apply_changes: bool,
+    backup_dir: str | None,
+    bootstrap: int,
+):
+    """Dry-run or apply DD-aware shadow-result recomputation.
+
+    The default mode is read-only: recompute every *.shadow.json result using
+    cached game JSON before MLB API fallback, emit an audit manifest, and
+    calculate paired shadow-vs-production quality metrics.
+
+    Rollback after an apply: copy *.shadow.json files from --backup-dir back to
+    --picks-dir.
+    """
+    from bts.shadow_eval import (
+        apply_shadow_backfill_manifest,
+        build_shadow_backfill_manifest,
+        write_manifest_json,
+    )
+
+    if apply_changes and not backup_dir:
+        raise click.UsageError("--backup-dir is required with --apply")
+
+    manifest = build_shadow_backfill_manifest(
+        Path(picks_dir),
+        raw_dir=Path(raw_dir) if raw_dir else None,
+        n_bootstrap=bootstrap,
+    )
+    counts = manifest["counts"]
+    mode = "APPLY" if apply_changes else "DRY RUN"
+    click.echo(
+        f"Shadow result backfill {mode}: "
+        f"{counts['shadow_files']} files, {counts['resolved']} resolved, "
+        f"{counts['unresolved']} unresolved, {counts['errors']} errors, "
+        f"{counts['would_change']} would change"
+    )
+    classes = counts["change_class"]
+    click.echo(
+        "Change classes: "
+        f"new={classes['new']}, changed={classes['changed']}, "
+        f"unchanged={classes['unchanged']}, skipped={classes['skipped']}, "
+        f"error={classes['error']}"
+    )
+    if classes["changed"]:
+        click.echo(
+            "Review required: changed rows overwrite an existing shadow result "
+            "with a DD-aware recomputation."
+        )
+        changed_dates = [
+            row["date"] for row in manifest["rows"]
+            if row["change_class"] == "changed"
+        ]
+        click.echo(f"Changed dates: {', '.join(changed_dates)}")
+
+    quality = manifest["quality_if_applied"]
+    prod_rate = quality["production_day_hit_rate"]["rate"]
+    shadow_rate = quality["shadow_day_hit_rate"]["rate"]
+    gap = quality["shadow_minus_production_hit_rate"]["value"]
+    if prod_rate is not None and shadow_rate is not None and gap is not None:
+        click.echo(
+            f"Quality if applied: production {prod_rate:.1%}, "
+            f"shadow {shadow_rate:.1%}, gap {gap:+.1%} "
+            f"(n={quality['n_evaluable_days']})"
+        )
+    else:
+        click.echo("Quality if applied: no fully evaluable paired days")
+
+    if apply_changes:
+        apply_result = apply_shadow_backfill_manifest(
+            manifest,
+            backup_dir=Path(backup_dir),
+        )
+        manifest["mode"] = "apply"
+        manifest["apply_result"] = apply_result
+        click.echo(
+            f"Applied {len(apply_result['applied'])} changes; "
+            f"skipped {len(apply_result['skipped'])}"
+        )
+    else:
+        click.echo("No files changed. Re-run with --apply and --backup-dir after review.")
+
+    if output:
+        write_manifest_json(manifest, Path(output))
+        click.echo(f"Wrote manifest: {output}")
+
+
 @cli.group()
 def state():
     """State management: export / regenerate / verify BTS state."""
