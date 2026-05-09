@@ -447,6 +447,54 @@ def verify_candidate_artifacts(
         raise click.ClickException("candidate artifact verification failed")
 
 
+@experiment.command("resolve-live-candidate-artifacts")
+@click.option("--artifact-dir", required=True, type=click.Path(exists=True),
+              help="Directory containing a live_forward_preoutcome manifest")
+@click.option("--output-dir", required=True, type=click.Path(),
+              help="Directory for the resolved artifact copy")
+@click.option("--data-dir", default="data/processed", type=click.Path(),
+              help="Processed parquet directory containing pa_YEAR.parquet")
+@click.option("--allow-partial", is_flag=True,
+              help="Write a resolved copy even when some outcomes are missing")
+@click.option("--overwrite", is_flag=True,
+              help="Replace an existing resolved manifest in --output-dir")
+@click.option("--save", "save_path", default=None, type=click.Path(),
+              help="Optional resolution report JSON path")
+def resolve_live_candidate_artifacts(
+    artifact_dir: str,
+    output_dir: str,
+    data_dir: str,
+    allow_partial: bool,
+    overwrite: bool,
+    save_path: str | None,
+):
+    """Join post-game outcomes onto a live-forward artifact copy."""
+    from bts.experiment.artifacts import resolve_live_candidate_artifact_pair
+
+    try:
+        report = resolve_live_candidate_artifact_pair(
+            artifact_dir=artifact_dir,
+            output_dir=output_dir,
+            data_dir=data_dir,
+            allow_partial=allow_partial,
+            overwrite=overwrite,
+            save_path=save_path,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    status = "COMPLETE" if report["complete"] else "PARTIAL"
+    click.echo(
+        f"Resolved live candidate artifacts: {status} "
+        f"({report['missing_count']} missing outcomes)"
+    )
+    click.echo(f"Source manifest: {report['source_manifest']}")
+    click.echo(f"Resolved manifest: {report['resolved_manifest']}")
+    if save_path is not None:
+        click.echo(f"Saved resolution: {save_path}")
+    if report["missing_count"] and not allow_partial:
+        raise click.ClickException("live candidate artifact resolution incomplete")
+
+
 @experiment.command("export-live-candidate-artifacts")
 @click.option("--date", required=True, help="Prediction date (YYYY-MM-DD)")
 @click.option("--candidate", required=True,

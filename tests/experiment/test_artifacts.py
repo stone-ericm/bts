@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pandas as pd
+import pytest
 
 from bts.experiment.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
@@ -10,6 +11,7 @@ from bts.experiment.artifacts import (
     compare_candidate_profile_pair,
     materialize_candidate_profile_pair,
     materialize_live_candidate_profile_pair,
+    resolve_live_candidate_artifact_pair,
     verify_candidate_artifact_pair,
 )
 from bts.experiment.models import DecisionWeightedLightGBMExperiment
@@ -308,3 +310,124 @@ def test_verify_candidate_artifact_pair_flags_non_null_live_outcomes(
     assert report["ok"] is False
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
     assert "production_2026-05-09_actual_hit_null" in failed_names
+
+
+def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    def fake_run_pipeline(date, **kwargs):
+        is_candidate = kwargs.get("blend_configs_override") is not None
+        base = 0.74 if is_candidate else 0.64
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [base, base - 0.05],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    manifest = materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=artifact_dir,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 0},
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 0},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=resolved_dir,
+        data_dir=data_dir,
+        generated_at="2026-05-10T00:00:00+00:00",
+        save_path=resolved_dir / "resolution.json",
+    )
+
+    assert report["complete"] is True
+    assert report["missing_count"] == 0
+    assert report["resolution_path"] == str(resolved_dir / "resolution.json")
+
+    resolved_manifest = json.loads((resolved_dir / "manifest.json").read_text())
+    assert resolved_manifest["run_kind"] == "live_forward_resolved"
+    assert resolved_manifest["source_run_kind"] == "live_forward_preoutcome"
+    assert resolved_manifest["outcome_missing_total"] == 0
+
+    source_production = pd.read_parquet(
+        artifact_dir / manifest["profile_paths"]["production"]["2026-05-09"]
+    )
+    assert source_production["actual_hit"].isna().all()
+
+    resolved_production = pd.read_parquet(
+        resolved_dir / manifest["profile_paths"]["production"]["2026-05-09"]
+    )
+    assert resolved_production["run_kind"].unique().tolist() == ["live_forward_resolved"]
+    assert resolved_production["actual_hit"].astype(int).tolist() == [1, 0]
+    assert resolved_production["n_pas"].astype(int).tolist() == [2, 1]
+    assert list(resolved_production.columns) == PROFILE_SCHEMA_COLUMNS
+
+
+def test_resolve_live_candidate_artifact_pair_fails_missing_outcome(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    def fake_run_pipeline(date, **kwargs):
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [0.64, 0.59],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=artifact_dir,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    with pytest.raises(ValueError, match="missing outcomes"):
+        resolve_live_candidate_artifact_pair(
+            artifact_dir=artifact_dir,
+            output_dir=resolved_dir,
+            data_dir=data_dir,
+        )
+
+    assert not (resolved_dir / "manifest.json").exists()
+
+    partial_dir = tmp_path / "partial"
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=partial_dir,
+        data_dir=data_dir,
+        allow_partial=True,
+        save_path=partial_dir / "resolution.json",
+    )
+
+    assert report["complete"] is False
+    assert report["missing_count"] == 2
+    saved_report = json.loads((partial_dir / "resolution.json").read_text())
+    assert isinstance(saved_report["missing_examples"][0]["date"], str)

@@ -141,6 +141,81 @@ def test_verify_candidate_artifacts_cli_fails_on_failed_check(tmp_path, monkeypa
     assert "FAIL expected_git_commit" in result.output
 
 
+def test_resolve_live_candidate_artifacts_cli_routes_to_resolver(tmp_path, monkeypatch):
+    from bts.cli import cli
+    import bts.experiment.artifacts as artifacts_mod
+
+    artifact_dir = tmp_path / "artifact"
+    artifact_dir.mkdir()
+    output_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    save_path = tmp_path / "resolution.json"
+    captured = {}
+
+    def fake_resolve(**kwargs):
+        captured.update(kwargs)
+        return {
+            "complete": False,
+            "missing_count": 2,
+            "source_manifest": str(artifact_dir / "manifest.json"),
+            "resolved_manifest": str(output_dir / "manifest.json"),
+        }
+
+    monkeypatch.setattr(
+        artifacts_mod,
+        "resolve_live_candidate_artifact_pair",
+        fake_resolve,
+    )
+    result = CliRunner().invoke(cli, [
+        "experiment", "resolve-live-candidate-artifacts",
+        "--artifact-dir", str(artifact_dir),
+        "--output-dir", str(output_dir),
+        "--data-dir", str(data_dir),
+        "--allow-partial",
+        "--overwrite",
+        "--save", str(save_path),
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert captured["artifact_dir"] == str(artifact_dir)
+    assert captured["output_dir"] == str(output_dir)
+    assert captured["data_dir"] == str(data_dir)
+    assert captured["allow_partial"] is True
+    assert captured["overwrite"] is True
+    assert captured["save_path"] == str(save_path)
+    assert "Resolved live candidate artifacts: PARTIAL" in result.output
+    assert "Saved resolution" in result.output
+
+
+def test_resolve_live_candidate_artifacts_cli_reports_resolution_error(
+    tmp_path,
+    monkeypatch,
+):
+    from bts.cli import cli
+    import bts.experiment.artifacts as artifacts_mod
+
+    artifact_dir = tmp_path / "artifact"
+    artifact_dir.mkdir()
+
+    def fake_resolve(**kwargs):
+        raise ValueError("missing outcomes for 1 live-forward artifact rows")
+
+    monkeypatch.setattr(
+        artifacts_mod,
+        "resolve_live_candidate_artifact_pair",
+        fake_resolve,
+    )
+    result = CliRunner().invoke(cli, [
+        "experiment", "resolve-live-candidate-artifacts",
+        "--artifact-dir", str(artifact_dir),
+        "--output-dir", str(tmp_path / "resolved"),
+    ])
+
+    assert result.exit_code != 0
+    assert "missing outcomes for 1 live-forward artifact rows" in result.output
+
+
 def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, monkeypatch):
     from bts.cli import cli
     import bts.experiment.artifacts as artifacts_mod
