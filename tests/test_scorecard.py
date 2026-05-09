@@ -670,6 +670,7 @@ class TestRenderLiveGameSection:
         html = render_scorecard_section(sc)
 
         assert "xBA .474" not in html
+        assert 'aria-hidden="true"' in html
 
     def test_scorecard_section_renders_per_pa_bip_xba_for_double_down(self):
         from bts.web import render_scorecard_section

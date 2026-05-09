@@ -85,6 +85,36 @@ class TestRenderPaCellFilledPrecedence:
         # The placeholder OUT badge is not added in filled cells
         assert ">OUT<" not in html
 
+    def test_completed_pa_uses_fixed_alignment_rows(self):
+        pa = {
+            "result": "G6",
+            "is_hit": False,
+            "out_number": 3,
+            "rbi": 0,
+            "pitches": [
+                {"number": 1, "call": "C", "is_strike": True},
+                {"number": 2, "call": "B", "is_strike": False},
+                {"number": 3, "call": "*B", "is_strike": False},
+                {"number": 4, "call": "B", "is_strike": False},
+                {"number": 5, "call": "X", "is_strike": False},
+            ],
+            "hit_trajectory": {
+                "type": "ground_ball",
+                "x": 140,
+                "y": 160,
+                "live_xba": 0.567,
+                "is_terminal_bip": True,
+            },
+            "runners": [],
+        }
+        html = _render_pa_cell(pa)
+
+        assert "padding:4px 4px 58px 4px" in html
+        assert "height:118px" in html
+        assert "position:absolute;left:4px;right:4px;bottom:4px" in html
+        assert "min-height:52px" in html
+        assert html.index("xBA .567") > html.index("</svg>")
+
     def test_in_progress_pa_ignores_lineup_status(self):
         pa = {
             "in_progress": True,
