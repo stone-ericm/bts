@@ -399,9 +399,9 @@ def _render_pa_cell(
     result_color = "#16a34a" if is_hit else "#333"
 
     td_style = (
-        f"border:1px solid #eee;vertical-align:top;padding:4px;"
+        f"border:1px solid #eee;vertical-align:top;padding:4px 4px 58px 4px;"
         f"width:100px;min-width:100px;background:{bg};"
-        f"position:relative;"
+        f"position:relative;height:118px;"
     )
 
     # Backwards К for called third strike
@@ -440,17 +440,18 @@ def _render_pa_cell(
         )
         rbi_html = f'<div style="margin-top:2px;">{dots}</div>'
 
-    # Layout: top row (result left, pitch grid right), bottom row (out+rbi left, diamond right)
+    # Reserve and anchor the lower scorecard band so diamond/xBA blocks align
+    # across PA columns even when pitch sequences wrap to different heights.
     inner = f"""<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:2px;">
     <div>{result_html}</div>
     <div>{pitch_grid_html}</div>
 </div>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:2px;">
-    <div>
+<div style="position:absolute;left:4px;right:4px;bottom:4px;display:flex;justify-content:space-between;align-items:flex-end;">
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;min-height:52px;">
         {out_html}
         {rbi_html}
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-height:52px;">
         {diamond_html}
         {xba_html}
     </div>
@@ -467,17 +468,18 @@ def _format_xba(value: float) -> str:
 
 
 def _render_pa_xba(pa: dict) -> str:
+    empty_slot = '<div aria-hidden="true" style="height:15px;"></div>'
     hit_trajectory = pa.get("hit_trajectory") or {}
     if not hit_trajectory.get("is_terminal_bip"):
-        return ""
+        return empty_slot
 
     xba = hit_trajectory.get("live_xba")
     try:
         xba_value = float(xba)
     except (TypeError, ValueError):
-        return ""
+        return empty_slot
     if xba_value < 0 or xba_value > 1:
-        return ""
+        return empty_slot
 
     return (
         '<div title="Live estimated xBA" style="font-size:9px;font-weight:700;'
