@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from functools import lru_cache
 import json
+import os
+from pathlib import Path
 
 from bts.data.schema import HIT_EVENTS
 from bts.util import retry_urlopen
 
 API_BASE = "https://statsapi.mlb.com"
+BIP_TRAJECTORIES = {"fly_ball", "ground_ball", "line_drive", "popup"}
+LIVE_XBA_DATA_DIR_ENV = "BTS_LIVE_XBA_DATA_DIR"
+LIVE_XBA_DEFAULT_DATA_DIR = "data/processed"
+LIVE_XBA_BIN_WIDTH = 5
+LIVE_XBA_MIN_SAMPLES = 40
+LIVE_XBA_PRIOR_SAMPLES = 30
 
 _RESULT_MAP = {
     "single": "1B",
@@ -88,6 +98,145 @@ def _extract_fielder_position(runners: list[dict]) -> int | None:
                         except (ValueError, TypeError):
                             pass
     return None
+
+
+def _parse_float(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _bin_live_xba_value(value: float, lower: int, upper: int) -> int:
+    bounded = min(max(value, lower), upper)
+    return round(bounded / LIVE_XBA_BIN_WIDTH) * LIVE_XBA_BIN_WIDTH
+
+
+def _recent_pa_paths(data_dir: str) -> list[Path]:
+    root = Path(data_dir)
+    parsed = []
+    for path in root.glob("pa_*.parquet"):
+        try:
+            year = int(path.stem.removeprefix("pa_"))
+        except ValueError:
+            continue
+        parsed.append((year, path))
+    parsed.sort()
+    if not parsed:
+        return []
+
+    current_year = datetime.now().year
+    prior_years = [(year, path) for year, path in parsed if year < current_year]
+    selected = prior_years[-5:] if prior_years else parsed[-5:]
+    return [path for _, path in selected]
+
+
+@lru_cache(maxsize=4)
+def _load_live_xba_model(data_dir: str) -> dict:
+    """Build a small empirical BIP xBA lookup from local PA history.
+
+    The model is intentionally coarse and cached: binned launch speed/angle
+    cells with a global prior. It exists only for dashboard display, not pick
+    logic, and returns an empty model if the PA history is unavailable.
+    """
+    try:
+        import pandas as pd
+    except Exception:
+        return {"cells": {}, "global_rate": None}
+
+    cells: dict[tuple[int, int], list[float]] = {}
+    total_hits = 0.0
+    total_count = 0
+
+    for path in _recent_pa_paths(data_dir):
+        try:
+            df = pd.read_parquet(
+                path,
+                columns=["launch_speed", "launch_angle", "is_hit"],
+            )
+        except Exception:
+            continue
+        df = df.dropna(subset=["launch_speed", "launch_angle", "is_hit"])
+        if df.empty:
+            continue
+
+        ev_bin = (
+            df["launch_speed"].clip(40, 125) / LIVE_XBA_BIN_WIDTH
+        ).round().astype(int) * LIVE_XBA_BIN_WIDTH
+        la_bin = (
+            df["launch_angle"].clip(-90, 90) / LIVE_XBA_BIN_WIDTH
+        ).round().astype(int) * LIVE_XBA_BIN_WIDTH
+        hits = df["is_hit"].astype(float)
+        grouped = hits.groupby([ev_bin, la_bin]).agg(["sum", "count"])
+
+        for (ev, la), row in grouped.iterrows():
+            key = (int(ev), int(la))
+            cell = cells.setdefault(key, [0.0, 0])
+            cell[0] += float(row["sum"])
+            cell[1] += int(row["count"])
+
+        total_hits += float(hits.sum())
+        total_count += int(hits.count())
+
+    global_rate = (total_hits / total_count) if total_count else None
+    return {"cells": cells, "global_rate": global_rate}
+
+
+def estimate_live_bip_xba(
+    launch_speed,
+    launch_angle,
+    data_dir: str | None = None,
+) -> float | None:
+    """Estimate xBA for a live BIP from launch speed and angle.
+
+    This is an empirical approximation from local PA history. It is not the
+    official Baseball Savant xBA, which is not reliably available mid-game.
+    """
+    ev = _parse_float(launch_speed)
+    la = _parse_float(launch_angle)
+    if ev is None or la is None:
+        return None
+
+    model_dir = data_dir or os.environ.get(LIVE_XBA_DATA_DIR_ENV, LIVE_XBA_DEFAULT_DATA_DIR)
+    model = _load_live_xba_model(model_dir)
+    cells = model.get("cells", {})
+    global_rate = model.get("global_rate")
+    if not cells or global_rate is None:
+        return None
+
+    ev_bin = _bin_live_xba_value(ev, 40, 125)
+    la_bin = _bin_live_xba_value(la, -90, 90)
+
+    best_hits = 0.0
+    best_count = 0
+    for radius in range(0, 5):
+        hits = 0.0
+        count = 0
+        for ev_offset in range(-radius, radius + 1):
+            for la_offset in range(-radius, radius + 1):
+                cell = cells.get(
+                    (
+                        ev_bin + ev_offset * LIVE_XBA_BIN_WIDTH,
+                        la_bin + la_offset * LIVE_XBA_BIN_WIDTH,
+                    )
+                )
+                if cell is None:
+                    continue
+                hits += cell[0]
+                count += cell[1]
+        if count:
+            best_hits = hits
+            best_count = count
+        if count >= LIVE_XBA_MIN_SAMPLES:
+            break
+
+    if best_count == 0:
+        return global_rate
+
+    smoothed = (
+        best_hits + global_rate * LIVE_XBA_PRIOR_SAMPLES
+    ) / (best_count + LIVE_XBA_PRIOR_SAMPLES)
+    return min(max(smoothed, 0.0), 1.0)
 
 
 def _slot_from_bo(bo_str: str | None) -> int | None:
@@ -222,18 +371,42 @@ def _extract_pa(play: dict) -> dict:
     # Hit trajectory from the in-play pitch event
     hit_trajectory: dict | None = None
     trajectory_str: str | None = None
-    for ev in play_events:
-        if ev.get("isPitch") and ev.get("hitData"):
-            hd = ev["hitData"]
-            trajectory_str = hd.get("trajectory")
-            coords = hd.get("coordinates", {})
-            hit_trajectory = {
-                "type": trajectory_str,
-                "x": coords.get("coordX"),
-                "y": coords.get("coordY"),
-                "launch_speed": hd.get("launchSpeed"),
-            }
-            break
+    hit_data_events = [
+        ev for ev in play_events
+        if ev.get("isPitch") and ev.get("hitData")
+    ]
+    in_play_hit_data_events = [
+        ev for ev in hit_data_events
+        if (
+            ev.get("details", {}).get("isInPlay")
+            or ev.get("details", {}).get("call", {}).get("code") in ("X", "D")
+        )
+    ]
+    hit_data_event = None
+    is_terminal_bip = False
+    if in_play_hit_data_events:
+        hit_data_event = in_play_hit_data_events[-1]
+        is_terminal_bip = True
+    elif hit_data_events:
+        hit_data_event = hit_data_events[-1]
+    if hit_data_event:
+        hd = hit_data_event["hitData"]
+        trajectory_str = hd.get("trajectory")
+        coords = hd.get("coordinates", {})
+        launch_speed = _parse_float(hd.get("launchSpeed"))
+        launch_angle = _parse_float(hd.get("launchAngle"))
+        live_xba = None
+        if is_terminal_bip and trajectory_str in BIP_TRAJECTORIES:
+            live_xba = estimate_live_bip_xba(launch_speed, launch_angle)
+        hit_trajectory = {
+            "type": trajectory_str,
+            "x": coords.get("coordX"),
+            "y": coords.get("coordY"),
+            "launch_speed": launch_speed,
+            "launch_angle": launch_angle,
+            "live_xba": live_xba,
+            "is_terminal_bip": is_terminal_bip,
+        }
 
     # Fielder position for field_out / field_error result codes
     fielder_pos = _extract_fielder_position(runners)
@@ -300,6 +473,29 @@ def _extract_pa(play: dict) -> dict:
         "runners": runner_movements,
         "pitcher_id": matchup.get("pitcher", {}).get("id"),
         "pitcher_name": matchup.get("pitcher", {}).get("fullName"),
+    }
+
+
+def _summarize_bip_xba(pas: list[dict]) -> dict:
+    values = []
+    for pa in pas:
+        hit_trajectory = pa.get("hit_trajectory") or {}
+        if not hit_trajectory.get("is_terminal_bip"):
+            continue
+        if hit_trajectory.get("type") not in BIP_TRAJECTORIES:
+            continue
+        xba = _parse_float(hit_trajectory.get("live_xba"))
+        if xba is None:
+            continue
+        values.append(xba)
+
+    if not values:
+        return {}
+
+    return {
+        "bip_count": len(values),
+        "bip_xba": sum(values) / len(values),
+        "bip_xba_source": "live_estimate",
     }
 
 
@@ -448,19 +644,20 @@ def extract_batter_pas(feed: dict, batter_ids: set[int]) -> dict:
         else:
             lineup_status, batters_away = "not_in_lineup", None
 
-        batters.append(
-            {
-                "batter_id": batter_id,
-                "name": name,
-                "position": position,
-                "lineup_position": lineup_position,
-                "batting_hand": bat_side,
-                "slash_line": slash_line,
-                "pas": batter_pas.get(batter_id, []),
-                "lineup_status": lineup_status,
-                "batters_away": batters_away,
-            }
-        )
+        pas = batter_pas.get(batter_id, [])
+        batter = {
+            "batter_id": batter_id,
+            "name": name,
+            "position": position,
+            "lineup_position": lineup_position,
+            "batting_hand": bat_side,
+            "slash_line": slash_line,
+            "pas": pas,
+            "lineup_status": lineup_status,
+            "batters_away": batters_away,
+        }
+        batter.update(_summarize_bip_xba(pas))
+        batters.append(batter)
 
     # Sort by lineup position (None last)
     batters.sort(key=lambda b: (b["lineup_position"] is None, b["lineup_position"] or 0))
@@ -518,11 +715,6 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
     merged["score_label"] = f"{label1} | {label2}"
 
     return merged
-
-
-# ---------------------------------------------------------------------------
-# Network layer
-# ---------------------------------------------------------------------------
 
 
 def fetch_live_scorecard(game_pk: int, batter_ids: set[int]) -> dict | None:

@@ -3,7 +3,13 @@ import json
 import copy
 import pytest
 from unittest.mock import patch
-from bts.scorecard import format_result_code, extract_batter_pas, fetch_live_scorecard, merge_scorecards
+from bts.scorecard import (
+    format_result_code,
+    extract_batter_pas,
+    fetch_live_scorecard,
+    merge_scorecards,
+    estimate_live_bip_xba,
+)
 
 
 # Minimal game feed fixture — one PA for batter 650490 (Diaz)
@@ -52,6 +58,7 @@ SAMPLE_PLAY = {
                 "trajectory": "fly_ball",
                 "coordinates": {"coordX": 212.7, "coordY": 115.7},
                 "launchSpeed": 84.5,
+                "launchAngle": 42.0,
             },
             "count": {"balls": 1, "strikes": 1},
         },
@@ -241,6 +248,98 @@ class TestExtractBatterPas:
         pa = result["batters"][0]["pas"][0]
         assert pa["hit_trajectory"]["type"] == "fly_ball"
         assert pa["hit_trajectory"]["x"] == 212.7
+        assert pa["hit_trajectory"]["launch_speed"] == 84.5
+        assert pa["hit_trajectory"]["launch_angle"] == 42.0
+        assert pa["hit_trajectory"]["is_terminal_bip"] is True
+
+    def test_live_bip_xba_summary(self, monkeypatch):
+        monkeypatch.setattr("bts.scorecard.estimate_live_bip_xba", lambda ls, la: 0.321)
+
+        result = extract_batter_pas(SAMPLE_FEED, {650490})
+
+        batter = result["batters"][0]
+        pa = batter["pas"][0]
+        assert pa["hit_trajectory"]["live_xba"] == 0.321
+        assert batter["bip_count"] == 1
+        assert batter["bip_xba"] == 0.321
+        assert batter["bip_xba_source"] == "live_estimate"
+
+    def test_live_bip_xba_uses_terminal_in_play_hit_data(self, monkeypatch):
+        feed = copy.deepcopy(SAMPLE_FEED)
+        calls = []
+
+        def fake_estimate(launch_speed, launch_angle):
+            calls.append((launch_speed, launch_angle))
+            return 0.321
+
+        monkeypatch.setattr("bts.scorecard.estimate_live_bip_xba", fake_estimate)
+        feed["liveData"]["plays"]["allPlays"][0]["playEvents"].insert(
+            2,
+            {
+                "isPitch": True,
+                "details": {
+                    "call": {"code": "F", "description": "Foul"},
+                    "isStrike": True,
+                    "isBall": False,
+                    "isInPlay": False,
+                },
+                "pitchData": {"startSpeed": 95.0},
+                "hitData": {
+                    "trajectory": "line_drive",
+                    "coordinates": {"coordX": 100.0, "coordY": 100.0},
+                    "launchSpeed": 120.0,
+                    "launchAngle": 10.0,
+                },
+                "count": {"balls": 1, "strikes": 2},
+            },
+        )
+
+        result = extract_batter_pas(feed, {650490})
+
+        pa = result["batters"][0]["pas"][0]
+        assert pa["hit_trajectory"]["launch_speed"] == 84.5
+        assert pa["hit_trajectory"]["launch_angle"] == 42.0
+        assert calls == [(84.5, 42.0)]
+
+    def test_live_bip_xba_ignores_non_terminal_foul_hit_data(self, monkeypatch):
+        feed = copy.deepcopy(SAMPLE_FEED)
+        calls = []
+
+        def fake_estimate(launch_speed, launch_angle):
+            calls.append((launch_speed, launch_angle))
+            return 0.321
+
+        monkeypatch.setattr("bts.scorecard.estimate_live_bip_xba", fake_estimate)
+        play = feed["liveData"]["plays"]["allPlays"][0]
+        play["result"]["event"] = "Strikeout"
+        play["result"]["eventType"] = "strikeout"
+        play["result"]["isOut"] = True
+        play["playEvents"][-1] = {
+            "isPitch": True,
+            "details": {
+                "call": {"code": "F", "description": "Foul"},
+                "isStrike": True,
+                "isBall": False,
+                "isInPlay": False,
+            },
+            "pitchData": {"startSpeed": 95.0},
+            "hitData": {
+                "trajectory": "line_drive",
+                "coordinates": {"coordX": 100.0, "coordY": 100.0},
+                "launchSpeed": 120.0,
+                "launchAngle": 10.0,
+            },
+            "count": {"balls": 1, "strikes": 2},
+        }
+
+        result = extract_batter_pas(feed, {650490})
+
+        batter = result["batters"][0]
+        pa = batter["pas"][0]
+        assert pa["hit_trajectory"]["is_terminal_bip"] is False
+        assert pa["hit_trajectory"]["live_xba"] is None
+        assert "bip_xba" not in batter
+        assert calls == []
 
     def test_runner_movement(self):
         result = extract_batter_pas(SAMPLE_FEED, {650490})
@@ -521,6 +620,51 @@ class TestRenderLiveGameSection:
         assert "PRE" in html
         assert 'id="scorecard"' not in html
 
+    def test_scorecard_section_renders_bip_xba_inside_scorecard(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("L")
+        sc["batters"][0]["bip_count"] = 5
+        sc["batters"][0]["bip_xba"] = 0.474
+
+        html = render_scorecard_section(sc)
+
+        assert 'id="scorecard"' in html
+        assert "BIP xBA" in html
+        assert ".474" in html
+        assert "5 BIP" in html
+        assert html.index("BIP xBA") > html.index("</table>")
+
+    def test_scorecard_section_omits_bip_xba_without_balls_in_play(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("L")
+        sc["batters"][0]["bip_count"] = 0
+        sc["batters"][0]["bip_xba"] = 0.000
+
+        html = render_scorecard_section(sc)
+
+        assert "BIP xBA" not in html
+
+    def test_scorecard_section_renders_combined_bip_xba_for_double_down(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("L")
+        sc["batters"] = [
+            {"name": "Anthony", "batter_id": 1, "lineup_position": 1,
+             "position": "RF", "slash_line": ".280/.350/.450", "pas": [],
+             "bip_count": 2, "bip_xba": 0.400},
+            {"name": "Diaz", "batter_id": 2, "lineup_position": 2,
+             "position": "DH", "slash_line": ".300/.380/.500", "pas": [],
+             "bip_count": 3, "bip_xba": 0.600},
+        ]
+
+        html = render_scorecard_section(sc)
+
+        assert "Combined" in html
+        assert ".520" in html
+        assert "5 BIP" in html
+
 
 class TestBatterWithZeroPas:
     def test_batter_appears_with_no_pas(self):
@@ -567,6 +711,36 @@ class TestFetchLiveScorecard:
         mock_urlopen.side_effect = Exception("network error")
         result = fetch_live_scorecard(823730, {650490})
         assert result is None
+
+
+class TestEstimateLiveBipXba:
+    def test_uses_nearby_empirical_cells(self, monkeypatch):
+        monkeypatch.setattr(
+            "bts.scorecard._load_live_xba_model",
+            lambda data_dir: {
+                "global_rate": 0.300,
+                "cells": {
+                    (85, 40): [2.0, 4],
+                },
+            },
+        )
+
+        result = estimate_live_bip_xba(84.5, 42.0)
+
+        expected = (2.0 + 0.300 * 30) / (4 + 30)
+        assert result == pytest.approx(expected)
+
+    def test_returns_none_without_launch_metrics(self):
+        assert estimate_live_bip_xba(None, 12.0) is None
+        assert estimate_live_bip_xba(95.0, None) is None
+
+    def test_returns_none_without_model(self, monkeypatch):
+        monkeypatch.setattr(
+            "bts.scorecard._load_live_xba_model",
+            lambda data_dir: {"global_rate": None, "cells": {}},
+        )
+
+        assert estimate_live_bip_xba(95.0, 12.0) is None
 
 
 # ---------------------------------------------------------------------------
