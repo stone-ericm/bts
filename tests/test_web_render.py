@@ -5,7 +5,9 @@ endpoint) to avoid mixing concerns.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -212,3 +214,49 @@ def test_render_page_shows_void_slot(monkeypatch):
     assert "Voided Batter" in html
     assert '<span title="Void">VOID</span>' in html
     assert "HIT" in html
+    assert "POSTED" in html
+    assert "NOT POSTED" not in html
+
+
+def test_api_live_html_uses_pick_result_for_resolved_banner(monkeypatch, tmp_path):
+    import bts.web
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    monkeypatch.setattr(bts.web, "PICKS_DIR", tmp_path)
+    (tmp_path / f"{today}.json").write_text(json.dumps({
+        "date": today,
+        "pick": {"batter_id": 1, "game_pk": 123},
+        "double_down": {"batter_id": 2, "game_pk": 456},
+        "result": "hit",
+        "slot_results": {"pick": "void", "double_down": "hit"},
+    }))
+    scorecard = {
+        "game_status": "F",
+        "inning": "",
+        "away_team": "ATH",
+        "home_team": "BAL",
+        "score": {"away": 6, "home": 2},
+        "batters": [
+            {"name": "Voided Batter", "batter_id": 1, "lineup_position": 1,
+             "position": "LF", "pas": []},
+            {"name": "Active Batter", "batter_id": 2, "lineup_position": 5,
+             "position": "RF", "pas": [{
+                 "result": "2B",
+                 "is_hit": True,
+                 "pitches": [],
+                 "runners": [{"start": None, "end": "2B", "is_out": False}],
+             }]},
+        ],
+    }
+    monkeypatch.setattr(
+        bts.web,
+        "_build_live_game_data",
+        lambda pick_data: ([scorecard], scorecard),
+    )
+    responses = []
+    handler = SimpleNamespace(_html_response=responses.append)
+
+    bts.web.Handler._handle_api_live_html(handler, {"date": [today]})
+
+    assert "HIT! BTS pick successful" in responses[0]
+    assert "Final — pick missed" not in responses[0]

@@ -490,7 +490,10 @@ def _render_pa_xba(pa: dict) -> str:
     )
 
 
-def render_scorecard_section(scorecard_data: dict | None) -> str:
+def render_scorecard_section(
+    scorecard_data: dict | None,
+    pick_data: dict | None = None,
+) -> str:
     """Render the full live scorecard HTML section."""
     if not scorecard_data:
         return ""
@@ -561,7 +564,33 @@ def render_scorecard_section(scorecard_data: dict | None) -> str:
     any_hits = any(any(pa.get("is_hit") for pa in b.get("pas", [])) for b in batters)
     has_pas = any(b.get("pas") for b in batters)
 
-    if all_hits:
+    resolved_result = pick_data.get("result") if pick_data else None
+    slot_results = pick_data.get("slot_results", {}) if pick_data else {}
+    resolved_both_batters_hit = (
+        sum(1 for value in slot_results.values() if value == "hit") > 1
+        or (
+            not slot_results
+            and bool(pick_data and pick_data.get("double_down"))
+            and len(batters) > 1
+            and all_hits
+        )
+    )
+
+    if resolved_result == "hit":
+        banner_bg = "#d4edda"
+        banner_color = "#155724"
+        banner_text = "HIT! BTS pick successful" + (
+            " — both batters!" if resolved_both_batters_hit else ""
+        )
+    elif resolved_result == "miss":
+        banner_bg = "#f8d7da"
+        banner_color = "#721c24"
+        banner_text = "Final — pick missed"
+    elif resolved_result == "void":
+        banner_bg = "#e2e3e5"
+        banner_color = "#495057"
+        banner_text = "Final — pick voided"
+    elif all_hits:
         banner_bg = "#d4edda"
         banner_color = "#155724"
         banner_text = "HIT! BTS pick successful" + (" — both batters!" if len(batters) > 1 else "")
@@ -666,10 +695,11 @@ def _render_game_tags(scorecards: list[dict | None]) -> str:
 def render_live_game_section(
     scorecards: list[dict | None],
     scorecard_data: dict | None,
+    pick_data: dict | None = None,
 ) -> str:
     """Render the auto-refreshed game-progress + scorecard dashboard block."""
     game_tags_html = _render_game_tags(scorecards)
-    scorecard_html = render_scorecard_section(scorecard_data)
+    scorecard_html = render_scorecard_section(scorecard_data, pick_data=pick_data)
     if not game_tags_html and not scorecard_html:
         return ""
     game_status = scorecard_data.get("game_status") if scorecard_data else ""
@@ -872,25 +902,22 @@ def render_page():
                 pass
         is_locked = pick_locked_state or posted or result is not None or game_started
         # Two badges stacked: top = LOCKED/PENDING (or HIT/MISS once the game is over),
-        # bottom = POSTED/NOT POSTED. Posted state is hidden once the game has resolved.
+        # bottom = POSTED/NOT POSTED. Posting state remains independent after resolution.
         if result == "hit":
             status_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
-            posted_badge = ""
         elif result == "miss":
             status_badge = '<span class="lock-badge locked" style="background:#c41e3a;">MISS &#10007;</span>'
-            posted_badge = ""
         elif result == "void":
             status_badge = '<span class="lock-badge locked" style="background:#6b7280;">VOID</span>'
-            posted_badge = ""
         else:
             if is_locked:
                 status_badge = '<span class="lock-badge locked">LOCKED</span>'
             else:
                 status_badge = '<span class="lock-badge pending">PENDING</span>'
-            if posted:
-                posted_badge = '<span class="lock-badge posted">POSTED</span>'
-            else:
-                posted_badge = '<span class="lock-badge not-posted">NOT POSTED</span>'
+        if posted:
+            posted_badge = '<span class="lock-badge posted">POSTED</span>'
+        else:
+            posted_badge = '<span class="lock-badge not-posted">NOT POSTED</span>'
         lock_badge = (
             f'<span style="display:inline-flex;flex-direction:column;'
             f'gap:4px;margin-left:8px;align-items:flex-start;vertical-align:middle;">'
@@ -998,7 +1025,7 @@ def render_page():
     live_game_html = ""
     if today_pick:
         scorecards, scorecard_data = _build_live_game_data(today_pick)
-        live_game_html = render_live_game_section(scorecards, scorecard_data)
+        live_game_html = render_live_game_section(scorecards, scorecard_data, today_pick)
 
     # MLB logo SVG (silhouette batter)
     mlb_logo = '<img src="https://www.mlbstatic.com/team-logos/league-on-dark/1.svg" class="mlb-logo" alt="MLB">'
@@ -1327,7 +1354,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         pick_data = json.loads(pick_path.read_text())
         scorecards, scorecard_data = _build_live_game_data(pick_data)
-        html = render_live_game_section(scorecards, scorecard_data)
+        html = render_live_game_section(scorecards, scorecard_data, pick_data)
         self._html_response(html)
 
     def _html_response(self, html):
