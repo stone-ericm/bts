@@ -989,6 +989,13 @@ def build_audit(
                 "This script validates surface shape and joins. It does not prove "
                 "the surface was generated with a leak-free training cutoff."
             ),
+            "historical_backtest_oracle_exposure_caveat": (
+                "Standard bts simulate backtest profiles are built from realized "
+                "PA rows: the candidate universe and n_pas come from actual game "
+                "participation, not an at-lock lineup/exposure forecast. Those "
+                "surfaces are useful diagnostics but are not production-decision "
+                "truth without additional provenance."
+            ),
             "leaderboard_join_key": "date + batter_id",
             "leaderboard_join_key_caveat": (
                 "Leaderboard pick rows do not carry game_pk, so same-date "

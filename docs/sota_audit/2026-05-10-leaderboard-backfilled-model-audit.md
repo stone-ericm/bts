@@ -7,6 +7,12 @@ against one or more backfilled ranked model surfaces.
 **Status**: pre-registered implementation path; no production policy edit is
 supported by this memo.
 
+**Smoke-stage info-set verdict**: the copied `backtest_2026.parquet` is not a
+valid at-lock production-decision surface. The backtest path is walk-forward for
+model training and shifted rolling features, but it ranks over realized PA rows
+and aggregates over actual `n_pas`. That is retrospective lineup/exposure
+information.
+
 ## Question
 
 Can we learn whether leaderboard players are concentrating on batter-days that
@@ -65,11 +71,20 @@ walk-forward:
 - `blend_walk_forward` trains each test date on `train_pool` plus
   `test_data[test_data["date"] < day]`, then predicts only that day's rows.
 
-This supports treating a freshly generated `backtest_2026.parquet` as a
-leak-aware current-model backfill if it came from that command path. It still
-does not prove the artifact is historical-production truth, and it does not
-prove candidate artifacts were trained without 2026 leakage. Each surface needs
-its own provenance or manifest before any SOTA claim.
+This supports treating the training and rolling-feature side of a freshly
+generated `backtest_2026.parquet` as walk-forward if it came from that command
+path. It does **not** support treating the surface as a decision-time BTS
+surface. `blend_walk_forward` predicts on `day_data` from the realized PA table,
+then ranks batter-games after aggregating over actual PA rows:
+
+- the candidate universe is restricted to batters who actually appeared,
+- scratches and lineup misses are removed by construction,
+- `p_game_hit` is aggregated over actual `n_pas`, not an at-lock PA forecast.
+
+So the copied `backtest_2026.parquet` is an oracle-exposure diagnostic surface.
+It is not historical-production truth, and it is not a valid proof that the
+model would have beaten public consensus at lock time. Candidate artifacts need
+their own provenance or manifest before any SOTA claim.
 
 ## Output Contract
 
@@ -104,7 +119,7 @@ Inputs:
 - leaderboard coverage: 577 user-pick files, 515 non-empty users, 28,568
   deduped pick rows, 45 pick dates
 
-Fixed-cohort consensus versus the copied production-like backfill:
+Fixed-cohort consensus versus the copied oracle-exposure backfill:
 
 | Metric | Value |
 |---|---:|
@@ -126,10 +141,14 @@ Top-k overlap on dates covered by the surface:
 | Individual fixed-cohort picks in model top-k | 0.039 | 0.067 | 0.138 | 0.214 |
 
 Read: on this partial copied surface, leaderboard consensus is mostly outside
-the model top 10, but it did not beat the backfilled model on resolved
-rank-matched disagreement units. This argues for treating leaderboard behavior
-as a policy-mining clue and candidate-generation target, not as a direct
-"copy public consensus" rule.
+the model top 10, but the surface itself has retrospective exposure
+information. The model's apparent win on resolved rank-matched disagreement
+units cannot be read as a valid at-lock production result. The defensible clue
+is narrower: leaderboard behavior often points to batters outside the model's
+retrospective top 10, so it may be useful as a policy-mining and
+candidate-generation target. It does not support a direct "copy public
+consensus" rule, and it does not support the backfilled model as an oracle for
+future production decisions.
 
 ## Constraints
 

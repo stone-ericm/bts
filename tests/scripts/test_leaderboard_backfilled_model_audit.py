@@ -184,6 +184,7 @@ def test_build_audit_compares_fixed_consensus_to_backfilled_surface(tmp_path):
     assert output.exists()
     assert report["schema_version"] == "leaderboard_backfilled_model_audit_v1"
     assert report["no_policy_edit_supported"] is True
+    assert "historical_backtest_oracle_exposure_caveat" in report["methodology_constraints"]
     assert report["pre_registered_primary_comparison"]["primary_cohort"] == "fixed_cohort"
     assert report["inventory"]["leaderboard"]["dedup_rows_after_date_filter"] == 5
     assert report["cohorts"]["fixed_cohort"]["n_users"] == 2
