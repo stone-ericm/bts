@@ -47,6 +47,33 @@ an operational protocol where post-freeze CLI tooling loads frozen candidate
 model artifacts with matching hashes; or cherry-pick the parity-guard CLI onto
 the frozen worktree without changing candidate prediction logic.
 
+## Freeze-vs-Parity Drift Smoke
+
+After the exporter PR was opened, a `/tmp`-only deterministic smoke compared
+the frozen live-forward checkout (`5004b1c8...`) against the parity-guard-capable
+production checkout (`986fa36...`) for `2026-05-10`, using the same
+`--date`, `--candidate`, `--top-n 10`, `--no-refresh-data`, processed data
+directory, and deterministic LightGBM environment variables.
+
+This was not an official artifact because the 2026-05-10 pick was already
+resolved. It was only a provenance drift check.
+
+Result:
+
+| Variant | Same top-10 rank/batter order | Top frozen | Top parity | Max abs probability drift | Mean abs probability drift |
+|---|---|---:|---:|---:|---:|
+| Production | no | `683002` | `802415` | `0.008148` | `0.004038` |
+| Candidate | no | `683002` | `802415` | `0.009755` | `0.004392` |
+
+The parity-capable checkout does not reproduce the frozen checkout's ranked
+slates. Therefore, simply re-cutting the official logging SHA at `986fa36...`
+would require explicitly accepting candidate-surface drift rather than claiming
+bit-identical freeze preservation. The lower-drift resolution is likely either
+cherry-picking the parity-guard CLI onto the frozen worktree or defining an
+operational protocol where post-freeze tooling records frozen model artifact
+hashes and proves prediction equivalence before any official fresh-target
+count.
+
 ## Contract
 
 The exported parquet must include, at minimum:
