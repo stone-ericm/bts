@@ -595,6 +595,67 @@ class TestRenderLiveGameSection:
         assert "FINAL" in html
         assert 'id="scorecard"' in html
 
+    def test_scorecard_banner_uses_pick_result_for_partial_void_hit(self):
+        """A voided slot plus an active-slot hit is a BTS hit, not a miss."""
+        from bts.web import render_live_game_section
+
+        sc = self._basic_scorecard("F")
+        sc["batters"] = [
+            {"name": "Voided Batter", "batter_id": 1, "lineup_position": 1,
+             "position": "LF", "slash_line": "", "pas": []},
+            {"name": "Active Batter", "batter_id": 2, "lineup_position": 5,
+             "position": "RF", "slash_line": "", "pas": [{
+                 "result": "1B",
+                 "is_hit": True,
+                 "out_number": None,
+                 "rbi": 0,
+                 "pitches": [{"number": 1, "call": "X", "is_strike": False}],
+                 "runners": [{"start": None, "end": "1B", "is_out": False}],
+             }]},
+        ]
+        pick_data = {
+            "result": "hit",
+            "slot_results": {"pick": "void", "double_down": "hit"},
+        }
+
+        html = render_live_game_section([sc], sc, pick_data=pick_data)
+
+        assert "HIT! BTS pick successful" in html
+        assert "Final — pick missed" not in html
+
+    def test_scorecard_banner_uses_pick_result_for_full_void(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("F")
+        pick_data = {
+            "result": "void",
+            "slot_results": {"pick": "void", "double_down": "void"},
+        }
+
+        html = render_scorecard_section(sc, pick_data=pick_data)
+
+        assert "Final — pick voided" in html
+        assert "Final — pick missed" not in html
+
+    def test_scorecard_banner_preserves_resolved_double_down_both_hit_copy(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("F")
+        sc["batters"] = [
+            {"name": "First Batter", "batter_id": 1, "lineup_position": 1,
+             "position": "LF", "slash_line": "", "pas": [{"is_hit": True}]},
+            {"name": "Second Batter", "batter_id": 2, "lineup_position": 5,
+             "position": "RF", "slash_line": "", "pas": [{"is_hit": True}]},
+        ]
+        pick_data = {
+            "result": "hit",
+            "slot_results": {"pick": "hit", "double_down": "hit"},
+        }
+
+        html = render_scorecard_section(sc, pick_data=pick_data)
+
+        assert "HIT! BTS pick successful — both batters!" in html
+
     def test_live_game_section_renders_each_double_down_game_tag(self):
         """Double-downs in separate games show one compact tag per game."""
         from bts.web import render_live_game_section
