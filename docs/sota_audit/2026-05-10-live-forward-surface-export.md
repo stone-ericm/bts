@@ -66,6 +66,44 @@ The default mode can consume the existing 2026-05-09 artifact for exploratory
 rank coverage. The official-ready mode correctly returns no rows until a
 parity-guarded artifact exists.
 
+## Remote Smoke
+
+Read-only smoke was run on `bts-hetzner` using branch scripts copied to `/tmp`
+and outputs written to `/tmp`:
+
+```bash
+PYTHONPATH=/tmp/bts_live_forward_surface:/home/bts/projects/bts/src \
+  /home/bts/.local/bin/uv run python \
+  /tmp/bts_live_forward_surface/scripts/live_forward_surface_export.py \
+  --artifact-root /home/bts/projects/bts/data/validation/decision_weighted_lgbm_v0_live_forward \
+  --resolved-root /home/bts/projects/bts/data/validation/decision_weighted_lgbm_v0_live_forward_resolved \
+  --variant production \
+  --output /tmp/bts_live_forward_production_surface.parquet \
+  --manifest-output /tmp/bts_live_forward_production_surface.json
+```
+
+Result:
+
+| Metric | Value |
+|---|---:|
+| Rows | 10 |
+| Dates | 1 |
+| Date range | 2026-05-09 to 2026-05-09 |
+| Max rank | 10 |
+| Actual-hit null rows | 10 |
+
+The exported surface was then passed into mechanism mining as:
+
+```bash
+--surface live_forward_production=/tmp/bts_live_forward_production_surface.parquet
+```
+
+The mechanism-mining reader accepted the surface with `rows=10`,
+`joinable_rows=10`, `max_rank=10`, and no duplicate date/batter collapse.
+For the 2026-05-09 fixed cohort, top-10 coverage was `0.5` across the two
+date-slot units. Outcome metrics remained null because the supplied surface is
+pre-outcome by construction.
+
 ## Next Step
 
 The operational gap is daily capture, not the exporter. Before tomorrow's slate
