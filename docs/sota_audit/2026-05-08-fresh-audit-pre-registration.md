@@ -4,10 +4,12 @@
 - **Status**: `candidate_frozen_live_forward_logging_ready`
 - **Prior cycle**: `cycle_closed_no_deployable_candidate`
 - **Production deploy claim**: `false`
-- **Current launch posture**: candidate implementation and pre-outcome
-  live-forward logging are frozen at commit
-  `5004b1c8b093da0f8acb11bd728430ebacbf92d3`; this clears research artifact
-  logging only, not cloud compute, production changes, or deploy branch changes.
+- **Current launch posture**: candidate training is frozen at commit
+  `5004b1c8b093da0f8acb11bd728430ebacbf92d3`; official pre-outcome
+  live-forward logging also requires the 2026-05-10 production-pick parity
+  guard before any artifact counts toward the fresh target. This clears
+  research artifact logging only, not cloud compute, production changes, or
+  deploy branch changes.
 
 ## 1. Cycle Context
 
@@ -181,6 +183,7 @@ BTS_LGBM_DETERMINISTIC=1 bts experiment export-live-candidate-artifacts \
   --candidate decision_weighted_lgbm_v0 \
   --output-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
   --data-dir data/processed \
+  --production-pick-file data/picks/YYYY-MM-DD.json \
   --top-n 10 \
   --no-refresh-data
 ```
@@ -196,12 +199,38 @@ refresh current-season data. Use a separate `--output-dir` per date, as shown
 above, because the v0 live manifest is one date per directory and would be
 overwritten if multiple dates reused the same directory.
 
-Candidate implementation and live-forward logging are frozen at
-`5004b1c8b093da0f8acb11bd728430ebacbf92d3`. Fresh-target research logging may
-begin only for eligible slates whose artifacts are generated after this freeze,
-using the command above and a distinct date output directory. The first eligible
-calendar date remains `2026-05-09`; if no eligible slate is generated after the
-freeze on that date, use the first later eligible regular-season slate.
+The `--production-pick-file` argument is required for official fresh-target
+logging after the 2026-05-10 parity-guard amendment. It snapshots the locked
+production pick JSON into the manifest so later analysis can distinguish the
+candidate ranked slate from the production decision actually submitted to BTS.
+The snapshot schema is `production_pick_snapshot_v1`; it includes the full
+locked pick JSON inline plus a SHA-256 of the source file so retention policy or
+post-resolution edits cannot silently erase the decision context.
+If export is re-run for an already logged date, the parity guard captures the
+production pick file as of the re-export run; downstream comparison is anchored
+on `source_sha256`.
+Do not count a live-forward artifact toward the fresh target unless the
+post-export verifier passes:
+
+```bash
+bts experiment verify-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
+  --expected-run-kind live_forward_preoutcome \
+  --expected-candidate decision_weighted_lgbm_v0 \
+  --expected-date YYYY-MM-DD \
+  --expected-top-n 10 \
+  --require-live-preoutcome \
+  --require-production-pick-snapshot
+```
+
+Candidate training remains frozen at
+`5004b1c8b093da0f8acb11bd728430ebacbf92d3`; official live-forward logging must
+also include the 2026-05-10 parity guard above once it is merged. Fresh-target
+research logging may begin only for eligible slates whose artifacts are
+generated after both the candidate freeze and the parity-guard merge, using the
+command above and a distinct date output directory. The first eligible calendar
+date remains `2026-05-09`; if no eligible slate is generated after both gates on
+that date, use the first later eligible regular-season slate.
 
 ## 3. Family-Control Rule
 
