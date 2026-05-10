@@ -41,6 +41,12 @@ So this PR does not attempt to backfill a fake official pre-outcome artifact.
 It instead builds the exporter needed once valid parity-guarded artifacts
 exist.
 
+The structural resolution options are: re-cut the candidate freeze at a SHA
+that includes the parity-guard CLI and document any prediction drift; establish
+an operational protocol where post-freeze CLI tooling loads frozen candidate
+model artifacts with matching hashes; or cherry-pick the parity-guard CLI onto
+the frozen worktree without changing candidate prediction logic.
+
 ## Contract
 
 The exported parquet must include, at minimum:
