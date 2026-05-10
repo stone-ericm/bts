@@ -126,12 +126,15 @@ Fixed-cohort consensus versus the copied oracle-exposure backfill:
 | Resolved date-slot units with model surface | 70 |
 | Disagreement units | 66 |
 | Agreement rate | 0.057 |
-| Backfilled model hit rate | 0.857 |
+| Backfilled model hit rate* | 0.857 |
 | Fixed-cohort consensus hit rate | 0.757 |
 | Mean delta, consensus minus model | -0.100 |
 | Disagreement mean delta | -0.106 |
 | Disagreement day-block bootstrap 95% CI | [-0.271, 0.043] |
 | Bootstrap `p_mean_le_zero` | 0.923 |
+
+*This is the hit rate of an oracle-exposure backfill, not an at-lock
+production-decision surface.
 
 Top-k overlap on dates covered by the surface:
 
