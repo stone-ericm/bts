@@ -257,13 +257,86 @@ True e-BH or online FDR is not claimed here. If the cycle wants sequential
 anytime-valid stopping, valid e-values or e-processes must be designed before
 launch and added as a separate pre-registration amendment.
 
+## 3a. Primary Fresh-Target Comparison Rule
+
+The primary fresh-target estimand is the paired candidate-minus-production
+delta in `p_57_mdp` from `bts experiment compare-candidate-artifacts` after
+live-forward artifacts are resolved. This keeps the evaluation aligned with
+the BTS objective while using the existing scorecard contract.
+
+The comparison unit is the resolved live-forward slate date. The primary
+comparison uses the paired production and candidate ranked-slate artifacts,
+not the production pick snapshot directly. The production pick snapshot is a
+parity/audit guard: it records the actual decision submitted to BTS and must be
+available for every official slate, but it does not replace the ranked-slate
+scorecard until a future PR adds an explicit candidate policy-selection
+surface.
+
+A deployment-supporting result requires all of the following before any
+production claim:
+
+1. At least `120` eligible resolved slate dates unless this floor is amended
+   before outcomes are inspected.
+2. Positive point delta in `p_57_mdp`.
+3. A one-sided candidate-better-than-production date-paired block-bootstrap
+   test whose lower confidence bound is above `0`; use expected block length
+   `7`, at least `1000` bootstrap replicates, and random seed `57016` unless
+   amended before the first resolved comparison.
+4. Family-control survival for the frozen candidate family (`m=1` for
+   `decision_weighted_lgbm_v0` unless another variant is added before launch).
+5. No material proper-scoring regression on the same resolved slate set. Rank-1
+   Brier and log-loss deltas are guardrails: any candidate degradation larger
+   than `0.01` absolute Brier or `0.02` log loss blocks a production claim even
+   if the `p_57_mdp` point estimate is positive.
+
+Secondary diagnostics are pre-registered but not success criteria: paired P@1
+delta, rank-2-on-rank-1-miss behavior, top-10 calibration, candidate-vs-locked
+production pick overlap, and slot-level outcomes from the production pick
+snapshot. These may explain a result but must not redefine the primary metric
+after outcomes are known.
+
+Stopping and falsification rules:
+
+- Do not inspect paired `p_57_mdp` deltas, bootstrap intervals, or guardrail
+  deltas before `120` eligible resolved slates. Artifact-existence checks,
+  verifier status, and missing-outcome counts may be monitored operationally.
+- If the point delta is positive but the lower confidence bound is `<= 0` at
+  `120` slates, state is `E4_fresh_target_inconclusive`; continue logging only
+  under this same rule or decline to deploy.
+- If the point delta is negative and the upper confidence bound is `< 0` at
+  `120` slates, reject `decision_weighted_lgbm_v0` for this cycle and use the
+  result as falsification evidence for the next #16 candidate iteration.
+- If the point delta is non-positive but the interval crosses `0`, make no
+  production claim. Continue logging only under this same rule or close as
+  inconclusive at season end.
+- No interim re-tests between `120` resolved slates and season end are
+  pre-registered here. Any interim look at a larger n requires a separate
+  amendment before that look happens.
+
+Eligibility and void rules:
+
+- A slate date counts only if both production and candidate resolved artifacts
+  have complete outcomes for the ranked rows used by the scorecard.
+- If the production pick snapshot has any `slot_results` value of `void`, drop
+  that date from the primary paired comparison. A partial-void day has different
+  contest semantics and must not be coerced into an active two-slot comparison.
+- If the locked production pick snapshot disagrees with the production ranked
+  slate rank-1 row, or if candidate rank-1 differs from the locked production
+  pick, record the mismatch as a parity diagnostic. The mismatch does not
+  redefine the primary ranked-slate scorecard.
+- Post-hoc slot, regime, environment, skill, or mismatch-subgroup tests are
+  diagnostics only unless they were added to the candidate family before launch;
+  any separately tested subgroup family must use the project's BH/BY FDR
+  baseline rather than silently borrowing the primary `m=1` rule.
+
 ## 4. Fresh Evaluation Target
 
 Primary fresh target:
 
 - 2026 live-forward regular-season slates on or after `2026-05-09` whose
-  prediction artifacts are generated after this pre-registration is accepted
-  and after the candidate commit is frozen.
+  prediction artifacts are generated after this pre-registration is accepted,
+  after the candidate commit is frozen, and after the production-pick parity
+  guard is merged.
 
 Pre-memo 2026 data is not primary evidence unless a later audit can prove it
 was not used by any candidate-generation or diagnostic script. The default
