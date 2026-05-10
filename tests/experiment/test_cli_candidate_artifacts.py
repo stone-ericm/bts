@@ -98,6 +98,7 @@ def test_verify_candidate_artifacts_cli_reports_pass(tmp_path, monkeypatch):
         "--expected-git-commit", "abc123",
         "--expected-top-n", "10",
         "--require-live-preoutcome",
+        "--require-production-pick-snapshot",
     ])
 
     assert result.exit_code == 0, result.output
@@ -107,6 +108,7 @@ def test_verify_candidate_artifacts_cli_reports_pass(tmp_path, monkeypatch):
     assert captured["expected_git_commit"] == "abc123"
     assert captured["expected_top_n"] == 10
     assert captured["require_live_preoutcome"] is True
+    assert captured["require_production_pick_snapshot"] is True
     assert "Candidate artifact verification: PASS" in result.output
 
 
@@ -162,6 +164,8 @@ def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, mo
         "materialize_live_candidate_profile_pair",
         fake_materialize_live,
     )
+    pick_file = tmp_path / "2026-05-09.json"
+    pick_file.write_text('{"date": "2026-05-09"}')
     result = CliRunner().invoke(cli, [
         "experiment", "export-live-candidate-artifacts",
         "--date", "2026-05-09",
@@ -170,6 +174,7 @@ def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, mo
         "--data-dir", "data/processed",
         "--top-n", "2",
         "--no-refresh-data",
+        "--production-pick-file", str(pick_file),
     ])
 
     assert result.exit_code == 0, result.output
@@ -177,4 +182,5 @@ def test_export_live_candidate_artifacts_cli_routes_to_materializer(tmp_path, mo
     assert captured["candidate"].name == "decision_weighted_lgbm_v0"
     assert captured["top_n"] == 2
     assert captured["refresh_data"] is False
+    assert captured["production_pick_file"] == str(pick_file)
     assert "Saved manifest" in result.output

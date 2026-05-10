@@ -406,6 +406,8 @@ def compare_candidate_artifacts(
               help="Require exactly this many rows per variant/date")
 @click.option("--require-live-preoutcome", is_flag=True,
               help="Require live_forward_preoutcome posture and null outcomes")
+@click.option("--require-production-pick-snapshot", is_flag=True,
+              help="Require a locked production pick snapshot in the manifest")
 @click.option("--save", "save_path", default=None, type=click.Path(),
               help="Optional verification report JSON path")
 def verify_candidate_artifacts(
@@ -416,6 +418,7 @@ def verify_candidate_artifacts(
     expected_git_commit: str | None,
     expected_top_n: int | None,
     require_live_preoutcome: bool,
+    require_production_pick_snapshot: bool,
     save_path: str | None,
 ):
     """Verify paired production/candidate ranked-slate artifacts."""
@@ -429,6 +432,7 @@ def verify_candidate_artifacts(
         expected_git_commit=expected_git_commit,
         expected_top_n=expected_top_n,
         require_live_preoutcome=require_live_preoutcome,
+        require_production_pick_snapshot=require_production_pick_snapshot,
         save_path=save_path,
     )
     status = "PASS" if report["ok"] else "FAIL"
@@ -460,6 +464,8 @@ def verify_candidate_artifacts(
 @click.option("--refresh-data/--no-refresh-data", default=False,
               help="Refresh current-season data before production prediction "
                    "(default: no refresh; run after routine data refresh)")
+@click.option("--production-pick-file", default=None, type=click.Path(exists=True),
+              help="Optional locked production pick JSON to snapshot into manifest")
 def export_live_candidate_artifacts(
     date: str,
     candidate: str,
@@ -467,6 +473,7 @@ def export_live_candidate_artifacts(
     data_dir: str,
     top_n: int,
     refresh_data: bool,
+    production_pick_file: str | None,
 ):
     """Export pre-outcome production/candidate ranked slates for one date."""
     from bts.experiment.registry import load_all_experiments, get_experiment
@@ -485,6 +492,7 @@ def export_live_candidate_artifacts(
         data_dir=data_dir,
         top_n=top_n,
         refresh_data=refresh_data,
+        production_pick_file=production_pick_file,
     )
     click.echo(f"Saved manifest: {Path(output_dir) / 'manifest.json'}")
     for variant, paths_by_key in manifest["profile_paths"].items():

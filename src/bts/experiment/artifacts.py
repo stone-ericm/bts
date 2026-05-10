@@ -8,6 +8,7 @@ research-only; it does not write production picks or deployment assets.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -23,6 +24,7 @@ from bts.experiment.runner import compose_blend_args
 
 
 ARTIFACT_SCHEMA_VERSION = "bts_candidate_ranked_slate_pair_v1"
+PRODUCTION_PICK_SNAPSHOT_VERSION = "production_pick_snapshot_v1"
 PROFILE_REQUIRED_COLUMNS = {
     "date",
     "rank",
@@ -87,6 +89,14 @@ def _write_json(payload: dict, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, default=_json_default))
     return path
+
+
+def _file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _relative(path: Path, root: Path) -> str:
@@ -168,6 +178,67 @@ def predictions_to_ranked_profiles(
     profile["actual_hit"] = pd.NA
     profile["n_pas"] = pd.NA
     return profile[["date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit", "n_pas"]]
+
+
+def _normalize_pick_slot(slot: Any) -> dict[str, Any] | None:
+    if not isinstance(slot, dict):
+        return None
+    keep = [
+        "batter_id",
+        "batter_name",
+        "team",
+        "lineup_position",
+        "pitcher_id",
+        "pitcher_name",
+        "pitcher_team",
+        "game_pk",
+        "game_time",
+        "p_game_hit",
+        "projected_lineup",
+        "flags",
+    ]
+    return {key: slot.get(key) for key in keep if key in slot}
+
+
+def load_production_pick_snapshot(
+    pick_file: str | Path,
+    *,
+    expected_date: str,
+) -> dict[str, Any]:
+    """Load a locked production pick JSON into a manifest-safe snapshot.
+
+    The live-forward artifact is a paired ranked-slate surface, while the
+    production decision is locked in ``data/picks``. Keeping a compact,
+    read-only snapshot in the manifest preserves parity evidence without
+    writing production picks, model caches, or deploy assets.
+    """
+    path = Path(pick_file)
+    body = json.loads(path.read_text())
+    pick_date = str(body.get("date"))
+    if pick_date != str(expected_date):
+        raise ValueError(
+            f"production pick date mismatch: expected {expected_date!r}, "
+            f"found {pick_date!r} in {path}"
+        )
+
+    return {
+        "snapshot_version": PRODUCTION_PICK_SNAPSHOT_VERSION,
+        "source_path": str(path),
+        "source_sha256": _file_sha256(path),
+        "date": pick_date,
+        "run_time": body.get("run_time"),
+        "result": body.get("result"),
+        "slot_results": body.get("slot_results"),
+        "model_git_sha": body.get("model_git_sha"),
+        "model_pickle_sha256": body.get("model_pickle_sha256"),
+        "policy_npz_sha256": body.get("policy_npz_sha256"),
+        "production_lgbm_deterministic": body.get("production_lgbm_deterministic"),
+        "production_pick_json": body,
+        "slots": {
+            "pick": _normalize_pick_slot(body.get("pick")),
+            "double_down": _normalize_pick_slot(body.get("double_down")),
+        },
+    }
 
 
 def materialize_candidate_profile_pair(
@@ -310,6 +381,7 @@ def materialize_live_candidate_profile_pair(
     data_dir: str | Path = "data/processed",
     top_n: int = 10,
     refresh_data: bool = False,
+    production_pick_file: str | Path | None = None,
     baseline_name: str = "production_lgbm_v0",
     git_commit: str | None = None,
     generated_at: str | None = None,
@@ -357,6 +429,12 @@ def materialize_live_candidate_profile_pair(
         date=date,
         top_n=top_n,
     )
+    production_pick_snapshot = None
+    if production_pick_file is not None:
+        production_pick_snapshot = load_production_pick_snapshot(
+            production_pick_file,
+            expected_date=date,
+        )
     season = pd.Timestamp(date).year
     tagged_production = tag_ranked_profiles(
         production_profiles,
@@ -399,6 +477,7 @@ def materialize_live_candidate_profile_pair(
         "retrain_every": None,
         "data_dir": str(data_dir),
         "refresh_data": bool(refresh_data),
+        "production_pick_snapshot": production_pick_snapshot,
         "environment": {
             "BTS_LGBM_RANDOM_STATE": os.environ.get("BTS_LGBM_RANDOM_STATE"),
             "BTS_LGBM_DETERMINISTIC": os.environ.get("BTS_LGBM_DETERMINISTIC"),
@@ -497,6 +576,7 @@ def _candidate_verification_report(
             "date": manifest.get("date"),
             "dates": manifest.get("dates"),
             "top_n": manifest.get("top_n"),
+            "has_production_pick_snapshot": bool(manifest.get("production_pick_snapshot")),
         },
         "variants": variant_reports,
         "checks": checks,
@@ -517,6 +597,7 @@ def verify_candidate_artifact_pair(
     expected_git_commit: str | None = None,
     expected_top_n: int | None = None,
     require_live_preoutcome: bool = False,
+    require_production_pick_snapshot: bool = False,
     generated_at: str | None = None,
     save_path: str | Path | None = None,
 ) -> dict:
@@ -644,6 +725,49 @@ def verify_candidate_artifact_pair(
             manifest.get("top_n") is not None,
             f"found {manifest.get('top_n')!r}",
         )
+
+    production_pick_snapshot = manifest.get("production_pick_snapshot")
+    if require_production_pick_snapshot:
+        _append_check(
+            checks,
+            "production_pick_snapshot_present",
+            isinstance(production_pick_snapshot, dict),
+            f"found {type(production_pick_snapshot).__name__}",
+        )
+        if isinstance(production_pick_snapshot, dict):
+            _append_check(
+                checks,
+                "production_pick_snapshot_version",
+                production_pick_snapshot.get("snapshot_version")
+                == PRODUCTION_PICK_SNAPSHOT_VERSION,
+                f"expected {PRODUCTION_PICK_SNAPSHOT_VERSION!r}, "
+                f"found {production_pick_snapshot.get('snapshot_version')!r}",
+            )
+            _append_check(
+                checks,
+                "production_pick_snapshot_date",
+                production_pick_snapshot.get("date") == date_key,
+                f"expected {date_key!r}, found {production_pick_snapshot.get('date')!r}",
+            )
+            _append_check(
+                checks,
+                "production_pick_snapshot_json_inline",
+                isinstance(production_pick_snapshot.get("production_pick_json"), dict),
+                "locked production pick JSON must be embedded, not path-only",
+            )
+            slots = production_pick_snapshot.get("slots") or {}
+            has_any_slot = any(
+                isinstance(slots.get(slot_key), dict)
+                and slots[slot_key].get("batter_id") is not None
+                and slots[slot_key].get("game_pk") is not None
+                for slot_key in ("pick", "double_down")
+            )
+            _append_check(
+                checks,
+                "production_pick_snapshot_slots",
+                has_any_slot,
+                f"slots={slots!r}",
+            )
 
     profile_paths = manifest.get("profile_paths", {})
     row_counts = manifest.get("row_counts", {})

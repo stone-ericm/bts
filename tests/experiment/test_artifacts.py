@@ -7,6 +7,7 @@ import pandas as pd
 from bts.experiment.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     PROFILE_SCHEMA_COLUMNS,
+    PRODUCTION_PICK_SNAPSHOT_VERSION,
     compare_candidate_profile_pair,
     materialize_candidate_profile_pair,
     materialize_live_candidate_profile_pair,
@@ -30,6 +31,91 @@ def _fake_profiles(season: int, *, candidate: bool) -> pd.DataFrame:
                 "n_pas": 4,
             })
     return pd.DataFrame(rows)
+
+def _write_live_preoutcome_artifact(artifact_dir, *, date: str = "2026-05-09") -> dict:
+    profile_paths = {
+        "production": {date: f"profiles/production/live_{date}.parquet"},
+        "candidate": {date: f"profiles/candidate/live_{date}.parquet"},
+    }
+    for variant, base, model_name in (
+        ("production", 0.64, "production_lgbm_v0"),
+        ("candidate", 0.74, "decision_weighted_lgbm_v0"),
+    ):
+        frame = pd.DataFrame({
+            "artifact_schema_version": [ARTIFACT_SCHEMA_VERSION, ARTIFACT_SCHEMA_VERSION],
+            "run_kind": ["live_forward_preoutcome", "live_forward_preoutcome"],
+            "variant": [variant, variant],
+            "model_name": [model_name, model_name],
+            "generated_at": [
+                "2026-05-08T02:00:00+00:00",
+                "2026-05-08T02:00:00+00:00",
+            ],
+            "git_commit": ["def456", "def456"],
+            "date": [pd.Timestamp(date).date(), pd.Timestamp(date).date()],
+            "season": [pd.Timestamp(date).year, pd.Timestamp(date).year],
+            "rank": [1, 2],
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [base, base - 0.05],
+            "actual_hit": [pd.NA, pd.NA],
+            "n_pas": [pd.NA, pd.NA],
+        })[PROFILE_SCHEMA_COLUMNS]
+        path = artifact_dir / profile_paths[variant][date]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_parquet(path, index=False)
+
+    manifest = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at": "2026-05-08T02:00:00+00:00",
+        "git_commit": "def456",
+        "run_kind": "live_forward_preoutcome",
+        "production_deploy_claim": False,
+        "fresh_target_claim": True,
+        "candidate_name": "decision_weighted_lgbm_v0",
+        "baseline_name": "production_lgbm_v0",
+        "date": date,
+        "dates": [date],
+        "seasons": [pd.Timestamp(date).year],
+        "top_n": 2,
+        "retrain_every": None,
+        "profile_schema_columns": list(PROFILE_SCHEMA_COLUMNS),
+        "profile_paths": profile_paths,
+        "row_counts": {"production": {date: 2}, "candidate": {date: 2}},
+        "day_counts": {"production": {date: 1}, "candidate": {date: 1}},
+    }
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    (artifact_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return manifest
+
+
+def _write_pick_file(path, *, date: str = "2026-05-09"):
+    body = {
+        "date": date,
+        "run_time": f"{date}T18:00:00+00:00",
+        "pick": {
+            "batter_id": 11,
+            "batter_name": "Primary Batter",
+            "team": "AAA",
+            "game_pk": 1001,
+            "p_game_hit": 0.72,
+            "projected_lineup": False,
+        },
+        "double_down": {
+            "batter_id": 22,
+            "batter_name": "Double Batter",
+            "team": "BBB",
+            "game_pk": 1002,
+            "p_game_hit": 0.69,
+            "projected_lineup": False,
+        },
+        "slot_results": {},
+        "model_git_sha": "model-sha",
+        "model_pickle_sha256": "pickle-sha",
+        "policy_npz_sha256": "policy-sha",
+        "production_lgbm_deterministic": False,
+    }
+    path.write_text(json.dumps(body))
+    return path
 
 
 def test_materialize_candidate_profile_pair_writes_manifest_and_profiles(
@@ -159,6 +245,7 @@ def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
         })
 
     monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    pick_file = _write_pick_file(tmp_path / "2026-05-09.json")
     manifest = materialize_live_candidate_profile_pair(
         date="2026-05-09",
         candidate=DecisionWeightedLightGBMExperiment(),
@@ -166,6 +253,7 @@ def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
         data_dir="data/processed",
         top_n=2,
         refresh_data=False,
+        production_pick_file=pick_file,
         git_commit="def456",
         generated_at="2026-05-08T02:00:00+00:00",
     )
@@ -178,6 +266,15 @@ def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
     assert calls[0]["refresh_data"] is False
     assert calls[1]["refresh_data"] is False
     assert calls[1]["blend_configs_override"] is not None
+    assert manifest["production_pick_snapshot"]["date"] == "2026-05-09"
+    assert (
+        manifest["production_pick_snapshot"]["snapshot_version"]
+        == PRODUCTION_PICK_SNAPSHOT_VERSION
+    )
+    assert manifest["production_pick_snapshot"]["slots"]["pick"]["batter_id"] == 11
+    assert manifest["production_pick_snapshot"]["policy_npz_sha256"] == "policy-sha"
+    assert manifest["production_pick_snapshot"]["production_pick_json"]["date"] == "2026-05-09"
+    assert manifest["production_pick_snapshot"]["production_lgbm_deterministic"] is False
 
     production = pd.read_parquet(tmp_path / manifest["profile_paths"]["production"]["2026-05-09"])
     candidate = pd.read_parquet(tmp_path / manifest["profile_paths"]["candidate"]["2026-05-09"])
@@ -204,11 +301,13 @@ def test_verify_candidate_artifact_pair_accepts_live_preoutcome_artifact(
         })
 
     monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    pick_file = _write_pick_file(tmp_path / "2026-05-09.json")
     materialize_live_candidate_profile_pair(
         date="2026-05-09",
         candidate=DecisionWeightedLightGBMExperiment(),
         output_dir=tmp_path,
         top_n=2,
+        production_pick_file=pick_file,
         git_commit="def456",
         generated_at="2026-05-08T02:00:00+00:00",
     )
@@ -221,12 +320,14 @@ def test_verify_candidate_artifact_pair_accepts_live_preoutcome_artifact(
         expected_git_commit="def456",
         expected_top_n=2,
         require_live_preoutcome=True,
+        require_production_pick_snapshot=True,
         generated_at="2026-05-09T00:00:00+00:00",
     )
 
     assert report["ok"] is True
     assert report["failure_count"] == 0
     assert report["manifest"]["git_commit"] == "def456"
+    assert report["manifest"]["has_production_pick_snapshot"] is True
     assert report["variants"]["production"]["rows"] == 2
     assert report["variants"]["candidate"]["dates"] == ["2026-05-09"]
 
@@ -263,6 +364,40 @@ def test_verify_candidate_artifact_pair_flags_wrong_git_commit(
     assert report["ok"] is False
     failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
     assert "expected_git_commit" in failed_names
+
+
+def test_verify_candidate_artifact_pair_flags_missing_pick_snapshot(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.model.predict as predict_mod
+
+    def fake_run_pipeline(date, **kwargs):
+        return pd.DataFrame({
+            "batter_id": [11, 22],
+            "game_pk": [1001, 1002],
+            "p_game_hit": [0.64, 0.59],
+        })
+
+    monkeypatch.setattr(predict_mod, "run_pipeline", fake_run_pipeline)
+    materialize_live_candidate_profile_pair(
+        date="2026-05-09",
+        candidate=DecisionWeightedLightGBMExperiment(),
+        output_dir=tmp_path,
+        top_n=2,
+        git_commit="def456",
+        generated_at="2026-05-08T02:00:00+00:00",
+    )
+
+    report = verify_candidate_artifact_pair(
+        artifact_dir=tmp_path,
+        require_live_preoutcome=True,
+        require_production_pick_snapshot=True,
+    )
+
+    assert report["ok"] is False
+    failed_names = {check["name"] for check in report["checks"] if check["status"] == "fail"}
+    assert "production_pick_snapshot_present" in failed_names
 
 
 def test_verify_candidate_artifact_pair_reports_missing_manifest(tmp_path):
