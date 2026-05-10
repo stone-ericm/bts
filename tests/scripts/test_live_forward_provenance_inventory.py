@@ -231,6 +231,31 @@ def test_inventory_requires_snapshot_for_official_ready_flag(tmp_path):
     assert report["summary"]["missing_production_pick_snapshot_count"] == 1
 
 
+def test_inventory_requires_passing_verification_for_official_ready_flag(tmp_path):
+    artifact_root = tmp_path / "live"
+    date_dir = _write_artifact(artifact_root, with_snapshot=True)
+    (date_dir / "verification.json").unlink()
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    row = report["rows"][0]
+    assert row["at_lock_ranked_surface_joinable"] is True
+    assert row["production_pick_snapshot"]["present"] is True
+    assert row["verification"]["present"] is False
+    assert row["official_fresh_target_ready"] is False
+    assert row["requires_verifier_before_official_use"] is True
+    assert report["summary"]["missing_verification_count"] == 1
+
+
 def test_inventory_handles_missing_root(tmp_path):
     report = build_inventory(
         artifact_root=tmp_path / "missing",
