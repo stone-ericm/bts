@@ -7,6 +7,7 @@ import pytest
 
 from scripts.leaderboard_backfilled_model_audit import build_audit
 from scripts.leaderboard_backfilled_model_audit import load_ranked_surfaces
+from scripts.leaderboard_backfilled_model_audit import load_realized_pick_surfaces
 
 
 def _write_user_picks(path, rows):
@@ -101,6 +102,68 @@ def _write_surface(path):
     pd.DataFrame(rows).to_parquet(path, index=False)
 
 
+def _write_realized_surface(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "source_file": "2026-05-10.json",
+            "date": "2026-05-10",
+            "run_time": "2026-05-10T10:00:00+00:00",
+            "slot": "primary",
+            "batter_id": 10,
+            "batter_name": "Consensus One",
+            "game_pk": 1003,
+            "p_game_hit": 0.70,
+            "actual_hit": True,
+            "result_status": "resolved",
+        },
+        {
+            "source_file": "2026-05-10.json",
+            "date": "2026-05-10",
+            "run_time": "2026-05-10T10:00:00+00:00",
+            "slot": "double_down",
+            "batter_id": 99,
+            "batter_name": "Production Two",
+            "game_pk": 1099,
+            "p_game_hit": 0.68,
+            "actual_hit": False,
+            "result_status": "resolved",
+        },
+    ]
+    pd.DataFrame(rows).to_parquet(path, index=False)
+
+
+def _write_realized_surface_with_voided_primary(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "source_file": "2026-05-10.json",
+            "date": "2026-05-10",
+            "run_time": "2026-05-10T10:00:00+00:00",
+            "slot": "primary",
+            "batter_id": 10,
+            "batter_name": "Consensus One",
+            "game_pk": 1003,
+            "p_game_hit": 0.70,
+            "actual_hit": None,
+            "result_status": "void",
+        },
+        {
+            "source_file": "2026-05-10.json",
+            "date": "2026-05-10",
+            "run_time": "2026-05-10T10:00:00+00:00",
+            "slot": "double_down",
+            "batter_id": 20,
+            "batter_name": "Consensus Two",
+            "game_pk": 1002,
+            "p_game_hit": 0.68,
+            "actual_hit": True,
+            "result_status": "resolved",
+        },
+    ]
+    pd.DataFrame(rows).to_parquet(path, index=False)
+
+
 def _fixture_tree(tmp_path):
     leaderboard = tmp_path / "leaderboard"
     _write_user_picks(
@@ -185,6 +248,7 @@ def test_build_audit_compares_fixed_consensus_to_backfilled_surface(tmp_path):
     assert report["schema_version"] == "leaderboard_backfilled_model_audit_v1"
     assert report["no_policy_edit_supported"] is True
     assert "historical_backtest_oracle_exposure_caveat" in report["methodology_constraints"]
+    assert "realized_production_surface_at_lock_anchor" in report["methodology_constraints"]
     assert report["pre_registered_primary_comparison"]["primary_cohort"] == "fixed_cohort"
     assert report["inventory"]["leaderboard"]["dedup_rows_after_date_filter"] == 5
     assert report["cohorts"]["fixed_cohort"]["n_users"] == 2
@@ -257,6 +321,97 @@ def test_build_audit_can_use_explicit_fixed_cohort_json(tmp_path):
         "production_backfill"
     ]
     assert individual["n_picks"] == 2
+
+
+def test_build_audit_accepts_realized_production_surface(tmp_path):
+    leaderboard, _surface = _fixture_tree(tmp_path)
+    realized = tmp_path / "surfaces" / "realized.parquet"
+    _write_realized_surface(realized)
+
+    report = build_audit(
+        leaderboard_dir=leaderboard,
+        surface_specs={},
+        realized_surface_specs={"realized_prod": realized},
+        output_path=tmp_path / "audit.json",
+        joined_output_path=None,
+        consensus_units_output_path=None,
+        cohort_as_of_iso=None,
+        cohort_users_json=None,
+        dates={"2026-05-10"},
+        min_date=None,
+        max_date=None,
+        top_k=(1, 2),
+        n_bootstrap=0,
+        expected_block_length=7,
+        seed=7,
+        generated_at="2026-05-10T11:01:00+00:00",
+    )
+
+    assert report["realized_production_surface_specs"] == {
+        "realized_prod": str(realized)
+    }
+    assert report["inventory"]["surfaces"]["realized_prod"]["surface_type"] == (
+        "realized_production_pick"
+    )
+    fixed_vs_model = report["comparison"]["consensus_vs_model"]["fixed_cohort"][
+        "realized_prod"
+    ]
+    assert fixed_vs_model["n_units"] == 2
+    assert fixed_vs_model["n_disagreements"] == 1
+    assert fixed_vs_model["model_hit_rate"] == pytest.approx(0.5)
+    assert fixed_vs_model["consensus_hit_rate"] == pytest.approx(1.0)
+    assert fixed_vs_model["disagreement_mean_delta"] == pytest.approx(1.0)
+
+    units = pd.read_parquet(report["joined_consensus_units_path"])
+    fixed = units[units["cohort"] == "fixed_cohort"].sort_values("pick_number")
+    assert fixed["model_batter_id"].tolist() == [10, 99]
+    assert fixed["model_hit"].tolist() == [1, 0]
+
+
+def test_realized_production_surface_preserves_voided_slots_as_null(tmp_path):
+    leaderboard, _surface = _fixture_tree(tmp_path)
+    realized = tmp_path / "surfaces" / "realized_void.parquet"
+    _write_realized_surface_with_voided_primary(realized)
+
+    report = build_audit(
+        leaderboard_dir=leaderboard,
+        surface_specs={},
+        realized_surface_specs={"realized_prod": realized},
+        output_path=tmp_path / "audit.json",
+        joined_output_path=None,
+        consensus_units_output_path=None,
+        cohort_as_of_iso=None,
+        cohort_users_json=None,
+        dates={"2026-05-10"},
+        min_date=None,
+        max_date=None,
+        top_k=(1, 2),
+        n_bootstrap=0,
+        expected_block_length=7,
+        seed=7,
+        generated_at="2026-05-10T11:01:00+00:00",
+    )
+
+    inventory = report["inventory"]["surfaces"]["realized_prod"]
+    assert inventory["actual_hit_null_rows"] == 1
+    assert inventory["result_status_counts"] == {"resolved": 1, "void": 1}
+
+    fixed_vs_model = report["comparison"]["consensus_vs_model"]["fixed_cohort"][
+        "realized_prod"
+    ]
+    assert fixed_vs_model["n_units"] == 1
+    assert fixed_vs_model["model_hit_rate"] == pytest.approx(1.0)
+    assert fixed_vs_model["consensus_hit_rate"] == pytest.approx(1.0)
+
+    units = pd.read_parquet(report["joined_consensus_units_path"])
+    fixed = units[units["cohort"] == "fixed_cohort"].sort_values("pick_number")
+    slot1 = fixed.iloc[0]
+    slot2 = fixed.iloc[1]
+    assert slot1["model_batter_id"] == 10
+    assert pd.isna(slot1["model_hit"])
+    assert pd.isna(slot1["delta"])
+    assert slot2["model_batter_id"] == 20
+    assert slot2["model_hit"] == 1
 
 
 def test_build_audit_reports_surface_date_denominators_separately(tmp_path):
@@ -362,3 +517,20 @@ def test_load_ranked_surfaces_fails_loud_on_duplicate_date_rank(tmp_path):
 
     with pytest.raises(ValueError, match="duplicate date/rank rows"):
         load_ranked_surfaces({"duplicate": surface})
+
+
+def test_load_realized_pick_surfaces_fails_loud_on_missing_columns(tmp_path):
+    surface = tmp_path / "broken_realized.parquet"
+    pd.DataFrame(
+        [
+            {
+                "date": "2026-05-10",
+                "slot": "primary",
+                "batter_id": 10,
+                "p_game_hit": 0.70,
+            }
+        ]
+    ).to_parquet(surface, index=False)
+
+    with pytest.raises(ValueError, match="missing realized-pick columns"):
+        load_realized_pick_surfaces({"broken": surface})

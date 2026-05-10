@@ -36,11 +36,18 @@ from scripts.leaderboard_candidate_join_audit import (
 
 SCHEMA_VERSION = "leaderboard_backfilled_model_audit_v1"
 SURFACE_REQUIRED_COLUMNS = {"date", "rank", "batter_id", "p_game_hit", "actual_hit"}
+REALIZED_PICK_REQUIRED_COLUMNS = {
+    "date",
+    "slot",
+    "batter_id",
+    "p_game_hit",
+    "actual_hit",
+}
 DEFAULT_TOP_K = (1, 2, 5, 10)
 
 
-def parse_surface_specs(raw_specs: list[str]) -> dict[str, Path]:
-    if not raw_specs:
+def parse_surface_specs(raw_specs: list[str], *, require: bool = True) -> dict[str, Path]:
+    if not raw_specs and require:
         raise ValueError("at least one --surface NAME=PATH is required")
     specs: dict[str, Path] = {}
     for raw in raw_specs:
@@ -112,6 +119,62 @@ def _read_surface(path: Path, *, name: str) -> pd.DataFrame:
     return frame
 
 
+def _actual_hit_to_numeric(series: pd.Series) -> pd.Series:
+    """Coerce bool/0/1/NA actual-hit columns to nullable numeric values."""
+    mapped = series.map({True: 1, False: 0, "True": 1, "False": 0})
+    mapped = mapped.where(mapped.notna(), series)
+    return pd.to_numeric(mapped, errors="coerce")
+
+
+def _read_realized_pick_surface(path: Path, *, name: str) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(f"realized production surface {name!r} not found: {path}")
+    frame = pd.read_parquet(path)
+    missing = sorted(REALIZED_PICK_REQUIRED_COLUMNS.difference(frame.columns))
+    if missing:
+        raise ValueError(f"{path} missing realized-pick columns: {missing}")
+
+    slot_map = {"primary": 1, "pick": 1, "double_down": 2, "dd": 2}
+    out = frame.copy()
+    out["rank"] = out["slot"].map(slot_map)
+    out = out[out["rank"].notna()].copy()
+    if out.empty:
+        raise ValueError(f"{path} has no primary/double_down realized-pick rows")
+    out["rank"] = out["rank"].astype(int)
+    out["surface"] = name
+    out["surface_path"] = str(path)
+    out["surface_type"] = "realized_production_pick"
+    out["source_slot"] = out["slot"].astype(str)
+    out["date"] = out["date"].map(normalize_date_key)
+    out["batter_id"] = pd.to_numeric(out["batter_id"], errors="raise").astype("Int64")
+    out["p_game_hit"] = pd.to_numeric(out["p_game_hit"], errors="coerce")
+    out["actual_hit"] = _actual_hit_to_numeric(out["actual_hit"])
+    if "result_status" not in out.columns:
+        out["result_status"] = pd.NA
+    if "game_pk" not in out.columns:
+        out["game_pk"] = pd.NA
+    if "n_pas" not in out.columns:
+        out["n_pas"] = pd.NA
+    if "batter_name" not in out.columns:
+        out["batter_name"] = pd.NA
+    keep = [
+        "date",
+        "rank",
+        "batter_id",
+        "game_pk",
+        "p_game_hit",
+        "actual_hit",
+        "n_pas",
+        "batter_name",
+        "surface",
+        "surface_path",
+        "surface_type",
+        "source_slot",
+        "result_status",
+    ]
+    return out[keep]
+
+
 def load_ranked_surfaces(
     surface_specs: dict[str, Path],
     *,
@@ -164,6 +227,77 @@ def load_ranked_surfaces(
             "date_max": frame["date"].max() if not frame.empty else None,
             "max_rank": int(frame["rank"].max()) if not frame.empty else None,
             "actual_hit_null_rows": int(frame["actual_hit"].isna().sum()),
+            "date_batter_duplicate_rows_collapsed_for_leaderboard_join": int(
+                duplicate_batter.sum()
+            ),
+        }
+
+    ranked = pd.concat(ranked_parts, ignore_index=True) if ranked_parts else pd.DataFrame()
+    joinable = pd.concat(joinable_parts, ignore_index=True) if joinable_parts else pd.DataFrame()
+    return ranked, joinable, inventory
+
+
+def load_realized_pick_surfaces(
+    surface_specs: dict[str, Path],
+    *,
+    dates: set[str] | None = None,
+    min_date: str | None = None,
+    max_date: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    ranked_parts: list[pd.DataFrame] = []
+    joinable_parts: list[pd.DataFrame] = []
+    inventory: dict[str, Any] = {}
+    for name, path in surface_specs.items():
+        frame = _read_realized_pick_surface(path, name=name)
+        frame = _filter_date_strings(
+            frame,
+            date_col="date",
+            dates=dates,
+            min_date=min_date,
+            max_date=max_date,
+        )
+        duplicate_rank = frame.duplicated(["date", "rank"], keep=False)
+        if duplicate_rank.any():
+            examples = (
+                frame.loc[duplicate_rank, ["date", "rank"]]
+                .drop_duplicates()
+                .head(5)
+                .to_dict("records")
+            )
+            raise ValueError(
+                f"{path} has duplicate realized date/rank rows; examples={examples}"
+            )
+        duplicate_batter = frame.duplicated(["date", "batter_id"], keep=False)
+        joinable = (
+            frame.sort_values(
+                ["date", "batter_id", "rank", "p_game_hit"],
+                ascending=[True, True, True, False],
+            )
+            .drop_duplicates(["date", "batter_id"], keep="first")
+            .copy()
+        )
+        ranked_parts.append(frame)
+        joinable_parts.append(joinable)
+        status_counts = (
+            frame["result_status"]
+            .astype("string")
+            .fillna("missing")
+            .value_counts()
+            .sort_index()
+        )
+        inventory[name] = {
+            "path": str(path),
+            "surface_type": "realized_production_pick",
+            "rows": int(len(frame)),
+            "joinable_rows": int(len(joinable)),
+            "dates": int(frame["date"].nunique()) if not frame.empty else 0,
+            "date_min": frame["date"].min() if not frame.empty else None,
+            "date_max": frame["date"].max() if not frame.empty else None,
+            "max_rank": int(frame["rank"].max()) if not frame.empty else None,
+            "actual_hit_null_rows": int(frame["actual_hit"].isna().sum()),
+            "result_status_counts": {
+                str(status): int(count) for status, count in status_counts.items()
+            },
             "date_batter_duplicate_rows_collapsed_for_leaderboard_join": int(
                 duplicate_batter.sum()
             ),
@@ -769,6 +903,7 @@ def build_audit(
     *,
     leaderboard_dir: Path,
     surface_specs: dict[str, Path],
+    realized_surface_specs: dict[str, Path] | None = None,
     output_path: Path,
     joined_output_path: Path | None,
     consensus_units_output_path: Path | None,
@@ -785,13 +920,27 @@ def build_audit(
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now_iso()
     cohort_as_of = parse_cutoff(cohort_as_of_iso) if cohort_as_of_iso else None
+    realized_surface_specs = realized_surface_specs or {}
+    overlapping_names = sorted(set(surface_specs) & set(realized_surface_specs))
+    if overlapping_names:
+        raise ValueError(f"duplicate surface names across inputs: {overlapping_names}")
     ranked_surfaces, surface_joinable, surface_inventory = load_ranked_surfaces(
         surface_specs,
         dates=dates,
         min_date=min_date,
         max_date=max_date,
     )
-    surface_names = list(surface_specs)
+    if realized_surface_specs:
+        realized_ranked, realized_joinable, realized_inventory = load_realized_pick_surfaces(
+            realized_surface_specs,
+            dates=dates,
+            min_date=min_date,
+            max_date=max_date,
+        )
+        ranked_surfaces = pd.concat([ranked_surfaces, realized_ranked], ignore_index=True)
+        surface_joinable = pd.concat([surface_joinable, realized_joinable], ignore_index=True)
+        surface_inventory.update(realized_inventory)
+    surface_names = list(surface_specs) + list(realized_surface_specs)
 
     picks, pick_inventory = load_user_picks(
         leaderboard_dir,
@@ -905,6 +1054,9 @@ def build_audit(
         "no_policy_edit_supported": True,
         "leaderboard_dir": str(leaderboard_dir),
         "surface_specs": {name: str(path) for name, path in surface_specs.items()},
+        "realized_production_surface_specs": {
+            name: str(path) for name, path in realized_surface_specs.items()
+        },
         "joined_individual_picks_path": str(joined_output_path),
         "joined_consensus_units_path": str(consensus_units_output_path),
         "filters": {
@@ -927,7 +1079,16 @@ def build_audit(
             ),
             "comparison_scope": (
                 "Backfilled surfaces are current/post-hoc model surfaces unless "
-                "their own provenance proves a frozen historical information set."
+                "their own provenance proves a frozen historical information set. "
+                "Realized-production surfaces are locked historical production "
+                "pick artifacts, not full candidate rankings."
+            ),
+            "realized_production_primary_read": (
+                "For realized-production surfaces, read "
+                "fixed_cohort_consensus_hit_rate - realized_production_hit_rate "
+                "over resolved date-slot units. Null, pending, or voided "
+                "production slots remain null and are excluded from resolved "
+                "outcome denominators, not coerced to misses."
             ),
             "first_forward_eval_gate": (
                 "Do not support production policy edits until a future fixed-cohort "
@@ -989,6 +1150,18 @@ def build_audit(
                 "This script validates surface shape and joins. It does not prove "
                 "the surface was generated with a leak-free training cutoff."
             ),
+            "realized_production_surface_at_lock_anchor": (
+                "Canonical realized-production surfaces are leak-free at-lock "
+                "anchors because they come from locked production pick artifacts. "
+                "They preserve slot-level null/pending/void outcomes and exclude "
+                "those unresolved slots from resolved outcome denominators."
+            ),
+            "realized_production_surface_semantics": (
+                "Surfaces supplied through realized_production_surface_specs are "
+                "canonical locked production picks converted from slot to rank; "
+                "rank 1 is primary and rank 2 is double_down. They are valid "
+                "historical production decisions but not top-N model rankings."
+            ),
             "historical_backtest_oracle_exposure_caveat": (
                 "Standard bts simulate backtest profiles are built from realized "
                 "PA rows: the candidate universe and n_pas come from actual game "
@@ -1020,6 +1193,15 @@ def main() -> None:
         default=[],
         help="Repeatable NAME=PATH ranked surface, e.g. production=data/simulation/backtest_2026.parquet",
     )
+    parser.add_argument(
+        "--realized-production-surface",
+        action="append",
+        default=[],
+        help=(
+            "Repeatable NAME=PATH canonical realized-picks parquet. Converts "
+            "slot primary/double_down to rank 1/2 as true locked production picks."
+        ),
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--joined-output", default=None)
     parser.add_argument("--consensus-units-output", default=None)
@@ -1034,9 +1216,19 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20260510)
     args = parser.parse_args()
 
+    surface_specs = parse_surface_specs(
+        args.surface,
+        require=not args.realized_production_surface,
+    )
+    realized_surface_specs = parse_surface_specs(
+        args.realized_production_surface,
+        require=False,
+    )
+
     report = build_audit(
         leaderboard_dir=Path(args.leaderboard_dir),
-        surface_specs=parse_surface_specs(args.surface),
+        surface_specs=surface_specs,
+        realized_surface_specs=realized_surface_specs,
         output_path=Path(args.output),
         joined_output_path=Path(args.joined_output) if args.joined_output else None,
         consensus_units_output_path=(
