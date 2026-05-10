@@ -741,6 +741,8 @@ def decomposition_fdr_table(
         _all_tracked_direction_not_contradicted(table, row)
         for _, row in table.iterrows()
     ]
+    # None means no comparable all_tracked cell survived the testability gate;
+    # that is missing diagnostic support, not contradictory evidence.
     table["mechanism_candidate"] = (
         fixed
         & enough_n
@@ -896,6 +898,7 @@ def build_audit(
         ),
         "fdr_method": {
             "method": "exact_positive_sign_test_plus_BH_BY",
+            "bootstrap_params_scope": "summary_confidence_intervals_only",
             "q_threshold": DEFAULT_Q_THRESHOLD,
             "min_resolved_disagreement_units": int(fdr_min_n),
             "bootstrap_summary_expected_block_length": int(expected_block_length),
