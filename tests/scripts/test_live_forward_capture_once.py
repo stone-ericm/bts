@@ -129,9 +129,33 @@ def test_capture_once_exports_and_verifies(tmp_path, monkeypatch):
     ).exists()
 
 
-def test_capture_once_existing_manifest_verifies_without_export(tmp_path, monkeypatch):
+def test_capture_once_existing_manifest_verifies_without_pick_file(tmp_path, monkeypatch):
     config = _config(tmp_path)
-    _write_pick(config.production_root)
+    artifact_dir = config.production_root / config.artifact_root / config.date
+    artifact_dir.mkdir(parents=True)
+    (artifact_dir / "manifest.json").write_text("{}")
+    calls = []
+
+    def fake_run(args, *, cwd, env=None):
+        calls.append(args)
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="sha\n")
+        if "verify-candidate-artifacts" in args:
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_capture_once.run", fake_run)
+
+    code, payload = capture_once(config)
+
+    assert code == 0
+    assert payload["status"] == "existing_verified"
+    assert not any("export-live-candidate-artifacts" in args for args in calls)
+
+
+def test_capture_once_existing_manifest_verifies_after_pick_resolves(tmp_path, monkeypatch):
+    config = _config(tmp_path)
+    _write_pick(config.production_root, result="hit")
     artifact_dir = config.production_root / config.artifact_root / config.date
     artifact_dir.mkdir(parents=True)
     (artifact_dir / "manifest.json").write_text("{}")
