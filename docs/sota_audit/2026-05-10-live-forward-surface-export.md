@@ -74,6 +74,32 @@ operational protocol where post-freeze tooling records frozen model artifact
 hashes and proves prediction equivalence before any official fresh-target
 count.
 
+## Frozen Backport Parity Smoke
+
+A second `/tmp`-only diagnostic tested the lower-drift path directly:
+`5004b1c8...` versus `5004b1c8...` with the verifier/parity runtime changes
+backported. The command used the same `2026-05-10` date, candidate, top-N,
+processed data directory, `--no-refresh-data`, and deterministic LightGBM
+environment variables. The backport side also passed
+`--production-pick-file data/picks/2026-05-10.json`.
+
+The straight `c2cee87` cherry-pick is not clean against the frozen SHA. A
+`77b36f5` then `c2cee87` sequence auto-merged the runtime source files, but
+docs/tests still need a clean conflict-resolution branch before any operational
+checkout is moved.
+
+Result:
+
+| Variant | Same rank/batter/game order | Top baseline | Top backport | Max abs probability drift | Snapshot captured |
+|---|---|---:|---:|---:|---|
+| Production | yes | `683002` | `683002` | `0.000000` | yes |
+| Candidate | yes | `683002` | `683002` | `0.000000` | yes |
+
+This supports the frozen-backport path: add the production-pick snapshot guard
+to the frozen candidate checkout while preserving the candidate ranked slates.
+It does not by itself create an official 2026-05-10 artifact, because that date
+was already resolved before the diagnostic ran.
+
 ## Contract
 
 The exported parquet must include, at minimum:
