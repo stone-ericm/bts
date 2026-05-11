@@ -3,8 +3,10 @@ Description=BTS live-forward candidate artifact capture polling timer
 Requires=bts-live-forward-capture.service
 
 [Timer]
-OnBootSec=5min
-OnUnitActiveSec=15min
+# Poll during the capture window only. Avoid OnBootSec/OnUnitActiveSec because
+# enabling the timer late at night can otherwise fire immediately against an
+# already-resolved same-day pick.
+OnCalendar=*-*-* 05..22:00/15:00
 AccuracySec=1min
 Persistent=false
 
