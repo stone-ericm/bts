@@ -9,7 +9,10 @@ does not clear production model changes.
 ## Anchors
 
 - Candidate: `decision_weighted_lgbm_v0`
-- Candidate freeze commit: `5004b1c8b093da0f8acb11bd728430ebacbf92d3`
+- Candidate training freeze commit: `5004b1c8b093da0f8acb11bd728430ebacbf92d3`
+- Live-forward logging checkout: parity-guard backport branch
+  `live-forward-frozen-parity-backport` at
+  `a8632ce6cc863e1dd55d58215b96b50828437263`
 - Artifact family: `bts_candidate_ranked_slate_pair_v1`
 - Live-forward output root:
   `data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD`
@@ -25,6 +28,37 @@ The pre-registration document is
 `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md`. It clears
 pre-outcome research logging only. The command must not write production picks,
 model caches, posts, cloud assets, or `deploy`.
+
+## Automated Capture
+
+Preferred daily operation is the guarded one-shot runner:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/python scripts/live_forward_capture_once.py
+```
+
+This runner is safe to invoke from a frequent timer:
+
+- exits successfully while `data/picks/YYYY-MM-DD.json` is absent;
+- refuses to export if the pick file already has a non-null result;
+- refuses partial artifact directories;
+- verifies an existing manifest instead of exporting again;
+- writes `capture_status.json` beside the artifact after export/verify attempts.
+
+Install the user timer on Hetzner only after the production checkout contains
+`scripts/live_forward_capture_once.py`:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp scripts/systemd/bts-live-forward-capture.service ~/.config/systemd/user/
+cp scripts/systemd/bts-live-forward-capture.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now bts-live-forward-capture.timer
+```
+
+The timer polls every 15 minutes. It should replace the need for a human to
+remember the daily pre-outcome capture.
 
 ## Safety Gates
 
@@ -67,10 +101,10 @@ cd /home/bts/projects/bts-live-forward
 git rev-parse HEAD
 ```
 
-The expected frozen worktree commit is:
+The expected live-forward logging worktree commit is:
 
 ```bash
-5004b1c8b093da0f8acb11bd728430ebacbf92d3
+a8632ce6cc863e1dd55d58215b96b50828437263
 ```
 
 Then export one date into a date-specific output directory:
@@ -84,6 +118,7 @@ env OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 NUMEXPR_NUM_THREA
   --candidate decision_weighted_lgbm_v0 \
   --output-dir /home/bts/projects/bts/data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
   --data-dir /home/bts/projects/bts/data/processed \
+  --production-pick-file /home/bts/projects/bts/data/picks/YYYY-MM-DD.json \
   --top-n 10 \
   --no-refresh-data
 ```
@@ -102,9 +137,10 @@ cd /home/bts/projects/bts
   --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
   --expected-candidate decision_weighted_lgbm_v0 \
   --expected-date YYYY-MM-DD \
-  --expected-git-commit 5004b1c8b093da0f8acb11bd728430ebacbf92d3 \
+  --expected-git-commit a8632ce6cc863e1dd55d58215b96b50828437263 \
   --expected-top-n 10 \
   --require-live-preoutcome \
+  --require-production-pick-snapshot \
   --save data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD/verification.json
 ```
 
@@ -117,6 +153,7 @@ Expected verifier posture:
 - manifest `production_deploy_claim = false`
 - production and candidate row counts equal `10`
 - outcome fields are null
+- `production_pick_snapshot` is present and date-matched
 
 If the verifier fails, do not hand-edit the artifacts. Preserve the failure
 report and investigate the export code or data snapshot.
@@ -170,7 +207,7 @@ cd /home/bts/projects/bts
   --expected-run-kind live_forward_resolved \
   --expected-candidate decision_weighted_lgbm_v0 \
   --expected-date YYYY-MM-DD \
-  --expected-git-commit 5004b1c8b093da0f8acb11bd728430ebacbf92d3 \
+  --expected-git-commit a8632ce6cc863e1dd55d58215b96b50828437263 \
   --expected-top-n 10 \
   --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/verification.json
 ```

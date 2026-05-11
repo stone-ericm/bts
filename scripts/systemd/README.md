@@ -1,5 +1,35 @@
 # Systemd units for Pi5 deployment
 
+## Live-forward candidate capture
+
+Install as user units on Hetzner after the production checkout contains
+`scripts/live_forward_capture_once.py` and the frozen live-forward checkout is
+on the parity-guard branch:
+
+    mkdir -p ~/.config/systemd/user
+    cp scripts/systemd/bts-live-forward-capture.service ~/.config/systemd/user/
+    cp scripts/systemd/bts-live-forward-capture.timer ~/.config/systemd/user/
+    systemctl --user daemon-reload
+    systemctl --user enable --now bts-live-forward-capture.timer
+
+The timer runs every 15 minutes. This is safe because the runner is
+idempotent:
+
+- exits successfully while `data/picks/YYYY-MM-DD.json` is absent;
+- refuses to export if the pick file already has a result;
+- refuses partial artifact directories;
+- verifies an existing manifest instead of exporting again;
+- writes `capture_status.json` next to successful or failed artifact attempts.
+
+Verify it is active:
+
+    systemctl --user list-timers bts-live-forward-capture
+    journalctl --user -u bts-live-forward-capture -n 100 --no-pager
+
+Run one manual poll:
+
+    systemctl --user start bts-live-forward-capture.service
+
 ## Lineup time collection
 
 Install as user units on Pi5:
