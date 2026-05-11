@@ -66,6 +66,25 @@ def test_capture_once_refuses_resolved_pick_file(tmp_path, monkeypatch):
     assert payload["status"] == "failed_pick_already_resolved"
 
 
+def test_capture_once_treats_partial_pick_json_as_transient(tmp_path, monkeypatch):
+    config = _config(tmp_path)
+    pick_path = config.production_root / "data" / "picks" / "2026-05-11.json"
+    pick_path.parent.mkdir(parents=True, exist_ok=True)
+    pick_path.write_text("{")
+
+    def fake_run(args, *, cwd, env=None):
+        assert args == ["git", "rev-parse", "HEAD"]
+        return _fake_completed(args, stdout="abc123\n")
+
+    monkeypatch.setattr("scripts.live_forward_capture_once.run", fake_run)
+
+    code, payload = capture_once(config)
+
+    assert code == 0
+    assert payload["status"] == "transient_pick_read_error"
+    assert not (config.production_root / "data" / "validation").exists()
+
+
 def test_capture_once_exports_and_verifies(tmp_path, monkeypatch):
     config = _config(tmp_path)
     _write_pick(config.production_root)

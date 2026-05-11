@@ -205,7 +205,20 @@ def capture_once(config: CaptureConfig) -> tuple[int, dict[str, Any]]:
         )
         return (2 if config.fail_on_pending else 0), payload
 
-    pick = read_json(pick_path)
+    try:
+        pick = read_json(pick_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        payload = status_payload(
+            config=config,
+            status="transient_pick_read_error",
+            message=f"could not read production pick file yet: {exc}",
+            production_head=production_head,
+            live_forward_head=live_forward_head,
+            artifact_dir=artifact_dir,
+            verification_path=verification_path,
+            pick_path=pick_path,
+        )
+        return 0, payload
     if str(pick.get("date")) != config.date:
         payload = status_payload(
             config=config,
