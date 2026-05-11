@@ -192,6 +192,41 @@ def capture_once(config: CaptureConfig) -> tuple[int, dict[str, Any]]:
     production_head = git_head(config.production_root)
     live_forward_head = git_head(config.live_forward_root)
 
+    manifest_path = artifact_dir / "manifest.json"
+    if manifest_path.exists() and not config.overwrite:
+        verify = verify_artifact(
+            config,
+            artifact_dir=artifact_dir,
+            verification_path=verification_path,
+            live_forward_head=live_forward_head,
+        )
+        status = "existing_verified" if verify.returncode == 0 else "failed_verify_existing"
+        payload = status_payload(
+            config=config,
+            status=status,
+            message=(verify.stdout + verify.stderr).strip(),
+            production_head=production_head,
+            live_forward_head=live_forward_head,
+            artifact_dir=artifact_dir,
+            verification_path=verification_path,
+            pick_path=pick_path,
+        )
+        write_json(status_path, payload)
+        return (0 if verify.returncode == 0 else 1), payload
+    if artifact_dir.exists() and any(artifact_dir.iterdir()) and not config.overwrite:
+        payload = status_payload(
+            config=config,
+            status="failed_partial_artifact_dir",
+            message="artifact directory exists without manifest; refusing overwrite",
+            production_head=production_head,
+            live_forward_head=live_forward_head,
+            artifact_dir=artifact_dir,
+            verification_path=verification_path,
+            pick_path=pick_path,
+        )
+        write_json(status_path, payload)
+        return 1, payload
+
     if not pick_path.exists():
         payload = status_payload(
             config=config,
@@ -242,41 +277,6 @@ def capture_once(config: CaptureConfig) -> tuple[int, dict[str, Any]]:
             verification_path=verification_path,
             pick_path=pick_path,
         )
-        return 1, payload
-
-    manifest_path = artifact_dir / "manifest.json"
-    if manifest_path.exists() and not config.overwrite:
-        verify = verify_artifact(
-            config,
-            artifact_dir=artifact_dir,
-            verification_path=verification_path,
-            live_forward_head=live_forward_head,
-        )
-        status = "existing_verified" if verify.returncode == 0 else "failed_verify_existing"
-        payload = status_payload(
-            config=config,
-            status=status,
-            message=(verify.stdout + verify.stderr).strip(),
-            production_head=production_head,
-            live_forward_head=live_forward_head,
-            artifact_dir=artifact_dir,
-            verification_path=verification_path,
-            pick_path=pick_path,
-        )
-        write_json(status_path, payload)
-        return (0 if verify.returncode == 0 else 1), payload
-    if artifact_dir.exists() and any(artifact_dir.iterdir()) and not config.overwrite:
-        payload = status_payload(
-            config=config,
-            status="failed_partial_artifact_dir",
-            message="artifact directory exists without manifest; refusing overwrite",
-            production_head=production_head,
-            live_forward_head=live_forward_head,
-            artifact_dir=artifact_dir,
-            verification_path=verification_path,
-            pick_path=pick_path,
-        )
-        write_json(status_path, payload)
         return 1, payload
 
     export = run_bts(
