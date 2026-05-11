@@ -12,8 +12,8 @@ on the parity-guard branch:
     systemctl --user daemon-reload
     systemctl --user enable --now bts-live-forward-capture.timer
 
-The timer runs every 15 minutes. This is safe because the runner is
-idempotent:
+The timer runs every 15 minutes from 05:00 through 22:45 local server time.
+This is safe because the runner is idempotent:
 
 - exits successfully while `data/picks/YYYY-MM-DD.json` is absent;
 - refuses to export if the pick file already has a result;
