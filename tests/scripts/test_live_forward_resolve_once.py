@@ -157,6 +157,7 @@ def test_resolve_once_shells_to_resolver_and_verifier(tmp_path, monkeypatch):
         verify_args[verify_args.index("--expected-run-kind") + 1]
         == "live_forward_resolved"
     )
+    assert "--require-production-pick-snapshot" in verify_args
     assert verify_args[verify_args.index("--expected-git-commit") + 1] == "frozen-sha"
     assert (
         config.production_root
@@ -195,6 +196,41 @@ def test_resolve_once_existing_manifest_verifies_without_resolving(tmp_path, mon
     assert code == 0
     assert payload["status_counts"] == {"existing_verified": 1}
     assert not any("resolve-live-candidate-artifacts" in args for args in calls)
+
+
+def test_resolve_once_legacy_artifact_skips_pick_snapshot_gate(
+    tmp_path,
+    monkeypatch,
+):
+    config = _config(tmp_path, dates=("2026-05-09",))
+    _write_preoutcome_manifest(config, date="2026-05-09")
+    resolved_dir = config.production_root / config.resolved_root / "2026-05-09"
+    resolved_dir.mkdir(parents=True)
+    (resolved_dir / "manifest.json").write_text("{}")
+    calls = []
+
+    def fake_run(args, *, cwd, env=None):
+        calls.append(args)
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="prod-sha\n")
+        if "verify-candidate-artifacts" in args:
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_resolve_once.run", fake_run)
+    monkeypatch.setattr(
+        "scripts.live_forward_resolve_once.pa_rows_for_dates",
+        lambda data_dir, dates: (_ for _ in ()).throw(
+            AssertionError("existing resolved manifests should not read PA data")
+        ),
+    )
+
+    code, payload = resolve_once(config)
+
+    verify_args = next(args for args in calls if "verify-candidate-artifacts" in args)
+    assert code == 0
+    assert payload["status_counts"] == {"existing_verified": 1}
+    assert "--require-production-pick-snapshot" not in verify_args
 
 
 def test_resolve_once_pa_read_error_writes_status(tmp_path, monkeypatch):
