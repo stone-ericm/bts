@@ -160,6 +160,36 @@ report and investigate the export code or data snapshot.
 
 ## Post-Outcome Resolution
 
+Preferred operation is the guarded resolver runner:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/python scripts/live_forward_resolve_once.py
+```
+
+The runner scans all captured preoutcome artifact directories, so missed dates
+are retried automatically. It verifies existing resolved manifests instead of
+rewriting them and treats missing processed PA outcomes as `pending_outcomes`
+rather than failures or misses.
+
+Install the user timer on Hetzner only after the production checkout contains
+`scripts/live_forward_resolve_once.py`:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp scripts/systemd/bts-live-forward-resolve.service ~/.config/systemd/user/
+cp scripts/systemd/bts-live-forward-resolve.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now bts-live-forward-resolve.timer
+```
+
+Treat timer installation as a separate ops step requiring explicit approval;
+merging the runner PR alone does not enable the resolver on production.
+
+The timer fires at 07:00, 12:00, 18:00, and 22:00 server-local time. That
+cadence is meant to catch overnight PA processing and later corrections without
+15-minute polling.
+
 After the slate is final and the processed PA data includes the game outcomes,
 resolve outcomes into a copied artifact directory. Do not mutate the original
 pre-outcome artifact.
