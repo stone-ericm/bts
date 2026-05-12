@@ -695,11 +695,22 @@ def merge_scorecards(sc1: dict | None, sc2: dict | None) -> dict | None:
     merged = dict(sc1)
     merged["batters"] = list(sc1.get("batters", [])) + list(sc2.get("batters", []))
 
-    # Prefer Live > Final > Preview — scorecard renders when any game is live
-    status_priority = {"P": 0, "F": 1, "L": 2}
-    if status_priority.get(sc2["game_status"], 0) > status_priority.get(sc1["game_status"], 0):
-        merged["game_status"] = sc2["game_status"]
-        merged["inning"] = sc2.get("inning", "")
+    statuses = [sc1.get("game_status"), sc2.get("game_status")]
+    if "L" in statuses:
+        merged["game_status"] = "L"
+        if sc2.get("game_status") == "L":
+            merged["inning"] = sc2.get("inning", "")
+    elif statuses and all(status == "F" for status in statuses):
+        merged["game_status"] = "F"
+        merged["inning"] = ""
+    elif "F" in statuses:
+        # One game is complete and another is still pending; render the partial
+        # scorecard without treating the combined pick as final.
+        merged["game_status"] = "L"
+        merged["inning"] = ""
+    else:
+        merged["game_status"] = "P"
+        merged["inning"] = ""
 
     # Show both scores with innings as a combined label for the header
     s1 = sc1.get("score", {})

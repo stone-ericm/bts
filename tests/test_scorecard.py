@@ -478,6 +478,28 @@ class TestMergeScorecard:
         merged = merge_scorecards(sc1, sc2)
         assert merged["game_status"] == "F"
 
+    def test_merge_partial_final_preview_is_not_final(self):
+        """One completed game plus one pending game is still unresolved."""
+        sc1 = {
+            "game_status": "F",
+            "inning": "",
+            "score": {"away": 4, "home": 2},
+            "away_team": "TB",
+            "home_team": "MIN",
+            "batters": [{"name": "Finished", "batter_id": 1, "pas": [{"is_hit": True}]}],
+        }
+        sc2 = {
+            "game_status": "P",
+            "inning": "",
+            "score": {"away": 0, "home": 0},
+            "away_team": "PHI",
+            "home_team": "COL",
+            "batters": [{"name": "Pending", "batter_id": 2, "pas": []}],
+        }
+        merged = merge_scorecards(sc1, sc2)
+        assert merged["game_status"] == "L"
+        assert merged["inning"] == ""
+
     def test_merge_live_beats_preview_when_primary_preview(self):
         """When primary is Preview (pre-game) and double-down is Live,
         the merged status must be Live so the scorecard actually renders.
@@ -655,6 +677,21 @@ class TestRenderLiveGameSection:
         html = render_scorecard_section(sc, pick_data=pick_data)
 
         assert "HIT! BTS pick successful — both batters!" in html
+
+    def test_scorecard_banner_handles_null_slot_results(self):
+        from bts.web import render_scorecard_section
+
+        sc = self._basic_scorecard("L")
+        pick_data = {
+            "result": None,
+            "slot_results": None,
+            "double_down": {"batter_name": "Second Batter"},
+        }
+
+        html = render_scorecard_section(sc, pick_data=pick_data)
+
+        assert 'id="scorecard"' in html
+        assert "Final — pick missed" not in html
 
     def test_live_game_section_renders_each_double_down_game_tag(self):
         """Double-downs in separate games show one compact tag per game."""
