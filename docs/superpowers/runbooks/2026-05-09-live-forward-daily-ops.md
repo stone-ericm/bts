@@ -170,7 +170,8 @@ cd /home/bts/projects/bts
 The runner scans all captured preoutcome artifact directories, so missed dates
 are retried automatically. It verifies existing resolved manifests instead of
 rewriting them and treats missing processed PA outcomes as `pending_outcomes`
-rather than failures or misses.
+rather than failures or misses. Known postponed/cancelled source-date games are
+resolved as terminal void rows with null `actual_hit`/`n_pas`, not as misses.
 
 Install the user timer on Hetzner only after the production checkout contains
 `scripts/live_forward_resolve_once.py`:
@@ -200,6 +201,7 @@ cd /home/bts/projects/bts
   --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/YYYY-MM-DD \
   --output-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD \
   --data-dir data/processed \
+  --treat-void-games-as-terminal \
   --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/resolution.json
 ```
 
@@ -207,7 +209,11 @@ Expected resolver posture:
 
 - `complete = true`
 - `missing_count = 0`
+- `terminal_void_count = 0` unless one or more original games were terminally
+  postponed/cancelled
 - resolved manifest `run_kind = live_forward_resolved`
+- resolved manifest `schema_version = bts_candidate_ranked_slate_pair_v2`
+- resolved profiles include `outcome_status`
 - source manifest remains unchanged with null outcomes
 
 If outcomes are incomplete, the resolver fails closed by default. Use
@@ -224,9 +230,27 @@ Postponement handling:
   void + hit advances by one; void + miss resets; both void leaves the streak
   unchanged.
 - For live-forward artifacts, a postponed or void game normally has no PA row in
-  `pa_YEAR.parquet`. The resolver must treat the left-only join as missing
-  outcome evidence and fail closed unless `--allow-partial` is explicitly used;
-  never coerce a missing/postponed outcome to `actual_hit = 0`.
+  `pa_YEAR.parquet`. With `--treat-void-games-as-terminal`, the resolver checks
+  `get_game_statuses_detailed(date)` and marks those rows
+  `outcome_status = void_postponement` or `void_cancellation` while preserving
+  null `actual_hit` and `n_pas`.
+- Rows that are not observed outcomes and are not known terminal voids remain
+  `pending`; official verification fails on pending rows. Never coerce a
+  missing/postponed outcome to `actual_hit = 0`.
+
+After the void-aware resolver is deployed, convert the known 2026-05-09
+postponed slate from `pending_outcomes` to `resolved_with_voids` explicitly:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/bts experiment resolve-live-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/2026-05-09 \
+  --output-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/2026-05-09 \
+  --data-dir data/processed \
+  --treat-void-games-as-terminal \
+  --overwrite \
+  --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/2026-05-09/resolution.json
+```
 
 Verify the resolved copy without the live pre-outcome null-outcome flag:
 
@@ -250,6 +274,11 @@ cd /home/bts/projects/bts
   --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD \
   --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/YYYY-MM-DD/comparison.json
 ```
+
+Resolved v2 comparisons exclude rows whose `outcome_status != "resolved"` from
+scorecard denominators. Dates missing a resolved rank 1 or rank 2 row are
+excluded from streak scorecards, and candidate/production scorecards are
+evaluated on the common remaining date set.
 
 Single-day comparisons are monitoring evidence only. The #16 cycle verdict
 requires the pre-registered accumulated fresh-target analysis, not a one-day

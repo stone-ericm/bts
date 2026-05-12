@@ -51,6 +51,8 @@ safe because the runner is idempotent:
   `data/validation/decision_weighted_lgbm_v0_live_forward/`;
 - exits successfully when no preoutcome artifacts exist yet;
 - treats missing processed PA outcomes as `pending_outcomes`, not as misses;
+- treats known postponed/cancelled source-date rows as terminal voids with
+  null `actual_hit`/`n_pas` and `outcome_status=void_*`;
 - verifies an existing resolved manifest instead of resolving again;
 - refuses partial resolved directories without a manifest;
 - writes per-date status JSON under

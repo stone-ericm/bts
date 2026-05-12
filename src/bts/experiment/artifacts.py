@@ -24,7 +24,26 @@ from bts.experiment.runner import compose_blend_args
 
 
 ARTIFACT_SCHEMA_VERSION = "bts_candidate_ranked_slate_pair_v1"
+RESOLVED_ARTIFACT_SCHEMA_VERSION = "bts_candidate_ranked_slate_pair_v2"
+SUPPORTED_ARTIFACT_SCHEMA_VERSIONS = {
+    ARTIFACT_SCHEMA_VERSION,
+    RESOLVED_ARTIFACT_SCHEMA_VERSION,
+}
 PRODUCTION_PICK_SNAPSHOT_VERSION = "production_pick_snapshot_v1"
+OUTCOME_STATUS_RESOLVED = "resolved"
+OUTCOME_STATUS_VOID_POSTPONEMENT = "void_postponement"
+OUTCOME_STATUS_VOID_CANCELLATION = "void_cancellation"
+OUTCOME_STATUS_PENDING = "pending"
+OUTCOME_STATUS_VALUES = (
+    OUTCOME_STATUS_RESOLVED,
+    OUTCOME_STATUS_VOID_POSTPONEMENT,
+    OUTCOME_STATUS_VOID_CANCELLATION,
+    OUTCOME_STATUS_PENDING,
+)
+VOID_OUTCOME_STATUSES = {
+    OUTCOME_STATUS_VOID_POSTPONEMENT,
+    OUTCOME_STATUS_VOID_CANCELLATION,
+}
 PROFILE_REQUIRED_COLUMNS = {
     "date",
     "rank",
@@ -50,6 +69,15 @@ PROFILE_SCHEMA_COLUMNS = [
     "actual_hit",
     "n_pas",
 ]
+RESOLVED_PROFILE_SCHEMA_COLUMNS = [
+    *PROFILE_SCHEMA_COLUMNS,
+    "outcome_status",
+]
+VOID_DETAILED_STATES = {
+    "postponed": OUTCOME_STATUS_VOID_POSTPONEMENT,
+    "cancelled": OUTCOME_STATUS_VOID_CANCELLATION,
+    "canceled": OUTCOME_STATUS_VOID_CANCELLATION,
+}
 
 
 def current_git_commit(cwd: str | Path = ".") -> str | None:
@@ -503,12 +531,24 @@ def materialize_live_candidate_profile_pair(
 def load_manifest(artifact_dir: str | Path) -> dict:
     path = Path(artifact_dir) / "manifest.json"
     manifest = json.loads(path.read_text())
-    if manifest.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
+    if manifest.get("schema_version") not in SUPPORTED_ARTIFACT_SCHEMA_VERSIONS:
         raise ValueError(
             "unsupported candidate artifact schema: "
             f"{manifest.get('schema_version')!r}"
         )
     return manifest
+
+
+def _expected_profile_columns(manifest: dict) -> list[str]:
+    configured = manifest.get("profile_schema_columns")
+    if (
+        isinstance(configured, list)
+        and all(isinstance(column, str) for column in configured)
+    ):
+        return list(configured)
+    if manifest.get("schema_version") == RESOLVED_ARTIFACT_SCHEMA_VERSION:
+        return list(RESOLVED_PROFILE_SCHEMA_COLUMNS)
+    return list(PROFILE_SCHEMA_COLUMNS)
 
 
 def _load_variant_profiles(
@@ -526,6 +566,66 @@ def _load_variant_profiles(
     if not frames:
         raise ValueError(f"manifest has no {variant} profile paths")
     return pd.concat(frames, ignore_index=True)
+
+
+def _scorecard_profiles(
+    profiles: pd.DataFrame,
+    *,
+    variant: str,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Return rows eligible for scorecard denominators.
+
+    v2 resolved live-forward artifacts can contain terminal void rows. Those
+    rows are real artifact rows, but they are not observations of model quality.
+    """
+    report: dict[str, Any] = {
+        "variant": variant,
+        "input_rows": int(len(profiles)),
+        "input_dates": int(profiles["date"].nunique()) if "date" in profiles else None,
+        "applied": False,
+    }
+    if "outcome_status" not in profiles.columns:
+        report["scorecard_rows"] = int(len(profiles))
+        report["scorecard_dates"] = (
+            int(profiles["date"].nunique()) if "date" in profiles else None
+        )
+        return profiles, report
+
+    statuses = set(profiles["outcome_status"].dropna().unique())
+    unknown_statuses = sorted(statuses - set(OUTCOME_STATUS_VALUES))
+    if unknown_statuses:
+        raise ValueError(
+            f"{variant} has unsupported outcome_status values: {unknown_statuses}"
+        )
+
+    all_dates = set(profiles["date"].dropna().unique())
+    resolved = profiles[profiles["outcome_status"] == OUTCOME_STATUS_RESOLVED].copy()
+    rank12 = resolved[resolved["rank"].isin([1, 2])]
+    complete_rank12 = rank12.groupby("date")["rank"].nunique()
+    scorecard_dates = set(complete_rank12[complete_rank12 == 2].index)
+    scorecard = resolved[resolved["date"].isin(scorecard_dates)].copy()
+
+    if scorecard.empty:
+        raise ValueError(
+            f"{variant} has no scorecard-eligible dates after excluding "
+            "non-resolved outcome_status rows"
+        )
+
+    excluded = profiles.loc[~profiles.index.isin(scorecard.index)]
+    excluded_status_counts = _outcome_status_counts(excluded)
+    report.update(
+        {
+            "applied": True,
+            "scorecard_rows": int(len(scorecard)),
+            "scorecard_dates": int(scorecard["date"].nunique()),
+            "excluded_rows": int(len(profiles) - len(scorecard)),
+            "excluded_status_counts": excluded_status_counts,
+            "dropped_dates_missing_resolved_rank_1_or_2": [
+                str(date) for date in sorted(all_dates - scorecard_dates)
+            ],
+        }
+    )
+    return scorecard, report
 
 
 def _append_check(
@@ -642,12 +742,88 @@ def _load_outcomes_from_pa(
     return outcomes
 
 
+def _terminal_void_outcome_status(detailed: str | None) -> str | None:
+    return VOID_DETAILED_STATES.get((detailed or "").strip().lower())
+
+
+def _is_terminal_void_detailed_state(detailed: str | None) -> bool:
+    return _terminal_void_outcome_status(detailed) is not None
+
+
+def _load_terminal_void_statuses(
+    *,
+    date_keys: list[str],
+) -> dict[str, dict[int, dict[str, str]]]:
+    from bts.picks import get_game_statuses_detailed
+
+    statuses_by_date: dict[str, dict[int, dict[str, str]]] = {}
+    for date_key in date_keys:
+        statuses_by_date[date_key] = get_game_statuses_detailed(date_key)
+    return statuses_by_date
+
+
+def _missing_row_terminal_void_status(
+    row: pd.Series,
+    *,
+    terminal_void_statuses: dict[str, dict[int, dict[str, str]]],
+) -> str | None:
+    date_key = str(row.get("_outcome_date_key") or row.get("date"))
+    try:
+        game_pk = int(row["game_pk"])
+    except (TypeError, ValueError):
+        return None
+    status = terminal_void_statuses.get(date_key, {}).get(game_pk)
+    if not status:
+        return None
+    return _terminal_void_outcome_status(status.get("detailed"))
+
+
+def _empty_outcome_status_counts() -> dict[str, int]:
+    return {status: 0 for status in OUTCOME_STATUS_VALUES}
+
+
+def _outcome_status_counts(frame: pd.DataFrame) -> dict[str, int]:
+    counts = _empty_outcome_status_counts()
+    if "outcome_status" not in frame.columns:
+        return counts
+    observed = frame["outcome_status"].value_counts(dropna=False).to_dict()
+    for status in OUTCOME_STATUS_VALUES:
+        counts[status] = int(observed.get(status, 0))
+    return counts
+
+
+def _add_outcome_status_counts(
+    target: dict[str, int],
+    source: dict[str, int],
+) -> None:
+    for status in OUTCOME_STATUS_VALUES:
+        target[status] += int(source.get(status, 0))
+
+
+def _missing_row_example(
+    row: pd.Series,
+    *,
+    variant: str,
+    profile_key: str,
+) -> dict[str, Any]:
+    return {
+        "date": str(row.get("date")),
+        "rank": int(row["rank"]) if pd.notna(row.get("rank")) else None,
+        "batter_id": int(row["batter_id"]) if pd.notna(row.get("batter_id")) else None,
+        "game_pk": int(row["game_pk"]) if pd.notna(row.get("game_pk")) else None,
+        "variant": variant,
+        "profile_key": profile_key,
+    }
+
+
 def resolve_live_candidate_artifact_pair(
     *,
     artifact_dir: str | Path,
     output_dir: str | Path,
     data_dir: str | Path = "data/processed",
     allow_partial: bool = False,
+    treat_void_games_as_terminal: bool = False,
+    detailed_statuses_by_date: dict[str, dict[int, dict[str, str]]] | None = None,
     overwrite: bool = False,
     generated_at: str | None = None,
     save_path: str | Path | None = None,
@@ -655,7 +831,7 @@ def resolve_live_candidate_artifact_pair(
     """Join post-game outcomes onto a live-forward pre-outcome artifact copy.
 
     The source artifact is left unchanged. The resolved copy can be passed to
-    ``compare-candidate-artifacts`` once all outcome rows are present.
+    ``compare-candidate-artifacts`` once all non-void outcome rows are present.
     """
     artifact_root = Path(artifact_dir)
     output_root = Path(output_dir)
@@ -676,24 +852,41 @@ def resolve_live_candidate_artifact_pair(
 
     date_keys = _manifest_date_keys(manifest)
     outcomes = _load_outcomes_from_pa(data_dir=data_dir, date_keys=date_keys)
+    terminal_void_statuses = (
+        detailed_statuses_by_date
+        if detailed_statuses_by_date is not None
+        else (
+            _load_terminal_void_statuses(date_keys=date_keys)
+            if treat_void_games_as_terminal
+            else {}
+        )
+    )
     generated_at = generated_at or utc_timestamp()
 
     resolved_items: list[tuple[Path, pd.DataFrame]] = []
     variant_reports: dict[str, dict[str, Any]] = {}
     total_missing = 0
+    total_terminal_void = 0
+    total_outcome_status_counts = _empty_outcome_status_counts()
     missing_examples: list[dict[str, Any]] = []
+    terminal_void_examples: list[dict[str, Any]] = []
 
     for variant in ("production", "candidate"):
         variant_paths = manifest.get("profile_paths", {}).get(variant, {})
         paths_report = {}
         variant_missing = 0
+        variant_terminal_void = 0
+        variant_outcome_status_counts = _empty_outcome_status_counts()
         for key in sorted(variant_paths, key=_profile_path_sort_key):
             rel_path = variant_paths[key]
             source_path = artifact_root / rel_path
             frame = pd.read_parquet(source_path)
             validate_ranked_profiles(frame, label=f"{variant} {key}")
 
-            joinable = frame.drop(columns=["actual_hit", "n_pas"], errors="ignore").copy()
+            joinable = frame.drop(
+                columns=["actual_hit", "n_pas", "outcome_status"],
+                errors="ignore",
+            ).copy()
             joinable["_outcome_date_key"] = pd.to_datetime(joinable["date"]).dt.strftime(
                 "%Y-%m-%d"
             )
@@ -704,25 +897,55 @@ def resolve_live_candidate_artifact_pair(
                 indicator=True,
             )
             missing_mask = resolved["_merge"] == "left_only"
-            missing_count = int(missing_mask.sum())
+            resolved["outcome_status"] = OUTCOME_STATUS_RESOLVED
+            resolved.loc[missing_mask, "outcome_status"] = OUTCOME_STATUS_PENDING
+            if treat_void_games_as_terminal and missing_mask.any():
+                void_statuses = resolved.loc[missing_mask].apply(
+                    _missing_row_terminal_void_status,
+                    axis=1,
+                    terminal_void_statuses=terminal_void_statuses,
+                )
+                for index, outcome_status in void_statuses.dropna().items():
+                    resolved.loc[index, "outcome_status"] = outcome_status
+            terminal_void_mask = resolved["outcome_status"].isin(VOID_OUTCOME_STATUSES)
+            unresolved_missing_mask = resolved["outcome_status"] == OUTCOME_STATUS_PENDING
+
+            missing_count = int(unresolved_missing_mask.sum())
+            terminal_void_count = int(terminal_void_mask.sum())
+            path_outcome_status_counts = _outcome_status_counts(resolved)
             total_missing += missing_count
+            total_terminal_void += terminal_void_count
             variant_missing += missing_count
+            variant_terminal_void += terminal_void_count
+            _add_outcome_status_counts(
+                total_outcome_status_counts,
+                path_outcome_status_counts,
+            )
+            _add_outcome_status_counts(
+                variant_outcome_status_counts,
+                path_outcome_status_counts,
+            )
             if missing_count:
-                example_rows = resolved.loc[
-                    missing_mask,
-                    ["date", "rank", "batter_id", "game_pk"],
-                ].head(10)
-                for row in example_rows.to_dict(orient="records"):
-                    row["date"] = str(row.get("date"))
-                    row["variant"] = variant
-                    row["profile_key"] = key
-                    missing_examples.append(row)
+                for _, row in resolved.loc[unresolved_missing_mask].head(10).iterrows():
+                    missing_examples.append(
+                        _missing_row_example(row, variant=variant, profile_key=key)
+                    )
+            if terminal_void_count:
+                for _, row in resolved.loc[terminal_void_mask].head(10).iterrows():
+                    example = _missing_row_example(row, variant=variant, profile_key=key)
+                    date_key = str(row.get("_outcome_date_key") or row.get("date"))
+                    status = terminal_void_statuses.get(date_key, {}).get(
+                        int(row["game_pk"]), {}
+                    )
+                    example["detailed_state"] = status.get("detailed")
+                    terminal_void_examples.append(example)
 
             resolved = resolved.drop(columns=["_outcome_date_key", "_merge"])
             resolved["run_kind"] = "live_forward_resolved"
+            resolved["artifact_schema_version"] = RESOLVED_ARTIFACT_SCHEMA_VERSION
             resolved["actual_hit"] = resolved["actual_hit"].astype("Int64")
             resolved["n_pas"] = resolved["n_pas"].astype("Int64")
-            resolved = resolved[PROFILE_SCHEMA_COLUMNS]
+            resolved = resolved[RESOLVED_PROFILE_SCHEMA_COLUMNS]
 
             target_path = output_root / rel_path
             resolved_items.append((target_path, resolved))
@@ -731,11 +954,15 @@ def resolve_live_candidate_artifact_pair(
                 "resolved_path": str(target_path),
                 "rows": int(len(resolved)),
                 "missing_outcomes": missing_count,
+                "terminal_void_outcomes": terminal_void_count,
+                "outcome_status_counts": path_outcome_status_counts,
             }
 
         variant_reports[variant] = {
             "rows": int(sum(item["rows"] for item in paths_report.values())),
             "missing_outcomes": variant_missing,
+            "terminal_void_outcomes": variant_terminal_void,
+            "outcome_status_counts": variant_outcome_status_counts,
             "paths": paths_report,
         }
 
@@ -749,26 +976,52 @@ def resolve_live_candidate_artifact_pair(
         save_ranked_profiles(frame, target_path)
 
     resolved_manifest = json.loads(json.dumps(manifest, default=_json_default))
+    resolved_manifest["schema_version"] = RESOLVED_ARTIFACT_SCHEMA_VERSION
     resolved_manifest["run_kind"] = "live_forward_resolved"
     resolved_manifest["source_run_kind"] = manifest.get("run_kind")
+    resolved_manifest["source_schema_version"] = manifest.get("schema_version")
     resolved_manifest["source_manifest"] = str(artifact_root / "manifest.json")
     resolved_manifest["outcomes_resolved_at"] = generated_at
     resolved_manifest["outcome_data_dir"] = str(data_dir)
     resolved_manifest["outcome_allow_partial"] = bool(allow_partial)
+    resolved_manifest["outcome_terminal_void_enabled"] = bool(treat_void_games_as_terminal)
+    resolved_manifest["outcome_terminal_void_total"] = int(total_terminal_void)
     resolved_manifest["outcome_missing_total"] = int(total_missing)
+    resolved_manifest["outcome_status_values"] = list(OUTCOME_STATUS_VALUES)
+    resolved_manifest["outcome_status_counts"] = total_outcome_status_counts
+    resolved_manifest["profile_schema_columns"] = list(RESOLVED_PROFILE_SCHEMA_COLUMNS)
     resolved_manifest["outcome_missing_semantics"] = (
         "Missing outcome rows mean no PA evidence was available for that "
         "date/batter/game key, including postponed or void games. They are "
         "never coerced to actual_hit=0."
     )
+    resolved_manifest["outcome_status_semantics"] = (
+        "resolved rows have observed actual_hit/n_pas values. "
+        "void_postponement and void_cancellation rows are terminal non-events "
+        "with actual_hit/n_pas left null. pending rows mean evidence is still "
+        "missing and are not acceptable in official resolved artifacts."
+    )
+    resolved_manifest["outcome_terminal_void_semantics"] = (
+        "When terminal void handling is enabled, missing rows whose original "
+        "game was postponed or cancelled remain actual_hit/n_pas null and are "
+        "counted separately from transient missing outcomes."
+    )
     resolved_manifest["outcome_missing_by_variant"] = {
         variant: report["missing_outcomes"]
+        for variant, report in variant_reports.items()
+    }
+    resolved_manifest["outcome_terminal_void_by_variant"] = {
+        variant: report["terminal_void_outcomes"]
+        for variant, report in variant_reports.items()
+    }
+    resolved_manifest["outcome_status_counts_by_variant"] = {
+        variant: report["outcome_status_counts"]
         for variant, report in variant_reports.items()
     }
     _write_json(resolved_manifest, output_root / "manifest.json")
 
     report = {
-        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "schema_version": RESOLVED_ARTIFACT_SCHEMA_VERSION,
         "generated_at": generated_at,
         "source_manifest": str(artifact_root / "manifest.json"),
         "resolved_manifest": str(output_root / "manifest.json"),
@@ -777,8 +1030,13 @@ def resolve_live_candidate_artifact_pair(
         "dates": date_keys,
         "complete": total_missing == 0,
         "missing_count": int(total_missing),
+        "terminal_void_count": int(total_terminal_void),
+        "outcome_status_counts": total_outcome_status_counts,
         "missing_semantics": resolved_manifest["outcome_missing_semantics"],
+        "outcome_status_semantics": resolved_manifest["outcome_status_semantics"],
+        "terminal_void_semantics": resolved_manifest["outcome_terminal_void_semantics"],
         "missing_examples": missing_examples[:20],
+        "terminal_void_examples": terminal_void_examples[:20],
         "variants": variant_reports,
     }
     if save_path is not None:
@@ -833,11 +1091,14 @@ def verify_candidate_artifact_pair(
             save_path=save_path,
         )
     _append_check(checks, "manifest_json_readable", True)
+    manifest_schema_version = manifest.get("schema_version")
     _append_check(
         checks,
         "manifest_schema_version",
-        manifest.get("schema_version") == ARTIFACT_SCHEMA_VERSION,
-        f"expected {ARTIFACT_SCHEMA_VERSION!r}, found {manifest.get('schema_version')!r}",
+        manifest_schema_version in SUPPORTED_ARTIFACT_SCHEMA_VERSIONS,
+        "expected one of "
+        f"{sorted(SUPPORTED_ARTIFACT_SCHEMA_VERSIONS)!r}, "
+        f"found {manifest_schema_version!r}",
     )
 
     run_kind = manifest.get("run_kind")
@@ -975,6 +1236,8 @@ def verify_candidate_artifact_pair(
     if row_top_n is None and require_live_preoutcome:
         row_top_n = manifest.get("top_n")
     variant_reports: dict[str, dict[str, Any]] = {}
+    expected_profile_columns = _expected_profile_columns(manifest)
+    observed_outcome_status_counts = _empty_outcome_status_counts()
 
     for variant in ("production", "candidate"):
         variant_paths = profile_paths.get(variant, {})
@@ -1015,7 +1278,7 @@ def verify_candidate_artifact_pair(
             _append_check(
                 checks,
                 f"{variant}_{key}_columns",
-                list(frame.columns) == PROFILE_SCHEMA_COLUMNS,
+                list(frame.columns) == expected_profile_columns,
                 f"found {list(frame.columns)!r}",
             )
             try:
@@ -1028,8 +1291,12 @@ def verify_candidate_artifact_pair(
             _append_check(
                 checks,
                 f"{variant}_{key}_artifact_schema_column",
-                _series_all_equal(frame, "artifact_schema_version", ARTIFACT_SCHEMA_VERSION),
-                f"expected {ARTIFACT_SCHEMA_VERSION!r}",
+                _series_all_equal(
+                    frame,
+                    "artifact_schema_version",
+                    manifest_schema_version,
+                ),
+                f"expected {manifest_schema_version!r}",
             )
             _append_check(
                 checks,
@@ -1096,6 +1363,67 @@ def verify_candidate_artifact_pair(
                     f"{variant}_{key}_n_pas_null",
                     "n_pas" in frame.columns and frame["n_pas"].isna().all(),
                 )
+            if run_kind == "live_forward_resolved":
+                if "outcome_status" in frame.columns:
+                    path_counts = _outcome_status_counts(frame)
+                    _add_outcome_status_counts(
+                        observed_outcome_status_counts,
+                        path_counts,
+                    )
+                    observed_statuses = set(frame["outcome_status"].dropna().unique())
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_outcome_status_values",
+                        observed_statuses.issubset(set(OUTCOME_STATUS_VALUES)),
+                        f"found {sorted(observed_statuses)!r}",
+                    )
+                    actual_hit_null = frame["actual_hit"].isna()
+                    n_pas_null = frame["n_pas"].isna()
+                    resolved_mask = frame["outcome_status"] == OUTCOME_STATUS_RESOLVED
+                    void_mask = frame["outcome_status"].isin(VOID_OUTCOME_STATUSES)
+                    pending_mask = frame["outcome_status"] == OUTCOME_STATUS_PENDING
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_resolved_outcomes_observed",
+                        (
+                            frame.loc[resolved_mask, "actual_hit"].notna().all()
+                            and frame.loc[resolved_mask, "n_pas"].notna().all()
+                        ),
+                        "resolved rows must have observed actual_hit and n_pas",
+                    )
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_void_outcomes_null",
+                        (
+                            frame.loc[void_mask, "actual_hit"].isna().all()
+                            and frame.loc[void_mask, "n_pas"].isna().all()
+                        ),
+                        "void rows must keep actual_hit and n_pas null",
+                    )
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_pending_outcomes_absent",
+                        not pending_mask.any(),
+                        f"pending rows={int(pending_mask.sum())}",
+                    )
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_null_outcomes_known_void",
+                        (actual_hit_null | n_pas_null).equals(void_mask),
+                        "null outcome fields are allowed only for known void rows",
+                    )
+                else:
+                    _append_check(
+                        checks,
+                        f"{variant}_{key}_resolved_outcomes_not_null",
+                        (
+                            "actual_hit" in frame.columns
+                            and "n_pas" in frame.columns
+                            and frame["actual_hit"].notna().all()
+                            and frame["n_pas"].notna().all()
+                        ),
+                        "legacy resolved artifacts cannot contain null outcomes",
+                    )
 
         if frames:
             combined = pd.concat(frames, ignore_index=True)
@@ -1116,6 +1444,18 @@ def verify_candidate_artifact_pair(
                 summary["dates"] == [date_key],
                 f"expected {[date_key]!r}, found {summary['dates']!r}",
             )
+
+    if (
+        run_kind == "live_forward_resolved"
+        and manifest_schema_version == RESOLVED_ARTIFACT_SCHEMA_VERSION
+    ):
+        manifest_counts = manifest.get("outcome_status_counts")
+        _append_check(
+            checks,
+            "outcome_status_counts",
+            manifest_counts == observed_outcome_status_counts,
+            f"manifest={manifest_counts!r}, observed={observed_outcome_status_counts!r}",
+        )
 
     return _candidate_verification_report(
         artifact_root=artifact_root,
@@ -1142,14 +1482,50 @@ def compare_candidate_profile_pair(
     manifest = load_manifest(artifact_root)
     production_profiles = _load_variant_profiles(artifact_root, manifest, "production")
     candidate_profiles = _load_variant_profiles(artifact_root, manifest, "candidate")
+    production_scorecard_profiles, production_filter_report = _scorecard_profiles(
+        production_profiles,
+        variant="production",
+    )
+    candidate_scorecard_profiles, candidate_filter_report = _scorecard_profiles(
+        candidate_profiles,
+        variant="candidate",
+    )
+    production_dates = set(production_scorecard_profiles["date"].dropna().unique())
+    candidate_dates = set(candidate_scorecard_profiles["date"].dropna().unique())
+    common_dates = production_dates & candidate_dates
+    if not common_dates:
+        raise ValueError(
+            "no common scorecard-eligible dates remain after outcome_status filtering"
+        )
+    if production_dates != common_dates:
+        production_scorecard_profiles = production_scorecard_profiles[
+            production_scorecard_profiles["date"].isin(common_dates)
+        ].copy()
+    if candidate_dates != common_dates:
+        candidate_scorecard_profiles = candidate_scorecard_profiles[
+            candidate_scorecard_profiles["date"].isin(common_dates)
+        ].copy()
+    paired_date_filter = {
+        "common_scorecard_dates": len(common_dates),
+        "production_only_dates_dropped": [
+            str(date) for date in sorted(production_dates - common_dates)
+        ],
+        "candidate_only_dates_dropped": [
+            str(date) for date in sorted(candidate_dates - common_dates)
+        ],
+        "policy": (
+            "Candidate and production scorecards are evaluated on the same "
+            "post-filter date set."
+        ),
+    }
 
     production_scorecard = compute_full_scorecard(
-        production_profiles,
+        production_scorecard_profiles,
         mc_trials=mc_trials,
         season_length=season_length,
     )
     candidate_scorecard = compute_full_scorecard(
-        candidate_profiles,
+        candidate_scorecard_profiles,
         mc_trials=mc_trials,
         season_length=season_length,
     )
@@ -1172,6 +1548,16 @@ def compare_candidate_profile_pair(
         "season_length": int(season_length),
         "primary_metric": "p_57_mdp",
         "primary_delta": primary_delta,
+        "outcome_status_filter": {
+            "production": production_filter_report,
+            "candidate": candidate_filter_report,
+            "paired_date_filter": paired_date_filter,
+            "policy": (
+                "Rows with outcome_status other than resolved are excluded from "
+                "scorecard denominators. Dates without resolved rank 1 and rank "
+                "2 rows are excluded from streak scorecards."
+            ),
+        },
         "scorecards": {
             "production": production_scorecard,
             "candidate": candidate_scorecard,

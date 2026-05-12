@@ -118,7 +118,10 @@ def test_resolve_once_shells_to_resolver_and_verifier(tmp_path, monkeypatch):
             output_dir = Path(args[args.index("--output-dir") + 1])
             output_dir.mkdir(parents=True)
             (output_dir / "manifest.json").write_text("{}")
-            (output_dir / "resolution.json").write_text("{}")
+            (output_dir / "resolution.json").write_text(json.dumps({
+                "missing_count": 0,
+                "terminal_void_count": 2,
+            }))
             return _fake_completed(args, stdout="resolve ok\n")
         if "verify-candidate-artifacts" in args:
             verification = Path(args[args.index("--save") + 1])
@@ -135,8 +138,10 @@ def test_resolve_once_shells_to_resolver_and_verifier(tmp_path, monkeypatch):
     code, payload = resolve_once(config)
 
     assert code == 0
-    assert payload["status_counts"] == {"resolved_verified": 1}
+    assert payload["status_counts"] == {"resolved_with_voids": 1}
     assert payload["statuses"][0]["live_forward_head"] == "frozen-sha"
+    assert payload["statuses"][0]["missing_count"] == 0
+    assert payload["statuses"][0]["terminal_void_count"] == 2
     resolve_args = next(
         args for args, _, _ in calls if "resolve-live-candidate-artifacts" in args
     )
@@ -147,6 +152,7 @@ def test_resolve_once_shells_to_resolver_and_verifier(tmp_path, monkeypatch):
         "/data/validation/pre/2026-05-11"
     )
     assert "--allow-partial" not in resolve_args
+    assert "--treat-void-games-as-terminal" in resolve_args
     assert (
         verify_args[verify_args.index("--expected-run-kind") + 1]
         == "live_forward_resolved"

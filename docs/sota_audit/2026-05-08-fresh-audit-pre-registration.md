@@ -272,6 +272,13 @@ available for every official slate, but it does not replace the ranked-slate
 scorecard until a future PR adds an explicit candidate policy-selection
 surface.
 
+Void-aware resolution amendment, 2026-05-11: resolved v2 artifacts can mark
+postponed/cancelled source-date rows with `outcome_status=void_postponement`
+or `outcome_status=void_cancellation`. These rows keep null `actual_hit` and
+`n_pas`; they are neither hits nor misses and are excluded from comparison
+denominators. Pending rows are still a verification failure. See
+`docs/sota_audit/2026-05-11-void-aware-resolver-prereg.md`.
+
 A deployment-supporting result requires all of the following before any
 production claim:
 
