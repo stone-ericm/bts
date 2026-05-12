@@ -34,6 +34,7 @@ DEFAULT_STATUS_ROOT = Path(
 )
 DEFAULT_PRODUCTION_ROOT = Path("/home/bts/projects/bts")
 DEFAULT_PYTHON = Path("/home/bts/projects/bts/.venv/bin/python")
+PRODUCTION_PICK_SNAPSHOT_REQUIRED_FROM = "2026-05-10"
 PENDING_RESOLVE_MARKERS = (
     # Contract with src/bts/experiment/artifacts.py and cli.py: these errors
     # mean outcome evidence is not ready yet, not that resolution is invalid.
@@ -127,6 +128,18 @@ def manifest_dates(manifest: dict[str, Any]) -> list[str]:
         date = manifest.get("date")
         dates = [date] if date else []
     return [str(date) for date in dates if date is not None]
+
+
+def production_pick_snapshot_required(
+    source_manifest: dict[str, Any],
+    *,
+    date: str,
+) -> bool:
+    """Return whether official verification must require pick-snapshot parity."""
+    if isinstance(source_manifest.get("production_pick_snapshot"), dict):
+        return True
+    dates = manifest_dates(source_manifest) or [date]
+    return any(date_key >= PRODUCTION_PICK_SNAPSHOT_REQUIRED_FROM for date_key in dates)
 
 
 def discover_dates(preoutcome_root: Path) -> list[str]:
@@ -238,28 +251,26 @@ def verify_resolved_artifact(
     source_manifest: dict[str, Any],
     date: str,
 ) -> subprocess.CompletedProcess[str]:
-    return run_bts(
-        config,
-        [
-            "experiment",
-            "verify-candidate-artifacts",
-            "--artifact-dir",
-            str(resolved_dir),
-            "--expected-run-kind",
-            "live_forward_resolved",
-            "--expected-candidate",
-            str(source_manifest.get("candidate_name") or config.candidate),
-            "--expected-date",
-            date,
-            "--expected-git-commit",
-            str(source_manifest.get("git_commit")),
-            "--expected-top-n",
-            str(source_manifest.get("top_n") or config.top_n),
-            "--require-production-pick-snapshot",
-            "--save",
-            str(verification_path),
-        ],
-    )
+    cli_args = [
+        "experiment",
+        "verify-candidate-artifacts",
+        "--artifact-dir",
+        str(resolved_dir),
+        "--expected-run-kind",
+        "live_forward_resolved",
+        "--expected-candidate",
+        str(source_manifest.get("candidate_name") or config.candidate),
+        "--expected-date",
+        date,
+        "--expected-git-commit",
+        str(source_manifest.get("git_commit")),
+        "--expected-top-n",
+        str(source_manifest.get("top_n") or config.top_n),
+    ]
+    if production_pick_snapshot_required(source_manifest, date=date):
+        cli_args.append("--require-production-pick-snapshot")
+    cli_args.extend(["--save", str(verification_path)])
+    return run_bts(config, cli_args)
 
 
 def read_resolution_counts(resolution_path: Path) -> dict[str, int | None]:
