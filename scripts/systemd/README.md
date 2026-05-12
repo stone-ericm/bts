@@ -30,6 +30,41 @@ Run one manual poll:
 
     systemctl --user start bts-live-forward-capture.service
 
+## Live-forward candidate resolution
+
+Install as user units on Hetzner after the production checkout contains
+`scripts/live_forward_resolve_once.py`:
+
+    mkdir -p ~/.config/systemd/user
+    cp scripts/systemd/bts-live-forward-resolve.service ~/.config/systemd/user/
+    cp scripts/systemd/bts-live-forward-resolve.timer ~/.config/systemd/user/
+    systemctl --user daemon-reload
+    systemctl --user enable --now bts-live-forward-resolve.timer
+
+Treat timer installation as a separate approved ops step; merging the runner
+does not enable the resolver on production.
+
+The timer runs at 07:00, 12:00, 18:00, and 22:00 server-local time. This is
+safe because the runner is idempotent:
+
+- scans preoutcome artifacts under
+  `data/validation/decision_weighted_lgbm_v0_live_forward/`;
+- exits successfully when no preoutcome artifacts exist yet;
+- treats missing processed PA outcomes as `pending_outcomes`, not as misses;
+- verifies an existing resolved manifest instead of resolving again;
+- refuses partial resolved directories without a manifest;
+- writes per-date status JSON under
+  `data/validation/decision_weighted_lgbm_v0_live_forward_resolved_status/`.
+
+Verify it is active:
+
+    systemctl --user list-timers bts-live-forward-resolve
+    journalctl --user -u bts-live-forward-resolve -n 100 --no-pager
+
+Run one manual resolver pass:
+
+    systemctl --user start bts-live-forward-resolve.service
+
 ## Lineup time collection
 
 Install as user units on Pi5:
