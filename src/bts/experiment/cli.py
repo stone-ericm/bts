@@ -460,6 +460,8 @@ def verify_candidate_artifacts(
               help="Processed parquet directory containing pa_YEAR.parquet")
 @click.option("--allow-partial", is_flag=True,
               help="Write a resolved copy even when some outcomes are missing")
+@click.option("--treat-void-games-as-terminal", is_flag=True,
+              help="Treat postponed/cancelled source-date games as terminal void rows")
 @click.option("--overwrite", is_flag=True,
               help="Replace an existing resolved manifest in --output-dir")
 @click.option("--save", "save_path", default=None, type=click.Path(),
@@ -469,6 +471,7 @@ def resolve_live_candidate_artifacts(
     output_dir: str,
     data_dir: str,
     allow_partial: bool,
+    treat_void_games_as_terminal: bool,
     overwrite: bool,
     save_path: str | None,
 ):
@@ -481,6 +484,7 @@ def resolve_live_candidate_artifacts(
             output_dir=output_dir,
             data_dir=data_dir,
             allow_partial=allow_partial,
+            treat_void_games_as_terminal=treat_void_games_as_terminal,
             overwrite=overwrite,
             save_path=save_path,
         )
@@ -489,7 +493,8 @@ def resolve_live_candidate_artifacts(
     status = "COMPLETE" if report["complete"] else "PARTIAL"
     click.echo(
         f"Resolved live candidate artifacts: {status} "
-        f"({report['missing_count']} missing outcomes)"
+        f"({report['missing_count']} missing outcomes, "
+        f"{report.get('terminal_void_count', 0)} terminal voids)"
     )
     click.echo(f"Source manifest: {report['source_manifest']}")
     click.echo(f"Resolved manifest: {report['resolved_manifest']}")

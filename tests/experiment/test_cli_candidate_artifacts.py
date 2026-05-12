@@ -160,6 +160,7 @@ def test_resolve_live_candidate_artifacts_cli_routes_to_resolver(tmp_path, monke
         return {
             "complete": False,
             "missing_count": 2,
+            "terminal_void_count": 1,
             "source_manifest": str(artifact_dir / "manifest.json"),
             "resolved_manifest": str(output_dir / "manifest.json"),
         }
@@ -175,6 +176,7 @@ def test_resolve_live_candidate_artifacts_cli_routes_to_resolver(tmp_path, monke
         "--output-dir", str(output_dir),
         "--data-dir", str(data_dir),
         "--allow-partial",
+        "--treat-void-games-as-terminal",
         "--overwrite",
         "--save", str(save_path),
     ])
@@ -184,9 +186,11 @@ def test_resolve_live_candidate_artifacts_cli_routes_to_resolver(tmp_path, monke
     assert captured["output_dir"] == str(output_dir)
     assert captured["data_dir"] == str(data_dir)
     assert captured["allow_partial"] is True
+    assert captured["treat_void_games_as_terminal"] is True
     assert captured["overwrite"] is True
     assert captured["save_path"] == str(save_path)
     assert "Resolved live candidate artifacts: PARTIAL" in result.output
+    assert "1 terminal voids" in result.output
     assert "Saved resolution" in result.output
 
 

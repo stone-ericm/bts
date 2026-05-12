@@ -177,6 +177,8 @@ def status_payload(
     pa_data_paths: list[Path] | None = None,
     missing_pa_data_paths: list[Path] | None = None,
     n_outcome_rows_for_dates: int | None = None,
+    missing_count: int | None = None,
+    terminal_void_count: int | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -217,6 +219,8 @@ def status_payload(
             str(path) for path in (missing_pa_data_paths or [])
         ],
         "n_outcome_rows_for_dates": n_outcome_rows_for_dates,
+        "missing_count": missing_count,
+        "terminal_void_count": terminal_void_count,
         "methodology_constraints": [
             "preoutcome artifact directory is read-only",
             "missing PA outcomes are pending evidence, never coerced to misses",
@@ -256,6 +260,19 @@ def verify_resolved_artifact(
             str(verification_path),
         ],
     )
+
+
+def read_resolution_counts(resolution_path: Path) -> dict[str, int | None]:
+    if not resolution_path.exists():
+        return {"missing_count": None, "terminal_void_count": None}
+    try:
+        report = read_json(resolution_path)
+    except (OSError, json.JSONDecodeError):
+        return {"missing_count": None, "terminal_void_count": None}
+    return {
+        "missing_count": report.get("missing_count"),
+        "terminal_void_count": report.get("terminal_void_count"),
+    }
 
 
 def _is_pending_resolution_error(message: str) -> bool:
@@ -388,11 +405,21 @@ def resolve_artifact_date(
             source_manifest=source_manifest,
             date=date,
         )
-        status = "existing_verified" if verify.returncode == 0 else "failed_verify_existing"
+        resolution_counts = read_resolution_counts(resolution_path)
+        has_terminal_voids = bool(resolution_counts["terminal_void_count"])
+        status = (
+            "existing_verified_with_voids"
+            if verify.returncode == 0 and has_terminal_voids
+            else "existing_verified"
+            if verify.returncode == 0
+            else "failed_verify_existing"
+        )
         payload = status_payload(
             **base_status_kwargs,
             status=status,
             message=(verify.stdout + verify.stderr).strip(),
+            missing_count=resolution_counts["missing_count"],
+            terminal_void_count=resolution_counts["terminal_void_count"],
         )
         write_json(status_path, payload)
         write_json(resolved_dir / "resolve_status.json", payload)
@@ -445,6 +472,7 @@ def resolve_artifact_date(
             str(resolved_dir),
             "--data-dir",
             str(data_dir),
+            "--treat-void-games-as-terminal",
             "--save",
             str(resolution_path),
         ] + (["--overwrite"] if config.overwrite else []),
@@ -466,6 +494,7 @@ def resolve_artifact_date(
             return (2 if config.fail_on_pending else 0), payload
         return 1, payload
 
+    resolution_counts = read_resolution_counts(resolution_path)
     verify = verify_resolved_artifact(
         config,
         resolved_dir=resolved_dir,
@@ -473,10 +502,20 @@ def resolve_artifact_date(
         source_manifest=source_manifest,
         date=date,
     )
+    terminal_void_count = resolution_counts["terminal_void_count"]
+    verified_status = (
+        "resolved_with_voids"
+        if verify.returncode == 0 and terminal_void_count
+        else "resolved_verified"
+        if verify.returncode == 0
+        else "failed_verify"
+    )
     payload = status_payload(
         **common_status_kwargs,
-        status="resolved_verified" if verify.returncode == 0 else "failed_verify",
+        status=verified_status,
         message=(resolve_message + "\n" + verify.stdout + verify.stderr).strip(),
+        missing_count=resolution_counts["missing_count"],
+        terminal_void_count=terminal_void_count,
     )
     write_json(status_path, payload)
     write_json(resolved_dir / "resolve_status.json", payload)

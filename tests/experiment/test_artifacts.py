@@ -7,8 +7,12 @@ import pytest
 
 from bts.experiment.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
+    OUTCOME_STATUS_RESOLVED,
+    OUTCOME_STATUS_VOID_POSTPONEMENT,
     PROFILE_SCHEMA_COLUMNS,
     PRODUCTION_PICK_SNAPSHOT_VERSION,
+    RESOLVED_ARTIFACT_SCHEMA_VERSION,
+    RESOLVED_PROFILE_SCHEMA_COLUMNS,
     compare_candidate_profile_pair,
     materialize_candidate_profile_pair,
     materialize_live_candidate_profile_pair,
@@ -227,6 +231,109 @@ def test_compare_candidate_profile_pair_saves_scorecards_and_primary_delta(
     assert comparison["scorecards"]["candidate"]["p_57_mdp"] == 0.25
     saved = json.loads((tmp_path / "comparison.json").read_text())
     assert saved["primary_delta"] == 0.15
+
+
+def test_compare_candidate_profile_pair_uses_common_resolved_dates(
+    tmp_path,
+    monkeypatch,
+):
+    import bts.validate.scorecard as scorecard_mod
+
+    generated_at = "2026-05-11T00:00:00+00:00"
+    profile_paths = {
+        "production": {"2026": "profiles/production/backtest_2026.parquet"},
+        "candidate": {"2026": "profiles/candidate/backtest_2026.parquet"},
+    }
+
+    def frame_for(variant: str) -> pd.DataFrame:
+        statuses = [
+            OUTCOME_STATUS_RESOLVED,
+            OUTCOME_STATUS_RESOLVED,
+            OUTCOME_STATUS_RESOLVED,
+            (
+                OUTCOME_STATUS_VOID_POSTPONEMENT
+                if variant == "production"
+                else OUTCOME_STATUS_RESOLVED
+            ),
+        ]
+        actual_hit = [1, 0, 1, pd.NA if variant == "production" else 1]
+        n_pas = [4, 4, 4, pd.NA if variant == "production" else 4]
+        return pd.DataFrame({
+            "artifact_schema_version": [RESOLVED_ARTIFACT_SCHEMA_VERSION] * 4,
+            "run_kind": ["live_forward_resolved"] * 4,
+            "variant": [variant] * 4,
+            "model_name": [
+                "production_lgbm_v0" if variant == "production"
+                else "decision_weighted_lgbm_v0"
+            ] * 4,
+            "generated_at": [generated_at] * 4,
+            "git_commit": ["def456"] * 4,
+            "date": [
+                pd.Timestamp("2026-05-09").date(),
+                pd.Timestamp("2026-05-09").date(),
+                pd.Timestamp("2026-05-10").date(),
+                pd.Timestamp("2026-05-10").date(),
+            ],
+            "season": [2026] * 4,
+            "rank": [1, 2, 1, 2],
+            "batter_id": [11, 22, 33, 44],
+            "game_pk": [1001, 1002, 1003, 1004],
+            "p_game_hit": [0.7, 0.65, 0.68, 0.64],
+            "actual_hit": actual_hit,
+            "n_pas": n_pas,
+            "outcome_status": statuses,
+        })[RESOLVED_PROFILE_SCHEMA_COLUMNS]
+
+    for variant in ("production", "candidate"):
+        path = tmp_path / profile_paths[variant]["2026"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        frame_for(variant).to_parquet(path, index=False)
+
+    manifest = {
+        "schema_version": RESOLVED_ARTIFACT_SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "git_commit": "def456",
+        "run_kind": "live_forward_resolved",
+        "production_deploy_claim": False,
+        "fresh_target_claim": True,
+        "candidate_name": "decision_weighted_lgbm_v0",
+        "baseline_name": "production_lgbm_v0",
+        "date": "2026-05-09",
+        "dates": ["2026-05-09", "2026-05-10"],
+        "seasons": [2026],
+        "top_n": 2,
+        "profile_schema_columns": list(RESOLVED_PROFILE_SCHEMA_COLUMNS),
+        "profile_paths": profile_paths,
+        "row_counts": {"production": {"2026": 4}, "candidate": {"2026": 4}},
+        "day_counts": {"production": {"2026": 2}, "candidate": {"2026": 2}},
+    }
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest, indent=2))
+
+    seen = {}
+
+    def fake_scorecard(profiles, mc_trials=10_000, season_length=180):
+        variant = profiles["variant"].iloc[0]
+        seen[variant] = sorted(str(date) for date in profiles["date"].unique())
+        return {
+            "p_57_mdp": 0.25 if variant == "candidate" else 0.10,
+        }
+
+    monkeypatch.setattr(scorecard_mod, "compute_full_scorecard", fake_scorecard)
+    comparison = compare_candidate_profile_pair(artifact_dir=tmp_path)
+
+    assert seen == {
+        "production": ["2026-05-09"],
+        "candidate": ["2026-05-09"],
+    }
+    assert comparison["outcome_status_filter"]["paired_date_filter"] == {
+        "common_scorecard_dates": 1,
+        "production_only_dates_dropped": [],
+        "candidate_only_dates_dropped": ["2026-05-10"],
+        "policy": (
+            "Candidate and production scorecards are evaluated on the same "
+            "post-filter date set."
+        ),
+    }
 
 
 def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
@@ -476,9 +583,17 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
     assert report["resolution_path"] == str(resolved_dir / "resolution.json")
 
     resolved_manifest = json.loads((resolved_dir / "manifest.json").read_text())
+    assert resolved_manifest["schema_version"] == RESOLVED_ARTIFACT_SCHEMA_VERSION
     assert resolved_manifest["run_kind"] == "live_forward_resolved"
     assert resolved_manifest["source_run_kind"] == "live_forward_preoutcome"
+    assert resolved_manifest["source_schema_version"] == ARTIFACT_SCHEMA_VERSION
     assert resolved_manifest["outcome_missing_total"] == 0
+    assert resolved_manifest["outcome_status_counts"] == {
+        "resolved": 4,
+        "void_postponement": 0,
+        "void_cancellation": 0,
+        "pending": 0,
+    }
     assert "never coerced to actual_hit=0" in resolved_manifest["outcome_missing_semantics"]
     assert "never coerced to actual_hit=0" in report["missing_semantics"]
 
@@ -491,9 +606,13 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
         resolved_dir / manifest["profile_paths"]["production"]["2026-05-09"]
     )
     assert resolved_production["run_kind"].unique().tolist() == ["live_forward_resolved"]
+    assert resolved_production["artifact_schema_version"].unique().tolist() == [
+        RESOLVED_ARTIFACT_SCHEMA_VERSION
+    ]
+    assert resolved_production["outcome_status"].tolist() == ["resolved", "resolved"]
     assert resolved_production["actual_hit"].astype(int).tolist() == [1, 0]
     assert resolved_production["n_pas"].astype(int).tolist() == [2, 1]
-    assert list(resolved_production.columns) == PROFILE_SCHEMA_COLUMNS
+    assert list(resolved_production.columns) == RESOLVED_PROFILE_SCHEMA_COLUMNS
 
 
 def test_resolve_live_candidate_artifact_pair_fails_missing_outcome(
@@ -531,3 +650,72 @@ def test_resolve_live_candidate_artifact_pair_fails_missing_outcome(
     assert report["missing_count"] == 2
     saved_report = json.loads((partial_dir / "resolution.json").read_text())
     assert isinstance(saved_report["missing_examples"][0]["date"], str)
+
+
+def test_resolve_live_candidate_artifact_pair_terminal_void_status(
+    tmp_path,
+):
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    manifest = _write_live_preoutcome_artifact(artifact_dir)
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=resolved_dir,
+        data_dir=data_dir,
+        treat_void_games_as_terminal=True,
+        detailed_statuses_by_date={
+            "2026-05-09": {
+                1002: {"abstract": "F", "detailed": "Postponed"},
+            }
+        },
+        save_path=resolved_dir / "resolution.json",
+    )
+
+    assert report["complete"] is True
+    assert report["missing_count"] == 0
+    assert report["terminal_void_count"] == 2
+    assert report["outcome_status_counts"] == {
+        "resolved": 2,
+        "void_postponement": 2,
+        "void_cancellation": 0,
+        "pending": 0,
+    }
+
+    resolved_manifest = json.loads((resolved_dir / "manifest.json").read_text())
+    assert resolved_manifest["schema_version"] == RESOLVED_ARTIFACT_SCHEMA_VERSION
+    assert resolved_manifest["outcome_missing_total"] == 0
+    assert resolved_manifest["outcome_terminal_void_total"] == 2
+    assert resolved_manifest["outcome_terminal_void_enabled"] is True
+    assert resolved_manifest["outcome_status_counts"] == {
+        "resolved": 2,
+        "void_postponement": 2,
+        "void_cancellation": 0,
+        "pending": 0,
+    }
+    assert resolved_manifest["profile_schema_columns"] == RESOLVED_PROFILE_SCHEMA_COLUMNS
+
+    resolved_production = pd.read_parquet(
+        resolved_dir / manifest["profile_paths"]["production"]["2026-05-09"]
+    )
+    void_row = resolved_production.loc[resolved_production["rank"] == 2].iloc[0]
+    assert void_row["outcome_status"] == "void_postponement"
+    assert pd.isna(void_row["actual_hit"])
+    assert pd.isna(void_row["n_pas"])
+    assert list(resolved_production.columns) == RESOLVED_PROFILE_SCHEMA_COLUMNS
+
+    verification = verify_candidate_artifact_pair(
+        artifact_dir=resolved_dir,
+        expected_run_kind="live_forward_resolved",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=2,
+    )
+    assert verification["ok"] is True
