@@ -565,7 +565,7 @@ def render_scorecard_section(
     has_pas = any(b.get("pas") for b in batters)
 
     resolved_result = pick_data.get("result") if pick_data else None
-    slot_results = pick_data.get("slot_results", {}) if pick_data else {}
+    slot_results = (pick_data.get("slot_results") or {}) if pick_data else {}
     resolved_both_batters_hit = (
         sum(1 for value in slot_results.values() if value == "hit") > 1
         or (
