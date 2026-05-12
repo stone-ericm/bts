@@ -238,6 +238,20 @@ Postponement handling:
   `pending`; official verification fails on pending rows. Never coerce a
   missing/postponed outcome to `actual_hit = 0`.
 
+After the void-aware resolver is deployed, convert the known 2026-05-09
+postponed slate from `pending_outcomes` to `resolved_with_voids` explicitly:
+
+```bash
+cd /home/bts/projects/bts
+.venv/bin/bts experiment resolve-live-candidate-artifacts \
+  --artifact-dir data/validation/decision_weighted_lgbm_v0_live_forward/2026-05-09 \
+  --output-dir data/validation/decision_weighted_lgbm_v0_live_forward_resolved/2026-05-09 \
+  --data-dir data/processed \
+  --treat-void-games-as-terminal \
+  --overwrite \
+  --save data/validation/decision_weighted_lgbm_v0_live_forward_resolved/2026-05-09/resolution.json
+```
+
 Verify the resolved copy without the live pre-outcome null-outcome flag:
 
 ```bash

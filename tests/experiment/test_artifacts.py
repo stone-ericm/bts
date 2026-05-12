@@ -719,3 +719,71 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         expected_top_n=2,
     )
     assert verification["ok"] is True
+
+
+def test_resolve_live_candidate_artifact_pair_mixed_void_and_pending(
+    tmp_path,
+):
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    manifest = _write_live_preoutcome_artifact(artifact_dir)
+    for variant in ("production", "candidate"):
+        rel_path = manifest["profile_paths"][variant]["2026-05-09"]
+        path = artifact_dir / rel_path
+        frame = pd.read_parquet(path)
+        extra = frame.iloc[[0]].copy()
+        extra["rank"] = 3
+        extra["batter_id"] = 33
+        extra["game_pk"] = 1003
+        extra["p_game_hit"] = 0.55
+        frame = pd.concat([frame, extra], ignore_index=True)
+        frame.to_parquet(path, index=False)
+        manifest["row_counts"][variant]["2026-05-09"] = 3
+    manifest["top_n"] = 3
+    (artifact_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=resolved_dir,
+        data_dir=data_dir,
+        allow_partial=True,
+        treat_void_games_as_terminal=True,
+        detailed_statuses_by_date={
+            "2026-05-09": {
+                1002: {"abstract": "F", "detailed": "Postponed"},
+                1003: {"abstract": "F", "detailed": "Final"},
+            }
+        },
+    )
+
+    assert report["complete"] is False
+    assert report["missing_count"] == 2
+    assert report["terminal_void_count"] == 2
+    assert report["outcome_status_counts"] == {
+        "resolved": 2,
+        "void_postponement": 2,
+        "void_cancellation": 0,
+        "pending": 2,
+    }
+
+    verification = verify_candidate_artifact_pair(
+        artifact_dir=resolved_dir,
+        expected_run_kind="live_forward_resolved",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=3,
+    )
+    failed_names = {
+        check["name"] for check in verification["checks"]
+        if check["status"] == "fail"
+    }
+    assert "production_2026-05-09_pending_outcomes_absent" in failed_names
+    assert "candidate_2026-05-09_pending_outcomes_absent" in failed_names
