@@ -17,8 +17,14 @@ This is safe because the runner is idempotent:
 
 - exits successfully while `data/picks/YYYY-MM-DD.json` is absent;
 - refuses to export if the pick file already has a result;
+- refuses to export if processed PA outcomes already contain rows for the date;
 - refuses partial artifact directories;
-- verifies an existing manifest instead of exporting again;
+- verifies an existing manifest instead of exporting again only when its
+  `production_pick_snapshot.source_sha256` matches the current production pick
+  file;
+- auto-recaptures snapshot drift only through the timer's
+  `--auto-recapture-on-snapshot-drift` flag, and only before the pick resolves
+  and before processed PA outcomes exist for the date;
 - writes `capture_status.json` next to successful or failed artifact attempts.
 
 Verify it is active:

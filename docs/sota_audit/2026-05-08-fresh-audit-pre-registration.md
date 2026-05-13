@@ -209,6 +209,18 @@ post-resolution edits cannot silently erase the decision context.
 If export is re-run for an already logged date, the parity guard captures the
 production pick file as of the re-export run; downstream comparison is anchored
 on `source_sha256`.
+An existing live-forward artifact is official only if its
+`production_pick_snapshot.source_sha256` matches the current production pick
+file while that file exists. If the locked pick file changes before outcomes
+are known, the guarded capture timer may refresh the artifact only under the
+explicit `--auto-recapture-on-snapshot-drift` flag and only while the pick is
+unresolved and processed PA outcomes contain zero rows for the date; the stale
+copy is preserved as a backup. If the mismatch is discovered after the pick file
+has a result or processed PA outcomes exist, the artifact is excluded from
+official fresh-target evidence instead of being refreshed with outcome-visible
+state.
+The same zero-processed-PA-rows gate applies to initial guarded exports and
+explicit overwrites, not only recaptures.
 Do not count a live-forward artifact toward the fresh target unless the
 post-export verifier passes:
 

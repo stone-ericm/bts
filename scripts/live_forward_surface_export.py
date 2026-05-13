@@ -162,6 +162,7 @@ def build_surface(
     dates: set[str] | None,
     min_date: str | None,
     max_date: str | None,
+    picks_dir: Path | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     if variant not in VALID_VARIANTS:
@@ -174,6 +175,7 @@ def build_surface(
         readiness = inspect_artifact_dir(
             artifact_dir,
             resolved_root=resolved_root,
+            picks_dir=picks_dir,
             expected_candidate=expected_candidate,
             expected_top_n=expected_top_n,
             require_production_pick_snapshot=require_production_pick_snapshot,
@@ -301,6 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("data/validation/decision_weighted_lgbm_v0_live_forward_resolved"),
     )
+    parser.add_argument("--picks-dir", type=Path, default=Path("data/picks"))
     parser.add_argument("--variant", choices=sorted(VALID_VARIANTS), default="production")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--manifest-output", type=Path, default=None)
@@ -331,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
         output_path=args.output,
         manifest_output_path=args.manifest_output,
         resolved_root=args.resolved_root,
+        picks_dir=args.picks_dir,
         expected_candidate=args.expected_candidate,
         expected_top_n=args.expected_top_n,
         require_production_pick_snapshot=not args.no_require_production_pick_snapshot,

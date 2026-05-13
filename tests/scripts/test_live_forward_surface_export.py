@@ -190,6 +190,36 @@ def test_require_official_ready_filters_missing_snapshot(tmp_path):
         )
 
 
+def test_require_official_ready_filters_snapshot_mismatch(tmp_path):
+    artifact_root = tmp_path / "live"
+    picks_dir = tmp_path / "data" / "picks"
+    _write_artifact(artifact_root, with_snapshot=True)
+    picks_dir.mkdir(parents=True)
+    (picks_dir / "2026-05-10.json").write_text(json.dumps({
+        "date": "2026-05-10",
+        "result": "miss",
+        "pick": {"batter_id": 9999},
+    }))
+
+    with pytest.raises(ValueError, match="no eligible live-forward profile rows"):
+        build_surface(
+            artifact_root=artifact_root,
+            variant="production",
+            require_official_ready=True,
+            output_path=tmp_path / "surface.parquet",
+            manifest_output_path=None,
+            resolved_root=None,
+            picks_dir=picks_dir,
+            expected_candidate="decision_weighted_lgbm_v0",
+            expected_top_n=2,
+            require_production_pick_snapshot=True,
+            dates=None,
+            min_date=None,
+            max_date=None,
+            generated_at="2026-05-10T15:00:00+00:00",
+        )
+
+
 def test_exports_candidate_variant(tmp_path):
     artifact_root = tmp_path / "live"
     _write_artifact(artifact_root, with_snapshot=True)
