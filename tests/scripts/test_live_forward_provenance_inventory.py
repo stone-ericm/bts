@@ -256,6 +256,91 @@ def test_inventory_requires_passing_verification_for_official_ready_flag(tmp_pat
     assert report["summary"]["missing_verification_count"] == 1
 
 
+def test_inventory_requires_snapshot_to_match_current_pick_file(tmp_path):
+    artifact_root = tmp_path / "live"
+    picks_dir = tmp_path / "data" / "picks"
+    _write_artifact(artifact_root, with_snapshot=True)
+    picks_dir.mkdir(parents=True)
+    (picks_dir / "2026-05-10.json").write_text(json.dumps({
+        "date": "2026-05-10",
+        "result": "hit",
+        "pick": {"batter_id": 9999},
+    }))
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        picks_dir=picks_dir,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    row = report["rows"][0]
+    assert row["at_lock_ranked_surface_joinable"] is True
+    assert row["current_pick_snapshot"]["current_pick_present"] is True
+    assert row["current_pick_snapshot"]["matches_current_pick"] is False
+    assert row["official_fresh_target_ready"] is False
+    assert report["summary"]["stale_pick_snapshot_count"] == 1
+
+
+def test_inventory_rejects_unreadable_current_pick_file(tmp_path):
+    artifact_root = tmp_path / "live"
+    picks_dir = tmp_path / "data" / "picks"
+    _write_artifact(artifact_root, with_snapshot=True)
+    picks_dir.mkdir(parents=True)
+    (picks_dir / "2026-05-10.json").write_text("{")
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        picks_dir=picks_dir,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    row = report["rows"][0]
+    assert row["current_pick_snapshot"]["current_pick_present"] is True
+    assert row["current_pick_snapshot"]["matches_current_pick"] is None
+    assert row["current_pick_snapshot"]["error"]
+    assert row["official_fresh_target_ready"] is False
+
+
+def test_inventory_rejects_failed_stale_capture_status(tmp_path):
+    artifact_root = tmp_path / "live"
+    date_dir = _write_artifact(artifact_root, with_snapshot=True)
+    (date_dir / "capture_status.json").write_text(json.dumps({
+        "status": "failed_recapture_post_resolution",
+        "stale_pick_snapshot": True,
+        "snapshot_matches_current_pick": False,
+    }))
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    row = report["rows"][0]
+    assert row["at_lock_ranked_surface_joinable"] is True
+    assert row["capture_status"]["status"] == "failed_recapture_post_resolution"
+    assert row["official_fresh_target_ready"] is False
+    assert report["summary"]["stale_pick_snapshot_count"] == 1
+    assert report["summary"]["failed_capture_status_count"] == 1
+
+
 def test_inventory_handles_missing_root(tmp_path):
     report = build_inventory(
         artifact_root=tmp_path / "missing",
@@ -270,3 +355,25 @@ def test_inventory_handles_missing_root(tmp_path):
 
     assert report["summary"]["artifact_count"] == 0
     assert report["rows"] == []
+
+
+def test_inventory_ignores_hidden_refresh_directories(tmp_path):
+    artifact_root = tmp_path / "live"
+    _write_artifact(artifact_root, with_snapshot=True)
+    hidden = artifact_root / ".2026-05-10.refreshing"
+    hidden.mkdir(parents=True)
+    (hidden / "manifest.json").write_text("{}")
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    assert report["summary"]["artifact_count"] == 1
+    assert len(report["rows"]) == 1

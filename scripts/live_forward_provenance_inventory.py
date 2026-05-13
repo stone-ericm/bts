@@ -8,6 +8,7 @@ resolve, mutate, or deploy artifacts.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -61,6 +62,14 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text())
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _artifact_dirs(root: Path) -> list[Path]:
     if (root / "manifest.json").exists():
         return [root]
@@ -70,6 +79,7 @@ def _artifact_dirs(root: Path) -> list[Path]:
         path
         for path in root.iterdir()
         if path.is_dir() and (path / "manifest.json").exists()
+        and not path.name.startswith(".")
     )
 
 
@@ -236,6 +246,73 @@ def _verification_summary(artifact_dir: Path) -> dict[str, Any]:
     }
 
 
+def _capture_status_summary(artifact_dir: Path) -> dict[str, Any]:
+    status = _read_json(artifact_dir / "capture_status.json")
+    if status is None:
+        return {
+            "present": False,
+            "status": None,
+            "stale_pick_snapshot": None,
+            "snapshot_matches_current_pick": None,
+        }
+    return {
+        "present": True,
+        "status": status.get("status"),
+        "stale_pick_snapshot": status.get("stale_pick_snapshot"),
+        "snapshot_matches_current_pick": status.get("snapshot_matches_current_pick"),
+        "current_pick_sha256": status.get("current_pick_sha256"),
+        "artifact_pick_snapshot_sha256": status.get("artifact_pick_snapshot_sha256"),
+    }
+
+
+def _current_pick_snapshot_summary(
+    *,
+    snapshot: dict[str, Any],
+    date_key: str | None,
+    picks_dir: Path | None,
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "checked": False,
+        "current_pick_path": None,
+        "current_pick_present": False,
+        "current_pick_sha256": None,
+        "matches_current_pick": None,
+        "error": None,
+    }
+    if picks_dir is None or date_key is None or not snapshot.get("present"):
+        return summary
+
+    pick_path = picks_dir / f"{date_key}.json"
+    summary["current_pick_path"] = str(pick_path)
+    if not pick_path.exists():
+        return summary
+    summary["current_pick_present"] = True
+
+    try:
+        pick = _read_json(pick_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        summary["error"] = f"could not read current production pick: {exc}"
+        return summary
+    if pick is None:
+        return summary
+    if str(pick.get("date")) != str(date_key):
+        summary["error"] = (
+            f"current production pick date {pick.get('date')!r} does not match "
+            f"{date_key!r}"
+        )
+        return summary
+
+    try:
+        current_sha = _file_sha256(pick_path)
+    except OSError as exc:
+        summary["error"] = f"could not hash current production pick: {exc}"
+        return summary
+    summary["checked"] = True
+    summary["current_pick_sha256"] = current_sha
+    summary["matches_current_pick"] = snapshot.get("source_sha256") == current_sha
+    return summary
+
+
 def _resolved_summary(*, date_key: str | None, resolved_root: Path | None) -> dict[str, Any]:
     if resolved_root is None or date_key is None:
         return {
@@ -297,6 +374,7 @@ def inspect_artifact_dir(
     expected_candidate: str | None,
     expected_top_n: int | None,
     require_production_pick_snapshot: bool,
+    picks_dir: Path | None = None,
 ) -> dict[str, Any]:
     manifest = _read_json(artifact_dir / "manifest.json")
     if manifest is None:
@@ -317,6 +395,12 @@ def inspect_artifact_dir(
     }
     snapshot = _snapshot_summary(manifest)
     verification = _verification_summary(artifact_dir)
+    capture_status = _capture_status_summary(artifact_dir)
+    current_pick_snapshot = _current_pick_snapshot_summary(
+        snapshot=snapshot,
+        date_key=str(date_key) if date_key is not None else None,
+        picks_dir=picks_dir,
+    )
     resolved = _resolved_summary(date_key=date_key, resolved_root=resolved_root)
 
     live_preoutcome = manifest.get("run_kind") == "live_forward_preoutcome"
@@ -342,6 +426,17 @@ def inspect_artifact_dir(
         for variant in ("production", "candidate")
     )
     snapshot_ok = snapshot["present"] and snapshot["version_ok"] and snapshot["has_inline_json"]
+    snapshot_matches_current_pick = (
+        not current_pick_snapshot["current_pick_present"]
+        or current_pick_snapshot["matches_current_pick"] is True
+    )
+    capture_status_ok = not (
+        capture_status["present"]
+        and (
+            str(capture_status.get("status") or "").startswith("failed_")
+            or capture_status.get("stale_pick_snapshot") is True
+        )
+    )
     verifier_ok_or_missing = verification["ok"] is True or verification["present"] is False
 
     at_lock_ranked_surface_joinable = (
@@ -355,6 +450,8 @@ def inspect_artifact_dir(
     official_fresh_target_ready = (
         at_lock_ranked_surface_joinable
         and (snapshot_ok or not require_production_pick_snapshot)
+        and snapshot_matches_current_pick
+        and capture_status_ok
         and verification["ok"] is True
     )
     return {
@@ -373,6 +470,8 @@ def inspect_artifact_dir(
         "top_n": manifest.get("top_n"),
         "environment": manifest.get("environment") or {},
         "production_pick_snapshot": snapshot,
+        "current_pick_snapshot": current_pick_snapshot,
+        "capture_status": capture_status,
         "verification": verification,
         "variants": variants,
         "resolved": resolved,
@@ -405,6 +504,25 @@ def summarize_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 if not row.get("production_pick_snapshot", {}).get("present")
             )
         ),
+        "stale_pick_snapshot_count": int(
+            sum(
+                1
+                for row in rows
+                if row.get("current_pick_snapshot", {}).get("matches_current_pick")
+                is False
+                or row.get("capture_status", {}).get("stale_pick_snapshot") is True
+            )
+        ),
+        "failed_capture_status_count": int(
+            sum(
+                1
+                for row in rows
+                if row.get("capture_status", {}).get("present")
+                and str(row.get("capture_status", {}).get("status") or "").startswith(
+                    "failed_"
+                )
+            )
+        ),
         "git_commit_counts": _value_counts(row.get("git_commit") for row in rows),
         "run_kind_counts": _value_counts(row.get("run_kind") for row in rows),
         "candidate_counts": _value_counts(row.get("candidate_name") for row in rows),
@@ -428,6 +546,7 @@ def build_inventory(
     expected_candidate: str | None,
     expected_top_n: int | None,
     require_production_pick_snapshot: bool,
+    picks_dir: Path | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     artifact_dirs = _artifact_dirs(artifact_root)
@@ -435,6 +554,7 @@ def build_inventory(
         inspect_artifact_dir(
             artifact_dir,
             resolved_root=resolved_root,
+            picks_dir=picks_dir,
             expected_candidate=expected_candidate,
             expected_top_n=expected_top_n,
             require_production_pick_snapshot=require_production_pick_snapshot,
@@ -449,6 +569,7 @@ def build_inventory(
         "mutation_free_inventory": True,
         "artifact_root": str(artifact_root),
         "resolved_root": str(resolved_root) if resolved_root is not None else None,
+        "picks_dir": str(picks_dir) if picks_dir is not None else None,
         "expected_candidate": expected_candidate,
         "expected_top_n": expected_top_n,
         "require_production_pick_snapshot": bool(require_production_pick_snapshot),
@@ -476,6 +597,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("data/validation/decision_weighted_lgbm_v0_live_forward_resolved"),
     )
+    parser.add_argument("--picks-dir", type=Path, default=Path("data/picks"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--rows-output", type=Path, default=None)
     parser.add_argument("--expected-candidate", default="decision_weighted_lgbm_v0")
@@ -495,6 +617,7 @@ def main(argv: list[str] | None = None) -> int:
         output_path=args.output,
         rows_output_path=args.rows_output,
         resolved_root=args.resolved_root,
+        picks_dir=args.picks_dir,
         expected_candidate=args.expected_candidate,
         expected_top_n=args.expected_top_n,
         require_production_pick_snapshot=not args.no_require_production_pick_snapshot,

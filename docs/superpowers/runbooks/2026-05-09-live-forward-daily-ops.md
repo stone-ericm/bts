@@ -42,8 +42,21 @@ This runner is safe to invoke from a frequent timer:
 
 - exits successfully while `data/picks/YYYY-MM-DD.json` is absent;
 - refuses to export if the pick file already has a non-null result;
+- refuses to export if processed PA outcomes already contain rows for the date;
 - refuses partial artifact directories;
-- verifies an existing manifest instead of exporting again;
+- verifies an existing manifest instead of exporting again only when its
+  `production_pick_snapshot.source_sha256` still matches the current production
+  pick file;
+- fails closed with `stale_pick_snapshot` when a manual invocation finds
+  snapshot drift without explicit recapture authorization;
+- when invoked with `--auto-recapture-on-snapshot-drift`, refreshes a stale
+  existing artifact through a temporary output directory only if the pick file
+  is still unresolved and processed PA outcomes contain zero rows for the date,
+  then backs up the stale artifact beside the date directory;
+- fails closed with `failed_recapture_post_resolution` or
+  `failed_recapture_post_outcomes` when the pick file already has a result or
+  processed PA outcomes exist, because an after-the-fact refresh would no longer
+  be a pre-outcome capture;
 - writes `capture_status.json` beside the artifact after export/verify attempts.
 
 Install the user timer on Hetzner only after the production checkout contains
@@ -57,8 +70,10 @@ systemctl --user daemon-reload
 systemctl --user enable --now bts-live-forward-capture.timer
 ```
 
-The timer polls every 15 minutes. It should replace the need for a human to
-remember the daily pre-outcome capture.
+The timer polls every 15 minutes and passes
+`--auto-recapture-on-snapshot-drift`. It should replace the need for a human to
+remember the daily pre-outcome capture while still refusing recapture after
+results or processed PA outcomes exist.
 
 ## Safety Gates
 
@@ -153,7 +168,8 @@ Expected verifier posture:
 - manifest `production_deploy_claim = false`
 - production and candidate row counts equal `10`
 - outcome fields are null
-- `production_pick_snapshot` is present and date-matched
+- `production_pick_snapshot` is present, date-matched, and its `source_sha256`
+  matches the current production pick file when that file exists
 
 If the verifier fails, do not hand-edit the artifacts. Preserve the failure
 report and investigate the export code or data snapshot.
