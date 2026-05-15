@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import math
 import re
 import subprocess
 from dataclasses import dataclass, asdict
@@ -162,7 +163,7 @@ def pick_from_row(row) -> Pick:
         team=row["team"],
         lineup_position=int(row["lineup"]),
         pitcher_name=row["pitcher_name"],
-        pitcher_id=int(row["pitcher_id"]) if row.get("pitcher_id") else None,
+        pitcher_id=_optional_int(row.get("pitcher_id")),
         p_game_hit=float(row["p_game_hit"]),
         flags=flags,
         projected_lineup="PROJECTED" in flags_str,
@@ -170,6 +171,27 @@ def pick_from_row(row) -> Pick:
         game_time=row["game_time"],
         pitcher_team=row.get("pitcher_team"),
     )
+
+
+def _optional_int(value) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or stripped.lower() == "nan":
+            return None
+        return int(stripped)
+    try:
+        if math.isnan(value):
+            return None
+    except TypeError:
+        pass
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        if str(value) in {"<NA>", "NaT"}:
+            return None
+        raise
 
 
 def save_pick(daily: DailyPick, picks_dir: Path) -> Path:

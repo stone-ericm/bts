@@ -298,6 +298,15 @@ class TestPickFromRow:
         pick = pick_from_row(self._row(pitcher_id=None))
         assert pick.pitcher_id is None
 
+    def test_nan_pitcher_id(self):
+        pick = pick_from_row(self._row(pitcher_id=float("nan")))
+        assert pick.pitcher_id is None
+
+    def test_pandas_missing_pitcher_id(self):
+        pd = pytest.importorskip("pandas")
+        pick = pick_from_row(self._row(pitcher_id=pd.NA))
+        assert pick.pitcher_id is None
+
     def test_missing_flags_key(self):
         row = self._row()
         del row["flags"]
