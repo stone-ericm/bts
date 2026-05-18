@@ -41,8 +41,10 @@ def _write_manifest(artifact_dir: Path, *, pick_path: Path | None = None) -> Non
     artifact_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, object] = {}
     if pick_path is not None:
+        pick_json = json.loads(pick_path.read_text())
         manifest["production_pick_snapshot"] = {
             "source_sha256": file_sha256(pick_path),
+            "production_pick_json": pick_json,
         }
     artifact_dir.joinpath("manifest.json").write_text(json.dumps(manifest))
 
@@ -218,6 +220,35 @@ def test_capture_once_existing_manifest_verifies_after_pick_resolves(tmp_path, m
     assert code == 0
     assert payload["status"] == "existing_verified"
     assert payload["snapshot_matches_current_pick"] is True
+    assert not any("export-live-candidate-artifacts" in args for args in calls)
+
+
+def test_capture_once_result_only_change_is_not_stale_snapshot(tmp_path, monkeypatch):
+    config = _config(tmp_path, auto_recapture_on_snapshot_drift=True)
+    pick_path = _write_pick(config.production_root)
+    artifact_dir = config.production_root / config.artifact_root / config.date
+    _write_manifest(artifact_dir, pick_path=pick_path)
+    _write_pick(config.production_root, result="miss")
+    calls = []
+
+    def fake_run(args, *, cwd, env=None):
+        calls.append(args)
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="sha\n")
+        if "verify-candidate-artifacts" in args:
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_capture_once.run", fake_run)
+
+    code, payload = capture_once(config)
+
+    assert code == 0
+    assert payload["status"] == "existing_verified"
+    assert payload["current_pick_result"] == "miss"
+    assert payload["snapshot_matches_current_pick"] is False
+    assert payload["snapshot_decision_matches_current_pick"] is True
+    assert payload["stale_pick_snapshot"] is False
     assert not any("export-live-candidate-artifacts" in args for args in calls)
 
 

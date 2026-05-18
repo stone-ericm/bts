@@ -62,6 +62,16 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text())
 
 
+def _decision_snapshot(pick: dict[str, Any]) -> dict[str, Any]:
+    # Result fields are appended after games finish; they must not make an
+    # otherwise matching at-lock decision snapshot look stale.
+    return {
+        key: value
+        for key, value in pick.items()
+        if key not in {"result", "slot_results"}
+    }
+
+
 def _file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -227,6 +237,11 @@ def _snapshot_summary(manifest: dict[str, Any]) -> dict[str, Any]:
         "source_sha256": snapshot.get("source_sha256"),
         "slot_batter_ids": slot_batter_ids,
         "has_inline_json": isinstance(snapshot.get("production_pick_json"), dict),
+        "production_pick_json": (
+            snapshot.get("production_pick_json")
+            if isinstance(snapshot.get("production_pick_json"), dict)
+            else None
+        ),
     }
 
 
@@ -277,6 +292,7 @@ def _current_pick_snapshot_summary(
         "current_pick_present": False,
         "current_pick_sha256": None,
         "matches_current_pick": None,
+        "decision_matches_current_pick": None,
         "error": None,
     }
     if picks_dir is None or date_key is None or not snapshot.get("present"):
@@ -310,6 +326,11 @@ def _current_pick_snapshot_summary(
     summary["checked"] = True
     summary["current_pick_sha256"] = current_sha
     summary["matches_current_pick"] = snapshot.get("source_sha256") == current_sha
+    snapshot_json = snapshot.get("production_pick_json")
+    if isinstance(snapshot_json, dict):
+        summary["decision_matches_current_pick"] = _decision_snapshot(
+            snapshot_json
+        ) == _decision_snapshot(pick)
     return summary
 
 
@@ -426,9 +447,12 @@ def inspect_artifact_dir(
         for variant in ("production", "candidate")
     )
     snapshot_ok = snapshot["present"] and snapshot["version_ok"] and snapshot["has_inline_json"]
-    snapshot_matches_current_pick = (
-        not current_pick_snapshot["current_pick_present"]
-        or current_pick_snapshot["matches_current_pick"] is True
+    snapshot_matches_current_pick = not current_pick_snapshot["current_pick_present"] or (
+        current_pick_snapshot["decision_matches_current_pick"] is True
+        or (
+            current_pick_snapshot["decision_matches_current_pick"] is None
+            and current_pick_snapshot["matches_current_pick"] is True
+        )
     )
     capture_status_ok = not (
         capture_status["present"]
@@ -508,8 +532,22 @@ def summarize_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
             sum(
                 1
                 for row in rows
-                if row.get("current_pick_snapshot", {}).get("matches_current_pick")
-                is False
+                if (
+                    row.get("current_pick_snapshot", {}).get(
+                        "decision_matches_current_pick"
+                    )
+                    is False
+                    or (
+                        row.get("current_pick_snapshot", {}).get(
+                            "decision_matches_current_pick"
+                        )
+                        is None
+                        and row.get("current_pick_snapshot", {}).get(
+                            "matches_current_pick"
+                        )
+                        is False
+                    )
+                )
                 or row.get("capture_status", {}).get("stale_pick_snapshot") is True
             )
         ),

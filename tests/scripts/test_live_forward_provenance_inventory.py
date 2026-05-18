@@ -41,7 +41,11 @@ def _snapshot():
         "snapshot_version": PRODUCTION_PICK_SNAPSHOT_VERSION,
         "date": "2026-05-10",
         "source_sha256": "abc123",
-        "production_pick_json": {"pick": {"batter_id": 1001, "game_pk": 2001}},
+        "production_pick_json": {
+            "date": "2026-05-10",
+            "result": None,
+            "pick": {"batter_id": 1001, "game_pk": 2001},
+        },
         "slots": {
             "pick": {"batter_id": 1001, "game_pk": 2001},
             "double_down": {"batter_id": 1002, "game_pk": 2002},
@@ -285,6 +289,36 @@ def test_inventory_requires_snapshot_to_match_current_pick_file(tmp_path):
     assert row["current_pick_snapshot"]["matches_current_pick"] is False
     assert row["official_fresh_target_ready"] is False
     assert report["summary"]["stale_pick_snapshot_count"] == 1
+
+
+def test_inventory_accepts_result_only_current_pick_change(tmp_path):
+    artifact_root = tmp_path / "live"
+    picks_dir = tmp_path / "data" / "picks"
+    _write_artifact(artifact_root, with_snapshot=True)
+    picks_dir.mkdir(parents=True)
+    (picks_dir / "2026-05-10.json").write_text(json.dumps({
+        "date": "2026-05-10",
+        "result": "miss",
+        "pick": {"batter_id": 1001, "game_pk": 2001},
+    }))
+
+    report = build_inventory(
+        artifact_root=artifact_root,
+        output_path=tmp_path / "inventory.json",
+        rows_output_path=None,
+        resolved_root=None,
+        picks_dir=picks_dir,
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_top_n=2,
+        require_production_pick_snapshot=True,
+        generated_at="2026-05-10T15:00:00+00:00",
+    )
+
+    row = report["rows"][0]
+    assert row["current_pick_snapshot"]["matches_current_pick"] is False
+    assert row["current_pick_snapshot"]["decision_matches_current_pick"] is True
+    assert row["official_fresh_target_ready"] is True
+    assert report["summary"]["stale_pick_snapshot_count"] == 0
 
 
 def test_inventory_rejects_unreadable_current_pick_file(tmp_path):

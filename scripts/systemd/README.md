@@ -19,13 +19,19 @@ This is safe because the runner is idempotent:
 - refuses to export if the pick file already has a result;
 - refuses to export if processed PA outcomes already contain rows for the date;
 - refuses partial artifact directories;
-- verifies an existing manifest instead of exporting again only when its
-  `production_pick_snapshot.source_sha256` matches the current production pick
-  file;
+- verifies an existing manifest instead of exporting again when its locked
+  decision payload still matches the current production pick. Full-file SHA
+  drift from post-game `result` / `slot_results` updates is recorded but is not
+  treated as stale decision drift;
 - auto-recaptures snapshot drift only through the timer's
   `--auto-recapture-on-snapshot-drift` flag, and only before the pick resolves
   and before processed PA outcomes exist for the date;
 - writes `capture_status.json` next to successful or failed artifact attempts.
+
+The scheduler also queues this one-shot unit with `systemctl --user start
+--no-block bts-live-forward-capture.service` immediately after a production pick
+locks, so the at-lock artifact is refreshed without waiting for the next
+15-minute timer tick.
 
 Verify it is active:
 

@@ -17,6 +17,9 @@ results_poll_interval_min = 15
 results_cap_hour_et = 5
 default_init_hour_et = 10
 early_game_buffer_min = 60
+live_forward_capture_on_lock = true
+live_forward_capture_unit = "bts-live-forward-capture.service"
+live_forward_capture_trigger_timeout_sec = 10
 
 [[tiers]]
 name = "mac"

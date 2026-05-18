@@ -736,8 +736,9 @@ class TestRunDay:
     @patch("bts.scheduler.run_single_check")
     @patch("bts.scheduler.run_result_polling")
     @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
     def test_fallback_fires_when_pick_game_before_next_check(
-        self, mock_post, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
+        self, mock_capture, mock_post, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
         tmp_path, capsys
     ):
         """When the top pick plays in the earliest game and should_lock=False,
@@ -805,6 +806,7 @@ class TestRunDay:
 
         # Verify: posted to Bluesky via fallback
         mock_post.assert_called_once()
+        mock_capture.assert_called_once()
 
         # Verify: only one prediction check ran (15:25, not 18:20)
         assert mock_check.call_count == 1
@@ -1148,3 +1150,37 @@ class TestRefreshPickAtFallback:
                 cached,
             )
         assert result is cached
+
+
+class TestLiveForwardCaptureTrigger:
+    def test_queues_default_systemd_capture_nonblocking(self, capsys):
+        from bts.scheduler import _trigger_live_forward_capture_on_lock
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""
+            mock_run.return_value.stderr = ""
+
+            _trigger_live_forward_capture_on_lock({"scheduler": {}}, "2026-05-16")
+
+        mock_run.assert_called_once()
+        assert mock_run.call_args.args[0] == [
+            "systemctl",
+            "--user",
+            "start",
+            "--no-block",
+            "bts-live-forward-capture.service",
+        ]
+        assert mock_run.call_args.kwargs["timeout"] == 10
+        assert "queued" in capsys.readouterr().err
+
+    def test_disabled_capture_trigger_is_noop(self):
+        from bts.scheduler import _trigger_live_forward_capture_on_lock
+
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            _trigger_live_forward_capture_on_lock(
+                {"scheduler": {"live_forward_capture_on_lock": False}},
+                "2026-05-16",
+            )
+
+        mock_run.assert_not_called()
