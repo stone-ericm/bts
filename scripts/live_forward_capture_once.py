@@ -150,6 +150,25 @@ def production_pick_snapshot_sha256(manifest: dict[str, Any]) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def production_pick_snapshot_json(manifest: dict[str, Any]) -> dict[str, Any] | None:
+    snapshot = manifest.get("production_pick_snapshot")
+    if not isinstance(snapshot, dict):
+        return None
+    value = snapshot.get("production_pick_json")
+    return value if isinstance(value, dict) else None
+
+
+def decision_snapshot(pick: dict[str, Any]) -> dict[str, Any]:
+    """Return the pick JSON fields that define the locked pre-outcome choice."""
+    # Result fields are appended after games finish; they must not make an
+    # otherwise matching at-lock decision snapshot look stale.
+    return {
+        key: value
+        for key, value in pick.items()
+        if key not in {"result", "slot_results"}
+    }
+
+
 def existing_snapshot_state(
     *,
     manifest_path: Path,
@@ -161,6 +180,7 @@ def existing_snapshot_state(
         "current_pick_sha256": None,
         "artifact_pick_snapshot_sha256": None,
         "snapshot_matches_current_pick": None,
+        "snapshot_decision_matches_current_pick": None,
         "stale_pick_snapshot": None,
         "current_pick_result": None,
         "current_pick_date": None,
@@ -195,10 +215,17 @@ def existing_snapshot_state(
 
     current_sha = file_sha256(pick_path)
     snapshot_sha = production_pick_snapshot_sha256(manifest)
+    snapshot_json = production_pick_snapshot_json(manifest)
+    decision_matches = None
+    if snapshot_json is not None:
+        decision_matches = decision_snapshot(snapshot_json) == decision_snapshot(pick)
     state["current_pick_sha256"] = current_sha
     state["artifact_pick_snapshot_sha256"] = snapshot_sha
     state["snapshot_matches_current_pick"] = snapshot_sha == current_sha
-    state["stale_pick_snapshot"] = snapshot_sha != current_sha
+    state["snapshot_decision_matches_current_pick"] = decision_matches
+    state["stale_pick_snapshot"] = (
+        not decision_matches if decision_matches is not None else snapshot_sha != current_sha
+    )
     return state
 
 

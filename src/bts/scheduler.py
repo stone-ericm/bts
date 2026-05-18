@@ -6,6 +6,8 @@ and commits picks only when confirmed lineup + gap threshold met.
 """
 
 import json
+import shlex
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, asdict
@@ -609,6 +611,62 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
     return fresh
 
 
+def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
+    """Start a non-blocking live-forward capture after a pick is locked.
+
+    Capture is observational and must not block or undo the production pick
+    lifecycle. The default production path uses the existing systemd one-shot
+    service; local/dev callers can disable it or provide an explicit command in
+    scheduler config.
+    """
+    sched_config = config.get("scheduler", {})
+    if not sched_config.get("live_forward_capture_on_lock", True):
+        return
+
+    command = sched_config.get("live_forward_capture_command")
+    if command is None:
+        unit = sched_config.get(
+            "live_forward_capture_unit",
+            "bts-live-forward-capture.service",
+        )
+        args = ["systemctl", "--user", "start", "--no-block", unit]
+    elif isinstance(command, str):
+        args = shlex.split(command.format(date=date))
+    else:
+        args = [str(part).format(date=date) for part in command]
+
+    timeout = float(sched_config.get("live_forward_capture_trigger_timeout_sec", 10))
+    try:
+        result = subprocess.run(
+            args,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=timeout,
+        )
+    except Exception as exc:
+        print(
+            f"  live-forward capture trigger failed (suppressed): {exc}",
+            file=sys.stderr,
+        )
+        return
+
+    if result.returncode == 0:
+        print(
+            f"  live-forward capture trigger queued for {date}.",
+            file=sys.stderr,
+        )
+        return
+
+    detail = (result.stderr or result.stdout or "").strip()
+    if detail:
+        detail = f": {detail}"
+    print(
+        f"  live-forward capture trigger returned {result.returncode}{detail}",
+        file=sys.stderr,
+    )
+
+
 def poll_game_result(game_pk: int) -> str:
     """Check a game's current status.
 
@@ -949,6 +1007,7 @@ def run_day(
                 state.pick_locked = True
                 state.pick_locked_at = _now_et().isoformat()
                 save_state(state, picks_dir)
+                _trigger_live_forward_capture_on_lock(config, date)
                 print(f"  [PRIVATE] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
                       f"{daily.pick.p_game_hit:.1%} — NOT posted (private mode)", file=sys.stderr)
             else:
@@ -968,6 +1027,7 @@ def run_day(
                     state.pick_locked = True
                     state.pick_locked_at = _now_et().isoformat()
                     save_state(state, picks_dir)
+                    _trigger_live_forward_capture_on_lock(config, date)
                     print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
                 except Exception as e:
                     print(f"  Bluesky post failed: {e}", file=sys.stderr)
@@ -1026,6 +1086,7 @@ def run_day(
                         state.pick_locked = True
                         state.pick_locked_at = _now_et().isoformat()
                         save_state(state, picks_dir)
+                        _trigger_live_forward_capture_on_lock(config, date)
                         print(f"  [PRIVATE] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
                     else:
                         print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
@@ -1046,6 +1107,7 @@ def run_day(
                             state.pick_locked = True
                             state.pick_locked_at = _now_et().isoformat()
                             save_state(state, picks_dir)
+                            _trigger_live_forward_capture_on_lock(config, date)
                             print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
                                   file=sys.stderr)
                         except Exception as e:
@@ -1079,6 +1141,7 @@ def run_day(
                     state.pick_locked = True
                     state.pick_locked_at = _now_et().isoformat()
                     save_state(state, picks_dir)
+                    _trigger_live_forward_capture_on_lock(config, date)
                     print(f"  [PRIVATE] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
                 else:
                     print(f"  FALLBACK — {fallback_min}min to first pitch, posting on projected data.",
@@ -1100,6 +1163,7 @@ def run_day(
                         state.pick_locked = True
                         state.pick_locked_at = _now_et().isoformat()
                         save_state(state, picks_dir)
+                        _trigger_live_forward_capture_on_lock(config, date)
                     except Exception as e:
                         print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
 
