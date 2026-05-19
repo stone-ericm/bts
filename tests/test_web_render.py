@@ -6,12 +6,36 @@ endpoint) to avoid mixing concerns.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
 
-from bts.web import _render_pa_cell
+from bts.web import _format_game_time, _format_updated_time, _render_pa_cell
+
+
+def test_format_game_time_adds_kenya_time_same_day():
+    assert _format_game_time("2026-06-15T14:00:00+00:00") == (
+        "10:00 AM ET / 5:00 PM EAT"
+    )
+
+
+def test_format_game_time_adds_kenya_next_day_during_dst():
+    assert _format_game_time("2026-06-15T23:10:00Z") == (
+        "7:10 PM ET / 2:10 AM EAT (Jun 16)"
+    )
+
+
+def test_format_game_time_adds_kenya_next_day_after_dst():
+    assert _format_game_time("2026-11-16T00:10:00+00:00") == (
+        "7:10 PM ET / 3:10 AM EAT (Nov 16)"
+    )
+
+
+def test_format_updated_time_uses_explicit_et_and_kenya_dates():
+    updated = _format_updated_time(datetime(2026, 6, 15, 23, 10, tzinfo=timezone.utc))
+
+    assert updated == "2026-06-15 19:10 ET / 2026-06-16 02:10 EAT"
 
 
 class TestRenderPaCellPlaceholder:
