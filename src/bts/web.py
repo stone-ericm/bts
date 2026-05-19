@@ -27,6 +27,7 @@ HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PROJECT_ROOT = Path(".")
 PORT = 3003
 ET = ZoneInfo("America/New_York")
+EAT = ZoneInfo("Africa/Nairobi")
 
 # Upcoming-PA placeholder cell styles per lineup_status (Direction A — tinted cell).
 # See docs/superpowers/specs/2026-04-24-upcoming-cell-polish-design.md.
@@ -54,13 +55,41 @@ TEAM_IDS = {
 }
 
 
+def _format_et_eat_time(dt: datetime) -> str:
+    """Format a timestamp in ET and Kenya time for dashboard display."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ET)
+    et_dt = dt.astimezone(ET)
+    eat_dt = dt.astimezone(EAT)
+    et_str = et_dt.strftime("%-I:%M %p ET")
+    eat_str = eat_dt.strftime("%-I:%M %p EAT")
+    if eat_dt.date() != et_dt.date():
+        eat_str = f"{eat_str} ({eat_dt.strftime('%b %-d')})"
+    return f"{et_str} / {eat_str}"
+
+
+def _format_updated_time(now: datetime | None = None) -> str:
+    """Format the dashboard refresh timestamp in ET and Kenya time."""
+    if now is None:
+        now_et = datetime.now(ET)
+    elif now.tzinfo is None:
+        now_et = now.replace(tzinfo=ET)
+    else:
+        now_et = now.astimezone(ET)
+    now_eat = now_et.astimezone(EAT)
+    return (
+        f"{now_et.strftime('%Y-%m-%d %H:%M ET')} / "
+        f"{now_eat.strftime('%Y-%m-%d %H:%M EAT')}"
+    )
+
+
 def _format_game_time(iso_utc: str) -> str:
-    """Convert ISO UTC game time to '7:10 PM ET' format."""
+    """Convert ISO game time to ET plus Kenya time."""
     if not iso_utc:
         return ""
     try:
-        dt = datetime.fromisoformat(iso_utc).astimezone(ET)
-        return dt.strftime("%-I:%M %p ET")
+        dt = datetime.fromisoformat(iso_utc.replace("Z", "+00:00"))
+        return _format_et_eat_time(dt)
     except (ValueError, TypeError):
         return ""
 
@@ -958,12 +987,13 @@ def render_page():
                 )
                 expected_dt = earliest_game_et - timedelta(minutes=fallback_min)
                 deadline_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
-                expected_str = expected_dt.strftime("%-I:%M %p ET")
-                deadline_str = deadline_dt.strftime("%-I:%M %p ET")
+                expected_str = _format_et_eat_time(expected_dt)
+                deadline_str = _format_et_eat_time(deadline_dt)
                 lock_time_html = (
                     f'<span style="display:inline-flex;flex-direction:column;'
                     f'align-items:flex-end;gap:2px;font-size:11px;color:#888;'
-                    f'font-weight:400;margin-left:auto;">'
+                    f'font-weight:400;margin-left:auto;text-align:right;'
+                    f'text-transform:none;letter-spacing:0;line-height:1.35;">'
                     f'<span>Expected lock: {expected_str}</span>'
                     f'<span>Lock in before: {deadline_str}</span>'
                     f'</span>'
@@ -976,7 +1006,7 @@ def render_page():
             d_time = _format_game_time(dd.get("game_time", ""))
             p_both = tp.get('p_game_hit', 0) * dd.get('p_game_hit', 0)
             hero = f"""
-        <div class="hero-status" style="display:flex;align-items:center;">{label} {lock_badge}{lock_time_html}</div>
+        <div class="hero-status" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">{label} {lock_badge}{lock_time_html}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
@@ -1000,7 +1030,7 @@ def render_page():
         </div>"""
         else:
             hero = f"""
-        <div class="hero-status" style="display:flex;align-items:center;">{label} {lock_badge}{lock_time_html}</div>
+        <div class="hero-status" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">{label} {lock_badge}{lock_time_html}</div>
         <div class="hero">
             <div class="hero-left">
                 {t_logo_img}
@@ -1207,7 +1237,7 @@ def render_page():
         </div>
 
         <div class="footer">
-            Updated {datetime.now().strftime('%Y-%m-%d %H:%M ET')} · Tailscale only · Not affiliated with MLB
+            Updated {_format_updated_time()} · Tailscale only · Not affiliated with MLB
         </div>
     </div>
     <script src="https://embed.bsky.app/static/embed.js" async charset="utf-8"></script>
