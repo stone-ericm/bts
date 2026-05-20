@@ -75,7 +75,7 @@ See `ARCHITECTURE.md` for full details. Key points:
 - **Phase-aware bins**: early season (Mar-Aug) vs late (Sep only, `late_phase_days=30`)
 - **Streak saver tracked**: `saver_available` in `streak.json`, consumed on first miss at streak 10-15
 - **Scheduler daemon** (`scheduler.py`): replaces fixed 11am/4pm/7:30pm cron with dynamic game_time-45min lineup checks; confirmation-based posting via `early_lock_gap`; 1am cron kept as safety-net fallback
-- **`private_mode`** config flag (renamed from `shadow_mode` 2026-04-12) — when `true`, picks save but never post to Bluesky. Don't confuse with `shadow_model` (runs the context stack model alongside production for eval).
+- **`scheduler.pick_delivery`** controls pick delivery: `public` posts to the Bluesky feed, `dm` sends the pick by Bluesky DM, and `private` saves locally only. Legacy `private_mode=true` still maps to local-only delivery when `pick_delivery` is unset. Don't confuse this with `shadow_model` (runs the context stack model alongside production for eval).
 - **Fallback deadline** uses `_earliest_pick_game_et(daily)` — earliest of primary + double-down game times, not primary alone. Fixes the case where double-down is in an earlier game than primary.
 - Projected lineup fallback for morning predictions
 - Train on 2019+ data (2017-18 hurts)

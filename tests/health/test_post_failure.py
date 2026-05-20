@@ -9,7 +9,16 @@ from bts.health.post_failure import check, SOURCE
 ET = ZoneInfo("America/New_York")
 
 
-def _write_pick(picks_dir, date_iso, *, posted, uri="at://x/y/z", with_pick=True):
+def _write_pick(
+    picks_dir,
+    date_iso,
+    *,
+    posted,
+    uri="at://x/y/z",
+    with_pick=True,
+    notified=False,
+    notification_id=None,
+):
     data = {"date": date_iso}
     if with_pick:
         data["pick"] = {"batter_name": "X", "p_game_hit": 0.75}
@@ -17,12 +26,28 @@ def _write_pick(picks_dir, date_iso, *, posted, uri="at://x/y/z", with_pick=True
         data["bluesky_posted"] = posted
     if uri is not None:
         data["bluesky_uri"] = uri
+    if notified is not None:
+        data["notification_sent"] = notified
+    if notification_id is not None:
+        data["notification_id"] = notification_id
     (picks_dir / f"{date_iso}.json").write_text(json.dumps(data))
 
 
 class TestPostFailure:
     def test_no_alert_when_posted_with_uri(self, tmp_path):
         _write_pick(tmp_path, "2026-04-27", posted=True, uri="at://abc/def")
+        alerts = check(tmp_path, today=date(2026, 4, 27))
+        assert alerts == []
+
+    def test_no_alert_when_dm_notification_recorded(self, tmp_path):
+        _write_pick(
+            tmp_path,
+            "2026-04-27",
+            posted=False,
+            uri=None,
+            notified=True,
+            notification_id="msg-123",
+        )
         alerts = check(tmp_path, today=date(2026, 4, 27))
         assert alerts == []
 

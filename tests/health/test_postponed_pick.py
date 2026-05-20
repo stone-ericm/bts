@@ -29,6 +29,7 @@ def _write_daily(
     primary_game: int = 1,
     dd_game: int | None = None,
     posted: bool = False,
+    notified: bool = False,
 ) -> None:
     save_pick(
         DailyPick(
@@ -39,6 +40,9 @@ def _write_daily(
             runner_up=None,
             bluesky_posted=posted,
             bluesky_uri="at://example/post" if posted else None,
+            notification_sent=notified,
+            notification_channel="bluesky_dm" if notified else None,
+            notification_id="msg-123" if notified else None,
         ),
         picks_dir,
     )
@@ -100,6 +104,18 @@ class TestPostponedPick:
 
         def _fail(_date):
             raise AssertionError("posted picks should not perform status lookup")
+
+        monkeypatch.setattr("bts.picks.get_game_statuses_detailed", _fail)
+
+        alerts = check(tmp_path, today=date(2026, 5, 5))
+
+        assert alerts == []
+
+    def test_no_alert_when_pick_already_dm_notified(self, tmp_path, monkeypatch):
+        _write_daily(tmp_path, primary_game=824362, notified=True)
+
+        def _fail(_date):
+            raise AssertionError("delivered picks should not perform status lookup")
 
         monkeypatch.setattr("bts.picks.get_game_statuses_detailed", _fail)
 

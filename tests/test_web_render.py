@@ -239,6 +239,40 @@ def test_render_page_shows_void_slot(monkeypatch):
     assert '<span title="Void">VOID</span>' in html
     assert "HIT" in html
     assert "POSTED" in html
+
+
+def test_render_page_shows_dm_sent_badge(monkeypatch):
+    import bts.web
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    monkeypatch.setattr(bts.web, "load_streak", lambda: 4)
+    monkeypatch.setattr(bts.web, "fetch_bluesky_posts", lambda: [])
+    monkeypatch.setattr(bts.web, "load_scheduler_state", lambda date: {"pick_locked": True})
+    monkeypatch.setattr(bts.web, "_build_live_game_data", lambda pick_data: ([], None))
+    monkeypatch.setattr(bts.web, "load_all_picks", lambda: [{
+        "date": today,
+        "pick": {
+            "batter_name": "DM Batter",
+            "batter_id": 1,
+            "team": "BOS",
+            "pitcher_name": "Pitcher",
+            "p_game_hit": 0.7,
+            "game_pk": 123,
+            "game_time": f"{today}T23:00:00+00:00",
+        },
+        "double_down": None,
+        "result": None,
+        "bluesky_posted": False,
+        "notification_sent": True,
+        "notification_id": "msg-123",
+    }])
+
+    html = bts.web.render_page()
+
+    assert "DM Batter" in html
+    assert "DM SENT" in html
+    assert "NOT SENT" not in html
+    assert "POSTED" not in html
     assert "NOT POSTED" not in html
 
 

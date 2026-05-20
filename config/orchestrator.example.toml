@@ -5,6 +5,7 @@ picks_dir = "data/picks"
 dm_recipient = "did:plc:your-did-here"
 
 [scheduler]
+pick_delivery = "public"      # public = Bluesky feed post, dm = private Bluesky DM, private = local only
 early_lock_gap = 0.03
 lineup_check_offset_min = 45
 cluster_min = 10
