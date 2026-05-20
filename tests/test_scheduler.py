@@ -822,6 +822,83 @@ class TestRunDay:
         assert "FALLBACK" in captured.err
         assert "LOCKED" in captured.err
 
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.dm.send_dm")
+    def test_dm_delivery_locks_without_public_post(
+        self, mock_dm, mock_capture, mock_post, mock_poll, mock_check, mock_sleep,
+        mock_now, mock_schedule, tmp_path, capsys,
+    ):
+        from bts.scheduler import run_day
+        from bts.picks import Pick, DailyPick, save_pick
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+
+        from bts.strategy import PickResult
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_dm.return_value = "msg-456"
+        mock_poll.return_value = "final"
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "bluesky": {"dm_recipient": "stonehengee.bsky.social"},
+                "tiers": [],
+                "health_checks": {"enabled": False},
+                "scheduler": {
+                    "pick_delivery": "dm",
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_dm.assert_called_once()
+        mock_post.assert_not_called()
+        mock_capture.assert_called_once()
+        data = json.loads((tmp_path / "2026-04-06.json").read_text())
+        assert data["bluesky_posted"] is False
+        assert data["bluesky_uri"] is None
+        assert data["notification_sent"] is True
+        assert data["notification_channel"] == "bluesky_dm"
+        assert data["notification_id"] == "msg-456"
+        captured = capsys.readouterr()
+        assert "Public Bluesky posting disabled" in captured.err
+        assert "Pick DM sent" in captured.err
+
 
 class TestEarliestPickGameEt:
     """The fallback deadline must use the earlier of primary + double-down

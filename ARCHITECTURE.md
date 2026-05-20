@@ -147,10 +147,10 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 - `orchestrator.py` — Local prediction (`predict_local`) + shadow prediction (`predict_local_shadow`). TOML config, calls strategy + posting. Shadow uses `feature_cols_override` with separate model cache (`blend_{date}_shadow.pkl`). Both production and shadow paths attach pick provenance v1 (see below) to the DailyPick before save.
 - `scheduler.py` — Long-running daemon. Dynamic lineup checks at `game_time - 45min`. Short-circuits when pick is locked. Shadow model runs after production lock (`_run_shadow_prediction`). Helpers: `_compute_result_poll_start` (uses `_earliest_pick_game_et` so double-down's earlier game isn't skipped), `_poll_interval_sleep` (result_polling sleep), `_watchdog_ping_sleep` (SLEEPING-state waits — keeps systemd watchdog fed without overwriting heartbeat file), `_idle_until_next_wakeup` (end-of-day overnight sleep). All cooperate with `bts/heartbeat.py:heartbeat_watchdog` (RUNNING-state context manager). `bts schedule` CLI command. `_run_shadow_prediction` reads `data_dir`/`models_dir` from config and threads them into both the prediction call and provenance attachment so the recorded blend hash matches the artifact actually loaded.
 - `picks.py` — DailyPick + Pick dataclasses, save_pick / save_shadow_pick / load_pick / load_shadow_pick. **Pick provenance v1 (PR #18, deployed 2026-05-04 at `a3bc4d3`)**: every saved pick JSON now carries three optional fields populated at save time: `model_git_sha` (HEAD of the producing checkout), `model_pickle_sha256` (sha of the blend artifact `blend_<date>.pkl` actually used), `policy_npz_sha256` (sha of `mdp_policy.npz` if loaded). All hashes are best-effort/null when the artifact is unavailable; pick saves never fail on provenance errors. Old picks load with `None` via `data.get(...)` backcompat. Future calibration analyses can filter by `model_git_sha == current_deploy_sha` instead of doing deploy-branch archaeology.
-- `dm.py` — Bluesky DM notifications on total cascade failure. Uses `api.bsky.chat` directly (not PDS proxy).
+- `dm.py` — Bluesky DM notifications for pick delivery and health/cascade failures. Uses `api.bsky.chat` directly (not PDS proxy).
 - `predict-json` — worker command: runs pipeline, outputs JSON to stdout, logs to stderr.
 
-**Config:** `~/.bts-orchestrator.toml` on Hetzner. `private_mode = false` (Bluesky posting live; flip to `true` for a dry-run that saves picks but never posts), `shadow_model = true` (context stack runs alongside production for the 30-day eval). Tiers: local only.
+**Config:** `~/.bts-orchestrator.toml` on Hetzner. `pick_delivery = "public"` posts picks to the Bluesky feed, `pick_delivery = "dm"` sends picks privately to `bluesky.dm_recipient`, and `pick_delivery = "private"` saves locally only. Legacy `private_mode = true` still maps to local-only delivery when `pick_delivery` is unset. `shadow_model = true` runs the context stack alongside production for the 30-day eval. Tiers: local only.
 
 **LightGBM is optional:** `uv sync` (Pi5, pick logic only) vs `uv sync --extra model` (workers, full prediction).
 
@@ -162,7 +162,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 |---|---|---|
 | `blend_training` | 1 | tomorrow's `blend_<N+1>.pkl` missing at end-of-day → fallback to stale model |
 | `pooled_training` | 1 | `<TOMORROW>_status.json` shows under-filled pool (added 2026-04-29; no-op until daily pooled training runs) |
-| `post_failure` | 1 | `bluesky_posted=true` and `bluesky_uri` present |
+| `post_failure` | 1 | locked pick lacks either public post (`bluesky_posted` + URI) or private notification (`notification_sent` + ID) |
 | `restart_spike` | 1 | `NRestarts` delta vs checkpoint > threshold |
 | `calibration` | 2 | top-1 P drift on 7d vs 14d rolling mean |
 | `predicted_vs_realized` | 2 | acute drift in mean(predicted) - mean(realized) over 14d window |

@@ -222,6 +222,126 @@ def load_state(date: str, picks_dir: Path) -> SchedulerState | None:
     return SchedulerState(**data)
 
 
+def _pick_delivery_mode(config: dict) -> str:
+    """Resolve how the scheduler should deliver a locked pick.
+
+    ``pick_delivery`` is the new explicit control. ``posting_mode`` is accepted
+    as a plain-English alias, and legacy ``private_mode`` still disables public
+    feed posting when no explicit mode is configured.
+    """
+    sched_config = config.get("scheduler", {})
+    raw = sched_config.get("pick_delivery", sched_config.get("posting_mode"))
+    if raw is None:
+        return "private" if sched_config.get("private_mode", False) else "public"
+
+    mode = str(raw).strip().lower().replace("-", "_")
+    aliases = {
+        "bluesky": "public",
+        "feed": "public",
+        "post": "public",
+        "bluesky_dm": "dm",
+        "direct_message": "dm",
+        "none": "private",
+        "off": "private",
+        "local": "private",
+    }
+    mode = aliases.get(mode, mode)
+    if mode not in {"public", "dm", "private"}:
+        raise ValueError(
+            "scheduler.pick_delivery must be one of: public, dm, private"
+        )
+    return mode
+
+
+def _format_pick_delivery_text(daily, streak: int) -> str:
+    from bts.posting import format_post
+
+    return format_post(
+        daily.pick.batter_name, daily.pick.team,
+        daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+        daily.double_down.batter_name if daily.double_down else None,
+        daily.double_down.p_game_hit if daily.double_down else None,
+        daily.double_down.team if daily.double_down else None,
+        daily.double_down.pitcher_name if daily.double_down else None,
+    )
+
+
+def _deliver_and_lock_pick(
+    daily,
+    config: dict,
+    picks_dir: Path,
+    state: SchedulerState,
+    date: str,
+    label: str,
+) -> bool:
+    """Deliver a pick through the configured channel and persist the lock."""
+    from bts.picks import load_streak, pick_was_delivered, save_pick
+
+    mode = _pick_delivery_mode(config)
+    if pick_was_delivered(daily):
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(f"  LOCKED ({label}) — pick already delivered.", file=sys.stderr)
+        return True
+
+    if mode == "private":
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(
+            f"  [PRIVATE] LOCKED ({label}) — {daily.pick.batter_name} "
+            f"({daily.pick.team}) {daily.pick.p_game_hit:.1%} — NOT delivered",
+            file=sys.stderr,
+        )
+        return True
+
+    streak = load_streak(picks_dir)
+    text = _format_pick_delivery_text(daily, streak)
+
+    if mode == "dm":
+        recipient = config.get("bluesky", {}).get("dm_recipient")
+        if not recipient:
+            print("  Pick DM failed: bluesky.dm_recipient is not configured", file=sys.stderr)
+            return False
+        try:
+            from bts.dm import send_dm
+            msg_id = send_dm(recipient, text)
+            daily.notification_sent = True
+            daily.notification_channel = "bluesky_dm"
+            daily.notification_id = msg_id
+            save_pick(daily, picks_dir)
+            state.pick_locked = True
+            state.pick_locked_at = _now_et().isoformat()
+            save_state(state, picks_dir)
+            _trigger_live_forward_capture_on_lock(config, date)
+            print(f"  LOCKED ({label}) — Pick DM sent: {msg_id}", file=sys.stderr)
+            return True
+        except Exception as e:
+            print(f"  Pick DM failed: {e}", file=sys.stderr)
+            return False
+
+    try:
+        from bts.posting import post_to_bluesky
+        uri = post_to_bluesky(text)
+        daily.bluesky_posted = True
+        daily.bluesky_uri = uri
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(f"  LOCKED ({label}) — Posted to Bluesky: {uri}", file=sys.stderr)
+        return True
+    except Exception as e:
+        print(f"  Bluesky post failed: {e}", file=sys.stderr)
+        return False
+
+
 def count_new_confirmations(
     game_pks: list[int],
     previously_confirmed: set[tuple[int, str]],
@@ -556,13 +676,13 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
-    """Re-run predictions right before the fallback post so any late-arriving
+    """Re-run predictions right before fallback delivery so late-arriving
     lineups can update the pick. If the refreshed pick differs from the cached
-    one, log the swap and persist the fresh daily to disk before posting.
+    one, log the swap and persist the fresh daily before delivery.
 
-    Returns the DailyPick to post. Falls back to ``cached_daily`` on any error
-    (cascade failure, empty predictions, locked result) so the fallback path
-    stays robust — we always have *something* to post if the loop reaches here.
+    Returns the DailyPick to deliver. Falls back to ``cached_daily`` on any
+    error (cascade failure, empty predictions, locked result) so the fallback
+    path stays robust — we always have *something* to deliver if the loop reaches here.
     """
     from bts.picks import save_pick
 
@@ -869,19 +989,20 @@ def run_day(
     1. Fetch MLB schedule
     2. Compute lineup check times (game_time - offset)
     3. Sleep between checks, run predictions when lineups confirm
-    4. Post to Bluesky when lock conditions met
-    5. Fallback posting if close to first pitch
+    4. Deliver and lock the pick when lock conditions are met
+    5. Fallback delivery if close to first pitch
     6. Doubleheader game 2 re-checks
     7. Next-day lookahead for wake-up time
     8. Result polling after games finish
     """
-    from bts.picks import save_pick, load_streak, load_pick
-    from bts.posting import format_post, format_skip_post, post_to_bluesky
+    from bts.picks import load_pick, pick_was_delivered
 
     sched_config = config.get("scheduler", {})
-    private_mode = sched_config.get("private_mode", False)
-    if private_mode:
+    delivery_mode = _pick_delivery_mode(config)
+    if delivery_mode == "private":
         print("  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
+    elif delivery_mode == "dm":
+        print("  [DM MODE] Public Bluesky posting disabled — picks sent by DM.", file=sys.stderr)
     shadow_model_enabled = sched_config.get("shadow_model", False)
     if shadow_model_enabled:
         print("  [SHADOW MODEL] Context stack shadow model enabled.", file=sys.stderr)
@@ -996,41 +1117,12 @@ def run_day(
             state.pick_locked = True
             state.pick_locked_at = _now_et().isoformat()
             save_state(state, picks_dir)
-            print(f"  Pick already locked (game started or previously posted).",
+            print(f"  Pick already locked (game started or previously delivered).",
                   file=sys.stderr)
 
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
-            streak = load_streak(picks_dir)
-            if private_mode:
-                save_pick(daily, picks_dir)
-                state.pick_locked = True
-                state.pick_locked_at = _now_et().isoformat()
-                save_state(state, picks_dir)
-                _trigger_live_forward_capture_on_lock(config, date)
-                print(f"  [PRIVATE] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
-                      f"{daily.pick.p_game_hit:.1%} — NOT posted (private mode)", file=sys.stderr)
-            else:
-                text = format_post(
-                    daily.pick.batter_name, daily.pick.team,
-                    daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                    daily.double_down.batter_name if daily.double_down else None,
-                    daily.double_down.p_game_hit if daily.double_down else None,
-                    daily.double_down.team if daily.double_down else None,
-                    daily.double_down.pitcher_name if daily.double_down else None,
-                )
-                try:
-                    uri = post_to_bluesky(text)
-                    daily.bluesky_posted = True
-                    daily.bluesky_uri = uri
-                    save_pick(daily, picks_dir)
-                    state.pick_locked = True
-                    state.pick_locked_at = _now_et().isoformat()
-                    save_state(state, picks_dir)
-                    _trigger_live_forward_capture_on_lock(config, date)
-                    print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
-                except Exception as e:
-                    print(f"  Bluesky post failed: {e}", file=sys.stderr)
+            _deliver_and_lock_pick(daily, config, picks_dir, state, date, "lineup")
 
         if state.pick_locked:
             # Run shadow model if enabled (after production pick is resolved)
@@ -1041,7 +1133,7 @@ def run_day(
             break
 
         # If the earliest game in the slate starts before the next scheduled
-        # check, wake up to force-post. Use earliest of primary + double-down
+        # check, wake up for forced delivery. Use earliest of primary + double-down
         # because BTS app rejects submissions once the FIRST game has started.
         if not state.pick_locked and result.get("pick_result") and result["pick_result"].daily:
             earliest_game_et = _earliest_pick_game_et(result["pick_result"].daily)
@@ -1076,42 +1168,14 @@ def run_day(
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
                     notify_watchdog()
 
-                # Force-post current pick (waited to deadline, or past it).
+                # Force-deliver current pick (waited to deadline, or past it).
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
-                if daily and not daily.bluesky_posted:
+                if daily and not pick_was_delivered(daily):
                     daily = _refresh_pick_at_fallback(config, date, daily)
-                    if private_mode:
-                        state.pick_locked = True
-                        state.pick_locked_at = _now_et().isoformat()
-                        save_state(state, picks_dir)
-                        _trigger_live_forward_capture_on_lock(config, date)
-                        print(f"  [PRIVATE] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
-                    else:
-                        print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
-                        streak = load_streak(picks_dir)
-                        text = format_post(
-                            daily.pick.batter_name, daily.pick.team,
-                            daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                            daily.double_down.batter_name if daily.double_down else None,
-                            daily.double_down.p_game_hit if daily.double_down else None,
-                            daily.double_down.team if daily.double_down else None,
-                            daily.double_down.pitcher_name if daily.double_down else None,
-                        )
-                        try:
-                            uri = post_to_bluesky(text)
-                            daily.bluesky_posted = True
-                            daily.bluesky_uri = uri
-                            save_pick(daily, picks_dir)
-                            state.pick_locked = True
-                            state.pick_locked_at = _now_et().isoformat()
-                            save_state(state, picks_dir)
-                            _trigger_live_forward_capture_on_lock(config, date)
-                            print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
-                                  file=sys.stderr)
-                        except Exception as e:
-                            print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+                    print(f"  FALLBACK — delivering before game starts.", file=sys.stderr)
+                    _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback")
 
                 if state.pick_locked:
                     if shadow_model_enabled and daily:
@@ -1123,7 +1187,7 @@ def run_day(
     # primary + double-down so we never miss the BTS submission window).
     if not state.pick_locked:
         daily = load_pick(date, picks_dir)
-        if daily and not daily.bluesky_posted:
+        if daily and not pick_was_delivered(daily):
             earliest_game_et = _earliest_pick_game_et(daily)
             now = _now_et()
             mins_to_game = (earliest_game_et - now).total_seconds() / 60
@@ -1137,35 +1201,9 @@ def run_day(
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
                 daily = _refresh_pick_at_fallback(config, date, daily)
-                if private_mode:
-                    state.pick_locked = True
-                    state.pick_locked_at = _now_et().isoformat()
-                    save_state(state, picks_dir)
-                    _trigger_live_forward_capture_on_lock(config, date)
-                    print(f"  [PRIVATE] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
-                else:
-                    print(f"  FALLBACK — {fallback_min}min to first pitch, posting on projected data.",
-                          file=sys.stderr)
-                    streak = load_streak(picks_dir)
-                    text = format_post(
-                        daily.pick.batter_name, daily.pick.team,
-                        daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                        daily.double_down.batter_name if daily.double_down else None,
-                        daily.double_down.p_game_hit if daily.double_down else None,
-                        daily.double_down.team if daily.double_down else None,
-                        daily.double_down.pitcher_name if daily.double_down else None,
-                    )
-                    try:
-                        uri = post_to_bluesky(text)
-                        daily.bluesky_posted = True
-                        daily.bluesky_uri = uri
-                        save_pick(daily, picks_dir)
-                        state.pick_locked = True
-                        state.pick_locked_at = _now_et().isoformat()
-                        save_state(state, picks_dir)
-                        _trigger_live_forward_capture_on_lock(config, date)
-                    except Exception as e:
-                        print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+                print(f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
+                      file=sys.stderr)
+                _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")
 
         if state.pick_locked and shadow_model_enabled and daily:
             _run_shadow_prediction(config, date, daily.pick.batter_name)

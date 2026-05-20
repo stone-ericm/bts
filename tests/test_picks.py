@@ -2,6 +2,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_streak, update_streak, load_saver_available
+from bts.picks import pick_was_delivered
 from bts.picks import pick_from_row
 from bts.picks import get_game_statuses, get_game_statuses_detailed, check_hit
 from bts.picks import active_streak_results, effective_daily_result, streak_increment_for_resolved_hit
@@ -145,6 +146,22 @@ class TestPickFileIO:
         assert loaded.model_git_sha == "abc123def456"
         assert loaded.model_pickle_sha256 == "deadbeef" * 8
         assert loaded.policy_npz_sha256 == "feedface" * 8
+
+    def test_notification_delivery_round_trip(self, tmp_path):
+        daily = _sample_daily(
+            notification_sent=True,
+            notification_channel="bluesky_dm",
+            notification_id="msg-123",
+        )
+        save_pick(daily, tmp_path)
+
+        loaded = load_pick("2026-04-01", tmp_path)
+        assert loaded is not None
+        assert loaded.bluesky_posted is False
+        assert loaded.notification_sent is True
+        assert loaded.notification_channel == "bluesky_dm"
+        assert loaded.notification_id == "msg-123"
+        assert pick_was_delivered(loaded) is True
 
     def test_save_default_picks_have_null_provenance(self, tmp_path):
         """Picks saved without explicit provenance attachment serialize as null,

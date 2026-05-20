@@ -1,6 +1,7 @@
 """Bluesky DM notifications for BTS orchestrator failures."""
 
 import json
+from urllib.parse import quote
 from urllib.error import HTTPError
 from urllib.request import Request
 
@@ -53,12 +54,15 @@ def send_dm(recipient_handle: str, text: str) -> str:
 
     jwt = session["accessJwt"]
 
-    # Step 2: Resolve recipient handle to DID
-    req = Request(
-        f"{BSKY_HOST}/com.atproto.identity.resolveHandle?handle={recipient_handle}",
-        headers={"Authorization": f"Bearer {jwt}"},
-    )
-    target_did = json.loads(retry_urlopen(req, timeout=15).read())["did"]
+    # Step 2: Resolve recipient handle to DID. Configs may store a DID already.
+    if recipient_handle.startswith("did:"):
+        target_did = recipient_handle
+    else:
+        req = Request(
+            f"{BSKY_HOST}/com.atproto.identity.resolveHandle?handle={quote(recipient_handle)}",
+            headers={"Authorization": f"Bearer {jwt}"},
+        )
+        target_did = json.loads(retry_urlopen(req, timeout=15).read())["did"]
 
     # Step 3: Get or create conversation (via chat service directly)
     req = Request(

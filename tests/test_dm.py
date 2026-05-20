@@ -59,6 +59,22 @@ class TestSendDm:
 
     @patch("bts.dm.retry_urlopen")
     @patch("bts.dm.get_dm_password", return_value="test-password")
+    def test_sends_dm_to_did_without_handle_resolution(self, mock_pw, mock_urlopen):
+        mock_urlopen.side_effect = _mock_urlopen_responses([
+            # createSession
+            {"accessJwt": "jwt-token", "did": "did:plc:bot"},
+            # getConvoForMembers
+            {"convo": {"id": "convo-123"}},
+            # sendMessage
+            {"id": "msg-456", "sentAt": "2026-04-01T12:00:00Z"},
+        ])
+
+        result = send_dm("did:plc:recipient", "Test message")
+        assert result == "msg-456"
+        assert mock_urlopen.call_count == 3
+
+    @patch("bts.dm.retry_urlopen")
+    @patch("bts.dm.get_dm_password", return_value="test-password")
     def test_auth_failure_raises(self, mock_pw, mock_urlopen):
         from urllib.error import HTTPError
         mock_urlopen.side_effect = HTTPError(

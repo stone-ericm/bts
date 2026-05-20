@@ -252,6 +252,33 @@ class TestSelectPick:
 
         assert result.locked
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    def test_locked_when_pick_already_dm_notified(self, mock_statuses, tmp_path):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Wilson", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+            notification_sent=True,
+            notification_channel="bluesky_dm",
+            notification_id="msg-123",
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([{"batter_name": "Wilson", "game_pk": 778899}])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result.locked
+
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_for_shadow_ignores_locked_production(self, mock_statuses, tmp_path):
         """When called with for_shadow=True, select_pick must NOT short-circuit
