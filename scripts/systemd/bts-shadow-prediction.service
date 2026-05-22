@@ -1,0 +1,14 @@
+[Unit]
+Description=BTS shadow prediction (one-shot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/bts/projects/bts
+EnvironmentFile=-/home/bts/projects/bts/.env
+Environment="PYTHONUNBUFFERED=1"
+Environment="UV_CACHE_DIR=/tmp/uv-cache"
+ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/shadow_predict_once.py --config /home/bts/.bts-orchestrator.toml --unit bts-shadow-prediction.service
+Nice=19
+StandardOutput=journal
+StandardError=journal

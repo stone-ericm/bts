@@ -675,7 +675,15 @@ def run_single_check(
             "pick_name": pick.batter_name, "pick_p": pick.p_game_hit}
 
 
-def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -> None:
+def _run_shadow_prediction(
+    config: dict,
+    date: str,
+    production_pick_name: str,
+    *,
+    allow_prior_dispatched: bool = False,
+    attempt_reason: str = "scheduler_inline_shadow_attempt",
+    unit: str | None = None,
+) -> None:
     """Run shadow model prediction and save result. Never raises.
 
     Threads ``data_dir`` and ``models_dir`` from the orchestrator config
@@ -709,7 +717,11 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             return
 
         prior_status = _analytics_job_status(config, date, "shadow")
-        if prior_status.get("status") in {"dispatched", "completed", "failed"}:
+        prior = prior_status.get("status")
+        if (
+            prior in {"completed", "failed"}
+            or (prior == "dispatched" and not allow_prior_dispatched)
+        ):
             print(
                 "  [SHADOW MODEL] Prior shadow attempt recorded "
                 f"({prior_status.get('status')}); skipping retry.",
@@ -722,7 +734,8 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             date,
             "shadow",
             "dispatched",
-            reason="scheduler_inline_shadow_attempt",
+            reason=attempt_reason,
+            unit=unit,
         )
 
         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
@@ -786,6 +799,120 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             reason=f"exception: {e}",
         )
         print(f"  [SHADOW MODEL] Failed: {e}", file=sys.stderr)
+
+
+def _trigger_shadow_prediction_on_lock(
+    config: dict,
+    date: str,
+    production_pick_name: str,
+) -> None:
+    """Run or queue shadow prediction after a pick is locked.
+
+    By default this preserves the historical inline behavior. Production can
+    opt into an out-of-process unit with ``scheduler.shadow_model_unit`` once
+    the matching systemd unit is installed.
+    """
+    from bts.picks import load_shadow_pick
+
+    sched_config = config.get("scheduler", {})
+    command = sched_config.get("shadow_model_command")
+    unit = sched_config.get("shadow_model_unit")
+    if command == "":
+        command = None
+    if unit == "":
+        unit = None
+
+    if command is None and unit is None:
+        _run_shadow_prediction(config, date, production_pick_name)
+        return
+
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    try:
+        existing = load_shadow_pick(date, picks_dir)
+    except Exception:
+        existing = None
+    if existing is not None:
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "completed",
+            reason="existing_shadow_artifact",
+            unit=unit,
+        )
+        print("  [SHADOW MODEL] Existing shadow pick found; skipping trigger.",
+              file=sys.stderr)
+        return
+
+    prior_status = _analytics_job_status(config, date, "shadow")
+    if prior_status.get("status") in {"dispatched", "completed", "failed"}:
+        print(
+            "  [SHADOW MODEL] Prior shadow attempt recorded "
+            f"({prior_status.get('status')}); skipping trigger.",
+            file=sys.stderr,
+        )
+        return
+
+    if command is None:
+        args = [
+            "systemctl",
+            "--user",
+            "start",
+            "--no-block",
+            unit or "bts-shadow-prediction.service",
+        ]
+    elif isinstance(command, str):
+        args = shlex.split(command.format(date=date))
+    else:
+        args = [str(part).format(date=date) for part in command]
+
+    timeout = float(sched_config.get("shadow_model_trigger_timeout_sec", 10))
+    try:
+        result = subprocess.run(
+            args,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=timeout,
+        )
+    except Exception as exc:
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "failed",
+            reason=f"trigger_exception: {exc}",
+            unit=unit,
+        )
+        print(f"  [SHADOW MODEL] Trigger failed (suppressed): {exc}",
+              file=sys.stderr)
+        return
+
+    if result.returncode == 0:
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "dispatched",
+            reason="trigger_queued",
+            unit=unit,
+        )
+        print(f"  [SHADOW MODEL] Trigger queued for {date}.", file=sys.stderr)
+        return
+
+    detail = (result.stderr or result.stdout or "").strip()
+    _update_analytics_job_status(
+        config,
+        date,
+        "shadow",
+        "failed",
+        reason=f"trigger_returned_{result.returncode}: {detail}",
+        unit=unit,
+    )
+    if detail:
+        detail = f": {detail}"
+    print(f"  [SHADOW MODEL] Trigger returned {result.returncode}{detail}",
+          file=sys.stderr)
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
@@ -1276,7 +1403,7 @@ def run_day(
             # Run shadow model if enabled (after production pick is resolved)
             if shadow_model_enabled and result.get("pick_result") and result["pick_result"].daily:
                 prod_name = result["pick_result"].daily.pick.batter_name
-                _run_shadow_prediction(config, date, prod_name)
+                _trigger_shadow_prediction_on_lock(config, date, prod_name)
             print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
             break
 
@@ -1327,7 +1454,11 @@ def run_day(
 
                 if state.pick_locked:
                     if shadow_model_enabled and daily:
-                        _run_shadow_prediction(config, date, daily.pick.batter_name)
+                        _trigger_shadow_prediction_on_lock(
+                            config,
+                            date,
+                            daily.pick.batter_name,
+                        )
                     print(f"  Pick locked. Stopping lineup checks.", file=sys.stderr)
                     break
 
@@ -1354,7 +1485,7 @@ def run_day(
                 _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")
 
         if state.pick_locked and shadow_model_enabled and daily:
-            _run_shadow_prediction(config, date, daily.pick.batter_name)
+            _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:
@@ -1431,6 +1562,12 @@ def run_day(
         models_dir = Path(
             config.get("orchestrator", {}).get("models_dir", "data/models")
         )
+        shadow_model_command = sched_config.get("shadow_model_command")
+        shadow_model_unit = sched_config.get("shadow_model_unit")
+        if shadow_model_command == "":
+            shadow_model_command = None
+        if shadow_model_unit == "":
+            shadow_model_unit = None
         pooled_dir = _optional_health_path(health_config.get("pooled_dir"))
         leaderboard_dir = _optional_health_path(health_config.get("leaderboard_dir"))
         try:
@@ -1457,6 +1594,7 @@ def run_day(
                     "live_forward_capture_unit",
                     "bts-live-forward-capture.service",
                 ) if sched_config.get("live_forward_capture_command") is None else None,
+                shadow_unit=shadow_model_unit if shadow_model_command is None else None,
             )
         except Exception as e:
             print(f"  health_checks: unexpected error (suppressed): {e}", file=sys.stderr)

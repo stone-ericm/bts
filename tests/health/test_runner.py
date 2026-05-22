@@ -165,3 +165,25 @@ class TestRunAllChecks:
             scheduler_pid=None,
         )
         assert all(a.source != "memory_growth" for a in alerts)
+
+    def test_passes_shadow_unit_to_analytics_artifact_check(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        with patch(
+            "bts.health.runner.analytics_artifacts_missing.check",
+            return_value=[],
+        ) as mock_check:
+            run_all_checks(
+                picks_dir=picks_dir,
+                models_dir=models_dir,
+                dm_recipient=None,
+                today=date(2026, 4, 27),
+                shadow_model_enabled=True,
+                shadow_unit="bts-shadow-prediction.service",
+            )
+
+        assert mock_check.call_args.kwargs["shadow_expected"] is True
+        assert mock_check.call_args.kwargs["shadow_unit"] == (
+            "bts-shadow-prediction.service"
+        )
