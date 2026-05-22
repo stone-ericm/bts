@@ -131,6 +131,9 @@ class DailyPick:
     runner_up: dict | None  # {"batter_name": str, "p_game_hit": float}
     bluesky_posted: bool = False
     bluesky_uri: str | None = None
+    notification_sent: bool = False
+    notification_channel: str | None = None
+    notification_id: str | None = None
     result: str | None = None  # "hit", "miss", "void", "suspended", "unresolved", or None (pending)
     slot_results: dict[str, str] | None = None  # {"pick": "hit|miss|void", "double_down": ...}
     # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
@@ -214,6 +217,17 @@ def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     return path
 
 
+def pick_was_delivered(daily: DailyPick) -> bool:
+    """Return True when today's pick has been durably delivered to a human.
+
+    Historically ``bluesky_posted`` doubled as both "public feed post exists"
+    and "this pick is locked for the day." Private delivery needs a separate
+    persisted signal so a scheduler restart after a DM does not regenerate or
+    resend the pick before first pitch.
+    """
+    return bool(daily.bluesky_posted or (daily.notification_sent and daily.notification_id))
+
+
 def append_lineup_evolution(daily: DailyPick, picks_dir: Path) -> Path:
     """Append one observation row to data/picks/lineup_evolution_{date}.jsonl.
 
@@ -279,6 +293,9 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         double_down=dd, runner_up=data.get("runner_up"),
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
+        notification_sent=data.get("notification_sent", False),
+        notification_channel=data.get("notification_channel"),
+        notification_id=data.get("notification_id"),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         model_git_sha=data.get("model_git_sha"),
@@ -305,6 +322,9 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         runner_up=data["runner_up"],
         bluesky_posted=data.get("bluesky_posted", False),
         bluesky_uri=data.get("bluesky_uri"),
+        notification_sent=data.get("notification_sent", False),
+        notification_channel=data.get("notification_channel"),
+        notification_id=data.get("notification_id"),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         # Provenance v1 — defaults to None for picks saved before these fields existed.
@@ -515,13 +535,14 @@ def _committed_pick_game_pks(daily: DailyPick) -> list[int]:
 def classify_pick_lock_state(daily: DailyPick, date: str) -> PickLockState:
     """Classify an existing pick as locked, stale, or refreshable.
 
-    Posted public picks are always locked. Unposted picks become stale when
+    Delivered picks are always locked. Undelivered picks become stale when
     any committed pick game is missing from today's schedule or is explicitly
     postponed/cancelled. Status lookup failures fail closed to avoid duplicate
-    or incorrect public picks.
+    or incorrect public/private pick delivery.
     """
-    if daily.bluesky_posted:
-        return PickLockState(locked=True, reason="bluesky_posted")
+    if pick_was_delivered(daily):
+        reason = "bluesky_posted" if daily.bluesky_posted else "notification_sent"
+        return PickLockState(locked=True, reason=reason)
 
     game_pks = _committed_pick_game_pks(daily)
     try:

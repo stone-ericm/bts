@@ -93,6 +93,25 @@ class TestComputeRunTimes:
         assert runs[1]["game_pks"] == [200]
 
 
+class TestOptionalHealthPath:
+    def test_disables_when_not_configured(self):
+        from bts.scheduler import _optional_health_path
+
+        assert _optional_health_path(None) is None
+
+    def test_can_disable_with_empty_string_or_false(self):
+        from bts.scheduler import _optional_health_path
+
+        assert _optional_health_path("") is None
+        assert _optional_health_path(False) is None
+
+    def test_uses_configured_path(self, tmp_path):
+        from bts.scheduler import _optional_health_path
+
+        configured = tmp_path / "configured"
+        assert _optional_health_path(str(configured)) == configured
+
+
 class TestDetectDoubleheaderGame2:
     def test_finds_doubleheader(self):
         from bts.scheduler import detect_doubleheader_game2s
@@ -259,10 +278,105 @@ class TestSchedulerState:
         assert len(loaded.games) == 1
         assert loaded.pick_locked is False
 
+    def test_save_and_load_roundtrip_preserves_analytics_jobs(self, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, load_state
+
+        state = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(state, tmp_path)
+
+        loaded = load_state("2026-04-03", tmp_path)
+        assert loaded is not None
+        assert loaded.analytics_jobs == state.analytics_jobs
+
+    def test_save_state_merges_existing_analytics_jobs(self, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, load_state
+
+        original = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(original, tmp_path)
+
+        stale_in_memory = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:05:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status="final",
+            next_wakeup=None,
+            analytics_jobs=None,
+        )
+        save_state(stale_in_memory, tmp_path)
+
+        loaded = load_state("2026-04-03", tmp_path)
+        assert loaded is not None
+        assert loaded.analytics_jobs == original.analytics_jobs
+        assert loaded.result_status == "final"
+
     def test_load_returns_none_when_missing(self, tmp_path):
         from bts.scheduler import load_state
 
         assert load_state("2026-04-03", tmp_path) is None
+
+    @patch("bts.scheduler.predict_local_shadow")
+    def test_shadow_skips_prior_dispatched_attempt(self, mock_predict, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, _run_shadow_prediction
+
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+        state = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(state, picks_dir)
+        config = {
+            "orchestrator": {
+                "picks_dir": str(picks_dir),
+                "data_dir": str(tmp_path / "data"),
+                "models_dir": str(tmp_path / "models"),
+                "heartbeat_path": str(tmp_path / ".heartbeat"),
+            },
+        }
+
+        _run_shadow_prediction(config, "2026-04-03", "Prod Pick")
+
+        mock_predict.assert_not_called()
 
 
 class TestSchedulerRun:
@@ -821,6 +935,83 @@ class TestRunDay:
         captured = capsys.readouterr()
         assert "FALLBACK" in captured.err
         assert "LOCKED" in captured.err
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.dm.send_dm")
+    def test_dm_delivery_locks_without_public_post(
+        self, mock_dm, mock_capture, mock_post, mock_poll, mock_check, mock_sleep,
+        mock_now, mock_schedule, tmp_path, capsys,
+    ):
+        from bts.scheduler import run_day
+        from bts.picks import Pick, DailyPick, save_pick
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+
+        from bts.strategy import PickResult
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_dm.return_value = "msg-456"
+        mock_poll.return_value = "final"
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "bluesky": {"dm_recipient": "stonehengee.bsky.social"},
+                "tiers": [],
+                "health_checks": {"enabled": False},
+                "scheduler": {
+                    "pick_delivery": "dm",
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_dm.assert_called_once()
+        mock_post.assert_not_called()
+        mock_capture.assert_called_once()
+        data = json.loads((tmp_path / "2026-04-06.json").read_text())
+        assert data["bluesky_posted"] is False
+        assert data["bluesky_uri"] is None
+        assert data["notification_sent"] is True
+        assert data["notification_channel"] == "bluesky_dm"
+        assert data["notification_id"] == "msg-456"
+        captured = capsys.readouterr()
+        assert "Public Bluesky posting disabled" in captured.err
+        assert "Pick DM sent" in captured.err
 
 
 class TestEarliestPickGameEt:

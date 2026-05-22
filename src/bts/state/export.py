@@ -89,6 +89,9 @@ def _pick_to_historical(pick_data: dict) -> dict:
         "slot_results": pick_data.get("slot_results"),
         "bluesky_posted": pick_data.get("bluesky_posted", False),
         "bluesky_uri": pick_data.get("bluesky_uri"),
+        "notification_sent": pick_data.get("notification_sent", False),
+        "notification_channel": pick_data.get("notification_channel"),
+        "notification_id": pick_data.get("notification_id"),
     }
 
 

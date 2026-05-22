@@ -5,6 +5,7 @@ picks_dir = "data/picks"
 dm_recipient = "did:plc:your-did-here"
 
 [scheduler]
+pick_delivery = "public"      # public = Bluesky feed post, dm = private Bluesky DM, private = local only
 early_lock_gap = 0.03
 lineup_check_offset_min = 45
 cluster_min = 10
@@ -19,7 +20,13 @@ default_init_hour_et = 10
 early_game_buffer_min = 60
 live_forward_capture_on_lock = true
 live_forward_capture_unit = "bts-live-forward-capture.service"
+live_forward_capture_artifact_root = "data/validation/decision_weighted_lgbm_v0_live_forward"
 live_forward_capture_trigger_timeout_sec = 10
+
+[health_checks]
+enabled = true
+pooled_dir = ""       # set to data/models_pooled only after pooled training is deployed
+leaderboard_dir = ""  # set to data/leaderboard if leaderboard freshness is load-bearing
 
 [[tiers]]
 name = "mac"

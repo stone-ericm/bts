@@ -14,6 +14,7 @@ from datetime import date
 from pathlib import Path
 
 from bts.health import (
+    analytics_artifacts_missing,
     blend_training,
     calibration,
     disk_fill,
@@ -30,7 +31,8 @@ from bts.health import (
     same_team_corr,
     streak_validation,
 )
-from bts.health.alert import Alert, dispatch_dm_for_critical, log_alerts
+from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
+from bts.health.attention import apply_warn_attention_policy
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +57,11 @@ def run_all_checks(
     pooled_dir: Path | None = None,
     data_dir: Path | None = None,
     leaderboard_dir: Path | None = None,
+    shadow_model_enabled: bool = False,
+    live_forward_capture_enabled: bool = False,
+    live_forward_capture_artifact_root: Path | None = None,
+    live_forward_capture_unit: str | None = "bts-live-forward-capture.service",
+    shadow_unit: str | None = None,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -90,6 +97,18 @@ def run_all_checks(
     if current_nrestarts is not None:
         alerts.extend(_safe_run("restart_spike", lambda: restart_spike.check(
             picks_dir, current_nrestarts=current_nrestarts, today=today,
+        )))
+    if shadow_model_enabled or live_forward_capture_enabled:
+        alerts.extend(_safe_run("analytics_artifacts_missing", lambda: (
+            analytics_artifacts_missing.check(
+                picks_dir,
+                today=today,
+                shadow_expected=shadow_model_enabled,
+                capture_expected=live_forward_capture_enabled,
+                capture_artifact_root=live_forward_capture_artifact_root,
+                capture_unit=live_forward_capture_unit,
+                shadow_unit=shadow_unit,
+            )
         )))
 
     # Tier 2 — quality decay
@@ -135,8 +154,20 @@ def run_all_checks(
         )))
     alerts.extend(_safe_run("streak_validation", lambda: streak_validation.check(picks_dir)))
 
+    if today is None:
+        today = date.today()
+    warn_attention_path = (overrides.get("warn_attention_state")
+                           if "warn_attention_state" in overrides
+                           else picks_dir.parent / "health_state" / "warn_attention_state.json")
+    policy_alerts, warn_attention = apply_warn_attention_policy(
+        alerts,
+        state_path=Path(warn_attention_path),
+        today=today,
+    )
+    alerts.extend(policy_alerts)
+
     log_alerts(alerts)
-    dispatch_dm_for_critical(alerts, dm_recipient)
+    dispatch_dm_for_health_alerts(alerts, dm_recipient, warn_attention=warn_attention)
     return alerts
 
 

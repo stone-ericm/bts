@@ -27,6 +27,13 @@ ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
 
 
+def _optional_health_path(value) -> Path | None:
+    """Resolve optional health-check paths with a simple disable escape hatch."""
+    if value is False or value is None or value == "":
+        return None
+    return Path(value)
+
+
 def fetch_schedule(date: str) -> list[dict]:
     """Fetch today's MLB schedule. Returns list of game dicts."""
     resp = json.loads(retry_urlopen(
@@ -202,6 +209,7 @@ class SchedulerState:
     pick_locked_at: str | None
     result_status: str | None  # "final", "suspended", "unresolved", None
     next_wakeup: str | None  # ISO for next day's wake-up
+    analytics_jobs: dict | None = None  # shadow/capture attempt status by job name
 
 
 def save_state(state: SchedulerState, picks_dir: Path) -> Path:
@@ -209,6 +217,18 @@ def save_state(state: SchedulerState, picks_dir: Path) -> Path:
     date_dir = picks_dir / state.date
     date_dir.mkdir(parents=True, exist_ok=True)
     path = date_dir / "scheduler_state.json"
+    # Analytics job helpers update disk directly while run_day holds an older
+    # in-memory SchedulerState, so preserve those status writes on later saves.
+    if path.exists():
+        try:
+            prior = json.loads(path.read_text())
+            prior_jobs = prior.get("analytics_jobs")
+            if isinstance(prior_jobs, dict):
+                merged_jobs = dict(prior_jobs)
+                merged_jobs.update(state.analytics_jobs or {})
+                state.analytics_jobs = merged_jobs
+        except Exception:
+            pass
     path.write_text(json.dumps(asdict(state), indent=2))
     return path
 
@@ -220,6 +240,167 @@ def load_state(date: str, picks_dir: Path) -> SchedulerState | None:
         return None
     data = json.loads(path.read_text())
     return SchedulerState(**data)
+
+
+def _update_analytics_job_status(
+    config: dict,
+    date: str,
+    job: str,
+    status: str,
+    **extra,
+) -> None:
+    """Best-effort status write for observational analytics jobs."""
+    try:
+        picks_dir = Path(config["orchestrator"]["picks_dir"])
+        state = load_state(date, picks_dir)
+        if state is None:
+            return
+        jobs = dict(state.analytics_jobs or {})
+        payload = {
+            "status": status,
+            "updated_at": _now_et().isoformat(),
+        }
+        payload.update({k: v for k, v in extra.items() if v is not None})
+        jobs[job] = payload
+        state.analytics_jobs = jobs
+        save_state(state, picks_dir)
+    except Exception as exc:
+        print(
+            f"  analytics job status update failed for {job}: {exc}",
+            file=sys.stderr,
+        )
+
+
+def _analytics_job_status(config: dict, date: str, job: str) -> dict:
+    try:
+        picks_dir = Path(config["orchestrator"]["picks_dir"])
+        state = load_state(date, picks_dir)
+    except Exception:
+        return {}
+    if state is None or not isinstance(state.analytics_jobs, dict):
+        return {}
+    status = state.analytics_jobs.get(job)
+    return status if isinstance(status, dict) else {}
+
+
+def _pick_delivery_mode(config: dict) -> str:
+    """Resolve how the scheduler should deliver a locked pick.
+
+    ``pick_delivery`` is the new explicit control. ``posting_mode`` is accepted
+    as a plain-English alias, and legacy ``private_mode`` still disables public
+    feed posting when no explicit mode is configured.
+    """
+    sched_config = config.get("scheduler", {})
+    raw = sched_config.get("pick_delivery", sched_config.get("posting_mode"))
+    if raw is None:
+        return "private" if sched_config.get("private_mode", False) else "public"
+
+    mode = str(raw).strip().lower().replace("-", "_")
+    aliases = {
+        "bluesky": "public",
+        "feed": "public",
+        "post": "public",
+        "bluesky_dm": "dm",
+        "direct_message": "dm",
+        "none": "private",
+        "off": "private",
+        "local": "private",
+    }
+    mode = aliases.get(mode, mode)
+    if mode not in {"public", "dm", "private"}:
+        raise ValueError(
+            "scheduler.pick_delivery must be one of: public, dm, private"
+        )
+    return mode
+
+
+def _format_pick_delivery_text(daily, streak: int) -> str:
+    from bts.posting import format_post
+
+    return format_post(
+        daily.pick.batter_name, daily.pick.team,
+        daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+        daily.double_down.batter_name if daily.double_down else None,
+        daily.double_down.p_game_hit if daily.double_down else None,
+        daily.double_down.team if daily.double_down else None,
+        daily.double_down.pitcher_name if daily.double_down else None,
+    )
+
+
+def _deliver_and_lock_pick(
+    daily,
+    config: dict,
+    picks_dir: Path,
+    state: SchedulerState,
+    date: str,
+    label: str,
+) -> bool:
+    """Deliver a pick through the configured channel and persist the lock."""
+    from bts.picks import load_streak, pick_was_delivered, save_pick
+
+    mode = _pick_delivery_mode(config)
+    if pick_was_delivered(daily):
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(f"  LOCKED ({label}) — pick already delivered.", file=sys.stderr)
+        return True
+
+    if mode == "private":
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(
+            f"  [PRIVATE] LOCKED ({label}) — {daily.pick.batter_name} "
+            f"({daily.pick.team}) {daily.pick.p_game_hit:.1%} — NOT delivered",
+            file=sys.stderr,
+        )
+        return True
+
+    streak = load_streak(picks_dir)
+    text = _format_pick_delivery_text(daily, streak)
+
+    if mode == "dm":
+        recipient = config.get("bluesky", {}).get("dm_recipient")
+        if not recipient:
+            print("  Pick DM failed: bluesky.dm_recipient is not configured", file=sys.stderr)
+            return False
+        try:
+            from bts.dm import send_dm
+            msg_id = send_dm(recipient, text)
+            daily.notification_sent = True
+            daily.notification_channel = "bluesky_dm"
+            daily.notification_id = msg_id
+            save_pick(daily, picks_dir)
+            state.pick_locked = True
+            state.pick_locked_at = _now_et().isoformat()
+            save_state(state, picks_dir)
+            _trigger_live_forward_capture_on_lock(config, date)
+            print(f"  LOCKED ({label}) — Pick DM sent: {msg_id}", file=sys.stderr)
+            return True
+        except Exception as e:
+            print(f"  Pick DM failed: {e}", file=sys.stderr)
+            return False
+
+    try:
+        from bts.posting import post_to_bluesky
+        uri = post_to_bluesky(text)
+        daily.bluesky_posted = True
+        daily.bluesky_uri = uri
+        save_pick(daily, picks_dir)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        _trigger_live_forward_capture_on_lock(config, date)
+        print(f"  LOCKED ({label}) — Posted to Bluesky: {uri}", file=sys.stderr)
+        return True
+    except Exception as e:
+        print(f"  Bluesky post failed: {e}", file=sys.stderr)
+        return False
 
 
 def count_new_confirmations(
@@ -517,20 +698,58 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
         # file prevents scheduler restart loops after a successful write.
         existing = load_shadow_pick(date, picks_dir)
         if existing is not None:
+            _update_analytics_job_status(
+                config,
+                date,
+                "shadow",
+                "completed",
+                reason="existing_shadow_artifact",
+            )
             print("  [SHADOW MODEL] Existing shadow pick found; skipping.", file=sys.stderr)
             return
+
+        prior_status = _analytics_job_status(config, date, "shadow")
+        if prior_status.get("status") in {"dispatched", "completed", "failed"}:
+            print(
+                "  [SHADOW MODEL] Prior shadow attempt recorded "
+                f"({prior_status.get('status')}); skipping retry.",
+                file=sys.stderr,
+            )
+            return
+
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "dispatched",
+            reason="scheduler_inline_shadow_attempt",
+        )
 
         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
             predictions = predict_local_shadow(
                 date, data_dir=data_dir, models_dir=models_dir
             )
         if predictions is None:
+            _update_analytics_job_status(
+                config,
+                date,
+                "shadow",
+                "failed",
+                reason="prediction_failed_or_none",
+            )
             print("  [SHADOW MODEL] No predictions returned.", file=sys.stderr)
             return
 
         streak = load_streak(picks_dir)
         result = select_pick(predictions, date, picks_dir, streak=streak, for_shadow=True)
         if result is None or result.daily is None:
+            _update_analytics_job_status(
+                config,
+                date,
+                "shadow",
+                "failed",
+                reason="select_pick_returned_none",
+            )
             print("  [SHADOW MODEL] Skip (below threshold).", file=sys.stderr)
             return
 
@@ -544,6 +763,13 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
             policy_path=DEFAULT_POLICY_PATH,
         )
         save_shadow_pick(result.daily, picks_dir)
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "completed",
+            reason="shadow_artifact_written",
+        )
         shadow_name = result.daily.pick.batter_name
         shadow_team = result.daily.pick.team
         shadow_p = result.daily.pick.p_game_hit
@@ -552,17 +778,24 @@ def _run_shadow_prediction(config: dict, date: str, production_pick_name: str) -
         print(f"  [SHADOW MODEL] {shadow_name} ({shadow_team}) "
               f"{shadow_p:.1%} — {tag}", file=sys.stderr)
     except Exception as e:
+        _update_analytics_job_status(
+            config,
+            date,
+            "shadow",
+            "failed",
+            reason=f"exception: {e}",
+        )
         print(f"  [SHADOW MODEL] Failed: {e}", file=sys.stderr)
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
-    """Re-run predictions right before the fallback post so any late-arriving
+    """Re-run predictions right before fallback delivery so late-arriving
     lineups can update the pick. If the refreshed pick differs from the cached
-    one, log the swap and persist the fresh daily to disk before posting.
+    one, log the swap and persist the fresh daily before delivery.
 
-    Returns the DailyPick to post. Falls back to ``cached_daily`` on any error
-    (cascade failure, empty predictions, locked result) so the fallback path
-    stays robust — we always have *something* to post if the loop reaches here.
+    Returns the DailyPick to deliver. Falls back to ``cached_daily`` on any
+    error (cascade failure, empty predictions, locked result) so the fallback
+    path stays robust — we always have *something* to deliver if the loop reaches here.
     """
     from bts.picks import save_pick
 
@@ -621,6 +854,13 @@ def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
     """
     sched_config = config.get("scheduler", {})
     if not sched_config.get("live_forward_capture_on_lock", True):
+        _update_analytics_job_status(
+            config,
+            date,
+            "live_forward_capture",
+            "disabled",
+            reason="live_forward_capture_on_lock=false",
+        )
         return
 
     command = sched_config.get("live_forward_capture_command")
@@ -631,8 +871,10 @@ def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
         )
         args = ["systemctl", "--user", "start", "--no-block", unit]
     elif isinstance(command, str):
+        unit = None
         args = shlex.split(command.format(date=date))
     else:
+        unit = None
         args = [str(part).format(date=date) for part in command]
 
     timeout = float(sched_config.get("live_forward_capture_trigger_timeout_sec", 10))
@@ -645,6 +887,14 @@ def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
             timeout=timeout,
         )
     except Exception as exc:
+        _update_analytics_job_status(
+            config,
+            date,
+            "live_forward_capture",
+            "failed",
+            reason=f"trigger_exception: {exc}",
+            unit=unit,
+        )
         print(
             f"  live-forward capture trigger failed (suppressed): {exc}",
             file=sys.stderr,
@@ -652,6 +902,14 @@ def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
         return
 
     if result.returncode == 0:
+        _update_analytics_job_status(
+            config,
+            date,
+            "live_forward_capture",
+            "dispatched",
+            reason="trigger_queued",
+            unit=unit,
+        )
         print(
             f"  live-forward capture trigger queued for {date}.",
             file=sys.stderr,
@@ -659,6 +917,14 @@ def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
         return
 
     detail = (result.stderr or result.stdout or "").strip()
+    _update_analytics_job_status(
+        config,
+        date,
+        "live_forward_capture",
+        "failed",
+        reason=f"trigger_returned_{result.returncode}: {detail}",
+        unit=unit,
+    )
     if detail:
         detail = f": {detail}"
     print(
@@ -869,19 +1135,20 @@ def run_day(
     1. Fetch MLB schedule
     2. Compute lineup check times (game_time - offset)
     3. Sleep between checks, run predictions when lineups confirm
-    4. Post to Bluesky when lock conditions met
-    5. Fallback posting if close to first pitch
+    4. Deliver and lock the pick when lock conditions are met
+    5. Fallback delivery if close to first pitch
     6. Doubleheader game 2 re-checks
     7. Next-day lookahead for wake-up time
     8. Result polling after games finish
     """
-    from bts.picks import save_pick, load_streak, load_pick
-    from bts.posting import format_post, format_skip_post, post_to_bluesky
+    from bts.picks import load_pick, pick_was_delivered
 
     sched_config = config.get("scheduler", {})
-    private_mode = sched_config.get("private_mode", False)
-    if private_mode:
+    delivery_mode = _pick_delivery_mode(config)
+    if delivery_mode == "private":
         print("  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.", file=sys.stderr)
+    elif delivery_mode == "dm":
+        print("  [DM MODE] Public Bluesky posting disabled — picks sent by DM.", file=sys.stderr)
     shadow_model_enabled = sched_config.get("shadow_model", False)
     if shadow_model_enabled:
         print("  [SHADOW MODEL] Context stack shadow model enabled.", file=sys.stderr)
@@ -929,6 +1196,7 @@ def run_day(
     # with one side confirmed differs from a game with both sides confirmed,
     # and the prediction pipeline notices — so we count both independently.
     confirmed_sides: set[tuple[int, str]] = set()
+    previous_state = load_state(date, picks_dir)
     state = SchedulerState(
         date=date,
         schedule_fetched_at=_now_et().isoformat(),
@@ -944,6 +1212,7 @@ def run_day(
         pick_locked_at=None,
         result_status=None,
         next_wakeup=None,
+        analytics_jobs=previous_state.analytics_jobs if previous_state else None,
     )
     save_state(state, picks_dir)
 
@@ -996,41 +1265,12 @@ def run_day(
             state.pick_locked = True
             state.pick_locked_at = _now_et().isoformat()
             save_state(state, picks_dir)
-            print(f"  Pick already locked (game started or previously posted).",
+            print(f"  Pick already locked (game started or previously delivered).",
                   file=sys.stderr)
 
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
-            streak = load_streak(picks_dir)
-            if private_mode:
-                save_pick(daily, picks_dir)
-                state.pick_locked = True
-                state.pick_locked_at = _now_et().isoformat()
-                save_state(state, picks_dir)
-                _trigger_live_forward_capture_on_lock(config, date)
-                print(f"  [PRIVATE] LOCKED — {daily.pick.batter_name} ({daily.pick.team}) "
-                      f"{daily.pick.p_game_hit:.1%} — NOT posted (private mode)", file=sys.stderr)
-            else:
-                text = format_post(
-                    daily.pick.batter_name, daily.pick.team,
-                    daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                    daily.double_down.batter_name if daily.double_down else None,
-                    daily.double_down.p_game_hit if daily.double_down else None,
-                    daily.double_down.team if daily.double_down else None,
-                    daily.double_down.pitcher_name if daily.double_down else None,
-                )
-                try:
-                    uri = post_to_bluesky(text)
-                    daily.bluesky_posted = True
-                    daily.bluesky_uri = uri
-                    save_pick(daily, picks_dir)
-                    state.pick_locked = True
-                    state.pick_locked_at = _now_et().isoformat()
-                    save_state(state, picks_dir)
-                    _trigger_live_forward_capture_on_lock(config, date)
-                    print(f"  LOCKED — Posted to Bluesky: {uri}", file=sys.stderr)
-                except Exception as e:
-                    print(f"  Bluesky post failed: {e}", file=sys.stderr)
+            _deliver_and_lock_pick(daily, config, picks_dir, state, date, "lineup")
 
         if state.pick_locked:
             # Run shadow model if enabled (after production pick is resolved)
@@ -1041,7 +1281,7 @@ def run_day(
             break
 
         # If the earliest game in the slate starts before the next scheduled
-        # check, wake up to force-post. Use earliest of primary + double-down
+        # check, wake up for forced delivery. Use earliest of primary + double-down
         # because BTS app rejects submissions once the FIRST game has started.
         if not state.pick_locked and result.get("pick_result") and result["pick_result"].daily:
             earliest_game_et = _earliest_pick_game_et(result["pick_result"].daily)
@@ -1076,42 +1316,14 @@ def run_day(
                     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
                     notify_watchdog()
 
-                # Force-post current pick (waited to deadline, or past it).
+                # Force-deliver current pick (waited to deadline, or past it).
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
-                if daily and not daily.bluesky_posted:
+                if daily and not pick_was_delivered(daily):
                     daily = _refresh_pick_at_fallback(config, date, daily)
-                    if private_mode:
-                        state.pick_locked = True
-                        state.pick_locked_at = _now_et().isoformat()
-                        save_state(state, picks_dir)
-                        _trigger_live_forward_capture_on_lock(config, date)
-                        print(f"  [PRIVATE] FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
-                    else:
-                        print(f"  FALLBACK — posting before game starts.", file=sys.stderr)
-                        streak = load_streak(picks_dir)
-                        text = format_post(
-                            daily.pick.batter_name, daily.pick.team,
-                            daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                            daily.double_down.batter_name if daily.double_down else None,
-                            daily.double_down.p_game_hit if daily.double_down else None,
-                            daily.double_down.team if daily.double_down else None,
-                            daily.double_down.pitcher_name if daily.double_down else None,
-                        )
-                        try:
-                            uri = post_to_bluesky(text)
-                            daily.bluesky_posted = True
-                            daily.bluesky_uri = uri
-                            save_pick(daily, picks_dir)
-                            state.pick_locked = True
-                            state.pick_locked_at = _now_et().isoformat()
-                            save_state(state, picks_dir)
-                            _trigger_live_forward_capture_on_lock(config, date)
-                            print(f"  LOCKED (fallback) — Posted to Bluesky: {uri}",
-                                  file=sys.stderr)
-                        except Exception as e:
-                            print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+                    print(f"  FALLBACK — delivering before game starts.", file=sys.stderr)
+                    _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback")
 
                 if state.pick_locked:
                     if shadow_model_enabled and daily:
@@ -1123,7 +1335,7 @@ def run_day(
     # primary + double-down so we never miss the BTS submission window).
     if not state.pick_locked:
         daily = load_pick(date, picks_dir)
-        if daily and not daily.bluesky_posted:
+        if daily and not pick_was_delivered(daily):
             earliest_game_et = _earliest_pick_game_et(daily)
             now = _now_et()
             mins_to_game = (earliest_game_et - now).total_seconds() / 60
@@ -1137,35 +1349,9 @@ def run_day(
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
                 daily = _refresh_pick_at_fallback(config, date, daily)
-                if private_mode:
-                    state.pick_locked = True
-                    state.pick_locked_at = _now_et().isoformat()
-                    save_state(state, picks_dir)
-                    _trigger_live_forward_capture_on_lock(config, date)
-                    print(f"  [PRIVATE] FINAL FALLBACK LOCKED — {daily.pick.batter_name} — NOT posted", file=sys.stderr)
-                else:
-                    print(f"  FALLBACK — {fallback_min}min to first pitch, posting on projected data.",
-                          file=sys.stderr)
-                    streak = load_streak(picks_dir)
-                    text = format_post(
-                        daily.pick.batter_name, daily.pick.team,
-                        daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
-                        daily.double_down.batter_name if daily.double_down else None,
-                        daily.double_down.p_game_hit if daily.double_down else None,
-                        daily.double_down.team if daily.double_down else None,
-                        daily.double_down.pitcher_name if daily.double_down else None,
-                    )
-                    try:
-                        uri = post_to_bluesky(text)
-                        daily.bluesky_posted = True
-                        daily.bluesky_uri = uri
-                        save_pick(daily, picks_dir)
-                        state.pick_locked = True
-                        state.pick_locked_at = _now_et().isoformat()
-                        save_state(state, picks_dir)
-                        _trigger_live_forward_capture_on_lock(config, date)
-                    except Exception as e:
-                        print(f"  Bluesky fallback post failed: {e}", file=sys.stderr)
+                print(f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
+                      file=sys.stderr)
+                _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")
 
         if state.pick_locked and shadow_model_enabled and daily:
             _run_shadow_prediction(config, date, daily.pick.batter_name)
@@ -1245,6 +1431,8 @@ def run_day(
         models_dir = Path(
             config.get("orchestrator", {}).get("models_dir", "data/models")
         )
+        pooled_dir = _optional_health_path(health_config.get("pooled_dir"))
+        leaderboard_dir = _optional_health_path(health_config.get("leaderboard_dir"))
         try:
             run_all_checks(
                 picks_dir=picks_dir,
@@ -1253,6 +1441,22 @@ def run_day(
                 scheduler_pid=get_self_pid(),
                 current_nrestarts=read_systemd_nrestarts(),
                 thresholds_overrides=health_config.get("thresholds"),
+                pooled_dir=pooled_dir,
+                leaderboard_dir=leaderboard_dir,
+                shadow_model_enabled=shadow_model_enabled,
+                live_forward_capture_enabled=sched_config.get(
+                    "live_forward_capture_on_lock", True
+                ),
+                live_forward_capture_artifact_root=Path(
+                    sched_config.get(
+                        "live_forward_capture_artifact_root",
+                        "data/validation/decision_weighted_lgbm_v0_live_forward",
+                    )
+                ),
+                live_forward_capture_unit=sched_config.get(
+                    "live_forward_capture_unit",
+                    "bts-live-forward-capture.service",
+                ) if sched_config.get("live_forward_capture_command") is None else None,
             )
         except Exception as e:
             print(f"  health_checks: unexpected error (suppressed): {e}", file=sys.stderr)

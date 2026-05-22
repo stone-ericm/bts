@@ -916,9 +916,15 @@ def render_page():
         t_time = _format_game_time(tp.get("game_time", ""))
         # LOCKED derives from scheduler state.pick_locked (truth source);
         # falls back to game-started for resilience when state file is missing.
-        # POSTED is independent — derives from bluesky_posted on the pick file.
+        # Delivery is independent: public Bluesky posts use bluesky_posted,
+        # private pick DMs require a persisted notification id.
         sched_state = load_scheduler_state(today)
         posted = today_pick.get("bluesky_posted", False)
+        notified = bool(
+            today_pick.get("notification_sent", False)
+            and today_pick.get("notification_id")
+        )
+        delivered = posted or notified
         result = today_pick.get("result")
         pick_locked_state = sched_state.get("pick_locked", False)
         game_started = False
@@ -929,9 +935,9 @@ def render_page():
                 game_started = datetime.now(game_dt.tzinfo) > game_dt
             except (ValueError, TypeError):
                 pass
-        is_locked = pick_locked_state or posted or result is not None or game_started
+        is_locked = pick_locked_state or delivered or result is not None or game_started
         # Two badges stacked: top = LOCKED/PENDING (or HIT/MISS once the game is over),
-        # bottom = POSTED/NOT POSTED. Posting state remains independent after resolution.
+        # bottom = public/private delivery state. Delivery remains independent after resolution.
         if result == "hit":
             status_badge = '<span class="lock-badge locked" style="background:#2d6a4f;">HIT &#10003;</span>'
         elif result == "miss":
@@ -945,8 +951,10 @@ def render_page():
                 status_badge = '<span class="lock-badge pending">PENDING</span>'
         if posted:
             posted_badge = '<span class="lock-badge posted">POSTED</span>'
+        elif notified:
+            posted_badge = '<span class="lock-badge posted">DM SENT</span>'
         else:
-            posted_badge = '<span class="lock-badge not-posted">NOT POSTED</span>'
+            posted_badge = '<span class="lock-badge not-posted">NOT SENT</span>'
         lock_badge = (
             f'<span style="display:inline-flex;flex-direction:column;'
             f'gap:4px;margin-left:8px;align-items:flex-start;vertical-align:middle;">'
