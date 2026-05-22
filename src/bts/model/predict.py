@@ -58,6 +58,12 @@ if _os.environ.get("BTS_LGBM_DETERMINISTIC", "0") == "1":
     LGB_PARAMS["deterministic"] = True
     LGB_PARAMS["force_row_wise"] = True
 
+
+def _lgbm_random_state() -> int:
+    """Training random_state, overridable for multi-seed live prediction runs."""
+    return int(_os.environ.get("BTS_LGBM_RANDOM_STATE", "42"))
+
+
 # Pitchers averaging < 3 IP over their recent appearances are likely openers/relievers
 OPENER_IP_THRESHOLD = 3.0
 OPENER_MIN_APPEARANCES = 5
@@ -74,7 +80,7 @@ def train_model(df: pd.DataFrame, feature_cols: list[str] | None = None) -> lgb.
     train_y = train["is_hit"]
     mask = train_X.notna().any(axis=1)
 
-    model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
+    model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=_lgbm_random_state())
     model.fit(train_X[mask], train_y[mask])
     return model
 
@@ -98,6 +104,7 @@ def train_blend(
     params = lgb_params or LGB_PARAMS
     train = df[df["season"] >= TRAIN_START_YEAR]
     train_y = train["is_hit"]
+    random_state = _lgbm_random_state()
     blend = {}
 
     for config in configs:
@@ -120,7 +127,7 @@ def train_blend(
         else:
             train_X = train[cols]
             mask = train_X.notna().any(axis=1)
-            model = lgb.LGBMClassifier(**params, random_state=42)
+            model = lgb.LGBMClassifier(**params, random_state=random_state)
             model.fit(train_X[mask], train_y[mask])
         blend[name] = (model, cols)
 
