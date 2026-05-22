@@ -22,6 +22,11 @@ live_forward_capture_on_lock = true
 live_forward_capture_unit = "bts-live-forward-capture.service"
 live_forward_capture_artifact_root = "data/validation/decision_weighted_lgbm_v0_live_forward"
 live_forward_capture_trigger_timeout_sec = 10
+shadow_model = false
+# After installing scripts/systemd/bts-shadow-prediction.service, set this to
+# run shadow predictions outside the scheduler process:
+# shadow_model_unit = "bts-shadow-prediction.service"
+shadow_model_trigger_timeout_sec = 10
 
 [health_checks]
 enabled = true

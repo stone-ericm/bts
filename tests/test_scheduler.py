@@ -1375,3 +1375,79 @@ class TestLiveForwardCaptureTrigger:
             )
 
         mock_run.assert_not_called()
+
+
+class TestShadowPredictionTrigger:
+    def _state(self, tmp_path, *, analytics_jobs=None):
+        from bts.scheduler import SchedulerState, save_state
+
+        picks_dir = tmp_path / "picks"
+        state = SchedulerState(
+            date="2026-05-16",
+            schedule_fetched_at="2026-05-16T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-05-16T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs=analytics_jobs or {},
+        )
+        save_state(state, picks_dir)
+        return picks_dir
+
+    def test_default_shadow_trigger_preserves_inline_behavior(self):
+        from bts.scheduler import _trigger_shadow_prediction_on_lock
+
+        config = {"scheduler": {}}
+        with patch("bts.scheduler._run_shadow_prediction") as mock_shadow:
+            _trigger_shadow_prediction_on_lock(config, "2026-05-16", "Prod Pick")
+
+        mock_shadow.assert_called_once_with(config, "2026-05-16", "Prod Pick")
+
+    def test_queues_configured_systemd_shadow_nonblocking(self, tmp_path, capsys):
+        from bts.scheduler import _trigger_shadow_prediction_on_lock, load_state
+
+        picks_dir = self._state(tmp_path)
+        config = {
+            "orchestrator": {"picks_dir": str(picks_dir)},
+            "scheduler": {"shadow_model_unit": "bts-shadow-prediction.service"},
+        }
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""
+            mock_run.return_value.stderr = ""
+
+            _trigger_shadow_prediction_on_lock(config, "2026-05-16", "Prod Pick")
+
+        mock_run.assert_called_once()
+        assert mock_run.call_args.args[0] == [
+            "systemctl",
+            "--user",
+            "start",
+            "--no-block",
+            "bts-shadow-prediction.service",
+        ]
+        assert mock_run.call_args.kwargs["timeout"] == 10
+        loaded = load_state("2026-05-16", picks_dir)
+        assert loaded.analytics_jobs["shadow"]["status"] == "dispatched"
+        assert loaded.analytics_jobs["shadow"]["reason"] == "trigger_queued"
+        assert loaded.analytics_jobs["shadow"]["unit"] == "bts-shadow-prediction.service"
+        assert "Trigger queued" in capsys.readouterr().err
+
+    def test_shadow_trigger_skips_prior_attempt(self, tmp_path):
+        from bts.scheduler import _trigger_shadow_prediction_on_lock
+
+        picks_dir = self._state(
+            tmp_path,
+            analytics_jobs={"shadow": {"status": "dispatched", "updated_at": "now"}},
+        )
+        config = {
+            "orchestrator": {"picks_dir": str(picks_dir)},
+            "scheduler": {"shadow_model_unit": "bts-shadow-prediction.service"},
+        }
+        with patch("bts.scheduler.subprocess.run") as mock_run:
+            _trigger_shadow_prediction_on_lock(config, "2026-05-16", "Prod Pick")
+
+        mock_run.assert_not_called()

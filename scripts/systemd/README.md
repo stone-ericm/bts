@@ -42,6 +42,61 @@ Run one manual poll:
 
     systemctl --user start bts-live-forward-capture.service
 
+## Shadow prediction
+
+The scheduler can keep the historical inline shadow behavior, or it can queue a
+one-shot shadow unit after the production pick locks. The out-of-process mode is
+opt-in so code deploy and unit installation can be staged safely.
+
+Install as a user unit on Hetzner after the production checkout contains
+`scripts/shadow_predict_once.py`:
+
+    mkdir -p ~/.config/systemd/user
+    cp scripts/systemd/bts-shadow-prediction.service ~/.config/systemd/user/
+    systemctl --user daemon-reload
+
+Before enabling the unit, reconcile it against the live scheduler environment:
+
+    systemctl --user cat bts-scheduler
+    systemctl --user show bts-scheduler -p Environment
+    systemctl --user cat bts-shadow-prediction.service
+
+Use the live scheduler service as the source of truth for project root, config
+path, environment file, and model-affecting BTS settings such as
+`BTS_LGBM_DETERMINISTIC`, `BTS_LGBM_RANDOM_STATE`, and thread-count variables;
+older checked-in scheduler unit files may be stale. The checked-in shadow unit
+sources `/home/bts/projects/bts/.env` but does not hardcode those values. Update
+the unit first if the live scheduler uses a different environment source.
+
+Then enable the scheduler to use it by setting:
+
+    shadow_model = true
+    shadow_model_unit = "bts-shadow-prediction.service"
+
+in `/home/bts/.bts-orchestrator.toml`, and restart only the scheduler service.
+
+This mode must preserve the same orchestrator config path and BTS environment as
+the scheduler path, but moves the expensive shadow prediction into its own
+systemd unit. Missing shadow artifacts still alert through health checks; when
+the unit exposes OOM evidence in `systemctl --user show`, the WARN is promoted
+by the alert policy.
+
+Before leaving `shadow_model_unit` enabled, compare one sample locked date
+against the inline path and confirm the shadow pick and provenance match.
+
+Verify:
+
+    systemctl --user status --no-pager -l bts-shadow-prediction.service
+    journalctl --user -u bts-shadow-prediction -n 100 --no-pager
+
+Run one manual shadow attempt after a pick is locked:
+
+    systemctl --user start bts-shadow-prediction.service
+
+This unit does not serialize memory-heavy analytics jobs by itself. Keep the
+live-forward capture/shadow collision fix and swap/cgroup sizing as separate
+approved ops work.
+
 ## Live-forward candidate resolution
 
 Install as user units on Hetzner after the production checkout contains
