@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgb
 from bts.features.compute import FEATURE_COLS, TRAIN_START_YEAR
-from bts.model.predict import LGB_PARAMS
+from bts.model.predict import LGB_PARAMS, _lgbm_random_state
 
 
 def walk_forward_evaluate(
@@ -58,7 +58,7 @@ def walk_forward_evaluate(
             train_X = train_X[valid_mask]
             train_y = train_y[valid_mask]
 
-            model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=42)
+            model = lgb.LGBMClassifier(**LGB_PARAMS, random_state=_lgbm_random_state())
             model.fit(train_X, train_y)
             last_train_date = day
 
