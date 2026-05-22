@@ -57,3 +57,67 @@ def dispatch_dm_for_critical(alerts: list[Alert], dm_recipient: str | None) -> b
     except Exception as e:
         log.exception(f"send_dm failed (alerts detected but DM not delivered): {e}")
         return True
+
+
+def format_health_dm_body(
+    critical: list[Alert],
+    warn_attention: list[Alert] | None = None,
+) -> str | None:
+    """Build the single daily health DM body.
+
+    CRITICAL alerts keep their existing headline. Selected WARNs are folded
+    into the same message when CRITICALs exist, or sent as a WARN-attention
+    digest on days without CRITICALs.
+    """
+    warn_attention = warn_attention or []
+    if not critical and not warn_attention:
+        return None
+
+    if critical:
+        lines = ["BTS health CRITICAL alert(s):"]
+        for a in critical:
+            lines.append(f"- [{a.source}] {a.message}")
+        if warn_attention:
+            lines.append("")
+            lines.append("WARN attention:")
+            for a in warn_attention:
+                lines.append(f"- [{a.source}] {a.message}")
+        return "\n".join(lines)
+
+    lines = ["BTS health WARN attention:"]
+    for a in warn_attention:
+        lines.append(f"- [{a.source}] {a.message}")
+    return "\n".join(lines)
+
+
+def dispatch_dm_for_health_alerts(
+    alerts: list[Alert],
+    dm_recipient: str | None,
+    warn_attention: list[Alert] | None = None,
+) -> bool:
+    """Send one Bluesky DM for CRITICALs and selected WARN attention.
+
+    Returns True if a DM was attempted, False otherwise. Send failures are
+    logged at ERROR/exception level and suppressed so health reporting cannot
+    break the scheduler lifecycle.
+    """
+    critical = [a for a in alerts if a.level == "CRITICAL"]
+    body = format_health_dm_body(critical, warn_attention)
+    if body is None or not dm_recipient:
+        return False
+    try:
+        send_dm(dm_recipient, body)
+        log.info(
+            "sent health DM to %s (%d CRITICAL, %d WARN attention)",
+            dm_recipient,
+            len(critical),
+            len(warn_attention or []),
+        )
+        return True
+    except Exception as e:
+        log.exception(
+            "send_dm failed for health alerts; CRITICAL/WARN visibility may be lost: %s",
+            e,
+        )
+        log.error("[health_dm_delivery CRITICAL] health alert DM delivery failed")
+        return True

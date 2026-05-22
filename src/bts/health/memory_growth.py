@@ -1,13 +1,16 @@
 """Tier 3: scheduler memory growth check.
 
-Reads /proc/self/status VmRSS for the running process. The scheduler
-is a long-lived daemon — observed at 90.4 MB after 24h. Memory leaks
-would manifest as monotonic growth.
+Reads /proc/<pid>/status VmRSS for the running scheduler process. The
+scheduler is a long-lived daemon, but its post-prediction resident set
+can be much larger than its cold sleeping footprint because model and
+feature-frame allocations remain resident in CPython. Memory leaks
+should be assessed from sustained growth over the daily history, not from
+the cold-start baseline alone.
 
 Thresholds:
-  INFO:    >= 200 MB    (3-4× normal — investigate)
-  WARN:    >= 500 MB
-  CRITICAL: >= 1 GB
+  INFO:    >= 1 GB
+  WARN:    >= 3 GB
+  CRITICAL: >= 6 GB
 
 This works on Linux. Returns [] on non-Linux (Mac dev box) or if /proc
 isn't readable for any reason.
@@ -156,7 +159,11 @@ def check(
         alerts.append(Alert(
             level=level,
             source=SOURCE,
-            message=f"scheduler RSS {rss_mb:.1f} MB (pid={pid}) — typical baseline ~90 MB",
+            message=(
+                f"scheduler RSS {rss_mb:.1f} MB (pid={pid}); "
+                f"thresholds info={t['info_mb']} MB warn={t['warn_mb']} MB "
+                f"critical={t['critical_mb']} MB"
+            ),
         ))
 
     # History append + Tuesday digest (item #5)

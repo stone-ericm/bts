@@ -41,7 +41,7 @@ class TestRunAllChecks:
         _Usage = namedtuple("_Usage", ["total", "used", "free"])
         clean_usage = _Usage(total=100 * 1024 ** 3, used=50 * 1024 ** 3, free=50 * 1024 ** 3)
         with patch("bts.health.disk_fill.shutil.disk_usage", return_value=clean_usage), \
-             patch("bts.health.runner.dispatch_dm_for_critical") as mock_dm:
+             patch("bts.health.runner.dispatch_dm_for_health_alerts") as mock_dm:
             mock_dm.return_value = False
             alerts = run_all_checks(
                 picks_dir=picks_dir, models_dir=models_dir,
@@ -114,7 +114,7 @@ class TestRunAllChecks:
         _set_up_picks_dir(picks_dir, models_dir)
         # Force a CRITICAL via missing streak
         (picks_dir / "streak.json").unlink()
-        with patch("bts.health.runner.dispatch_dm_for_critical") as mock_dm:
+        with patch("bts.health.runner.dispatch_dm_for_health_alerts") as mock_dm:
             run_all_checks(
                 picks_dir=picks_dir, models_dir=models_dir,
                 dm_recipient="x.bsky.social", today=date(2026, 4, 27),

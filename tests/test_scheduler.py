@@ -93,6 +93,25 @@ class TestComputeRunTimes:
         assert runs[1]["game_pks"] == [200]
 
 
+class TestOptionalHealthPath:
+    def test_disables_when_not_configured(self):
+        from bts.scheduler import _optional_health_path
+
+        assert _optional_health_path(None) is None
+
+    def test_can_disable_with_empty_string_or_false(self):
+        from bts.scheduler import _optional_health_path
+
+        assert _optional_health_path("") is None
+        assert _optional_health_path(False) is None
+
+    def test_uses_configured_path(self, tmp_path):
+        from bts.scheduler import _optional_health_path
+
+        configured = tmp_path / "configured"
+        assert _optional_health_path(str(configured)) == configured
+
+
 class TestDetectDoubleheaderGame2:
     def test_finds_doubleheader(self):
         from bts.scheduler import detect_doubleheader_game2s
@@ -259,10 +278,105 @@ class TestSchedulerState:
         assert len(loaded.games) == 1
         assert loaded.pick_locked is False
 
+    def test_save_and_load_roundtrip_preserves_analytics_jobs(self, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, load_state
+
+        state = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(state, tmp_path)
+
+        loaded = load_state("2026-04-03", tmp_path)
+        assert loaded is not None
+        assert loaded.analytics_jobs == state.analytics_jobs
+
+    def test_save_state_merges_existing_analytics_jobs(self, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, load_state
+
+        original = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(original, tmp_path)
+
+        stale_in_memory = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:05:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status="final",
+            next_wakeup=None,
+            analytics_jobs=None,
+        )
+        save_state(stale_in_memory, tmp_path)
+
+        loaded = load_state("2026-04-03", tmp_path)
+        assert loaded is not None
+        assert loaded.analytics_jobs == original.analytics_jobs
+        assert loaded.result_status == "final"
+
     def test_load_returns_none_when_missing(self, tmp_path):
         from bts.scheduler import load_state
 
         assert load_state("2026-04-03", tmp_path) is None
+
+    @patch("bts.scheduler.predict_local_shadow")
+    def test_shadow_skips_prior_dispatched_attempt(self, mock_predict, tmp_path):
+        from bts.scheduler import SchedulerState, save_state, _run_shadow_prediction
+
+        picks_dir = tmp_path / "picks"
+        picks_dir.mkdir()
+        state = SchedulerState(
+            date="2026-04-03",
+            schedule_fetched_at="2026-04-03T10:00:00-04:00",
+            games=[],
+            confirmed_game_pks=[],
+            runs_completed=[],
+            pick_locked=True,
+            pick_locked_at="2026-04-03T12:00:00-04:00",
+            result_status=None,
+            next_wakeup=None,
+            analytics_jobs={
+                "shadow": {"status": "dispatched", "updated_at": "now"},
+            },
+        )
+        save_state(state, picks_dir)
+        config = {
+            "orchestrator": {
+                "picks_dir": str(picks_dir),
+                "data_dir": str(tmp_path / "data"),
+                "models_dir": str(tmp_path / "models"),
+                "heartbeat_path": str(tmp_path / ".heartbeat"),
+            },
+        }
+
+        _run_shadow_prediction(config, "2026-04-03", "Prod Pick")
+
+        mock_predict.assert_not_called()
 
 
 class TestSchedulerRun:

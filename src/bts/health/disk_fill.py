@@ -1,9 +1,11 @@
 """Tier 3: disk fill check.
 
-Monitors disk usage on the path containing picks_dir (typically /home/bts).
+Monitors disk usage on the filesystem containing picks_dir. On production
+this is the same filesystem that holds data/validation and other growing
+artifacts, so the check watches total capacity rather than only pick files.
 Uses shutil.disk_usage which is cgroup-aware on Linux.
 
-Thresholds chosen for bts-mlb (38GB total, ~1GB picks/state, ~15GB raw data):
+Thresholds:
   INFO:    80% used (still room, but accumulation worth noticing)
   WARN:    90% used (approaching tight)
   CRITICAL: 95% used (imminent fill — game data ingest could fail)
