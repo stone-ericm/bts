@@ -4,7 +4,11 @@ import json
 import subprocess
 from pathlib import Path
 
-from scripts.live_forward_resolve_once import ResolveConfig, resolve_once
+from scripts.live_forward_resolve_once import (
+    ResolveConfig,
+    discover_dates,
+    resolve_once,
+)
 
 
 def _config(tmp_path: Path, *, dates: tuple[str, ...] = ()) -> ResolveConfig:
@@ -63,6 +67,90 @@ def test_resolve_once_no_preoutcome_artifacts_is_noop(tmp_path, monkeypatch):
     assert payload["status"] == "no_preoutcome_artifacts"
 
 
+def test_default_scan_skips_stale_pick_snapshot_archives(tmp_path, monkeypatch):
+    config = _config(tmp_path)
+    _write_preoutcome_manifest(config, date="2026-05-22")
+    stale_date = "2026-05-22.stale_pick_snapshot.abc123"
+    _write_preoutcome_manifest(config, date=stale_date)
+    resolved_dir = config.production_root / config.resolved_root / "2026-05-22"
+    resolved_dir.mkdir(parents=True)
+    (resolved_dir / "manifest.json").write_text("{}")
+    stale_resolved_dir = config.production_root / config.resolved_root / stale_date
+    stale_resolved_dir.mkdir(parents=True)
+    (stale_resolved_dir / "manifest.json").write_text("{}")
+    calls = []
+
+    def fake_run(args, *, cwd, env=None):
+        calls.append(args)
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="prod-sha\n")
+        if "verify-candidate-artifacts" in args:
+            artifact_dir = args[args.index("--artifact-dir") + 1]
+            if "stale_pick_snapshot" in artifact_dir:
+                return _fake_completed(args, returncode=1, stderr="stale verify failed")
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_resolve_once.run", fake_run)
+    monkeypatch.setattr(
+        "scripts.live_forward_resolve_once.pa_rows_for_dates",
+        lambda data_dir, dates: (_ for _ in ()).throw(
+            AssertionError("existing resolved manifests should not read PA data")
+        ),
+    )
+
+    discovered = discover_dates(config.production_root / config.preoutcome_root)
+    code, payload = resolve_once(config)
+
+    assert discovered == ["2026-05-22"]
+    assert code == 0
+    assert payload["status_counts"] == {"existing_verified": 1}
+    verified_dirs = [
+        args[args.index("--artifact-dir") + 1]
+        for args in calls
+        if "verify-candidate-artifacts" in args
+    ]
+    assert verified_dirs == [str(resolved_dir)]
+    stale_status = config.production_root / config.status_root / f"{stale_date}.json"
+    assert not stale_status.exists()
+
+
+def test_explicit_stale_pick_snapshot_date_can_still_be_resolved(
+    tmp_path,
+    monkeypatch,
+):
+    stale_date = "2026-05-22.stale_pick_snapshot.abc123"
+    config = _config(tmp_path, dates=(stale_date,))
+    _write_preoutcome_manifest(config, date=stale_date)
+    resolved_dir = config.production_root / config.resolved_root / stale_date
+    resolved_dir.mkdir(parents=True)
+    (resolved_dir / "manifest.json").write_text("{}")
+
+    def fake_run(args, *, cwd, env=None):
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="prod-sha\n")
+        if "verify-candidate-artifacts" in args:
+            artifact_dir = args[args.index("--artifact-dir") + 1]
+            assert artifact_dir == str(resolved_dir)
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_resolve_once.run", fake_run)
+    monkeypatch.setattr(
+        "scripts.live_forward_resolve_once.pa_rows_for_dates",
+        lambda data_dir, dates: (_ for _ in ()).throw(
+            AssertionError("existing resolved manifests should not read PA data")
+        ),
+    )
+
+    code, payload = resolve_once(config)
+
+    assert code == 0
+    assert payload["status_counts"] == {"existing_verified": 1}
+    stale_status = config.production_root / config.status_root / f"{stale_date}.json"
+    assert json.loads(stale_status.read_text())["status"] == "existing_verified"
+
+
 def test_resolve_once_explicit_missing_preoutcome_is_pending(tmp_path, monkeypatch):
     config = _config(tmp_path, dates=("2026-05-11",))
 
@@ -101,6 +189,7 @@ def test_resolve_once_pending_when_pa_rows_absent(tmp_path, monkeypatch):
     code, payload = resolve_once(config)
 
     assert code == 0
+    assert payload["status"] == "completed"
     assert payload["status_counts"] == {"pending_outcomes": 1}
     assert not (config.production_root / config.resolved_root).exists()
 

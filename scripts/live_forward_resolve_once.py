@@ -35,6 +35,7 @@ DEFAULT_STATUS_ROOT = Path(
 DEFAULT_PRODUCTION_ROOT = Path("/home/bts/projects/bts")
 DEFAULT_PYTHON = Path("/home/bts/projects/bts/.venv/bin/python")
 PRODUCTION_PICK_SNAPSHOT_REQUIRED_FROM = "2026-05-10"
+STALE_PICK_SNAPSHOT_MARKER = ".stale_pick_snapshot."
 PENDING_RESOLVE_MARKERS = (
     # Contract with src/bts/experiment/artifacts.py and cli.py: these errors
     # mean outcome evidence is not ready yet, not that resolution is invalid.
@@ -147,7 +148,11 @@ def discover_dates(preoutcome_root: Path) -> list[str]:
         return []
     return sorted(
         path.name for path in preoutcome_root.iterdir()
-        if path.is_dir() and (path / "manifest.json").exists()
+        if (
+            path.is_dir()
+            and (path / "manifest.json").exists()
+            and STALE_PICK_SNAPSHOT_MARKER not in path.name
+        )
     )
 
 
