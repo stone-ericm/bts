@@ -8,6 +8,7 @@ import pytest
 from bts.experiment.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     OUTCOME_STATUS_RESOLVED,
+    OUTCOME_STATUS_VOID_NO_PA,
     OUTCOME_STATUS_VOID_POSTPONEMENT,
     PROFILE_SCHEMA_COLUMNS,
     PRODUCTION_PICK_SNAPSHOT_VERSION,
@@ -251,7 +252,7 @@ def test_compare_candidate_profile_pair_uses_common_resolved_dates(
             OUTCOME_STATUS_RESOLVED,
             OUTCOME_STATUS_RESOLVED,
             (
-                OUTCOME_STATUS_VOID_POSTPONEMENT
+                OUTCOME_STATUS_VOID_NO_PA
                 if variant == "production"
                 else OUTCOME_STATUS_RESOLVED
             ),
@@ -592,6 +593,7 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
         "resolved": 4,
         "void_postponement": 0,
         "void_cancellation": 0,
+        "void_no_pa": 0,
         "pending": 0,
     }
     assert "never coerced to actual_hit=0" in resolved_manifest["outcome_missing_semantics"]
@@ -685,6 +687,7 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         "resolved": 2,
         "void_postponement": 2,
         "void_cancellation": 0,
+        "void_no_pa": 0,
         "pending": 0,
     }
 
@@ -697,6 +700,7 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         "resolved": 2,
         "void_postponement": 2,
         "void_cancellation": 0,
+        "void_no_pa": 0,
         "pending": 0,
     }
     assert resolved_manifest["profile_schema_columns"] == RESOLVED_PROFILE_SCHEMA_COLUMNS
@@ -709,6 +713,66 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
     assert pd.isna(void_row["actual_hit"])
     assert pd.isna(void_row["n_pas"])
     assert list(resolved_production.columns) == RESOLVED_PROFILE_SCHEMA_COLUMNS
+
+    verification = verify_candidate_artifact_pair(
+        artifact_dir=resolved_dir,
+        expected_run_kind="live_forward_resolved",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=2,
+    )
+    assert verification["ok"] is True
+
+
+def test_resolve_live_candidate_artifact_pair_final_no_pa_void_status(
+    tmp_path,
+):
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    manifest = _write_live_preoutcome_artifact(artifact_dir)
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+        {"date": "2026-05-09", "batter_id": 44, "game_pk": 1002, "is_hit": 0},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=resolved_dir,
+        data_dir=data_dir,
+        treat_void_games_as_terminal=True,
+        detailed_statuses_by_date={
+            "2026-05-09": {
+                1002: {"abstract": "F", "detailed": "Final"},
+            }
+        },
+        save_path=resolved_dir / "resolution.json",
+    )
+
+    assert report["complete"] is True
+    assert report["missing_count"] == 0
+    assert report["terminal_void_count"] == 2
+    assert report["outcome_status_counts"] == {
+        "resolved": 2,
+        "void_postponement": 0,
+        "void_cancellation": 0,
+        "void_no_pa": 2,
+        "pending": 0,
+    }
+
+    resolved_manifest = json.loads((resolved_dir / "manifest.json").read_text())
+    assert "no PA for the player" in resolved_manifest["outcome_terminal_void_semantics"]
+
+    resolved_production = pd.read_parquet(
+        resolved_dir / manifest["profile_paths"]["production"]["2026-05-09"]
+    )
+    void_row = resolved_production.loc[resolved_production["rank"] == 2].iloc[0]
+    assert void_row["outcome_status"] == OUTCOME_STATUS_VOID_NO_PA
+    assert pd.isna(void_row["actual_hit"])
+    assert pd.isna(void_row["n_pas"])
 
     verification = verify_candidate_artifact_pair(
         artifact_dir=resolved_dir,
@@ -770,6 +834,7 @@ def test_resolve_live_candidate_artifact_pair_mixed_void_and_pending(
         "resolved": 2,
         "void_postponement": 2,
         "void_cancellation": 0,
+        "void_no_pa": 0,
         "pending": 2,
     }
 
