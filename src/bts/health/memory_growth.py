@@ -8,9 +8,9 @@ should be assessed from sustained growth over the daily history, not from
 the cold-start baseline alone.
 
 Thresholds:
-  INFO:    >= 1 GB
-  WARN:    >= 3 GB
-  CRITICAL: >= 6 GB
+  INFO:    >= 4.5 GB
+  WARN:    >= 5 GB, or >= 1 GB over recent post-prediction baseline
+  CRITICAL: >= 6 GB, or >= 3 GB over recent post-prediction baseline
 
 This works on Linux. Returns [] on non-Linux (Mac dev box) or if /proc
 isn't readable for any reason.
@@ -38,19 +38,20 @@ log = logging.getLogger(__name__)
 SOURCE = "memory_growth"
 
 DEFAULT_THRESHOLDS = {
-    # Tuned 2026-04-28 evening after first real CRITICAL fired at 2.9 GB.
-    # Previous thresholds (200/500/1024) were calibrated against sleeping-state
-    # baseline RSS (~90 MB), but the scheduler's bts-run path loads 1.5M PA ×
-    # dozens of features into pandas + trains 12 LightGBM blend models in
-    # process. That legitimately allocates 2-3 GB which CPython doesn't return
-    # to the OS. Post-prediction baseline is fundamentally different from
-    # sleeping baseline. New thresholds:
-    #   INFO 1 GB:    notable growth, worth observing
-    #   WARN 3 GB:    significant — beyond expected post-prediction RSS
-    #   CRITICAL 6 GB: ~40% of bts-mlb's 16 GB, likely real leak
-    "info_mb": 1024,
-    "warn_mb": 3072,
+    # Recalibrated 2026-05-23 after real history showed normal post-prediction
+    # RSS commonly around 2.8-3.6 GB while cold sleeping RSS is about 140 MB.
+    # Absolute 1 GB / 3 GB thresholds mixed those two operating states and made
+    # normal post-prediction residency look actionable. Keep a high absolute
+    # floor, and use recent post-prediction samples (not cold samples) for
+    # growth detection.
+    "info_mb": 4608,
+    "warn_mb": 5120,
     "critical_mb": 6144,
+    "post_prediction_floor_mb": 1024,
+    "baseline_ceiling_mb": 5120,
+    "warn_delta_mb": 1024,
+    "critical_delta_mb": 3072,
+    "baseline_days": 14,
 }
 
 
@@ -103,11 +104,53 @@ def _read_recent_history(history_path: Path, today: date, days: int = 14) -> lis
     return rows
 
 
+def _row_date(row: dict) -> date | None:
+    try:
+        return date.fromisoformat(row["date"])
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+def _daily_latest_rows(rows: list[dict]) -> list[dict]:
+    """Collapse repeated same-day samples to the latest row for that date."""
+    by_date: dict[date, dict] = {}
+    for row in rows:
+        row_date = _row_date(row)
+        if row_date is None:
+            continue
+        by_date[row_date] = row
+    return [by_date[row_date] for row_date in sorted(by_date)]
+
+
+def _post_prediction_baseline(
+    rows: list[dict],
+    *,
+    today: date,
+    floor_mb: float,
+    ceiling_mb: float,
+) -> float | None:
+    """Median recent post-prediction RSS, excluding today's sample and spikes."""
+    samples: list[float] = []
+    for row in _daily_latest_rows(rows):
+        row_date = _row_date(row)
+        if row_date is None or row_date >= today:
+            continue
+        try:
+            rss_mb = float(row["rss_mb"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if floor_mb <= rss_mb < ceiling_mb:
+            samples.append(rss_mb)
+    return median(samples) if samples else None
+
+
 def _weekly_digest_alert(rows: list[dict]) -> Alert | None:
     """Build the Tuesday-EOD INFO digest alert from recent history rows.
 
-    Reports n, median over last 14d, latest, and 7d trend (median of last
-    7d minus median of preceding 7d, or N/A if not enough data).
+    Reports n unique days, median over last 14d, latest, and 7d trend
+    (median of last 7d minus median of preceding 7d, or N/A if not enough
+    data). The append-only history can contain multiple same-day samples from
+    manual checks, so callers should pass rows collapsed by _daily_latest_rows.
     """
     if not rows:
         return None
@@ -147,33 +190,91 @@ def check(
     rss_mb = rss_kb / 1024
 
     alerts: list[Alert] = []
+    if history_path is not None and today is None:
+        today = date.today()
+
+    baseline_mb: float | None = None
+    if history_path is not None and today is not None:
+        recent_rows = _read_recent_history(
+            history_path,
+            today,
+            days=int(t.get("baseline_days", 14)),
+        )
+        baseline_mb = _post_prediction_baseline(
+            recent_rows,
+            today=today,
+            floor_mb=float(t["post_prediction_floor_mb"]),
+            ceiling_mb=float(t["baseline_ceiling_mb"]),
+        )
 
     # Threshold-based alert (existing behavior)
-    if rss_mb >= t["info_mb"]:
-        if rss_mb >= t["critical_mb"]:
-            level = "CRITICAL"
-        elif rss_mb >= t["warn_mb"]:
-            level = "WARN"
-        else:
-            level = "INFO"
+    level: str | None = None
+    trigger = ""
+    delta_mb: float | None = None
+    if baseline_mb is not None:
+        delta_mb = rss_mb - baseline_mb
+
+    critical_delta_threshold_mb = (
+        baseline_mb + float(t["critical_delta_mb"])
+        if baseline_mb is not None
+        else None
+    )
+    warn_delta_threshold_mb = (
+        baseline_mb + float(t["warn_delta_mb"])
+        if baseline_mb is not None
+        else None
+    )
+
+    if rss_mb >= t["critical_mb"]:
+        level = "CRITICAL"
+        trigger = f"absolute critical threshold {t['critical_mb']} MB"
+    elif critical_delta_threshold_mb is not None and rss_mb >= critical_delta_threshold_mb:
+        level = "CRITICAL"
+        trigger = (
+            f"delta threshold {critical_delta_threshold_mb:.1f} MB "
+            f"(baseline {baseline_mb:.1f} MB + {t['critical_delta_mb']} MB)"
+        )
+    elif rss_mb >= t["warn_mb"]:
+        level = "WARN"
+        trigger = f"absolute warn threshold {t['warn_mb']} MB"
+    elif warn_delta_threshold_mb is not None and rss_mb >= warn_delta_threshold_mb:
+        level = "WARN"
+        trigger = (
+            f"delta threshold {warn_delta_threshold_mb:.1f} MB "
+            f"(baseline {baseline_mb:.1f} MB + {t['warn_delta_mb']} MB)"
+        )
+    elif rss_mb >= t["info_mb"]:
+        level = "INFO"
+        trigger = f"absolute info threshold {t['info_mb']} MB"
+
+    if level is not None:
+        baseline_msg = (
+            f"; recent post-prediction baseline={baseline_mb:.1f} MB "
+            f"delta={delta_mb:+.1f} MB"
+            if baseline_mb is not None and delta_mb is not None
+            else "; recent post-prediction baseline unavailable"
+        )
         alerts.append(Alert(
             level=level,
             source=SOURCE,
             message=(
                 f"scheduler RSS {rss_mb:.1f} MB (pid={pid}); "
-                f"thresholds info={t['info_mb']} MB warn={t['warn_mb']} MB "
-                f"critical={t['critical_mb']} MB"
+                f"thresholds info={t['info_mb']} MB warn_floor={t['warn_mb']} MB "
+                f"critical={t['critical_mb']} MB "
+                f"baseline_floor={t['post_prediction_floor_mb']} MB "
+                f"baseline_ceiling={t['baseline_ceiling_mb']} MB "
+                f"warn_delta={t['warn_delta_mb']} MB "
+                f"critical_delta={t['critical_delta_mb']} MB"
+                f"{baseline_msg}; trigger={trigger}"
             ),
         ))
 
     # History append + Tuesday digest (item #5)
     if history_path is not None:
-        if today is None:
-            today = date.today()
         _append_history(history_path, today, rss_mb)
         # weekday(): Mon=0, Tue=1, ...
         if today.weekday() == 1:
-            rows = _read_recent_history(history_path, today, days=14)
+            rows = _daily_latest_rows(_read_recent_history(history_path, today, days=14))
             digest = _weekly_digest_alert(rows)
             if digest is not None:
                 alerts.append(digest)
