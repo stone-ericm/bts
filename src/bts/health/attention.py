@@ -26,6 +26,8 @@ REPEATED_ATTENTION_WARN_SOURCES = {
     "pooled_training",
     "predicted_vs_realized",
     "projected_lineup",
+    "dd_pair_residual_corr",
+    "dd_pair_realized_shortfall",
     "same_team_corr",
 }
 
