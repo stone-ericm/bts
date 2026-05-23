@@ -65,8 +65,11 @@ Use the live scheduler service as the source of truth for project root, config
 path, environment file, and model-affecting BTS settings such as
 `BTS_LGBM_DETERMINISTIC`, `BTS_LGBM_RANDOM_STATE`, and thread-count variables;
 older checked-in scheduler unit files may be stale. The checked-in shadow unit
-sources `/home/bts/projects/bts/.env` but does not hardcode those values. Update
-the unit first if the live scheduler uses a different environment source.
+matches the live scheduler's project root, config path, required environment
+file, `UV_CACHE_DIR`, and `PATH` as of 2026-05-23. It sources
+`/home/bts/projects/bts/.env` but does not hardcode model-affecting values, and
+it intentionally fails loudly if that environment file is missing. Update the
+unit first if the live scheduler uses a different environment source or path.
 
 Then enable the scheduler to use it by setting:
 
@@ -87,6 +90,7 @@ against the inline path and confirm the shadow pick and provenance match.
 Verify:
 
     systemctl --user status --no-pager -l bts-shadow-prediction.service
+    systemctl --user show bts-shadow-prediction.service -p Environment
     journalctl --user -u bts-shadow-prediction -n 100 --no-pager
 
 Run one manual shadow attempt after a pick is locked:

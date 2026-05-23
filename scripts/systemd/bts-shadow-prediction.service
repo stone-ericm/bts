@@ -5,9 +5,10 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/home/bts/projects/bts
-EnvironmentFile=-/home/bts/projects/bts/.env
+EnvironmentFile=/home/bts/projects/bts/.env
 Environment="PYTHONUNBUFFERED=1"
 Environment="UV_CACHE_DIR=/tmp/uv-cache"
+Environment="PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/shadow_predict_once.py --config /home/bts/.bts-orchestrator.toml --unit bts-shadow-prediction.service
 Nice=19
 StandardOutput=journal
