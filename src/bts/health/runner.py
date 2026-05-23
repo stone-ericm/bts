@@ -19,6 +19,7 @@ from bts.health import (
     calibration,
     disk_fill,
     leaderboard_freshness,
+    live_forward_resolution,
     memory_growth,
     mdp_policy_alignment,
     pitcher_sparsity,
@@ -51,6 +52,17 @@ def _path(value: Path | str) -> Path:
     return value if isinstance(value, Path) else Path(value)
 
 
+def _repo_root_from_picks_dir(picks_dir: Path) -> Path:
+    if picks_dir.name == "picks" and picks_dir.parent.name == "data":
+        return picks_dir.parent.parent
+    return picks_dir.parent
+
+
+def _repo_path(picks_dir: Path, value: Path | str) -> Path:
+    path = _path(value)
+    return path if path.is_absolute() else _repo_root_from_picks_dir(picks_dir) / path
+
+
 def run_all_checks(
     picks_dir: Path,
     models_dir: Path,
@@ -65,6 +77,7 @@ def run_all_checks(
     shadow_model_enabled: bool = False,
     live_forward_capture_enabled: bool = False,
     live_forward_capture_artifact_root: Path | None = None,
+    live_forward_resolve_status_root: Path | None = None,
     live_forward_capture_unit: str | None = "bts-live-forward-capture.service",
     shadow_unit: str | None = None,
 ) -> list[Alert]:
@@ -114,6 +127,25 @@ def run_all_checks(
                 capture_unit=live_forward_capture_unit,
                 shadow_unit=shadow_unit,
                 scheduler_unit="bts-scheduler.service",
+            )
+        )))
+    if live_forward_capture_enabled:
+        capture_root = _repo_path(
+            picks_dir,
+            live_forward_capture_artifact_root
+            or analytics_artifacts_missing.DEFAULT_CAPTURE_ARTIFACT_ROOT,
+        )
+        resolve_status_root = _repo_path(
+            picks_dir,
+            live_forward_resolve_status_root
+            or Path("data/validation/decision_weighted_lgbm_v0_live_forward_resolved_status"),
+        )
+        alerts.extend(_safe_run("live_forward_resolution", lambda: (
+            live_forward_resolution.check(
+                preoutcome_root=capture_root,
+                status_root=resolve_status_root,
+                today=today,
+                thresholds=overrides.get("live_forward_resolution"),
             )
         )))
 

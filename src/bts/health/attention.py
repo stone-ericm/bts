@@ -17,6 +17,7 @@ STATE_SCHEMA_VERSION = "bts_warn_attention_state_v1"
 ALWAYS_ATTENTION_WARN_SOURCES = {
     "analytics_artifacts_missing",
     "disk_fill",
+    "live_forward_resolution",
     "postponed_pick",
 }
 

@@ -1729,6 +1729,12 @@ def run_day(
                         "data/validation/decision_weighted_lgbm_v0_live_forward",
                     )
                 ),
+                live_forward_resolve_status_root=Path(
+                    health_config.get(
+                        "live_forward_resolve_status_root",
+                        "data/validation/decision_weighted_lgbm_v0_live_forward_resolved_status",
+                    )
+                ),
                 live_forward_capture_unit=sched_config.get(
                     "live_forward_capture_unit",
                     "bts-live-forward-capture.service",

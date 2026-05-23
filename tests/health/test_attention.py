@@ -93,6 +93,17 @@ def test_always_attention_warn_enters_digest_immediately(tmp_path):
     assert attention[0].source == "postponed_pick"
 
 
+def test_live_forward_resolution_warn_enters_digest_immediately(tmp_path):
+    policy, attention = apply_warn_attention_policy(
+        [Alert("WARN", "live_forward_resolution", "canonical resolution stalled")],
+        state_path=tmp_path / "warn_attention.json",
+        today=date(2026, 5, 21),
+    )
+    assert policy == []
+    assert len(attention) == 1
+    assert attention[0].source == "live_forward_resolution"
+
+
 def test_memory_warn_with_oom_evidence_promotes_policy_critical(tmp_path):
     alerts = [
         Alert("WARN", "memory_growth", "scheduler RSS 3350 MB"),
