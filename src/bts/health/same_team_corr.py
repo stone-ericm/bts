@@ -1,16 +1,16 @@
-"""Tier 2: same-day pick correlation drift.
+"""Tier 2: double-down pair shortfall and residual pair drift.
 
-DD strategy assumes some independence between primary pick and DD. Empirical
-P(both hit) is observed via the realized result of pick + DD pair. If the
-realized P(both hit) deviates from the predicted naive-independence
-P(p1 × pdd) by significant margin, the DD strategy assumption is breaking.
+DD strategy consumes a model-pair probability (`p1 × pdd`) and also has a
+separate pair-dependence assumption. These are different failure modes:
 
-2026-04-25 baseline observation: 11/22 = 0.500 realized vs naive 0.548 expected.
-That's ~5pp shortfall, attributed to positive same-day correlation between picks
-(good lineup days lift both, bad days drag both). Acute drift here would mean
-the correlation pattern is intensifying.
+1. Model-pair shortfall: realized P(both hit) is below `p1 × pdd`. This can be
+   caused by ordinary marginal overconfidence in either slot.
+2. Residual pair shortfall: realized P(both hit) is below the product of the
+   empirical primary/DD marginal hit rates. This is the part that can justify a
+   pair-dependence/correlation investigation.
 
-This is a pair-level realized check, separate from the top-1 calibration check.
+The first signal stays visible, but it should not be labeled as pair
+correlation by itself.
 """
 
 from __future__ import annotations
@@ -26,21 +26,29 @@ from bts.health.alert import Alert
 
 log = logging.getLogger(__name__)
 
-SOURCE = "same_team_corr"
+SOURCE = "dd_pair_realized_shortfall"
+RESIDUAL_SOURCE = "dd_pair_residual_corr"
 
 
 @dataclass(frozen=True)
 class CorrMetrics:
-    pair_days: list[dict]  # each: {"date", "p1", "pdd", "predicted", "realized"}
+    pair_days: list[dict]  # each: {"date", "p1", "pdd", "predicted", "realized", ...}
     rolling_14d_gap: float | None  # mean(predicted_pair) - mean(realized_pair) recent 14d
     baseline_28d_gap: float | None
     drift: float | None  # 14d gap - 28d gap
+    rolling_14d_residual_gap: float | None = None
+    baseline_28d_residual_gap: float | None = None
+    residual_drift: float | None = None
+    n_residual_14d: int = 0
 
 
 DEFAULT_THRESHOLDS = {
     "drift_info": 0.05,
     "drift_warn": 0.10,
     "drift_critical": 0.15,
+    "residual_info": 0.05,
+    "residual_warn": 0.10,
+    "residual_critical": 0.15,
     "min_days_14d": 8,
 }
 
@@ -84,12 +92,25 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
             or slot_results.get("double_down") == "void"
         ):
             continue
+        pick_hit = None
+        dd_hit = None
+        if slot_results.get("pick") in ("hit", "miss"):
+            pick_hit = 1 if slot_results["pick"] == "hit" else 0
+        if slot_results.get("double_down") in ("hit", "miss"):
+            dd_hit = 1 if slot_results["double_down"] == "hit" else 0
+        if result == "hit" and (pick_hit is None or dd_hit is None):
+            # Old files without slot_results can still prove both slots hit.
+            pick_hit = 1
+            dd_hit = 1
+
         pair_days.append({
             "date": data.get("date") or p.stem,
             "p1": float(p1),
             "pdd": float(pdd),
             "predicted": float(p1) * float(pdd),  # naive independence
             "realized": 1 if result == "hit" else 0,
+            "pick_hit": pick_hit,
+            "dd_hit": dd_hit,
         })
 
     pair_days.sort(key=lambda r: r["date"])
@@ -98,6 +119,18 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
         if not window:
             return None
         return mean(d["predicted"] for d in window) - mean(d["realized"] for d in window)
+
+    def residual_gap_over(window):
+        rows = [
+            d for d in window
+            if d.get("pick_hit") is not None and d.get("dd_hit") is not None
+        ]
+        if not rows:
+            return None
+        primary_rate = mean(d["pick_hit"] for d in rows)
+        dd_rate = mean(d["dd_hit"] for d in rows)
+        realized_pair_rate = mean(d["realized"] for d in rows)
+        return (primary_rate * dd_rate) - realized_pair_rate
 
     last_14 = pair_days[-14:]
     last_28 = pair_days[-28:]
@@ -108,13 +141,33 @@ def compute_metrics(picks_dir: Path, today: date | None = None,
         if (rolling_14d_gap is not None and baseline_28d_gap is not None)
         else None
     )
+    rolling_14d_residual_gap = residual_gap_over(last_14)
+    baseline_28d_residual_gap = residual_gap_over(last_28)
+    residual_drift = (
+        rolling_14d_residual_gap - baseline_28d_residual_gap
+        if (
+            rolling_14d_residual_gap is not None
+            and baseline_28d_residual_gap is not None
+        )
+        else None
+    )
+    n_residual_14d = sum(
+        1
+        for d in last_14
+        if d.get("pick_hit") is not None and d.get("dd_hit") is not None
+    )
     return CorrMetrics(pair_days=pair_days, rolling_14d_gap=rolling_14d_gap,
-                       baseline_28d_gap=baseline_28d_gap, drift=drift)
+                       baseline_28d_gap=baseline_28d_gap, drift=drift,
+                       rolling_14d_residual_gap=rolling_14d_residual_gap,
+                       baseline_28d_residual_gap=baseline_28d_residual_gap,
+                       residual_drift=residual_drift,
+                       n_residual_14d=n_residual_14d)
 
 
 def evaluate(metrics: CorrMetrics, thresholds: dict | None = None) -> list[Alert]:
-    """Drift > 0 means current realization is FURTHER below naive prediction
-    than baseline — correlation getting stronger. Drift < 0 means improvement.
+    """Drift > 0 means recent realized pairs are further below model pairs
+    than baseline. Residual gap is checked separately against empirical
+    marginal rates.
     """
     t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     alerts: list[Alert] = []
@@ -125,22 +178,52 @@ def evaluate(metrics: CorrMetrics, thresholds: dict | None = None) -> list[Alert
         return alerts
     drift = metrics.drift
     if drift < t["drift_info"]:
-        return alerts
-    if drift >= t["drift_critical"]:
-        level = "CRITICAL"
-    elif drift >= t["drift_warn"]:
-        level = "WARN"
+        pass
     else:
-        level = "INFO"
-    alerts.append(Alert(
-        level=level,
-        source=SOURCE,
-        message=(
-            f"DD pair-correlation drift +{drift:.4f}: "
-            f"14d realization-shortfall {metrics.rolling_14d_gap:+.4f} "
-            f"vs 28d baseline {metrics.baseline_28d_gap:+.4f}"
-        ),
-    ))
+        if drift >= t["drift_critical"]:
+            level = "CRITICAL"
+        elif drift >= t["drift_warn"]:
+            level = "WARN"
+        else:
+            level = "INFO"
+        alerts.append(Alert(
+            level=level,
+            source=SOURCE,
+            message=(
+                f"DD model-pair shortfall drift +{drift:.4f}: "
+                f"14d model-vs-realized shortfall {metrics.rolling_14d_gap:+.4f} "
+                f"vs 28d baseline {metrics.baseline_28d_gap:+.4f}; "
+                "check marginal calibration before pair-correlation attribution"
+            ),
+        ))
+
+    residual_gap = metrics.rolling_14d_residual_gap
+    if (
+        residual_gap is not None
+        and metrics.n_residual_14d >= t["min_days_14d"]
+        and residual_gap >= t["residual_info"]
+    ):
+        residual_drift = (
+            f"{metrics.residual_drift:+.4f}"
+            if metrics.residual_drift is not None
+            else "n/a"
+        )
+        if residual_gap >= t["residual_critical"]:
+            level = "CRITICAL"
+        elif residual_gap >= t["residual_warn"]:
+            level = "WARN"
+        else:
+            level = "INFO"
+        alerts.append(Alert(
+            level=level,
+            source=RESIDUAL_SOURCE,
+            message=(
+                f"DD residual pair shortfall {residual_gap:+.4f}: "
+                "observed both-hit rate below empirical marginal product "
+                f"(14d n={metrics.n_residual_14d}, "
+                f"residual drift {residual_drift})"
+            ),
+        ))
     return alerts
 
 

@@ -4,17 +4,19 @@ import json
 from datetime import date
 
 from bts.health.same_team_corr import (
-    check, compute_metrics, evaluate, SOURCE, CorrMetrics,
+    RESIDUAL_SOURCE, SOURCE, check, compute_metrics, evaluate, CorrMetrics,
 )
 
 
-def _write_pair(picks_dir, date_iso, p1, pdd, result):
+def _write_pair(picks_dir, date_iso, p1, pdd, result, slot_results=None):
     data = {
         "date": date_iso,
         "pick": {"batter_name": "X", "p_game_hit": p1},
         "double_down": {"batter_name": "Y", "p_game_hit": pdd},
         "result": result,
     }
+    if slot_results is not None:
+        data["slot_results"] = slot_results
     (picks_dir / f"{date_iso}.json").write_text(json.dumps(data))
 
 
@@ -57,6 +59,30 @@ class TestComputeMetrics:
         # 14d and 28d both windows = same 4 days, so gap is same → drift=0
         assert m.drift == 0
 
+    def test_computes_residual_gap_from_slot_marginals(self, tmp_path):
+        # Primary 2/4, DD 2/4, both 1/4 => empirical marginal product 0.25,
+        # observed both 0.25, so no residual pair shortfall.
+        rows = [
+            ("hit", {"pick": "hit", "double_down": "hit"}),
+            ("miss", {"pick": "hit", "double_down": "miss"}),
+            ("miss", {"pick": "miss", "double_down": "hit"}),
+            ("miss", {"pick": "miss", "double_down": "miss"}),
+        ]
+        for i, (result, slot_results) in enumerate(rows, start=1):
+            _write_pair(
+                tmp_path,
+                f"2026-04-{i:02d}",
+                0.8,
+                0.8,
+                result,
+                slot_results=slot_results,
+            )
+
+        m = compute_metrics(tmp_path, today=date(2026, 4, 5))
+
+        assert m.rolling_14d_residual_gap == 0
+        assert m.n_residual_14d == 4
+
 
 class TestEvaluate:
     def _m(self, n_days, gap_14, gap_28):
@@ -82,6 +108,7 @@ class TestEvaluate:
     def test_critical_drift(self):
         alerts = evaluate(self._m(28, 0.22, 0.05))  # drift 0.17
         assert any(a.level == "CRITICAL" for a in alerts)
+        assert any(a.source == SOURCE for a in alerts)
 
     def test_insufficient_data(self):
         # n=5 < min_days_14d=8 → no alert
@@ -95,3 +122,38 @@ class TestEvaluate:
     def test_negative_drift_no_alert(self):
         alerts = evaluate(self._m(28, 0.05, 0.10))
         assert alerts == []
+
+    def test_model_shortfall_does_not_imply_residual_corr(self):
+        metrics = self._m(28, 0.22, 0.05)
+        metrics = CorrMetrics(
+            pair_days=metrics.pair_days,
+            rolling_14d_gap=metrics.rolling_14d_gap,
+            baseline_28d_gap=metrics.baseline_28d_gap,
+            drift=metrics.drift,
+            rolling_14d_residual_gap=0.0,
+            baseline_28d_residual_gap=0.0,
+            residual_drift=0.0,
+            n_residual_14d=14,
+        )
+
+        alerts = evaluate(metrics)
+
+        assert any(a.source == SOURCE for a in alerts)
+        assert not any(a.source == RESIDUAL_SOURCE for a in alerts)
+
+    def test_residual_pair_shortfall_gets_separate_source(self):
+        metrics = self._m(28, 0.04, 0.00)
+        metrics = CorrMetrics(
+            pair_days=metrics.pair_days,
+            rolling_14d_gap=metrics.rolling_14d_gap,
+            baseline_28d_gap=metrics.baseline_28d_gap,
+            drift=metrics.drift,
+            rolling_14d_residual_gap=0.12,
+            baseline_28d_residual_gap=0.02,
+            residual_drift=0.10,
+            n_residual_14d=14,
+        )
+
+        alerts = evaluate(metrics)
+
+        assert any(a.source == RESIDUAL_SOURCE and a.level == "WARN" for a in alerts)
