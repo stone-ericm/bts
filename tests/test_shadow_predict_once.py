@@ -21,7 +21,11 @@ def test_shadow_unit_sources_env_without_hardcoding_model_flags():
     )
     body = unit_path.read_text()
 
-    assert "EnvironmentFile=-/home/bts/projects/bts/.env" in body
+    assert "EnvironmentFile=/home/bts/projects/bts/.env" in body
+    assert (
+        'Environment="PATH=/home/bts/.local/bin:/usr/local/bin:/usr/bin:/bin"'
+        in body
+    )
     assert "BTS_LGBM_DETERMINISTIC" not in body
     assert "BTS_LGBM_RANDOM_STATE" not in body
     assert "OMP_NUM_THREADS" not in body
