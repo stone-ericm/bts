@@ -33,16 +33,19 @@ PRODUCTION_PICK_SNAPSHOT_VERSION = "production_pick_snapshot_v1"
 OUTCOME_STATUS_RESOLVED = "resolved"
 OUTCOME_STATUS_VOID_POSTPONEMENT = "void_postponement"
 OUTCOME_STATUS_VOID_CANCELLATION = "void_cancellation"
+OUTCOME_STATUS_VOID_NO_PA = "void_no_pa"
 OUTCOME_STATUS_PENDING = "pending"
 OUTCOME_STATUS_VALUES = (
     OUTCOME_STATUS_RESOLVED,
     OUTCOME_STATUS_VOID_POSTPONEMENT,
     OUTCOME_STATUS_VOID_CANCELLATION,
+    OUTCOME_STATUS_VOID_NO_PA,
     OUTCOME_STATUS_PENDING,
 )
 VOID_OUTCOME_STATUSES = {
     OUTCOME_STATUS_VOID_POSTPONEMENT,
     OUTCOME_STATUS_VOID_CANCELLATION,
+    OUTCOME_STATUS_VOID_NO_PA,
 }
 PROFILE_REQUIRED_COLUMNS = {
     "date",
@@ -750,6 +753,14 @@ def _is_terminal_void_detailed_state(detailed: str | None) -> bool:
     return _terminal_void_outcome_status(detailed) is not None
 
 
+def _is_final_game_status(status: dict[str, str] | None) -> bool:
+    if not status:
+        return False
+    abstract = (status.get("abstract") or "").strip().upper()
+    detailed = (status.get("detailed") or "").strip().lower()
+    return abstract == "F" or detailed == "final"
+
+
 def _load_terminal_void_statuses(
     *,
     date_keys: list[str],
@@ -766,6 +777,7 @@ def _missing_row_terminal_void_status(
     row: pd.Series,
     *,
     terminal_void_statuses: dict[str, dict[int, dict[str, str]]],
+    outcome_game_keys: set[tuple[str, int]],
 ) -> str | None:
     date_key = str(row.get("_outcome_date_key") or row.get("date"))
     try:
@@ -775,7 +787,12 @@ def _missing_row_terminal_void_status(
     status = terminal_void_statuses.get(date_key, {}).get(game_pk)
     if not status:
         return None
-    return _terminal_void_outcome_status(status.get("detailed"))
+    game_void_status = _terminal_void_outcome_status(status.get("detailed"))
+    if game_void_status is not None:
+        return game_void_status
+    if _is_final_game_status(status) and (date_key, game_pk) in outcome_game_keys:
+        return OUTCOME_STATUS_VOID_NO_PA
+    return None
 
 
 def _empty_outcome_status_counts() -> dict[str, int]:
@@ -852,6 +869,15 @@ def resolve_live_candidate_artifact_pair(
 
     date_keys = _manifest_date_keys(manifest)
     outcomes = _load_outcomes_from_pa(data_dir=data_dir, date_keys=date_keys)
+    outcome_game_keys = {
+        (str(row["_outcome_date_key"]), int(row["game_pk"]))
+        for _, row in (
+            outcomes[["_outcome_date_key", "game_pk"]]
+            .dropna()
+            .drop_duplicates()
+            .iterrows()
+        )
+    }
     terminal_void_statuses = (
         detailed_statuses_by_date
         if detailed_statuses_by_date is not None
@@ -904,6 +930,7 @@ def resolve_live_candidate_artifact_pair(
                     _missing_row_terminal_void_status,
                     axis=1,
                     terminal_void_statuses=terminal_void_statuses,
+                    outcome_game_keys=outcome_game_keys,
                 )
                 for index, outcome_status in void_statuses.dropna().items():
                     resolved.loc[index, "outcome_status"] = outcome_status
@@ -997,14 +1024,15 @@ def resolve_live_candidate_artifact_pair(
     )
     resolved_manifest["outcome_status_semantics"] = (
         "resolved rows have observed actual_hit/n_pas values. "
-        "void_postponement and void_cancellation rows are terminal non-events "
-        "with actual_hit/n_pas left null. pending rows mean evidence is still "
-        "missing and are not acceptable in official resolved artifacts."
+        "void_postponement, void_cancellation, and void_no_pa rows are terminal "
+        "non-events with actual_hit/n_pas left null. pending rows mean evidence "
+        "is still missing and are not acceptable in official resolved artifacts."
     )
     resolved_manifest["outcome_terminal_void_semantics"] = (
         "When terminal void handling is enabled, missing rows whose original "
-        "game was postponed or cancelled remain actual_hit/n_pas null and are "
-        "counted separately from transient missing outcomes."
+        "game was postponed or cancelled, or whose final game has loaded PA data "
+        "but no PA for the player, remain actual_hit/n_pas null and are counted "
+        "separately from transient missing outcomes."
     )
     resolved_manifest["outcome_missing_by_variant"] = {
         variant: report["missing_outcomes"]
