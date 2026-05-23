@@ -190,6 +190,44 @@ class TestRunAllChecks:
         )
         assert mock_check.call_args.kwargs["scheduler_unit"] == "bts-scheduler.service"
 
+    def test_runs_live_forward_resolution_when_capture_enabled(self, tmp_path):
+        repo_root = tmp_path
+        picks_dir = repo_root / "data" / "picks"; picks_dir.mkdir(parents=True)
+        models_dir = repo_root / "data" / "models"; models_dir.mkdir(parents=True)
+        _set_up_picks_dir(picks_dir, models_dir)
+        expected = Alert("WARN", "live_forward_resolution", "stalled")
+        with patch(
+            "bts.health.runner.analytics_artifacts_missing.check",
+            return_value=[],
+        ), patch(
+            "bts.health.runner.live_forward_resolution.check",
+            return_value=[expected],
+        ) as mock_resolve, patch(
+            "bts.health.runner.dispatch_dm_for_health_alerts"
+        ):
+            alerts = run_all_checks(
+                picks_dir=picks_dir,
+                models_dir=models_dir,
+                dm_recipient=None,
+                today=date(2026, 5, 24),
+                live_forward_capture_enabled=True,
+                live_forward_capture_artifact_root=Path("data/validation/pre"),
+                live_forward_resolve_status_root=Path("data/validation/status"),
+                thresholds_overrides={
+                    "live_forward_resolution": {"grace_days": 3},
+                },
+            )
+
+        mock_resolve.assert_called_once()
+        assert mock_resolve.call_args.kwargs["preoutcome_root"] == (
+            repo_root / "data" / "validation" / "pre"
+        )
+        assert mock_resolve.call_args.kwargs["status_root"] == (
+            repo_root / "data" / "validation" / "status"
+        )
+        assert mock_resolve.call_args.kwargs["thresholds"] == {"grace_days": 3}
+        assert expected in alerts
+
     def test_path_overrides_are_normalized_to_path_objects(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()
