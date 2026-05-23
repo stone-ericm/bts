@@ -212,6 +212,12 @@ class SchedulerState:
     analytics_jobs: dict | None = None  # shadow/capture attempt status by job name
 
 
+@dataclass
+class FallbackRefreshResult:
+    daily: object
+    should_post: bool | None
+
+
 def save_state(state: SchedulerState, picks_dir: Path) -> Path:
     """Save scheduler state to JSON."""
     date_dir = picks_dir / state.date
@@ -559,6 +565,57 @@ def _poll_interval_sleep(
         time.sleep(seconds)
 
 
+def _lock_decision_from_predictions(
+    predictions,
+    daily,
+    date: str,
+    early_lock_gap: float,
+) -> tuple[bool, float | None]:
+    """Return should_lock plus the best projected contender, if any."""
+    from bts.picks import get_game_statuses
+    from bts.strategy import should_lock
+
+    statuses = get_game_statuses(date)
+    pick_data = {
+        "p_game_hit": daily.pick.p_game_hit,
+        "projected_lineup": daily.pick.projected_lineup,
+        "game_pk": daily.pick.game_pk,
+    }
+    all_pick_data = []
+    best_projected = None
+    for _, row in predictions.iterrows():
+        if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
+            game_pk = int(row["game_pk"])
+            if statuses.get(game_pk) != "P":
+                continue
+            is_proj = "PROJECTED" in str(row.get("flags", ""))
+            all_pick_data.append({
+                "p_game_hit": float(row["p_game_hit"]),
+                "projected_lineup": is_proj,
+                "game_pk": game_pk,
+            })
+            if is_proj and game_pk != pick_data["game_pk"]:
+                if best_projected is None or float(row["p_game_hit"]) > best_projected:
+                    best_projected = float(row["p_game_hit"])
+
+    return should_lock(pick_data, all_pick_data, early_lock_gap), best_projected
+
+
+def _has_pending_future_confirmation_window(
+    future_runs: list[dict],
+    confirmed_sides: set[tuple[int, str]],
+) -> bool:
+    """Return True if a future scheduled check can still add lineup data."""
+    for run in future_runs:
+        for game_pk in run["game_pks"]:
+            if (
+                (game_pk, "away") not in confirmed_sides
+                or (game_pk, "home") not in confirmed_sides
+            ):
+                return True
+    return False
+
+
 def run_single_check(
     date: str,
     all_game_pks: list[int],
@@ -580,8 +637,8 @@ def run_single_check(
              "pick_p": float | None}.
     """
     from bts.orchestrator import run_and_pick
-    from bts.picks import save_pick, get_game_statuses, load_pick, classify_pick_lock_state
-    from bts.strategy import should_lock, PickResult
+    from bts.picks import save_pick, load_pick, classify_pick_lock_state
+    from bts.strategy import PickResult
 
     new_count = count_new_confirmations(all_game_pks, confirmed_sides)
 
@@ -635,31 +692,12 @@ def run_single_check(
     )
     save_pick(pick_result.daily, picks_dir)
 
-    # Check if we should lock — only consider picks from pickable games
-    statuses = get_game_statuses(date)
-    pick_data = {
-        "p_game_hit": pick_result.daily.pick.p_game_hit,
-        "projected_lineup": pick_result.daily.pick.projected_lineup,
-        "game_pk": pick_result.daily.pick.game_pk,
-    }
-    all_pick_data = []
-    best_projected = None
-    for _, row in predictions.iterrows():
-        if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
-            game_pk = int(row["game_pk"])
-            if statuses.get(game_pk) != "P":
-                continue
-            is_proj = "PROJECTED" in str(row.get("flags", ""))
-            all_pick_data.append({
-                "p_game_hit": float(row["p_game_hit"]),
-                "projected_lineup": is_proj,
-                "game_pk": game_pk,
-            })
-            if is_proj and game_pk != pick_data["game_pk"]:
-                if best_projected is None or float(row["p_game_hit"]) > best_projected:
-                    best_projected = float(row["p_game_hit"])
-
-    do_post = should_lock(pick_data, all_pick_data, early_lock_gap)
+    do_post, best_projected = _lock_decision_from_predictions(
+        predictions,
+        pick_result.daily,
+        date,
+        early_lock_gap,
+    )
 
     # Log the decision
     pick = pick_result.daily.pick
@@ -929,14 +967,20 @@ def _trigger_shadow_prediction_on_lock(
           file=sys.stderr)
 
 
-def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
+def _refresh_pick_at_fallback_decision(
+    config: dict,
+    date: str,
+    cached_daily,
+    early_lock_gap: float,
+) -> FallbackRefreshResult:
     """Re-run predictions right before fallback delivery so late-arriving
     lineups can update the pick. If the refreshed pick differs from the cached
     one, log the swap and persist the fresh daily before delivery.
 
-    Returns the DailyPick to deliver. Falls back to ``cached_daily`` on any
-    error (cascade failure, empty predictions, locked result) so the fallback
-    path stays robust — we always have *something* to deliver if the loop reaches here.
+    Returns the DailyPick plus a fresh should_lock decision. Falls back to
+    ``cached_daily`` with should_post=None on any error (cascade failure,
+    locked result) so the fallback path stays robust — we always have
+    *something* to deliver if the loop reaches here.
     """
     from bts.picks import save_pick
 
@@ -945,16 +989,16 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
 
     try:
         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
-            _, pick_result, _ = run_and_pick(config, date)
+            predictions, pick_result, _ = run_and_pick(config, date)
     except Exception as e:
         print(f"  FALLBACK REFRESH: re-predict failed ({e}), using cached pick",
               file=sys.stderr)
-        return cached_daily
+        return FallbackRefreshResult(cached_daily, None)
 
     if pick_result is None or pick_result.daily is None:
         print("  FALLBACK REFRESH: no fresh pick available, using cached",
               file=sys.stderr)
-        return cached_daily
+        return FallbackRefreshResult(cached_daily, None)
 
     fresh = pick_result.daily
 
@@ -982,7 +1026,57 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
         policy_path=DEFAULT_POLICY_PATH,
     )
     save_pick(fresh, picks_dir)
-    return fresh
+    if predictions is None:
+        print(
+            "  FALLBACK REFRESH: no prediction frame available; "
+            "should_lock unknown",
+            file=sys.stderr,
+        )
+        return FallbackRefreshResult(fresh, None)
+
+    should_post, best_projected = _lock_decision_from_predictions(
+        predictions,
+        fresh,
+        date,
+        early_lock_gap,
+    )
+    gap_info = ""
+    if best_projected is not None:
+        gap = fresh.pick.p_game_hit - best_projected
+        gap_info = f", gap={gap:.1%} vs projected {best_projected:.1%}"
+    print(
+        f"  FALLBACK REFRESH: should_lock={should_post}{gap_info}",
+        file=sys.stderr,
+    )
+    return FallbackRefreshResult(fresh, should_post)
+
+
+def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
+    """Compatibility wrapper returning only the refreshed DailyPick."""
+    return _refresh_pick_at_fallback_decision(
+        config,
+        date,
+        cached_daily,
+        early_lock_gap=0.03,
+    ).daily
+
+
+def _defer_pick_at_fallback(picks_dir: Path, date: str, daily, reason: str) -> Path:
+    """Archive and remove an unsafe fallback candidate so later checks refresh."""
+    source = picks_dir / f"{date}.json"
+    archive_dir = picks_dir / date
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    stamp = _now_et().strftime("%Y%m%dT%H%M%S%z")
+    archive = archive_dir / f"deferred_fallback_{stamp}.json"
+    payload = asdict(daily)
+    payload["deferred_fallback"] = {
+        "reason": reason,
+        "deferred_at": _now_et().isoformat(),
+    }
+    archive.write_text(json.dumps(payload, indent=2))
+    if source.exists():
+        source.unlink()
+    return archive
 
 
 def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:
@@ -1437,8 +1531,13 @@ def run_day(
 
             # Is there a later check that fires before the deadline?
             run_idx = runs.index(run_info)
-            next_checks = [r["time_et"] for r in runs[run_idx + 1:]]
+            future_runs = runs[run_idx + 1:]
+            next_checks = [r["time_et"] for r in future_runs]
             has_earlier_check = any(t <= fallback_deadline for t in next_checks)
+            has_pending_future_window = _has_pending_future_confirmation_window(
+                future_runs,
+                confirmed_sides,
+            )
 
             if not has_earlier_check:
                 if now < fallback_deadline:
@@ -1462,7 +1561,28 @@ def run_day(
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
                 if daily and not pick_was_delivered(daily):
-                    daily = _refresh_pick_at_fallback(config, date, daily)
+                    refresh = _refresh_pick_at_fallback_decision(
+                        config,
+                        date,
+                        daily,
+                        early_lock_gap,
+                    )
+                    daily = refresh.daily
+                    if refresh.should_post is False and has_pending_future_window:
+                        archive = _defer_pick_at_fallback(
+                            picks_dir,
+                            date,
+                            daily,
+                            reason="should_lock_false_future_checks_remain",
+                        )
+                        print(
+                            "  FALLBACK DEFERRED — should_lock=False and "
+                            f"{len(next_checks)} future check(s) with pending "
+                            "lineup data remain; "
+                            f"archived {archive.name}.",
+                            file=sys.stderr,
+                        )
+                        continue
                     print(f"  FALLBACK — delivering before game starts.", file=sys.stderr)
                     _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback")
 
@@ -1493,7 +1613,12 @@ def run_day(
             if mins_to_game <= fallback_min:
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
-                daily = _refresh_pick_at_fallback(config, date, daily)
+                daily = _refresh_pick_at_fallback_decision(
+                    config,
+                    date,
+                    daily,
+                    early_lock_gap,
+                ).daily
                 print(f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
                       file=sys.stderr)
                 _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")

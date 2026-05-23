@@ -868,14 +868,14 @@ class TestRunDay:
         self, mock_capture, mock_post, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
         tmp_path, capsys
     ):
-        """When the top pick plays in the earliest game and should_lock=False,
-        the scheduler should wake up at game_time - 15min to force-post,
-        rather than sleeping until the next cluster check.
+        """When no refreshed lock decision is available, fallback remains
+        fail-closed: wake at game_time - 15min and post rather than drifting
+        past first pitch.
 
         Reproduces the 2026-04-06 bug: Hoerner (CHC, 4:10 PM game) was the top
         pick at 3:25 PM with 0% gap, but the scheduler slept until 5:25 PM.
         """
-        from bts.scheduler import run_day
+        from bts.scheduler import FallbackRefreshResult, run_day
         from bts.picks import Pick, DailyPick, save_pick
 
         # Two game clusters: early (16:10 ET) and late (19:05 ET)
@@ -913,23 +913,28 @@ class TestRunDay:
         mock_post.return_value = "at://did:example/post/1"
         mock_poll.return_value = "final"
 
-        run_day(
-            date="2026-04-06",
-            config={
-                "orchestrator": {"picks_dir": str(tmp_path)},
-                "tiers": [],
-                "scheduler": {
-                    "early_lock_gap": 0.03,
-                    "lineup_check_offset_min": 45,
-                    "cluster_min": 10,
-                    "doubleheader_recheck_min": 15,
-                    "fallback_deadline_min": 15,
-                    "fallback_deadline_min_morning": 15,
-                    "results_poll_interval_min": 15,
-                    "results_cap_hour_et": 5,
+        with patch("bts.scheduler._refresh_pick_at_fallback_decision") as mock_refresh:
+            mock_refresh.return_value = FallbackRefreshResult(
+                daily=daily,
+                should_post=None,
+            )
+            run_day(
+                date="2026-04-06",
+                config={
+                    "orchestrator": {"picks_dir": str(tmp_path)},
+                    "tiers": [],
+                    "scheduler": {
+                        "early_lock_gap": 0.03,
+                        "lineup_check_offset_min": 45,
+                        "cluster_min": 10,
+                        "doubleheader_recheck_min": 15,
+                        "fallback_deadline_min": 15,
+                        "fallback_deadline_min_morning": 15,
+                        "results_poll_interval_min": 15,
+                        "results_cap_hour_et": 5,
+                    },
                 },
-            },
-        )
+            )
 
         # Verify: posted to Bluesky via fallback
         mock_post.assert_called_once()
@@ -948,6 +953,210 @@ class TestRunDay:
         captured = capsys.readouterr()
         assert "FALLBACK" in captured.err
         assert "LOCKED" in captured.err
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_defers_when_should_lock_false_and_future_checks_remain(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path, capsys,
+    ):
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [],
+                "scheduler": {
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_post.assert_not_called()
+        mock_capture.assert_not_called()
+        mock_poll.assert_not_called()
+        assert not (tmp_path / "2026-04-06.json").exists()
+        archives = list((tmp_path / "2026-04-06").glob("deferred_fallback_*.json"))
+        assert len(archives) == 1
+        archived = json.loads(archives[0].read_text())
+        assert archived["pick"]["batter_name"] == "Hoerner"
+        assert archived["deferred_fallback"]["reason"] == (
+            "should_lock_false_future_checks_remain"
+        )
+        captured = capsys.readouterr()
+        assert "FALLBACK DEFERRED" in captured.err
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_delivers_when_future_checks_have_no_pending_lineups(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path,
+    ):
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_post.return_value = "at://did:example/post/1"
+        mock_poll.return_value = "final"
+
+        with patch(
+            "bts.scheduler._has_pending_future_confirmation_window",
+            return_value=False,
+        ):
+            run_day(
+                date="2026-04-06",
+                config={
+                    "orchestrator": {"picks_dir": str(tmp_path)},
+                    "tiers": [],
+                    "scheduler": {
+                        "early_lock_gap": 0.03,
+                        "lineup_check_offset_min": 45,
+                        "cluster_min": 10,
+                        "doubleheader_recheck_min": 15,
+                        "fallback_deadline_min": 15,
+                        "fallback_deadline_min_morning": 15,
+                        "results_poll_interval_min": 15,
+                        "results_cap_hour_et": 5,
+                    },
+                },
+            )
+
+        mock_post.assert_called_once()
+        mock_capture.assert_called_once()
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_delivers_when_no_future_checks_remain(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path,
+    ):
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_post.return_value = "at://did:example/post/1"
+        mock_poll.return_value = "final"
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [],
+                "scheduler": {
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_post.assert_called_once()
+        mock_capture.assert_called_once()
 
     @patch("bts.scheduler.fetch_schedule")
     @patch("bts.scheduler._now_et")
@@ -1025,6 +1234,27 @@ class TestRunDay:
         captured = capsys.readouterr()
         assert "Public Bluesky posting disabled" in captured.err
         assert "Pick DM sent" in captured.err
+
+
+class TestPendingFutureConfirmationWindow:
+    def test_detects_unconfirmed_future_side(self):
+        from bts.scheduler import _has_pending_future_confirmation_window
+
+        assert _has_pending_future_confirmation_window(
+            [{"game_pks": [200]}],
+            {(200, "away")},
+        )
+
+    def test_false_when_future_games_fully_confirmed(self):
+        from bts.scheduler import _has_pending_future_confirmation_window
+
+        assert not _has_pending_future_confirmation_window(
+            [{"game_pks": [200, 201]}],
+            {
+                (200, "away"), (200, "home"),
+                (201, "away"), (201, "home"),
+            },
+        )
 
 
 class TestEarliestPickGameEt:
