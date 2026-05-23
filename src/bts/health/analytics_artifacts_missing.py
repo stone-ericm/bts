@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from bts.health.alert import Alert
@@ -25,6 +25,9 @@ CAPTURE_OK_STATUSES = {
 }
 BENIGN_SHADOW_MISSING_REASONS = {
     "select_pick_returned_none",
+}
+INLINE_SHADOW_FATAL_REASONS = {
+    "prior_dispatched_without_artifact",
 }
 
 
@@ -114,6 +117,60 @@ def read_systemd_unit_summary(unit: str | None) -> str | None:
     return ", ".join(parts) if parts else None
 
 
+def _journal_since_arg(since: str | None) -> str | None:
+    if not since:
+        return None
+    text = str(since).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text.replace("T", " ")
+    return parsed.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _fatal_scheduler_journal_line(unit: str | None, since: str | None) -> str | None:
+    """Return scheduler journal evidence for an inline shadow process death."""
+    since_arg = _journal_since_arg(since)
+    if not unit or not since_arg:
+        return None
+    try:
+        result = subprocess.run(
+            [
+                "journalctl",
+                "--user",
+                "-u",
+                unit,
+                "--since",
+                since_arg,
+                "--no-pager",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception as exc:
+        log.warning("could not query scheduler journal for %s: %s", unit, exc)
+        return None
+    if result.returncode != 0:
+        return None
+    for line in result.stdout.splitlines():
+        lower = line.lower()
+        if "oom" in lower or "out of memory" in lower:
+            return line.strip()[:240]
+        if "code=killed" in lower and (
+            "signal=kill" in lower
+            or "status=9/kill" in lower
+            or "status=kill" in lower
+        ):
+            return line.strip()[:240]
+        if "status=137" in lower:
+            return line.strip()[:240]
+    return None
+
+
 def _job_status(state: dict, job: str) -> dict:
     jobs = state.get("analytics_jobs")
     if not isinstance(jobs, dict):
@@ -139,6 +196,7 @@ def _check_shadow(
     date_iso: str,
     state: dict,
     shadow_unit: str | None,
+    scheduler_unit: str | None,
 ) -> list[Alert]:
     shadow_path = picks_dir / f"{date_iso}.shadow.json"
     if shadow_path.exists():
@@ -168,6 +226,27 @@ def _check_shadow(
     unit_summary = read_systemd_unit_summary(shadow_unit)
     if unit_summary:
         detail = f"{detail}; {unit_summary}"
+    inline_shadow_died = (
+        shadow_unit is None
+        and (
+            status.get("status") == "dispatched"
+            or reason in INLINE_SHADOW_FATAL_REASONS
+        )
+    )
+    if inline_shadow_died:
+        fatal_line = _fatal_scheduler_journal_line(
+            scheduler_unit,
+            str(status.get("dispatched_at") or status.get("updated_at") or ""),
+        )
+        if fatal_line:
+            return [Alert(
+                level="CRITICAL",
+                source=SOURCE,
+                message=(
+                    f"shadow artifact missing for {date_iso} after locked pick "
+                    f"({detail}); scheduler death evidence: {fatal_line}"
+                ),
+            )]
     return [Alert(
         level="WARN",
         source=SOURCE,
@@ -240,6 +319,7 @@ def check(
     capture_artifact_root: Path | None = None,
     capture_unit: str | None = "bts-live-forward-capture.service",
     shadow_unit: str | None = None,
+    scheduler_unit: str | None = "bts-scheduler.service",
 ) -> list[Alert]:
     """Return alerts when expected analytics artifacts are missing/unhealthy."""
     if today is None:
@@ -251,7 +331,13 @@ def check(
 
     alerts: list[Alert] = []
     if shadow_expected:
-        alerts.extend(_check_shadow(picks_dir, date_iso, state, shadow_unit))
+        alerts.extend(_check_shadow(
+            picks_dir,
+            date_iso,
+            state,
+            shadow_unit,
+            scheduler_unit,
+        ))
     if capture_expected:
         alerts.extend(_check_capture(
             picks_dir,

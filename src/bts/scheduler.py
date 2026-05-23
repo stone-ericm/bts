@@ -718,13 +718,27 @@ def _run_shadow_prediction(
 
         prior_status = _analytics_job_status(config, date, "shadow")
         prior = prior_status.get("status")
-        if (
-            prior in {"completed", "failed"}
-            or (prior == "dispatched" and not allow_prior_dispatched)
-        ):
+        if prior in {"completed", "failed"}:
             print(
                 "  [SHADOW MODEL] Prior shadow attempt recorded "
                 f"({prior_status.get('status')}); skipping retry.",
+                file=sys.stderr,
+            )
+            return
+        if prior == "dispatched" and not allow_prior_dispatched:
+            _update_analytics_job_status(
+                config,
+                date,
+                "shadow",
+                "failed",
+                reason="prior_dispatched_without_artifact",
+                dispatched_at=(
+                    prior_status.get("dispatched_at") or prior_status.get("updated_at")
+                ),
+            )
+            print(
+                "  [SHADOW MODEL] Prior shadow attempt was left dispatched "
+                "without an artifact; marking failed and skipping retry.",
                 file=sys.stderr,
             )
             return

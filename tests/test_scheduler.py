@@ -346,7 +346,12 @@ class TestSchedulerState:
 
     @patch("bts.scheduler.predict_local_shadow")
     def test_shadow_skips_prior_dispatched_attempt(self, mock_predict, tmp_path):
-        from bts.scheduler import SchedulerState, save_state, _run_shadow_prediction
+        from bts.scheduler import (
+            SchedulerState,
+            load_state,
+            save_state,
+            _run_shadow_prediction,
+        )
 
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
@@ -377,6 +382,14 @@ class TestSchedulerState:
         _run_shadow_prediction(config, "2026-04-03", "Prod Pick")
 
         mock_predict.assert_not_called()
+        updated = load_state("2026-04-03", picks_dir)
+        assert updated is not None
+        assert updated.analytics_jobs is not None
+        assert updated.analytics_jobs["shadow"]["status"] == "failed"
+        assert updated.analytics_jobs["shadow"]["reason"] == (
+            "prior_dispatched_without_artifact"
+        )
+        assert updated.analytics_jobs["shadow"]["dispatched_at"] == "now"
 
 
 class TestSchedulerRun:
@@ -756,7 +769,7 @@ class TestPollResults:
         }
         mock_check.return_value = True
 
-        status = run_result_polling(100, "2026-04-04", tmp_path)
+        status = run_result_polling(100, "2026-04-04", tmp_path, cap_hour_et=10)
 
         assert status == "final"
         daily = load_pick("2026-04-04", tmp_path)
@@ -783,7 +796,7 @@ class TestPollResults:
         }
         mock_check.return_value = True
 
-        status = run_result_polling(100, "2026-04-04", tmp_path)
+        status = run_result_polling(100, "2026-04-04", tmp_path, cap_hour_et=10)
 
         assert status == "final"
         daily = load_pick("2026-04-04", tmp_path)
