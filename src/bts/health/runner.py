@@ -20,6 +20,7 @@ from bts.health import (
     disk_fill,
     leaderboard_freshness,
     memory_growth,
+    mdp_policy_alignment,
     pitcher_sparsity,
     pooled_training,
     post_failure,
@@ -127,6 +128,12 @@ def run_all_checks(
     alerts.extend(_safe_run("realized_calibration", lambda: realized_calibration.check(
         picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
         data_dir=data_dir, since_deploy_iso=since_deploy_iso,
+    )))
+    alerts.extend(_safe_run("mdp_policy_alignment", lambda: mdp_policy_alignment.check(
+        picks_dir,
+        policy_path=models_dir / "mdp_policy.npz",
+        today=today,
+        thresholds=overrides.get("mdp_policy_alignment"),
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),

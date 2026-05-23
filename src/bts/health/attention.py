@@ -23,6 +23,7 @@ ALWAYS_ATTENTION_WARN_SOURCES = {
 REPEATED_ATTENTION_WARN_SOURCES = {
     "calibration_drift",
     "leaderboard_freshness",
+    "mdp_policy_alignment",
     "pooled_training",
     "predicted_vs_realized",
     "projected_lineup",
