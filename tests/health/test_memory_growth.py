@@ -1,8 +1,9 @@
 """Tests for Tier-3 scheduler memory growth check.
 
-Thresholds tuned 2026-04-28 after first real CRITICAL at 2.9 GB post-prediction.
-Pre-tuning thresholds (200/500/1024) fired spurious CRITICAL on normal
-post-pick-prediction RSS. Post-tuning: 1024/3072/6144.
+Thresholds recalibrated 2026-05-23 after prod history showed normal
+post-pick-prediction RSS around 2.8-3.6 GB and cold sleeping RSS around
+140 MB. Daily threshold alerts now use a higher absolute floor plus recent
+post-prediction baseline deltas.
 
 Item #5 from 2026-04-28 retro: Tuesday EOD weekly digest INFO alert
 collecting trend stats from a daily-appended history file. Tuesday picked
@@ -12,7 +13,7 @@ just before weekend gap of low attention).
 """
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -30,33 +31,110 @@ class TestMemoryGrowth:
         with patch("bts.health.memory_growth._read_vmrss_kb", return_value=800 * 1024):
             assert check(pid=12345) == []
 
-    def test_info_at_1gb(self, tmp_path):
-        # 1.1 GB → INFO (notable growth, worth observing)
+    def test_no_alert_at_1_1gb(self, tmp_path):
+        # 1.1 GB used to emit INFO, but is now below the daily alert floor.
         with patch("bts.health.memory_growth._read_vmrss_kb", return_value=1100 * 1024):
+            assert check(pid=12345) == []
+
+    def test_no_alert_at_normal_3_5gb_post_prediction_rss(self, tmp_path):
+        # 3.5 GB appears in normal prod post-prediction history.
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=3500 * 1024):
+            assert check(pid=12345) == []
+
+    def test_info_at_4_5gb_absolute_floor(self, tmp_path):
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=4700 * 1024):
             alerts = check(pid=12345)
             assert len(alerts) == 1
             assert alerts[0].level == "INFO"
             assert alerts[0].source == SOURCE
 
-    def test_warn_at_3gb(self, tmp_path):
-        # 3.5 GB → WARN (beyond expected post-prediction)
-        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=3500 * 1024):
+    def test_warn_at_5gb_absolute_floor(self, tmp_path):
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=5200 * 1024):
             alerts = check(pid=12345)
+            assert len(alerts) == 1
             assert alerts[0].level == "WARN"
+            assert alerts[0].source == SOURCE
 
     def test_no_critical_at_2_9gb_post_prediction(self, tmp_path):
-        # 2.9 GB (the value that triggered the spurious CRITICAL misfire on
-        # 2026-04-28) is INFO under the tuned thresholds — that's normal
-        # post-prediction RSS, no action needed. Captures the regression.
+        # 2.9 GB is normal post-prediction RSS, no action needed.
         with patch("bts.health.memory_growth._read_vmrss_kb", return_value=int(2.9 * 1024 * 1024)):
-            alerts = check(pid=12345)
-            assert alerts[0].level == "INFO"
+            assert check(pid=12345) == []
 
     def test_critical_at_6gb(self, tmp_path):
         # 6.5 GB → CRITICAL (~40% of bts-mlb's 16 GB)
         with patch("bts.health.memory_growth._read_vmrss_kb", return_value=int(6.5 * 1024 * 1024)):
             alerts = check(pid=12345)
             assert alerts[0].level == "CRITICAL"
+
+    def test_warn_on_growth_over_recent_post_prediction_baseline(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        history.write_text("\n".join([
+            json.dumps({"date": "2026-05-18", "rss_mb": 2750.0}),
+            json.dumps({"date": "2026-05-19", "rss_mb": 2800.0}),
+            json.dumps({"date": "2026-05-20", "rss_mb": 2850.0}),
+        ]) + "\n")
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=3900 * 1024):
+            alerts = check(pid=12345, history_path=history, today=date(2026, 5, 21))
+        threshold = [a for a in alerts if "RSS" in a.message]
+        assert len(threshold) == 1
+        assert threshold[0].level == "WARN"
+        assert "delta" in threshold[0].message
+
+    def test_critical_on_large_growth_over_recent_post_prediction_baseline(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        history.write_text("\n".join([
+            json.dumps({"date": "2026-05-18", "rss_mb": 2750.0}),
+            json.dumps({"date": "2026-05-19", "rss_mb": 2800.0}),
+            json.dumps({"date": "2026-05-20", "rss_mb": 2850.0}),
+        ]) + "\n")
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=5900 * 1024):
+            alerts = check(pid=12345, history_path=history, today=date(2026, 5, 21))
+        threshold = [a for a in alerts if "RSS" in a.message]
+        assert threshold[0].level == "CRITICAL"
+
+    def test_ignores_cold_history_for_growth_baseline(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        history.write_text("\n".join([
+            json.dumps({"date": "2026-05-18", "rss_mb": 138.0}),
+            json.dumps({"date": "2026-05-19", "rss_mb": 140.0}),
+            json.dumps({"date": "2026-05-20", "rss_mb": 139.0}),
+        ]) + "\n")
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=3200 * 1024):
+            alerts = check(pid=12345, history_path=history, today=date(2026, 5, 21))
+        threshold = [a for a in alerts if "RSS" in a.message]
+        assert threshold == []
+
+    def test_oom_level_history_does_not_mask_recent_baseline(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        history.write_text("\n".join([
+            json.dumps({"date": "2026-05-15", "rss_mb": 2800.0}),
+            json.dumps({"date": "2026-05-16", "rss_mb": 2850.0}),
+            json.dumps({"date": "2026-05-17", "rss_mb": 7000.0}),
+            json.dumps({"date": "2026-05-18", "rss_mb": 7100.0}),
+            json.dumps({"date": "2026-05-19", "rss_mb": 7200.0}),
+        ]) + "\n")
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=3900 * 1024):
+            alerts = check(pid=12345, history_path=history, today=date(2026, 5, 20))
+        threshold = [a for a in alerts if "RSS" in a.message]
+        assert len(threshold) == 1
+        assert threshold[0].level == "WARN"
+
+    def test_prod_post_prediction_history_band_does_not_warn(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        prod_loaded_mb = [
+            3206.2, 3164.7, 3197.8, 3177.6, 3550.6, 3586.2,
+            2895.5, 3023.7, 3350.0, 2775.7,
+        ]
+        start = date(2026, 5, 10)
+        history.write_text("\n".join(
+            json.dumps({"date": (start + timedelta(days=i)).isoformat(), "rss_mb": mb})
+            for i, mb in enumerate(prod_loaded_mb)
+        ) + "\n")
+        for mb in prod_loaded_mb:
+            with patch("bts.health.memory_growth._read_vmrss_kb", return_value=int(mb * 1024)):
+                alerts = check(pid=12345, history_path=history, today=date(2026, 5, 21))
+            threshold = [a for a in alerts if "RSS" in a.message]
+            assert threshold == []
 
     def test_no_alert_when_proc_unavailable(self):
         # On Mac, /proc doesn't exist → return None → no alert
@@ -111,7 +189,6 @@ class TestMemoryGrowthHistory:
     def test_emits_digest_on_tuesday(self, tmp_path):
         history = tmp_path / "memory_growth_history.jsonl"
         # 14 days of history ending Tue 2026-04-28
-        from datetime import timedelta
         start = date(2026, 4, 15)  # Wed
         for i in range(14):
             d = start + timedelta(days=i)
@@ -132,24 +209,37 @@ class TestMemoryGrowthHistory:
         # At ~5MB/day creep, 7d trend should be ~+35MB or similar — assert positive
         assert "+" in msg or "trend" in msg.lower()
 
-    def test_history_write_failure_doesnt_break_check(self, tmp_path):
-        # Read-only history dir: write fails, but the threshold check still runs
+    def test_digest_uses_latest_row_per_date(self, tmp_path):
+        history = tmp_path / "memory_growth_history.jsonl"
+        history.write_text("\n".join([
+            json.dumps({"date": "2026-04-15", "rss_mb": 800.0}),
+            json.dumps({"date": "2026-04-15", "rss_mb": 1800.0}),
+            json.dumps({"date": "2026-04-16", "rss_mb": 820.0}),
+        ]) + "\n")
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=2500 * 1024):
+            alerts = check(pid=12345, history_path=history, today=date(2026, 4, 21))
+        digest = [a for a in alerts if "weekly memory digest" in a.message.lower()]
+        assert len(digest) == 1
+        assert "3 data points" in digest[0].message
+        assert "1800.0" in digest[0].message
+
+    def test_new_nested_history_path_doesnt_break_check(self, tmp_path):
+        # New nested history paths are created best-effort, but threshold
+        # alerts should not depend on the history append side path.
         history = tmp_path / "ro" / "memory_growth_history.jsonl"
-        # Don't create the parent dir → write will fail at parent lookup
-        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=1100 * 1024):
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=5200 * 1024):
             alerts = check(pid=12345, history_path=history, today=date(2026, 4, 27))
-        # Threshold alert still fires (history is best-effort)
         threshold_alerts = [a for a in alerts if "RSS" in a.message and "weekly" not in a.message.lower()]
         assert len(threshold_alerts) >= 1
 
     def test_threshold_alert_still_fires_with_history(self, tmp_path):
         # The history feature is additive; threshold alerts must still fire.
         history = tmp_path / "memory_growth_history.jsonl"
-        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=1100 * 1024):
+        with patch("bts.health.memory_growth._read_vmrss_kb", return_value=5200 * 1024):
             alerts = check(pid=12345, history_path=history, today=date(2026, 4, 27))
         threshold = [a for a in alerts if "RSS" in a.message and "weekly" not in a.message.lower()]
         assert len(threshold) == 1
-        assert threshold[0].level == "INFO"  # 1.1 GB is in INFO range
+        assert threshold[0].level == "WARN"
 
     def test_no_history_path_means_no_history_writes(self, tmp_path):
         # Backward compat: existing callers that pass no history_path see no
