@@ -1,6 +1,8 @@
 import json
 from datetime import date
+from types import SimpleNamespace
 
+from bts.health import analytics_artifacts_missing
 from bts.health.analytics_artifacts_missing import check
 
 
@@ -51,6 +53,12 @@ def test_missing_shadow_is_warn_after_locked_pick(tmp_path, monkeypatch):
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: "Result=oom-kill",
     )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing._fatal_scheduler_journal_line",
+        lambda unit, since: (_ for _ in ()).throw(
+            AssertionError("external shadow unit must not query scheduler journal")
+        ),
+    )
 
     alerts = check(
         picks_dir,
@@ -65,6 +73,158 @@ def test_missing_shadow_is_warn_after_locked_pick(tmp_path, monkeypatch):
     assert alerts[0].source == "analytics_artifacts_missing"
     assert "shadow artifact missing" in alerts[0].message
     assert "Result=oom-kill" in alerts[0].message
+
+
+def test_inline_shadow_missing_with_scheduler_death_is_critical(tmp_path, monkeypatch):
+    picks_dir = tmp_path / "data" / "picks"
+    picks_dir.mkdir(parents=True)
+    _write_state(
+        picks_dir,
+        jobs={
+            "shadow": {
+                "status": "dispatched",
+                "updated_at": "2026-05-21T13:53:36-04:00",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
+        lambda unit: None,
+    )
+
+    calls = []
+
+    def fake_scheduler_journal(unit, since):
+        calls.append((unit, since))
+        return (
+            "May 21 13:56:58 host systemd[123]: bts-scheduler.service: "
+            "Main process exited, code=killed, status=9/KILL"
+        )
+
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing._fatal_scheduler_journal_line",
+        fake_scheduler_journal,
+    )
+
+    alerts = check(
+        picks_dir,
+        today=date(2026, 5, 21),
+        shadow_expected=True,
+        capture_expected=False,
+        scheduler_unit="bts-scheduler.service",
+    )
+
+    assert calls == [
+        ("bts-scheduler.service", "2026-05-21T13:53:36-04:00")
+    ]
+    assert len(alerts) == 1
+    assert alerts[0].level == "CRITICAL"
+    assert "shadow artifact missing" in alerts[0].message
+    assert "scheduler death evidence" in alerts[0].message
+    assert "code=killed" in alerts[0].message
+
+
+def test_inline_shadow_missing_without_scheduler_death_remains_warn(tmp_path, monkeypatch):
+    picks_dir = tmp_path / "data" / "picks"
+    picks_dir.mkdir(parents=True)
+    _write_state(
+        picks_dir,
+        jobs={
+            "shadow": {
+                "status": "failed",
+                "reason": "prior_dispatched_without_artifact",
+                "updated_at": "2026-05-21T13:53:36-04:00",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
+        lambda unit: None,
+    )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing._fatal_scheduler_journal_line",
+        lambda unit, since: None,
+    )
+
+    alerts = check(
+        picks_dir,
+        today=date(2026, 5, 21),
+        shadow_expected=True,
+        capture_expected=False,
+    )
+
+    assert len(alerts) == 1
+    assert alerts[0].level == "WARN"
+    assert "prior_dispatched_without_artifact" in alerts[0].message
+
+
+def test_terminalized_inline_shadow_uses_original_dispatch_time(
+    tmp_path,
+    monkeypatch,
+):
+    picks_dir = tmp_path / "data" / "picks"
+    picks_dir.mkdir(parents=True)
+    _write_state(
+        picks_dir,
+        jobs={
+            "shadow": {
+                "status": "failed",
+                "reason": "prior_dispatched_without_artifact",
+                "dispatched_at": "2026-05-21T13:53:36-04:00",
+                "updated_at": "2026-05-21T13:57:42-04:00",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
+        lambda unit: None,
+    )
+
+    calls = []
+
+    def fake_scheduler_journal(unit, since):
+        calls.append((unit, since))
+        return (
+            "May 21 13:56:58 host systemd[123]: bts-scheduler.service: "
+            "Failed with result 'oom-kill'."
+        )
+
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing._fatal_scheduler_journal_line",
+        fake_scheduler_journal,
+    )
+
+    alerts = check(
+        picks_dir,
+        today=date(2026, 5, 21),
+        shadow_expected=True,
+        capture_expected=False,
+        scheduler_unit="bts-scheduler.service",
+    )
+
+    assert calls == [
+        ("bts-scheduler.service", "2026-05-21T13:53:36-04:00")
+    ]
+    assert len(alerts) == 1
+    assert alerts[0].level == "CRITICAL"
+
+
+def test_scheduler_journal_detects_status_137_as_fatal(monkeypatch):
+    line = (
+        "May 21 13:56:58 host systemd[123]: bts-scheduler.service: "
+        "Main process exited, code=exited, status=137/n/a"
+    )
+
+    def fake_run(args, **kwargs):
+        assert args[args.index("--since") + 1] == "2026-05-21 13:53:36"
+        return SimpleNamespace(returncode=0, stdout=f"{line}\n")
+
+    monkeypatch.setattr(analytics_artifacts_missing.subprocess, "run", fake_run)
+
+    assert analytics_artifacts_missing._fatal_scheduler_journal_line(
+        "bts-scheduler.service",
+        "2026-05-21T13:53:36-04:00",
+    ) == line
 
 
 def test_shadow_benign_abstention_is_info_not_warn(tmp_path, monkeypatch):

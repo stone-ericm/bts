@@ -7,6 +7,7 @@ We verify (a) it calls every check, (b) per-check exceptions are isolated,
 
 import json
 from datetime import date
+from pathlib import Path
 from unittest.mock import patch
 
 from bts.health.alert import Alert
@@ -187,3 +188,36 @@ class TestRunAllChecks:
         assert mock_check.call_args.kwargs["shadow_unit"] == (
             "bts-shadow-prediction.service"
         )
+        assert mock_check.call_args.kwargs["scheduler_unit"] == "bts-scheduler.service"
+
+    def test_path_overrides_are_normalized_to_path_objects(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        memory_history = tmp_path / "health" / "memory_growth_history.jsonl"
+        warn_state = tmp_path / "health" / "warn_attention_state.json"
+        with patch(
+            "bts.health.runner.memory_growth.check",
+            return_value=[],
+        ) as mock_memory, patch(
+            "bts.health.runner.apply_warn_attention_policy",
+            return_value=([], False),
+        ) as mock_attention:
+            run_all_checks(
+                picks_dir=picks_dir,
+                models_dir=models_dir,
+                dm_recipient=None,
+                scheduler_pid=123,
+                today=date(2026, 4, 27),
+                thresholds_overrides={
+                    "memory_growth_history": str(memory_history),
+                    "warn_attention_state": str(warn_state),
+                },
+            )
+
+        history_arg = mock_memory.call_args.kwargs["history_path"]
+        state_arg = mock_attention.call_args.kwargs["state_path"]
+        assert isinstance(history_arg, Path)
+        assert isinstance(state_arg, Path)
+        assert history_arg == memory_history
+        assert state_arg == warn_state

@@ -46,6 +46,10 @@ def _safe_run(name: str, fn) -> list[Alert]:
         return []
 
 
+def _path(value: Path | str) -> Path:
+    return value if isinstance(value, Path) else Path(value)
+
+
 def run_all_checks(
     picks_dir: Path,
     models_dir: Path,
@@ -108,6 +112,7 @@ def run_all_checks(
                 capture_artifact_root=live_forward_capture_artifact_root,
                 capture_unit=live_forward_capture_unit,
                 shadow_unit=shadow_unit,
+                scheduler_unit="bts-scheduler.service",
             )
         )))
 
@@ -148,6 +153,7 @@ def run_all_checks(
         memory_history_path = (overrides.get("memory_growth_history")
                                 if "memory_growth_history" in overrides
                                 else picks_dir.parent / "health_state" / "memory_growth_history.jsonl")
+        memory_history_path = _path(memory_history_path)
         alerts.extend(_safe_run("memory_growth", lambda: memory_growth.check(
             pid=scheduler_pid, thresholds=overrides.get("memory_growth"),
             history_path=memory_history_path, today=today,
@@ -161,7 +167,7 @@ def run_all_checks(
                            else picks_dir.parent / "health_state" / "warn_attention_state.json")
     policy_alerts, warn_attention = apply_warn_attention_policy(
         alerts,
-        state_path=Path(warn_attention_path),
+        state_path=_path(warn_attention_path),
         today=today,
     )
     alerts.extend(policy_alerts)
