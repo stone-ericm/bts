@@ -28,8 +28,13 @@ def simulate():
 @click.option("--log-pa-predictions/--no-log-pa-predictions", default=False,
               help="Persist per-PA predictions to pa_predictions_{season}.parquet "
                    "for use by the falsification harness dependence-testing module.")
+@click.option("--game-probability-mode", default="actual_pa",
+              type=click.Choice(["actual_pa", "estimated_pa"]),
+              help="Game probability aggregation mode. actual_pa preserves the "
+                   "historical realized-PA profile surface; estimated_pa is an "
+                   "offline Gate-B diagnostic mode using lineup-slot estimated PAs.")
 def backtest(seasons: str, data_dir: str, output_dir: str, retrain_every: int,
-             log_pa_predictions: bool):
+             log_pa_predictions: bool, game_probability_mode: str):
     """Run blend walk-forward backtest and save daily profiles."""
     from bts.simulate.backtest_blend import run_backtest
 
@@ -37,7 +42,14 @@ def backtest(seasons: str, data_dir: str, output_dir: str, retrain_every: int,
     click.echo(f"Running blend backtest for seasons: {season_list}")
     if log_pa_predictions:
         click.echo("Per-PA predictions will be logged.")
-    run_backtest(data_dir, output_dir, season_list, retrain_every, log_pa_predictions)
+    run_backtest(
+        data_dir,
+        output_dir,
+        season_list,
+        retrain_every,
+        log_pa_predictions,
+        game_probability_mode=game_probability_mode,
+    )
     click.echo("Done.")
 
 
