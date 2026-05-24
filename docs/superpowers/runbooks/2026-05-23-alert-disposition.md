@@ -34,7 +34,7 @@ The goal is to keep paging surfaces actionable without hiding slow stalls.
 | `pooled_training` | dormant unless `pooled_dir` configured | Keep dormant | Pooled models are not currently load-bearing in production. Alerting before deployment would create noise. | Enable only if pooled inference becomes production-critical. |
 | `leaderboard_freshness` | dormant unless `leaderboard_dir` configured | Keep dormant | Leaderboard data is not currently load-bearing for pick delivery. | Enable when leaderboard ingestion becomes a dependency. |
 | `health_dm_delivery` | logged CRITICAL on DM send failure | Needs visibility design | If Bluesky DM delivery itself fails, the current user-facing path may be unavailable by definition. Logging alone may not be noticed quickly. | Consider secondary notification or persistent dashboard/state indicator for health-alert delivery failures. |
-| E fallback/defer path | deployed behavior, not an alert | Track live validation | The defer path is deployed, but 2026-05-23 locked with `should_lock=True`, so the `should_lock=False` fallback-defer branch has not been live-validated yet. | Validate on next fallback day with `should_lock=False` and future checks remaining. |
+| E fallback/defer path | deployed behavior, INFO status when observed | Track live validation | The defer path is deployed, but production has not naturally exercised it yet. On 2026-05-23 at prod head `c511a03`, `data/picks` had 176 pick JSON files and 0 `deferred_fallback_*.json` archives; scheduler journal since 2026-05-01 showed fallback force-deliveries but no `FALLBACK DEFERRED` lines. | `fallback_defer` health status now self-announces the rare event at INFO when a defer archive exists and a final pick was delivered; it escalates only if a defer fires without a delivered pick. Close live validation after observing a natural defer and verifying fired/no force-lock/never-miss/better-pool criteria. |
 | `projected_lineup` | INFO/WARN | Keep repeated attention | It detects excessive projection use and can catch lineup-confirmation quality decay. It should not page on a single noisy day. | Keep in repeated WARN attention set. |
 | `predicted_vs_realized`, `realized_calibration`, `dd_pair_realized_shortfall`, `dd_pair_residual_corr` | INFO/WARN/CRITICAL by evidence | Keep repeated attention | These are model-quality surfaces. `dd_pair_realized_shortfall` tracks model-pair shortfall, while `dd_pair_residual_corr` is the marginal-adjusted pair-dependence signal. They should accumulate evidence before paging unless they reach CRITICAL thresholds. | Keep separated from MDP/gate docs to avoid mixing alerting with policy-change decisions. |
 | `disk_fill`, `postponed_pick`, `blend_training`, `post_failure`, `streak_validation` | WARN/CRITICAL depending on check | Keep loud | These are operational integrity surfaces where a miss can directly break pick delivery, scoring, or state validity. | Keep `postponed_pick` loud, but separately fix the scheduler lock-decision path that still uses abstract game statuses where detailed postponed/cancelled status is required. |
@@ -46,8 +46,15 @@ The goal is to keep paging surfaces actionable without hiding slow stalls.
 2. Multi-day canonical resolver-failure check: alert only when canonical
    live-forward resolution is stale for multiple runs or days, not when same-day
    outcomes are pending.
-3. E fallback/defer live validation: inspect the next day where fallback would
-   post but fresh `should_lock` is false and future checks remain.
+3. E fallback/defer live validation: wait for the next natural
+   `fallback_defer` INFO event, then inspect the matching
+   `data/picks/<date>/deferred_fallback_*.json` archive and final pick file.
+   Close only after confirming:
+   - the defer fired for `reason=should_lock_false_future_checks_remain`;
+   - the unsafe candidate was not force-locked at that fallback deadline;
+   - a later check or final fallback delivered a pick for the day;
+   - the delivered primary was the same or better by `p_game_hit`, or any
+     lower-probability result is explicitly explained.
 4. Health-DM delivery visibility: decide whether a failed Bluesky DM health
    send needs a non-DM secondary visibility path.
 5. Postponed-game root fix: update scheduler lock-decision filtering to use

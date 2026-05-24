@@ -18,6 +18,7 @@ from bts.health import (
     blend_training,
     calibration,
     disk_fill,
+    fallback_defer,
     leaderboard_freshness,
     live_forward_resolution,
     memory_growth,
@@ -107,6 +108,9 @@ def run_all_checks(
             pooled_dir=pooled_dir, today=today,
         )))
     alerts.extend(_safe_run("post_failure", lambda: post_failure.check(
+        picks_dir, today=today,
+    )))
+    alerts.extend(_safe_run("fallback_defer", lambda: fallback_defer.check(
         picks_dir, today=today,
     )))
     alerts.extend(_safe_run("postponed_pick", lambda: postponed_pick.check(
