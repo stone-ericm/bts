@@ -81,6 +81,42 @@ def test_load_scheduler_state_malformed_returns_empty(monkeypatch, tmp_path):
     assert bts.web.load_scheduler_state("2026-04-12") == {}
 
 
+def test_load_health_dm_delivery_status_returns_dict(monkeypatch, tmp_path):
+    import bts.web
+    monkeypatch.setattr(bts.web, "HEALTH_STATE_DIR", tmp_path)
+    status = {"status": "failed", "error": "boom"}
+    (tmp_path / "health_dm_delivery_status.json").write_text(json.dumps(status))
+
+    assert bts.web.load_health_dm_delivery_status() == status
+
+
+def test_load_health_dm_delivery_status_missing_or_malformed(monkeypatch, tmp_path):
+    import bts.web
+    monkeypatch.setattr(bts.web, "HEALTH_STATE_DIR", tmp_path)
+
+    assert bts.web.load_health_dm_delivery_status() == {}
+
+    (tmp_path / "health_dm_delivery_status.json").write_text("not json {{{")
+    assert bts.web.load_health_dm_delivery_status() == {}
+
+
+def test_render_health_dm_delivery_banner_only_for_failures():
+    import bts.web
+
+    assert bts.web.render_health_dm_delivery_banner({"status": "sent"}) == ""
+    banner = bts.web.render_health_dm_delivery_banner({
+        "status": "failed",
+        "updated_at": "2026-05-24T02:00:00+00:00",
+        "critical_count": 2,
+        "warn_attention_count": 1,
+        "error": "network down",
+    })
+
+    assert "Health DM delivery failed" in banner
+    assert "2 critical / 1 warn-attention" in banner
+    assert "network down" in banner
+
+
 def test_load_orchestrator_config_returns_dict(monkeypatch, tmp_path):
     """Valid TOML at ~/.bts-orchestrator.toml should be parsed."""
     import bts.web
