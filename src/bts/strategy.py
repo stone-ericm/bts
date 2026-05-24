@@ -17,7 +17,7 @@ import pandas as pd
 
 from bts.picks import (
     DailyPick, Pick, pick_from_row, load_pick, get_game_statuses,
-    load_saver_available, classify_pick_lock_state,
+    load_saver_available, classify_pick_lock_state, pick_candidate_status_is_available,
 )
 
 
@@ -133,6 +133,7 @@ def select_pick(
     picks_dir: Path,
     streak: int = 0,
     for_shadow: bool = False,
+    game_statuses_detailed: dict[int, dict[str, str]] | None = None,
 ) -> PickResult | None:
     """Select the best pick from available predictions.
 
@@ -148,6 +149,11 @@ def select_pick(
     model always computes its own pick from its own predictions. (Without this,
     shadow calls made after production locks would silently return production's
     DailyPick and corrupt {date}.shadow.json.)
+
+    ``game_statuses_detailed`` lets live callers inject detailed MLB statuses
+    for candidate filtering without making offline/backtest-shaped calls depend
+    on a live detailed-status lookup. When omitted, the legacy coarse
+    ``get_game_statuses`` path is preserved.
     """
     if predictions.empty:
         return None
@@ -162,15 +168,25 @@ def select_pick(
             elif lock_state.locked:
                 return PickResult(daily=current, locked=True)
 
-    try:
-        statuses = get_game_statuses(date)
-    except Exception:
-        if current:
-            return PickResult(daily=current, locked=True)
-        return None
+    if game_statuses_detailed is None:
+        try:
+            statuses = get_game_statuses(date)
+        except Exception:
+            if current:
+                return PickResult(daily=current, locked=True)
+            return None
 
-    # Filter to games not yet started
-    not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")
+        # Filter to games not yet started, preserving legacy coarse behavior.
+        not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")
+    else:
+        def is_available(game_pk) -> bool:
+            try:
+                status = game_statuses_detailed.get(int(game_pk))
+            except (TypeError, ValueError):
+                return False
+            return pick_candidate_status_is_available(status)
+
+        not_started = predictions["game_pk"].map(is_available)
     available = predictions[not_started]
 
     if available.empty:

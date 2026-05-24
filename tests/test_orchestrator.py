@@ -141,9 +141,14 @@ timeout_min = 10
 
 class TestRunAndPick:
     @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+    })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     @patch("bts.strategy._mdp_action", return_value="single")
-    def test_returns_predictions_and_result(self, _mdp, _statuses, mock_cascade, tmp_path):
+    def test_returns_predictions_and_result(
+        self, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
+    ):
         import pandas as pd
         from bts.orchestrator import run_and_pick
 

@@ -9,6 +9,12 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 
+@pytest.fixture(autouse=True)
+def _disable_live_detailed_status_lookup():
+    with patch("bts.picks.get_game_statuses_detailed", side_effect=RuntimeError("detailed unavailable")):
+        yield
+
+
 def _game(game_pk: int, time_et: str, team_away: str = "NYM", team_home: str = "ATL",
           date: str | None = None):
     """Build a mock MLB schedule game entry."""
@@ -452,17 +458,22 @@ class TestSchedulerRun:
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.orchestrator.run_cascade")
-    @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "F"})
-    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "F"})
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "P", "detailed": "Pre-Game"},
+        200: {"abstract": "P", "detailed": "Postponed"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "P"})
     @patch("bts.strategy._load_mdp", return_value=None)
     def test_should_lock_excludes_postponed_games(
-        self, _mdp, _sched_statuses, _strat_statuses, mock_cascade, mock_lineups, tmp_path
+        self, _mdp, _sched_statuses, _strat_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
     ):
         """Projected picks from postponed/finished games shouldn't block locking.
 
-        Reproduces the 2026-04-04 bug: CHC@CLE was postponed (status=F) but its
-        projected batters prevented should_lock from returning True because
-        the gap was under early_lock_gap.
+        Reproduces the 2026-04-04 bug shape with the more dangerous MLB shape:
+        a postponed game that still appears abstract-preview must not leave its
+        projected batters in the should_lock gap check.
         """
         import pandas as pd
         from bts.scheduler import run_single_check
@@ -497,7 +508,7 @@ class TestSchedulerRun:
             early_lock_gap=0.03,
         )
 
-        # Game 200 is Final (postponed) — its projected batter (Kwan, 0.80)
+        # Game 200 is Postponed — its projected batter (Kwan, 0.80)
         # should be excluded from the should_lock gap check. Without the fix,
         # the gap (0.82 - 0.80 = 0.02 < 0.03) would block locking.
         # With the fix, only game 100's picks remain — all confirmed → lock.
