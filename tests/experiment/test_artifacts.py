@@ -725,6 +725,46 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
     assert verification["ok"] is True
 
 
+def test_verify_resolved_artifact_accepts_legacy_zero_outcome_status_count(
+    tmp_path,
+):
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+
+    _write_live_preoutcome_artifact(artifact_dir)
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 0},
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 0},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=resolved_dir,
+        data_dir=data_dir,
+    )
+    resolved_manifest_path = resolved_dir / "manifest.json"
+    resolved_manifest = json.loads(resolved_manifest_path.read_text())
+    resolved_manifest["outcome_status_counts"].pop("void_no_pa")
+    resolved_manifest["outcome_status_values"].remove("void_no_pa")
+    for counts in resolved_manifest["outcome_status_counts_by_variant"].values():
+        counts.pop("void_no_pa")
+    resolved_manifest_path.write_text(json.dumps(resolved_manifest, indent=2))
+
+    verification = verify_candidate_artifact_pair(
+        artifact_dir=resolved_dir,
+        expected_run_kind="live_forward_resolved",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=2,
+    )
+
+    assert verification["ok"] is True
+
+
 def test_resolve_live_candidate_artifact_pair_final_no_pa_void_status(
     tmp_path,
 ):
@@ -783,6 +823,25 @@ def test_resolve_live_candidate_artifact_pair_final_no_pa_void_status(
         expected_top_n=2,
     )
     assert verification["ok"] is True
+
+    resolved_manifest_path = resolved_dir / "manifest.json"
+    resolved_manifest = json.loads(resolved_manifest_path.read_text())
+    resolved_manifest["outcome_status_counts"].pop("void_no_pa")
+    resolved_manifest_path.write_text(json.dumps(resolved_manifest, indent=2))
+
+    failed_verification = verify_candidate_artifact_pair(
+        artifact_dir=resolved_dir,
+        expected_run_kind="live_forward_resolved",
+        expected_candidate="decision_weighted_lgbm_v0",
+        expected_date="2026-05-09",
+        expected_git_commit="def456",
+        expected_top_n=2,
+    )
+    failed_names = {
+        check["name"] for check in failed_verification["checks"]
+        if check["status"] == "fail"
+    }
+    assert "outcome_status_counts" in failed_names
 
 
 def test_resolve_live_candidate_artifact_pair_mixed_void_and_pending(

@@ -809,6 +809,24 @@ def _outcome_status_counts(frame: pd.DataFrame) -> dict[str, int]:
     return counts
 
 
+def _normalize_outcome_status_counts(counts: Any) -> Any:
+    if not isinstance(counts, dict):
+        return counts
+
+    normalized = _empty_outcome_status_counts()
+    extra: dict[str, Any] = {}
+    for status, value in counts.items():
+        try:
+            count = int(value)
+        except (TypeError, ValueError):
+            count = value
+        if status in normalized:
+            normalized[status] = count
+        else:
+            extra[str(status)] = count
+    return {**normalized, **extra}
+
+
 def _add_outcome_status_counts(
     target: dict[str, int],
     source: dict[str, int],
@@ -1477,12 +1495,15 @@ def verify_candidate_artifact_pair(
         run_kind == "live_forward_resolved"
         and manifest_schema_version == RESOLVED_ARTIFACT_SCHEMA_VERSION
     ):
-        manifest_counts = manifest.get("outcome_status_counts")
+        manifest_counts = _normalize_outcome_status_counts(
+            manifest.get("outcome_status_counts")
+        )
+        observed_counts = _normalize_outcome_status_counts(observed_outcome_status_counts)
         _append_check(
             checks,
             "outcome_status_counts",
-            manifest_counts == observed_outcome_status_counts,
-            f"manifest={manifest_counts!r}, observed={observed_outcome_status_counts!r}",
+            manifest_counts == observed_counts,
+            f"manifest={manifest_counts!r}, observed={observed_counts!r}",
         )
 
     return _candidate_verification_report(
