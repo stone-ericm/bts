@@ -439,6 +439,56 @@ def _is_void_detailed_state(detailed: str | None) -> bool:
     return (detailed or "").strip().lower() in _VOID_DETAILED_STATES
 
 
+def _classify_unposted_game_status(
+    status: dict[str, str] | None,
+    *,
+    game_pk: int | None = None,
+) -> PickLockState:
+    """Classify one unposted committed game status for lock/candidate logic."""
+    if status is None:
+        return PickLockState(
+            stale=True,
+            locked=False,
+            reason="missing_from_schedule",
+            game_pk=game_pk,
+        )
+
+    detailed = status.get("detailed", "")
+    abstract = status.get("abstract")
+    if _is_void_detailed_state(detailed):
+        return PickLockState(
+            stale=True,
+            locked=False,
+            reason="stale_game_status",
+            game_pk=game_pk,
+            abstract=abstract,
+            detailed=detailed,
+        )
+
+    if abstract != "P":
+        return PickLockState(
+            locked=True,
+            reason="game_started_or_final",
+            game_pk=game_pk,
+            abstract=abstract,
+            detailed=detailed,
+        )
+
+    return PickLockState(
+        locked=False,
+        reason="all_preview",
+        game_pk=game_pk,
+        abstract=abstract,
+        detailed=detailed,
+    )
+
+
+def pick_candidate_status_is_available(status: dict[str, str] | None) -> bool:
+    """Return whether a prediction row's game is eligible for a fresh pick."""
+    lock_state = _classify_unposted_game_status(status)
+    return not lock_state.stale and not lock_state.locked
+
+
 def iter_daily_pick_slots(daily: DailyPick) -> list[tuple[str, Pick]]:
     """Return score-bearing pick slots in stable contest order."""
     slots = [("pick", daily.pick)]
@@ -563,32 +613,18 @@ def classify_pick_lock_state(daily: DailyPick, date: str) -> PickLockState:
                 )
         return PickLockState(locked=False, reason="fallback_all_preview")
 
-    for game_pk in game_pks:
-        status = detailed_statuses.get(game_pk)
-        if status is None:
-            return PickLockState(stale=True, locked=False, reason="missing_from_schedule", game_pk=game_pk)
-        detailed = status.get("detailed", "")
-        if _is_void_detailed_state(detailed):
-            return PickLockState(
-                stale=True,
-                locked=False,
-                reason="stale_game_status",
-                game_pk=game_pk,
-                abstract=status.get("abstract"),
-                detailed=detailed,
-            )
+    game_states = [
+        _classify_unposted_game_status(detailed_statuses.get(game_pk), game_pk=game_pk)
+        for game_pk in game_pks
+    ]
 
-    for game_pk in game_pks:
-        status = detailed_statuses[game_pk]
-        abstract = status.get("abstract")
-        if abstract != "P":
-            return PickLockState(
-                locked=True,
-                reason="game_started_or_final",
-                game_pk=game_pk,
-                abstract=abstract,
-                detailed=status.get("detailed", ""),
-            )
+    for game_state in game_states:
+        if game_state.stale:
+            return game_state
+
+    for game_state in game_states:
+        if game_state.locked:
+            return game_state
 
     return PickLockState(locked=False, reason="all_preview")
 

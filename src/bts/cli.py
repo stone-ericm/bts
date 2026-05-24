@@ -1039,7 +1039,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     import pandas as pd
     from datetime import datetime, timezone
     from bts.model.predict import run_pipeline, save_blend, load_blend
-    from bts.picks import save_pick, load_streak
+    from bts.picks import get_game_statuses_detailed, save_pick, load_streak
     from bts.posting import format_post, post_to_bluesky, should_post_now
     from bts.strategy import select_pick
 
@@ -1097,7 +1097,17 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
 
     # Step 2: Apply strategy (streak-aware thresholds)
     streak = load_streak(picks_path)
-    result = select_pick(predictions, date, picks_path, streak=streak)
+    try:
+        game_statuses_detailed = get_game_statuses_detailed(date)
+    except Exception:
+        game_statuses_detailed = None
+    result = select_pick(
+        predictions,
+        date,
+        picks_path,
+        streak=streak,
+        game_statuses_detailed=game_statuses_detailed,
+    )
 
     if result is None:
         # Skip day — post to Bluesky with top pick info
@@ -1201,7 +1211,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
     """
     from datetime import datetime, timedelta, timezone
     from bts.model.predict import run_pipeline, load_blend
-    from bts.picks import save_pick, load_pick, load_streak
+    from bts.picks import get_game_statuses_detailed, save_pick, load_pick, load_streak
     from bts.strategy import select_pick
 
     if date is None:
@@ -1238,7 +1248,17 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         return
 
     streak = load_streak(picks_path)
-    result = select_pick(predictions, date, picks_path, streak=streak)
+    try:
+        game_statuses_detailed = get_game_statuses_detailed(date)
+    except Exception:
+        game_statuses_detailed = None
+    result = select_pick(
+        predictions,
+        date,
+        picks_path,
+        streak=streak,
+        game_statuses_detailed=game_statuses_detailed,
+    )
 
     if result is None:
         top = predictions.iloc[0]

@@ -572,10 +572,19 @@ def _lock_decision_from_predictions(
     early_lock_gap: float,
 ) -> tuple[bool, float | None]:
     """Return should_lock plus the best projected contender, if any."""
-    from bts.picks import get_game_statuses
+    from bts.picks import (
+        get_game_statuses,
+        get_game_statuses_detailed,
+        pick_candidate_status_is_available,
+    )
     from bts.strategy import should_lock
 
-    statuses = get_game_statuses(date)
+    try:
+        detailed_statuses = get_game_statuses_detailed(date)
+    except Exception:
+        detailed_statuses = None
+        statuses = get_game_statuses(date)
+
     pick_data = {
         "p_game_hit": daily.pick.p_game_hit,
         "projected_lineup": daily.pick.projected_lineup,
@@ -586,7 +595,10 @@ def _lock_decision_from_predictions(
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
             game_pk = int(row["game_pk"])
-            if statuses.get(game_pk) != "P":
+            if detailed_statuses is None:
+                if statuses.get(game_pk) != "P":
+                    continue
+            elif not pick_candidate_status_is_available(detailed_statuses.get(game_pk)):
                 continue
             is_proj = "PROJECTED" in str(row.get("flags", ""))
             all_pick_data.append({
@@ -730,7 +742,7 @@ def _run_shadow_prediction(
     Codex bus #170/#172). A non-default TOML must not produce a path
     that loads one blend artifact while hashing another.
     """
-    from bts.picks import load_shadow_pick, load_streak
+    from bts.picks import get_game_statuses_detailed, load_shadow_pick, load_streak
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     data_dir = config["orchestrator"].get("data_dir", "data/processed")
@@ -806,7 +818,18 @@ def _run_shadow_prediction(
             return
 
         streak = load_streak(picks_dir)
-        result = select_pick(predictions, date, picks_dir, streak=streak, for_shadow=True)
+        try:
+            game_statuses_detailed = get_game_statuses_detailed(date)
+        except Exception:
+            game_statuses_detailed = None
+        result = select_pick(
+            predictions,
+            date,
+            picks_dir,
+            streak=streak,
+            for_shadow=True,
+            game_statuses_detailed=game_statuses_detailed,
+        )
         if result is None or result.daily is None:
             _update_analytics_job_status(
                 config,

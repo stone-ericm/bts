@@ -79,10 +79,15 @@ def _mock_predictions():
 class TestBtsRun:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.posting.should_post_now", return_value=True)
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     @patch("bts.model.predict.run_pipeline")
     def test_run_saves_pick_and_posts(
-        self, mock_pipeline, mock_statuses, mock_should_post, mock_post, tmp_path,
+        self, mock_pipeline, mock_statuses, _detailed_statuses,
+        mock_should_post, mock_post, tmp_path,
     ):
         mock_pipeline.return_value = _mock_predictions()
         mock_post.return_value = "at://did:plc:test/post/123"

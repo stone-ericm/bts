@@ -145,6 +145,11 @@ class TestRunShadowPrediction:
         # Act: run shadow with REAL select_pick (only mocking the predict call
         # and the game-status HTTP lookup)
         with patch("bts.scheduler.predict_local_shadow", return_value=shadow_preds), \
+             patch("bts.picks.get_game_statuses_detailed", return_value={
+                 823154: {"abstract": "P", "detailed": "Pre-Game"},
+                 824696: {"abstract": "P", "detailed": "Pre-Game"},
+                 824938: {"abstract": "P", "detailed": "Pre-Game"},
+             }), \
              patch("bts.strategy.get_game_statuses", return_value=statuses):
             _run_shadow_prediction(
                 config={"orchestrator": {"picks_dir": str(tmp_path)}},

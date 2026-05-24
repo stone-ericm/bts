@@ -227,7 +227,7 @@ def run_and_pick(
     predictions is None if all tiers fail.
     pick_result is None if skip or no games.
     """
-    from bts.picks import load_streak
+    from bts.picks import get_game_statuses_detailed, load_streak
     from bts.strategy import select_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -237,7 +237,17 @@ def run_and_pick(
         return predictions, None, tier_name
 
     streak = load_streak(picks_dir)
-    result = select_pick(predictions, date, picks_dir, streak=streak)
+    try:
+        game_statuses_detailed = get_game_statuses_detailed(date)
+    except Exception:
+        game_statuses_detailed = None
+    result = select_pick(
+        predictions,
+        date,
+        picks_dir,
+        streak=streak,
+        game_statuses_detailed=game_statuses_detailed,
+    )
 
     return predictions, result, tier_name
 

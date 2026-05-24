@@ -331,6 +331,92 @@ class TestSelectPick:
 
         assert result is None
 
+    def test_default_coarse_path_does_not_lookup_detailed_status(self, tmp_path):
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Coarse Path", "p_game_hit": 0.83, "game_pk": 778899},
+        ])
+        with patch("bts.picks.get_game_statuses_detailed", side_effect=AssertionError), \
+             patch("bts.strategy.get_game_statuses", return_value={778899: "P"}):
+            result = select_pick(preds, "2026-04-01", tmp_path)
+
+        assert result is not None
+        assert result.daily.pick.batter_name == "Coarse Path"
+
+    @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
+    def test_detailed_void_candidate_excluded_even_when_abstract_preview(
+        self, detailed, tmp_path
+    ):
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Voided Top", "p_game_hit": 0.91, "game_pk": 778899},
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path,
+            game_statuses_detailed={
+                778899: {"abstract": "P", "detailed": detailed},
+                778900: {"abstract": "P", "detailed": "Pre-Game"},
+            },
+        )
+
+        assert result is not None
+        assert result.locked is False
+        assert result.daily.pick.batter_name == "Fresh Pick"
+
+    def test_detailed_missing_candidate_excluded(self, tmp_path):
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Missing Top", "p_game_hit": 0.91, "game_pk": 778899},
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path,
+            game_statuses_detailed={
+                778900: {"abstract": "P", "detailed": "Pre-Game"},
+            },
+        )
+
+        assert result is not None
+        assert result.locked is False
+        assert result.daily.pick.batter_name == "Fresh Pick"
+
+    def test_detailed_preview_candidates_match_coarse_selection(self, tmp_path):
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Top Preview", "p_game_hit": 0.84, "game_pk": 778899},
+            {"batter_name": "Second Preview", "p_game_hit": 0.81, "game_pk": 778900},
+        ])
+        coarse_statuses = {778899: "P", 778900: "P"}
+        detailed_statuses = {
+            778899: {"abstract": "P", "detailed": "Pre-Game"},
+            778900: {"abstract": "P", "detailed": "Pre-Game"},
+        }
+
+        with patch("bts.strategy.get_game_statuses", return_value=coarse_statuses):
+            coarse_result = select_pick(preds, "2026-04-01", tmp_path / "coarse")
+        detailed_result = select_pick(
+            preds,
+            "2026-04-01",
+            tmp_path / "detailed",
+            game_statuses_detailed=detailed_statuses,
+        )
+
+        assert coarse_result is not None
+        assert detailed_result is not None
+        assert detailed_result.daily.pick.batter_name == coarse_result.daily.pick.batter_name
+        assert detailed_result.daily.double_down is not None
+        assert coarse_result.daily.double_down is not None
+        assert detailed_result.daily.double_down.batter_name == coarse_result.daily.double_down.batter_name
+
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_runner_up_populated(self, mock_statuses, tmp_path):
         from bts.strategy import select_pick

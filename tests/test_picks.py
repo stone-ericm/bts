@@ -5,6 +5,7 @@ from bts.picks import Pick, DailyPick, save_pick, load_pick, load_streak, save_s
 from bts.picks import pick_was_delivered
 from bts.picks import pick_from_row
 from bts.picks import get_game_statuses, get_game_statuses_detailed, check_hit
+from bts.picks import pick_candidate_status_is_available
 from bts.picks import active_streak_results, effective_daily_result, streak_increment_for_resolved_hit
 
 
@@ -547,6 +548,28 @@ class TestGetGameStatusesExtended:
             {"dates": []}
         ).encode()
         assert get_game_statuses_detailed("2026-04-01") == {}
+
+
+class TestPickCandidateStatus:
+    @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
+    def test_void_statuses_are_not_available(self, detailed):
+        assert pick_candidate_status_is_available({"abstract": "P", "detailed": detailed}) is False
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            None,
+            {"abstract": "L", "detailed": "In Progress"},
+            {"abstract": "F", "detailed": "Final"},
+            {"abstract": "F", "detailed": "Suspended"},
+        ],
+    )
+    def test_missing_started_or_final_statuses_are_not_available(self, status):
+        assert pick_candidate_status_is_available(status) is False
+
+    @pytest.mark.parametrize("detailed", ["Pre-Game", "Preview", "Scheduled"])
+    def test_preview_statuses_are_available(self, detailed):
+        assert pick_candidate_status_is_available({"abstract": "P", "detailed": detailed}) is True
 
 
 class TestReconcileResults:
