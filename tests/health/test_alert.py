@@ -1,5 +1,6 @@
 """Tests for the shared Alert type + DM dispatcher."""
 
+import json
 from unittest.mock import patch
 
 from bts.health.alert import (
@@ -105,6 +106,75 @@ class TestDispatchDmForHealthAlerts:
             assert "restart_spike" in body
             assert "same_team_corr" in body
             assert sent is True
+
+    def test_success_writes_delivery_status(self, tmp_path):
+        status_path = tmp_path / "health_dm_delivery_status.json"
+        critical = Alert("CRITICAL", "restart_spike", "NRestarts +7")
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            sent = dispatch_dm_for_health_alerts(
+                [critical],
+                "x.bsky.social",
+                status_path=status_path,
+            )
+
+        assert sent is True
+        mock_dm.assert_called_once()
+        data = json.loads(status_path.read_text())
+        assert data["status"] == "sent"
+        assert data["recipient_configured"] is True
+        assert data["critical_count"] == 1
+        assert data["warn_attention_count"] == 0
+        assert data["body_first_line"] == "BTS health CRITICAL alert(s):"
+        assert data["body_sha256"]
+
+    def test_failure_writes_delivery_status(self, tmp_path):
+        status_path = tmp_path / "health_dm_delivery_status.json"
+        critical = Alert("CRITICAL", "restart_spike", "NRestarts +7")
+        with patch("bts.health.alert.send_dm", side_effect=RuntimeError("boom")):
+            sent = dispatch_dm_for_health_alerts(
+                [critical],
+                "x.bsky.social",
+                status_path=status_path,
+            )
+
+        assert sent is True
+        data = json.loads(status_path.read_text())
+        assert data["status"] == "failed"
+        assert data["critical_count"] == 1
+        assert data["error"] == "boom"
+
+    def test_missing_recipient_writes_status_only_when_body_exists(self, tmp_path):
+        status_path = tmp_path / "health_dm_delivery_status.json"
+        warn = Alert("WARN", "disk_fill", "disk 91%")
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            sent = dispatch_dm_for_health_alerts(
+                [],
+                None,
+                warn_attention=[warn],
+                status_path=status_path,
+            )
+
+        assert sent is False
+        mock_dm.assert_not_called()
+        data = json.loads(status_path.read_text())
+        assert data["status"] == "skipped_no_recipient"
+        assert data["recipient_configured"] is False
+        assert data["warn_attention_count"] == 1
+
+    def test_no_body_does_not_clear_prior_status(self, tmp_path):
+        status_path = tmp_path / "health_dm_delivery_status.json"
+        status_path.write_text(json.dumps({"status": "failed", "error": "old"}))
+
+        with patch("bts.health.alert.send_dm") as mock_dm:
+            sent = dispatch_dm_for_health_alerts(
+                [],
+                "x.bsky.social",
+                status_path=status_path,
+            )
+
+        assert sent is False
+        mock_dm.assert_not_called()
+        assert json.loads(status_path.read_text()) == {"status": "failed", "error": "old"}
 
     def test_format_empty_returns_none(self):
         assert format_health_dm_body([], []) is None

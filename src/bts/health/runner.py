@@ -208,6 +208,9 @@ def run_all_checks(
     warn_attention_path = (overrides.get("warn_attention_state")
                            if "warn_attention_state" in overrides
                            else picks_dir.parent / "health_state" / "warn_attention_state.json")
+    health_dm_status_path = (overrides.get("health_dm_delivery_status")
+                             if "health_dm_delivery_status" in overrides
+                             else picks_dir.parent / "health_state" / "health_dm_delivery_status.json")
     policy_alerts, warn_attention = apply_warn_attention_policy(
         alerts,
         state_path=_path(warn_attention_path),
@@ -216,7 +219,12 @@ def run_all_checks(
     alerts.extend(policy_alerts)
 
     log_alerts(alerts)
-    dispatch_dm_for_health_alerts(alerts, dm_recipient, warn_attention=warn_attention)
+    dispatch_dm_for_health_alerts(
+        alerts,
+        dm_recipient,
+        warn_attention=warn_attention,
+        status_path=_path(health_dm_status_path),
+    )
     return alerts
 
 

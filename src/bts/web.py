@@ -10,6 +10,7 @@ Usage:
 
 import json
 import os
+import html as html_lib
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -23,6 +24,7 @@ from bts.audit_progress import scan_audit_progress
 
 PICKS_DIR = Path("data/picks")
 LEADERBOARD_DIR = Path("data/leaderboard")
+HEALTH_STATE_DIR = Path("data/health_state")
 HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PROJECT_ROOT = Path(".")
 PORT = 3003
@@ -131,6 +133,53 @@ def load_scheduler_state(date_str: str) -> dict:
         return json.loads(state_path.read_text())
     except Exception:
         return {}
+
+
+def load_health_dm_delivery_status() -> dict:
+    """Read health DM delivery status. Returns {} if missing/unreadable."""
+    status_path = HEALTH_STATE_DIR / "health_dm_delivery_status.json"
+    if not status_path.exists():
+        return {}
+    try:
+        data = json.loads(status_path.read_text())
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _status_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def render_health_dm_delivery_banner(status: dict) -> str:
+    """Render a persistent dashboard warning for failed health-alert DMs."""
+    state = status.get("status")
+    if state not in {"failed", "skipped_no_recipient"}:
+        return ""
+
+    title = (
+        "Health DM delivery failed"
+        if state == "failed"
+        else "Health DM recipient missing"
+    )
+    updated = html_lib.escape(str(status.get("updated_at", "unknown")))
+    critical_count = _status_int(status.get("critical_count"))
+    warn_count = _status_int(status.get("warn_attention_count"))
+    error = html_lib.escape(str(status.get("error", "")))
+    detail = (
+        f"{critical_count} critical / {warn_count} warn-attention alert(s) "
+        f"were not confirmed delivered. Last update: {updated}."
+    )
+    if error:
+        detail += f" Error: {error}."
+    return f"""
+        <div class="ops-alert">
+            <strong>{title}</strong>
+            <span>{detail}</span>
+        </div>"""
 
 
 def load_orchestrator_config() -> dict:
@@ -775,6 +824,9 @@ def render_page():
     streak = load_streak()
     posts = fetch_bluesky_posts()
     today = datetime.now().strftime("%Y-%m-%d")
+    health_dm_banner = render_health_dm_delivery_banner(
+        load_health_dm_delivery_status()
+    )
 
     today_pick = None
     for p in picks:
@@ -1087,6 +1139,13 @@ def render_page():
         .topbar-title {{ font-size: 0.85em; color: #a0b0cc; font-weight: 500; letter-spacing: 0.5px; }}
 
         .container {{ max-width: 960px; margin: 0 auto; padding: 20px; }}
+        .ops-alert {{ background:#fff7ed; border:1px solid #fb923c;
+                      border-left:4px solid #ea580c; border-radius:8px;
+                      color:#7c2d12; padding:12px 14px; margin-bottom:16px;
+                      display:flex; flex-direction:column; gap:4px;
+                      box-shadow:0 2px 8px rgba(0,0,0,0.04); }}
+        .ops-alert strong {{ color:#9a3412; font-size:0.85em; }}
+        .ops-alert span {{ font-size:0.82em; line-height:1.4; }}
 
         .header {{ display: flex; align-items: center; justify-content: space-between;
                    margin-bottom: 20px; }}
@@ -1224,6 +1283,8 @@ def render_page():
                 <div class="streak-sub">Consecutive Hits</div>
             </div>
         </div>
+
+        {health_dm_banner}
 
         {hero}
 

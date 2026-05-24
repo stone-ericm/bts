@@ -142,6 +142,9 @@ class TestRunAllChecks:
             alerts_arg = args[0]
             # Includes the streak_validation CRITICAL
             assert any(a.source == "streak_validation" for a in alerts_arg)
+            assert mock_dm.call_args.kwargs["status_path"] == (
+                tmp_path / "health_state" / "health_dm_delivery_status.json"
+            )
 
     def test_skips_restart_check_when_nrestarts_none(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
@@ -251,13 +254,16 @@ class TestRunAllChecks:
         _set_up_picks_dir(picks_dir, models_dir)
         memory_history = tmp_path / "health" / "memory_growth_history.jsonl"
         warn_state = tmp_path / "health" / "warn_attention_state.json"
+        dm_status = tmp_path / "health" / "health_dm_delivery_status.json"
         with patch(
             "bts.health.runner.memory_growth.check",
             return_value=[],
         ) as mock_memory, patch(
             "bts.health.runner.apply_warn_attention_policy",
             return_value=([], False),
-        ) as mock_attention:
+        ) as mock_attention, patch(
+            "bts.health.runner.dispatch_dm_for_health_alerts",
+        ) as mock_dm:
             run_all_checks(
                 picks_dir=picks_dir,
                 models_dir=models_dir,
@@ -267,12 +273,16 @@ class TestRunAllChecks:
                 thresholds_overrides={
                     "memory_growth_history": str(memory_history),
                     "warn_attention_state": str(warn_state),
+                    "health_dm_delivery_status": str(dm_status),
                 },
             )
 
         history_arg = mock_memory.call_args.kwargs["history_path"]
         state_arg = mock_attention.call_args.kwargs["state_path"]
+        dm_status_arg = mock_dm.call_args.kwargs["status_path"]
         assert isinstance(history_arg, Path)
         assert isinstance(state_arg, Path)
+        assert isinstance(dm_status_arg, Path)
         assert history_arg == memory_history
         assert state_arg == warn_state
+        assert dm_status_arg == dm_status
