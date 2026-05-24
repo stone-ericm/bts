@@ -33,6 +33,111 @@ class TestBlendBacktestOutput:
         assert len(loaded) == 1  # 1 day
         assert loaded[0].top1_p == df.iloc[0]["p_game_hit"]
 
+    def test_actual_pa_mode_is_default_and_preserves_legacy_aggregation(self, monkeypatch):
+        import bts.simulate.backtest_blend as bb
+
+        def fake_predict(_model, day_data, _cols):
+            return pd.Series(day_data["prob"].to_numpy(), index=day_data.index)
+
+        def fake_train(_available, _blend_configs, _lgb_params, cached_models=None):
+            return {"baseline": (object(), ["feature"], fake_predict)}, set()
+
+        monkeypatch.setattr(bb, "_train_blend_for_day", fake_train)
+        df = pd.DataFrame({
+            "date": [
+                "2024-04-01",
+                "2025-04-01",
+                "2025-04-01",
+                "2025-04-01",
+            ],
+            "season": [2024, 2025, 2025, 2025],
+            "batter_id": [1, 10, 10, 11],
+            "game_pk": [1, 100, 100, 100],
+            "feature": [0.1, 0.2, 0.3, 0.4],
+            "prob": [0.1, 0.2, 0.3, 0.4],
+            "is_hit": [0, 0, 1, 0],
+        })
+
+        default = bb.blend_walk_forward(
+            df,
+            2025,
+            blend_configs=[("baseline", ["feature"])],
+            lgb_params={},
+        )
+        explicit = bb.blend_walk_forward(
+            df,
+            2025,
+            blend_configs=[("baseline", ["feature"])],
+            lgb_params={},
+            game_probability_mode=bb.GAME_PROBABILITY_ACTUAL_PA,
+        )
+
+        pd.testing.assert_frame_equal(default, explicit)
+        assert default.iloc[0]["batter_id"] == 10
+        assert default.iloc[0]["p_game_hit"] == pytest.approx(1 - (1 - 0.2) * (1 - 0.3))
+        assert default.iloc[0]["n_pas"] == 2
+
+    def test_estimated_pa_mode_uses_starter_matchup_and_training_reliever_context(self, monkeypatch):
+        import bts.simulate.backtest_blend as bb
+
+        def fake_predict(_model, day_data, _cols):
+            if (day_data["pitcher_hr_30g"] == 1.0).all():
+                return pd.Series(day_data["reliever_prob"].to_numpy(), index=day_data.index)
+            return pd.Series(day_data["starter_prob"].to_numpy(), index=day_data.index)
+
+        def fake_train(_available, _blend_configs, _lgb_params, cached_models=None):
+            return {
+                "baseline": (
+                    object(),
+                    ["feature", "pitcher_hr_30g", "pitcher_entropy_30g"],
+                    fake_predict,
+                )
+            }, set()
+
+        monkeypatch.setattr(bb, "_train_blend_for_day", fake_train)
+        df = pd.DataFrame({
+            "date": [
+                "2024-04-01",
+                "2024-04-01",
+                "2025-04-01",
+                "2025-04-01",
+                "2025-04-01",
+            ],
+            "season": [2024, 2024, 2025, 2025, 2025],
+            "batter_id": [1, 2, 10, 10, 11],
+            "game_pk": [1, 1, 100, 100, 100],
+            "is_home": [True, True, True, True, True],
+            "pitcher_id": [90, 91, 80, 81, 81],
+            "lineup_position": [1, 2, 1, 1, 9],
+            "feature": [0.1, 0.1, 0.2, 0.2, 0.3],
+            "starter_prob": [0.2, 0.2, 0.2, 0.2, 0.8],
+            "reliever_prob": [0.1, 0.1, 0.1, 0.1, 0.8],
+            "pitcher_hr_30g": [0.2, 0.3, 0.4, 0.5, 0.5],
+            "pitcher_entropy_30g": [0.4, 0.6, 0.7, 0.8, 0.8],
+            "is_hit": [0, 1, 0, 1, 1],
+        })
+
+        result = bb.blend_walk_forward(
+            df,
+            2025,
+            blend_configs=[("baseline", ["feature"])],
+            lgb_params={},
+            game_probability_mode=bb.GAME_PROBABILITY_ESTIMATED_PA,
+        )
+
+        expected = 1 - ((1 - 0.2) ** 2.5 * (1 - 0.1) ** 2.0)
+        assert result["batter_id"].tolist() == [10]
+        assert result.iloc[0]["p_game_hit"] == pytest.approx(expected)
+        assert result.iloc[0]["est_pas"] == pytest.approx(4.5)
+        assert result.iloc[0]["starter_pas"] == pytest.approx(2.5)
+        assert result.iloc[0]["reliever_pas"] == pytest.approx(2.0)
+        assert result.iloc[0]["source_n_pas"] == 2
+        assert result.iloc[0]["n_pas"] == 2
+        assert result.iloc[0]["p_game_hit_basis"] == bb.GAME_PROBABILITY_ESTIMATED_PA
+        assert result.iloc[0]["total_batter_games"] == 2
+        assert result.iloc[0]["starter_matchup_batter_games"] == 1
+        assert result.iloc[0]["dropped_no_starter_matchup"] == 1
+
 
 class TestDecisionSensitivityWeights:
     def test_weights_prioritize_top_daily_candidates_and_normalize(self):

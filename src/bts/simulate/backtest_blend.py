@@ -17,6 +17,23 @@ import sys
 from pathlib import Path
 
 PROFILE_COLUMNS = ["date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit", "n_pas"]
+GAME_PROBABILITY_ACTUAL_PA = "actual_pa"
+GAME_PROBABILITY_ESTIMATED_PA = "estimated_pa"
+GAME_PROBABILITY_MODES = {GAME_PROBABILITY_ACTUAL_PA, GAME_PROBABILITY_ESTIMATED_PA}
+PA_EST_BY_LINEUP = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
+DEFAULT_EST_PAS = 4.0
+STARTER_PAS_CAP = 2.5
+ESTIMATED_PA_EXTRA_COLUMNS = [
+    "est_pas",
+    "starter_pas",
+    "reliever_pas",
+    "source_n_pas",
+    "p_hit_vs_reliever",
+    "p_game_hit_basis",
+    "total_batter_games",
+    "starter_matchup_batter_games",
+    "dropped_no_starter_matchup",
+]
 
 
 def _rs() -> int:
@@ -529,6 +546,178 @@ def _write_pa_predictions_chunk(
     chunk.to_parquet(output_path, index=False)
 
 
+def _active_blend_scores(blend_pa_scores: dict, side_channel_names: set) -> dict:
+    return {
+        name: scores for name, scores in blend_pa_scores.items()
+        if name not in side_channel_names
+    }
+
+
+def _attach_pa_blend_scores(
+    day_data: "pd.DataFrame",
+    blend_pa_scores: dict,
+    side_channel_names: set,
+) -> "pd.DataFrame":
+    import pandas as pd
+
+    out = day_data.copy()
+    active_scores = _active_blend_scores(blend_pa_scores, side_channel_names)
+    out["p_hit_blend"] = pd.DataFrame(active_scores).mean(axis=1)
+    return out
+
+
+def _actual_pa_game_predictions(
+    day_data: "pd.DataFrame",
+    blend: dict,
+    *,
+    top_n: int,
+    capture_per_model: bool,
+) -> "pd.DataFrame":
+    import numpy as np
+
+    agg_dict = {
+        "p_game_hit": ("p_hit_blend", lambda x: 1 - np.prod(1 - x.values)),
+        "actual_hit": ("is_hit", "max"),
+        "n_pas": ("is_hit", "count"),
+    }
+    if capture_per_model:
+        for name in blend.keys():
+            agg_dict[f"m_{name}"] = (f"m_{name}", "mean")
+
+    game_preds = day_data.groupby(["batter_id", "game_pk"]).agg(**agg_dict).reset_index()
+    game_preds = game_preds.nlargest(top_n, "p_game_hit").reset_index(drop=True)
+    game_preds["rank"] = range(1, len(game_preds) + 1)
+    return game_preds
+
+
+def _training_window_reliever_context(available: "pd.DataFrame") -> tuple[float, float]:
+    import numpy as np
+
+    entropy = (
+        float(available["pitcher_entropy_30g"].dropna().mean())
+        if "pitcher_entropy_30g" in available.columns
+        else float("nan")
+    )
+    required = {"game_pk", "is_home", "pitcher_id", "is_hit"}
+    if not required.issubset(available.columns):
+        return 0.22, entropy
+
+    work = available.copy()
+    starters = (
+        work.groupby(["game_pk", "is_home"], sort=False)["pitcher_id"]
+        .first()
+        .rename("_starter_pitcher_id")
+        .reset_index()
+    )
+    work = work.merge(starters, on=["game_pk", "is_home"], how="left", sort=False)
+    reliever_pas = work[work["pitcher_id"] != work["_starter_pitcher_id"]]
+    reliever_hr = float(reliever_pas["is_hit"].mean()) if len(reliever_pas) else 0.22
+    if not np.isfinite(reliever_hr):
+        reliever_hr = 0.22
+    return reliever_hr, entropy
+
+
+def _starter_matchup_representative_rows(day_data: "pd.DataFrame") -> tuple["pd.DataFrame", int, int]:
+    required = {"game_pk", "is_home", "pitcher_id", "batter_id", "is_hit"}
+    missing = required - set(day_data.columns)
+    if missing:
+        raise ValueError(f"estimated PA mode missing required columns: {sorted(missing)}")
+
+    work = day_data.copy()
+    work["_source_index"] = work.index
+    work["_row_order"] = range(len(work))
+    starters = (
+        work.groupby(["game_pk", "is_home"], sort=False)["pitcher_id"]
+        .first()
+        .rename("_starter_pitcher_id")
+        .reset_index()
+    )
+    work = work.merge(starters, on=["game_pk", "is_home"], how="left", sort=False)
+    starter_rows = work[work["pitcher_id"] == work["_starter_pitcher_id"]].copy()
+    reps = (
+        starter_rows.sort_values("_row_order")
+        .drop_duplicates(["batter_id", "game_pk"], keep="first")
+        .copy()
+    )
+
+    outcomes = (
+        work.groupby(["batter_id", "game_pk"], sort=False)["is_hit"]
+        .agg(actual_hit="max", source_n_pas="count")
+        .reset_index()
+    )
+    reps = reps.merge(outcomes, on=["batter_id", "game_pk"], how="left", sort=False)
+    reps.index = reps["_source_index"].astype(int)
+    total_batter_games = work[["batter_id", "game_pk"]].drop_duplicates().shape[0]
+    starter_matchup_batter_games = reps[["batter_id", "game_pk"]].drop_duplicates().shape[0]
+    dropped = int(total_batter_games - starter_matchup_batter_games)
+    return reps, int(starter_matchup_batter_games), dropped
+
+
+def _estimated_pa_game_predictions(
+    day_data: "pd.DataFrame",
+    *,
+    blend: dict,
+    blend_pa_scores: dict,
+    side_channel_names: set,
+    model_train_window: "pd.DataFrame",
+    top_n: int,
+    capture_per_model: bool,
+) -> "pd.DataFrame":
+    import numpy as np
+    import pandas as pd
+
+    if "baseline" not in blend:
+        raise ValueError("estimated PA mode requires a 'baseline' blend model")
+
+    reps, starter_matchup_batter_games, dropped_no_starter = _starter_matchup_representative_rows(day_data)
+    if reps.empty:
+        return pd.DataFrame(columns=PROFILE_COLUMNS + ESTIMATED_PA_EXTRA_COLUMNS)
+
+    reliever_hr, entropy = _training_window_reliever_context(model_train_window)
+    baseline_model, baseline_cols, baseline_predict_fn = blend["baseline"]
+    reliever_rows = reps.copy()
+    if "pitcher_hr_30g" in baseline_cols or "pitcher_hr_30g" in reliever_rows.columns:
+        reliever_rows["pitcher_hr_30g"] = reliever_hr
+    if "pitcher_entropy_30g" in baseline_cols or "pitcher_entropy_30g" in reliever_rows.columns:
+        reliever_rows["pitcher_entropy_30g"] = entropy
+
+    p_reliever = baseline_predict_fn(baseline_model, reliever_rows, baseline_cols)
+    p_reliever = pd.Series(p_reliever, index=reps.index, dtype=float)
+
+    lineup_raw = (
+        reps["lineup_position"]
+        if "lineup_position" in reps.columns
+        else pd.Series(np.nan, index=reps.index)
+    )
+    lineup = pd.to_numeric(lineup_raw, errors="coerce")
+    reps["est_pas"] = lineup.map(PA_EST_BY_LINEUP).fillna(DEFAULT_EST_PAS).astype(float)
+    reps["reliever_pas"] = (reps["est_pas"] - STARTER_PAS_CAP).clip(lower=0)
+    reps["starter_pas"] = reps["est_pas"] - reps["reliever_pas"]
+    reps["p_hit_vs_reliever"] = p_reliever
+    reps["n_pas"] = reps["source_n_pas"].astype(int)
+    reps["p_game_hit_basis"] = GAME_PROBABILITY_ESTIMATED_PA
+    reps["total_batter_games"] = int(starter_matchup_batter_games + dropped_no_starter)
+    reps["starter_matchup_batter_games"] = int(starter_matchup_batter_games)
+    reps["dropped_no_starter_matchup"] = dropped_no_starter
+
+    active_scores = _active_blend_scores(blend_pa_scores, side_channel_names)
+    game_scores = {}
+    for name, scores in active_scores.items():
+        p_starter = pd.Series(scores, index=day_data.index).reindex(reps.index).astype(float)
+        p_game = 1 - (
+            (1 - p_starter) ** reps["starter_pas"] *
+            (1 - p_reliever) ** reps["reliever_pas"]
+        )
+        game_scores[name] = p_game
+        if capture_per_model:
+            reps[f"m_{name}"] = p_game
+
+    reps["p_game_hit"] = pd.DataFrame(game_scores).mean(axis=1)
+    game_preds = reps.nlargest(top_n, "p_game_hit").reset_index(drop=True)
+    game_preds["rank"] = range(1, len(game_preds) + 1)
+    return game_preds
+
+
 def blend_walk_forward(
     df: "pd.DataFrame",
     test_season: int,
@@ -541,6 +730,7 @@ def blend_walk_forward(
     cache_seed: int | None = None,
     cache_reuse_configs: list[str] | None = None,
     pa_predictions_path: "Path | None" = None,
+    game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
 ) -> "pd.DataFrame":
     """Run blend walk-forward evaluation and return daily profiles.
 
@@ -571,6 +761,11 @@ def blend_walk_forward(
             after each game day to append ``date``, ``game_pk``, ``batter_id``,
             ``pa_index``, ``p_hit_blend``, and ``is_hit`` for every PA in the
             test window. When None (the default), behavior is unchanged.
+        game_probability_mode: ``actual_pa`` preserves the historical
+            aggregation over realized PA rows. ``estimated_pa`` is an offline
+            Gate-B diagnostic mode that uses starter-matchup rows, lineup-slot
+            estimated PAs, and training-window reliever context to mirror the
+            production probability basis.
 
     Returns DataFrame with PROFILE_COLUMNS (plus per-model columns if requested).
     """
@@ -583,6 +778,8 @@ def blend_walk_forward(
         blend_configs = BLEND_CONFIGS
     if lgb_params is None:
         lgb_params = LGB_PARAMS
+    if game_probability_mode not in GAME_PROBABILITY_MODES:
+        raise ValueError(f"unknown game_probability_mode: {game_probability_mode!r}")
 
     # Cache integration is off unless ALL three kwargs are provided. This
     # preserves bit-exact behavior for every existing caller (74 tests in
@@ -613,6 +810,7 @@ def blend_walk_forward(
 
     all_profiles = []
     blend = None  # {name: (model, cols, predict_fn)} — populated on first retrain (i=0)
+    model_train_window = None
     per_model_capture = []  # daily per-model predictions for capture mode
 
     for i, day in enumerate(test_dates):
@@ -621,6 +819,7 @@ def blend_walk_forward(
         # Retrain periodically
         if blend is None or (i % retrain_every == 0):
             available = pd.concat([train_pool, test_data[test_data["date"] < day]])
+            model_train_window = available.copy()
 
             cached_models: dict | None = None
             day_str: str | None = None
@@ -662,13 +861,7 @@ def blend_walk_forward(
                 print(f"  ! {name} predict failed on {day}: {e}", file=sys.stderr)
                 blend_pa_scores[name] = pd.Series(np.nan, index=day_data.index)
 
-        # Average PA-level predictions across models (excluding side-channel models)
-        avg_scores = {
-            name: scores for name, scores in blend_pa_scores.items()
-            if name not in side_channel_names
-        }
-        pa_blend = pd.DataFrame(avg_scores).mean(axis=1)
-        day_data["p_hit_blend"] = pa_blend
+        day_data = _attach_pa_blend_scores(day_data, blend_pa_scores, side_channel_names)
 
         # Optional: persist per-PA predictions for falsification harness
         if pa_predictions_path is not None:
@@ -679,26 +872,36 @@ def blend_walk_forward(
             for name, scores in blend_pa_scores.items():
                 day_data[f"m_{name}"] = scores
 
-        # Aggregate to game level: P(>=1 hit) = 1 - prod(1 - P(hit|PA))
-        agg_dict = {
-            "p_game_hit": ("p_hit_blend", lambda x: 1 - np.prod(1 - x.values)),
-            "actual_hit": ("is_hit", "max"),
-            "n_pas": ("is_hit", "count"),
-        }
-        if capture_per_model:
-            for name in blend.keys():
-                agg_dict[f"m_{name}"] = (f"m_{name}", "mean")
-
-        game_preds = day_data.groupby(["batter_id", "game_pk"]).agg(**agg_dict).reset_index()
-
-        # Rank and take top N
-        game_preds = game_preds.nlargest(top_n, "p_game_hit").reset_index(drop=True)
-        game_preds["rank"] = range(1, len(game_preds) + 1)
+        if game_probability_mode == GAME_PROBABILITY_ACTUAL_PA:
+            game_preds = _actual_pa_game_predictions(
+                day_data,
+                blend,
+                top_n=top_n,
+                capture_per_model=capture_per_model,
+            )
+        else:
+            game_preds = _estimated_pa_game_predictions(
+                day_data,
+                blend=blend,
+                blend_pa_scores=blend_pa_scores,
+                side_channel_names=side_channel_names,
+                model_train_window=model_train_window,
+                top_n=top_n,
+                capture_per_model=capture_per_model,
+            )
         game_preds["date"] = pd.Timestamp(day).date()
 
         cols_to_keep = list(PROFILE_COLUMNS)
+        if game_probability_mode == GAME_PROBABILITY_ESTIMATED_PA:
+            cols_to_keep += [
+                col for col in ESTIMATED_PA_EXTRA_COLUMNS
+                if col in game_preds.columns
+            ]
         if capture_per_model:
-            cols_to_keep += [f"m_{name}" for name in blend.keys()]
+            cols_to_keep += [
+                f"m_{name}" for name in blend.keys()
+                if f"m_{name}" in game_preds.columns
+            ]
         all_profiles.append(game_preds[cols_to_keep])
 
     result = pd.concat(all_profiles, ignore_index=True)
@@ -722,6 +925,7 @@ def run_backtest(
     seasons: list[int] | None = None,
     retrain_every: int = 7,
     log_pa_predictions: bool = False,
+    game_probability_mode: str = GAME_PROBABILITY_ACTUAL_PA,
 ) -> None:
     """Run blend backtest for specified seasons and save profiles.
 
@@ -759,6 +963,10 @@ def run_backtest(
         print(f"{'='*60}", file=sys.stderr)
         pa_path = (out / f"pa_predictions_{season}.parquet") if log_pa_predictions else None
         profiles_df = blend_walk_forward(
-            df, season, retrain_every=retrain_every, pa_predictions_path=pa_path
+            df,
+            season,
+            retrain_every=retrain_every,
+            pa_predictions_path=pa_path,
+            game_probability_mode=game_probability_mode,
         )
         save_profiles(profiles_df, season, out)
