@@ -18,6 +18,37 @@ The goal is to keep paging surfaces actionable without hiding slow stalls.
   2026-05-16 through 2026-05-21 are `existing_verified`, 2026-05-22 is
   `existing_verified_with_voids`, and 2026-05-23 is `pending_outcomes`.
 
+## 2026-05-24 WARN Attention Follow-up
+
+The 2026-05-24 end-of-day health DM repeated two WARN attention surfaces:
+`mdp_policy_alignment` and `dd_pair_realized_shortfall`.
+
+Live verification on production showed:
+
+- `bts-scheduler.service` and `bts-dashboard.service` were active, both with
+  `NRestarts=0`; dashboard `/health` returned `ok` and the scheduler was
+  sleeping until the next scheduled check.
+- `mdp_policy_alignment` matched the health DM exactly: the last 21 primary
+  picks and 21 double-down picks all mapped to Q0 below the deployed policy's
+  lowest quality boundary. This is the known Gate B condition, not a new policy
+  decision point. PR #128 closed the production-live boundary feasibility slice
+  as `NOT_FEASIBLE_DIRECT_OR_RECONCILIATION_NEEDS_MORE_LIVE_N`, so the expected
+  disposition is to keep the diagnostic visible until enough live support exists
+  for a pre-registered reconciliation or re-solve.
+- `dd_pair_realized_shortfall` decomposed to model-pair shortfall, not residual
+  pair dependence. Over the last 14 resolved double-down days, primary marginal
+  hit rate was `7/14`, double-down marginal hit rate was `6/14`, their empirical
+  product was `3/14`, and realized both-hit rate was also `3/14`. The same
+  health run reported rolling residual gap `0.0` and did not emit
+  `dd_pair_residual_corr`.
+
+Conclusion: do not open a policy/deploy path from these WARNs alone. Treat the
+MDP warning as a known-accepted diagnostic under the Gate B `NO SWAP` decision,
+and treat the DD shortfall warning as calibration-scale evidence unless the
+separate residual-correlation check rises. The DD shortfall belongs with the
+Gate A marginal-calibration debt and should accumulate toward the existing
+`n >= 200` re-check threshold, not start a separate DD policy track.
+
 ## Disposition Table
 
 | Surface | Current level/path | Disposition | Rationale | Follow-up |
@@ -27,7 +58,7 @@ The goal is to keep paging surfaces actionable without hiding slow stalls.
 | `restart_spike` | CRITICAL DM | Keep loud | Catches automatic service restarts and crash-loop class failures. Manual deploy restarts do not increment `NRestarts`, so planned deploys are already separated. | Improve message wording. "Heartbeat-gap regression suspected" is too narrow when OOM is also a likely cause. |
 | `analytics_artifacts_missing` | WARN attention / CRITICAL with fatal evidence | Keep loud | Correctly makes missing shadow/capture artifacts visible after a locked pick. OOM evidence promotion is the right CRITICAL path. | Confirm stale WARN streaks clear naturally when absent on the next day. |
 | `select_pick_returned_none` shadow absence | INFO | Keep low | This is benign shadow abstention, not a production failure. | None unless it becomes frequent enough to suggest shadow model coverage decay. |
-| `mdp_policy_alignment` | WARN, repeated attention | Keep as-is | It correctly surfaced policy-bin collapse and led to Gate A/B measurement. It is diagnostic, not a deploy gate by itself. | Auto-clear when recent p distribution again uses multiple policy bins, or after a future policy re-solve. |
+| `mdp_policy_alignment` | WARN, repeated attention | Keep as known-accepted diagnostic | It correctly surfaced policy-bin collapse and led to Gate A/B measurement. Gate B closed as `NO SWAP`, and PR #128 found production-live boundary derivation/reconciliation not feasible yet. The collapse is therefore expected to persist until enough live support accumulates. | Auto-clear when recent p distribution again uses multiple policy bins, or after a future pre-registered policy re-solve/reconciliation. Do not re-open the policy path from this WARN alone. |
 | Gate A calibration validation | script/doc decision `WAIT_FOR_N` | Document only | Model-policy evidence is underpowered and should not page. Current isotonic check did not beat raw Brier at n=158. | Re-run when resolved pick-slot support reaches n >= 200. |
 | Gate B raw re-bin measurement | script/doc decision `INSUFFICIENT_SUPPORT` | Document only | Current-era DD-pair support is only n=49 with thin bins and a backtest distribution mismatch. | Revisit at n >= 200, min per bin >= 30, and off-host policy-file backtest compatibility. |
 | `memory_growth` | INFO/WARN/CRITICAL by absolute RSS, Tuesday digest | Recalibrate | History shows normal post-prediction RSS often around 2.8-3.6 GB, while current sleeping RSS can be about 140 MB. Absolute 1 GB/3 GB thresholds mix cold and post-prediction baselines. | Convert to growth-rate or delta-over-baseline, or split cold vs post-prediction thresholds. |
@@ -36,7 +67,7 @@ The goal is to keep paging surfaces actionable without hiding slow stalls.
 | `health_dm_delivery` | persistent dashboard/state indicator on failure | Add secondary visibility | If Bluesky DM delivery itself fails, the current user-facing path may be unavailable by definition. Logging alone may not be noticed quickly, so health-DM attempts now write `data/health_state/health_dm_delivery_status.json`; failed or missing-recipient attempts render a dashboard banner until a successful attempted health DM clears it. | Consider a fully independent out-of-band channel only if dashboard visibility is not enough. |
 | E fallback/defer path | deployed behavior, INFO status when observed | Track live validation | The defer path is deployed, but production has not naturally exercised it yet. On 2026-05-23 at prod head `c511a03`, `data/picks` had 176 pick JSON files and 0 `deferred_fallback_*.json` archives; scheduler journal since 2026-05-01 showed fallback force-deliveries but no `FALLBACK DEFERRED` lines. | `fallback_defer` health status now self-announces the rare event at INFO when a defer archive exists and a final pick was delivered; it escalates only if a defer fires without a delivered pick. Close live validation after observing a natural defer and verifying fired/no force-lock/never-miss/better-pool criteria. |
 | `projected_lineup` | INFO/WARN | Keep repeated attention | It detects excessive projection use and can catch lineup-confirmation quality decay. It should not page on a single noisy day. | Keep in repeated WARN attention set. |
-| `predicted_vs_realized`, `realized_calibration`, `dd_pair_realized_shortfall`, `dd_pair_residual_corr` | INFO/WARN/CRITICAL by evidence | Keep repeated attention | These are model-quality surfaces. `dd_pair_realized_shortfall` tracks model-pair shortfall, while `dd_pair_residual_corr` is the marginal-adjusted pair-dependence signal. They should accumulate evidence before paging unless they reach CRITICAL thresholds. | Keep separated from MDP/gate docs to avoid mixing alerting with policy-change decisions. |
+| `predicted_vs_realized`, `realized_calibration`, `dd_pair_realized_shortfall`, `dd_pair_residual_corr` | INFO/WARN/CRITICAL by evidence | Keep repeated attention | These are model-quality surfaces. `dd_pair_realized_shortfall` tracks model-pair shortfall, while `dd_pair_residual_corr` is the marginal-adjusted pair-dependence signal. On 2026-05-24 the DD shortfall WARN decomposed to marginal/model shortfall with rolling residual gap `0.0`, so it was not pair-correlation evidence. | Keep separated from MDP/gate docs to avoid mixing alerting with policy-change decisions. Attribute DD shortfall to the Gate A calibration/marginal scale track unless `dd_pair_residual_corr` also rises. |
 | `disk_fill`, `postponed_pick`, `blend_training`, `post_failure`, `streak_validation` | WARN/CRITICAL depending on check | Keep loud | These are operational integrity surfaces where a miss can directly break pick delivery, scoring, or state validity. | Keep `postponed_pick` loud, but separately fix the scheduler lock-decision path that still uses abstract game statuses where detailed postponed/cancelled status is required. |
 
 ## Next Work Items
