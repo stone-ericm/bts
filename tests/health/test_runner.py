@@ -109,6 +109,23 @@ class TestRunAllChecks:
         mock_check.assert_called_once_with(picks_dir, today=date(2026, 4, 27))
         assert expected in alerts
 
+    def test_runs_fallback_defer_check(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        expected = Alert(level="INFO", source="fallback_defer", message="called")
+        with patch(
+            "bts.health.runner.fallback_defer.check",
+            return_value=[expected],
+        ) as mock_check:
+            alerts = run_all_checks(
+                picks_dir=picks_dir, models_dir=models_dir,
+                dm_recipient=None, today=date(2026, 4, 27),
+            )
+
+        mock_check.assert_called_once_with(picks_dir, today=date(2026, 4, 27))
+        assert expected in alerts
+
     def test_dm_dispatcher_called_with_full_alert_list(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()
