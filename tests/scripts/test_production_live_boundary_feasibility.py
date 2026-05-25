@@ -7,7 +7,7 @@ import pandas as pd
 from scripts.production_live_boundary_feasibility import build_inventory
 
 
-def _pick_body(day: str, p1: float, p2: float, *, git=None, policy=None):
+def _pick_body(day: str, p1: float, p2: float, *, git=None, policy=None, feature_env=None):
     return {
         "date": day,
         "run_time": f"{day}T15:00:00+00:00",
@@ -43,25 +43,38 @@ def _pick_body(day: str, p1: float, p2: float, *, git=None, policy=None):
         "result": None,
         "slot_results": None,
         "model_git_sha": git,
-        "model_pickle_sha256": f"pickle-{day}",
+        "model_pickle_sha256": f"pickle-{feature_env or day}",
         "policy_npz_sha256": policy,
+        "feature_env_schema_version": (
+            "bts_feature_env_v1" if feature_env is not None else None
+        ),
+        "feature_env_hash": feature_env,
     }
 
 
 def _write_picks(picks_dir):
     picks_dir.mkdir()
     rows = [
-        ("2026-04-01", 0.70, 0.69, None, None),
-        ("2026-04-02", 0.71, 0.70, None, None),
-        ("2026-04-03", 0.72, 0.71, "git-a", "policy-a"),
-        ("2026-04-04", 0.73, 0.72, "git-a", "policy-a"),
-        ("2026-04-05", 0.74, 0.73, "git-b", "policy-a"),
-        ("2026-04-06", 0.75, 0.74, "git-b", "policy-a"),
-        ("2026-04-07", 0.76, 0.75, "git-c", "policy-b"),
+        ("2026-04-01", 0.70, 0.69, None, None, None),
+        ("2026-04-02", 0.71, 0.70, None, None, None),
+        ("2026-04-03", 0.72, 0.71, "git-a", "policy-a", "env-a"),
+        ("2026-04-04", 0.73, 0.72, "git-a", "policy-a", "env-a"),
+        ("2026-04-05", 0.74, 0.73, "git-b", "policy-a", "env-a"),
+        ("2026-04-06", 0.75, 0.74, "git-b", "policy-a", "env-b"),
+        ("2026-04-07", 0.76, 0.75, "git-c", "policy-b", "env-b"),
     ]
-    for day, p1, p2, git, policy in rows:
+    for day, p1, p2, git, policy, feature_env in rows:
         (picks_dir / f"{day}.json").write_text(
-            json.dumps(_pick_body(day, p1, p2, git=git, policy=policy))
+            json.dumps(
+                _pick_body(
+                    day,
+                    p1,
+                    p2,
+                    git=git,
+                    policy=policy,
+                    feature_env=feature_env,
+                )
+            )
         )
     (picks_dir / "lineup_evolution_2026-04-06.jsonl").write_text(
         json.dumps({
@@ -112,8 +125,13 @@ def test_build_inventory_segments_production_windows_and_keeps_scope_evidence_on
     assert result["surface_inventory"]["pick_json"]["rank1_n"] == 7
     assert result["surface_inventory"]["pick_json"]["rank2_n"] == 7
     assert result["surface_inventory"]["lineup_evolution"]["rank1_n"] == 1
+    assert (
+        result["surface_inventory"]["pick_json"]["feature_env_hash_coverage"]["rank1_present"]
+        == 5
+    )
     assert result["windows"]["best_policy_hash_window"]["rank1_n"] == 4
     assert result["windows"]["best_strict_model_git_policy_window"]["rank1_n"] == 2
+    assert result["windows"]["best_non_null_complete_scale_window"]["rank1_n"] == 3
     assert result["scale_parity"]["all_pick_json_rank1_vs_historical_estimated_pa"]["available"] is True
     assert result["feasibility"]["decision"] == (
         "DIRECT_NOT_FEASIBLE_RECONCILIATION_CANDIDATE_REQUIRES_PREREG"

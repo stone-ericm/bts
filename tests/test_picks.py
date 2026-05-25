@@ -132,6 +132,9 @@ class TestPickFileIO:
         assert loaded.model_git_sha is None
         assert loaded.model_pickle_sha256 is None
         assert loaded.policy_npz_sha256 is None
+        assert loaded.feature_env_schema_version is None
+        assert loaded.feature_env is None
+        assert loaded.feature_env_hash is None
         assert loaded.result == "hit"
         assert loaded.pick.batter_name == "Old Pick"
 
@@ -141,12 +144,18 @@ class TestPickFileIO:
         daily.model_git_sha = "abc123def456"
         daily.model_pickle_sha256 = "deadbeef" * 8
         daily.policy_npz_sha256 = "feedface" * 8
+        daily.feature_env_schema_version = "bts_feature_env_v1"
+        daily.feature_env = {"BTS_ROOKIE_GATE_K": "20"}
+        daily.feature_env_hash = "cafe" * 16
         save_pick(daily, tmp_path)
 
         loaded = load_pick("2026-04-01", tmp_path)
         assert loaded.model_git_sha == "abc123def456"
         assert loaded.model_pickle_sha256 == "deadbeef" * 8
         assert loaded.policy_npz_sha256 == "feedface" * 8
+        assert loaded.feature_env_schema_version == "bts_feature_env_v1"
+        assert loaded.feature_env == {"BTS_ROOKIE_GATE_K": "20"}
+        assert loaded.feature_env_hash == "cafe" * 16
 
     def test_notification_delivery_round_trip(self, tmp_path):
         daily = _sample_daily(
@@ -174,6 +183,9 @@ class TestPickFileIO:
         assert raw["model_git_sha"] is None
         assert raw["model_pickle_sha256"] is None
         assert raw["policy_npz_sha256"] is None
+        assert raw["feature_env_schema_version"] is None
+        assert raw["feature_env"] is None
+        assert raw["feature_env_hash"] is None
 
     def test_slot_results_round_trip_for_partial_void(self, tmp_path):
         double = _sample_pick(batter_name="Carlos Cortes", batter_id=666126, game_pk=778900)
@@ -225,6 +237,36 @@ class TestProvenance:
         result = _git_head_sha(tmp_path)
         assert result is None or (isinstance(result, str) and len(result) == 40)
 
+    def test_feature_env_fingerprint_is_stable_for_same_resolved_config(self):
+        from bts.picks import FEATURE_ENV_DEFAULTS, compute_feature_env_fingerprint
+
+        defaults_explicit = dict(FEATURE_ENV_DEFAULTS)
+
+        default_hash = compute_feature_env_fingerprint(env={})
+        explicit_hash = compute_feature_env_fingerprint(env=defaults_explicit)
+
+        assert default_hash == explicit_hash
+        assert default_hash["feature_env_schema_version"] == "bts_feature_env_v1"
+        assert default_hash["feature_env"] == defaults_explicit
+        assert len(default_hash["feature_env_hash"]) == 64
+
+    def test_feature_env_fingerprint_changes_for_scale_flag_only(self):
+        from bts.picks import compute_feature_env_fingerprint
+
+        base = compute_feature_env_fingerprint(env={})
+        changed = compute_feature_env_fingerprint(env={"BTS_ROOKIE_GATE_K": "0"})
+
+        assert changed["feature_env"]["BTS_ROOKIE_GATE_K"] == "0"
+        assert changed["feature_env_hash"] != base["feature_env_hash"]
+
+    def test_feature_env_fingerprint_ignores_irrelevant_env_churn(self):
+        from bts.picks import compute_feature_env_fingerprint
+
+        base = compute_feature_env_fingerprint(env={})
+        unrelated = compute_feature_env_fingerprint(env={"UNRELATED": "changed"})
+
+        assert unrelated == base
+
     def test_compute_provenance_with_all_artifacts_present(self, tmp_path):
         from bts.picks import compute_provenance
         blend_path = tmp_path / "blend.bin"
@@ -237,12 +279,22 @@ class TestProvenance:
             policy_path=policy_path,
             cwd=tmp_path,
         )
-        assert set(prov.keys()) == {"model_git_sha", "model_pickle_sha256", "policy_npz_sha256"}
+        assert set(prov.keys()) == {
+            "model_git_sha",
+            "model_pickle_sha256",
+            "policy_npz_sha256",
+            "feature_env_schema_version",
+            "feature_env",
+            "feature_env_hash",
+        }
         assert prov["model_pickle_sha256"] is not None
         assert len(prov["model_pickle_sha256"]) == 64
         assert prov["policy_npz_sha256"] is not None
         assert len(prov["policy_npz_sha256"]) == 64
         assert prov["model_git_sha"] is None or len(prov["model_git_sha"]) == 40
+        assert prov["feature_env_schema_version"] == "bts_feature_env_v1"
+        assert isinstance(prov["feature_env"], dict)
+        assert len(prov["feature_env_hash"]) == 64
 
     def test_compute_provenance_with_missing_artifacts(self, tmp_path):
         from bts.picks import compute_provenance
@@ -272,6 +324,9 @@ class TestProvenance:
         assert result is daily
         assert daily.model_pickle_sha256 is not None
         assert len(daily.model_pickle_sha256) == 64
+        assert daily.feature_env_schema_version == "bts_feature_env_v1"
+        assert isinstance(daily.feature_env, dict)
+        assert len(daily.feature_env_hash) == 64
 
     def test_attach_provenance_handles_failure_silently(self, tmp_path):
         """Attach with all-missing artifacts must not raise; fields stay None."""
@@ -280,6 +335,28 @@ class TestProvenance:
         attach_provenance(daily, blend_path=tmp_path / "x", policy_path=tmp_path / "y")
         assert daily.model_pickle_sha256 is None
         assert daily.policy_npz_sha256 is None
+
+    def test_feature_env_failure_does_not_block_pick_save(self, tmp_path, monkeypatch):
+        """Feature-env instrumentation must never violate the pick-delivery path."""
+        import bts.picks as picks
+        from bts.picks import attach_provenance, load_pick, save_pick
+
+        def fail():
+            raise RuntimeError("boom")
+
+        daily = _sample_daily()
+        monkeypatch.setattr(picks, "compute_feature_env_fingerprint", fail)
+
+        attach_provenance(daily, blend_path=tmp_path / "missing", policy_path=None, cwd=tmp_path)
+        path = save_pick(daily, tmp_path)
+        loaded = load_pick("2026-04-01", tmp_path)
+
+        assert path.exists()
+        assert loaded is not None
+        assert loaded.pick.batter_name == "Jacob Wilson"
+        assert loaded.feature_env_schema_version == "bts_feature_env_v1"
+        assert loaded.feature_env is None
+        assert loaded.feature_env_hash is None
 
 
 class TestPickFromRow:

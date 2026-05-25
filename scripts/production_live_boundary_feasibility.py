@@ -94,6 +94,8 @@ def _slot_row(
         "model_git_sha": body.get("model_git_sha"),
         "model_pickle_sha256": body.get("model_pickle_sha256"),
         "policy_npz_sha256": body.get("policy_npz_sha256"),
+        "feature_env_hash": body.get("feature_env_hash"),
+        "feature_env_schema_version": body.get("feature_env_schema_version"),
         "notification_sent": body.get("notification_sent"),
         "notification_channel": body.get("notification_channel"),
         "result": body.get("result"),
@@ -439,6 +441,10 @@ def build_inventory(
         pick_rows,
         key_fields=["model_git_sha", "policy_npz_sha256"],
     )
+    complete_scale_windows = contiguous_windows(
+        pick_rows,
+        key_fields=["model_pickle_sha256", "feature_env_hash"],
+    )
     best_policy_window = _best_window(policy_windows)
     best_strict_window = _best_window(strict_windows)
     best_non_null_policy_window = _best_non_null_window(
@@ -448,6 +454,10 @@ def build_inventory(
     best_non_null_strict_window = _best_non_null_window(
         strict_windows,
         required_fields=["model_git_sha", "policy_npz_sha256"],
+    )
+    best_non_null_complete_scale_window = _best_non_null_window(
+        complete_scale_windows,
+        required_fields=["model_pickle_sha256", "feature_env_hash"],
     )
     recent_policy_window = _recent_non_null_policy_window(policy_windows)
 
@@ -507,6 +517,7 @@ def build_inventory(
                 "model_git_sha_coverage": _coverage(pick_rows, "model_git_sha"),
                 "policy_npz_sha256_coverage": _coverage(pick_rows, "policy_npz_sha256"),
                 "model_pickle_sha256_coverage": _coverage(pick_rows, "model_pickle_sha256"),
+                "feature_env_hash_coverage": _coverage(pick_rows, "feature_env_hash"),
             },
             "lineup_evolution": {
                 "row_count": len(lineup_rows),
@@ -533,16 +544,22 @@ def build_inventory(
         "windows": {
             "policy_hash_windows": policy_windows,
             "strict_model_git_policy_windows": strict_windows,
+            "complete_scale_windows": complete_scale_windows,
             "best_policy_hash_window": best_policy_window,
             "best_strict_model_git_policy_window": best_strict_window,
+            "best_complete_scale_window": _best_window(complete_scale_windows),
             "best_non_null_policy_hash_window": best_non_null_policy_window,
             "best_non_null_strict_model_git_policy_window": best_non_null_strict_window,
+            "best_non_null_complete_scale_window": best_non_null_complete_scale_window,
             "recent_non_null_policy_hash_window": recent_policy_window,
             "stability_caveat": (
-                "policy hash and git SHA are observed provenance proxies only. "
-                "Pick JSON does not persist env-level feature configuration; "
-                "daily git changes can reflect docs/tooling rather than model "
-                "scale changes."
+                "model_pickle_sha256 plus feature_env_hash is the preferred "
+                "future live-scale key. Older pick JSON lacks feature_env_hash, "
+                "so policy hash and git SHA remain observed provenance proxies "
+                "for pre-instrumentation rows; daily git changes can reflect "
+                "docs/tooling rather than model scale changes. Do not backfill "
+                "feature_env_hash; complete-fingerprint live-N starts only after "
+                "the instrumentation is deployed."
             ),
         },
         "scale_parity": {

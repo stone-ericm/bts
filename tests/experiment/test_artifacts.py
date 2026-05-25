@@ -120,6 +120,15 @@ def _write_pick_file(path, *, date: str = "2026-05-09"):
         "model_git_sha": "model-sha",
         "model_pickle_sha256": "pickle-sha",
         "policy_npz_sha256": "policy-sha",
+        "feature_env_schema_version": "bts_feature_env_v1",
+        "feature_env": {
+            "BTS_LGBM_DETERMINISTIC": "0",
+            "BTS_LGBM_RANDOM_STATE": "42",
+            "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+            "BTS_ROOKIE_GATE_K": "20",
+            "BTS_USE_CALIBRATION": "0",
+        },
+        "feature_env_hash": "feature-env-sha",
         "production_lgbm_deterministic": False,
     }
     path.write_text(json.dumps(body))
@@ -384,6 +393,11 @@ def test_materialize_live_candidate_profile_pair_writes_preoutcome_profiles(
     )
     assert manifest["production_pick_snapshot"]["slots"]["pick"]["batter_id"] == 11
     assert manifest["production_pick_snapshot"]["policy_npz_sha256"] == "policy-sha"
+    assert manifest["production_pick_snapshot"]["feature_env_hash"] == "feature-env-sha"
+    assert (
+        manifest["production_pick_snapshot"]["feature_env"]["BTS_ROOKIE_GATE_K"]
+        == "20"
+    )
     assert manifest["production_pick_snapshot"]["production_pick_json"]["date"] == "2026-05-09"
     assert manifest["production_pick_snapshot"]["production_lgbm_deterministic"] is False
 
