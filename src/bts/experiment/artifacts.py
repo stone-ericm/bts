@@ -263,6 +263,9 @@ def load_production_pick_snapshot(
         "model_git_sha": body.get("model_git_sha"),
         "model_pickle_sha256": body.get("model_pickle_sha256"),
         "policy_npz_sha256": body.get("policy_npz_sha256"),
+        "feature_env_schema_version": body.get("feature_env_schema_version"),
+        "feature_env": body.get("feature_env"),
+        "feature_env_hash": body.get("feature_env_hash"),
         "production_lgbm_deterministic": body.get("production_lgbm_deterministic"),
         "production_pick_json": body,
         "slots": {

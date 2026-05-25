@@ -2,11 +2,14 @@
 
 import hashlib
 import json
+import logging
 import math
+import os
 import re
 import subprocess
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
+from collections.abc import Mapping
 from pathlib import Path
 
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -14,6 +17,26 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 from bts.util import retry_urlopen
 
 API_BASE = "https://statsapi.mlb.com"
+log = logging.getLogger(__name__)
+
+FEATURE_ENV_SCHEMA_VERSION = "bts_feature_env_v1"
+
+# Scale-affecting env keys only. Do not hash all of os.environ: unrelated
+# host/process churn would create false production-scale discontinuities. This
+# does not capture non-env runtime composition such as a future TOML-driven
+# blend/model set; that would need separate provenance if it becomes variable.
+FEATURE_ENV_DEFAULTS = {
+    # Rookie shrinkage changes batter rolling-HR features before prediction.
+    "BTS_ROOKIE_GATE_K": "20",
+    # Pitcher rolling-window support changes pitcher HR feature scale.
+    "BTS_PITCHER_HR_30G_MIN_PERIODS": "7",
+    # LightGBM seed changes the fitted model when a daily blend is trained.
+    "BTS_LGBM_RANDOM_STATE": "42",
+    # Deterministic mode changes LightGBM training/reduction behavior.
+    "BTS_LGBM_DETERMINISTIC": "0",
+    # Optional post-model calibration directly rewrites p_game_hit.
+    "BTS_USE_CALIBRATION": "0",
+}
 
 
 def _git_head_sha(cwd: Path | str = ".") -> str | None:
@@ -58,27 +81,72 @@ def _sha256_file(path: Path | str | None) -> str | None:
         return None
 
 
+def compute_feature_env_fingerprint(
+    env: Mapping[str, str] | None = None,
+) -> dict[str, str | dict[str, str]]:
+    """Return a stable fingerprint of scale-affecting runtime config.
+
+    The hash is over resolved values, including defaults when variables are
+    unset. That makes "unset in production" and "explicitly set to the default"
+    the same scale state, while deliberate changes to listed keys move the hash.
+    """
+    source = os.environ if env is None else env
+    values = {
+        key: str(source.get(key, default))
+        for key, default in sorted(FEATURE_ENV_DEFAULTS.items())
+    }
+    payload = {
+        "schema_version": FEATURE_ENV_SCHEMA_VERSION,
+        "values": values,
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return {
+        "feature_env_schema_version": FEATURE_ENV_SCHEMA_VERSION,
+        "feature_env": values,
+        "feature_env_hash": hashlib.sha256(encoded).hexdigest(),
+    }
+
+
+def _safe_feature_env_fingerprint() -> dict[str, str | dict[str, str] | None]:
+    try:
+        return compute_feature_env_fingerprint()
+    except Exception as exc:
+        log.warning("feature-env fingerprint failed; continuing without it: %s", exc)
+        return {
+            "feature_env_schema_version": FEATURE_ENV_SCHEMA_VERSION,
+            "feature_env": None,
+            "feature_env_hash": None,
+        }
+
+
 def compute_provenance(
     blend_path: Path | str | None = None,
     policy_path: Path | str | None = None,
     cwd: Path | str = ".",
-) -> dict[str, str | None]:
+) -> dict[str, str | dict[str, str] | None]:
     """Bundle provenance fields for a DailyPick.
 
-    Returns a dict with keys ``model_git_sha``, ``model_pickle_sha256``,
-    ``policy_npz_sha256``. Each value is either a hex string or None.
-    None values reflect "the artifact is genuinely unavailable" or "the
-    git/hash call failed" — they MUST NOT cause callers to error out
-    (per Codex #168).
+    Returns a dict with artifact hashes plus feature-env fingerprint fields.
+    Each hash value is either a hex string or None. None values reflect "the
+    artifact/fingerprint is genuinely unavailable" or "the git/hash call
+    failed" — they MUST NOT cause callers to error out (per Codex #168).
 
     ``blend_path`` is the path of the cached blend artifact written by
     ``bts.model.predict.run_pipeline``; the field name on DailyPick
     follows the existing on-disk convention (``model_pickle_sha256``).
     """
+    feature_env = _safe_feature_env_fingerprint()
     return {
         "model_git_sha": _git_head_sha(cwd),
         "model_pickle_sha256": _sha256_file(blend_path),
         "policy_npz_sha256": _sha256_file(policy_path),
+        "feature_env_schema_version": feature_env["feature_env_schema_version"],
+        "feature_env": feature_env["feature_env"],
+        "feature_env_hash": feature_env["feature_env_hash"],
     }
 
 
@@ -103,6 +171,9 @@ def attach_provenance(
     daily.model_git_sha = prov["model_git_sha"]
     daily.model_pickle_sha256 = prov["model_pickle_sha256"]
     daily.policy_npz_sha256 = prov["policy_npz_sha256"]
+    daily.feature_env_schema_version = prov["feature_env_schema_version"]
+    daily.feature_env = prov["feature_env"]
+    daily.feature_env_hash = prov["feature_env_hash"]
     return daily
 
 
@@ -142,6 +213,9 @@ class DailyPick:
     model_git_sha: str | None = None  # git rev-parse HEAD at predict/save time
     model_pickle_sha256: str | None = None  # sha256 of blend artifact actually used
     policy_npz_sha256: str | None = None  # sha256 of mdp_policy.npz if loaded
+    feature_env_schema_version: str | None = None  # fingerprint schema id
+    feature_env: dict[str, str] | None = None  # resolved scale-affecting config
+    feature_env_hash: str | None = None  # sha256 of resolved feature_env payload
 
 
 @dataclass(frozen=True)
@@ -301,6 +375,9 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
         policy_npz_sha256=data.get("policy_npz_sha256"),
+        feature_env_schema_version=data.get("feature_env_schema_version"),
+        feature_env=data.get("feature_env"),
+        feature_env_hash=data.get("feature_env_hash"),
     )
 
 
@@ -331,6 +408,9 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
         policy_npz_sha256=data.get("policy_npz_sha256"),
+        feature_env_schema_version=data.get("feature_env_schema_version"),
+        feature_env=data.get("feature_env"),
+        feature_env_hash=data.get("feature_env_hash"),
     )
 
 
