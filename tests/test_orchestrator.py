@@ -167,3 +167,28 @@ class TestRunAndPick:
         assert tier == "mac"
         assert pick_result is not None
         assert pick_result.daily.pick.batter_name == "Jacob Wilson"
+
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.strategy.get_game_statuses_detailed", side_effect=OSError)
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    @patch("bts.picks.get_game_statuses_detailed", side_effect=OSError)
+    def test_detailed_status_failure_fails_closed_without_coarse_fallback(
+        self, _prefetch_statuses, mock_coarse_statuses, _strict_statuses, mock_cascade, tmp_path
+    ):
+        import pandas as pd
+        from bts.orchestrator import run_and_pick
+
+        mock_cascade.return_value = (
+            pd.DataFrame(json.loads(SAMPLE_PREDICTIONS)),
+            "mac",
+        )
+        config = {
+            "orchestrator": {"picks_dir": str(tmp_path)},
+            "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+        }
+        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+
+        assert predictions is not None
+        assert tier == "mac"
+        assert pick_result is None
+        mock_coarse_statuses.assert_not_called()

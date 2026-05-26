@@ -344,6 +344,55 @@ class TestSelectPick:
         assert result is not None
         assert result.daily.pick.batter_name == "Coarse Path"
 
+    def test_strict_detailed_lookup_failure_does_not_use_coarse_statuses(self, tmp_path):
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Coarse Unsafe", "p_game_hit": 0.83, "game_pk": 778899},
+        ])
+        with patch("bts.strategy.get_game_statuses_detailed", side_effect=OSError), \
+             patch("bts.strategy.get_game_statuses", return_value={778899: "P"}) as mock_coarse:
+            result = select_pick(
+                preds,
+                "2026-04-01",
+                tmp_path,
+                require_detailed_statuses=True,
+            )
+
+        assert result is None
+        mock_coarse.assert_not_called()
+
+    def test_strict_detailed_lookup_failure_locks_existing_pick(self, tmp_path):
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Conservative Existing", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([{"batter_name": "New Pick", "game_pk": 778899}])
+        with patch("bts.strategy.get_game_statuses_detailed", side_effect=OSError), \
+             patch("bts.strategy.get_game_statuses", return_value={778899: "P"}) as mock_coarse:
+            result = select_pick(
+                preds,
+                "2026-04-01",
+                tmp_path,
+                require_detailed_statuses=True,
+            )
+
+        assert result is not None
+        assert result.locked is True
+        assert result.daily.pick.batter_name == "Conservative Existing"
+        mock_coarse.assert_not_called()
+
     @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
     def test_detailed_void_candidate_excluded_even_when_abstract_preview(
         self, detailed, tmp_path

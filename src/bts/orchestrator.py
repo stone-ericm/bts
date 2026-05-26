@@ -220,6 +220,8 @@ def run_cascade(
 def run_and_pick(
     config: dict,
     date: str,
+    *,
+    require_detailed_statuses: bool = True,
 ) -> tuple[pd.DataFrame | None, "PickResult | None", str | None]:
     """Run cascade and apply strategy. No posting, no DMs.
 
@@ -247,6 +249,7 @@ def run_and_pick(
         picks_dir,
         streak=streak,
         game_statuses_detailed=game_statuses_detailed,
+        require_detailed_statuses=require_detailed_statuses,
     )
 
     return predictions, result, tier_name

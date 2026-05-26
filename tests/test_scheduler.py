@@ -455,6 +455,10 @@ class TestSchedulerRun:
         # (Previously this was game-level and returned 1; now it reflects the
         # actual granularity the prediction pipeline sees.)
         assert result["new_lineups"] == 2
+        # Detailed-status lookup is disabled by the test fixture. The scheduler
+        # still caches a best-available pick, but the lock decision fails closed.
+        assert result["pick_name"] == "Test"
+        assert result["should_post"] is False
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.orchestrator.run_cascade")
@@ -515,6 +519,39 @@ class TestSchedulerRun:
         assert result["should_post"] is True
         assert result["pick_name"] == "Díaz"
         assert result["pick_p"] is not None
+
+    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "P"})
+    def test_lock_decision_fails_closed_when_detailed_status_unavailable(
+        self, mock_coarse_statuses
+    ):
+        import pandas as pd
+        from bts.scheduler import _lock_decision_from_predictions
+
+        predictions = pd.DataFrame([
+            {
+                "batter_name": "Top", "batter_id": 1, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 2,
+                "game_pk": 100, "game_time": "2026-04-03T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.82, "flags": "",
+            },
+            {
+                "batter_name": "Projected", "batter_id": 3, "team": "ATL",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 4,
+                "game_pk": 200, "game_time": "2026-04-03T23:10:00Z",
+                "p_hit_pa": 0.29, "p_game_hit": 0.81, "flags": "PROJECTED lineup",
+            },
+        ])
+
+        should_post, best_projected = _lock_decision_from_predictions(
+            predictions,
+            _daily_pick(100),
+            "2026-04-03",
+            early_lock_gap=0.03,
+        )
+
+        assert should_post is False
+        assert best_projected is None
+        mock_coarse_statuses.assert_not_called()
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.picks.get_game_statuses_detailed", return_value={
