@@ -573,7 +573,6 @@ def _lock_decision_from_predictions(
 ) -> tuple[bool, float | None]:
     """Return should_lock plus the best projected contender, if any."""
     from bts.picks import (
-        get_game_statuses,
         get_game_statuses_detailed,
         pick_candidate_status_is_available,
     )
@@ -582,8 +581,11 @@ def _lock_decision_from_predictions(
     try:
         detailed_statuses = get_game_statuses_detailed(date)
     except Exception:
-        detailed_statuses = None
-        statuses = get_game_statuses(date)
+        print(
+            "  Detailed game-status lookup failed; should_lock=False.",
+            file=sys.stderr,
+        )
+        return False, None
 
     pick_data = {
         "p_game_hit": daily.pick.p_game_hit,
@@ -595,10 +597,7 @@ def _lock_decision_from_predictions(
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
             game_pk = int(row["game_pk"])
-            if detailed_statuses is None:
-                if statuses.get(game_pk) != "P":
-                    continue
-            elif not pick_candidate_status_is_available(detailed_statuses.get(game_pk)):
+            if not pick_candidate_status_is_available(detailed_statuses.get(game_pk)):
                 continue
             is_proj = "PROJECTED" in str(row.get("flags", ""))
             all_pick_data.append({
@@ -678,7 +677,11 @@ def run_single_check(
 
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
     with heartbeat_watchdog(heartbeat_path, interval_sec=60):
-        predictions, pick_result, tier = run_and_pick(config, date)
+        predictions, pick_result, tier = run_and_pick(
+            config,
+            date,
+            require_detailed_statuses=False,
+        )
 
     if predictions is None or pick_result is None:
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
@@ -829,6 +832,7 @@ def _run_shadow_prediction(
             streak=streak,
             for_shadow=True,
             game_statuses_detailed=game_statuses_detailed,
+            require_detailed_statuses=True,
         )
         if result is None or result.daily is None:
             _update_analytics_job_status(
@@ -1012,7 +1016,11 @@ def _refresh_pick_at_fallback_decision(
 
     try:
         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
-            predictions, pick_result, _ = run_and_pick(config, date)
+            predictions, pick_result, _ = run_and_pick(
+                config,
+                date,
+                require_detailed_statuses=False,
+            )
     except Exception as e:
         print(f"  FALLBACK REFRESH: re-predict failed ({e}), using cached pick",
               file=sys.stderr)

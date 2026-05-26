@@ -1107,6 +1107,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         picks_path,
         streak=streak,
         game_statuses_detailed=game_statuses_detailed,
+        require_detailed_statuses=True,
     )
 
     if result is None:
@@ -1258,6 +1259,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         picks_path,
         streak=streak,
         game_statuses_detailed=game_statuses_detailed,
+        require_detailed_statuses=True,
     )
 
     if result is None:

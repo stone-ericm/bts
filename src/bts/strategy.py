@@ -17,7 +17,8 @@ import pandas as pd
 
 from bts.picks import (
     DailyPick, Pick, pick_from_row, load_pick, get_game_statuses,
-    load_saver_available, classify_pick_lock_state, pick_candidate_status_is_available,
+    get_game_statuses_detailed, load_saver_available, classify_pick_lock_state,
+    pick_candidate_status_is_available,
 )
 
 
@@ -134,6 +135,7 @@ def select_pick(
     streak: int = 0,
     for_shadow: bool = False,
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
+    require_detailed_statuses: bool = False,
 ) -> PickResult | None:
     """Select the best pick from available predictions.
 
@@ -153,14 +155,25 @@ def select_pick(
     ``game_statuses_detailed`` lets live callers inject detailed MLB statuses
     for candidate filtering without making offline/backtest-shaped calls depend
     on a live detailed-status lookup. When omitted, the legacy coarse
-    ``get_game_statuses`` path is preserved.
+    ``get_game_statuses`` path is preserved unless
+    ``require_detailed_statuses`` is true. Live pick-generation callers should
+    set that strict mode so postponed/cancelled/missing game protection cannot
+    silently degrade to abstract MLB statuses.
     """
     if predictions.empty:
         return None
 
+    if require_detailed_statuses and game_statuses_detailed is None:
+        try:
+            game_statuses_detailed = get_game_statuses_detailed(date)
+        except Exception:
+            game_statuses_detailed = None
+
     current = None
     if not for_shadow:
         current = load_pick(date, picks_dir)
+        if require_detailed_statuses and game_statuses_detailed is None and current:
+            return PickResult(daily=current, locked=True)
         if current:
             lock_state = classify_pick_lock_state(current, date)
             if lock_state.stale:
@@ -169,6 +182,8 @@ def select_pick(
                 return PickResult(daily=current, locked=True)
 
     if game_statuses_detailed is None:
+        if require_detailed_statuses:
+            return None
         try:
             statuses = get_game_statuses(date)
         except Exception:
