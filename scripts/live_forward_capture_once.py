@@ -158,15 +158,28 @@ def production_pick_snapshot_json(manifest: dict[str, Any]) -> dict[str, Any] | 
     return value if isinstance(value, dict) else None
 
 
+BENIGN_NULL_DECISION_FIELDS = {
+    "feature_env_schema_version",
+    "feature_env",
+    "feature_env_hash",
+}
+
+
 def decision_snapshot(pick: dict[str, Any]) -> dict[str, Any]:
     """Return the pick JSON fields that define the locked pre-outcome choice."""
     # Result fields are appended after games finish; they must not make an
-    # otherwise matching at-lock decision snapshot look stale.
-    return {
+    # otherwise matching at-lock decision snapshot look stale. Nullable
+    # provenance fields can also be backfilled by newer schema code after an
+    # older pick resolves; absent and null are equivalent for drift detection.
+    snapshot = {
         key: value
         for key, value in pick.items()
         if key not in {"result", "slot_results"}
     }
+    for key in BENIGN_NULL_DECISION_FIELDS:
+        if snapshot.get(key) is None:
+            snapshot.pop(key, None)
+    return snapshot
 
 
 def existing_snapshot_state(
