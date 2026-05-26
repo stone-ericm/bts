@@ -30,10 +30,13 @@ def _config(
     )
 
 
-def _write_pick(root: Path, *, result=None) -> Path:
+def _write_pick(root: Path, *, result=None, extra: dict | None = None) -> Path:
     path = root / "data" / "picks" / "2026-05-11.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"date": "2026-05-11", "result": result}))
+    payload = {"date": "2026-05-11", "result": result}
+    if extra:
+        payload.update(extra)
+    path.write_text(json.dumps(payload))
     return path
 
 
@@ -246,6 +249,43 @@ def test_capture_once_result_only_change_is_not_stale_snapshot(tmp_path, monkeyp
     assert code == 0
     assert payload["status"] == "existing_verified"
     assert payload["current_pick_result"] == "miss"
+    assert payload["snapshot_matches_current_pick"] is False
+    assert payload["snapshot_decision_matches_current_pick"] is True
+    assert payload["stale_pick_snapshot"] is False
+    assert not any("export-live-candidate-artifacts" in args for args in calls)
+
+
+def test_capture_once_null_feature_env_backfill_is_not_stale_snapshot(tmp_path, monkeypatch):
+    config = _config(tmp_path, auto_recapture_on_snapshot_drift=True)
+    pick_path = _write_pick(config.production_root)
+    artifact_dir = config.production_root / config.artifact_root / config.date
+    _write_manifest(artifact_dir, pick_path=pick_path)
+    _write_pick(
+        config.production_root,
+        result="hit",
+        extra={
+            "feature_env_schema_version": None,
+            "feature_env": None,
+            "feature_env_hash": None,
+        },
+    )
+    calls = []
+
+    def fake_run(args, *, cwd, env=None):
+        calls.append(args)
+        if args == ["git", "rev-parse", "HEAD"]:
+            return _fake_completed(args, stdout="sha\n")
+        if "verify-candidate-artifacts" in args:
+            return _fake_completed(args, stdout="verify ok\n")
+        raise AssertionError(args)
+
+    monkeypatch.setattr("scripts.live_forward_capture_once.run", fake_run)
+
+    code, payload = capture_once(config)
+
+    assert code == 0
+    assert payload["status"] == "existing_verified"
+    assert payload["current_pick_result"] == "hit"
     assert payload["snapshot_matches_current_pick"] is False
     assert payload["snapshot_decision_matches_current_pick"] is True
     assert payload["stale_pick_snapshot"] is False

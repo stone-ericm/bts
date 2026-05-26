@@ -49,6 +49,28 @@ separate residual-correlation check rises. The DD shortfall belongs with the
 Gate A marginal-calibration debt and should accumulate toward the existing
 `n >= 200` re-check threshold, not start a separate DD policy track.
 
+## 2026-05-26 `analytics_artifacts_missing` Follow-up
+
+The 2026-05-25 end-of-day health run emitted a CRITICAL
+`analytics_artifacts_missing` alert for live-forward capture status
+`failed_recapture_post_resolution`.
+
+Production evidence showed this was not an active capture outage. The canonical
+2026-05-25 artifact was recaptured before outcomes with the delivered picks and
+stored a matching production-pick snapshot. After result reconciliation, the
+pick file gained nullable `feature_env_schema_version`, `feature_env`, and
+`feature_env_hash` fields. Because the capture guard compared the current pick
+to the stored at-lock snapshot after removing only `result` and `slot_results`,
+absent-vs-null provenance defaults made the valid artifact look stale after the
+pick had already resolved.
+
+Disposition: keep `analytics_artifacts_missing` loud, but fix the snapshot
+comparison so absent and null optional provenance fields are equivalent while
+non-null provenance still participates in drift detection. The 2026-05-26
+canonical live-forward capture was independently healthy with
+`status=existing_verified`, `snapshot_matches_current_pick=true`, and
+`stale_pick_snapshot=false`.
+
 ## Disposition Table
 
 | Surface | Current level/path | Disposition | Rationale | Follow-up |
