@@ -50,6 +50,15 @@ def test_health_200_when_sleeping(heartbeat_path):
     assert data["scheduler_state"] == HeartbeatState.SLEEPING
 
 
+def test_dashboard_server_is_threaded():
+    from http.server import ThreadingHTTPServer
+
+    import bts.web
+
+    assert issubclass(bts.web.DashboardHTTPServer, ThreadingHTTPServer)
+    assert bts.web.DashboardHTTPServer.daemon_threads is True
+
+
 def test_load_scheduler_state_returns_dict(monkeypatch, tmp_path):
     """Valid scheduler_state.json should be parsed and returned."""
     import bts.web

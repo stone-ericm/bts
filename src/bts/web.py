@@ -12,7 +12,7 @@ import json
 import os
 import html as html_lib
 from datetime import datetime, timedelta
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import urlopen, Request
 
@@ -1512,8 +1512,12 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+class DashboardHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+
 def main():
-    server = HTTPServer(("0.0.0.0", PORT), Handler)
+    server = DashboardHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"BTS Dashboard running at http://0.0.0.0:{PORT}")
     server.serve_forever()
 
