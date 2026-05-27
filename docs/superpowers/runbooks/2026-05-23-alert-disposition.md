@@ -71,11 +71,37 @@ canonical live-forward capture was independently healthy with
 `status=existing_verified`, `snapshot_matches_current_pick=true`, and
 `stale_pick_snapshot=false`.
 
+## 2026-05-27 Probability-Scale Refresh
+
+The latest production health state had no CRITICAL alerts. The only WARN
+attention surface still active was the known `mdp_policy_alignment` quality-bin
+collapse.
+
+Current-ET-capped production-pick inventory on 2026-05-27:
+
+| Surface | n | mean | q10 | q50 | q90 |
+|---|---:|---:|---:|---:|---:|
+| primary rank-1 | `60` | `0.749184` | `0.716450` | `0.751280` | `0.781160` |
+| double-down rank-2 | `56` | `0.723778` | `0.688331` | `0.729671` | `0.749560` |
+| recent 21 primary | `21` | `0.750621` | `0.723034` | `0.752266` | `0.781091` |
+| recent 21 double-down | `21` | `0.725595` | `0.687434` | `0.729990` | `0.748343` |
+
+Recent 21 primary and double-down picks still mapped entirely to Q0 against the
+deployed boundaries `[0.795979, 0.811491, 0.825247, 0.840740]`. Only two
+current-date-capped primary rows had `feature_env_hash`, so the stronger
+`model_pickle_sha256 + feature_env_hash` stability window introduced by PR
+#130 is still far too small for a live-scale reconciliation.
+
+Disposition: no production calibration, MDP policy, or pick-selection change.
+This refresh does not alter the 2026-05-25
+`NOT_FEASIBLE_DIRECT_OR_RECONCILIATION_NEEDS_MORE_LIVE_N` verdict. Keep the
+WARN visible and revisit once live support is materially larger.
+
 ## Disposition Table
 
 | Surface | Current level/path | Disposition | Rationale | Follow-up |
 |---|---|---|---|---|
-| `bts-live-forward-resolve.service` stale archive failures | systemd failed unit, resolver status JSON | Fixed in PR #112 | Default resolver discovery was scanning `*.stale_pick_snapshot.*` archive directories. Some stale archives had `failed_verify_existing`, leaving the one-shot failed even though canonical dates were resolving. | Keep explicit `--date` forensic access. Add a future multi-day canonical resolver-failure health check if canonical dates stop resolving. |
+| `bts-live-forward-resolve.service` stale archive failures / canonical resolver stall | systemd failed unit, resolver status JSON, `live_forward_resolution` health check | Implemented / keep | PR #112 stopped default resolver discovery from scanning `*.stale_pick_snapshot.*` archive directories. The health check now alerts only when canonical preoutcome artifacts remain unresolved beyond the grace window; a 2026-05-27 production check returned `alerts 0`. | Keep explicit `--date` forensic access and keep the grace-window health check visible for future canonical stalls. |
 | Canonical live-forward pending outcomes | resolver `pending_outcomes` | Keep non-paging | Missing same-day PA outcomes are expected before games resolve. The runner already exits 0 when pending and `--fail-on-pending` is false. | Alert only on repeated canonical pending/failure after a grace window, not on one transient day. |
 | `restart_spike` | CRITICAL DM | Keep loud | Catches automatic service restarts and crash-loop class failures. Manual deploy restarts do not increment `NRestarts`, so planned deploys are already separated. | Improve message wording. "Heartbeat-gap regression suspected" is too narrow when OOM is also a likely cause. |
 | `analytics_artifacts_missing` | WARN attention / CRITICAL with fatal evidence | Keep loud | Correctly makes missing shadow/capture artifacts visible after a locked pick. OOM evidence promotion is the right CRITICAL path. | Confirm stale WARN streaks clear naturally when absent on the next day. |
@@ -83,7 +109,7 @@ canonical live-forward capture was independently healthy with
 | `mdp_policy_alignment` | WARN, repeated attention | Keep as known-accepted diagnostic | It correctly surfaced policy-bin collapse and led to Gate A/B measurement. Gate B closed as `NO SWAP`, and PR #128 found production-live boundary derivation/reconciliation not feasible yet. The collapse is therefore expected to persist until enough live support accumulates. | Auto-clear when recent p distribution again uses multiple policy bins, or after a future pre-registered policy re-solve/reconciliation. Do not re-open the policy path from this WARN alone. |
 | Gate A calibration validation | script/doc decision `WAIT_FOR_N` | Document only | Model-policy evidence is underpowered and should not page. Current isotonic check did not beat raw Brier at n=158. | Re-run when resolved pick-slot support reaches n >= 200. |
 | Gate B raw re-bin measurement | script/doc decision `INSUFFICIENT_SUPPORT` | Document only | Current-era DD-pair support is only n=49 with thin bins and a backtest distribution mismatch. | Revisit at n >= 200, min per bin >= 30, and off-host policy-file backtest compatibility. |
-| `memory_growth` | INFO/WARN/CRITICAL by absolute RSS, Tuesday digest | Recalibrate | History shows normal post-prediction RSS often around 2.8-3.6 GB, while current sleeping RSS can be about 140 MB. Absolute 1 GB/3 GB thresholds mix cold and post-prediction baselines. | Convert to growth-rate or delta-over-baseline, or split cold vs post-prediction thresholds. |
+| `memory_growth` | INFO/WARN/CRITICAL by high absolute RSS plus post-prediction baseline delta; Tuesday digest | Implemented / keep | Code now separates cold sleeping samples from post-prediction RSS. On 2026-05-27, live scheduler RSS was about 2481.5 MB versus a recent post-prediction baseline median of 3023.7 MB, correctly producing no alert. | Keep monitoring weekly digest and treat future WARNs as sustained growth above the post-prediction baseline, not normal model residency. |
 | `pooled_training` | dormant unless `pooled_dir` configured | Keep dormant | Pooled models are not currently load-bearing in production. Alerting before deployment would create noise. | Enable only if pooled inference becomes production-critical. |
 | `leaderboard_freshness` | dormant unless `leaderboard_dir` configured | Keep dormant | Leaderboard data is not currently load-bearing for pick delivery. | Enable when leaderboard ingestion becomes a dependency. |
 | `health_dm_delivery` | persistent dashboard/state indicator on failure | Add secondary visibility | If Bluesky DM delivery itself fails, the current user-facing path may be unavailable by definition. Logging alone may not be noticed quickly, so health-DM attempts now write `data/health_state/health_dm_delivery_status.json`; failed or missing-recipient attempts render a dashboard banner until a successful attempted health DM clears it. | Consider a fully independent out-of-band channel only if dashboard visibility is not enough. |
@@ -94,12 +120,7 @@ canonical live-forward capture was independently healthy with
 
 ## Next Work Items
 
-1. Memory-growth recalibration PR: replace or supplement absolute RSS
-   thresholds with a cold/post-prediction aware rule.
-2. Multi-day canonical resolver-failure check: alert only when canonical
-   live-forward resolution is stale for multiple runs or days, not when same-day
-   outcomes are pending.
-3. E fallback/defer live validation: wait for the next natural
+1. E fallback/defer live validation: wait for the next natural
    `fallback_defer` INFO event, then inspect the matching
    `data/picks/<date>/deferred_fallback_*.json` archive and final pick file.
    Close only after confirming:
@@ -108,12 +129,13 @@ canonical live-forward capture was independently healthy with
    - a later check or final fallback delivered a pick for the day;
    - the delivered primary was the same or better by `p_game_hit`, or any
      lower-probability result is explicitly explained.
-4. Health-DM delivery visibility: decide whether a failed Bluesky DM health
-   send needs a non-DM secondary visibility path.
-5. Postponed-game root fix: update scheduler lock-decision filtering to use
+2. Health-DM delivery visibility: monitor the dashboard/state-file secondary
+   visibility path and add an independent out-of-band channel only if that is
+   not enough.
+3. Postponed-game root fix: update scheduler lock-decision filtering to use
    detailed postponed/cancelled game status, not only abstract game status.
    The health check catches the symptom; this is the scheduler-side cause.
-6. Probability-scale investigation: explain why current production primary
+4. Probability-scale investigation: explain why current production primary
    probabilities are materially lower than the 2021-2025 backtest/policy-bin
    distribution. Plausible branches are model calibration, 2026 distribution
    shift, or backtest-vs-production data differences.
