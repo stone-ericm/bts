@@ -127,6 +127,17 @@ Verification:
 Disposition: keep `postponed_pick` loud as a Tier-1 symptom alert, but close
 the separate scheduler root-fix item.
 
+## 2026-05-27 Dashboard Health Canary Follow-up
+
+During PR #136 deploy-safety checks, `bts-dashboard.service` was active and
+TCP-accepting, but `/health` timed out. A dashboard-only restart restored
+`/health=ok` while `bts-scheduler.service` stayed active with `NRestarts=0`.
+
+The dashboard used Python's single-threaded `HTTPServer`, so one slow or stuck
+request could block `/health` and the deploy canary even when the process was
+otherwise alive. The follow-up is to run the dashboard on a threaded HTTP
+server with daemon request threads.
+
 ## Disposition Table
 
 | Surface | Current level/path | Disposition | Rationale | Follow-up |
