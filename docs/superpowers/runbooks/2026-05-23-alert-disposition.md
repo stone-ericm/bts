@@ -92,10 +92,18 @@ current-date-capped primary rows had `feature_env_hash`, so the stronger
 `model_pickle_sha256 + feature_env_hash` stability window introduced by PR
 #130 is still far too small for a live-scale reconciliation.
 
+The explanation track is closed enough for alert disposition. Existing Gate B
+docs found that deployed MDP bins were built on a historical actual-PA-expanded
+surface, while production acts on a lower estimated-PA live surface. The later
+production-live feasibility slice found the same roughly three-point downward
+scale gap and concluded direct live boundary derivation or backtest-to-live
+reconciliation is not feasible yet.
+
 Disposition: no production calibration, MDP policy, or pick-selection change.
 This refresh does not alter the 2026-05-25
 `NOT_FEASIBLE_DIRECT_OR_RECONCILIATION_NEEDS_MORE_LIVE_N` verdict. Keep the
-WARN visible and revisit once live support is materially larger.
+WARN visible. The next action is support-gated live-scale reconciliation, not
+another immediate explanation pass.
 
 ## 2026-05-27 Postponed-Game Root Refresh
 
@@ -154,7 +162,9 @@ the separate scheduler root-fix item.
 2. Health-DM delivery visibility: monitor the dashboard/state-file secondary
    visibility path and add an independent out-of-band channel only if that is
    not enough.
-3. Probability-scale investigation: explain why current production primary
-   probabilities are materially lower than the 2021-2025 backtest/policy-bin
-   distribution. Plausible branches are model calibration, 2026 distribution
-   shift, or backtest-vs-production data differences.
+3. Probability-scale live-support gate: keep accumulating
+   `model_pickle_sha256 + feature_env_hash` production picks. Re-open only for a
+   pre-registered reconciliation at enough policy-stable live support, or for
+   direct live-boundary derivation once the larger direct-support threshold is
+   met. Until then, keep `mdp_policy_alignment` visible but do not treat it as
+   a deploy trigger.
