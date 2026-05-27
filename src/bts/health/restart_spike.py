@@ -2,8 +2,9 @@
 
 The systemd unit's NRestarts counter is cumulative since unit-load. A
 sudden delta (≥3 restarts since yesterday's checkpoint) signals a
-heartbeat-gap regression — the class of bug we shipped 5 fixes for in
-2026-04-22/23.
+restart loop or repeated service failure. Prior incidents included
+heartbeat-gap regressions, but OOM kills, watchdog exits, and crash loops
+can produce the same symptom.
 
 State is kept in a small JSON file at picks_dir/.nrestarts_checkpoint.
 On first run (no checkpoint), records baseline and emits no alert. On
@@ -55,7 +56,8 @@ def check(
                 source=SOURCE,
                 message=(
                     f"NRestarts spiked +{delta} since last checkpoint "
-                    f"({prior} → {current_nrestarts}). Heartbeat-gap regression suspected."
+                    f"({prior} → {current_nrestarts}). Scheduler restart loop "
+                    "suspected; inspect journal/OOM/watchdog/crash evidence."
                 ),
             ))
 
