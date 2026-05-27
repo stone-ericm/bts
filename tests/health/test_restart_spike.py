@@ -32,6 +32,9 @@ class TestRestartSpike:
         assert alerts[0].level == "CRITICAL"
         assert alerts[0].source == SOURCE
         assert "+3" in alerts[0].message
+        assert "Scheduler restart loop suspected" in alerts[0].message
+        assert "journal/OOM/watchdog/crash" in alerts[0].message
+        assert "Heartbeat-gap regression suspected" not in alerts[0].message
 
     def test_critical_above_threshold(self, tmp_path):
         check(tmp_path, current_nrestarts=52)  # baseline
