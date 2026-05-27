@@ -97,6 +97,28 @@ This refresh does not alter the 2026-05-25
 `NOT_FEASIBLE_DIRECT_OR_RECONCILIATION_NEEDS_MORE_LIVE_N` verdict. Keep the
 WARN visible and revisit once live support is materially larger.
 
+## 2026-05-27 Postponed-Game Root Refresh
+
+The scheduler-side postponed-game root fix is now deployed, not just covered by
+the `postponed_pick` health symptom check. Production HEAD on 2026-05-27 was
+`fac6bdb`, with PR #131 (`d63f60b`) in history. The deployed code includes
+strict detailed-status mode for live pick generation and refreshed lock
+decisions, while keeping offline/backtest callers on the legacy abstract-status
+path unless they explicitly opt in.
+
+Verification:
+
+- production source contains `require_detailed_statuses=True` on the scheduler
+  live path;
+- tests cover projected candidates from abstract-preview but detailed-postponed
+  games being excluded from lock-gap decisions;
+- tests cover unposted primary and double-down postponed games regenerating a
+  fresh pick, while already posted picks remain locked;
+- `tests/test_scheduler.py` and `tests/test_strategy.py` passed locally.
+
+Disposition: keep `postponed_pick` loud as a Tier-1 symptom alert, but close
+the separate scheduler root-fix item.
+
 ## Disposition Table
 
 | Surface | Current level/path | Disposition | Rationale | Follow-up |
@@ -116,7 +138,7 @@ WARN visible and revisit once live support is materially larger.
 | E fallback/defer path | deployed behavior, INFO status when observed | Track live validation | The defer path is deployed, but production has not naturally exercised it yet. On 2026-05-23 at prod head `c511a03`, `data/picks` had 176 pick JSON files and 0 `deferred_fallback_*.json` archives; scheduler journal since 2026-05-01 showed fallback force-deliveries but no `FALLBACK DEFERRED` lines. | `fallback_defer` health status now self-announces the rare event at INFO when a defer archive exists and a final pick was delivered; it escalates only if a defer fires without a delivered pick. Close live validation after observing a natural defer and verifying fired/no force-lock/never-miss/better-pool criteria. |
 | `projected_lineup` | INFO/WARN | Keep repeated attention | It detects excessive projection use and can catch lineup-confirmation quality decay. It should not page on a single noisy day. | Keep in repeated WARN attention set. |
 | `predicted_vs_realized`, `realized_calibration`, `dd_pair_realized_shortfall`, `dd_pair_residual_corr` | INFO/WARN/CRITICAL by evidence | Keep repeated attention | These are model-quality surfaces. `dd_pair_realized_shortfall` tracks model-pair shortfall, while `dd_pair_residual_corr` is the marginal-adjusted pair-dependence signal. On 2026-05-24 the DD shortfall WARN decomposed to marginal/model shortfall with rolling residual gap `0.0`, so it was not pair-correlation evidence. | Keep separated from MDP/gate docs to avoid mixing alerting with policy-change decisions. Attribute DD shortfall to the Gate A calibration/marginal scale track unless `dd_pair_residual_corr` also rises. |
-| `disk_fill`, `postponed_pick`, `blend_training`, `post_failure`, `streak_validation` | WARN/CRITICAL depending on check | Keep loud | These are operational integrity surfaces where a miss can directly break pick delivery, scoring, or state validity. | Keep `postponed_pick` loud, but separately fix the scheduler lock-decision path that still uses abstract game statuses where detailed postponed/cancelled status is required. |
+| `disk_fill`, `postponed_pick`, `blend_training`, `post_failure`, `streak_validation` | WARN/CRITICAL depending on check | Keep loud | These are operational integrity surfaces where a miss can directly break pick delivery, scoring, or state validity. The postponed-game scheduler root fix is deployed; live pick generation now uses detailed postponed/cancelled status for stale-pick and lock-gap decisions. | Keep `postponed_pick` loud as a symptom alert for future stale committed-game failures. |
 
 ## Next Work Items
 
@@ -132,10 +154,7 @@ WARN visible and revisit once live support is materially larger.
 2. Health-DM delivery visibility: monitor the dashboard/state-file secondary
    visibility path and add an independent out-of-band channel only if that is
    not enough.
-3. Postponed-game root fix: update scheduler lock-decision filtering to use
-   detailed postponed/cancelled game status, not only abstract game status.
-   The health check catches the symptom; this is the scheduler-side cause.
-4. Probability-scale investigation: explain why current production primary
+3. Probability-scale investigation: explain why current production primary
    probabilities are materially lower than the 2021-2025 backtest/policy-bin
    distribution. Plausible branches are model calibration, 2026 distribution
    shift, or backtest-vs-production data differences.
