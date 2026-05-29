@@ -541,6 +541,21 @@ class TestSelectPick:
 
         assert result.daily.double_down is not None
 
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    def test_allow_double_false_downgrades_to_single(self, mock_statuses, tmp_path):
+        """Live stale-contest fallback can forbid automatic double-downs."""
+        from bts.strategy import select_pick
+
+        preds = _predictions([
+            {"batter_name": "Wilson", "p_game_hit": 0.82, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.81, "game_pk": 778900},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path, allow_double=False)
+
+        assert result is not None
+        assert result.daily.pick.batter_name == "Wilson"
+        assert result.daily.double_down is None
+
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_empty_predictions(self, mock_statuses, tmp_path):
         from bts.strategy import select_pick

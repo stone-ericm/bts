@@ -192,3 +192,46 @@ class TestRunAndPick:
         assert tier == "mac"
         assert pick_result is None
         mock_coarse_statuses.assert_not_called()
+
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy._mdp_action")
+    def test_uses_fresh_contest_streak_for_live_action(
+        self, mock_mdp, _detailed_statuses, mock_cascade, tmp_path
+    ):
+        import pandas as pd
+        from bts.orchestrator import run_and_pick
+
+        def action(_p, streak, _date, saver):
+            assert streak == 7
+            assert saver is False
+            return "skip"
+
+        mock_mdp.side_effect = action
+        (tmp_path / "streak.json").write_text(json.dumps({
+            "streak": 4,
+            "saver_available": True,
+        }))
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7,
+            "source": "manual_screenshot",
+            "source_date": "2026-04-01",
+        }))
+        mock_cascade.return_value = (
+            pd.DataFrame(json.loads(SAMPLE_PREDICTIONS)),
+            "mac",
+        )
+        config = {
+            "orchestrator": {"picks_dir": str(tmp_path)},
+            "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+        }
+
+        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+
+        assert predictions is not None
+        assert tier == "mac"
+        assert pick_result is None

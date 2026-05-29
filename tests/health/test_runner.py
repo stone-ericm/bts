@@ -78,6 +78,21 @@ class TestRunAllChecks:
         )
         assert any(a.source == "streak_validation" and a.level == "CRITICAL" for a in alerts)
 
+    def test_expected_contest_state_missing_triggers_critical(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+
+        alerts = run_all_checks(
+            picks_dir=picks_dir,
+            models_dir=models_dir,
+            dm_recipient=None,
+            today=date(2026, 4, 27),
+            contest_state_expected=True,
+        )
+
+        assert any(a.source == "contest_state" and a.level == "CRITICAL" for a in alerts)
+
     def test_per_check_failure_isolated(self, tmp_path):
         # If one check raises, the others still run
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
