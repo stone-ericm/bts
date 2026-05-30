@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 from bts.simulate.quality_bins import QualityBin, QualityBins
-from bts.simulate.mdp import solve_mdp, MDPSolution
+from bts.simulate.mdp import MDPSolution, TransitionOutcome, solve_mdp, transition_outcomes
 
 
 def _simple_bins():
@@ -23,6 +23,89 @@ def _two_bins():
         ],
         boundaries=[0.8],
     )
+
+
+class TestTransitionOutcomes:
+    def _assert_outcomes(self, observed, expected):
+        assert len(observed) == len(expected)
+        for actual, want in zip(observed, expected):
+            assert actual.next_streak == want.next_streak
+            assert actual.saver_available == want.saver_available
+            assert actual.probability == pytest.approx(want.probability)
+
+    def test_skip_holds_state(self):
+        assert transition_outcomes(
+            "skip",
+            4,
+            True,
+            p_hit=0.7,
+            p_both=0.5,
+        ) == (TransitionOutcome(next_streak=4, saver_available=True, probability=1.0),)
+
+    def test_single_miss_resets_without_saver_catch(self):
+        self._assert_outcomes(
+            transition_outcomes(
+                "single",
+                4,
+                True,
+                p_hit=0.7,
+                p_both=0.5,
+            ),
+            (
+                TransitionOutcome(next_streak=5, saver_available=True, probability=0.7),
+                TransitionOutcome(next_streak=0, saver_available=True, probability=0.3),
+            ),
+        )
+
+    def test_single_miss_in_saver_zone_holds_and_consumes_saver(self):
+        self._assert_outcomes(
+            transition_outcomes(
+                "single",
+                10,
+                True,
+                p_hit=0.7,
+                p_both=0.5,
+            ),
+            (
+                TransitionOutcome(next_streak=11, saver_available=True, probability=0.7),
+                TransitionOutcome(next_streak=10, saver_available=False, probability=0.3),
+            ),
+        )
+
+    def test_double_miss_in_saver_zone_holds_and_consumes_saver(self):
+        self._assert_outcomes(
+            transition_outcomes(
+                "double",
+                15,
+                True,
+                p_hit=0.7,
+                p_both=0.42,
+            ),
+            (
+                TransitionOutcome(next_streak=17, saver_available=True, probability=0.42),
+                TransitionOutcome(next_streak=15, saver_available=False, probability=0.58),
+            ),
+        )
+
+    def test_double_caps_crossed_target(self):
+        self._assert_outcomes(
+            transition_outcomes(
+                "double",
+                8,
+                False,
+                p_hit=0.7,
+                p_both=0.42,
+                target=9,
+            ),
+            (
+                TransitionOutcome(next_streak=9, saver_available=False, probability=0.42),
+                TransitionOutcome(next_streak=0, saver_available=False, probability=0.58),
+            ),
+        )
+
+    def test_rejects_invalid_action_index(self):
+        with pytest.raises(ValueError, match="invalid action index"):
+            transition_outcomes(-1, 0, True, p_hit=0.7, p_both=0.5)
 
 
 class TestSolveMDP:

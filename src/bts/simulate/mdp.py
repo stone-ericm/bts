@@ -17,6 +17,62 @@ ACTIONS = ("skip", "single", "double")
 DEFAULT_POLICY_PATH = Path("data/models/mdp_policy.npz")
 
 
+@dataclass(frozen=True)
+class TransitionOutcome:
+    """One probabilistic transition branch for a BTS MDP action."""
+
+    next_streak: int
+    saver_available: bool
+    probability: float
+
+
+def transition_outcomes(
+    action: str | int,
+    streak: int,
+    saver_available: bool,
+    *,
+    p_hit: float,
+    p_both: float,
+    target: int = 57,
+) -> tuple[TransitionOutcome, ...]:
+    """Return next-state branches for one BTS decision.
+
+    ``target`` caps successful transitions so first-passage evaluators count a
+    double that crosses the threshold without landing exactly on it.
+    """
+    if isinstance(action, int):
+        if action < 0:
+            raise ValueError(f"invalid action index: {action}")
+        try:
+            action_name = ACTIONS[action]
+        except IndexError as exc:
+            raise ValueError(f"invalid action index: {action}") from exc
+    else:
+        action_name = action
+        if action_name not in ACTIONS:
+            raise ValueError(f"invalid action: {action_name!r}")
+
+    capped_streak = min(streak, target)
+    if action_name == "skip":
+        return (TransitionOutcome(capped_streak, bool(saver_available), 1.0),)
+
+    saver_catches_miss = bool(saver_available) and 10 <= streak <= 15
+    miss_streak = streak if saver_catches_miss else 0
+    miss_saver = False if saver_catches_miss else bool(saver_available)
+
+    if action_name == "single":
+        success_probability = float(p_hit)
+        success_streak = min(streak + 1, target)
+    else:
+        success_probability = float(p_both)
+        success_streak = min(streak + 2, target)
+
+    return (
+        TransitionOutcome(success_streak, bool(saver_available), success_probability),
+        TransitionOutcome(min(miss_streak, target), miss_saver, 1.0 - success_probability),
+    )
+
+
 @dataclass
 class MDPSolution:
     """Result of MDP solve: optimal value function and policy."""
@@ -175,28 +231,26 @@ def solve_mdp(
                     def ev(next_s, next_saver):
                         return float(np.dot(next_freq, V[next_s, d - 1, next_saver, :]))
 
-                    # Skip: streak holds, lose a day
-                    v_skip = ev(s, saver)
-
-                    # Single: hit → s+1, miss → reset or saver
                     ph = p_hit[q]
-                    next_hit = min(s + 1, 57)
-                    if saver and 10 <= s <= 15:
-                        # Saver catches the miss: streak holds, saver consumed
-                        v_single = ph * ev(next_hit, saver) + (1 - ph) * ev(s, 0)
-                    else:
-                        v_single = ph * ev(next_hit, saver) + (1 - ph) * ev(0, saver)
-
-                    # Double: both hit → s+2, any miss → reset or saver
                     pb = p_both[q]
-                    next_dbl = min(s + 2, 57)
-                    if saver and 10 <= s <= 15:
-                        v_double = pb * ev(next_dbl, saver) + (1 - pb) * ev(s, 0)
-                    else:
-                        v_double = pb * ev(next_dbl, saver) + (1 - pb) * ev(0, saver)
+
+                    def action_value(action: int) -> float:
+                        return sum(
+                            branch.probability * ev(
+                                branch.next_streak,
+                                int(branch.saver_available),
+                            )
+                            for branch in transition_outcomes(
+                                action,
+                                s,
+                                bool(saver),
+                                p_hit=ph,
+                                p_both=pb,
+                            )
+                        )
 
                     # Pick best action
-                    values = [v_skip, v_single, v_double]
+                    values = [action_value(action) for action in range(len(ACTIONS))]
                     best = int(np.argmax(values))
                     V[s, d, saver, q] = values[best]
                     policy[s, d, saver, q] = best

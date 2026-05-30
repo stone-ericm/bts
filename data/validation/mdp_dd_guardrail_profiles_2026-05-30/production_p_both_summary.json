@@ -1,0 +1,13 @@
+{
+  "date_max": "2026-05-29",
+  "date_min": "2026-04-02",
+  "max": 0.6224553372072698,
+  "mean": 0.544749395545852,
+  "min": 0.47442332153553357,
+  "n": 58,
+  "q10": 0.49858202732768175,
+  "q50": 0.5475579893594634,
+  "q90": 0.5816071069124615,
+  "source": "ssh bts-hetzner:/home/bts/projects/bts/data/picks",
+  "source_command": "python3 stdlib summary over root-level pick JSON files with primary and double_down p_game_hit"
+}
