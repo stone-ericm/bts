@@ -1112,6 +1112,88 @@ class TestRunDay:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
     @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_defers_when_double_down_game_creates_early_deadline(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path, capsys,
+    ):
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+
+        mock_schedule.side_effect = [
+            [_game(100, "14:20", date="2026-05-22"),
+             _game(200, "19:05", date="2026-05-22"),
+             _game(300, "19:15", date="2026-05-22")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-05-22",
+            run_time="2026-05-22T17:40:00+00:00",
+            pick=Pick(
+                batter_name="Later Primary", batter_id=1, team="ATL",
+                lineup_position=1, pitcher_name="Pitcher", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=200, game_time="2026-05-22T23:05:00Z",
+            ),
+            double_down=Pick(
+                batter_name="Early Double", batter_id=3, team="CHC",
+                lineup_position=1, pitcher_name="Starter", pitcher_id=4,
+                p_game_hit=0.70, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-05-22T18:20:00Z",
+            ),
+            runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 2, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Later Primary", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_now.return_value = datetime(2026, 5, 22, 13, 40, tzinfo=ET)
+
+        run_day(
+            date="2026-05-22",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [],
+                "scheduler": {
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_post.assert_not_called()
+        mock_capture.assert_not_called()
+        mock_poll.assert_not_called()
+        assert not (tmp_path / "2026-05-22.json").exists()
+        archives = list((tmp_path / "2026-05-22").glob("deferred_fallback_*.json"))
+        assert len(archives) == 1
+        archived = json.loads(archives[0].read_text())
+        assert archived["pick"]["batter_name"] == "Later Primary"
+        assert archived["double_down"]["batter_name"] == "Early Double"
+        assert archived["deferred_fallback"]["reason"] == (
+            "should_lock_false_future_checks_remain"
+        )
+        captured = capsys.readouterr()
+        assert "Earliest pick game at 14:20 ET" in captured.err
+        assert "FALLBACK DEFERRED" in captured.err
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
     def test_fallback_delivers_when_future_checks_have_no_pending_lineups(
         self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
         mock_sleep, mock_now, mock_schedule, tmp_path,
