@@ -520,6 +520,35 @@ class TestSchedulerRun:
         assert result["pick_name"] == "Díaz"
         assert result["pick_p"] is not None
 
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.health.alert.dispatch_dm_for_health_alerts")
+    @patch("bts.orchestrator.run_and_pick")
+    def test_contest_state_error_fails_closed_and_alerts(
+        self, mock_run_and_pick, mock_alert, mock_lineups, tmp_path
+    ):
+        from bts.contest_state import ContestStateError
+        from bts.scheduler import run_single_check
+
+        mock_lineups.return_value = {100: {"home", "away"}}
+        mock_run_and_pick.side_effect = ContestStateError("contest state bad")
+
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[100],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "bluesky": {"dm_recipient": "did:plc:test"},
+                "health_checks": {"contest_state_expected": True},
+            },
+            early_lock_gap=0.03,
+        )
+
+        assert result["should_post"] is False
+        assert result["pick_result"] is None
+        assert result["pick_name"] is None
+        mock_alert.assert_called_once()
+
     @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "P"})
     def test_lock_decision_fails_closed_when_detailed_status_unavailable(
         self, mock_coarse_statuses
@@ -1238,6 +1267,17 @@ class TestRunDay:
             double_down=None, runner_up=None,
         )
         save_pick(daily, tmp_path)
+        (tmp_path / "streak.json").write_text(json.dumps({
+            "streak": 4,
+            "saver_available": True,
+        }))
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7,
+            "source": "manual_screenshot",
+            "source_date": "2026-04-06",
+        }))
 
         from bts.strategy import PickResult
         mock_check.return_value = {
@@ -1271,6 +1311,7 @@ class TestRunDay:
         )
 
         mock_dm.assert_called_once()
+        assert "Streak: 7" in mock_dm.call_args.args[1]
         mock_post.assert_not_called()
         mock_capture.assert_called_once()
         data = json.loads((tmp_path / "2026-04-06.json").read_text())

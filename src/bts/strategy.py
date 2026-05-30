@@ -133,6 +133,8 @@ def select_pick(
     date: str,
     picks_dir: Path,
     streak: int = 0,
+    saver_available: bool | None = None,
+    allow_double: bool = True,
     for_shadow: bool = False,
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
     require_detailed_statuses: bool = False,
@@ -217,7 +219,7 @@ def select_pick(
     best_row = valid.iloc[0]
 
     # Determine action: MDP policy (preferred) or heuristic fallback
-    saver = load_saver_available(picks_dir)
+    saver = load_saver_available(picks_dir) if saver_available is None else saver_available
     action = _mdp_action(best_row["p_game_hit"], streak, date, saver)
     if action is None:
         # Heuristic fallback
@@ -233,6 +235,9 @@ def select_pick(
                 action = "single"
         else:
             action = "single"
+
+    if action == "double" and not allow_double:
+        action = "single"
 
     if action == "skip":
         return None

@@ -1039,7 +1039,8 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     import pandas as pd
     from datetime import datetime, timezone
     from bts.model.predict import run_pipeline, save_blend, load_blend
-    from bts.picks import get_game_statuses_detailed, save_pick, load_streak
+    from bts.contest_state import load_decision_streak_state
+    from bts.picks import get_game_statuses_detailed, save_pick
     from bts.posting import format_post, post_to_bluesky, should_post_now
     from bts.strategy import select_pick
 
@@ -1096,7 +1097,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         return
 
     # Step 2: Apply strategy (streak-aware thresholds)
-    streak = load_streak(picks_path)
+    decision_state = load_decision_streak_state(picks_path)
     try:
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
@@ -1105,7 +1106,9 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         predictions,
         date,
         picks_path,
-        streak=streak,
+        streak=decision_state.streak,
+        saver_available=decision_state.saver_available,
+        allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
     )
@@ -1116,17 +1119,17 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         if top is not None and pd.notna(top.get("p_game_hit")):
             from bts.posting import format_skip_post, post_to_bluesky, should_post_now
             click.echo(f"Skipping — {top['batter_name']} ({top.get('team', '?')}) "
-                       f"at {top['p_game_hit']:.1%} below threshold. Streak holds at {streak}.")
+                       f"at {top['p_game_hit']:.1%} below threshold. Streak holds at {decision_state.streak}.")
             if not dry_run and should_post_now(top.get("game_time", ""), False):
                 text = format_skip_post(top["batter_name"], top.get("team", "?"),
-                                        top["p_game_hit"], streak)
+                                        top["p_game_hit"], decision_state.streak)
                 try:
                     uri = post_to_bluesky(text)
                     click.echo(f"  Posted skip to Bluesky: {uri}")
                 except Exception as e:
                     click.echo(f"  Bluesky skip post failed: {e}", err=True)
         else:
-            click.echo(f"No valid picks available. Streak holds at {streak}.")
+            click.echo(f"No valid picks available. Streak holds at {decision_state.streak}.")
         return
 
     if result.locked:
@@ -1134,10 +1137,10 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         click.echo(f"Pick locked: {result.daily.pick.batter_name} ({reason})")
         # Catch-up posting if needed
         if not result.daily.bluesky_posted:
-            streak = load_streak(picks_path)
+            decision_state = load_decision_streak_state(picks_path)
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
-                result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, streak,
+                result.daily.pick.pitcher_name, result.daily.pick.p_game_hit, decision_state.streak,
                 result.daily.double_down.batter_name if result.daily.double_down else None,
                 result.daily.double_down.p_game_hit if result.daily.double_down else None,
                 result.daily.double_down.team if result.daily.double_down else None,
@@ -1173,11 +1176,11 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     click.echo(f"  Saved to {picks_path / f'{date}.json'}")
 
     # Post to Bluesky if appropriate
-    streak = load_streak(picks_path)
+    decision_state = load_decision_streak_state(picks_path)
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
         text = format_post(
             daily.pick.batter_name, daily.pick.team, daily.pick.pitcher_name,
-            daily.pick.p_game_hit, streak,
+            daily.pick.p_game_hit, decision_state.streak,
             daily.double_down.batter_name if daily.double_down else None,
             daily.double_down.p_game_hit if daily.double_down else None,
             daily.double_down.team if daily.double_down else None,
@@ -1211,8 +1214,9 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
     so the dashboard shows a pending pick instead of blank.
     """
     from datetime import datetime, timedelta, timezone
+    from bts.contest_state import load_decision_streak_state
     from bts.model.predict import run_pipeline, load_blend
-    from bts.picks import get_game_statuses_detailed, save_pick, load_pick, load_streak
+    from bts.picks import get_game_statuses_detailed, save_pick, load_pick
     from bts.strategy import select_pick
 
     if date is None:
@@ -1248,7 +1252,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         click.echo(f"[preview] No games found for {date}.")
         return
 
-    streak = load_streak(picks_path)
+    decision_state = load_decision_streak_state(picks_path)
     try:
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
@@ -1257,7 +1261,9 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         predictions,
         date,
         picks_path,
-        streak=streak,
+        streak=decision_state.streak,
+        saver_available=decision_state.saver_available,
+        allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
     )
@@ -1284,6 +1290,74 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         click.echo(f"[preview] + {daily.double_down.batter_name} ({daily.double_down.team}) "
                    f"{daily.double_down.p_game_hit:.1%}")
     click.echo(f"[preview] Saved to {picks_path / f'{date}.json'} (PROJECTED — scheduler will re-evaluate)")
+
+
+@cli.command(name="set-contest-streak")
+@click.option("--streak", required=True, type=int, help="Actual active BTS account streak.")
+@click.option("--best-streak", type=int, default=None, help="Actual season-best streak.")
+@click.option(
+    "--saver-available/--saver-unavailable",
+    default=None,
+    help="Actual BTS streak-saver availability. Omit when unknown.",
+)
+@click.option("--source-date", default=None, help="Observation date YYYY-MM-DD; defaults to today ET.")
+@click.option("--source", default="manual_cli", help="Short source label for the observation.")
+@click.option("--username", default=None, help="BTS username for this account state.")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+def set_contest_streak(
+    streak: int,
+    best_streak: int | None,
+    saver_available: bool | None,
+    source_date: str | None,
+    source: str,
+    username: str | None,
+    picks_dir: str,
+):
+    """Write the manual contest-account streak override used by live picks."""
+    from datetime import date, datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    if streak < 0:
+        raise click.BadParameter("streak must be non-negative", param_hint="--streak")
+    if best_streak is not None and best_streak < streak:
+        raise click.BadParameter(
+            "best streak must be at least the active streak",
+            param_hint="--best-streak",
+        )
+
+    if source_date is None:
+        observed_date = datetime.now(ZoneInfo("America/New_York")).date()
+    else:
+        try:
+            observed_date = date.fromisoformat(source_date)
+        except ValueError as exc:
+            raise click.BadParameter(
+                "source date must be YYYY-MM-DD",
+                param_hint="--source-date",
+            ) from exc
+
+    state = {
+        "schema_version": "bts_contest_streak_manual_v1",
+        "active_streak": streak,
+        "source": source,
+        "source_date": observed_date.isoformat(),
+        "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    if best_streak is not None:
+        state["best_streak"] = best_streak
+    if saver_available is not None:
+        state["saver_available"] = saver_available
+    if username:
+        state["username"] = username
+
+    path = Path(picks_dir) / "account_state" / "contest_streak.manual.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    saver_text = "unknown" if saver_available is None else str(saver_available).lower()
+    click.echo(
+        f"Wrote {path}: active_streak={streak} "
+        f"source_date={observed_date.isoformat()} saver_available={saver_text}"
+    )
 
 
 @cli.command(name="predict-json")

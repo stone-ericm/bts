@@ -2,15 +2,29 @@
 
 import json
 import pytest
+import sys
+import types
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 from click.testing import CliRunner
+
+import bts.model
 
 from bts.cli import cli
 from bts.picks import (
     Pick, DailyPick, save_pick, save_streak,
     save_shadow_pick, load_shadow_pick,
 )
+
+
+@pytest.fixture(autouse=True)
+def fake_predict_module(monkeypatch):
+    fake_predict = types.ModuleType("bts.model.predict")
+    fake_predict.run_pipeline = MagicMock(name="run_pipeline")
+    fake_predict.save_blend = MagicMock(name="save_blend")
+    fake_predict.load_blend = MagicMock(name="load_blend", return_value=None)
+    monkeypatch.setitem(sys.modules, "bts.model.predict", fake_predict)
+    monkeypatch.setattr(bts.model, "predict", fake_predict, raising=False)
 
 
 def _sample_pick(**overrides):
@@ -153,6 +167,133 @@ class TestBtsRun:
 
         assert result.exit_code == 0
         assert "No games found" in result.output
+
+    @patch("bts.posting.should_post_now", return_value=False)
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy._mdp_action")
+    @patch("bts.model.predict.run_pipeline")
+    def test_run_uses_fresh_contest_streak_for_live_action(
+        self, mock_pipeline, mock_mdp, _detailed_statuses, _should_post, tmp_path,
+    ):
+        def action(_p, streak, _date, saver):
+            assert streak == 7
+            assert saver is False
+            return "skip"
+
+        mock_pipeline.return_value = _mock_predictions()
+        mock_mdp.side_effect = action
+        picks_dir = tmp_path / "picks"
+        models_dir = tmp_path / "models"
+        picks_dir.mkdir()
+        save_streak(4, picks_dir, saver_available=True)
+        state_dir = picks_dir / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7,
+            "source": "manual_screenshot",
+            "source_date": "2026-04-01",
+        }))
+
+        result = CliRunner().invoke(cli, [
+            "run", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+            "--models-dir", str(models_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Streak holds at 7" in result.output
+
+
+class TestBtsPreview:
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "P", "detailed": "Pre-Game"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy._mdp_action")
+    @patch("bts.model.predict.run_pipeline")
+    def test_preview_uses_fresh_contest_streak_for_projected_pick(
+        self, mock_pipeline, mock_mdp, _detailed_statuses, tmp_path,
+    ):
+        def action(_p, streak, _date, saver):
+            assert streak == 7
+            assert saver is False
+            return "skip"
+
+        mock_pipeline.return_value = _mock_predictions()
+        mock_mdp.side_effect = action
+        picks_dir = tmp_path / "picks"
+        models_dir = tmp_path / "models"
+        picks_dir.mkdir()
+        save_streak(4, picks_dir, saver_available=True)
+        state_dir = picks_dir / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7,
+            "source": "manual_screenshot",
+            "source_date": "2026-04-01",
+        }))
+
+        result = CliRunner().invoke(cli, [
+            "preview", "--date", "2026-04-01",
+            "--picks-dir", str(picks_dir),
+            "--models-dir", str(models_dir),
+        ])
+
+        assert result.exit_code == 0
+        assert "Skip day" in result.output
+        assert not (picks_dir / "2026-04-01.json").exists()
+
+
+class TestSetContestStreak:
+    def test_set_contest_streak_writes_manual_state(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+
+        result = CliRunner().invoke(cli, [
+            "set-contest-streak",
+            "--streak", "7",
+            "--best-streak", "7",
+            "--saver-unavailable",
+            "--source-date", "2026-05-29",
+            "--source", "manual_screenshot",
+            "--username", "stonehengee",
+            "--picks-dir", str(picks_dir),
+        ])
+
+        assert result.exit_code == 0
+        path = picks_dir / "account_state" / "contest_streak.manual.json"
+        data = json.loads(path.read_text())
+        assert data["schema_version"] == "bts_contest_streak_manual_v1"
+        assert data["active_streak"] == 7
+        assert data["best_streak"] == 7
+        assert data["saver_available"] is False
+        assert data["source_date"] == "2026-05-29"
+        assert data["source"] == "manual_screenshot"
+        assert data["username"] == "stonehengee"
+        assert "recorded_at" in data
+
+        from bts.contest_state import load_contest_streak_state
+        state = load_contest_streak_state(picks_dir)
+        assert state is not None
+        assert state.streak == 7
+        assert state.best_streak == 7
+        assert state.saver_available is False
+        assert state.source == "manual_screenshot"
+        assert state.source_date is not None
+        assert state.source_date.isoformat() == "2026-05-29"
+
+    def test_set_contest_streak_rejects_best_below_active(self, tmp_path):
+        result = CliRunner().invoke(cli, [
+            "set-contest-streak",
+            "--streak", "7",
+            "--best-streak", "6",
+            "--picks-dir", str(tmp_path / "picks"),
+        ])
+
+        assert result.exit_code != 0
+        assert "best streak must be at least the active streak" in result.output
 
 
 class TestBtsCheckResults:

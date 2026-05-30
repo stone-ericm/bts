@@ -217,6 +217,13 @@ def run_cascade(
     return None, None
 
 
+def _contest_state_required(config: dict) -> bool:
+    return bool(
+        config.get("scheduler", {}).get("contest_state_required", False)
+        or config.get("health_checks", {}).get("contest_state_expected", False)
+    )
+
+
 def run_and_pick(
     config: dict,
     date: str,
@@ -229,7 +236,8 @@ def run_and_pick(
     predictions is None if all tiers fail.
     pick_result is None if skip or no games.
     """
-    from bts.picks import get_game_statuses_detailed, load_streak
+    from bts.contest_state import load_decision_streak_state
+    from bts.picks import get_game_statuses_detailed
     from bts.strategy import select_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -238,7 +246,10 @@ def run_and_pick(
     if predictions is None or predictions.empty:
         return predictions, None, tier_name
 
-    streak = load_streak(picks_dir)
+    decision_state = load_decision_streak_state(
+        picks_dir,
+        require_contest_state=_contest_state_required(config),
+    )
     try:
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
@@ -247,7 +258,9 @@ def run_and_pick(
         predictions,
         date,
         picks_dir,
-        streak=streak,
+        streak=decision_state.streak,
+        saver_available=decision_state.saver_available,
+        allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
     )
@@ -261,14 +274,25 @@ def orchestrate(config_path: Path, date: str) -> bool:
     Returns True if a pick was made, False otherwise.
     """
     from bts.dm import send_dm
-    from bts.picks import save_pick, load_streak
+    from bts.contest_state import ContestStateError, load_decision_streak_state
+    from bts.picks import save_pick
     from bts.posting import format_post, format_skip_post, post_to_bluesky, should_post_now
 
     config = load_config(config_path)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     dm_recipient = config["bluesky"]["dm_recipient"]
 
-    predictions, result, tier_name = run_and_pick(config, date)
+    try:
+        predictions, result, tier_name = run_and_pick(config, date)
+    except ContestStateError as e:
+        msg = f"BTS {date}: contest-account streak state invalid. No pick made. ({e})"
+        print(msg, file=sys.stderr)
+        try:
+            send_dm(dm_recipient, msg)
+            print(f"  DM sent to {dm_recipient}", file=sys.stderr)
+        except Exception as dm_error:
+            print(f"  DM failed: {dm_error}", file=sys.stderr)
+        return False
 
     if predictions is None:
         msg = f"BTS {date}: All compute tiers failed. No pick made."
@@ -285,32 +309,38 @@ def orchestrate(config_path: Path, date: str) -> bool:
         return False
 
     if result is None:
-        streak = load_streak(picks_dir)
+        decision_state = load_decision_streak_state(
+            picks_dir,
+            require_contest_state=_contest_state_required(config),
+        )
         top = predictions.iloc[0] if not predictions.empty else None
         if top is not None:
             print(f"Skipping — {top['batter_name']} at {top['p_game_hit']:.1%} "
-                  f"below threshold. Streak holds at {streak}.", file=sys.stderr)
+                  f"below threshold. Streak holds at {decision_state.streak}.", file=sys.stderr)
             if should_post_now(top.get("game_time", ""), False):
                 text = format_skip_post(top["batter_name"], top.get("team", "?"),
-                                        top["p_game_hit"], streak)
+                                        top["p_game_hit"], decision_state.streak)
                 try:
                     uri = post_to_bluesky(text)
                     print(f"  Posted skip to Bluesky: {uri}", file=sys.stderr)
                 except Exception as e:
                     print(f"  Bluesky skip post failed: {e}", file=sys.stderr)
         else:
-            print(f"No valid picks. Streak holds at {streak}.", file=sys.stderr)
+            print(f"No valid picks. Streak holds at {decision_state.streak}.", file=sys.stderr)
         return False
 
     if result.locked:
         print(f"Pick locked: {result.daily.pick.batter_name}", file=sys.stderr)
         # Catch-up posting
         if not result.daily.bluesky_posted:
-            streak = load_streak(picks_dir)
+            decision_state = load_decision_streak_state(
+                picks_dir,
+                require_contest_state=_contest_state_required(config),
+            )
             text = format_post(
                 result.daily.pick.batter_name, result.daily.pick.team,
                 result.daily.pick.pitcher_name, result.daily.pick.p_game_hit,
-                streak,
+                decision_state.streak,
                 result.daily.double_down.batter_name if result.daily.double_down else None,
                 result.daily.double_down.p_game_hit if result.daily.double_down else None,
                 result.daily.double_down.team if result.daily.double_down else None,
@@ -344,11 +374,14 @@ def orchestrate(config_path: Path, date: str) -> bool:
     )
 
     # Post to Bluesky
-    streak = load_streak(picks_dir)
+    decision_state = load_decision_streak_state(
+        picks_dir,
+        require_contest_state=_contest_state_required(config),
+    )
     if should_post_now(daily.pick.game_time, daily.bluesky_posted):
         text = format_post(
             daily.pick.batter_name, daily.pick.team,
-            daily.pick.pitcher_name, daily.pick.p_game_hit, streak,
+            daily.pick.pitcher_name, daily.pick.p_game_hit, decision_state.streak,
             daily.double_down.batter_name if daily.double_down else None,
             daily.double_down.p_game_hit if daily.double_down else None,
             daily.double_down.team if daily.double_down else None,

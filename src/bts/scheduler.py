@@ -34,6 +34,31 @@ def _optional_health_path(value) -> Path | None:
     return Path(value)
 
 
+def _contest_state_required(config: dict) -> bool:
+    sched_config = config.get("scheduler", {})
+    health_config = config.get("health_checks", {})
+    return bool(
+        sched_config.get("contest_state_required", False)
+        or health_config.get("contest_state_expected", False)
+    )
+
+
+def _alert_contest_state_failure(config: dict, error: Exception) -> None:
+    """Best-effort immediate alert for fail-closed contest-state decisions."""
+    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+    dm_recipient = config.get("bluesky", {}).get("dm_recipient")
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    status_path = (
+        picks_dir.parent / "health_state" / "health_dm_delivery_status.json"
+    )
+    dispatch_dm_for_health_alerts(
+        [Alert("CRITICAL", "contest_state", str(error))],
+        dm_recipient,
+        status_path=status_path,
+    )
+
+
 def fetch_schedule(date: str) -> list[dict]:
     """Fetch today's MLB schedule. Returns list of game dicts."""
     resp = json.loads(retry_urlopen(
@@ -342,7 +367,8 @@ def _deliver_and_lock_pick(
     label: str,
 ) -> bool:
     """Deliver a pick through the configured channel and persist the lock."""
-    from bts.picks import load_streak, pick_was_delivered, save_pick
+    from bts.contest_state import ContestStateError, load_decision_streak_state
+    from bts.picks import pick_was_delivered, save_pick
 
     mode = _pick_delivery_mode(config)
     if pick_was_delivered(daily):
@@ -367,8 +393,16 @@ def _deliver_and_lock_pick(
         )
         return True
 
-    streak = load_streak(picks_dir)
-    text = _format_pick_delivery_text(daily, streak)
+    try:
+        decision_state = load_decision_streak_state(
+            picks_dir,
+            require_contest_state=_contest_state_required(config),
+        )
+    except ContestStateError as e:
+        print(f"  CONTEST STATE ERROR — pick delivery blocked: {e}", file=sys.stderr)
+        _alert_contest_state_failure(config, e)
+        return False
+    text = _format_pick_delivery_text(daily, decision_state.streak)
 
     if mode == "dm":
         recipient = config.get("bluesky", {}).get("dm_recipient")
@@ -647,6 +681,7 @@ def run_single_check(
              "pick_result": PickResult | None, "pick_name": str | None,
              "pick_p": float | None}.
     """
+    from bts.contest_state import ContestStateError
     from bts.orchestrator import run_and_pick
     from bts.picks import save_pick, load_pick, classify_pick_lock_state
     from bts.strategy import PickResult
@@ -676,12 +711,18 @@ def run_single_check(
     print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
 
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
-    with heartbeat_watchdog(heartbeat_path, interval_sec=60):
-        predictions, pick_result, tier = run_and_pick(
-            config,
-            date,
-            require_detailed_statuses=False,
-        )
+    try:
+        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+            predictions, pick_result, tier = run_and_pick(
+                config,
+                date,
+                require_detailed_statuses=False,
+            )
+    except ContestStateError as e:
+        print(f"  CONTEST STATE ERROR — no pick made: {e}", file=sys.stderr)
+        _alert_contest_state_failure(config, e)
+        return {"skipped": False, "new_lineups": new_count, "should_post": False,
+                "pick_result": None, "pick_name": None, "pick_p": None}
 
     if predictions is None or pick_result is None:
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
@@ -1009,6 +1050,7 @@ def _refresh_pick_at_fallback_decision(
     locked result) so the fallback path stays robust — we always have
     *something* to deliver if the loop reaches here.
     """
+    from bts.contest_state import ContestStateError
     from bts.picks import save_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -1021,6 +1063,8 @@ def _refresh_pick_at_fallback_decision(
                 date,
                 require_detailed_statuses=False,
             )
+    except ContestStateError:
+        raise
     except Exception as e:
         print(f"  FALLBACK REFRESH: re-predict failed ({e}), using cached pick",
               file=sys.stderr)
@@ -1407,6 +1451,7 @@ def run_day(
     7. Next-day lookahead for wake-up time
     8. Result polling after games finish
     """
+    from bts.contest_state import ContestStateError
     from bts.picks import load_pick, pick_was_delivered
 
     sched_config = config.get("scheduler", {})
@@ -1592,12 +1637,20 @@ def run_day(
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
                 if daily and not pick_was_delivered(daily):
-                    refresh = _refresh_pick_at_fallback_decision(
-                        config,
-                        date,
-                        daily,
-                        early_lock_gap,
-                    )
+                    try:
+                        refresh = _refresh_pick_at_fallback_decision(
+                            config,
+                            date,
+                            daily,
+                            early_lock_gap,
+                        )
+                    except ContestStateError as e:
+                        print(
+                            f"  FALLBACK BLOCKED — contest state invalid: {e}",
+                            file=sys.stderr,
+                        )
+                        _alert_contest_state_failure(config, e)
+                        continue
                     daily = refresh.daily
                     if refresh.should_post is False and has_pending_future_window:
                         archive = _defer_pick_at_fallback(
@@ -1644,15 +1697,26 @@ def run_day(
             if mins_to_game <= fallback_min:
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.
-                daily = _refresh_pick_at_fallback_decision(
-                    config,
-                    date,
-                    daily,
-                    early_lock_gap,
-                ).daily
-                print(f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
-                      file=sys.stderr)
-                _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")
+                try:
+                    daily = _refresh_pick_at_fallback_decision(
+                        config,
+                        date,
+                        daily,
+                        early_lock_gap,
+                    ).daily
+                except ContestStateError as e:
+                    print(
+                        f"  FALLBACK BLOCKED — contest state invalid: {e}",
+                        file=sys.stderr,
+                    )
+                    _alert_contest_state_failure(config, e)
+                    daily = None
+                else:
+                    print(
+                        f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
+                        file=sys.stderr,
+                    )
+                    _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback")
 
         if state.pick_locked and shadow_model_enabled and daily:
             _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)
@@ -1771,6 +1835,7 @@ def run_day(
                     "bts-live-forward-capture.service",
                 ) if sched_config.get("live_forward_capture_command") is None else None,
                 shadow_unit=shadow_model_unit if shadow_model_command is None else None,
+                contest_state_expected=_contest_state_required(config),
             )
         except Exception as e:
             print(f"  health_checks: unexpected error (suppressed): {e}", file=sys.stderr)

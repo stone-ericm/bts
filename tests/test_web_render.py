@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from bts.web import _format_game_time, _format_updated_time, _render_pa_cell
+from bts.web import _format_game_time, _format_updated_time, _render_pa_cell, _streak_subtitle
 
 
 def test_format_game_time_adds_kenya_time_same_day():
@@ -36,6 +36,10 @@ def test_format_updated_time_uses_explicit_et_and_kenya_dates():
     updated = _format_updated_time(datetime(2026, 6, 15, 23, 10, tzinfo=timezone.utc))
 
     assert updated == "2026-06-15 19:10 ET / 2026-06-16 02:10 EAT"
+
+
+def test_streak_subtitle_flags_decision_state_error():
+    assert _streak_subtitle(None, "bad contest state") == "Streak State Error"
 
 
 class TestRenderPaCellPlaceholder:

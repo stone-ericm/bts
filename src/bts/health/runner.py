@@ -17,6 +17,7 @@ from bts.health import (
     analytics_artifacts_missing,
     blend_training,
     calibration,
+    contest_state,
     disk_fill,
     fallback_defer,
     leaderboard_freshness,
@@ -81,6 +82,7 @@ def run_all_checks(
     live_forward_resolve_status_root: Path | None = None,
     live_forward_capture_unit: str | None = "bts-live-forward-capture.service",
     shadow_unit: str | None = None,
+    contest_state_expected: bool = False,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -100,6 +102,10 @@ def run_all_checks(
     )))
 
     # Tier 1 — silent failures with damage
+    alerts.extend(_safe_run("contest_state", lambda: contest_state.check(
+        picks_dir,
+        expected=contest_state_expected,
+    )))
     alerts.extend(_safe_run("blend_training", lambda: blend_training.check(
         models_dir, today=today,
     )))

@@ -124,6 +124,36 @@ def load_streak():
     return 0
 
 
+def load_dashboard_decision_state():
+    """Load the streak state used by user-facing recommendations."""
+    from bts.contest_state import load_decision_streak_state
+
+    return load_decision_streak_state(PICKS_DIR)
+
+
+def load_dashboard_streak_context():
+    """Load dashboard streak context, preserving visible failures."""
+    try:
+        return load_dashboard_decision_state(), None
+    except Exception as exc:
+        return None, str(exc)
+
+
+def _streak_subtitle(decision_state, error_message: str | None = None) -> str:
+    if error_message:
+        return "Streak State Error"
+    if decision_state is None:
+        return "Consecutive Hits"
+    if (
+        decision_state.contest_streak is not None
+        and decision_state.contest_streak != decision_state.model_streak
+    ):
+        return f"Contest State · Replay {decision_state.model_streak}"
+    if decision_state.source == "contest":
+        return "Contest State"
+    return "Replay State"
+
+
 def load_scheduler_state(date_str: str) -> dict:
     """Read scheduler_state.json for a given date. Returns {} if missing/unreadable."""
     state_path = PICKS_DIR / date_str / "scheduler_state.json"
@@ -821,7 +851,9 @@ def _build_live_game_data(pick_data: dict) -> tuple[list[dict | None], dict | No
 
 def render_page():
     picks = load_all_picks()
-    streak = load_streak()
+    decision_state, streak_error = load_dashboard_streak_context()
+    streak = decision_state.streak if decision_state is not None else load_streak()
+    streak_subtitle = _streak_subtitle(decision_state, streak_error)
     posts = fetch_bluesky_posts()
     today = datetime.now().strftime("%Y-%m-%d")
     health_dm_banner = render_health_dm_delivery_banner(
@@ -1280,7 +1312,7 @@ def render_page():
             <div class="streak-box">
                 <div class="streak-label">Current Streak</div>
                 <div class="streak-number">{streak}</div>
-                <div class="streak-sub">Consecutive Hits</div>
+                <div class="streak-sub">{streak_subtitle}</div>
             </div>
         </div>
 
@@ -1482,7 +1514,15 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
-        our_streak = load_streak()
+        try:
+            decision_state = load_dashboard_decision_state()
+        except Exception as e:
+            self._json_response(
+                {"error": f"streak state failed: {e}"},
+                status_code=503,
+            )
+            return
+        our_streak = decision_state.streak
         today = _date.today()
         try:
             consensus = consensus_pick(LEADERBOARD_DIR, today)
