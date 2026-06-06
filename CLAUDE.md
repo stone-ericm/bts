@@ -17,6 +17,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
 
 ## Deployment
+- **🚨 Remote / phone incident response → see [`INCIDENT.md`](INCIDENT.md)** — what a cloud (phone) session can vs. can't fix, exact deploy/rollback commands, and the escalation triggers (esp. the on-box cookie re-capture you can't do from the cloud).
 - **Deploys trigger on push to `deploy` branch** (NOT main, since 2026-04-21). Workflow: commit/push to main freely; when ready to ship, `git push origin main:deploy`. Gives explicit control over when scheduler restart fires (avoids disrupting live-game scorecard polling).
 - **Canary + auto-rollback**: after deploy, workflow waits 30s then checks `systemctl is-active bts-scheduler bts-dashboard` + dashboard HTTP. On failure, auto-reverts to pre-deploy SHA + restarts services.
 - **Emergency deploy**: `workflow_dispatch` trigger in the GitHub Actions UI — runs deploy without pushing anything.
