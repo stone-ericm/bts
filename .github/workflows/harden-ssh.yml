@@ -1,0 +1,38 @@
+name: Harden SSH (one-shot)
+
+# TEMPORARY maintenance workflow.
+# Disables SSH password authentication on bts-hetzner (key-only), keeping
+# pubkey auth on. Validates with `sshd -t` BEFORE applying, then reloads
+# (not restarts) sshd so existing sessions survive. Runs as root via the
+# same secret the deploy uses, so it works without any local root key.
+# Delete this file after one successful run.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disable password auth, validate, reload
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p /etc/ssh/sshd_config.d
+            DROPIN=/etc/ssh/sshd_config.d/99-disable-password-auth.conf
+            printf '%s\n' \
+              'PasswordAuthentication no' \
+              'KbdInteractiveAuthentication no' \
+              'PubkeyAuthentication yes' > "$DROPIN"
+            echo "Wrote $DROPIN:"
+            cat "$DROPIN"
+            # Abort if the resulting config is invalid — never reload a broken sshd.
+            sshd -t
+            # Reload, not restart: live SSH sessions stay up; pubkey auth is untouched.
+            systemctl reload ssh 2>/dev/null || systemctl reload sshd
+            echo "--- effective auth settings after reload ---"
+            sshd -T | grep -iE '^(passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|permitrootlogin)'
