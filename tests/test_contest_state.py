@@ -115,3 +115,58 @@ def test_stale_contest_state_never_lowers_model_streak(tmp_path):
 
     assert state.streak == 12
     assert state.allow_double is False
+
+
+# --- Task 4: expiring-override precedence (auto default) ---
+import datetime as _dt
+
+_NOW = _dt.datetime(2026, 6, 6, 18, 0, 0, tzinfo=_dt.timezone.utc)
+
+
+def _write_manual(state_dir, streak, *, expires_at=None, source_date="2026-06-06"):
+    d = {"active_streak": streak, "best_streak": max(streak, 9),
+         "source": "manual_cli", "source_date": source_date}
+    if expires_at is not None:
+        d["override_expires_at"] = expires_at
+    (state_dir / "contest_streak.manual.json").write_text(json.dumps(d))
+
+
+def _write_auto(state_dir, streak, source_date="2026-06-06"):
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1", "active_streak": streak,
+        "best_streak": max(streak, 9), "source": "mlb_bts_profile", "source_date": source_date}))
+
+
+def test_auto_wins_over_legacy_manual(tmp_path):
+    from bts.contest_state import load_contest_streak_state
+    sd = tmp_path / "account_state"; sd.mkdir()
+    _write_manual(sd, 7)                       # legacy, no override_expires_at
+    _write_auto(sd, 0)
+    st = load_contest_streak_state(tmp_path, now=_NOW)
+    assert st.streak == 0 and st.path.name == "contest_streak.json"
+
+
+def test_unexpired_override_wins_over_auto(tmp_path):
+    from bts.contest_state import load_contest_streak_state
+    sd = tmp_path / "account_state"; sd.mkdir()
+    _write_manual(sd, 11, expires_at="2026-06-07T18:00:00Z")   # unexpired
+    _write_auto(sd, 0)
+    st = load_contest_streak_state(tmp_path, now=_NOW)
+    assert st.streak == 11 and st.path.name == "contest_streak.manual.json"
+
+
+def test_expired_override_ignored_auto_used(tmp_path):
+    from bts.contest_state import load_contest_streak_state
+    sd = tmp_path / "account_state"; sd.mkdir()
+    _write_manual(sd, 11, expires_at="2026-06-05T18:00:00Z")   # expired before _NOW
+    _write_auto(sd, 0)
+    st = load_contest_streak_state(tmp_path, now=_NOW)
+    assert st.streak == 0 and st.path.name == "contest_streak.json"
+
+
+def test_legacy_manual_fallback_when_no_auto(tmp_path):
+    from bts.contest_state import load_contest_streak_state
+    sd = tmp_path / "account_state"; sd.mkdir()
+    _write_manual(sd, 0)                       # legacy hotfix, no auto yet
+    st = load_contest_streak_state(tmp_path, now=_NOW)
+    assert st is not None and st.streak == 0 and st.path.name == "contest_streak.manual.json"
