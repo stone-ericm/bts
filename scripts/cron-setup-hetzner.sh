@@ -23,7 +23,7 @@ set -euo pipefail
 BTS_DIR="$HOME/projects/bts"
 LOG_DIR="$HOME/logs"
 UV_BIN="$HOME/.local/bin/uv"
-HC_PING_URL="${HEALTHCHECKS_PING_URL:-https://hc-ping.com/25ebdf3f-b784-4c6b-981c-7e5ea16218c8}"
+HC_PING_URL="${HEALTHCHECKS_PING_URL:?set HEALTHCHECKS_PING_URL (e.g. in .env, then: set -a && . ./.env && set +a) — refusing to bake a hardcoded ping URL into cron}"
 MARKER="# BTS-HETZNER"
 
 # Common prefix: cd, load .env via dot (POSIX), guard exports

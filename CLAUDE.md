@@ -11,7 +11,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
 
-# Hetzner cron setup (reproducible install of cron jobs)
+# Hetzner cron setup (reproducible install of cron jobs).
+# Source .env first — cron-setup now REQUIRES HEALTHCHECKS_PING_URL (no hardcoded default):
+set -a && . ./.env && set +a
 bash scripts/cron-setup-hetzner.sh show      # dry-run
 bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
