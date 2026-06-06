@@ -23,7 +23,7 @@ jobs:
       - name: Deploy via SSH with canary health check + auto-rollback
         uses: appleboy/ssh-action@v1
         with:
-          host: 204.168.243.169
+          host: ${{ secrets.HETZNER_HOST }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
