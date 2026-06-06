@@ -1303,6 +1303,11 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
 @click.option("--source-date", default=None, help="Observation date YYYY-MM-DD; defaults to today ET.")
 @click.option("--source", default="manual_cli", help="Short source label for the observation.")
 @click.option("--username", default=None, help="BTS username for this account state.")
+@click.option("--ttl-hours", type=float, default=24.0,
+              help="Override lifetime in hours (default 24); after this, auto-fetch wins again.")
+@click.option("--override-expires-at", default=None,
+              help="Explicit override expiry (ISO-8601); overrides --ttl-hours.")
+@click.option("--reason", default=None, help="Why this emergency override is set (e.g. 'API auth down').")
 @click.option("--picks-dir", default="data/picks", type=click.Path())
 def set_contest_streak(
     streak: int,
@@ -1311,10 +1316,18 @@ def set_contest_streak(
     source_date: str | None,
     source: str,
     username: str | None,
+    ttl_hours: float,
+    override_expires_at: str | None,
+    reason: str | None,
     picks_dir: str,
 ):
-    """Write the manual contest-account streak override used by live picks."""
-    from datetime import date, datetime, timezone
+    """Write an EXPIRING manual contest-streak override.
+
+    Emergency use only — automated `fetch-contest-streak` is the default source.
+    The override beats auto only until it expires (default 24h), so a forgotten
+    manual file can never silently freeze live picks again.
+    """
+    from datetime import date, datetime, timedelta, timezone
     from zoneinfo import ZoneInfo
 
     if streak < 0:
@@ -1336,12 +1349,26 @@ def set_contest_streak(
                 param_hint="--source-date",
             ) from exc
 
+    if override_expires_at is not None:
+        try:
+            expires_dt = datetime.fromisoformat(override_expires_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise click.BadParameter(
+                "override-expires-at must be ISO-8601",
+                param_hint="--override-expires-at",
+            ) from exc
+        if expires_dt.tzinfo is None:
+            expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+    else:
+        expires_dt = datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+
     state = {
-        "schema_version": "bts_contest_streak_manual_v1",
+        "schema_version": "bts_contest_streak_manual_v2",
         "active_streak": streak,
         "source": source,
         "source_date": observed_date.isoformat(),
         "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "override_expires_at": expires_dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     if best_streak is not None:
         state["best_streak"] = best_streak
@@ -1349,15 +1376,169 @@ def set_contest_streak(
         state["saver_available"] = saver_available
     if username:
         state["username"] = username
+    if reason:
+        state["reason"] = reason
 
     path = Path(picks_dir) / "account_state" / "contest_streak.manual.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
     saver_text = "unknown" if saver_available is None else str(saver_available).lower()
     click.echo(
-        f"Wrote {path}: active_streak={streak} "
-        f"source_date={observed_date.isoformat()} saver_available={saver_text}"
+        f"Wrote {path}: active_streak={streak} source_date={observed_date.isoformat()} "
+        f"saver_available={saver_text} override_expires_at={state['override_expires_at']}"
     )
+
+
+def _atomic_write_json(path, obj):
+    """Write JSON atomically: temp file in the same dir, fsync, os.replace."""
+    import os
+    import tempfile
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(obj, indent=2, sort_keys=True) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, str(path))
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def _fetch_rounds(client=None):
+    """Fetch rounds.json (no auth) -> {roundId: date}. Patchable in tests."""
+    import httpx
+    from bts.leaderboard.endpoints import ROUNDS_URL, USER_AGENT
+    from bts.leaderboard.scraper import parse_rounds_lookup
+    client = client or httpx
+    resp = client.get(ROUNDS_URL, headers={"User-Agent": USER_AGENT}, timeout=30.0)
+    resp.raise_for_status()
+    return parse_rounds_lookup(resp.json())
+
+
+def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
+    """DM on failure, throttled via status_path (>=cooldown_hours between DMs). Returns whether sent."""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    last_alert = None
+    if status_path.exists():
+        try:
+            last_alert = json.loads(status_path.read_text()).get("last_alert_at")
+        except (json.JSONDecodeError, OSError):
+            last_alert = None
+    should_alert = True
+    if last_alert:
+        try:
+            last_dt = datetime.fromisoformat(last_alert.replace("Z", "+00:00"))
+            should_alert = (now - last_dt) >= timedelta(hours=cooldown_hours)
+        except ValueError:
+            should_alert = True
+    sent = False
+    if should_alert and dm_recipient:
+        try:
+            from bts.dm import send_dm
+            send_dm(dm_recipient, f"BTS fetch-contest-streak failed: {msg}")
+            sent = True
+        except Exception as exc:
+            click.echo(f"(DM failed: {exc})", err=True)
+    record = {"last_error": msg, "last_error_at": now.isoformat().replace("+00:00", "Z")}
+    # Only consume the cooldown when a DM was actually SENT (not on missing recipient / send failure),
+    # so a later run with the recipient fixed can still alert on the transition.
+    record["last_alert_at"] = now.isoformat().replace("+00:00", "Z") if sent else last_alert
+    _atomic_write_json(status_path, record)
+    return sent
+
+
+@cli.command(name="fetch-contest-streak")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+@click.option("--expected-username", default=None,
+              help="Require this BTS username (identity guard against wrong cookies).")
+@click.option("--dm-recipient", default=None, help="Bluesky handle for throttled failure alerts.")
+@click.option("--dry-run", is_flag=True, help="Print would-write without writing.")
+def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
+    """Fetch the real MLB BTS account streak and write contest_streak.json (atomic, gated).
+
+    Fails safe: on auth/cookie/HTTP/shape/identity/staleness failure it NEVER overwrites
+    the prior good observation; it alerts (throttled DM) and exits nonzero.
+    """
+    import sys
+    import httpx
+    from datetime import datetime, timezone
+    from bts.leaderboard.auth import (
+        load_session_cookies, extract_uid, fetch_login_session, AuthError,
+    )
+    from bts.contest_fetch import (
+        fetch_profile, derive_source_date, build_observation, ContestFetchError,
+    )
+    from bts.contest_state import latest_resolved_pick_date
+
+    picks = Path(picks_dir)
+    out_path = picks / "account_state" / "contest_streak.json"
+    status_path = picks.parent / "health_state" / "contest_streak_fetch_status.json"
+
+    def _fail(msg, code=2):
+        click.echo(f"fetch-contest-streak: {msg}", err=True)
+        _contest_fetch_alert(status_path, dm_recipient, msg)
+        sys.exit(code)
+
+    # 1. auth + identity guard
+    try:
+        cookies = load_session_cookies()
+        uid = extract_uid(cookies)
+        session = fetch_login_session(uid=uid, cookies=cookies)
+    except AuthError as exc:
+        _fail(f"auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({exc})")
+    except httpx.HTTPError as exc:
+        _fail(f"auth network error: {exc}")
+
+    if expected_username and session.username != expected_username:
+        _fail(f"identity mismatch: got {session.username!r}, expected {expected_username!r}; refusing to write")
+
+    # prior-observation identity guard: never overwrite another account's good observation
+    if out_path.exists():
+        try:
+            prior = json.loads(out_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            prior = {}
+        prior_user, prior_uid = prior.get("username"), prior.get("user_id")
+        if (prior_user is not None and prior_user != session.username) or \
+           (prior_uid is not None and prior_uid != session.user_id):
+            _fail(f"prior contest_streak.json is {prior_user!r}/{prior_uid}, not session "
+                  f"{session.username!r}/{session.user_id}; refusing to overwrite")
+
+    # 2. profile + 3. currentness proof + build — ANY shape/fetch error must ALERT, not crash silently
+    try:
+        success = fetch_profile(session.user_id, cookies, session.xsid)
+        predictions = success.get("predictions", [])
+        rounds = _fetch_rounds()
+        source_date = derive_source_date(predictions, rounds)
+        if source_date is None:
+            _fail("profile proves no settled result date; refusing to claim freshness")
+        observation = build_observation(
+            success, source_date, session.user_id, session.username,
+            datetime.now(timezone.utc),
+        )
+    except (httpx.HTTPError, AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
+        _fail(f"profile/rounds shape or fetch error: {exc}")
+
+    # 4. currentness gate — a 200 response is not proof of currency
+    latest = latest_resolved_pick_date(picks)
+    if latest is not None and source_date < latest:
+        _fail(f"profile source_date {source_date} < latest resolved pick {latest}; not current, refusing to overwrite")
+
+    # 5. write (atomic) or dry-run
+    summary = (f"active_streak={observation['active_streak']} "
+               f"best_streak={observation['best_streak']} source_date={observation['source_date']}")
+    if dry_run:
+        click.echo(f"[dry-run] would write {out_path}: {summary}")
+        return
+    _atomic_write_json(out_path, observation)
+    _atomic_write_json(status_path, {
+        "last_success_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "last_error": None,
+    })
+    click.echo(f"wrote {out_path}: {summary}")
 
 
 @cli.command(name="predict-json")

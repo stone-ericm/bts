@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from bts.picks import load_saver_available, load_streak
@@ -38,6 +38,7 @@ class ContestStreakState:
     recorded_at: str | None
     path: Path
     best_streak: int | None = None
+    override_expires_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -66,44 +67,77 @@ def _parse_date(value: object) -> date | None:
         return None
 
 
+def _parse_dt(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
 def _contest_state_paths(picks_dir: Path) -> list[Path]:
     state_dir = picks_dir / "account_state"
     return [state_dir / name for name in _CONTEST_STATE_NAMES]
 
 
-def load_contest_streak_state(picks_dir: Path) -> ContestStreakState | None:
-    """Load the first configured contest-streak observation, if present."""
-    for path in _contest_state_paths(picks_dir):
-        if not path.exists():
-            continue
-        try:
-            data = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError) as exc:
-            raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
-        if not isinstance(data, dict):
-            raise ContestStateError(f"contest streak state malformed at {path}: expected object")
-        streak = data.get("active_streak", data.get("streak"))
-        if not isinstance(streak, int) or streak < 0:
-            raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
+def _parse_state_file(path: Path) -> ContestStreakState:
+    """Parse one contest-streak observation file. Raises ContestStateError if malformed."""
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        raise ContestStateError(f"contest streak state malformed at {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ContestStateError(f"contest streak state malformed at {path}: expected object")
+    streak = data.get("active_streak", data.get("streak"))
+    if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
+        raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
 
-        saver = data.get("saver_available")
-        if saver is not None and not isinstance(saver, bool):
-            raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
+    saver = data.get("saver_available")
+    if saver is not None and not isinstance(saver, bool):
+        raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
 
-        best = data.get("best_streak")
-        if best is not None and not isinstance(best, int):
-            best = None
+    best = data.get("best_streak")
+    if best is not None and type(best) is not int:
+        best = None
 
-        return ContestStreakState(
-            streak=streak,
-            saver_available=saver,
-            source=str(data.get("source") or path.stem),
-            source_date=_parse_date(data.get("source_date") or data.get("as_of")),
-            recorded_at=data.get("recorded_at") if isinstance(data.get("recorded_at"), str) else None,
-            path=path,
-            best_streak=best,
-        )
-    return None
+    return ContestStreakState(
+        streak=streak,
+        saver_available=saver,
+        source=str(data.get("source") or path.stem),
+        source_date=_parse_date(data.get("source_date") or data.get("as_of")),
+        recorded_at=data.get("recorded_at") if isinstance(data.get("recorded_at"), str) else None,
+        path=path,
+        best_streak=best,
+        override_expires_at=_parse_dt(data.get("override_expires_at")),
+    )
+
+
+def load_contest_streak_state(
+    picks_dir: Path,
+    *,
+    now: datetime | None = None,
+) -> ContestStreakState | None:
+    """Select the active contest-streak observation.
+
+    Precedence: an UNEXPIRED manual override wins; else the auto observation
+    (``contest_streak.json``); else a legacy/expired manual file is used as a
+    fallback so production keeps working until the first auto-fetch (health alerts
+    on that case). Returns None when no observation exists.
+    """
+    now = now or datetime.now(timezone.utc)
+    state_dir = picks_dir / "account_state"
+    manual_path = state_dir / "contest_streak.manual.json"
+    auto_path = state_dir / "contest_streak.json"
+    manual = _parse_state_file(manual_path) if manual_path.exists() else None
+    auto = _parse_state_file(auto_path) if auto_path.exists() else None
+
+    if manual is not None and manual.override_expires_at is not None and manual.override_expires_at > now:
+        return manual
+    if auto is not None:
+        return auto
+    return manual
 
 
 def latest_resolved_pick_date(picks_dir: Path) -> date | None:
@@ -141,6 +175,7 @@ def load_decision_streak_state(
     picks_dir: Path,
     *,
     require_contest_state: bool = False,
+    now: datetime | None = None,
 ) -> DecisionStreakState:
     """Return the streak/saver state for live user-facing recommendations.
 
@@ -151,7 +186,7 @@ def load_decision_streak_state(
     """
     model_streak = load_streak(picks_dir)
     model_saver = load_saver_available(picks_dir)
-    contest = load_contest_streak_state(picks_dir)
+    contest = load_contest_streak_state(picks_dir, now=now)
     if contest is None:
         if require_contest_state:
             paths = ", ".join(str(path) for path in _contest_state_paths(picks_dir))

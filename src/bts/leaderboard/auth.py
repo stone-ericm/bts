@@ -20,6 +20,7 @@ import logging
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 
 import httpx
 
@@ -38,6 +39,13 @@ KEYCHAIN_SERVICE = "mlb-bts-session-cookies"
 
 class AuthError(Exception):
     """Raised when session cookies are missing, expired, or rejected."""
+
+
+@dataclass(frozen=True)
+class AuthSession:
+    xsid: str
+    user_id: int | None
+    username: str | None
 
 
 def _read_keychain_raw() -> str:
@@ -111,8 +119,12 @@ def extract_uid(cookies: dict[str, str]) -> str:
     return uid
 
 
-def fetch_xsid(uid: str, cookies: dict[str, str], timeout: float = 30.0) -> str:
-    """POST /api/auth/login -> mint a fresh xSid. Raises AuthError on any failure."""
+def fetch_login_session(
+    uid: str,
+    cookies: dict[str, str],
+    timeout: float = 30.0,
+) -> AuthSession:
+    """POST /api/auth/login -> mint a fresh xSid and return account identity."""
     response = httpx.post(
         AUTH_LOGIN_URL,
         cookies=cookies,
@@ -130,7 +142,17 @@ def fetch_xsid(uid: str, cookies: dict[str, str], timeout: float = 30.0) -> str:
     if not xsid:
         errs = body.get("errors", [])
         raise AuthError(f"xSid missing from auth/login response (errors={errs})")
-    return xsid
+    user = body.get("success", {}).get("user") or {}
+    return AuthSession(
+        xsid=xsid,
+        user_id=user.get("id"),
+        username=user.get("username"),
+    )
+
+
+def fetch_xsid(uid: str, cookies: dict[str, str], timeout: float = 30.0) -> str:
+    """POST /api/auth/login -> mint a fresh xSid. Raises AuthError on any failure."""
+    return fetch_login_session(uid, cookies, timeout=timeout).xsid
 
 
 def is_session_valid(cookies: dict[str, str]) -> bool:

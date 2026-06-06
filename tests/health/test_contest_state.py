@@ -42,13 +42,43 @@ def test_non_object_existing_state_is_critical(tmp_path):
     assert "expected object" in alerts[0].message
 
 
-def test_valid_state_is_clean_when_expected(tmp_path):
+def test_valid_auto_state_is_clean_when_expected(tmp_path):
     state_dir = tmp_path / "account_state"
     state_dir.mkdir()
-    (state_dir / "contest_streak.manual.json").write_text(json.dumps({
-        "active_streak": 7,
-        "source": "manual_screenshot",
-        "source_date": "2026-05-29",
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 0, "best_streak": 9,
+        "source": "mlb_bts_profile", "source_date": "2026-06-06",
     }))
 
     assert check(tmp_path, expected=True) == []
+
+
+def test_stale_contest_state_is_critical(tmp_path):
+    state_dir = tmp_path / "account_state"
+    state_dir.mkdir()
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 0, "best_streak": 9,
+        "source": "mlb_bts_profile", "source_date": "2026-06-01",
+    }))
+    (tmp_path / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))
+
+    alerts = check(tmp_path, expected=True)
+    assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
+
+
+def test_legacy_manual_present_warns(tmp_path):
+    state_dir = tmp_path / "account_state"
+    state_dir.mkdir()
+    (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+        "active_streak": 0, "best_streak": 9, "source": "manual", "source_date": "2026-06-06",
+    }))
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 0, "best_streak": 9,
+        "source": "mlb_bts_profile", "source_date": "2026-06-06",
+    }))
+
+    alerts = check(tmp_path, expected=True)
+    assert any(a.level == "WARN" and "legacy" in a.message.lower() for a in alerts), alerts
