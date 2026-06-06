@@ -824,3 +824,42 @@ class TestFetchContestStreak:
         assert CliRunner().invoke(cli, args).exit_code != 0
         assert CliRunner().invoke(cli, args).exit_code != 0   # within cooldown -> no second DM
         assert len(dm_calls) == 1
+
+    def test_malformed_profile_alerts_not_silent(self, monkeypatch, tmp_path):
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: None)   # success=null
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append(m))
+        picks = tmp_path / "picks"; picks.mkdir()
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"])
+        assert r.exit_code != 0
+        assert not (picks / "account_state" / "contest_streak.json").exists()
+        assert len(dm_calls) == 1   # alerted, not a silent crash
+
+    def test_prior_auto_identity_mismatch_no_overwrite(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch, username="stonehengee", user_id=50311)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 0, "seasonBestStreak": 9, "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 6)})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append(m))
+        picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+        (picks / "account_state" / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-06",
+            "user_id": 99999, "username": "someone_else"}))
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--dm-recipient", "x.bsky.social"])
+        assert r.exit_code != 0
+        data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+        assert data["username"] == "someone_else" and data["active_streak"] == 3   # untouched
+        assert len(dm_calls) == 1

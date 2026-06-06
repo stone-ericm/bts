@@ -170,3 +170,15 @@ def test_legacy_manual_fallback_when_no_auto(tmp_path):
     _write_manual(sd, 0)                       # legacy hotfix, no auto yet
     st = load_contest_streak_state(tmp_path, now=_NOW)
     assert st is not None and st.streak == 0 and st.path.name == "contest_streak.manual.json"
+
+
+def test_state_file_rejects_bool_streak(tmp_path):
+    from bts.contest_state import load_contest_streak_state, ContestStateError
+    sd = tmp_path / "account_state"; sd.mkdir()
+    (sd / "contest_streak.json").write_text(json.dumps({
+        "active_streak": True, "best_streak": 9, "source": "x", "source_date": "2026-06-06"}))
+    try:
+        load_contest_streak_state(tmp_path)
+        assert False, "bool streak should be rejected"
+    except ContestStateError:
+        pass

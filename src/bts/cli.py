@@ -1412,8 +1412,9 @@ def _fetch_rounds(client=None):
     from bts.leaderboard.endpoints import ROUNDS_URL, USER_AGENT
     from bts.leaderboard.scraper import parse_rounds_lookup
     client = client or httpx
-    body = client.get(ROUNDS_URL, headers={"User-Agent": USER_AGENT}, timeout=30.0).json()
-    return parse_rounds_lookup(body)
+    resp = client.get(ROUNDS_URL, headers={"User-Agent": USER_AGENT}, timeout=30.0)
+    resp.raise_for_status()
+    return parse_rounds_lookup(resp.json())
 
 
 def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
@@ -1442,7 +1443,9 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
         except Exception as exc:
             click.echo(f"(DM failed: {exc})", err=True)
     record = {"last_error": msg, "last_error_at": now.isoformat().replace("+00:00", "Z")}
-    record["last_alert_at"] = now.isoformat().replace("+00:00", "Z") if should_alert else last_alert
+    # Only consume the cooldown when a DM was actually SENT (not on missing recipient / send failure),
+    # so a later run with the recipient fixed can still alert on the transition.
+    record["last_alert_at"] = now.isoformat().replace("+00:00", "Z") if sent else last_alert
     _atomic_write_json(status_path, record)
     return sent
 
@@ -1492,27 +1495,32 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     if expected_username and session.username != expected_username:
         _fail(f"identity mismatch: got {session.username!r}, expected {expected_username!r}; refusing to write")
 
-    # 2. profile
+    # prior-observation identity guard: never overwrite another account's good observation
+    if out_path.exists():
+        try:
+            prior = json.loads(out_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            prior = {}
+        prior_user, prior_uid = prior.get("username"), prior.get("user_id")
+        if (prior_user is not None and prior_user != session.username) or \
+           (prior_uid is not None and prior_uid != session.user_id):
+            _fail(f"prior contest_streak.json is {prior_user!r}/{prior_uid}, not session "
+                  f"{session.username!r}/{session.user_id}; refusing to overwrite")
+
+    # 2. profile + 3. currentness proof + build — ANY shape/fetch error must ALERT, not crash silently
     try:
         success = fetch_profile(session.user_id, cookies, session.xsid)
-    except (httpx.HTTPError, KeyError, ValueError) as exc:
-        _fail(f"profile fetch/shape error: {exc}")
-
-    # 3. currentness proof + validate/build
-    try:
+        predictions = success.get("predictions", [])
         rounds = _fetch_rounds()
-    except (httpx.HTTPError, KeyError, ValueError) as exc:
-        _fail(f"rounds fetch error: {exc}")
-    source_date = derive_source_date(success.get("predictions", []), rounds)
-    if source_date is None:
-        _fail("profile proves no settled result date; refusing to claim freshness")
-    try:
+        source_date = derive_source_date(predictions, rounds)
+        if source_date is None:
+            _fail("profile proves no settled result date; refusing to claim freshness")
         observation = build_observation(
             success, source_date, session.user_id, session.username,
             datetime.now(timezone.utc),
         )
-    except ContestFetchError as exc:
-        _fail(f"invalid profile data: {exc}")
+    except (httpx.HTTPError, AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
+        _fail(f"profile/rounds shape or fetch error: {exc}")
 
     # 4. currentness gate — a 200 response is not proof of currency
     latest = latest_resolved_pick_date(picks)

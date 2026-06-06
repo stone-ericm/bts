@@ -91,7 +91,7 @@ def _parse_state_file(path: Path) -> ContestStreakState:
     if not isinstance(data, dict):
         raise ContestStateError(f"contest streak state malformed at {path}: expected object")
     streak = data.get("active_streak", data.get("streak"))
-    if not isinstance(streak, int) or streak < 0:
+    if type(streak) is not int or streak < 0:        # type() not isinstance: reject bool
         raise ContestStateError(f"contest streak invalid in {path}: {streak!r}")
 
     saver = data.get("saver_available")
@@ -99,7 +99,7 @@ def _parse_state_file(path: Path) -> ContestStreakState:
         raise ContestStateError(f"contest saver_available invalid in {path}: {saver!r}")
 
     best = data.get("best_streak")
-    if best is not None and not isinstance(best, int):
+    if best is not None and type(best) is not int:
         best = None
 
     return ContestStreakState(
