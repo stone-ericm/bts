@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import datetime as dt
 
-from bts.contest_fetch import derive_source_date, fetch_profile
+import pytest
+
+from bts.contest_fetch import (
+    ContestFetchError,
+    build_observation,
+    derive_source_date,
+    fetch_profile,
+    validate_fetch,
+)
 
 
 def test_fetch_profile_returns_success_payload():
@@ -58,3 +66,61 @@ def test_derive_source_date_none_when_no_settled():
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "success",
+    [
+        {"activeStreak": -1, "seasonBestStreak": 9},
+        {"activeStreak": 1.5, "seasonBestStreak": 9},
+        {"activeStreak": "1", "seasonBestStreak": 9},
+        {"activeStreak": 1, "seasonBestStreak": None},
+    ],
+)
+def test_validate_fetch_rejects_non_int_or_negative_streaks(success):
+    with pytest.raises(ContestFetchError):
+        validate_fetch(success)
+
+
+def test_validate_fetch_rejects_best_less_than_active():
+    with pytest.raises(ContestFetchError):
+        validate_fetch({"activeStreak": 5, "seasonBestStreak": 3})
+
+
+def test_validate_fetch_accepts_zero_active_streak():
+    validate_fetch({"activeStreak": 0, "seasonBestStreak": 9})
+
+
+def test_build_observation_returns_auto_schema():
+    recorded_at = dt.datetime(2026, 6, 6, 18, 0, tzinfo=dt.UTC)
+
+    observation = build_observation(
+        {"activeStreak": 0, "seasonBestStreak": 9},
+        source_date=dt.date(2026, 6, 6),
+        user_id=50311,
+        username="stonehengee",
+        recorded_at=recorded_at,
+    )
+
+    assert observation == {
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 0,
+        "best_streak": 9,
+        "source": "mlb_bts_profile",
+        "source_date": "2026-06-06",
+        "recorded_at": "2026-06-06T18:00:00Z",
+        "user_id": 50311,
+        "username": "stonehengee",
+        "saver_available": None,
+    }
+
+
+def test_build_observation_requires_source_date():
+    with pytest.raises(ContestFetchError):
+        build_observation(
+            {"activeStreak": 0, "seasonBestStreak": 9},
+            source_date=None,
+            user_id=50311,
+            username="stonehengee",
+            recorded_at=dt.datetime(2026, 6, 6, 18, 0, tzinfo=dt.UTC),
+        )
