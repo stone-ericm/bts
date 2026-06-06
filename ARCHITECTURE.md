@@ -174,10 +174,21 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |
+| `contest_state` | 1 | contest-account streak (the real MLB BTS streak driving live picks) missing/invalid/**stale** when expected. STALE = selected `source_date < latest_resolved_pick` — the alarm that was missing when a frozen screenshot drove picks for a week. Also WARNs on a legacy/expired manual override file. (check added #138; stale + legacy/expired WARN added #142.) |
 
 **Tier 1**: silent failures with damage. **Tier 2**: quality decay. **Tier 3**: process integrity.
 
 State files: `data/health_state/memory_growth_history.jsonl` (daily-appended RSS log); `data/picks/lineup_evolution_<date>.jsonl` (one append per `save_pick` call — captures pick trajectory across day's lineup-confirm checks; supports gap #6 analysis of projected-vs-confirmed underperformance, shipped 2026-05-01).
+
+## Contest-account streak (drives live picks)
+
+Live recommendations are driven by Eric's REAL MLB BTS account streak ("contest state"), kept separate from the model/replay `streak.json`. `bts.contest_state.load_decision_streak_state` prefers contest state; when stale (`source_date < latest_resolved_pick_date`) it freezes the effective streak at `max(model, contest)` and disables doubles (conservative). Automation shipped PR #142 (2026-06-06, Claude+Codex).
+
+- **Auto fetch** — `bts fetch-contest-streak` (cron 4×/day: 01:10/02:10/10:30/13:30 ET) reuses `bts.leaderboard.auth` + the user-profile endpoint (`user_id` from auth/login `success.user.id`) → `bts.contest_fetch` (parse `activeStreak`/`seasonBestStreak`; derive `source_date` from the latest *settled* prediction via `rounds.json`; sanity-gate) → atomic write `data/picks/account_state/contest_streak.json` (`bts_contest_streak_auto_v1`). **Fails safe**: never overwrites on auth/HTTP/shape/identity/staleness failure; identity guard (`--expected-username`) + prior-account guard; throttled DM via `data/health_state/contest_streak_fetch_status.json`.
+- **Precedence** (`load_contest_streak_state`): unexpired manual override (`contest_streak.manual.json` w/ `override_expires_at`) > auto (`contest_streak.json`) > legacy/expired manual fallback (+ health WARN).
+- **Manual override** — `bts set-contest-streak` writes an EXPIRING override (`bts_contest_streak_manual_v2`, `--ttl-hours` default 24) for emergencies (e.g. cookie expiry). Can't permanently freeze picks.
+- `saver_available` is absent from the profile API → auto leaves it `null` (conservative); set via an override if needed.
+- Auth: cookies live in `~/.bts-leaderboard-cookies.json` on hetzner; interactive re-capture via `scripts/capture_bts_cookies.py` when they expire (the one human-in-the-loop dependency — failure alerts, never silently freezes).
 
 ## Strategy Simulation
 
