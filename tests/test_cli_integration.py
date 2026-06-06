@@ -265,7 +265,8 @@ class TestSetContestStreak:
         assert result.exit_code == 0
         path = picks_dir / "account_state" / "contest_streak.manual.json"
         data = json.loads(path.read_text())
-        assert data["schema_version"] == "bts_contest_streak_manual_v1"
+        assert data["schema_version"] == "bts_contest_streak_manual_v2"
+        assert "override_expires_at" in data
         assert data["active_streak"] == 7
         assert data["best_streak"] == 7
         assert data["saver_available"] is False
@@ -748,3 +749,78 @@ class TestBtsCheckResults:
 
         assert result.exit_code == 0
         assert "No pick found" in result.output
+
+
+class TestFetchContestStreak:
+    @staticmethod
+    def _patch_auth(monkeypatch, username="stonehengee", user_id=50311):
+        import bts.leaderboard.auth as auth
+        from bts.leaderboard.auth import AuthSession
+        monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "uid"})
+        monkeypatch.setattr(auth, "extract_uid", lambda c: "uid")
+        monkeypatch.setattr(auth, "fetch_login_session",
+                            lambda *a, **k: AuthSession(xsid="x_1", user_id=user_id, username=username))
+
+    def test_happy_path_writes_auto(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 0, "seasonBestStreak": 9,
+            "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 6)})
+        picks = tmp_path / "picks"; picks.mkdir()
+        (picks / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--expected-username", "stonehengee"])
+        assert r.exit_code == 0, r.output
+        data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+        assert data["active_streak"] == 0 and data["best_streak"] == 9
+        assert data["schema_version"] == "bts_contest_streak_auto_v1"
+        assert data["source_date"] == "2026-06-06"
+        assert not list((picks / "account_state").glob("*.tmp"))   # atomic, no temp left
+
+    def test_identity_mismatch_no_write_and_alerts(self, monkeypatch, tmp_path):
+        import bts.contest_fetch as cf
+        import bts.dm
+        self._patch_auth(monkeypatch, username="someone_else")
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 0, "seasonBestStreak": 9, "predictions": []})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"])
+        assert r.exit_code != 0
+        assert not (picks / "account_state" / "contest_streak.json").exists()
+        assert len(dm_calls) == 1
+
+    def test_stale_profile_no_write(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 0, "seasonBestStreak": 9,
+            "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 1)})
+        picks = tmp_path / "picks"; picks.mkdir()
+        (picks / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))   # latest 6/5 > source 6/1
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks)])
+        assert r.exit_code != 0
+        assert not (picks / "account_state" / "contest_streak.json").exists()
+
+    def test_auth_failure_dm_throttled(self, monkeypatch, tmp_path):
+        import bts.leaderboard.auth as auth
+        import bts.dm
+        def _raise(*a, **k):
+            raise auth.AuthError("cookies expired")
+        monkeypatch.setattr(auth, "load_session_cookies", _raise)
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append(m))
+        picks = tmp_path / "picks"; picks.mkdir()
+        args = ["fetch-contest-streak", "--picks-dir", str(picks), "--dm-recipient", "x.bsky.social"]
+        assert CliRunner().invoke(cli, args).exit_code != 0
+        assert CliRunner().invoke(cli, args).exit_code != 0   # within cooldown -> no second DM
+        assert len(dm_calls) == 1
