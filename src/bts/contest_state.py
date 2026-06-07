@@ -162,12 +162,18 @@ def contest_state_is_fresh(
     contest: ContestStreakState,
     picks_dir: Path,
 ) -> bool:
-    """Return whether contest state was observed after the last settled pick."""
+    """Return whether contest state was observed after the last settled pick.
+
+    A contest observation with no ``source_date`` cannot be freshness-verified,
+    so it is treated as stale (conservative) rather than failing open to fresh —
+    checked first so a missing date is conservative even when there are no
+    resolved picks (e.g. a corrupt picks dir where ``latest`` collapses to None).
+    """
+    if contest.source_date is None:
+        return False
     latest = latest_resolved_pick_date(picks_dir)
     if latest is None:
         return True
-    if contest.source_date is None:
-        return False
     return contest.source_date >= latest
 
 

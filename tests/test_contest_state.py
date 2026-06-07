@@ -182,3 +182,31 @@ def test_state_file_rejects_bool_streak(tmp_path):
         assert False, "bool streak should be rejected"
     except ContestStateError:
         pass
+
+
+# --- Hardening: missing source_date must be conservative, not fail-open ---
+
+def test_missing_source_date_is_conservative_not_fail_open(tmp_path):
+    """Contest file with NO source_date and NO resolved picks must NOT fail open
+    to 'fresh'. Without a source_date we cannot verify freshness, so the safe
+    answer is stale (freeze + disable doubles)."""
+    from bts.contest_state import load_contest_streak_state, contest_state_is_fresh
+    sd = tmp_path / "account_state"; sd.mkdir()
+    (sd / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
+        "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
+    st = load_contest_streak_state(tmp_path)
+    assert st.source_date is None
+    assert contest_state_is_fresh(st, tmp_path) is False
+
+
+def test_missing_source_date_disables_double(tmp_path):
+    from bts.contest_state import load_decision_streak_state
+    (tmp_path / "streak.json").write_text(json.dumps({"streak": 3, "saver_available": True}))
+    sd = tmp_path / "account_state"; sd.mkdir()
+    (sd / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
+        "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
+    state = load_decision_streak_state(tmp_path)
+    assert state.allow_double is False
+    assert state.status == "stale"
