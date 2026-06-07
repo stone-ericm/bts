@@ -607,3 +607,56 @@ class TestShouldLock:
             {"p_game_hit": 0.85, "projected_lineup": True, "game_pk": 100},
         ]
         assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is False
+
+
+# --- Hardening: game_pk normalization so a NaN / type-mismatched value can't
+#     masquerade as a different game and trigger a same-game (correlated) double ---
+
+@patch("bts.strategy.get_game_statuses", return_value={778899: "P", "778899": "P"})
+def test_no_double_for_same_game_mixed_type_game_pk(mock_statuses, tmp_path):
+    """Same game in mixed int/str representation ("778899" vs 778899) must not be
+    treated as two different games. Without normalization, NaN != NaN / str != int
+    both evaluate True and yield a junk/same-game double-down."""
+    from bts.strategy import select_pick
+
+    preds = _predictions([
+        {"batter_name": "Wilson", "p_game_hit": 0.82, "game_pk": 778899},
+        {"batter_name": "Same Game Str", "p_game_hit": 0.81, "game_pk": "778899"},
+    ])
+    result = select_pick(preds, "2026-04-01", tmp_path)
+
+    assert result.daily.double_down is None
+    assert result.daily.runner_up is None
+
+
+@patch("bts.strategy._mdp_action", return_value="double")
+@patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+def test_mdp_double_with_single_game_yields_safe_single(mock_statuses, mock_mdp, tmp_path):
+    """MDP can return 'double' even when only one game is available; with no
+    executable different-game second pick it must resolve to a safe single (no
+    double_down), not an inconsistent double-with-no-partner."""
+    from bts.strategy import select_pick
+
+    preds = _predictions([
+        {"batter_name": "Solo", "p_game_hit": 0.85, "game_pk": 778899},
+    ])
+    result = select_pick(preds, "2026-04-01", tmp_path)
+
+    assert result is not None
+    assert result.daily.pick.batter_name == "Solo"
+    assert result.daily.double_down is None
+
+
+@patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+def test_double_down_still_works_for_genuinely_different_games(mock_statuses, tmp_path):
+    """Guard against over-correction: real different-game pairs must still double."""
+    from bts.strategy import select_pick
+
+    preds = _predictions([
+        {"batter_name": "Wilson", "p_game_hit": 0.82, "game_pk": 778899},
+        {"batter_name": "Mangum", "p_game_hit": 0.81, "game_pk": 778900},
+    ])
+    result = select_pick(preds, "2026-04-01", tmp_path)
+
+    assert result.daily.double_down is not None
+    assert result.daily.double_down.batter_name == "Mangum"

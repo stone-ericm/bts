@@ -218,6 +218,17 @@ def select_pick(
 
     best_row = valid.iloc[0]
 
+    # Different-game candidates, computed once and shared by the doubling decision
+    # and the executed double-down / runner-up. game_pk is normalized so a NaN or
+    # type-mismatched value (e.g. "778899" vs 778899) can't be mistaken for a
+    # different game and trigger a same-game (correlated) or junk double-down.
+    best_game_pk = pd.to_numeric(pd.Series([best_row["game_pk"]]), errors="coerce").iloc[0]
+    game_pk_num = pd.to_numeric(valid["game_pk"], errors="coerce")
+    if pd.isna(best_game_pk):
+        diff_game = valid.iloc[0:0]
+    else:
+        diff_game = valid[game_pk_num.notna() & (game_pk_num != best_game_pk)]
+
     # Determine action: MDP policy (preferred) or heuristic fallback
     saver = load_saver_available(picks_dir) if saver_available is None else saver_available
     action = _mdp_action(best_row["p_game_hit"], streak, date, saver)
@@ -226,9 +237,8 @@ def select_pick(
         if best_row["p_game_hit"] < SKIP_THRESHOLD:
             action = "skip"
         elif _double_threshold(streak) is not None:
-            diff_game_h = valid[valid["game_pk"] != best_row["game_pk"]]
-            if len(diff_game_h) >= 1:
-                second = diff_game_h.iloc[0]
+            if len(diff_game) >= 1:
+                second = diff_game.iloc[0]
                 p_both = best_row["p_game_hit"] * second["p_game_hit"]
                 action = "double" if p_both >= _double_threshold(streak) else "single"
             else:
@@ -239,6 +249,13 @@ def select_pick(
     if action == "double" and not allow_double:
         action = "single"
 
+    # A double is only executable with a valid different-game second pick. If
+    # there is none (e.g. single-game slate, or all candidates share/lack a
+    # game_pk after normalization), keep `action` consistent with what we
+    # actually do — the MDP path can return "double" without this guard.
+    if action == "double" and len(diff_game) == 0:
+        action = "single"
+
     if action == "skip":
         return None
 
@@ -246,7 +263,6 @@ def select_pick(
 
     # Double-down: must be from a different game to avoid correlated outcomes
     double_pick = None
-    diff_game = valid[valid["game_pk"] != best_row["game_pk"]]
     if action == "double" and len(diff_game) >= 1:
         double_pick = pick_from_row(diff_game.iloc[0])
 
