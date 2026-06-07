@@ -29,7 +29,6 @@ HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PROJECT_ROOT = Path(".")
 PORT = 3003
 ET = ZoneInfo("America/New_York")
-EAT = ZoneInfo("Africa/Nairobi")
 
 # Upcoming-PA placeholder cell styles per lineup_status (Direction A — tinted cell).
 # See docs/superpowers/specs/2026-04-24-upcoming-cell-polish-design.md.
@@ -57,41 +56,31 @@ TEAM_IDS = {
 }
 
 
-def _format_et_eat_time(dt: datetime) -> str:
-    """Format a timestamp in ET and Kenya time for dashboard display."""
+def _format_et_time(dt: datetime) -> str:
+    """Format a timestamp in ET for dashboard display."""
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ET)
-    et_dt = dt.astimezone(ET)
-    eat_dt = dt.astimezone(EAT)
-    et_str = et_dt.strftime("%-I:%M %p ET")
-    eat_str = eat_dt.strftime("%-I:%M %p EAT")
-    if eat_dt.date() != et_dt.date():
-        eat_str = f"{eat_str} ({eat_dt.strftime('%b %-d')})"
-    return f"{et_str} / {eat_str}"
+    return dt.astimezone(ET).strftime("%-I:%M %p ET")
 
 
 def _format_updated_time(now: datetime | None = None) -> str:
-    """Format the dashboard refresh timestamp in ET and Kenya time."""
+    """Format the dashboard refresh timestamp in ET."""
     if now is None:
         now_et = datetime.now(ET)
     elif now.tzinfo is None:
         now_et = now.replace(tzinfo=ET)
     else:
         now_et = now.astimezone(ET)
-    now_eat = now_et.astimezone(EAT)
-    return (
-        f"{now_et.strftime('%Y-%m-%d %H:%M ET')} / "
-        f"{now_eat.strftime('%Y-%m-%d %H:%M EAT')}"
-    )
+    return now_et.strftime("%Y-%m-%d %H:%M ET")
 
 
 def _format_game_time(iso_utc: str) -> str:
-    """Convert ISO game time to ET plus Kenya time."""
+    """Convert ISO game time to ET."""
     if not iso_utc:
         return ""
     try:
         dt = datetime.fromisoformat(iso_utc.replace("Z", "+00:00"))
-        return _format_et_eat_time(dt)
+        return _format_et_time(dt)
     except (ValueError, TypeError):
         return ""
 
@@ -1079,8 +1068,8 @@ def render_page():
                 )
                 expected_dt = earliest_game_et - timedelta(minutes=fallback_min)
                 deadline_dt = (earliest - timedelta(minutes=5)).astimezone(ET)
-                expected_str = _format_et_eat_time(expected_dt)
-                deadline_str = _format_et_eat_time(deadline_dt)
+                expected_str = _format_et_time(expected_dt)
+                deadline_str = _format_et_time(deadline_dt)
                 lock_time_html = (
                     f'<span style="display:inline-flex;flex-direction:column;'
                     f'align-items:flex-end;gap:2px;font-size:11px;color:#888;'

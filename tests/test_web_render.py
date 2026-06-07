@@ -14,28 +14,22 @@ import pytest
 from bts.web import _format_game_time, _format_updated_time, _render_pa_cell, _streak_subtitle
 
 
-def test_format_game_time_adds_kenya_time_same_day():
-    assert _format_game_time("2026-06-15T14:00:00+00:00") == (
-        "10:00 AM ET / 5:00 PM EAT"
-    )
+def test_format_game_time_same_day_et():
+    assert _format_game_time("2026-06-15T14:00:00+00:00") == "10:00 AM ET"
 
 
-def test_format_game_time_adds_kenya_next_day_during_dst():
-    assert _format_game_time("2026-06-15T23:10:00Z") == (
-        "7:10 PM ET / 2:10 AM EAT (Jun 16)"
-    )
+def test_format_game_time_evening_et_dst():
+    assert _format_game_time("2026-06-15T23:10:00Z") == "7:10 PM ET"
 
 
-def test_format_game_time_adds_kenya_next_day_after_dst():
-    assert _format_game_time("2026-11-16T00:10:00+00:00") == (
-        "7:10 PM ET / 3:10 AM EAT (Nov 16)"
-    )
+def test_format_game_time_evening_et_standard():
+    assert _format_game_time("2026-11-16T00:10:00+00:00") == "7:10 PM ET"
 
 
-def test_format_updated_time_uses_explicit_et_and_kenya_dates():
+def test_format_updated_time_et():
     updated = _format_updated_time(datetime(2026, 6, 15, 23, 10, tzinfo=timezone.utc))
 
-    assert updated == "2026-06-15 19:10 ET / 2026-06-16 02:10 EAT"
+    assert updated == "2026-06-15 19:10 ET"
 
 
 def test_streak_subtitle_flags_decision_state_error():
