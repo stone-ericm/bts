@@ -37,6 +37,10 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - LightGBM needs ARM libomp: `arch -arm64 /opt/homebrew/bin/brew install libomp`
 - LightGBM is an optional dep: `uv sync --extra model` to install it
 
+## Hetzner debugging (non-interactive SSH)
+- `uv` is NOT in PATH over non-interactive `ssh bts-hetzner '...'` — run the venv python directly: `cd ~/projects/bts && .venv/bin/python -c "..."` (prod repo is `~/projects/bts`, NOT `~/bts`). Good for one-off state checks like `load_decision_streak_state`.
+- Read-only debugging (cat state files, `journalctl --user -u bts-scheduler`, run a diagnostic) does not disturb the running scheduler; it short-circuits already-locked picks.
+
 ## Safety Rules
 - **Never use features computed on full dataset** without shift(1) temporal guard
 - **Never trust feature importance or ablation results** if there's any chance of leakage — fix leakage first, then re-evaluate
