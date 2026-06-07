@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from bts.contest_state import (
     ContestStateError,
-    contest_state_is_fresh,
     latest_resolved_pick_date,
     load_contest_streak_state,
     _parse_dt,
@@ -16,6 +15,15 @@ from bts.contest_state import (
 from bts.health.alert import Alert
 
 SOURCE = "contest_state"
+
+# A contest observation legitimately lags our own settlement by up to one day:
+# the scheduler settles day D in the evening (latest_resolved -> D) before the
+# contest account settles D and the next fetch (next morning) advances
+# source_date to D. That one-day overnight gap is expected and harmless (no picks
+# are made overnight; the afternoon pick sees a refreshed source_date), so it is
+# surfaced as INFO. A gap beyond this is genuine staleness (the week-long-freeze
+# incident class) and escalates to CRITICAL.
+EXPECTED_OVERNIGHT_LAG_DAYS = 1
 
 
 def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = None) -> list[Alert]:
@@ -42,14 +50,47 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
             ))
         return alerts
 
-    if expected and not contest_state_is_fresh(state, picks_dir):
+    if expected:
         latest = latest_resolved_pick_date(picks_dir)
-        alerts.append(Alert(
-            level="CRITICAL",
-            source=SOURCE,
-            message=(f"contest state is STALE: {state.path} source_date={state.source_date} "
-                     f"< latest resolved pick {latest}; live picks are frozen conservatively"),
-        ))
+        if state.source_date is None:
+            alerts.append(Alert(
+                level="CRITICAL",
+                source=SOURCE,
+                message=(f"contest state has no source_date ({state.path}); freshness "
+                         "cannot be verified — live picks are frozen conservatively"),
+            ))
+        elif state.source_date > now.date() + timedelta(days=1):
+            # A contest source_date can't be in the future (US contest dates trail
+            # UTC). One day of grace absorbs any TZ skew; beyond that the file is
+            # corrupt/fat-fingered and would otherwise pass the freshness check.
+            alerts.append(Alert(
+                level="CRITICAL",
+                source=SOURCE,
+                message=(f"contest state source_date={state.source_date} is in the FUTURE "
+                         f"(now {now.date()}); file is corrupt/untrusted — investigate"),
+            ))
+        elif latest is not None:
+            # gap==1 stays INFO regardless of time of day: a *persistent daytime*
+            # lag means fetches are failing, which is owned by the separate
+            # throttled fetch-failure DM (cli `_contest_fetch_alert`); it also
+            # escalates here to CRITICAL once the next settlement makes gap>=2.
+            gap_days = (latest - state.source_date).days
+            if gap_days > EXPECTED_OVERNIGHT_LAG_DAYS:
+                alerts.append(Alert(
+                    level="CRITICAL",
+                    source=SOURCE,
+                    message=(f"contest state is STALE by {gap_days}d: {state.path} "
+                             f"source_date={state.source_date} < latest resolved pick {latest}; "
+                             "live picks are frozen conservatively"),
+                ))
+            elif gap_days == EXPECTED_OVERNIGHT_LAG_DAYS:
+                alerts.append(Alert(
+                    level="INFO",
+                    source=SOURCE,
+                    message=(f"contest state lags {gap_days}d (expected overnight window): "
+                             f"source_date={state.source_date}, latest resolved {latest}; "
+                             "refreshes on the next scheduled fetch"),
+                ))
 
     manual_path = picks_dir / "account_state" / "contest_streak.manual.json"
     if manual_path.exists():

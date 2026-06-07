@@ -174,7 +174,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |
-| `contest_state` | 1 | contest-account streak (the real MLB BTS streak driving live picks) missing/invalid/**stale** when expected. STALE = selected `source_date < latest_resolved_pick` — the alarm that was missing when a frozen screenshot drove picks for a week. Also WARNs on a legacy/expired manual override file. (check added #138; stale + legacy/expired WARN added #142.) |
+| `contest_state` | 1 | contest-account streak (the real MLB BTS streak driving live picks) missing/invalid/**stale** when expected. **Level-aware staleness** (gap = `latest_resolved_pick − source_date`): gap > `EXPECTED_OVERNIGHT_LAG_DAYS` (=1) → CRITICAL "STALE" (the frozen-screenshot-for-a-week incident class); gap == 1 → INFO (the *expected* overnight lag — scheduler settles day D before the contest settles D + next fetch advances source_date; no picks are made overnight, so it's harmless and must not DM-spam); no `source_date` → CRITICAL (unverifiable). The pick path stays strict (any gap ≥ 1 → freeze + disable doubles). Also WARNs on a legacy/expired manual override file. (check added #138; stale + legacy/expired WARN added #142; level-aware overnight-lag INFO added to stop nightly false-CRITICALs.) |
 
 **Tier 1**: silent failures with damage. **Tier 2**: quality decay. **Tier 3**: process integrity.
 
