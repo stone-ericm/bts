@@ -161,6 +161,33 @@ def compute_wakeup_time(
     return default_wakeup
 
 
+def _next_day_wakeup(date: str, sched_config: dict) -> datetime:
+    """A FUTURE wake time for the day after ``date``, used to idle through
+    off-days instead of thrashing systemd Restart=always (audit E1).
+
+    Uses tomorrow's earliest game if any, else the default morning hour. Always
+    returns a time strictly in the future — on a multi-day break compute_wakeup_time
+    would return today's hour (already past), so we bump to tomorrow morning.
+    """
+    default_hour = sched_config.get("default_init_hour_et", 10)
+    tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    try:
+        wakeup = compute_wakeup_time(
+            fetch_schedule(tomorrow),
+            default_hour_et=default_hour,
+            early_buffer_min=sched_config.get("early_game_buffer_min", 60),
+        )
+    except Exception as e:
+        print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
+        wakeup = _now_et().replace(hour=default_hour, minute=0, second=0, microsecond=0)
+    now = _now_et()
+    if wakeup <= now:
+        wakeup = (now + timedelta(days=1)).replace(
+            hour=default_hour, minute=0, second=0, microsecond=0
+        )
+    return wakeup
+
+
 def resolve_fallback_deadline_min(
     earliest_game_et: datetime,
     standard_min: int = 35,
@@ -1484,6 +1511,15 @@ def run_day(
     games = fetch_schedule(date)
     if not games:
         print(f"No games scheduled for {date}.", file=sys.stderr)
+        # Idle until tomorrow's wake instead of returning — returning lets systemd
+        # Restart=always relaunch within ~30s and thrash all day on an off-day
+        # (the All-Star break is ~4 days), spiking NRestarts into a false
+        # restart_spike CRITICAL. (audit E1)
+        write_heartbeat(heartbeat_path, state=HeartbeatState.IDLE_END_OF_DAY)
+        notify_watchdog()
+        _idle_until_next_wakeup(
+            _next_day_wakeup(date, sched_config).isoformat(), heartbeat_path
+        )
         return
 
     all_game_pks = [g["gamePk"] for g in games]
