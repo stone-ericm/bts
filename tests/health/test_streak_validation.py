@@ -34,6 +34,14 @@ class TestStreakValidation:
         assert alerts[0].level == "CRITICAL"
         assert "streak field" in alerts[0].message
 
+    def test_critical_when_streak_is_bool(self, tmp_path):
+        # `true` is a JSON bool; isinstance(True, int) is True in Python, so a
+        # corrupt boolean streak would silently validate as 1 (audit P3).
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": True}))
+        alerts = check(tmp_path)
+        assert alerts[0].level == "CRITICAL"
+        assert "streak field" in alerts[0].message
+
     def test_critical_when_streak_negative(self, tmp_path):
         (tmp_path / "streak.json").write_text(json.dumps({"streak": -3}))
         alerts = check(tmp_path)

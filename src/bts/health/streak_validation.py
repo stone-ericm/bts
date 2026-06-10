@@ -44,7 +44,9 @@ def check(picks_dir: Path) -> list[Alert]:
 
     issues = []
     streak = data.get("streak")
-    if not isinstance(streak, int):
+    # bool is a subclass of int, so isinstance(True, int) is True — reject it
+    # explicitly so a corrupt `"streak": true` can't validate as 1.
+    if not isinstance(streak, int) or isinstance(streak, bool):
         issues.append(f"streak field is {type(streak).__name__}, expected int")
     elif streak < 0:
         issues.append(f"streak field is negative: {streak}")
