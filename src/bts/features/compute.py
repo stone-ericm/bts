@@ -539,15 +539,23 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         is_hard = (df["hardness"].astype(str).str.lower() == "hard").astype(float)
         is_hard = is_hard.where(df["hardness"].notna(), np.nan)
         df["_is_hard"] = is_hard
-        # Sort a *view* — mutating df's row order silently breaks LightGBM
-        # bagging reproducibility (subsample=0.8 picks rows by index).
-        sorted_view = df.sort_values(["batter_id", "date"])
-        df["batter_hard_contact_30g"] = (
-            sorted_view.groupby("batter_id")["_is_hard"]
-            .rolling(window=120, min_periods=10)
-            .mean()
-            .reset_index(level=0, drop=True)
-            .shift(1)
+        # Date-level aggregate, then per-batter shift(1).rolling — matches every
+        # other rolling feature so the window holds only strictly-prior DATES and
+        # the shift never bleeds across batters (audit M4). The previous version
+        # rolled over PA rows (window=120, contradicting the "_30g" name) and
+        # applied a single .shift(1) across the whole batter-sorted series, so
+        # each batter's first row inherited the previous batter's last value.
+        # Left-merge preserves df's row order (LightGBM bagging picks rows by
+        # position), so reproducibility is unaffected.
+        date_hard = df.groupby(["batter_id", "date"])["_is_hard"].mean().reset_index()
+        date_hard = date_hard.sort_values(["batter_id", "date"])
+        date_hard["batter_hard_contact_30g"] = (
+            date_hard.groupby("batter_id")["_is_hard"]
+            .transform(lambda x: x.shift(1).rolling(30, min_periods=10).mean())
+        )
+        df = df.merge(
+            date_hard[["batter_id", "date", "batter_hard_contact_30g"]],
+            on=["batter_id", "date"], how="left",
         )
         df.drop(columns=["_is_hard"], inplace=True)
     else:

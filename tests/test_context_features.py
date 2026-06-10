@@ -37,6 +37,41 @@ def _make_pa_df(n=20):
     return pd.DataFrame(rows)
 
 
+def _hard_row(bid, day, hardness="hard"):
+    return {
+        "date": pd.Timestamp(f"2024-06-{day:02d}"), "season": 2024, "game_pk": 700000,
+        "batter_id": bid, "pitcher_id": 200, "is_hit": 0, "is_home": True,
+        "venue_id": 1, "pitch_hand": "R",
+        "final_count_balls": 2, "final_count_strikes": 1,
+        "launch_speed": 95.0, "launch_angle": 15.0,
+        "pitch_calls": ["B", "S", "X"], "pitch_types": ["FF", "SL"],
+        "pitch_speeds": [92.0, 85.0], "pitch_spin_rates": [2200, 2500],
+        "pitch_extensions": [6.2, 6.1], "pitch_break_vertical": [-15.0, -30.0],
+        "pitch_break_horizontal": [8.0, 3.0], "pitch_px": [0.3, -0.8],
+        "pitch_pz": [2.5, 3.1], "sz_top": 3.4, "sz_bottom": 1.6,
+        "weather_temp": 72, "weather_wind_dir": "Out To CF",
+        "weather_wind_speed": 12.0, "roof_type": "Open",
+        "hp_umpire_id": 300, "hardness": hardness,
+    }
+
+
+class TestHardContactLeakFree:
+    def test_no_cross_batter_bleed(self):
+        # batter 100: 12 game-dates (enough prior history to be non-NaN);
+        # batter 200: only 3 game-dates -> with min_periods=10 it must stay
+        # all-NaN. A non-NaN value for 200 means 100's data bled across via a
+        # global shift over PA rows (audit M4).
+        rows = [_hard_row(100, d) for d in range(1, 13)]
+        rows += [_hard_row(200, d) for d in range(1, 4)]
+        df = compute_all_features(pd.DataFrame(rows))
+
+        b200 = df[df["batter_id"] == 200]["batter_hard_contact_30g"]
+        assert b200.isna().all(), b200.tolist()
+        # sanity: the feature still computes for the batter with enough history
+        b100 = df[df["batter_id"] == 100]["batter_hard_contact_30g"]
+        assert b100.notna().any()
+
+
 class TestContextCols:
     def test_context_cols_has_4_entries(self):
         assert len(CONTEXT_COLS) == 4
