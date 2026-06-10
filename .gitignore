@@ -1,9 +1,18 @@
+# Secrets — NEVER commit (production box stores real tokens in .env)
+.env
+.env.*
+
 data/raw/
 data/processed/
 data/models/
 data/picks/
 data/external/odds/
 data/.heartbeat*
+# Operational state written on the box (untracked; would leak picks/leaderboard/box IPs)
+data/health_state/
+data/hetzner_results/
+data/leaderboard/
+data/lineup_posting_times/
 experiments/validation_box.json
 __pycache__/
 *.pyc
