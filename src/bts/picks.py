@@ -14,7 +14,7 @@ from pathlib import Path
 
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-from bts.util import retry_urlopen
+from bts.util import atomic_write_text, retry_urlopen
 
 API_BASE = "https://statsapi.mlb.com"
 log = logging.getLogger(__name__)
@@ -283,7 +283,7 @@ def save_pick(daily: DailyPick, picks_dir: Path) -> Path:
     """
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.json"
-    path.write_text(json.dumps(asdict(daily), indent=2))
+    atomic_write_text(path, json.dumps(asdict(daily), indent=2))
     try:
         append_lineup_evolution(daily, picks_dir)
     except Exception:
@@ -341,7 +341,7 @@ def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
     """Save shadow model pick to {date}.shadow.json."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.shadow.json"
-    path.write_text(json.dumps(asdict(daily), indent=2))
+    atomic_write_text(path, json.dumps(asdict(daily), indent=2))
     return path
 
 
@@ -438,7 +438,7 @@ def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = Non
     existing_saver = True
     if path.exists() and saver_available is None:
         existing_saver = json.loads(path.read_text()).get("saver_available", True)
-    path.write_text(json.dumps({
+    atomic_write_text(path, json.dumps({
         "streak": streak,
         "saver_available": saver_available if saver_available is not None else existing_saver,
         "updated": datetime.now(timezone.utc).isoformat(),
@@ -794,7 +794,7 @@ def save_pick_shadow(pick_data, shadow_dir, source: str) -> Path:
         payload = pick_data
     else:
         payload = pick_data.__dict__ if hasattr(pick_data, "__dict__") else dict(pick_data)
-    out_path.write_text(json.dumps(payload, indent=2, default=str))
+    atomic_write_text(out_path, json.dumps(payload, indent=2, default=str))
     return out_path
 
 
