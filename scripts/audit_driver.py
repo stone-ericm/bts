@@ -78,7 +78,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-LOCAL_BTS = Path("/Users/stone/projects/bts")
+LOCAL_BTS = Path(__file__).resolve().parents[1]  # repo root, portable across machines
 DEFAULT_TEST_SEASONS = "2024,2025"
 DEFAULT_PROFILE_SEASONS = "2021,2022,2023,2024,2025"
 SSH_OPTS = [
@@ -922,6 +922,7 @@ def render_profile_command(
     profile_seasons: list[int],
     *,
     log_pa_predictions: bool,
+    game_probability_mode: str = "actual_pa",
 ) -> str:
     """Render the `bts simulate backtest` command tail for raw profile audits."""
     pa_flag = "--log-pa-predictions" if log_pa_predictions else "--no-log-pa-predictions"
@@ -929,6 +930,7 @@ def render_profile_command(
         "uv run bts simulate backtest \\\n"
         f"    --seasons {_format_seasons(profile_seasons)} \\\n"
         "    --output-dir data/simulation \\\n"
+        f"    --game-probability-mode {game_probability_mode} \\\n"
         f"    {pa_flag}"
     )
 
@@ -996,6 +998,7 @@ def launch_profile_queue(
     profile_seasons: list[int],
     *,
     log_pa_predictions: bool,
+    game_probability_mode: str = "actual_pa",
 ) -> tuple[str, int, str]:
     """Launch a deterministic raw backtest/profile seed queue on one box.
 
@@ -1022,6 +1025,7 @@ def launch_profile_queue(
     profile_command = render_profile_command(
         profile_seasons,
         log_pa_predictions=log_pa_predictions,
+        game_probability_mode=game_probability_mode,
     )
     cmd = f"""
 rm -f /root/audit.log /root/audit.done
@@ -1359,6 +1363,10 @@ def main():
                          "plus any split seasons)")
     ap.add_argument("--log-pa-predictions", action=argparse.BooleanOptionalAction, default=True,
                     help="In --run-kind profiles, persist pa_predictions_*.parquet for downstream falsification")
+    ap.add_argument("--game-probability-mode", choices=["actual_pa", "estimated_pa"],
+                    default="actual_pa",
+                    help="Game-probability basis for --run-kind profiles. estimated_pa mirrors "
+                         "the production probability surface — use for the MDP policy re-solve.")
     ap.add_argument("--label", default=None, help="Box name prefix (default: bts-audit-{provider})")
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
     ap.add_argument("--poll-interval", type=int, default=900, help="Poll interval in seconds")
@@ -1550,6 +1558,7 @@ def main():
                     args.provider,
                     profile_seasons,
                     log_pa_predictions=args.log_pa_predictions,
+                    game_probability_mode=args.game_probability_mode,
                 ) for b in boxes]
                 for fut in concurrent.futures.as_completed(futures):
                     nm, rc, out = fut.result()
