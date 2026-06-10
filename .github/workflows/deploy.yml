@@ -10,7 +10,12 @@ name: Deploy to Hetzner
 on:
   push:
     branches: [deploy]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Skip the test gate (emergency deploy only)"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy
@@ -20,6 +25,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Gate the deploy on the fast test suite. Skipped only via a deliberate
+      # workflow_dispatch with skip_tests=true (emergency deploy). (audit T1)
+      - name: Test gate
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_tests }}
+        run: |
+          uv sync --locked --extra model
+          uv run pytest -m "not slow"
+
       - name: Deploy via SSH with canary health check + auto-rollback
         uses: appleboy/ssh-action@v1
         with:
