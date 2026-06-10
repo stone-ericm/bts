@@ -140,9 +140,9 @@ def load_contest_streak_state(
     return manual
 
 
-def latest_resolved_pick_date(picks_dir: Path) -> date | None:
-    """Return the latest root-level production pick date with a settled result."""
-    latest: date | None = None
+def _resolved_pick_dates(picks_dir: Path) -> list[date]:
+    """All root-level production pick dates with a settled result."""
+    dates: list[date] = []
     for path in picks_dir.glob("*.json"):
         if not _ISO_DATE_RE.match(path.stem):
             continue
@@ -152,10 +152,25 @@ def latest_resolved_pick_date(picks_dir: Path) -> date | None:
             continue
         if body.get("result") not in _RESOLVED_RESULTS:
             continue
-        pick_date = date.fromisoformat(path.stem)
-        if latest is None or pick_date > latest:
-            latest = pick_date
-    return latest
+        dates.append(date.fromisoformat(path.stem))
+    return dates
+
+
+def latest_resolved_pick_date(picks_dir: Path) -> date | None:
+    """Return the latest root-level production pick date with a settled result."""
+    return max(_resolved_pick_dates(picks_dir), default=None)
+
+
+def resolved_pick_settlement_gap(picks_dir: Path, source_date: date) -> int:
+    """Number of settled production picks dated strictly after ``source_date``.
+
+    This is the contest's settlement lag measured in *picks*, not calendar days:
+    off-days (the All-Star break, league off-days) have no picks, so they do not
+    inflate it. Exactly 1 == the expected overnight lag (we settle day D before
+    the contest does); >= 2 == genuine staleness (the week-long-freeze incident
+    class, where picks resolve daily while source_date is frozen).
+    """
+    return sum(1 for d in _resolved_pick_dates(picks_dir) if d > source_date)
 
 
 def contest_state_is_fresh(

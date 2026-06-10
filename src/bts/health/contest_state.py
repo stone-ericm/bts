@@ -10,20 +10,22 @@ from bts.contest_state import (
     ContestStateError,
     latest_resolved_pick_date,
     load_contest_streak_state,
+    resolved_pick_settlement_gap,
     _parse_dt,
 )
 from bts.health.alert import Alert
 
 SOURCE = "contest_state"
 
-# A contest observation legitimately lags our own settlement by up to one day:
-# the scheduler settles day D in the evening (latest_resolved -> D) before the
-# contest account settles D and the next fetch (next morning) advances
-# source_date to D. That one-day overnight gap is expected and harmless (no picks
-# are made overnight; the afternoon pick sees a refreshed source_date), so it is
-# surfaced as INFO. A gap beyond this is genuine staleness (the week-long-freeze
-# incident class) and escalates to CRITICAL.
-EXPECTED_OVERNIGHT_LAG_DAYS = 1
+# A contest observation legitimately lags our own settlement by exactly one
+# *settled pick*: the scheduler settles day D in the evening (latest_resolved
+# -> D) before the contest account settles D and the next fetch advances
+# source_date. That one-pick lag is expected and harmless, so it is surfaced as
+# INFO. The gap is counted in settled picks, NOT calendar days, so multi-day
+# off-day stretches (the All-Star break) cannot inflate it into a false CRITICAL.
+# A gap of >= 2 settled picks is genuine staleness (the week-long-freeze incident
+# class, where picks resolve daily while source_date is frozen) and is CRITICAL.
+EXPECTED_OVERNIGHT_LAG_STEPS = 1
 
 
 def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = None) -> list[Alert]:
@@ -74,20 +76,25 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
             # lag means fetches are failing, which is owned by the separate
             # throttled fetch-failure DM (cli `_contest_fetch_alert`); it also
             # escalates here to CRITICAL once the next settlement makes gap>=2.
-            gap_days = (latest - state.source_date).days
-            if gap_days > EXPECTED_OVERNIGHT_LAG_DAYS:
+            # Count of *settled picks* newer than source_date, not calendar days:
+            # off-days (All-Star break) have no picks and must not fire a false
+            # CRITICAL. gap==1 stays INFO regardless of time of day (a persistent
+            # daytime lag means fetches are failing, owned by the separate
+            # throttled fetch-failure DM); gap>=2 is genuine staleness.
+            gap_steps = resolved_pick_settlement_gap(picks_dir, state.source_date)
+            if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:
                 alerts.append(Alert(
                     level="CRITICAL",
                     source=SOURCE,
-                    message=(f"contest state is STALE by {gap_days}d: {state.path} "
-                             f"source_date={state.source_date} < latest resolved pick {latest}; "
-                             "live picks are frozen conservatively"),
+                    message=(f"contest state is STALE: {gap_steps} settled picks are newer "
+                             f"than source_date={state.source_date} ({state.path}); latest "
+                             f"resolved pick {latest}; live picks are frozen conservatively"),
                 ))
-            elif gap_days == EXPECTED_OVERNIGHT_LAG_DAYS:
+            elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:
                 alerts.append(Alert(
                     level="INFO",
                     source=SOURCE,
-                    message=(f"contest state lags {gap_days}d (expected overnight window): "
+                    message=(f"contest state lags 1 settled pick (expected overnight window): "
                              f"source_date={state.source_date}, latest resolved {latest}; "
                              "refreshes on the next scheduled fetch"),
                 ))

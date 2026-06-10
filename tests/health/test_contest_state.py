@@ -62,7 +62,10 @@ def test_stale_contest_state_is_critical(tmp_path):
         "active_streak": 0, "best_streak": 9,
         "source": "mlb_bts_profile", "source_date": "2026-06-01",
     }))
-    (tmp_path / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))
+    # The week-long-freeze incident: picks resolve daily while source_date stays
+    # frozen — 4 settled picks newer than source_date == genuine staleness.
+    for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
+        (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
 
     alerts = check(tmp_path, expected=True)
     assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
@@ -88,8 +91,34 @@ def test_expected_overnight_lag_is_not_critical(tmp_path):
     assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
 
 
+def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
+    """All-Star break / league off-days: a multi-CALENDAR-day gap with only ONE
+    settled pick newer than source_date is the expected 1-settlement-step lag,
+    not staleness. Gap is measured in settled picks, not calendar days, so this
+    must be INFO — not a (false) CRITICAL on the first day back (audit H2)."""
+    state_dir = tmp_path / "account_state"
+    state_dir.mkdir()
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 5, "best_streak": 9,
+        "source": "mlb_bts_profile", "source_date": "2026-07-13",
+    }))
+    # Last game before the All-Star break (= source_date), a 3-day no-pick gap,
+    # then the first game back today: only this one pick is newer than source.
+    (tmp_path / "2026-07-13.json").write_text(json.dumps({"result": "hit"}))
+    (tmp_path / "2026-07-17.json").write_text(json.dumps({"result": "hit"}))
+
+    from datetime import datetime, timezone
+    alerts = check(tmp_path, expected=True,
+                   now=datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
+    assert not any(a.level == "CRITICAL" for a in alerts), alerts
+    assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+
+
 def test_two_day_gap_is_critical(tmp_path):
-    """gap >= 2 is genuine staleness (the week-long-freeze incident class) -> CRITICAL."""
+    """>= 2 settled picks newer than source_date is genuine staleness (the
+    week-long-freeze incident class, where picks resolve daily while source_date
+    is frozen) -> CRITICAL."""
     state_dir = tmp_path / "account_state"
     state_dir.mkdir()
     (state_dir / "contest_streak.json").write_text(json.dumps({
@@ -97,7 +126,10 @@ def test_two_day_gap_is_critical(tmp_path):
         "active_streak": 2, "best_streak": 9,
         "source": "mlb_bts_profile", "source_date": "2026-06-05",
     }))
-    (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))  # gap = 2
+    # Two settled picks newer than source_date (06-06 and 06-07): the contest is
+    # genuinely >= 2 settlements behind, not just a one-pick overnight lag.
+    (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+    (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
     alerts = check(tmp_path, expected=True)
     assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
