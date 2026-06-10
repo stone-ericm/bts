@@ -1,6 +1,19 @@
 import json
 import click
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+def _today_et() -> str:
+    """Today's date (YYYY-MM-DD) in US Eastern — the contest's timezone.
+
+    Default 'today' for scheduler day selection. Deliberately NOT UTC: UTC rolls
+    over 4-5h ahead of ET, so a scheduler restart between ~8pm and midnight ET
+    would otherwise initialize tomorrow's run_day and abandon tonight's result
+    polling + late-slate pick delivery (audit finding O2).
+    """
+    return datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
 
 @click.group()
@@ -1633,12 +1646,11 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
     sleeps between checks, runs predictions when new lineups confirm, and
     posts to Bluesky when lock conditions are met.
     """
-    from datetime import datetime, timezone
     from bts.orchestrator import load_config
     from bts.scheduler import run_day
 
     if date is None:
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = _today_et()
 
     config = load_config(Path(config_path))
     run_day(date=date, config=config, dry_run=dry_run)
