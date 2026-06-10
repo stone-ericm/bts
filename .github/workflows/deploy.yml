@@ -113,10 +113,14 @@ jobs:
               FAILURE_REASONS="$FAILURE_REASONS\n  - bts-dashboard.service is not active"
             fi
 
-            # Check 3: dashboard HTTP 200
-            if ! curl -sS -m 10 -o /dev/null -w '%{http_code}' http://localhost:3003/ | grep -q '^2'; then
+            # Check 3: dashboard HTTP 200. The dashboard binds the Tailscale IP
+            # (not loopback) for tailnet-only exposure, so probe it where it
+            # actually listens; fall back to loopback if tailscale ip is absent.
+            DASH_HOST=$(sudo -u bts tailscale ip -4 2>/dev/null | head -1)
+            DASH_HOST=${DASH_HOST:-127.0.0.1}
+            if ! curl -sS -m 10 -o /dev/null -w '%{http_code}' "http://${DASH_HOST}:3003/" | grep -q '^2'; then
               FAILED=1
-              FAILURE_REASONS="$FAILURE_REASONS\n  - dashboard HTTP check failed (localhost:3003)"
+              FAILURE_REASONS="$FAILURE_REASONS\n  - dashboard HTTP check failed (${DASH_HOST}:3003)"
             fi
 
             if [ $FAILED -eq 1 ]; then
