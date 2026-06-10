@@ -82,6 +82,10 @@ LOCAL_BTS = Path(__file__).resolve().parents[1]  # repo root, portable across ma
 DEFAULT_TEST_SEASONS = "2024,2025"
 DEFAULT_PROFILE_SEASONS = "2021,2022,2023,2024,2025"
 SSH_OPTS = [
+    # Authenticate fleet SSH with the loaner's key (registered as Hetzner key
+    # 113371724); default key names (id_ed25519/id_rsa) don't exist here.
+    "-i", os.path.expanduser("~/.ssh/github_ed25519"),
+    "-o", "IdentitiesOnly=yes",
     "-o", "StrictHostKeyChecking=no",
     "-o", "UserKnownHostsFile=/dev/null",
     "-o", "LogLevel=ERROR",
@@ -226,7 +230,7 @@ def _keychain(service: str, *, env_aliases: tuple[str, ...] = ()) -> str:
 class HetznerProvider(Provider):
     name = "hetzner"
     BASE = "https://api.hetzner.cloud/v1"
-    SSH_KEY_ID = 110611534
+    SSH_KEY_ID = 113371724  # loaner's github_ed25519 (was 110611534 = dead Mac's key)
     IMAGE = "ubuntu-24.04"
     SERVER_TYPE = "cpx62"  # 16 vCPU / 32GB / 640GB — matches our determinism-validated boxes (cpx51 deprecated 2026-04+ in newer regions)
     LOCATION_FALLBACKS = ["fsn1", "nbg1", "hel1", "sin"]  # cpx62 EU + sin only (no US)
