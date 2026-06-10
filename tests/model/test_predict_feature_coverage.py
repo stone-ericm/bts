@@ -16,6 +16,10 @@ from pathlib import Path
 
 from bts.features.compute import FEATURE_COLS
 
+# Repo root derived from this file's location, not a hardcoded absolute path.
+# (Was /Users/stone/... which broke on the loaner Mac after the 2026-06 machine move.)
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _synthetic_pa_frame() -> pd.DataFrame:
     """Build a tiny PA frame with enough structure for compute_all_features + lookups."""
@@ -110,7 +114,7 @@ class TestFeatureCoverage:
 
     def test_predict_source_actually_populates_each_feature_col(self):
         """Strong test: scan predict.py and confirm each FEATURE_COL is referenced as row[col]."""
-        predict_src = Path("/Users/stone/projects/bts/src/bts/model/predict.py").read_text()
+        predict_src = (_REPO_ROOT / "src/bts/model/predict.py").read_text()
         # Locate the predict() function body
         pred_start = predict_src.find("def predict(")
         assert pred_start > 0, "couldn't find predict() definition"
@@ -138,7 +142,7 @@ class TestFeatureCoverage:
     def test_feature_cols_count_matches_architecture_doc(self):
         """ARCHITECTURE.md must claim the right feature count (it drifted before)."""
         from pathlib import Path
-        arch = Path("/Users/stone/projects/bts/ARCHITECTURE.md").read_text()
+        arch = (_REPO_ROOT / "ARCHITECTURE.md").read_text()
         # The header line "## Features (N, provably leak-free)" must match.
         import re
         m = re.search(r"## Features \((\d+), provably leak-free\)", arch)
