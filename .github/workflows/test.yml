@@ -1,0 +1,36 @@
+name: tests
+
+# Runs the (fast) test suite on every push to main and on pull requests.
+# Mirrors the production install path (uv sync --locked --extra model) so the
+# lightgbm/model-dependent tests actually execute — on Linux the lightgbm
+# manylinux wheel works without the libomp dance Macs need. The deploy workflow
+# (deploy.yml) is separate; gating it on this is a follow-up (see audit T1).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (locked, incl. model extra)
+        run: uv sync --locked --extra model
+
+      - name: Run test suite (excluding slow walk-forward tests)
+        run: uv run pytest -m "not slow"
