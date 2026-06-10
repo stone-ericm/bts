@@ -23,34 +23,11 @@ pct = len(doubleheaders) / total_batter_dates
 print(f"Batter-dates with 2+ games: {len(doubleheaders)} / {total_batter_dates:,} ({pct:.2%})")
 print(f"VERDICT: {'MINOR' if pct < 0.01 else 'SIGNIFICANT'}")
 
-# AUDIT 2: Pitcher archetype cluster stability
-print("\n--- AUDIT 2: Pitcher archetype cluster stability ---")
-from bts.features.compute import _compute_pitcher_archetypes
-
-cluster_all, _ = _compute_pitcher_archetypes(df)
-cluster_train, _ = _compute_pitcher_archetypes(df[df["season"] < 2025])
-
-common = set(cluster_all.keys()) & set(cluster_train.keys())
-same = 0
-diff = 0
-diff_pids = []
-for pid in common:
-    if cluster_all[pid] == cluster_train[pid]:
-        same += 1
-    else:
-        diff += 1
-        diff_pids.append(pid)
-
-print(f"Pitchers in both clusterings: {len(common)}")
-print(f"Same cluster: {same} ({same/len(common):.1%})")
-print(f"Changed cluster: {diff} ({diff/len(common):.1%})")
-
-p_2025_only = set(df[df["season"] == 2025]["pitcher_id"]) - set(df[df["season"] < 2025]["pitcher_id"])
-new_in_clusters = p_2025_only & set(cluster_all.keys())
-print(f"2025-only pitchers in clustering: {len(new_in_clusters)}")
-
-stability_pct = diff / len(common)
-print(f"VERDICT: {'SIGNIFICANT' if stability_pct > 0.05 else 'MINOR'} — {stability_pct:.1%} reclassified")
+# (Former AUDIT 2 & 4 — pitcher-archetype K-Means cluster stability — REMOVED.
+#  The K-Means archetype features (`_compute_pitcher_archetypes`) were dropped
+#  from the model as 90.8% unstable across train/test splits, so there is no
+#  longer anything to audit here. The import previously crashed this whole
+#  script on line 1. See ARCHITECTURE.md "Dropped features".)
 
 # AUDIT 3: Expanding feature spot check
 print("\n--- AUDIT 3: Expanding feature spot check ---")
@@ -125,18 +102,9 @@ if pf_mismatches == 0:
 else:
     print(f"  {pf_mismatches}/5 MISMATCHES")
 
-# AUDIT 4: Impact of cluster leakage
-print("\n--- AUDIT 4: Impact of cluster leakage ---")
-if diff_pids:
-    affected_test = df_feat[(df_feat["pitcher_id"].isin(diff_pids)) & (df_feat["season"] == 2025)]
-    total_test = len(df_feat[df_feat["season"] == 2025])
-    print(f"Test PAs affected by reclassified pitchers: {len(affected_test)} / {total_test} ({len(affected_test)/total_test:.1%})")
-else:
-    print("No reclassified pitchers — clean")
-
-# AUDIT 5: The nuclear test — compare features computed on
+# AUDIT 4: The nuclear test — compare features computed on
 # train-only vs full dataset for the SAME test PA
-print("\n--- AUDIT 5: Nuclear test — train-only vs full features ---")
+print("\n--- AUDIT 4: Nuclear test — train-only vs full features ---")
 # Compute features using ONLY 2023-2024 data
 train_only = df[df["season"] < 2025].copy()
 df_train_feat = compute_all_features(train_only)
@@ -150,7 +118,10 @@ last_day_full = df_feat[(df_feat["date"] == last_2024_date)]
 common_batters = set(last_day_train["batter_id"]) & set(last_day_full["batter_id"])
 if common_batters:
     bid = list(common_batters)[0]
-    for col in ["batter_hr_7g", "batter_hr_30g", "platoon_hr", "park_factor"]:
+    # Includes the promoted bpm feature (whose inference path broke once,
+    # 2026-04-29) and the bullpen composite — both production FEATURE_COLS.
+    for col in ["batter_hr_7g", "batter_hr_30g", "platoon_hr", "park_factor",
+                "batter_pitcher_shrunk_hr", "opp_bullpen_hr_30g"]:
         val_train = last_day_train[last_day_train["batter_id"] == bid][col].iloc[0] if col in last_day_train.columns else "N/A"
         val_full = last_day_full[last_day_full["batter_id"] == bid][col].iloc[0] if col in last_day_full.columns else "N/A"
         match = "MATCH" if (pd.isna(val_train) and pd.isna(val_full)) or (not pd.isna(val_train) and abs(val_train - val_full) < 0.001) else "DIFFERS"
