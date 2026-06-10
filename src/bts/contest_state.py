@@ -225,7 +225,18 @@ def load_decision_streak_state(
             message="no contest-account streak state found",
         )
 
-    contest_saver = contest.saver_available if contest.saver_available is not None else False
+    # The profile API can't observe the mulligan (contest.saver_available is
+    # always None). When our model streak AGREES with the contest streak (the
+    # normal 4x/day auto path) the locally-tracked model saver is a reliable
+    # proxy, so use it to keep the saver-aware MDP line reachable (audit D3).
+    # When they diverge (e.g. a manual override set a different streak) the model
+    # saver no longer describes the contest account, so stay conservative.
+    if contest.saver_available is not None:
+        contest_saver = contest.saver_available
+    elif contest.streak == model_streak:
+        contest_saver = model_saver
+    else:
+        contest_saver = False
     if contest_state_is_fresh(contest, picks_dir):
         return DecisionStreakState(
             streak=contest.streak,
