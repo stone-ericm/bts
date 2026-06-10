@@ -97,6 +97,14 @@ class TestEvaluate:
         alerts = evaluate(self._m(5, 0.20, 0.08))
         assert alerts == []
 
+    def test_insufficient_28d_baseline_suppresses_drift(self):
+        # 10 <= n < min_days_28d (20): the 14d gate passes but the 28d baseline is
+        # too thin to be a real baseline (it overlaps the 14d window), so a big
+        # drift must NOT alert. min_days_28d was previously never enforced and
+        # n14 counted the whole lookback rather than the window (audit).
+        alerts = evaluate(self._m(15, 0.22, 0.08))  # drift 0.14, would be CRITICAL
+        assert alerts == [], alerts
+
     def test_source(self):
         alerts = evaluate(self._m(28, 0.18, 0.08))
         assert all(a.source == SOURCE for a in alerts)

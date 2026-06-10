@@ -125,8 +125,14 @@ def evaluate(metrics: PredRealMetrics, thresholds: dict | None = None) -> list[A
     alerts: list[Alert] = []
     if metrics.drift is None:
         return alerts
-    n14 = sum(1 for _ in [d for d in metrics.daily])
-    if n14 < t["min_days_14d"]:
+    # Stat-power gates measured over the actual windows, not the full lookback:
+    # the 14d window needs >= min_days_14d, AND the 28d baseline needs
+    # >= min_days_28d so it is a real baseline distinct from the 14d window
+    # (otherwise early-season drift fires on overlapping, near-identical sets).
+    sorted_dates = sorted(metrics.daily)
+    n14 = len(sorted_dates[-14:])
+    n28 = len(sorted_dates[-28:])
+    if n14 < t["min_days_14d"] or n28 < t["min_days_28d"]:
         return alerts
     drift = metrics.drift
     if drift < t["drift_info"]:
