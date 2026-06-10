@@ -339,15 +339,18 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
     return lookups
 
 
-def _fetch_prior_lineup(team_id: int) -> list[dict]:
+def _fetch_prior_lineup(team_id: int, season: int) -> list[dict]:
     """Fetch a team's most recent game lineup as fallback.
+
+    ``season`` scopes the schedule window to the prediction year (not a hardcoded
+    2026, which would serve last year's lineup in 2027 — audit M6).
 
     Returns list of {batter_id, batter_name, lineup} dicts.
     """
     try:
         sched = json.loads(urlopen(
             f"{API_BASE}/api/v1/schedule?sportId=1&teamId={team_id}"
-            f"&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+            f"&startDate={season}-03-20&endDate={season}-12-31&gameType=R",
             timeout=15,
         ).read())
         # Walk backwards through dates to find most recent Final game
@@ -495,7 +498,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                 is_projected = False
                 if not lineup_players:
                     # Fallback: use prior game's lineup
-                    lineup_players = _fetch_prior_lineup(team_id)
+                    lineup_players = _fetch_prior_lineup(team_id, int(date[:4]))
                     is_projected = True
                     if lineup_players:
                         projected_count += 1
