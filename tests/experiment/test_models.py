@@ -1,3 +1,13 @@
+import pytest
+
+try:  # lightgbm is an optional extra; skip (not error) when it/libomp is absent
+    import lightgbm  # noqa: F401
+except (ImportError, OSError):
+    pytest.skip(
+        "lightgbm/libomp unavailable; skipping model tests",
+        allow_module_level=True,
+    )
+
 from bts.experiment.models import (
     LambdaRankExperiment,
     CatBoostExperiment,

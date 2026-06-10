@@ -22,6 +22,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+try:  # lightgbm is an optional extra; skip (not error) when it/libomp is absent
+    import lightgbm  # noqa: F401
+except (ImportError, OSError):
+    pytest.skip(
+        "lightgbm/libomp unavailable; skipping model tests",
+        allow_module_level=True,
+    )
+
 from bts.validate.conformal_gate import (
     GATE_SCHEMA_VERSION,
     DEFAULT_VALIDITY_TOLERANCE,

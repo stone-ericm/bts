@@ -3,6 +3,14 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
+try:  # lightgbm is an optional extra; skip (not error) when it/libomp is absent
+    import lightgbm  # noqa: F401
+except (ImportError, OSError):
+    pytest.skip(
+        "lightgbm/libomp unavailable; skipping model tests",
+        allow_module_level=True,
+    )
+
 from bts.features.compute import FEATURE_COLS, CONTEXT_COLS
 from bts.model.predict import _build_blend_configs
 
