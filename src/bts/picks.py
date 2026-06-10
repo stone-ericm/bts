@@ -473,6 +473,56 @@ def update_streak(results: list[bool], picks_dir: Path) -> int:
     return 0
 
 
+def _apply_streak_day(streak: int, saver: bool, is_hit: bool, increment: int) -> tuple[int, bool]:
+    """One day of the streak state machine (matches update_streak's saver rule).
+
+    A miss is forgiven (streak preserved, saver consumed) ONLY when the saver is
+    available AND the streak is in [10, 15] at that point; otherwise it resets.
+    """
+    if is_hit:
+        return streak + increment, saver
+    if saver and 10 <= streak <= 15:
+        return streak, False
+    return 0, saver
+
+
+def _replay_season_streak(
+    picks_dir: Path, season: int, today_iso: str
+) -> tuple[int, bool] | None:
+    """Forward-replay the model streak + saver over the season's resolved picks.
+
+    Returns ``(streak, saver_available)``, or ``None`` if the history is
+    incomplete or unreadable. A backward suffix can't safely reconstruct saver
+    forgiveness (it depends on the forward streak at the miss and whether the
+    saver was already used), so forward replay is the sound approach — and on any
+    unresolved/corrupt past pick we fail closed (return None) and let the caller
+    keep the live-tracked streak rather than risk an over-count (audit D4).
+    """
+    streak, saver = 0, True
+    for f in sorted(picks_dir.glob(f"{season}-*.json")):
+        if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso:
+            continue  # skip non-date files and today/future (unplayed) previews
+        try:
+            data = json.loads(f.read_text())
+        except Exception:
+            return None
+        r = data.get("result")
+        if r == "void":
+            continue
+        if r not in ("hit", "miss"):
+            return None  # unresolved past pick -> history not reconstructible
+        if r == "hit":
+            daily = load_pick(f.stem, picks_dir)
+            if daily is None:
+                return None
+            streak, saver = _apply_streak_day(
+                streak, saver, True, streak_increment_for_resolved_hit(daily)
+            )
+        else:
+            streak, saver = _apply_streak_day(streak, saver, False, 0)
+    return streak, saver
+
+
 def get_game_statuses(date: str) -> dict[int, str]:
     """Get game statuses for all games on a date.
 
@@ -836,37 +886,17 @@ def reconcile_results(
             daily.slot_results = slot_results
             save_pick(daily, picks_dir)
 
-    # Always recalculate streak from scratch — catches both result corrections
-    # and streak increment bugs (e.g., cross-game double-down counted as +1).
-    # Only iterate strict YYYY-MM-DD files so streak.json, automation.json, and
-    # *.shadow.json are all skipped automatically. Also skip any pick file dated
-    # today or later: `bts preview` pre-generates tomorrow's pick before games
-    # are played, so its result=None doesn't mean "miss" — it means "not played
-    # yet" and we must not let it break the backward walk.
+    # Recompute the streak by FORWARD replay over the season — catches result
+    # corrections AND streak-increment bugs, and (unlike the old backward walk)
+    # correctly replays the saver: forgiveness depends on the forward streak at
+    # the miss and whether the saver was already used, which a backward suffix
+    # can't reconstruct (see _replay_season_streak / audit D4). On incomplete or
+    # unreadable history the replay returns None and we keep the live-tracked
+    # streak.json rather than risk a mis-count (fail closed).
     today_iso = date_cls.today().isoformat()
-    streak = 0
-    dates = sorted(picks_dir.glob("*.json"))
-    for f in reversed(dates):
-        if not _ISO_DATE_RE.match(f.stem):
-            continue
-        if f.stem >= today_iso:
-            continue
-        try:
-            data = json.loads(f.read_text())
-        except Exception:
-            continue
-        r = data.get("result")
-        if r == "hit":
-            daily = load_pick(f.stem, picks_dir)
-            if daily is None:
-                break
-            streak += streak_increment_for_resolved_hit(daily)
-        elif r == "miss":
-            break
-        elif r == "void":
-            continue
-        else:
-            break
-    save_streak(streak, picks_dir)
+    replay = _replay_season_streak(picks_dir, today.year, today_iso)
+    if replay is not None:
+        streak, saver = replay
+        save_streak(streak, picks_dir, saver_available=saver)
 
     return corrections
