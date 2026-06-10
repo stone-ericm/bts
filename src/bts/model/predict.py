@@ -197,6 +197,20 @@ def _resolve_pitcher_hand(slot: dict, lookups: dict) -> str | None:
     return slot.get("pitcher_hand") or lookups.get("pitcher_hand", {}).get(slot.get("pitcher_id"))
 
 
+def _blend_average_by_slot(pred_df: pd.DataFrame, per_model_pgame: list) -> pd.Series:
+    """Average each blend model's game-probability per SLOT (row), not per
+    batter, so a doubleheader batter's two game-rows don't collapse to one
+    shared value (audit M5). NaN model outputs for a row are skipped.
+    """
+    scores: dict = {}
+    for series in per_model_pgame:
+        for idx, val in series.items():
+            if pd.notna(val):
+                scores.setdefault(idx, []).append(val)
+    avg = {idx: float(np.mean(vals)) for idx, vals in scores.items()}
+    return pd.Series(pred_df.index.map(avg), index=pred_df.index)
+
+
 def _build_feature_lookups(df: pd.DataFrame) -> dict:
     """Build lookup tables for latest feature values per entity."""
     lookups = {}
@@ -713,7 +727,7 @@ def predict(
     if blend:
         # Each blend model predicts P(hit|PA) for starter features,
         # then we aggregate to game level and average across models.
-        blend_game_scores = {}
+        per_model_pgame = []
         for name, (bmodel, bcols) in blend.items():
             bfeat = pred_df[bcols]
             bvalid = bfeat.notna().any(axis=1)
@@ -727,17 +741,11 @@ def predict(
                 (1 - p_starter) ** pred_df["starter_pas"] *
                 (1 - pred_df["p_hit_vs_reliever"]) ** pred_df["reliever_pas"]
             )
+            per_model_pgame.append(p_game)
 
-            for idx, val in p_game.items():
-                if pd.notna(val):
-                    bid = pred_df.at[idx, "batter_id"]
-                    if bid not in blend_game_scores:
-                        blend_game_scores[bid] = []
-                    blend_game_scores[bid].append(val)
-
-        # Average across models per batter → blend rank
-        blend_avg = {bid: np.mean(scores) for bid, scores in blend_game_scores.items()}
-        pred_df["p_game_blend"] = pred_df["batter_id"].map(blend_avg)
+        # Average across models per SLOT (row), not per batter, so a doubleheader
+        # batter's two games keep distinct blends (audit M5).
+        pred_df["p_game_blend"] = _blend_average_by_slot(pred_df, per_model_pgame)
 
         # Use blend score for ranking, keep single-model scores for display
         pred_df["p_game_hit"] = pred_df["p_game_blend"].fillna(pred_df["p_game_hit"])
