@@ -110,6 +110,23 @@ class TestRunAllChecks:
             # Other checks ran cleanly
             assert isinstance(alerts, list)
 
+    def test_crashed_check_emits_critical(self, tmp_path):
+        """A check that raises must surface a CRITICAL from the runner — not
+        vanish into the logs (dead-smoke-detector guard, audit H3)."""
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        with patch("bts.health.runner.calibration.check",
+                   side_effect=RuntimeError("boom")):
+            alerts = run_all_checks(
+                picks_dir=picks_dir, models_dir=models_dir,
+                dm_recipient=None, today=date(2026, 4, 27),
+            )
+        crash = [a for a in alerts
+                 if a.source == "health_runner" and a.level == "CRITICAL"]
+        assert len(crash) == 1, alerts
+        assert "calibration" in crash[0].message and "boom" in crash[0].message
+
     def test_runs_postponed_pick_check(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()

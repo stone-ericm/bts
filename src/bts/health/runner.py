@@ -42,12 +42,21 @@ log = logging.getLogger(__name__)
 
 
 def _safe_run(name: str, fn) -> list[Alert]:
-    """Wrap a check call so one check's bug can't break the others."""
+    """Wrap a check call so one check's bug can't break the others.
+
+    A crashing check is itself surfaced as a CRITICAL (a dead smoke detector is
+    worse than a noisy one): without this, a check that raises every run produces
+    no alert and no DM, only a journalctl line nobody reads (audit H3).
+    """
     try:
         return fn()
     except Exception as e:
         log.exception(f"health check '{name}' raised: {e}")
-        return []
+        return [Alert(
+            level="CRITICAL",
+            source="health_runner",
+            message=f"health check '{name}' crashed: {type(e).__name__}: {e}",
+        )]
 
 
 def _path(value: Path | str) -> Path:
