@@ -1729,11 +1729,26 @@ def run_day(
             break
         print(f"  DH game 2 ({pk}): re-checking every {dh_recheck_min}min...", file=sys.stderr)
         for _ in range(10):
-            time.sleep(dh_recheck_min * 60)
+            # Watchdog-fed sleep + SLEEPING heartbeat so this long inter-check
+            # wait neither SIGABRTs the daemon (WatchdogSec=1800) nor trips the
+            # external check_heartbeat monitor (audit O1).
+            if heartbeat_path:
+                write_heartbeat(
+                    heartbeat_path,
+                    state=HeartbeatState.SLEEPING,
+                    sleeping_until=(
+                        _now_et() + timedelta(minutes=dh_recheck_min)
+                    ).astimezone(UTC),
+                )
+                notify_watchdog()
+            _watchdog_ping_sleep(dh_recheck_min * 60)
             new = count_new_confirmations([pk], confirmed_sides)
             if new > 0:
                 print(f"  DH game 2 ({pk}): lineup confirmed.", file=sys.stderr)
                 break
+        if heartbeat_path:
+            write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+            notify_watchdog()
 
     # 7. Next-day lookahead for wake-up time
     tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
