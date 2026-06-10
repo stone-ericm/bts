@@ -1535,10 +1535,22 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     except (httpx.HTTPError, AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
         _fail(f"profile/rounds shape or fetch error: {exc}")
 
-    # 4. currentness gate — a 200 response is not proof of currency
+    # 4. currentness gate — a 200 response is not proof of currency. Refuse to
+    #    overwrite with a non-advancing observation either way, but a 1-settled-
+    #    pick lag is the EXPECTED overnight settlement window (the contest settles
+    #    day D the next day), so exit quietly without a DM; only a >=2-pick lag is
+    #    genuine staleness worth alerting (mirrors the level-aware health check).
     latest = latest_resolved_pick_date(picks)
     if latest is not None and source_date < latest:
-        _fail(f"profile source_date {source_date} < latest resolved pick {latest}; not current, refusing to overwrite")
+        from bts.contest_state import resolved_pick_settlement_gap
+        gap = resolved_pick_settlement_gap(picks, source_date)
+        msg = (f"profile source_date {source_date} < latest resolved pick {latest} "
+               f"({gap} settled pick(s) newer); not current, refusing to overwrite")
+        if gap <= 1:
+            click.echo(f"fetch-contest-streak: {msg}; expected overnight settlement "
+                       "lag, no alert", err=True)
+            sys.exit(0)
+        _fail(msg)
 
     # 5. write (atomic) or dry-run
     summary = (f"active_streak={observation['active_streak']} "

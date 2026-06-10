@@ -796,20 +796,51 @@ class TestFetchContestStreak:
         assert not (picks / "account_state" / "contest_streak.json").exists()
         assert len(dm_calls) == 1
 
-    def test_stale_profile_no_write(self, monkeypatch, tmp_path):
+    def test_genuinely_stale_profile_alerts(self, monkeypatch, tmp_path):
+        # source 6/1 with FOUR settled picks newer (6/2..6/5) == genuine staleness
+        # (the week-long-freeze class) -> no write, alert, nonzero exit.
         import datetime as dt
         import bts.contest_fetch as cf
         import bts.cli as climod
+        import bts.dm
         self._patch_auth(monkeypatch)
         monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
             "activeStreak": 0, "seasonBestStreak": 9,
             "predictions": [{"roundId": 1, "result": "hit"}]})
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 1)})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
         picks = tmp_path / "picks"; picks.mkdir()
-        (picks / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))   # latest 6/5 > source 6/1
-        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks)])
+        for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
+            (picks / f"{d}.json").write_text(json.dumps({"result": "hit"}))
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--dm-recipient", "x.bsky.social"])
         assert r.exit_code != 0
         assert not (picks / "account_state" / "contest_streak.json").exists()
+        assert len(dm_calls) == 1
+
+    def test_expected_settlement_lag_no_write_no_alert(self, monkeypatch, tmp_path):
+        # source 6/4 with ONE settled pick newer (6/5) == the expected overnight
+        # settlement lag: refuse to overwrite, but exit 0 and DON'T DM (the noise
+        # that was firing every morning).
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 5, "seasonBestStreak": 9,
+            "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 4)})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        (picks / "2026-06-05.json").write_text(json.dumps({"result": "miss"}))  # latest 6/5, gap=1
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--dm-recipient", "x.bsky.social"])
+        assert r.exit_code == 0, r.output
+        assert not (picks / "account_state" / "contest_streak.json").exists()  # still refused
+        assert dm_calls == []  # no noise DM on the expected lag
 
     def test_auth_failure_dm_throttled(self, monkeypatch, tmp_path):
         import bts.leaderboard.auth as auth
