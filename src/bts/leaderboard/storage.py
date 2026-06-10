@@ -9,12 +9,27 @@ rows raise on construction, before they reach storage.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from bts.leaderboard.models import LeaderboardRow, PickRow, SeasonStats
+
+_UNSAFE_NAME_RE = re.compile(r"[^A-Za-z0-9_.-]")
+
+
+def safe_filename_component(name: str) -> str:
+    """Sanitize an untrusted string for use as a single path component.
+
+    Leaderboard usernames are arbitrary public-internet strings; using one
+    directly as ``{username}.parquet`` allows path traversal (e.g.
+    ``../leaderboard_snapshots/2026-06-09``) to clobber files outside
+    user_picks/. Strip to a safe charset and neutralize ''/'.'/'..'.
+    """
+    cleaned = _UNSAFE_NAME_RE.sub("_", name)
+    return cleaned if cleaned not in ("", ".", "..") else "_"
 
 
 _LEADERBOARD_SCHEMA = pa.schema([

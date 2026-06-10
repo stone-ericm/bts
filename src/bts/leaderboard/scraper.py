@@ -32,6 +32,7 @@ from bts.leaderboard.models import LeaderboardRow, PickRow, SeasonStats
 from bts.leaderboard.ratelimit import rate_limited
 from bts.leaderboard.storage import (
     write_leaderboard_snapshot, append_user_picks, write_season_stats,
+    safe_filename_component,
 )
 
 log = logging.getLogger(__name__)
@@ -278,13 +279,18 @@ def run(
                     ranks_type=RANKS_TYPE_BY_TAB[tab], xsid=xsid,
                 )
             raw = _get_json(url, cookies=cookies)
+            rows = parse_leaderboard_response(raw, tab=tab, captured_at=datetime.utcnow())
+            all_rows.extend(rows[:top_n])
+            for entry in raw.get("success", {}).get("ranks", []):
+                tracked.setdefault(entry["username"], int(entry["userId"]))
         except httpx.HTTPError as e:
             log.exception(f"failed to scrape {tab}: {e}")
             continue
-        rows = parse_leaderboard_response(raw, tab=tab, captured_at=datetime.utcnow())
-        all_rows.extend(rows[:top_n])
-        for entry in raw.get("success", {}).get("ranks", []):
-            tracked.setdefault(entry["username"], int(entry["userId"]))
+        except Exception as e:
+            # Schema drift (JSON/key/validation) on one tab must not abort the
+            # whole scrape — matches the per-user resilience below (audit G).
+            log.exception(f"failed to parse {tab} (schema drift?): {e}")
+            continue
 
     write_leaderboard_snapshot(snapshot_path, all_rows)
     log.info(f"wrote {len(all_rows)} leaderboard rows to {snapshot_path}")
@@ -293,14 +299,19 @@ def run(
     for username, user_id in sorted(tracked.items()):
         try:
             picks, stats = scrape_user_profile(user_id, cookies=cookies, xsid=xsid, lookups=lookups)
+            # backfill username on stats (parser doesn't know it from API response)
+            stats = stats.model_copy(update={"username": username})
+            # Sanitize the arbitrary public username before using it as a filename
+            # (path-traversal write guard, audit G).
+            user_path = output_dir / "user_picks" / f"{safe_filename_component(username)}.parquet"
+            append_user_picks(user_path, picks)
+            season_rows.append(stats)
         except httpx.HTTPError as e:
             log.warning(f"skipping user {username} (id={user_id}): {e}")
             continue
-        # backfill username on stats (parser doesn't know it from API response)
-        stats = stats.model_copy(update={"username": username})
-        user_path = output_dir / "user_picks" / f"{username}.parquet"
-        append_user_picks(user_path, picks)
-        season_rows.append(stats)
+        except Exception as e:
+            log.warning(f"skipping user {username} (id={user_id}) on parse/write error: {e}")
+            continue
 
     write_season_stats(stats_path, season_rows)
     log.info(f"wrote {len(season_rows)} season-stats rows to {stats_path}")

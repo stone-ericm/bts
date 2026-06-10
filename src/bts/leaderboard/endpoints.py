@@ -74,5 +74,5 @@ AUTH_LOGIN_PLATFORM: str = "web"
 
 # Default User-Agent for outbound requests
 USER_AGENT: str = (
-    "bts-leaderboard-watcher/1.0 (research; contact: stone.ericm@gmail.com)"
+    "bts-leaderboard-watcher/1.0 (+https://github.com/stone-ericm/bts)"
 )
