@@ -21,6 +21,12 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # The box + Mac that generate uv.lock are America/New_York; the date-only
+      # exclude-newer is resolved in local time, so a UTC runner shifts it and
+      # `--locked` rejects the lockfile. Run CI in ET to match (also aligns the
+      # few host-clock-coupled tests with production). (see uv pin below)
+      TZ: America/New_York
     steps:
       - uses: actions/checkout@v4
 
