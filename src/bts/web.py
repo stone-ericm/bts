@@ -10,6 +10,7 @@ Usage:
 
 import json
 import os
+import subprocess
 import html as html_lib
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -1545,9 +1546,59 @@ class DashboardHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
 
 
+def _tailscale_ipv4() -> str | None:
+    """Best-effort Tailscale IPv4 for this host (100.64.0.0/10 CGNAT range)."""
+    import ipaddress
+
+    cgnat = ipaddress.ip_network("100.64.0.0/10")
+
+    def _ok(ip: str) -> bool:
+        try:
+            return ipaddress.ip_address(ip) in cgnat
+        except ValueError:
+            return False
+
+    try:
+        out = subprocess.run(
+            ["tailscale", "ip", "-4"], capture_output=True, text=True, timeout=5
+        )
+        for line in out.stdout.splitlines():
+            if _ok(line.strip()):
+                return line.strip()
+    except Exception:
+        pass
+    try:
+        import socket
+
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            if _ok(info[4][0]):
+                return info[4][0]
+    except Exception:
+        pass
+    return None
+
+
+def _dashboard_bind_host() -> str:
+    """Bind address for the dashboard.
+
+    Defaults to the Tailscale IPv4 so the dashboard stays reachable over the
+    tailnet (http://bts-hetzner:3003) but NOT on the public interface (audit S2).
+    :3003 is already firewalled externally; this is defense in depth so a
+    firewall change can't silently expose pre-publication picks + the
+    audit-progress SSH fan-out. Falls back to loopback (never 0.0.0.0) if the
+    tailnet IP can't be discovered. Override with BTS_DASHBOARD_HOST (e.g.
+    0.0.0.0 to deliberately expose, or to pin the tailnet IP on the box).
+    """
+    override = os.environ.get("BTS_DASHBOARD_HOST")
+    if override:
+        return override
+    return _tailscale_ipv4() or "127.0.0.1"
+
+
 def main():
-    server = DashboardHTTPServer(("0.0.0.0", PORT), Handler)
-    print(f"BTS Dashboard running at http://0.0.0.0:{PORT}")
+    host = _dashboard_bind_host()
+    server = DashboardHTTPServer((host, PORT), Handler)
+    print(f"BTS Dashboard running at http://{host}:{PORT}")
     server.serve_forever()
 
 
