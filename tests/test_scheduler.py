@@ -934,6 +934,57 @@ class TestRunDay:
         # Should not have called run_single_check in dry_run mode
         mock_check.assert_not_called()
 
+    @patch("bts.health.runner.run_all_checks")
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    def test_eod_health_uses_run_date_and_pa_attribution(
+        self, mock_poll, mock_check, mock_sleep, mock_now, mock_schedule,
+        mock_run_all_checks, tmp_path,
+    ):
+        """End-of-day health must run on the run-day date and supply data_dir so
+        realized_calibration uses PA-frame attribution — not date.today() and the
+        biased streak-proxy fallback (audit finding H1)."""
+        from pathlib import Path
+        from datetime import date as _date
+        from bts.scheduler import run_day
+
+        mock_run_all_checks.return_value = []
+        mock_schedule.side_effect = [
+            [_game(100, "13:10", date="2026-04-03")],
+            [],  # tomorrow's schedule (lookahead)
+        ]
+        # Past the only game's check window so the loop exits into the EOD block.
+        mock_now.return_value = datetime(2026, 4, 3, 23, 30, tzinfo=ET)
+        mock_check.return_value = {
+            "skipped": True, "new_lineups": 0, "should_post": False,
+            "pick_result": None, "pick_name": None, "pick_p": None,
+        }
+
+        run_day(
+            date="2026-04-03",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path), "data_dir": "data/processed"},
+                "tiers": [],
+                "scheduler": {"early_lock_gap": 0.03, "lineup_check_offset_min": 45,
+                              "cluster_min": 10, "doubleheader_recheck_min": 15,
+                              "results_poll_interval_min": 15, "results_cap_hour_et": 5},
+            },
+        )
+
+        mock_run_all_checks.assert_called_once()
+        kwargs = mock_run_all_checks.call_args.kwargs
+        assert kwargs.get("today") == _date(2026, 4, 3), (
+            "EOD health ran on the wrong date; checks would no-op or evaluate the "
+            "wrong day on a post-midnight run"
+        )
+        assert kwargs.get("data_dir") == Path("data/processed"), (
+            "data_dir not passed; realized_calibration falls back to the biased "
+            "streak-proxy attribution path"
+        )
+
     @patch("bts.scheduler.fetch_schedule")
     @patch("bts.scheduler._now_et")
     @patch("bts.scheduler.time.sleep")

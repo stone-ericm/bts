@@ -1808,6 +1808,14 @@ def run_day(
             run_all_checks(
                 picks_dir=picks_dir,
                 models_dir=models_dir,
+                # The day being processed (NOT date.today()): a post-midnight or
+                # early-finish EOD run must evaluate THIS date's picks/artifacts.
+                today=datetime.strptime(date, "%Y-%m-%d").date(),
+                # PA-frame ground truth for realized_calibration; without it the
+                # check falls back to the biased streak-proxy attribution path.
+                data_dir=Path(
+                    config.get("orchestrator", {}).get("data_dir", "data/processed")
+                ),
                 dm_recipient=dm_recipient,
                 scheduler_pid=get_self_pid(),
                 current_nrestarts=read_systemd_nrestarts(),
