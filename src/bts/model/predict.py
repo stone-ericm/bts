@@ -175,6 +175,28 @@ def _check_opener(pitcher_id: int, df: pd.DataFrame) -> dict:
     }
 
 
+def _pitcher_hand_lookup(df: pd.DataFrame) -> dict:
+    """pitcher_id -> throwing hand from history.
+
+    Handedness is a static attribute, so the latest observed value is not
+    temporal leakage. Used to resolve platoon_hr at inference (see
+    _resolve_pitcher_hand / audit M1).
+    """
+    return df.dropna(subset=["pitch_hand"]).groupby("pitcher_id")["pitch_hand"].last().to_dict()
+
+
+def _resolve_pitcher_hand(slot: dict, lookups: dict) -> str | None:
+    """Pitcher throwing hand for the platoon feature.
+
+    Live play data carries it, but at the game_time-45min pick the feed has no
+    plays and the schedule's probablePitcher hydrate omits pitchHand, so
+    slot["pitcher_hand"] is None for every production pick — making platoon_hr
+    silently NaN at inference while it is fully populated in training/backtest
+    (audit M1). Fall back to the pitcher's static handedness from history.
+    """
+    return slot.get("pitcher_hand") or lookups.get("pitcher_hand", {}).get(slot.get("pitcher_id"))
+
+
 def _build_feature_lookups(df: pd.DataFrame) -> dict:
     """Build lookup tables for latest feature values per entity."""
     lookups = {}
@@ -198,6 +220,10 @@ def _build_feature_lookups(df: pd.DataFrame) -> dict:
     lookups["pitcher_ent"] = df.dropna(subset=["pitcher_entropy_30g"]).groupby(
         "pitcher_id"
     )["pitcher_entropy_30g"].last().to_dict()
+
+    # Pitcher throwing hand (static) — lets platoon_hr resolve at inference when
+    # live play data and the schedule's probablePitcher hydrate lack pitchHand.
+    lookups["pitcher_hand"] = _pitcher_hand_lookup(df)
 
     # Batter context features (shadow model)
     if "batter_hard_contact_30g" in df.columns:
@@ -552,8 +578,9 @@ def predict(
                      "batter_avg_velo_faced_30g"]:
             row[col] = lookups["batter"].get(col, {}).get(bid)
 
-        # Platoon
-        row["platoon_hr"] = lookups["platoon"].get((bid, slot["pitcher_hand"]))
+        # Platoon — resolve pitcher hand from live data or history (audit M1)
+        hand = _resolve_pitcher_hand(slot, lookups)
+        row["platoon_hr"] = lookups["platoon"].get((bid, hand))
 
         # Pitcher — with debut fallback
         pitcher_hr = lookups["pitcher_hr"].get(slot["pitcher_id"])
