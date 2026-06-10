@@ -130,11 +130,17 @@ def load_contest_streak_state(
     state_dir = picks_dir / "account_state"
     manual_path = state_dir / "contest_streak.manual.json"
     auto_path = state_dir / "contest_streak.json"
-    manual = _parse_state_file(manual_path) if manual_path.exists() else None
-    auto = _parse_state_file(auto_path) if auto_path.exists() else None
 
-    if manual is not None and manual.override_expires_at is not None and manual.override_expires_at > now:
+    manual = _parse_state_file(manual_path) if manual_path.exists() else None
+    # An unexpired manual override wins; return it BEFORE parsing the auto file so
+    # a corrupt auto file can't block the emergency override (audit D2). A corrupt
+    # manual file still raises (surfaced as CRITICAL), as does a corrupt auto file
+    # when no override is active — both fail closed.
+    if (manual is not None and manual.override_expires_at is not None
+            and manual.override_expires_at > now):
         return manual
+
+    auto = _parse_state_file(auto_path) if auto_path.exists() else None
     if auto is not None:
         return auto
     return manual
