@@ -41,7 +41,9 @@ jobs:
           uv run pytest -m "not slow"
 
       - name: Deploy via SSH with canary health check + auto-rollback
-        uses: appleboy/ssh-action@v1
+        # Pinned to a commit SHA (not the floating @v1) because this step
+        # receives the root HETZNER_SSH_KEY — a moved tag could exfiltrate it.
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: root

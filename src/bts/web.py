@@ -1392,8 +1392,8 @@ def audit_progress_response(
     """Pure response builder for /api/audit-progress. Tested without a server.
 
     Required params: ``provider`` (vultr|hetzner|oci), ``dir`` (audit output
-    directory name). Optional: ``seeds_file`` (relative to project_root or
-    absolute path). Returns ``(status_code, json_body)``.
+    directory name). Optional: ``seeds_file`` (relative to project_root;
+    absolute paths and '..' traversal are rejected). Returns ``(status, body)``.
     """
     root = project_root if project_root is not None else PROJECT_ROOT
     scanner = scan if scan is not None else scan_audit_progress
@@ -1413,14 +1413,22 @@ def audit_progress_response(
     if provider not in ("vultr", "hetzner", "oci"):
         return 400, {"error": f"unknown provider: {provider}"}
 
-    audit_dir = root / "data" / f"{provider}_results" / audit_name
+    # Confine `dir` to the provider-results root — reject '..'/absolute traversal
+    # (the dir gates a root-SSH fan-out, so this is more than an info leak). (audit G)
+    provider_root = (root / "data" / f"{provider}_results").resolve()
+    audit_dir = (provider_root / audit_name).resolve()
+    if not audit_dir.is_relative_to(provider_root):
+        return 400, {"error": "invalid dir"}
     if not (audit_dir / "boxes.json").exists():
         return 404, {"error": f"boxes.json not found at {audit_dir}/boxes.json"}
 
     seeds_file: Path | None = None
     if seeds_file_raw:
-        p = Path(seeds_file_raw)
-        seeds_file = p if p.is_absolute() else root / p
+        # Reject absolute paths and '..' traversal; confine under the project root.
+        candidate = (root / seeds_file_raw).resolve()
+        if not candidate.is_relative_to(root.resolve()):
+            return 400, {"error": "invalid seeds_file"}
+        seeds_file = candidate
         if not seeds_file.exists():
             return 404, {"error": f"seeds_file not found: {seeds_file}"}
 
