@@ -144,6 +144,9 @@ jobs:
               sleep 15
               if sudo -u bts XDG_RUNTIME_DIR=/run/user/$(id -u bts) systemctl --user is-active --quiet bts-scheduler bts-dashboard; then
                 echo "Rolled back cleanly to $(echo $OLD_SHA | cut -c1-7)"
+                # Stamp deploy time on rollback too — monotonic forward so the
+                # calibration cutoff never regresses (audit since_deploy_iso (3)).
+                sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'
               else
                 echo "CRITICAL: rollback also unhealthy — manual intervention required"
               fi
@@ -153,3 +156,7 @@ jobs:
             echo "================================"
             echo "CANARY PASSED — $NEW_SHA is live and healthy"
             echo "================================"
+            # Stamp the real deploy time (wall-clock, monotonic) so the
+            # realized_calibration since_deploy filter uses deploy-time, not git
+            # commit-time, and can't regress on rollback (audit since_deploy_iso (2)+(3)).
+            sudo -u bts bash -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /home/bts/projects/bts/data/.last_deploy_iso'

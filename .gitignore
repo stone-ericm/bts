@@ -8,6 +8,7 @@ data/models/
 data/picks/
 data/external/odds/
 data/.heartbeat*
+data/.last_deploy_iso
 # Operational state written on the box (untracked; would leak picks/leaderboard/box IPs)
 data/health_state/
 data/hetzner_results/
