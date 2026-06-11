@@ -92,9 +92,65 @@ SSH_OPTS = [
     "-o", "ConnectTimeout=10",
 ]
 ENV = "PATH=/root/.local/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache"
+
+
+def _resolve_rsync_bin() -> str:
+    """Return a path to GNU rsync 3.x, never macOS openrsync.
+
+    Apple ships 'openrsync' as /usr/bin/rsync (advertises 'protocol version 29
+    / rsync version 2.6.9 compatible'). It cannot complete the protocol
+    handshake with the Ubuntu fleet's GNU rsync 3.x and dies mid-transfer with
+    'unexpected end of file' — which silently dropped every box on the first
+    fleet launch. Prefer Homebrew's GNU rsync; fall back to PATH only if it's
+    also GNU. Fail loudly rather than hand back openrsync.
+    """
+    candidates = ["/opt/homebrew/bin/rsync", "/usr/local/bin/rsync"]
+    on_path = shutil.which("rsync")
+    if on_path:
+        candidates.append(on_path)
+    for cand in candidates:
+        if not cand or not os.path.exists(cand):
+            continue
+        try:
+            out = subprocess.run(
+                [cand, "--version"], capture_output=True, text=True, timeout=10
+            ).stdout
+        except Exception:
+            continue
+        if "openrsync" in out.lower():
+            continue
+        if "version 3" in out:  # GNU rsync 3.x speaks protocol >= 30
+            return cand
+    raise RuntimeError(
+        "No GNU rsync 3.x found — only macOS openrsync, which can't talk to the "
+        "Ubuntu fleet (causes 'unexpected end of file'). Install it: "
+        "arch -arm64 /opt/homebrew/bin/brew install rsync"
+    )
+
+
+RSYNC_BIN = _resolve_rsync_bin()
+
+# --- Data relay via bts-hetzner -------------------------------------------
+# The controller's uplink can blackhole large uploads (constrained/cellular
+# links with a sub-1500 path MTU + PMTUD blackhole): small transfers complete,
+# but a sustained 210MB parquet push dies mid-stream with 'broken pipe'. The
+# data already lives on the production box, so when armed, fleet boxes PULL
+# data/processed/ from bts-hetzner over Hetzner's clean network instead. The
+# controller only ships a few KB (a throwaway read-only key). The key is scoped
+# with rrsync (read-only, confined to the data dir) and removed at teardown.
+RELAY_HOST_SSH = os.environ.get("BTS_RELAY_HOST_SSH", "bts-hetzner")  # tailnet alias for control-plane ops
+RELAY_HOST_PUBLIC = os.environ.get("BTS_RELAY_HOST_PUBLIC", "")       # public IP the fleet dials; set via env (not committed — public repo)
+RELAY_USER = os.environ.get("BTS_RELAY_USER", "bts")
+RELAY_DATA_DIR = os.environ.get("BTS_RELAY_DATA_DIR", "/home/bts/projects/bts/data/processed")
+RELAY_KEY_LOCAL = "/tmp/bts_relay_key"
+RELAY_MARKER = "bts-mdp-relay-throwaway"
+_DATA_RELAY_ACTIVE = False              # set True by setup_data_relay()
+
 USER_DATA_RAW = """#cloud-config
+package_update: true
 packages: [rsync, git, libgomp1, python3, ca-certificates, curl]
 runcmd:
+  - apt-get update && apt-get install -y rsync git libgomp1 || true
   - curl -LsSf https://astral.sh/uv/install.sh -o /tmp/uv-install.sh
   - env HOME=/root sh /tmp/uv-install.sh
   - mkdir -p /root/projects/bts/data
@@ -695,13 +751,146 @@ def spinup(provider: Provider, requested: int, label_prefix: str) -> list[Box]:
 
 
 def wait_cloud_init(box: Box) -> bool:
+    # Gate on the tools the provisioner actually needs (rsync for the data push,
+    # uv for sync), not just the cloud-init sentinel — apt installs can lag or
+    # fail while runcmd still touches the sentinel, which previously let the
+    # data rsync race a missing remote rsync binary ("unexpected end of file").
     deadline = time.time() + 600
+    check = ("test -f /root/cloud-init-done && command -v rsync >/dev/null "
+             "&& test -x /root/.local/bin/uv && echo DONE")
     while time.time() < deadline:
-        r = ssh_run(box.ipv4, "test -f /root/cloud-init-done && echo DONE", timeout=15)
+        r = ssh_run(box.ipv4, check, timeout=15)
         if "DONE" in r.stdout:
             return True
         time.sleep(10)
     return False
+
+
+_RSYNC_TRANSIENT_MARKERS = (
+    "broken pipe", "socket io", "connection reset", "connection closed",
+    "code 255", "code 10", "code 12", "timeout",
+)
+
+
+def rsync_with_retry(
+    rsync_args: list[str], *, timeout: int, attempts: int = 4, backoff: int = 5
+) -> subprocess.CompletedProcess:
+    """Run rsync, retrying transient SSH transport failures.
+
+    Fresh cloud boxes routinely drop the *first* rsync-over-ssh transfer with
+    'broken pipe' / 'socket IO error' (exit 255/10) even after sshd answers and
+    cloud-init reports done — but transfers succeed reliably once an initial
+    exchange has completed. Empirically all four first-attempts in the 2026-06-10
+    repro failed this way while the same `-az src/` transfer succeeded when it
+    followed an earlier exchange. Retrying with backoff turns that transient into
+    a success; non-transient errors (missing file, perms) return immediately.
+    """
+    last: subprocess.CompletedProcess | None = None
+    for attempt in range(1, attempts + 1):
+        r = subprocess.run(rsync_args, capture_output=True, text=True, timeout=timeout)
+        if r.returncode == 0:
+            return r
+        last = r
+        transient = any(m in r.stderr.lower() for m in _RSYNC_TRANSIENT_MARKERS)
+        if not transient or attempt == attempts:
+            return r
+        time.sleep(backoff * attempt)
+    assert last is not None
+    return last
+
+
+def setup_data_relay() -> None:
+    """Arm the bts-hetzner data relay: install a throwaway, read-only rsync key
+    on the production box so fleet boxes can pull data/processed/ over Hetzner's
+    network. Idempotent (clears any stale marker line first). See the RELAY_*
+    constants for the rationale."""
+    global _DATA_RELAY_ACTIVE
+    if not RELAY_HOST_PUBLIC:
+        raise RuntimeError(
+            "--data-relay needs the relay host's public IP: set BTS_RELAY_HOST_PUBLIC "
+            "(and optionally BTS_RELAY_HOST_SSH/USER/DATA_DIR). Not hardcoded — public repo."
+        )
+    for p in (RELAY_KEY_LOCAL, RELAY_KEY_LOCAL + ".pub"):
+        try:
+            os.remove(p)
+        except FileNotFoundError:
+            pass
+    subprocess.run(
+        ["ssh-keygen", "-t", "ed25519", "-N", "", "-f", RELAY_KEY_LOCAL,
+         "-C", RELAY_MARKER, "-q"],
+        check=True, capture_output=True, text=True, timeout=30,
+    )
+    pub = Path(RELAY_KEY_LOCAL + ".pub").read_text().strip()
+    line = f'command="rrsync -ro {RELAY_DATA_DIR}",restrict {pub}'
+    install = (
+        "umask 077; mkdir -p ~/.ssh; "
+        f"sed -i '/{RELAY_MARKER}/d' ~/.ssh/authorized_keys 2>/dev/null || true; "
+        f"printf '%s\\n' '{line}' >> ~/.ssh/authorized_keys; "
+        f"grep -c {RELAY_MARKER} ~/.ssh/authorized_keys"
+    )
+    r = subprocess.run(
+        ["ssh", "-o", "ConnectTimeout=15", RELAY_HOST_SSH, install],
+        capture_output=True, text=True, timeout=60,
+    )
+    if r.returncode != 0 or r.stdout.strip() != "1":
+        raise RuntimeError(f"relay key install failed (rc={r.returncode}): "
+                           f"{(r.stderr or r.stdout)[:300]}")
+    _DATA_RELAY_ACTIVE = True
+    log(f"Data relay armed: fleet pulls {RELAY_DATA_DIR} from "
+        f"{RELAY_USER}@{RELAY_HOST_PUBLIC} (rrsync -ro, key={RELAY_MARKER})")
+
+
+def teardown_data_relay() -> None:
+    """Remove the throwaway relay key from bts-hetzner and delete local copies.
+    Safe to call unconditionally; no-ops when the relay was never armed."""
+    global _DATA_RELAY_ACTIVE
+    if not _DATA_RELAY_ACTIVE:
+        return
+    r = subprocess.run(
+        ["ssh", "-o", "ConnectTimeout=15", RELAY_HOST_SSH,
+         f"sed -i '/{RELAY_MARKER}/d' ~/.ssh/authorized_keys; "
+         f"grep -c {RELAY_MARKER} ~/.ssh/authorized_keys || true"],
+        capture_output=True, text=True, timeout=60,
+    )
+    remaining = r.stdout.strip()
+    log(f"Data relay key removed from {RELAY_HOST_SSH} (remaining marker count: {remaining})")
+    if remaining not in ("0", ""):
+        log(f"  WARN: relay key may not be fully removed — verify ~/.ssh/authorized_keys on {RELAY_HOST_SSH}")
+    for p in (RELAY_KEY_LOCAL, RELAY_KEY_LOCAL + ".pub"):
+        try:
+            os.remove(p)
+        except FileNotFoundError:
+            pass
+    _DATA_RELAY_ACTIVE = False
+
+
+def _provision_data_via_relay(ip: str) -> str:
+    """On fleet box `ip`: stage the throwaway key, then pull data/processed/
+    from bts-hetzner over Hetzner's network. Returns 'ok' or an error string."""
+    ssh_arg = "ssh " + " ".join(SSH_OPTS)
+    # 1) ship the tiny throwaway private key (controller -> fleet; small, works)
+    r = rsync_with_retry(
+        [RSYNC_BIN, "-az", "-e", ssh_arg,
+         RELAY_KEY_LOCAL, f"root@{ip}:/root/.ssh/bts_relay_key"],
+        timeout=120,
+    )
+    if r.returncode != 0:
+        return f"key_push: {r.stderr[:160]}"
+    # 2) pull the data ON the fleet box from bts-hetzner (Hetzner-internal path)
+    relay_ssh = (
+        "ssh -i /root/.ssh/bts_relay_key -o IdentitiesOnly=yes "
+        "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20"
+    )
+    pull = (
+        "chmod 600 /root/.ssh/bts_relay_key && "
+        "mkdir -p /root/projects/bts/data/processed && "
+        f'rsync -az --timeout=180 -e "{relay_ssh}" '
+        f"{RELAY_USER}@{RELAY_HOST_PUBLIC}:/ /root/projects/bts/data/processed/"
+    )
+    r2 = ssh_run(ip, pull, timeout=600)
+    if r2.returncode != 0:
+        return f"pull rc={r2.returncode}: {(r2.stderr or r2.stdout)[:200]}"
+    return "ok"
 
 
 def provision_one(box: Box) -> tuple[str, str]:
@@ -710,26 +899,38 @@ def provision_one(box: Box) -> tuple[str, str]:
     if not wait_cloud_init(box):
         return (name, "cloud_init_timeout")
 
-    log(f"  [{name}] rsync src/data/models...")
+    log(f"  [{name}] rsync src/models{'' if _DATA_RELAY_ACTIVE else '/data'}...")
     ssh_arg = "ssh " + " ".join(SSH_OPTS)
-    for src, dst in [
+    # Small trees always go controller -> fleet (a few MB; the constrained link
+    # handles these fine). The 210MB data/processed/ tree is the one that
+    # blackholes, so it is relayed from bts-hetzner when the relay is armed.
+    small_trees = [
         (f"{LOCAL_BTS}/src/", "/root/projects/bts/src/"),
-        (f"{LOCAL_BTS}/data/processed/", "/root/projects/bts/data/processed/"),
         (f"{LOCAL_BTS}/data/models/", "/root/projects/bts/data/models/"),
-    ]:
-        r = subprocess.run(
-            ["rsync", "-az", "-e", ssh_arg, src, f"root@{ip}:{dst}"],
-            capture_output=True, text=True, timeout=1800,
+    ]
+    if not _DATA_RELAY_ACTIVE:
+        small_trees.insert(1, (f"{LOCAL_BTS}/data/processed/",
+                               "/root/projects/bts/data/processed/"))
+    for src, dst in small_trees:
+        r = rsync_with_retry(
+            [RSYNC_BIN, "-az", "-e", ssh_arg, src, f"root@{ip}:{dst}"],
+            timeout=1800,
         )
         if r.returncode != 0:
             return (name, f"rsync_failed: {r.stderr[:200]}")
 
-    r = subprocess.run(
-        ["rsync", "-az", "-e", ssh_arg,
+    if _DATA_RELAY_ACTIVE:
+        log(f"  [{name}] relay-pull data/processed/ from {RELAY_HOST_PUBLIC}...")
+        status = _provision_data_via_relay(ip)
+        if status != "ok":
+            return (name, f"relay_failed: {status}")
+
+    r = rsync_with_retry(
+        [RSYNC_BIN, "-az", "-e", ssh_arg,
          f"{LOCAL_BTS}/pyproject.toml", f"{LOCAL_BTS}/uv.lock",
          f"{LOCAL_BTS}/README.md",
          f"root@{ip}:/root/projects/bts/"],
-        capture_output=True, text=True, timeout=60,
+        timeout=120,
     )
     if r.returncode != 0:
         return (name, f"rsync_configs: {r.stderr[:200]}")
@@ -1113,9 +1314,9 @@ def retrieve_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, str, 
         ("/root/audit.log", box_out / "audit.log"),
         ("/root/audit.done", box_out / "audit.done"),
     ]:
-        r = subprocess.run(
-            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local)],
-            capture_output=True, text=True, timeout=300,
+        r = rsync_with_retry(
+            [RSYNC_BIN, "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local)],
+            timeout=300,
         )
         if r.returncode != 0:
             errors.append(f"{remote}: {r.stderr[:120]}")
@@ -1125,9 +1326,9 @@ def retrieve_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[str, str, 
         remote = f"/root/projects/bts/experiments/results/phase1_seed{seed}/"
         local = box_out / f"phase1_seed{seed}"
         local.mkdir(exist_ok=True)
-        r = subprocess.run(
-            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local) + "/"],
-            capture_output=True, text=True, timeout=300,
+        r = rsync_with_retry(
+            [RSYNC_BIN, "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local) + "/"],
+            timeout=300,
         )
         if r.returncode != 0:
             errors.append(f"phase1_seed{seed}: {r.stderr[:120]}")
@@ -1153,9 +1354,9 @@ def retrieve_profile_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[st
         ("/root/audit.log", box_out / "audit.log"),
         ("/root/audit.done", box_out / "audit.done"),
     ]:
-        r = subprocess.run(
-            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local)],
-            capture_output=True, text=True, timeout=300,
+        r = rsync_with_retry(
+            [RSYNC_BIN, "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local)],
+            timeout=300,
         )
         if r.returncode != 0:
             errors.append(f"{remote}: {r.stderr[:120]}")
@@ -1164,9 +1365,9 @@ def retrieve_profile_one(box: Box, out_root: Path, seeds: list[int]) -> tuple[st
         remote = f"/root/projects/bts/data/simulation_seed{seed}/"
         local = box_out / f"simulation_seed{seed}"
         local.mkdir(exist_ok=True)
-        r = subprocess.run(
-            ["rsync", "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local) + "/"],
-            capture_output=True, text=True, timeout=600,
+        r = rsync_with_retry(
+            [RSYNC_BIN, "-az", "-e", ssh_arg, f"root@{ip}:{remote}", str(local) + "/"],
+            timeout=600,
         )
         if r.returncode != 0:
             errors.append(f"simulation_seed{seed}: {r.stderr[:120]}")
@@ -1371,6 +1572,10 @@ def main():
                     default="actual_pa",
                     help="Game-probability basis for --run-kind profiles. estimated_pa mirrors "
                          "the production probability surface — use for the MDP policy re-solve.")
+    ap.add_argument("--data-relay", action="store_true",
+                    help="Pull data/processed/ onto fleet boxes from bts-hetzner over Hetzner's "
+                         "network instead of uploading it from the controller. Use when the "
+                         "controller uplink blackholes large uploads (constrained/cellular link).")
     ap.add_argument("--label", default=None, help="Box name prefix (default: bts-audit-{provider})")
     ap.add_argument("--out", type=Path, default=LOCAL_BTS / "data" / "hetzner_results" / "audit_run", help="Local output directory")
     ap.add_argument("--poll-interval", type=int, default=900, help="Poll interval in seconds")
@@ -1476,6 +1681,9 @@ def main():
         if not boxes:
             log("No boxes spun up — aborting")
             return
+
+        if args.data_relay:
+            setup_data_relay()
 
         # Save box state for debugging / manual recovery
         (args.out / "boxes.json").write_text(json.dumps(
@@ -1725,6 +1933,7 @@ def main():
                 f"deleted={deleted} preserved={preserved} api_failed={api_failed} ===")
             if preserved > 0:
                 exit_code = 1  # data-integrity signal for external monitoring
+        teardown_data_relay()  # remove the throwaway key from bts-hetzner (no-op if unarmed)
 
     log("=== AUDIT DRIVER DONE ===")
     if exit_code:

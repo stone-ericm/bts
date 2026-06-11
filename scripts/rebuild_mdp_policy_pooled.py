@@ -44,10 +44,18 @@ def main() -> None:
     ap.add_argument("--season-length", type=int, default=180)
     ap.add_argument("--late-phase-days", type=int, default=30)
     ap.add_argument("--n-bins", type=int, default=5)
+    ap.add_argument("--build-seasons", default=None,
+                    help="Comma seasons to BUILD the policy from (e.g. 2021,2022,2023 for a "
+                         "true OOS holdout when evaluating on 2024,2025). Default: all seasons present.")
     args = ap.parse_args()
 
     print(f"Loading pooled profiles from {len(args.seed_dirs)} seed dirs...")
     profiles = load_pooled_profiles(args.seed_dirs)
+    if args.build_seasons:
+        keep = {int(s) for s in args.build_seasons.split(",")}
+        before = len(profiles)
+        profiles = profiles[profiles["season"].astype(int).isin(keep)].copy()
+        print(f"  build-seasons filter {sorted(keep)}: {before:,} -> {len(profiles):,} rows")
     n_seeds = profiles["seed"].nunique()
     n_dates = profiles["date"].nunique()
     print(f"  rows={len(profiles):,} seeds={n_seeds} unique_calendar_dates={n_dates}")

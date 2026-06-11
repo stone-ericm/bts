@@ -1,0 +1,311 @@
+{
+  "holdout_seasons": [
+    2024,
+    2025
+  ],
+  "prod_policy": "/tmp/deployed_mdp_policy.npz",
+  "cand_policy": "data/models/mdp_policy_pooled_estpa_v1.npz",
+  "prod_boundaries": [
+    0.7959788446395174,
+    0.8114907020399261,
+    0.8252474190317034,
+    0.8407401966749947
+  ],
+  "cand_boundaries": [
+    0.758831374817627,
+    0.7720106884277232,
+    0.784465112314612,
+    0.8000635146126936
+  ],
+  "per_seed": [
+    {
+      "seed": 1,
+      "v_prod": 2.3764792357468592e-06,
+      "v_cand": 1.817882316939805e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 7,
+      "v_prod": 4.40618391588441e-06,
+      "v_cand": 1.6400186277248657e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 11,
+      "v_prod": 3.783907419874958e-06,
+      "v_cand": 1.2100814285847307e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 23,
+      "v_prod": 2.1245490136236424e-06,
+      "v_cand": 1.5475823221197766e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 42,
+      "v_prod": 6.039934634253642e-06,
+      "v_cand": 9.956642453673993e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 73,
+      "v_prod": 3.84402548251737e-06,
+      "v_cand": 8.396827752681071e-06,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 137,
+      "v_prod": 1.0472378630958961e-06,
+      "v_cand": 3.781259568180417e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 199,
+      "v_prod": 2.89946778083544e-06,
+      "v_cand": 1.2407493152225258e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 1024,
+      "v_prod": 7.734094762461098e-06,
+      "v_cand": 4.552629081833192e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 8192,
+      "v_prod": 3.2670516321512084e-06,
+      "v_cand": 2.1730617126654903e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 65536,
+      "v_prod": 3.3163098920732055e-06,
+      "v_cand": 5.198510050319866e-06,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 524288,
+      "v_prod": 1.0380784030514771e-06,
+      "v_cand": 3.1463772494814214e-06,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 999983,
+      "v_prod": 1.9224195639838003e-06,
+      "v_cand": 9.724448137863087e-06,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 2041769,
+      "v_prod": 1.0569576593172107e-06,
+      "v_cand": 3.333844931183776e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 2273360,
+      "v_prod": 1.377292607472916e-06,
+      "v_cand": 8.254840788884531e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 3167584,
+      "v_prod": 2.0355646964796823e-06,
+      "v_cand": 1.639310063903811e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 3911096,
+      "v_prod": 9.160451941532423e-06,
+      "v_cand": 2.444779206568657e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 6426836,
+      "v_prod": 1.904061689324853e-06,
+      "v_cand": 1.5364064460612616e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 6762547,
+      "v_prod": 2.953582613202881e-06,
+      "v_cand": 4.69842007034214e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 6992150,
+      "v_prod": 7.4468068249695205e-06,
+      "v_cand": 1.7513170876549682e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 7777777,
+      "v_prod": 1.564152865643321e-06,
+      "v_cand": 1.470421094815584e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 7886470,
+      "v_prod": 5.101380638898657e-06,
+      "v_cand": 1.2312644154621167e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 7973654,
+      "v_prod": 8.429719487693538e-06,
+      "v_cand": 6.356140569723736e-06,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    },
+    {
+      "seed": 9884564,
+      "v_prod": 3.3050894600424857e-06,
+      "v_cand": 1.756773148428767e-05,
+      "replay_prod": 0.0,
+      "replay_cand": 0.0,
+      "n_traj": 2,
+      "term_prod": 0,
+      "term_cand": 0
+    }
+  ],
+  "analytic": {
+    "mean_prod": 3.6722833368387707e-06,
+    "mean_cand": 2.4716464356773883e-05,
+    "mean_gap": 2.104418101993512e-05,
+    "ci95": [
+      1.2694082501441807e-05,
+      3.0898607016145385e-05
+    ],
+    "cand_wins": 23,
+    "n_seeds": 24
+  },
+  "empirical_replay": {
+    "mean_prod": 0.0,
+    "mean_cand": 0.0
+  },
+  "decision_shift": {
+    "n_picks": 8856,
+    "pick_range": [
+      0.6919244304447179,
+      0.9210284389575674
+    ],
+    "bin_occupancy_prod": [
+      0.7939250225835591,
+      0.12488708220415537,
+      0.05499096657633243,
+      0.013098464317976514,
+      0.013098464317976514
+    ],
+    "bin_occupancy_cand": [
+      0.22504516711833786,
+      0.22098012646793136,
+      0.20426829268292682,
+      0.18405600722673893,
+      0.16565040650406504
+    ],
+    "decision_disagreement": 0.37781447606142593,
+    "cand_more_aggressive": 0.3332557023486884,
+    "action_mix_prod": [
+      0.6382664295392949,
+      0.10266909439927716,
+      0.2590644760614269
+    ],
+    "action_mix_cand": [
+      0.39000959801264606,
+      0.218495934959349,
+      0.3914944670280024
+    ]
+  },
+  "verdict": "SHIP"
+}
