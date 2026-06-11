@@ -438,8 +438,20 @@ class TestValidationSplit:
             "uv run bts simulate backtest \\\n"
             "    --seasons 2023,2024,2025 \\\n"
             "    --output-dir data/simulation \\\n"
+            "    --game-probability-mode actual_pa \\\n"
             "    --log-pa-predictions"
         )
+
+    def test_render_profile_command_threads_estimated_pa_mode(self):
+        from audit_driver import render_profile_command
+
+        command = render_profile_command(
+            [2024, 2025],
+            log_pa_predictions=False,
+            game_probability_mode="estimated_pa",
+        )
+        assert "--game-probability-mode estimated_pa" in command
+        assert "--no-log-pa-predictions" in command
 
     def test_launch_profile_queue_command_uses_profile_artifacts_and_metadata(
         self, monkeypatch,
