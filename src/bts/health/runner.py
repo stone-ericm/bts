@@ -33,6 +33,7 @@ from bts.health import (
     realized_calibration,
     restart_spike,
     same_team_corr,
+    slate_auc,
     streak_validation,
 )
 from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
@@ -180,6 +181,10 @@ def run_all_checks(
         picks_dir, today=today, thresholds=overrides.get("realized_calibration"),
         data_dir=data_dir, since_deploy_iso=since_deploy_iso,
     )))
+    if data_dir is not None:
+        alerts.extend(_safe_run("slate_auc", lambda: slate_auc.check(
+            picks_dir, data_dir=data_dir, today=today, thresholds=overrides.get("slate_auc"),
+        )))
     alerts.extend(_safe_run("mdp_policy_alignment", lambda: mdp_policy_alignment.check(
         picks_dir,
         policy_path=models_dir / "mdp_policy.npz",

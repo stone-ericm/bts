@@ -42,6 +42,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - Read-only debugging (cat state files, `journalctl --user -u bts-scheduler`, run a diagnostic) does not disturb the running scheduler; it short-circuits already-locked picks.
 
 ## Safety Rules
+- **M3 revisit trigger**: after any change that materially improves slate discrimination (rolling realized AUC ≥ ~0.61 vs the ~0.59 baseline — the `slate_auc` health check WARNs on this automatically), re-run `scripts/replay_m3_serving_parity.py`. The serving-staleness HOLD (`docs/audit/2026-06-11-m3-serving-staleness.md`) is only valid while the model can't discriminate adjacent top candidates.
 - **Never use features computed on full dataset** without shift(1) temporal guard
 - **Never trust feature importance or ablation results** if there's any chance of leakage — fix leakage first, then re-evaluate
 - **K-Means clustering is NOT safe** for features — cluster assignments are 90.8% unstable across train/test splits

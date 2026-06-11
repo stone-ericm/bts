@@ -246,6 +246,11 @@ def run_and_pick(
     if predictions is None or predictions.empty:
         return predictions, None, tier_name
 
+    # Persist the full ranked slate (observability only — save_slate never
+    # raises). Enables realized slate-level metrics; see bts/slate.py.
+    from bts.slate import save_slate
+    save_slate(predictions, date, picks_dir, tier_name)
+
     decision_state = load_decision_streak_state(
         picks_dir,
         require_contest_state=_contest_state_required(config),
