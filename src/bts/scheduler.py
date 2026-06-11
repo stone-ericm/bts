@@ -59,6 +59,58 @@ def _alert_contest_state_failure(config: dict, error: Exception) -> None:
     )
 
 
+def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
+    """E3: DM the operator that no pick was delivered as first pitch nears, so
+    they can post manually (the EOD post_failure DM is hours too late)."""
+    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+    dm_recipient = config.get("bluesky", {}).get("dm_recipient")
+    picks_dir = Path(config["orchestrator"]["picks_dir"])
+    status_path = picks_dir.parent / "health_state" / "health_dm_delivery_status.json"
+    name = daily.pick.batter_name if daily and getattr(daily, "pick", None) else "?"
+    msg = (f"NO PICK DELIVERED with ~{mins_to_game:.0f} min to first pitch "
+           f"(top pick: {name}). Deliver manually if you want to keep the streak alive.")
+    dispatch_dm_for_health_alerts(
+        [Alert("CRITICAL", "missed_pick", msg)],
+        dm_recipient,
+        status_path=status_path,
+    )
+
+
+def _maybe_alert_missed_pick(
+    config: dict, date: str, picks_dir: Path, missed_pick_alert_min: int,
+    heartbeat_path: "Path | None",
+) -> None:
+    """E3: if no pick is delivered by ``missed_pick_alert_min`` minutes before the
+    earliest first pitch, DM a one-shot warning. Waits (watchdog-fed) to the alert
+    window, then re-checks — a late delivery during the wait suppresses the alert."""
+    from bts.picks import load_pick, pick_was_delivered
+
+    daily = load_pick(date, picks_dir)
+    if not daily or pick_was_delivered(daily):
+        return
+    earliest_game_et = _earliest_pick_game_et(daily)
+    alert_at = earliest_game_et - timedelta(minutes=missed_pick_alert_min)
+    wait_s = (alert_at - _now_et()).total_seconds()
+    if wait_s > 0:
+        if heartbeat_path:
+            write_heartbeat(
+                heartbeat_path, state=HeartbeatState.SLEEPING,
+                sleeping_until=alert_at.astimezone(UTC),
+            )
+            notify_watchdog()
+        _watchdog_ping_sleep(wait_s)
+        if heartbeat_path:
+            write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
+            notify_watchdog()
+    daily = load_pick(date, picks_dir)  # a late delivery may have landed during the wait
+    if daily and not pick_was_delivered(daily):
+        mins = (earliest_game_et - _now_et()).total_seconds() / 60
+        print(f"  MISSED-PICK ALERT — no delivery with ~{mins:.0f}min to first pitch.",
+              file=sys.stderr)
+        _alert_missed_pick(config, daily, mins)
+
+
 def fetch_schedule(date: str) -> list[dict]:
     """Fetch today's MLB schedule. Returns list of game dicts."""
     resp = json.loads(retry_urlopen(
@@ -1779,6 +1831,12 @@ def run_day(
 
         if state.pick_locked and shadow_model_enabled and daily:
             _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)
+
+    # 5b. Missed-pick early alert (audit E3): if delivery failed, warn the
+    # operator in-window — while they can still post manually — instead of only
+    # the hours-late EOD post_failure DM.
+    if not state.pick_locked:
+        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:
