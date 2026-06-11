@@ -84,5 +84,5 @@ def send_dm(recipient_handle: str, text: str) -> str:
             "Authorization": f"Bearer {jwt}",
         },
     )
-    result = json.loads(retry_urlopen(req, timeout=15).read())
+    result = json.loads(retry_urlopen(req, timeout=15, idempotent=False).read())  # sendMessage — no retry
     return result["id"]

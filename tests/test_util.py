@@ -78,3 +78,28 @@ class TestRetryUrlopen:
         retry_urlopen("http://example.com", max_retries=3, delay=5)
         assert mock_sleep.call_args_list[0][0][0] == 5   # attempt 0: 5*1
         assert mock_sleep.call_args_list[1][0][0] == 10  # attempt 1: 5*2
+
+    @patch("bts.util.urlopen")
+    def test_no_retry_when_not_idempotent_url_error(self, mock_urlopen):
+        """Non-idempotent requests (POSTs that create records) must NOT retry on
+        a network error — a lost response can mean the server committed, so a
+        retry double-posts. Raise on the first failure instead."""
+        mock_urlopen.side_effect = URLError("Connection reset by peer")
+        with pytest.raises(URLError):
+            retry_urlopen("http://x", max_retries=3, delay=0, idempotent=False)
+        assert mock_urlopen.call_count == 1
+
+    @patch("bts.util.urlopen")
+    def test_no_retry_when_not_idempotent_server_error(self, mock_urlopen):
+        mock_urlopen.side_effect = HTTPError("http://x", 503, "Unavailable", {}, None)
+        with pytest.raises(HTTPError):
+            retry_urlopen("http://x", max_retries=3, delay=0, idempotent=False)
+        assert mock_urlopen.call_count == 1
+
+    @patch("bts.util.time.sleep")
+    @patch("bts.util.urlopen")
+    def test_idempotent_default_still_retries(self, mock_urlopen, mock_sleep):
+        """Default (idempotent=True) behavior is unchanged — retries network errors."""
+        mock_urlopen.side_effect = [URLError("fail"), MagicMock()]
+        retry_urlopen("http://x", max_retries=3, delay=1)
+        assert mock_urlopen.call_count == 2

@@ -407,6 +407,21 @@ def _deliver_and_lock_pick(
         print(f"  LOCKED ({label}) — pick already delivered.", file=sys.stderr)
         return True
 
+    if daily.delivery_attempted:
+        # A delivery was persisted as "attempted" but the pick is not delivered →
+        # the daemon crashed in the gap between sending and recording success. We
+        # cannot know whether it posted, so do NOT re-send (a duplicate on the
+        # public feed is worse than a missed post, which the EOD post_failure check
+        # surfaces). Lock to stop further attempts. (Caught send failures clear the
+        # marker before returning, so this only fires on an uncaught crash.)
+        print(f"  DELIVERY OUTCOME UNKNOWN ({label}) — prior attempt unconfirmed; "
+              f"NOT re-sending to avoid a duplicate. Locking; verify manually.",
+              file=sys.stderr)
+        state.pick_locked = True
+        state.pick_locked_at = _now_et().isoformat()
+        save_state(state, picks_dir)
+        return False
+
     if mode == "private":
         save_pick(daily, picks_dir)
         state.pick_locked = True
@@ -436,6 +451,8 @@ def _deliver_and_lock_pick(
         if not recipient:
             print("  Pick DM failed: bluesky.dm_recipient is not configured", file=sys.stderr)
             return False
+        daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
+        save_pick(daily, picks_dir)
         try:
             from bts.dm import send_dm
             msg_id = send_dm(recipient, text)
@@ -450,9 +467,13 @@ def _deliver_and_lock_pick(
             print(f"  LOCKED ({label}) — Pick DM sent: {msg_id}", file=sys.stderr)
             return True
         except Exception as e:
+            daily.delivery_attempted = False  # known failure → clear so a later cycle retries
+            save_pick(daily, picks_dir)
             print(f"  Pick DM failed: {e}", file=sys.stderr)
             return False
 
+    daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
+    save_pick(daily, picks_dir)
     try:
         from bts.posting import post_to_bluesky
         uri = post_to_bluesky(text)
@@ -466,6 +487,8 @@ def _deliver_and_lock_pick(
         print(f"  LOCKED ({label}) — Posted to Bluesky: {uri}", file=sys.stderr)
         return True
     except Exception as e:
+        daily.delivery_attempted = False  # known failure → clear so a later cycle retries
+        save_pick(daily, picks_dir)
         print(f"  Bluesky post failed: {e}", file=sys.stderr)
         return False
 

@@ -152,7 +152,8 @@ def post_to_bluesky(text: str) -> str:
                  "Authorization": f"Bearer {session['accessJwt']}"},
     )
     try:
-        resp = json.loads(retry_urlopen(req, timeout=15).read())
+        # idempotent=False: a retried createRecord on a lost response double-posts
+        resp = json.loads(retry_urlopen(req, timeout=15, idempotent=False).read())
     except HTTPError as e:
         if e.code == 429:
             raise RuntimeError("Bluesky rate limited — try again in a few minutes") from e
@@ -209,7 +210,7 @@ def reply_to_bluesky(text: str, parent_uri: str) -> str:
         headers={"Content-Type": "application/json",
                  "Authorization": f"Bearer {session['accessJwt']}"},
     )
-    resp = json.loads(retry_urlopen(req, timeout=15).read())
+    resp = json.loads(retry_urlopen(req, timeout=15, idempotent=False).read())  # createRecord — no retry
     return resp["uri"]
 
 

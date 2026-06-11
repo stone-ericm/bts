@@ -31,11 +31,16 @@ def atomic_write_text(path, text: str) -> None:
             os.unlink(tmp)
 
 
-def retry_urlopen(req, timeout=15, max_retries=3, delay=5):
+def retry_urlopen(req, timeout=15, max_retries=3, delay=5, idempotent=True):
     """urlopen with retry on transient failures.
 
     Retries on server errors (5xx) and network errors.
     Does NOT retry client errors (400, 401, 403, 404).
+
+    Set ``idempotent=False`` for requests that CREATE state (e.g. a Bluesky
+    post/DM createRecord). A network error after the request was sent can mean
+    the server committed but the response was lost — retrying then double-posts.
+    Non-idempotent requests raise on the first transient failure instead.
     """
     for attempt in range(max_retries):
         try:
@@ -43,6 +48,8 @@ def retry_urlopen(req, timeout=15, max_retries=3, delay=5):
         except (HTTPError, URLError) as e:
             if isinstance(e, HTTPError) and e.code in (400, 401, 403, 404):
                 raise  # Don't retry client errors
+            if not idempotent:
+                raise  # non-idempotent: a lost response may mean it committed
             if attempt < max_retries - 1:
                 time.sleep(delay * (attempt + 1))
             else:

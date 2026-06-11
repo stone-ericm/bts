@@ -205,6 +205,10 @@ class DailyPick:
     notification_sent: bool = False
     notification_channel: str | None = None
     notification_id: str | None = None
+    # E2 idempotency: persisted True *before* a network delivery (post/DM) and
+    # cleared on a caught failure. If it survives as True while the pick is not
+    # delivered, the daemon crashed mid-send → don't re-send (avoid a duplicate).
+    delivery_attempted: bool = False
     result: str | None = None  # "hit", "miss", "void", "suspended", "unresolved", or None (pending)
     slot_results: dict[str, str] | None = None  # {"pick": "hit|miss|void", "double_down": ...}
     # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
@@ -370,6 +374,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         notification_sent=data.get("notification_sent", False),
         notification_channel=data.get("notification_channel"),
         notification_id=data.get("notification_id"),
+        delivery_attempted=data.get("delivery_attempted", False),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         model_git_sha=data.get("model_git_sha"),
@@ -402,6 +407,7 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         notification_sent=data.get("notification_sent", False),
         notification_channel=data.get("notification_channel"),
         notification_id=data.get("notification_id"),
+        delivery_attempted=data.get("delivery_attempted", False),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         # Provenance v1 — defaults to None for picks saved before these fields existed.
