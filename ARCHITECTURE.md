@@ -166,7 +166,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `restart_spike` | 1 | `NRestarts` delta vs checkpoint > threshold |
 | `calibration` | 2 | top-1 P drift on 7d vs 14d rolling mean |
 | `predicted_vs_realized` | 2 | acute drift in mean(predicted) - mean(realized) over 14d window |
-| `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket. Filters by `since_deploy_iso` (auto-derived from `git log -1 --format=%cI HEAD` on production repo) so it only counts current-model picks; pre-deploy picks excluded with logged skip count. Thresholds 8/15/25 pp INFO/WARN/CRITICAL. Uses PA-frame attribution when `data_dir` provided (corrects DD attribution bias from streak-result proxy). Both fixes shipped 2026-05-01. |
+| `realized_calibration` | 2 | absolute LEVEL of overconfidence in 75-80% bucket. Filters by `since_deploy_iso` so it only counts current-model picks (pre-deploy excluded, skip count logged). Since-deploy timestamp prefers a wall-clock stamp `data/.last_deploy_iso` (written by `deploy.yml` on canary-pass AND rollback — monotonic, so it fixes commit-time≠deploy-time and rollback-moves-HEAD-backward); falls back to `git log %cI HEAD` when absent. Pick run_time vs cutoff is instant-compared, not lexicographic (2026-06-11). Thresholds 8/15/25 pp INFO/WARN/CRITICAL. Uses PA-frame attribution when `data_dir` provided (corrects DD attribution bias). |
 | `same_team_corr` | 2 | DD pair-realization vs naive independence |
 | `projected_lineup` | 2 | % rolling 14d projected_lineup over threshold |
 | `pitcher_sparsity` | 2 | % rolling 14d picks with `LIMITED pitcher data` flag (added 2026-04-30 — diagnostic for MiLB-transfer ROI; also catches min_periods regression) |
