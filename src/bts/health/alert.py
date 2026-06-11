@@ -134,6 +134,24 @@ def format_health_dm_body(
     return "\n".join(lines)
 
 
+def _resurface_note(status_path: Path | str | None) -> str | None:
+    """H6: if the PREVIOUS health DM failed to send, return a note to prepend so
+    the missed alerts resurface on the next DM. Day-keyed one-shot CRITICALs
+    (e.g. pick_delivery for day D) are otherwise lost on a transient Bluesky
+    outage during that EOD run."""
+    if status_path is None:
+        return None
+    try:
+        data = json.loads(Path(status_path).read_text())
+    except (FileNotFoundError, ValueError, OSError):
+        return None
+    n = data.get("critical_count", 0)
+    if data.get("status") == "failed" and n > 0:
+        return (f"⚠️ Previous health alert DM FAILED to send "
+                f"({n} CRITICAL) — it may have been missed.")
+    return None
+
+
 def dispatch_dm_for_health_alerts(
     alerts: list[Alert],
     dm_recipient: str | None,
@@ -149,6 +167,9 @@ def dispatch_dm_for_health_alerts(
     warn_attention = warn_attention or []
     critical = [a for a in alerts if a.level == "CRITICAL"]
     body = format_health_dm_body(critical, warn_attention)
+    resurface = _resurface_note(status_path)  # H6: resurface a prior failed DM
+    if resurface:
+        body = resurface + ("\n\n" + body if body else "")
     if body is None:
         return False
     if not dm_recipient:
