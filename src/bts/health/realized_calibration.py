@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from bts.health.alert import Alert
@@ -100,6 +100,27 @@ def _current_deploy_iso(repo_dir: Path) -> str | None:
         return None
 
 
+def _iso_before(run_time: str, since_deploy_iso: str) -> bool:
+    """True if instant ``run_time`` is strictly before ``since_deploy_iso``.
+
+    Compares timezone-aware datetimes, NOT ISO strings: run_time is written in
+    +00:00 while ``since_deploy_iso`` (git %cI) carries the committer's local
+    offset, so a lexicographic compare misclassifies picks whenever the offsets
+    differ. Unparseable run_time → treated as pre-deploy (conservative skip).
+    A naive timestamp is assumed UTC.
+    """
+    try:
+        rt = datetime.fromisoformat(run_time)
+        dep = datetime.fromisoformat(since_deploy_iso)
+    except (ValueError, TypeError):
+        return True
+    if rt.tzinfo is None:
+        rt = rt.replace(tzinfo=timezone.utc)
+    if dep.tzinfo is None:
+        dep = dep.replace(tzinfo=timezone.utc)
+    return rt < dep
+
+
 def check(
     picks_dir: Path,
     today: date | None = None,
@@ -161,7 +182,7 @@ def check(
         # Filter out pre-deploy picks if since_deploy_iso provided
         if since_deploy_iso is not None:
             run_time = body.get("run_time", "")
-            if not run_time or run_time < since_deploy_iso:
+            if not run_time or _iso_before(run_time, since_deploy_iso):
                 skipped_pre_deploy += 1
                 continue
         result = body.get("result")
