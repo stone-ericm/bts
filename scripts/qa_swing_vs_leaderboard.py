@@ -36,13 +36,16 @@ def main() -> None:
 
     bronze = pd.read_parquet(args.bronze / f"swing_{args.season}.parquet")
     daily = daily_swing_aggregates(bronze, entity=args.player_type)
+    # Like-for-like with the leaderboard: its n_swings is bat-TRACKED swings
+    # (excl. bunts — already excluded in our description sets). Our feature
+    # layer keeps description-based n_swings as the denominator; tracked
+    # counts are the comparison surface here.
     ours = daily.groupby(args.player_type).agg(
-        n_swings=("n_swings", "sum"),
-        n_whiffs=("n_whiffs", "sum"),
+        n_swings=("n_swings_tracked", "sum"),
         n_whiffs_tracked=("n_whiffs_tracked", "sum"),
         miss_sum=("miss_sum", "sum"),
     )
-    ours["whiff_rate"] = ours["n_whiffs"] / ours["n_swings"]
+    ours["whiff_rate"] = ours["n_whiffs_tracked"] / ours["n_swings"]
     ours["mean_miss"] = ours["miss_sum"] / ours["n_whiffs_tracked"]
 
     url = LB_URL.format(season=args.season, ptype=args.player_type)

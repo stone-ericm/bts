@@ -17,10 +17,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-WHIFF_DESCRIPTIONS = {"swinging_strike", "swinging_strike_blocked", "missed_bunt"}
-SWING_DESCRIPTIONS = WHIFF_DESCRIPTIONS | {
-    "foul", "foul_tip", "hit_into_play", "foul_bunt", "bunt_foul_tip",
-}
+# Bunt attempts excluded throughout: they aren't skill-relevant swings and
+# Savant's swing leaderboards exclude them too (QA'd 2026-06-12: leaderboard
+# n_swings = bat-tracked swings excl. bunts; matching that definition closes
+# a +3.5% count bias to 0.25% median APE).
+WHIFF_DESCRIPTIONS = {"swinging_strike", "swinging_strike_blocked"}
+SWING_DESCRIPTIONS = WHIFF_DESCRIPTIONS | {"foul", "foul_tip", "hit_into_play"}
 
 
 def daily_swing_aggregates(bronze: pd.DataFrame, entity: str) -> pd.DataFrame:
