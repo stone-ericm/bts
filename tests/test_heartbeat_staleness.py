@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from check_heartbeat import is_stale
+from scripts.check_heartbeat import is_stale
 
 
 def _write_hb(path: Path, **kv) -> None:
@@ -126,3 +126,20 @@ def test_stale_waiting_for_games(tmp_path):
     stale, reason = is_stale(hb_path, now=now)
     assert stale
     assert "waiting" in reason.lower()
+
+
+def test_stalled_state_is_stale_with_stage_in_reason(tmp_path):
+    path = tmp_path / ".heartbeat"
+    _write_hb(
+        path,
+        state="stalled",
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        stage="computing_features",
+        stalled_for_s=1234,
+    )
+
+    stale, reason = is_stale(path)
+
+    assert stale is True
+    assert "computing_features" in reason
+    assert "1234" in reason

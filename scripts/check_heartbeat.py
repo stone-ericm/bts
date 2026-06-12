@@ -84,6 +84,14 @@ def is_stale(
             return True, f"idle_end_of_day stuck {age_s:.0f}s (>{IDLE_END_MAX_AGE}s)"
         return False, "fresh idle_end_of_day"
 
+    if state == "stalled":
+        stage = raw.get("stage", "?")
+        stalled_for = raw.get("stalled_for_s", "?")
+        return True, (
+            f"cascade stalled in stage '{stage}' for {stalled_for}s "
+            f"(process alive, progress stopped)"
+        )
+
     return True, f"unknown state: {state}"
 
 

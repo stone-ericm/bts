@@ -114,3 +114,13 @@ def test_heartbeat_watchdog_stops_writing_after_exit(tmp_path: Path):
     time.sleep(0.2)
     ts_later = read_heartbeat(hb_path)["timestamp"]
     assert ts_after_exit == ts_later
+
+
+def test_stalled_state_is_never_fresh(tmp_path: Path):
+    hb_path = tmp_path / ".heartbeat"
+    now = datetime(2026, 6, 11, 15, 30, tzinfo=timezone.utc)
+    write_heartbeat(hb_path, state="stalled", now_utc=now,
+                    extra={"stage": "computing_features", "stalled_for_s": 1000})
+
+    # timestamp is brand new — age check alone would call this fresh
+    assert is_heartbeat_fresh(hb_path, max_age_sec=180, now_utc=now) is False

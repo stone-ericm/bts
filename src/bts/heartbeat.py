@@ -23,6 +23,7 @@ class HeartbeatState:
     SLEEPING = "sleeping"
     WAITING_FOR_GAMES = "waiting_for_games"
     IDLE_END_OF_DAY = "idle_end_of_day"
+    STALLED = "stalled"  # process alive but cascade progress stopped (H5b)
 
 
 def write_heartbeat(
@@ -76,6 +77,11 @@ def is_heartbeat_fresh(
 
     hb = read_heartbeat(path)
     if hb is None:
+        return False
+
+    # Stalled = process alive but no cascade progress; timestamps stay fresh
+    # because the pulse keeps writing, so the age check below must not see it.
+    if hb.get("state") == HeartbeatState.STALLED:
         return False
 
     # If sleeping, trust sleeping_until
