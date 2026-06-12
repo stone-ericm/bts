@@ -174,3 +174,89 @@ def build_arm_frame(
         return pa.copy(), ["LEAKY_same_day_miss"]
 
     raise KeyError(f"unknown arm: {arm}")
+
+
+# --- screen runner -----------------------------------------------------------
+
+PA_EST = {1: 4.5, 2: 4.3, 3: 4.2, 4: 4.1, 5: 4.0, 6: 3.9, 7: 3.8, 8: 3.7, 9: 3.6}
+
+
+def _slate_for_season(pa: pd.DataFrame, season: int) -> pd.DataFrame:
+    """One row per (batter, game) for actual starters (lineup 1-9); outcome =
+    any hit in that game. Mirrors the validated replay_m3_serving_parity
+    construction."""
+    sdf = pa[(pa["season"] == season) & (pa["lineup_position"].between(1, 9))]
+    slate = sdf.groupby(["game_pk", "batter_id"], as_index=False).first()
+    outcome = sdf.groupby(["game_pk", "batter_id"])["is_hit"].max().rename("actual_hit")
+    slate = slate.drop(columns=["is_hit"]).merge(outcome, on=["game_pk", "batter_id"], how="left")
+    return slate.dropna(subset=["actual_hit"])
+
+
+def run_screen_arm(
+    arm: str,
+    pa: pd.DataFrame,
+    train_seasons: tuple,
+    screen_season: int,
+    seed: int,
+    base_cols: list | None = None,
+    lgb_overrides: dict | None = None,
+    out_dir=None,
+    permute_seed: int = 13,
+) -> dict:
+    """Train one LightGBM on train_seasons, score screen_season slates,
+    return + persist the per-arm metric payload."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    import lightgbm as lgb
+
+    from bts.health.slate_auc import _rank_auc
+    from bts.model.predict import FEATURE_COLS, LGB_PARAMS
+    from bts.validate.slate_rank import daily_ndcg
+
+    frame, swing_cols = build_arm_frame(arm, pa, permute_seed=permute_seed)
+    cols = (base_cols if base_cols is not None else FEATURE_COLS) + swing_cols
+
+    train = frame[frame["season"].isin(train_seasons)]
+    params = {**LGB_PARAMS, **(lgb_overrides or {}),
+              "deterministic": True, "force_row_wise": True}
+    model = lgb.LGBMClassifier(**params, random_state=seed)
+    X = train[cols]
+    mask = X.notna().any(axis=1) & train["is_hit"].notna()
+    model.fit(X[mask], train["is_hit"][mask])
+
+    slate = _slate_for_season(frame, screen_season)
+    p_pa = model.predict_proba(slate[cols])[:, 1]
+    est = slate["lineup_position"].map(PA_EST).fillna(4.0)
+    slate = slate.assign(p_game=1 - (1 - p_pa) ** est)
+
+    days = []
+    for d, day in slate.groupby("date"):
+        v = daily_ndcg(day, "p_game", k=10)
+        if not np.isnan(v):
+            top = day.sort_values("p_game", ascending=False)
+            days.append({
+                "date": str(d.date()), "ndcg": v,
+                "top1": int(top["actual_hit"].iloc[0]),
+                "top3": float(top["actual_hit"].head(3).mean()),
+            })
+    auc = _rank_auc(
+        slate.loc[slate["actual_hit"] == 1, "p_game"].tolist(),
+        slate.loc[slate["actual_hit"] == 0, "p_game"].tolist(),
+    )
+
+    res = {
+        "arm": arm, "seed": seed, "family": FAMILY_OF[arm],
+        "train_seasons": list(train_seasons), "screen_season": screen_season,
+        "n_swing_cols": len(swing_cols), "n_days": len(days),
+        "ndcg_mean": float(np.mean([x["ndcg"] for x in days])) if days else None,
+        "top1_hit": float(np.mean([x["top1"] for x in days])) if days else None,
+        "top3_hit": float(np.mean([x["top3"] for x in days])) if days else None,
+        "auc": auc,
+        "per_day": days,
+    }
+    if out_dir is not None:
+        out_dir = _Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / f"{arm}_seed{seed}.json").write_text(_json.dumps(res))
+    return res

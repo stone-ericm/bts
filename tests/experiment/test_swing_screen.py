@@ -72,3 +72,36 @@ def test_placebo_control_is_flags_only():
     frame, cols = build_arm_frame("ctl_placebo", pa)
     assert all(c.startswith("has_") for c in cols)
     assert all(frame[c].dtype == bool for c in cols)
+
+
+def test_run_screen_arm_end_to_end(tmp_path):
+    from bts.experiment.swing_screen import run_screen_arm
+
+    rng = np.random.default_rng(3)
+    rows = []
+    for season in (2023, 2024):
+        for i in range(30):
+            for b in range(18):
+                hit_p = 0.55 + 0.2 * (b % 2)        # feature-correlated outcome
+                rows.append({
+                    "batter_id": b, "pitcher_id": 100 + (i % 3),
+                    "game_pk": season * 1000 + i, "lineup_position": (b % 9) + 1,
+                    "is_home": b < 9,
+                    "date": pd.Timestamp(f"{season}-05-01") + pd.Timedelta(days=i),
+                    "season": season,
+                    "is_hit": int(rng.random() < hit_p),
+                    "weather_temp": 70.0,
+                    "batter_miss_dist_30g": 3.0 - 0.5 * (b % 2),
+                })
+    pa = pd.DataFrame(rows)
+
+    res = run_screen_arm(
+        arm="b_miss_30g", pa=pa, train_seasons=(2023,), screen_season=2024,
+        seed=42, base_cols=["weather_temp"],
+        lgb_overrides={"n_estimators": 10, "min_child_samples": 5},
+        out_dir=tmp_path,
+    )
+    assert (tmp_path / "b_miss_30g_seed42.json").exists()
+    assert res["arm"] == "b_miss_30g"
+    assert res["n_days"] > 0
+    assert "ndcg_mean" in res and "top1_hit" in res and "auc" in res
