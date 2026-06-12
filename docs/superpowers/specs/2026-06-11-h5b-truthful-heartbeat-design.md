@@ -1,7 +1,9 @@
 # H5(b): Truthful heartbeat — split process-aliveness from progress
 
-**Status: approved 2026-06-11 (Phase 1, alert-only). Codex (gpt-5.5) adversarial
-review incorporated.**
+**Status: IMPLEMENTED + DEPLOYED 2026-06-12 (Phase 1, alert-only). Codex
+(gpt-5.5) adversarial review incorporated (2 rounds). Implementation note:
+`end_run(run_id)` returns the final transition rows (the spec's "end_run then
+final drain" sequencing would have drained an already-retired token).**
 
 ## Problem
 

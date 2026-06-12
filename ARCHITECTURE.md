@@ -181,6 +181,19 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 
 State files: `data/health_state/memory_growth_history.jsonl` (daily-appended RSS log); `data/picks/lineup_evolution_<date>.jsonl` (one append per `save_pick` call — captures pick trajectory across day's lineup-confirm checks; supports gap #6 analysis of projected-vs-confirmed underperformance, shipped 2026-05-01).
 
+**Truthful heartbeat (H5b, 2026-06-11):** during cascades, `heartbeat_watchdog`
+ticks read an in-process progress beacon (`bts.progress`, stage-entry marks
+through `run_and_pick`/`run_pipeline`). Progress fresh → `state=running` with
+`{stage, stage_age_s, run_id}`; no progress for `heartbeat_stall_after_sec`
+(default 900, `[scheduler]` toml) → `state=stalled` → `check_heartbeat.py`
+cron POSTs healthchecks /fail within ≤5 min (dashboard `is_heartbeat_fresh`
+also fails closed). **sd_notify pings continue during a stall** — the unit has
+`WatchdogSec=1800`, and Phase 1 is alert-only (no auto-kill; Codex-reviewed).
+Stage durations append to `data/health_state/cascade_stage_durations.jsonl`
+(`status ∈ {ok, ok_after_stall, stalled_incomplete}`) — the dataset for any
+Phase-2 data-derived thresholds. Spec:
+`docs/superpowers/specs/2026-06-11-h5b-truthful-heartbeat-design.md`.
+
 ## Contest-account streak (drives live picks)
 
 Live recommendations are driven by Eric's REAL MLB BTS account streak ("contest state"), kept separate from the model/replay `streak.json`. `bts.contest_state.load_decision_streak_state` prefers contest state; when stale (`source_date < latest_resolved_pick_date`) it freezes the effective streak at `max(model, contest)` and disables doubles (conservative). Automation shipped PR #142 (2026-06-06, Claude+Codex).
