@@ -124,3 +124,122 @@ def test_stalled_state_is_never_fresh(tmp_path: Path):
 
     # timestamp is brand new — age check alone would call this fresh
     assert is_heartbeat_fresh(hb_path, max_age_sec=180, now_utc=now) is False
+
+
+import time as _time
+
+from bts import progress
+from bts.heartbeat import heartbeat_watchdog
+
+
+def _read_jsonl(p: Path) -> list:
+    if not p.exists():
+        return []
+    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+
+
+def test_watchdog_running_heartbeat_carries_stage(tmp_path: Path):
+    hb = tmp_path / ".heartbeat"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="primary",
+                            date="2026-06-11", stall_after_sec=999):
+        progress.mark("computing_features")
+        _time.sleep(0.08)
+        payload = read_heartbeat(hb)
+        assert payload["state"] == "running"
+        assert payload["stage"] == "computing_features"
+        assert "run_id" in payload
+
+
+def test_watchdog_flips_to_stalled_and_keeps_sd_notify(tmp_path: Path, monkeypatch):
+    pings = []
+    monkeypatch.setattr("bts.sd_notify.notify_watchdog", lambda: pings.append(1))
+    hb = tmp_path / ".heartbeat"
+    dur = tmp_path / "durations.jsonl"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="primary",
+                            date="2026-06-11", stall_after_sec=0.0,
+                            durations_path=dur):
+        progress.mark("computing_features")
+        _time.sleep(0.08)
+        payload = read_heartbeat(hb)
+        assert payload["state"] == "stalled"
+        assert payload["stage"] == "computing_features"
+        assert payload["stalled_for_s"] >= 0
+    assert len(pings) >= 2  # sd_notify NEVER stops during a stall (no systemd kill)
+    rows = _read_jsonl(dur)
+    incomplete = [r for r in rows if r["status"] == "stalled_incomplete"
+                  and r["stage"] == "computing_features"]
+    assert len(incomplete) == 1  # once per stage instance, despite many ticks
+    assert incomplete[0]["kind"] == "primary"
+    assert incomplete[0]["date"] == "2026-06-11"
+    assert incomplete[0]["threshold_used_s"] == 0.0
+    assert incomplete[0]["pid"] > 0
+
+
+def test_watchdog_recovery_flips_back_to_running_and_marks_ok_after_stall(tmp_path: Path):
+    hb = tmp_path / ".heartbeat"
+    dur = tmp_path / "durations.jsonl"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="primary",
+                            date="2026-06-11", stall_after_sec=0.05,
+                            durations_path=dur):
+        progress.mark("stage_a")
+        _time.sleep(0.12)            # stage_a crosses 0.05s -> stalled
+        assert read_heartbeat(hb)["state"] == "stalled"
+        progress.mark("stage_b")     # recovery: stage_a completes late
+        _time.sleep(0.04)            # stage_b still under threshold
+        assert read_heartbeat(hb)["state"] == "running"
+    rows = _read_jsonl(dur)
+    a_rows = [r for r in rows if r["stage"] == "stage_a"]
+    assert {r["status"] for r in a_rows} == {"stalled_incomplete", "ok_after_stall"}
+
+
+def test_watchdog_second_stall_in_later_stage_gets_own_row(tmp_path: Path):
+    hb = tmp_path / ".heartbeat"
+    dur = tmp_path / "durations.jsonl"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="primary",
+                            date="2026-06-11", stall_after_sec=0.05,
+                            durations_path=dur):
+        progress.mark("stage_a")
+        _time.sleep(0.1)
+        progress.mark("stage_b")
+        _time.sleep(0.1)
+    incomplete = [r["stage"] for r in _read_jsonl(dur)
+                  if r["status"] == "stalled_incomplete" and r["stage"] != "cascade_starting"]
+    assert incomplete == ["stage_a", "stage_b"]
+
+
+def test_watchdog_exit_retires_run_and_drains_final_stage(tmp_path: Path):
+    hb = tmp_path / ".heartbeat"
+    dur = tmp_path / "durations.jsonl"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="shadow",
+                            date="2026-06-11", stall_after_sec=999,
+                            durations_path=dur) as run_id:
+        progress.mark("selecting_pick")
+    assert progress.snapshot(run_id) is None  # retired: leaked pulse writes nothing
+    rows = _read_jsonl(dur)
+    assert "selecting_pick" in [r["stage"] for r in rows]  # final drain got the last stage
+    assert all(r["kind"] == "shadow" for r in rows)
+    # post-exit scheduler heartbeats are not overwritten
+    write_heartbeat(hb, state="sleeping")
+    _time.sleep(0.05)
+    assert read_heartbeat(hb)["state"] == "sleeping"
+
+
+def test_watchdog_stall_latch_not_flipped_on_failed_append(tmp_path: Path):
+    hb = tmp_path / ".heartbeat"
+    blocked = tmp_path / "blocked"
+    blocked.write_text("")  # durations_path parent mkdir will fail under a file
+    dur = blocked / "durations.jsonl"
+    with heartbeat_watchdog(hb, interval_sec=0.01, kind="primary",
+                            date="2026-06-11", stall_after_sec=0.0,
+                            durations_path=dur):
+        progress.mark("stage_a")
+        _time.sleep(0.06)  # several ticks; every append fails; must not raise
+    assert not dur.exists()
+
+
+def test_watchdog_backward_compatible_defaults(tmp_path: Path):
+    # existing callers pass only (path, interval_sec) — must still work
+    hb = tmp_path / ".heartbeat"
+    with heartbeat_watchdog(hb, interval_sec=0.01):
+        _time.sleep(0.03)
+        assert read_heartbeat(hb)["state"] == "running"
