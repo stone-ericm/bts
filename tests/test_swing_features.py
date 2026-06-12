@@ -189,3 +189,39 @@ def test_rolling_includes_intercept_y_and_attack_std():
     assert abs(feats.iloc[2]["batter_intercept_y_2g"] - 31.0) < 1e-9
     # attack std from sums: mean=(100+120)/20=11, E[x^2]=(1010+1450)/20=123 -> var=2
     assert abs(feats.iloc[2]["batter_attack_std_2g"] - np.sqrt(2.0)) < 1e-9
+
+
+def test_rolling_shift0_includes_current_day():
+    daily = pd.DataFrame({
+        "batter": [1, 1],
+        "date": pd.to_datetime(["2025-06-01", "2025-06-02"]),
+        "n_swings": [10, 10], "n_swings_tracked": [10, 10],
+        "n_whiffs": [9, 9], "n_whiffs_tracked": [2, 4],
+        "miss_sum": [4.0, 12.0], "miss_sumsq": [10.0, 40.0],
+        "swing_len_sum": [70.0, 70.0],
+        "attack_angle_sum": [100.0, 100.0], "attack_angle_sumsq": [1010.0, 1010.0],
+        "intercept_y_sum": [300.0, 300.0], "n_intercept_tracked": [10, 10],
+        "n_whiff_high": [1, 1], "n_whiff_low": [1, 1],
+    })
+    # shift_days=0: day 1 value INCLUDES day 1 (4.0/2); the M3-class leak
+    feats = rolling_swing_features(daily, entity="batter", windows=[2],
+                                   min_whiffs=1, shift_days=0)
+    assert feats.iloc[0]["batter_miss_dist_2g"] == 2.0
+    assert abs(feats.iloc[1]["batter_miss_dist_2g"] - 16 / 6) < 1e-9
+
+
+def test_gross_sentinel_zero_fills_no_whiff_days():
+    daily = pd.DataFrame({
+        "batter": [1],
+        "date": pd.to_datetime(["2025-06-02"]),
+        "n_whiffs": [3],
+    })
+    pa = pd.DataFrame({
+        "batter_id": [1, 2],   # batter 2 has NO whiff row that day
+        "pitcher_id": [9, 9],
+        "date": pd.to_datetime(["2025-06-02", "2025-06-02"]),
+    })
+    from bts.features.swing import build_gross_sentinel
+    out = build_gross_sentinel(pa, daily, entity="batter")
+    assert out.iloc[0]["GROSS_same_day_whiffs"] == 3.0
+    assert out.iloc[1]["GROSS_same_day_whiffs"] == 0.0   # dense zero-fill

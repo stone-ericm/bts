@@ -73,6 +73,7 @@ def rolling_swing_features(
     entity: str,
     windows: list[int] | None = None,
     min_whiffs: int = 8,
+    shift_days: int = 1,
 ) -> pd.DataFrame:
     """shift(1).rolling(w) ratio features from daily sums (leak-free by construction).
 
@@ -80,13 +81,19 @@ def rolling_swing_features(
     equal weight. Values are NaN until min_whiffs tracked whiffs accumulate
     in the window (denominator reliability; spec 'whiff-denominator' control).
     Column naming: {entity}_{stat}_{w}g.
+
+    shift_days=1 is the leak-free production contract. shift_days=0 exists
+    ONLY for the M3-class screen sentinel (the off-by-one leak the harness
+    must be able to detect) — never a candidate feature.
     """
     windows = windows or [7, 15, 30, 60]
     out = daily[[entity, "date"]].copy()
     g = daily.groupby(entity, sort=False)
 
     def _roll_sum(col: str, w: int) -> pd.Series:
-        return g[col].transform(lambda s: s.shift(1).rolling(w, min_periods=1).sum())
+        return g[col].transform(
+            lambda s: s.shift(shift_days).rolling(w, min_periods=1).sum()
+        )
 
     for w in windows:
         whiffs_tracked = _roll_sum("n_whiffs_tracked", w)
@@ -147,6 +154,23 @@ def build_missingness_placebo(pa: pd.DataFrame, feature_cols: list[str]) -> pd.D
     out = pd.DataFrame(index=pa.index)
     for col in feature_cols:
         out[f"has_{col}"] = pa[col].notna()
+    return out
+
+
+def build_gross_sentinel(pa: pd.DataFrame, daily: pd.DataFrame, entity: str) -> pd.DataFrame:
+    """SAME-DAY whiff COUNT, zero-filled — the gross plumbing canary.
+
+    Dense (a no-whiff day is an informative 0.0, unlike the mean-miss
+    sentinel whose NaN destroyed that case — gate failure #2 lesson) and
+    strongly outcome-correlated. The harness MUST flag it on every seed
+    with a margin above every null arm. Never a candidate feature.
+    """
+    key = "batter_id" if entity == "batter" else "pitcher_id"
+    d = daily[[entity, "date", "n_whiffs"]].rename(
+        columns={entity: key, "n_whiffs": "GROSS_same_day_whiffs"}
+    )
+    out = pa.merge(d, on=[key, "date"], how="left")
+    out["GROSS_same_day_whiffs"] = out["GROSS_same_day_whiffs"].fillna(0.0).astype(float)
     return out
 
 

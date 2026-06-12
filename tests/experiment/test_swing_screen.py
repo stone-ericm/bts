@@ -37,17 +37,19 @@ def test_registry_arm_names_unique_and_families_mapped():
 def test_derived_drift_and_interaction_features():
     pa = _pa_frame()
     frame, cols = build_arm_frame("t_intercept_drift", pa)
-    assert cols == ["t_intercept_drift"]
+    assert "t_intercept_drift" in cols  # plus availability flags (amendment #2)
     assert abs(frame["t_intercept_drift"].iloc[0] - 1.0) < 1e-9  # 31-30
 
     frame, cols = build_arm_frame("m_high_alignment", pa)
     assert abs(frame["m_high_alignment"].iloc[0] - 0.42) < 1e-9  # 0.6*0.7
 
 
-def test_baseline_arm_adds_no_columns():
+def test_baseline_flags_match_candidate_flags():
+    # the SAME flag set must appear in baseline and candidates (paired fairness)
     pa = _pa_frame()
-    frame, cols = build_arm_frame("baseline", pa)
-    assert cols == []
+    _, base_cols = build_arm_frame("baseline", pa)
+    _, cand_cols = build_arm_frame("t_intercept_drift", pa)
+    assert set(base_cols) == {c for c in cand_cols if c.startswith("has_")}
 
 
 def test_permuted_control_preserves_values_but_breaks_dates():
@@ -67,11 +69,12 @@ def test_permuted_control_preserves_values_but_breaks_dates():
     assert frame[col[0]].tolist() != pa["batter_miss_dist_30g"].tolist()  # order broken
 
 
-def test_placebo_control_is_flags_only():
-    pa = _pa_frame()
-    frame, cols = build_arm_frame("ctl_placebo", pa)
-    assert all(c.startswith("has_") for c in cols)
-    assert all(frame[c].dtype == bool for c in cols)
+def test_placebo_arm_removed():
+    # availability flags moved into the baseline (amendment #2); the old
+    # ctl_placebo arm is gone
+    import pytest
+    with pytest.raises(KeyError):
+        build_arm_frame("ctl_placebo", _pa_frame())
 
 
 def test_run_screen_arm_end_to_end(tmp_path):
@@ -138,3 +141,44 @@ def test_run_screen_arm_date_split(tmp_path):
     assert all(d["date"] >= "2024-05-01" for d in res["per_day"])
     assert res["n_days"] > 0
     assert res["train_extra_through"] == "2024-04-30"
+
+
+def test_baseline_includes_availability_flags():
+    # Amendment #2: availability flags live in the BASELINE so candidate
+    # deltas measure value beyond coverage information.
+    pa = _pa_frame()
+    frame, cols = build_arm_frame("baseline", pa)
+    assert cols, "baseline must carry availability flags"
+    assert all(c.startswith("has_") for c in cols)
+
+
+def test_candidate_arms_include_flags_plus_features():
+    pa = _pa_frame()
+    frame, cols = build_arm_frame("m_high_alignment", pa)
+    assert "m_high_alignment" in cols
+    assert any(c.startswith("has_") for c in cols)
+
+
+def test_mask_only_control_preserves_nan_pattern_destroys_values():
+    pa = _pa_frame()
+    pa.loc[0, "batter_miss_dist_7g"] = np.nan
+    frame, cols = build_arm_frame("ctl_mask_only", pa)
+    mcol = [c for c in cols if c == "mask_b_miss_7g"]
+    assert mcol
+    assert pd.isna(frame[mcol[0]].iloc[0])          # NaN preserved
+    assert frame[mcol[0]].iloc[1] == 1.0            # value destroyed -> constant
+
+
+def test_sentinel_arms_require_attached_columns():
+    pa = _pa_frame()
+    import pytest
+    with pytest.raises(ValueError):
+        build_arm_frame("ctl_sentinel_gross", pa)
+    with pytest.raises(ValueError):
+        build_arm_frame("ctl_sentinel_m3", pa)
+    pa["GROSS_same_day_whiffs"] = 1.0
+    pa["M3LEAK_batter_miss_dist_30g"] = 2.5
+    f1, c1 = build_arm_frame("ctl_sentinel_gross", pa)
+    f2, c2 = build_arm_frame("ctl_sentinel_m3", pa)
+    assert "GROSS_same_day_whiffs" in c1
+    assert "M3LEAK_batter_miss_dist_30g" in c2

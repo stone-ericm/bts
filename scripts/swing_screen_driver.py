@@ -20,11 +20,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from bts.experiment.swing_screen import ARMS, run_screen_arm  # noqa: E402
 from bts.features.compute import compute_all_features  # noqa: E402
 from bts.features.swing import (  # noqa: E402
-    attach_swing_features, build_leaky_sentinel, daily_swing_aggregates,
+    attach_swing_features, build_gross_sentinel, daily_swing_aggregates,
     rolling_swing_features,
 )
 
-SEEDS = [42, 101, 202]
+SEEDS = [42, 101, 202, 303, 404, 505, 606, 707, 808, 909]  # amendment #2: 10 common seeds
 TRAIN_SEASONS = (2019, 2020, 2021, 2022, 2023)
 SCREEN_SEASON = 2024
 # Spec amendment 2026-06-12: 2024H1 joins training so swing features have
@@ -54,8 +54,13 @@ def build_pa_frame() -> pd.DataFrame:
         batter_feats=rolling_swing_features(daily_b, entity="batter"),
         pitcher_feats=rolling_swing_features(daily_p, entity="pitcher"),
     )
-    # sentinel column for ctl_sentinel only (registry guards its use)
-    pa = build_leaky_sentinel(pa, daily_b, entity="batter")
+    # sentinel columns (registry guards their use; amendment #2: two sentinels)
+    pa = build_gross_sentinel(pa, daily_b, entity="batter")
+    m3 = rolling_swing_features(daily_b, entity="batter", windows=[30], shift_days=0)
+    m3 = m3[["batter", "date", "batter_miss_dist_30g"]].rename(
+        columns={"batter": "batter_id", "batter_miss_dist_30g": "M3LEAK_batter_miss_dist_30g"}
+    )
+    pa = pa.merge(m3, on=["batter_id", "date"], how="left")
     return pa
 
 

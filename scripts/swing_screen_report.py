@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Aggregate screen results -> verdicts + frozen-bundle proposal (markdown).
+"""Aggregate screen results -> gate verdicts + frozen-bundle proposal (markdown).
 
-Verdict rules (pre-registered, spec 2026-06-12):
-- Controls: ctl_sentinel ndcg/auc MUST exceed baseline conspicuously (else
-  the harness can't detect leakage -> STOP). ctl_placebo and ctl_permuted
-  must be ~indistinguishable from baseline (else era-marker confounding).
-- Variants ranked within family by paired daily NDCG delta vs baseline
-  (same-seed pairing, mean across seeds); best variant per family proposed
-  for the bundle.
-- Families: alive unless coverage failure or consistently negative across
-  ALL variants, seeds, and metrics (kill requires unanimity, not p-values).
+Amendment #2 semantics (spec 2026-06-12):
+- PRIMARY screen stat: paired per-day rank-AUC delta vs same-seed baseline,
+  seed-AVERAGED per day before inference, week-blocked sign-permutation test.
+- NDCG@10 delta reported as directional secondary (confirmation primary on 2025).
+- GATES, checked in order before any family reading:
+    1. ctl_sentinel_gross must be positive on EVERY seed with a seed-averaged
+       delta exceeding every null arm's by a wide margin (>= 3x).
+    2. ctl_sentinel_m3 (shift(0) off-by-one) must exceed the empirical null
+       band on the aggregate stat.
+    3. Null arms (ctl_mask_only, ctl_permuted) define the practical-null band
+       [min, max of their |seed-avg delta|]; they must look unremarkable
+       (no permutation p < 0.05 with positive delta).
+- Candidates judged on the primary stat vs the null band + permutation p;
+  family verdicts: alive unless coverage failure or consistently negative.
 
 Usage: .venv/bin/python scripts/swing_screen_report.py \
            --results data/validation/swing_screen_2024 --out docs/audit/
@@ -23,6 +28,10 @@ from datetime import date
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
+
+NULL_ARMS = ("ctl_mask_only", "ctl_permuted")
+SENTINELS = ("ctl_sentinel_gross", "ctl_sentinel_m3")
 
 
 def load_results(results_dir: Path) -> dict:
@@ -33,11 +42,48 @@ def load_results(results_dir: Path) -> dict:
     return out
 
 
-def paired_ndcg_delta(arm_res: dict, base_res: dict) -> float:
-    base_by_date = {d["date"]: d["ndcg"] for d in base_res["per_day"]}
-    ds = [d["ndcg"] - base_by_date[d["date"]]
-          for d in arm_res["per_day"] if d["date"] in base_by_date]
-    return float(np.mean(ds)) if ds else float("nan")
+def paired_daily_deltas(res: dict, arm: str, seeds: list, stat: str) -> pd.DataFrame:
+    """date -> seed-averaged paired delta for `stat` ('day_auc' or 'ndcg')."""
+    rows = []
+    for s in seeds:
+        if (arm, s) not in res or ("baseline", s) not in res:
+            continue
+        base = {d["date"]: d.get(stat) for d in res[("baseline", s)]["per_day"]}
+        for d in res[(arm, s)]["per_day"]:
+            if d["date"] in base and d.get(stat) is not None and base[d["date"]] is not None:
+                rows.append({"date": d["date"], "seed": s, "delta": d[stat] - base[d["date"]]})
+    if not rows:
+        return pd.DataFrame(columns=["date", "delta"])
+    df = pd.DataFrame(rows)
+    return df.groupby("date", as_index=False)["delta"].mean()  # seed-average per day
+
+
+def week_block_sign_permutation_p(daily: pd.DataFrame, n_perm: int = 5000, seed: int = 7) -> float:
+    """One-sided p for mean(delta) > 0, flipping signs by ISO-week blocks."""
+    if daily.empty:
+        return float("nan")
+    d = daily.copy()
+    d["week"] = pd.to_datetime(d["date"]).dt.isocalendar().week.astype(int)
+    week_means = d.groupby("week")["delta"].mean().to_numpy()
+    obs = week_means.mean()
+    rng = np.random.default_rng(seed)
+    flips = rng.choice([-1.0, 1.0], size=(n_perm, len(week_means)))
+    perm = (flips * week_means).mean(axis=1)
+    return float((perm >= obs).mean())
+
+
+def per_seed_deltas(res: dict, arm: str, seeds: list, agg: str) -> list:
+    out = []
+    for s in seeds:
+        if (arm, s) in res and ("baseline", s) in res:
+            a, b = res[(arm, s)], res[("baseline", s)]
+            if agg == "auc_mean":
+                av = np.mean([d["day_auc"] for d in a["per_day"] if d.get("day_auc") is not None])
+                bv = np.mean([d["day_auc"] for d in b["per_day"] if d.get("day_auc") is not None])
+            else:
+                av, bv = a[agg], b[agg]
+            out.append(float(av - bv))
+    return out
 
 
 def main() -> None:
@@ -48,66 +94,112 @@ def main() -> None:
 
     res = load_results(args.results)
     seeds = sorted({s for (_, s) in res})
-    arms = sorted({a for (a, _) in res})
+    arms = sorted({a for (a, _) in res if a != "baseline"})
 
-    rows = []
+    stats = {}
     for arm in arms:
-        if arm == "baseline":
-            continue
-        deltas, top1s, aucs = [], [], []
-        for s in seeds:
-            if (arm, s) in res and ("baseline", s) in res:
-                deltas.append(paired_ndcg_delta(res[(arm, s)], res[("baseline", s)]))
-                top1s.append(res[(arm, s)]["top1_hit"] - res[("baseline", s)]["top1_hit"])
-                aucs.append((res[(arm, s)]["auc"] or 0) - (res[("baseline", s)]["auc"] or 0))
-        rows.append({
-            "arm": arm, "family": res[(arm, seeds[0])]["family"],
-            "ndcg_delta": float(np.mean(deltas)),
-            "ndcg_delta_per_seed": [round(d, 5) for d in deltas],
-            "top1_delta": float(np.mean(top1s)),
-            "auc_delta": float(np.mean(aucs)),
-        })
+        daily = paired_daily_deltas(res, arm, seeds, "day_auc")
+        ndcg_daily = paired_daily_deltas(res, arm, seeds, "ndcg")
+        stats[arm] = {
+            "family": res[(arm, seeds[0])]["family"],
+            "auc_delta": float(daily["delta"].mean()) if not daily.empty else float("nan"),
+            "auc_p": week_block_sign_permutation_p(daily),
+            "auc_per_seed": [round(x, 5) for x in per_seed_deltas(res, arm, seeds, "auc_mean")],
+            "ndcg_delta": float(ndcg_daily["delta"].mean()) if not ndcg_daily.empty else float("nan"),
+            "top1_delta": float(np.mean(per_seed_deltas(res, arm, seeds, "top1_hit"))),
+            "n_days": int(len(daily)),
+        }
+
+    # --- gates ---
+    null_mags = [abs(stats[a]["auc_delta"]) for a in NULL_ARMS if a in stats]
+    null_band = max(null_mags) if null_mags else float("nan")
+    gross = stats.get("ctl_sentinel_gross")
+    m3 = stats.get("ctl_sentinel_m3")
+    gate_lines = []
+    gate_pass = True
+
+    if gross:
+        every_seed_pos = all(x > 0 for x in gross["auc_per_seed"])
+        margin_ok = gross["auc_delta"] >= 3 * null_band if null_band == null_band else False
+        ok = every_seed_pos and margin_ok
+        gate_pass &= ok
+        gate_lines.append(
+            f"- GATE 1 gross sentinel: {'PASS' if ok else 'FAIL'} — delta "
+            f"{gross['auc_delta']:+.5f} (every seed positive: {every_seed_pos}; "
+            f">=3x null band {null_band:.5f}: {margin_ok})"
+        )
+    else:
+        gate_pass = False
+        gate_lines.append("- GATE 1 gross sentinel: MISSING")
+
+    if m3:
+        ok = m3["auc_delta"] > null_band
+        gate_pass &= ok
+        gate_lines.append(
+            f"- GATE 2 M3 sentinel: {'PASS' if ok else 'FAIL'} — delta "
+            f"{m3['auc_delta']:+.5f} vs null band {null_band:.5f} (p={m3['auc_p']:.3f})"
+        )
+    else:
+        gate_pass = False
+        gate_lines.append("- GATE 2 M3 sentinel: MISSING")
+
+    null_ok = all(
+        not (stats[a]["auc_p"] < 0.05 and stats[a]["auc_delta"] > 0)
+        for a in NULL_ARMS if a in stats
+    )
+    gate_pass &= null_ok
+    gate_lines.append(f"- GATE 3 nulls unremarkable: {'PASS' if null_ok else 'FAIL'} "
+                      f"({ {a: round(stats[a]['auc_delta'], 5) for a in NULL_ARMS if a in stats} })")
+
+    lines = [f"# Swing campaign Stage-1 screen report (amendment #2) — {date.today()}", ""]
+    lines.append(f"Seeds: {seeds}; screen days: {stats[arms[0]]['n_days'] if arms else 0}; "
+                 f"primary stat: paired daily rank-AUC delta (seed-averaged), "
+                 f"week-blocked sign-permutation p")
+    lines.append("")
+    lines.append(f"## GATES — {'ALL PASS' if gate_pass else 'FAILED (stop; do not read families as signal)'}")
+    lines.extend(gate_lines)
+    lines.append("")
+    lines.append(f"Empirical practical-null band (max |null arm delta|): {null_band:.5f}")
+    lines.append("")
 
     by_family = defaultdict(list)
-    for r in rows:
-        by_family[r["family"]].append(r)
+    for a, st in stats.items():
+        by_family[st["family"]].append((a, st))
 
-    lines = [f"# Swing campaign Stage-1 screen report — {date.today()}", ""]
-    lines.append("## Controls")
-    for r in rows:
-        if r["family"] == "control":
-            lines.append(f"- `{r['arm']}`: ndcg Δ {r['ndcg_delta']:+.5f}, "
-                         f"auc Δ {r['auc_delta']:+.5f}, per-seed {r['ndcg_delta_per_seed']}")
-    lines.append("")
-    lines.append("## Families (variants ranked by paired NDCG delta)")
+    lines.append("## Families (primary stat; > null band AND p<0.05 marked ***)")
     bundle = []
     for fam in ("P", "B", "T", "S", "M"):
         lines.append(f"### {fam}")
-        fam_rows = sorted(by_family.get(fam, []), key=lambda r: -r["ndcg_delta"])
-        for r in fam_rows:
-            lines.append(f"- `{r['arm']}`: ndcg Δ {r['ndcg_delta']:+.5f} "
-                         f"(seeds {r['ndcg_delta_per_seed']}), top1 Δ {r['top1_delta']:+.4f}, "
-                         f"auc Δ {r['auc_delta']:+.5f}")
+        fam_rows = sorted(by_family.get(fam, []), key=lambda kv: -(kv[1]["auc_delta"]))
+        for a, st in fam_rows:
+            star = " ***" if (st["auc_delta"] > null_band and st["auc_p"] < 0.05) else ""
+            lines.append(
+                f"- `{a}`: aucΔ {st['auc_delta']:+.5f} (p={st['auc_p']:.3f}, "
+                f"seeds {st['auc_per_seed']}), ndcgΔ {st['ndcg_delta']:+.5f}, "
+                f"top1Δ {st['top1_delta']:+.4f}{star}"
+            )
         if fam_rows:
-            best = fam_rows[0]
-            all_negative = all(
-                d < 0 for r in fam_rows for d in r["ndcg_delta_per_seed"]
-            ) and all(r["top1_delta"] < 0 and r["auc_delta"] < 0 for r in fam_rows)
-            verdict = "DEAD (consistently negative everywhere)" if all_negative else "alive"
-            lines.append(f"- **family verdict: {verdict}; best variant `{best['arm']}`**")
-            if not all_negative:
-                bundle.append(best["arm"])
+            best_arm, best = fam_rows[0]
+            all_neg = all(st["auc_delta"] < 0 and st["ndcg_delta"] < 0 for _, st in fam_rows)
+            verdict = "DEAD (consistently negative)" if all_neg else "alive"
+            lines.append(f"- **verdict: {verdict}; best `{best_arm}`**")
+            if not all_neg:
+                bundle.append(best_arm)
         lines.append("")
-    lines.append("## Omnibus arms")
-    for r in sorted(by_family.get("omnibus", []), key=lambda r: -r["ndcg_delta"]):
-        lines.append(f"- `{r['arm']}`: ndcg Δ {r['ndcg_delta']:+.5f}, "
-                     f"top1 Δ {r['top1_delta']:+.4f}, auc Δ {r['auc_delta']:+.5f}")
+
+    lines.append("## Omnibus")
+    for a, st in sorted(by_family.get("omnibus", []), key=lambda kv: -(kv[1]["auc_delta"])):
+        lines.append(f"- `{a}`: aucΔ {st['auc_delta']:+.5f} (p={st['auc_p']:.3f}), "
+                     f"ndcgΔ {st['ndcg_delta']:+.5f}")
     lines.append("")
     lines.append(f"## PROPOSED FROZEN BUNDLE (pending human review): {bundle}")
+    if not gate_pass:
+        lines.append("\n**GATES FAILED — bundle proposal void; family lines are diagnostics only.**")
+
     out_path = args.out / f"{date.today()}-swing-screen-report.md"
     out_path.write_text("\n".join(lines))
     print(f"wrote {out_path}")
-    print("\n".join(lines[:40]))
+    print("\n".join(lines))
 
 
 if __name__ == "__main__":

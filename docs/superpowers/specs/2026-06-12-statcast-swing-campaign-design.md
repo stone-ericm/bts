@@ -109,6 +109,25 @@ correctly failed to inflate (gate worked; 84 invalid results archived at
 screen = 2024-07-01 onward** — still entirely inside the 2024 stratum;
 2025/2026 untouched. Gate re-applies on the re-run.
 
+**AMENDMENT #2 (Eric-delegated via Claude+Codex convergence, 2026-06-12, after
+gate failure #2 — Codex verdict: RESTRUCTURE SCREEN).** The second run's
+controls measured a noise floor (±0.005–0.01 NDCG) at candidate-effect size,
+AND exposed that the negative controls were not clean nulls (availability
+flags/NaN-routing carry real roster-coverage signal — placebo positive on all
+seeds). Restructure: (1) **availability flags move INTO the baseline** — all
+candidate deltas measure value beyond coverage; (2) **two sentinels**: gross
+(same-day whiff count, zero-filled — must explode on every seed, margin above
+every null) and **M3-class** (production-path rolling feature with shift(0) —
+the off-by-one leak class actually shipped once; gated on aggregate vs the
+empirical null band); (3) **primary screen stat = mean within-day rank-AUC
+delta** (all ~270 slate rows/day, paired, seed-averaged before inference,
+week-blocked sign-permutation test) — NDCG@10 demoted to directional
+secondary at screen (remains confirmation primary on 2025); (4) controls =
+mask-only (NaN pattern preserved, values constant) + within-entity permuted,
+judged against an empirical practical-null band, not "CI excludes 0";
+(5) **10 common seeds** for all arms. Gate failures #1 and #2 cost ~2 hours
+and prevented two different false-conclusion classes — working as designed.
+
 **Stage 1 — screen (2024, 3 seeds, 2–3 boxes).** Purpose: prune variants,
 catch leakage/coverage bugs, freeze the bundle. Per-family omnibus models +
 variant sweep, judged jointly on the metric hierarchy (below). **Families are

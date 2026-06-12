@@ -88,7 +88,8 @@ ARMS = (
     ["baseline"]
     + list(_SINGLE_VARIANTS)
     + [f"omni_{f}" for f in _FAMILY_MEMBERS]
-    + ["omni_ALL", "ctl_placebo", "ctl_permuted", "ctl_sentinel"]
+    + ["omni_ALL", "ctl_mask_only", "ctl_permuted",
+       "ctl_sentinel_gross", "ctl_sentinel_m3"]
 )
 
 FAMILY_OF = {"baseline": "baseline"}
@@ -97,7 +98,7 @@ for fam, members in _FAMILY_MEMBERS.items():
         FAMILY_OF[m] = fam
     FAMILY_OF[f"omni_{fam}"] = "omnibus"
 FAMILY_OF["omni_ALL"] = "omnibus"
-for c in ("ctl_placebo", "ctl_permuted", "ctl_sentinel"):
+for c in ("ctl_mask_only", "ctl_permuted", "ctl_sentinel_gross", "ctl_sentinel_m3"):
     FAMILY_OF[c] = "control"
 
 
@@ -128,34 +129,55 @@ def _build_variants(pa: pd.DataFrame, variants: list[str]) -> tuple[pd.DataFrame
     return frame, cols
 
 
+def _with_avail_flags(pa: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Availability flags for every materializable variant (amendment #2:
+    these live in the BASELINE and every arm, so candidate deltas measure
+    value beyond coverage/roster information)."""
+    frame, cols = _build_variants(pa, list(_SINGLE_VARIANTS))
+    flag_cols = []
+    for c in cols:
+        frame[f"has_{c}"] = frame[c].notna()
+        flag_cols.append(f"has_{c}")
+    return frame.drop(columns=cols), flag_cols
+
+
 def build_arm_frame(
     arm: str, pa: pd.DataFrame, permute_seed: int = 13,
 ) -> tuple[pd.DataFrame, list[str]]:
     """Return (frame, swing_cols) for an arm. frame = pa + the arm's columns;
-    swing_cols are ADDED to production FEATURE_COLS by the runner."""
+    swing_cols are ADDED to production FEATURE_COLS by the runner. Every arm
+    (baseline included) carries the availability flags."""
+    base_frame, flag_cols = _with_avail_flags(pa)
+
     if arm == "baseline":
-        return pa.copy(), []
+        return base_frame, flag_cols
 
     if arm in _SINGLE_VARIANTS:
-        return _build_variants(pa, [arm])
+        frame, cols = _build_variants(base_frame, [arm])
+        return frame, flag_cols + cols
 
     if arm.startswith("omni_") and arm != "omni_ALL":
         fam = arm.split("_", 1)[1]
-        return _build_variants(pa, _FAMILY_MEMBERS[fam])
+        frame, cols = _build_variants(base_frame, _FAMILY_MEMBERS[fam])
+        return frame, flag_cols + cols
 
     if arm == "omni_ALL":
-        return _build_variants(pa, list(_SINGLE_VARIANTS))
+        frame, cols = _build_variants(base_frame, list(_SINGLE_VARIANTS))
+        return frame, flag_cols + cols
 
-    if arm == "ctl_placebo":
-        frame, cols = _build_variants(pa, list(_SINGLE_VARIANTS))
-        flag_cols = []
+    if arm == "ctl_mask_only":
+        # NaN pattern preserved, value content destroyed (constant where
+        # present) — isolates the LightGBM NaN-routing channel beyond flags.
+        frame, cols = _build_variants(base_frame, list(_SINGLE_VARIANTS))
+        mask_cols = []
         for c in cols:
-            frame[f"has_{c}"] = frame[c].notna()
-            flag_cols.append(f"has_{c}")
-        return frame[list(pa.columns) + flag_cols], flag_cols
+            name = f"mask_{c}"
+            frame[name] = np.where(frame[c].notna(), 1.0, np.nan)
+            mask_cols.append(name)
+        return frame.drop(columns=cols), flag_cols + mask_cols
 
     if arm == "ctl_permuted":
-        frame, cols = _build_variants(pa, list(_SINGLE_VARIANTS))
+        frame, cols = _build_variants(base_frame, list(_SINGLE_VARIANTS))
         rng = np.random.default_rng(permute_seed)
         perm_cols = []
         for c in cols:
@@ -165,13 +187,17 @@ def build_arm_frame(
                 .transform(lambda s: s.sample(frac=1, random_state=rng.integers(1 << 30)).to_numpy())
             )
             perm_cols.append(name)
-        return frame, perm_cols
+        return frame.drop(columns=cols), flag_cols + perm_cols
 
-    if arm == "ctl_sentinel":
-        # driver attaches LEAKY_same_day_miss via bts.features.swing.build_leaky_sentinel
-        if "LEAKY_same_day_miss" not in pa.columns:
-            raise ValueError("ctl_sentinel requires LEAKY_same_day_miss attached by the driver")
-        return pa.copy(), ["LEAKY_same_day_miss"]
+    if arm == "ctl_sentinel_gross":
+        if "GROSS_same_day_whiffs" not in pa.columns:
+            raise ValueError("ctl_sentinel_gross requires GROSS_same_day_whiffs (driver attaches)")
+        return base_frame, flag_cols + ["GROSS_same_day_whiffs"]
+
+    if arm == "ctl_sentinel_m3":
+        if "M3LEAK_batter_miss_dist_30g" not in pa.columns:
+            raise ValueError("ctl_sentinel_m3 requires M3LEAK_batter_miss_dist_30g (driver attaches)")
+        return base_frame, flag_cols + ["M3LEAK_batter_miss_dist_30g"]
 
     raise KeyError(f"unknown arm: {arm}")
 
@@ -219,7 +245,7 @@ def run_screen_arm(
 
     from bts.health.slate_auc import _rank_auc
     from bts.model.predict import FEATURE_COLS, LGB_PARAMS
-    from bts.validate.slate_rank import daily_ndcg
+    from bts.validate.slate_rank import daily_ndcg  # noqa: F401 (used below)
 
     frame, swing_cols = build_arm_frame(arm, pa, permute_seed=permute_seed)
     cols = (base_cols if base_cols is not None else FEATURE_COLS) + swing_cols
@@ -249,8 +275,13 @@ def run_screen_arm(
         v = daily_ndcg(day, "p_game", k=10)
         if not np.isnan(v):
             top = day.sort_values("p_game", ascending=False)
+            day_auc = _rank_auc(
+                day.loc[day["actual_hit"] == 1, "p_game"].tolist(),
+                day.loc[day["actual_hit"] == 0, "p_game"].tolist(),
+            )
             days.append({
                 "date": str(d.date()), "ndcg": v,
+                "day_auc": day_auc,  # amendment #2 primary screen stat input
                 "top1": int(top["actual_hit"].iloc[0]),
                 "top3": float(top["actual_hit"].head(3).mean()),
             })
