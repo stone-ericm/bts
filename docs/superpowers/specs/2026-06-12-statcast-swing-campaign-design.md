@@ -99,6 +99,16 @@ silently with 2025; report the 2026 interaction explicitly).
   runner are P@1/P(57)-based) — Stage 0 builds and smoke-tests it. No Stage-1
   selection until it exists.
 
+**AMENDMENT (Eric-approved 2026-06-12, after the controls gate STOPPED the
+first screen run):** the original split (train 2019–2023, screen all 2024)
+left swing features non-NaN in only 8.8% of training rows (coverage starts
+mid-2023) — models couldn't learn ANY candidate, and the planted sentinel
+correctly failed to inflate (gate worked; 84 invalid results archived at
+`data/validation/swing_screen_2024_INVALID_coverage/`). Amended split:
+**train = 2019–2023 + 2024 through 06-30 (~9 months feature coverage),
+screen = 2024-07-01 onward** — still entirely inside the 2024 stratum;
+2025/2026 untouched. Gate re-applies on the re-run.
+
 **Stage 1 — screen (2024, 3 seeds, 2–3 boxes).** Purpose: prune variants,
 catch leakage/coverage bugs, freeze the bundle. Per-family omnibus models +
 variant sweep, judged jointly on the metric hierarchy (below). **Families are

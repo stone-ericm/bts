@@ -105,3 +105,36 @@ def test_run_screen_arm_end_to_end(tmp_path):
     assert res["arm"] == "b_miss_30g"
     assert res["n_days"] > 0
     assert "ndcg_mean" in res and "top1_hit" in res and "auc" in res
+
+
+def test_run_screen_arm_date_split(tmp_path):
+    from bts.experiment.swing_screen import run_screen_arm
+
+    rng = np.random.default_rng(3)
+    rows = []
+    for season in (2023, 2024):
+        for i in range(60):
+            for b in range(18):
+                rows.append({
+                    "batter_id": b, "pitcher_id": 100 + (i % 3),
+                    "game_pk": season * 1000 + i, "lineup_position": (b % 9) + 1,
+                    "is_home": b < 9,
+                    "date": pd.Timestamp(f"{season}-04-01") + pd.Timedelta(days=i),
+                    "season": season,
+                    "is_hit": int(rng.random() < 0.6),
+                    "weather_temp": 70.0,
+                    "batter_miss_dist_30g": 3.0 - 0.5 * (b % 2),
+                })
+    pa = pd.DataFrame(rows)
+
+    res = run_screen_arm(
+        arm="b_miss_30g", pa=pa, train_seasons=(2023,), screen_season=2024,
+        seed=42, base_cols=["weather_temp"],
+        lgb_overrides={"n_estimators": 10, "min_child_samples": 5},
+        out_dir=tmp_path,
+        train_extra_through="2024-04-30", screen_start="2024-05-01",
+    )
+    # screen days only from screen_start onward (Apr 2024 went to training)
+    assert all(d["date"] >= "2024-05-01" for d in res["per_day"])
+    assert res["n_days"] > 0
+    assert res["train_extra_through"] == "2024-04-30"

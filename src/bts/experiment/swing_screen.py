@@ -202,9 +202,16 @@ def run_screen_arm(
     lgb_overrides: dict | None = None,
     out_dir=None,
     permute_seed: int = 13,
+    train_extra_through: str | None = None,
+    screen_start: str | None = None,
 ) -> dict:
     """Train one LightGBM on train_seasons, score screen_season slates,
-    return + persist the per-arm metric payload."""
+    return + persist the per-arm metric payload.
+
+    train_extra_through/screen_start implement the 2026-06-12 spec amendment:
+    early screen-season dates (through train_extra_through) join TRAINING so
+    swing features have learnable coverage; the slate starts at screen_start.
+    """
     import json as _json
     from pathlib import Path as _Path
 
@@ -217,7 +224,12 @@ def run_screen_arm(
     frame, swing_cols = build_arm_frame(arm, pa, permute_seed=permute_seed)
     cols = (base_cols if base_cols is not None else FEATURE_COLS) + swing_cols
 
-    train = frame[frame["season"].isin(train_seasons)]
+    train_mask = frame["season"].isin(train_seasons)
+    if train_extra_through is not None:
+        train_mask |= (frame["season"] == screen_season) & (
+            frame["date"] <= pd.Timestamp(train_extra_through)
+        )
+    train = frame[train_mask]
     params = {**LGB_PARAMS, **(lgb_overrides or {}),
               "deterministic": True, "force_row_wise": True}
     model = lgb.LGBMClassifier(**params, random_state=seed)
@@ -226,6 +238,8 @@ def run_screen_arm(
     model.fit(X[mask], train["is_hit"][mask])
 
     slate = _slate_for_season(frame, screen_season)
+    if screen_start is not None:
+        slate = slate[slate["date"] >= pd.Timestamp(screen_start)]
     p_pa = model.predict_proba(slate[cols])[:, 1]
     est = slate["lineup_position"].map(PA_EST).fillna(4.0)
     slate = slate.assign(p_game=1 - (1 - p_pa) ** est)
@@ -248,6 +262,7 @@ def run_screen_arm(
     res = {
         "arm": arm, "seed": seed, "family": FAMILY_OF[arm],
         "train_seasons": list(train_seasons), "screen_season": screen_season,
+        "train_extra_through": train_extra_through, "screen_start": screen_start,
         "n_swing_cols": len(swing_cols), "n_days": len(days),
         "ndcg_mean": float(np.mean([x["ndcg"] for x in days])) if days else None,
         "top1_hit": float(np.mean([x["top1"] for x in days])) if days else None,

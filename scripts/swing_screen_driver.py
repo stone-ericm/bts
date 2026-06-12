@@ -27,6 +27,11 @@ from bts.features.swing import (  # noqa: E402
 SEEDS = [42, 101, 202]
 TRAIN_SEASONS = (2019, 2020, 2021, 2022, 2023)
 SCREEN_SEASON = 2024
+# Spec amendment 2026-06-12: 2024H1 joins training so swing features have
+# learnable coverage (8.8% otherwise — the controls gate caught this);
+# screen = 2024H2 only. 2025/2026 remain untouched for confirmation.
+TRAIN_EXTRA_THROUGH = "2024-06-30"
+SCREEN_START = "2024-07-01"
 
 
 def build_pa_frame() -> pd.DataFrame:
@@ -81,6 +86,7 @@ def main() -> None:
             res = run_screen_arm(
                 arm=arm, pa=pa, train_seasons=TRAIN_SEASONS,
                 screen_season=SCREEN_SEASON, seed=seed, out_dir=args.out,
+                train_extra_through=TRAIN_EXTRA_THROUGH, screen_start=SCREEN_START,
             )
             print(f"[{done}/{total}] {arm} seed={seed} ndcg={res['ndcg_mean']:.4f} "
                   f"auc={res['auc']:.4f} ({time.time()-t1:.0f}s)", flush=True)
