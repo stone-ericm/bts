@@ -72,6 +72,9 @@ def test_rolling_features_are_shift1_leak_free():
         "swing_len_sum": [70.0, 70.0, 70.0],
         "n_swings_tracked": [10, 10, 10],
         "attack_angle_sum": [100.0, 100.0, 100.0],
+        "attack_angle_sumsq": [1010.0, 1010.0, 1010.0],
+        "intercept_y_sum": [300.0, 300.0, 300.0],
+        "n_intercept_tracked": [10, 10, 10],
         "n_whiff_high": [1, 2, 3],
         "n_whiff_low": [1, 2, 3],
     })
@@ -96,6 +99,9 @@ def test_rolling_features_gate_on_min_whiffs():
         "swing_len_sum": [70.0, 70.0],
         "n_swings_tracked": [10, 10],
         "attack_angle_sum": [100.0, 100.0],
+        "attack_angle_sumsq": [1010.0, 1010.0],
+        "intercept_y_sum": [300.0, 300.0],
+        "n_intercept_tracked": [10, 10],
         "n_whiff_high": [1, 1],
         "n_whiff_low": [0, 0],
     })
