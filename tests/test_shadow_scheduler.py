@@ -45,7 +45,12 @@ class TestRunShadowPrediction:
                 production_pick_name="Luis Arraez",
             )
 
-        mock_watchdog.assert_called_once_with(heartbeat_path, interval_sec=60)
+        mock_watchdog.assert_called_once_with(
+            heartbeat_path, interval_sec=60,
+            kind="shadow", date="2026-04-10",
+            stall_after_sec=900,
+            durations_path=Path("data/health_state/cascade_stage_durations.jsonl"),
+        )
 
     def test_skips_existing_shadow_pick(self, tmp_path, capsys):
         existing = DailyPick(
