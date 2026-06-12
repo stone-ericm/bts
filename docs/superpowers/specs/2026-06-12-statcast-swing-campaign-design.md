@@ -1,7 +1,13 @@
 # Statcast swing-data campaign: miss distance, timing, mechanics — design
 
 **Status: approved 2026-06-12 (Eric). Codex (gpt-5.5) design review incorporated
-(metric hierarchy, screen reframe, period strata, controls).**
+(metric hierarchy, screen reframe, period strata, controls).
+Stage 0 COMPLETE 2026-06-12 (`8df3784`): bronze swing_2023..2026.parquet on
+bts-hetzner (2.05M pitch rows through 2026-06-11), leaderboard QA passed both
+player types (Spearman 0.9999 / median APE ≤0.46% / mean-miss diff 0.0000"
+under the matched tracked-excl-bunts definition), pitcher_miss_dist_30g
+spot-check sane (mean 3.16", 87% coverage). NDCG harness + data-layer
+controls tested (33 new tests). Next: Stage 1 screen-harness plan.**
 
 ## Motivation & posture
 
