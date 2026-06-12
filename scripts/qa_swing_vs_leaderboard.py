@@ -46,7 +46,11 @@ def main() -> None:
     ours["mean_miss"] = ours["miss_sum"] / ours["n_whiffs_tracked"]
 
     url = LB_URL.format(season=args.season, ptype=args.player_type)
-    with urllib.request.urlopen(url, timeout=30) as r:
+    # Savant 403s default urllib UA from datacenter IPs; a browser UA passes.
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    })
+    with urllib.request.urlopen(req, timeout=30) as r:
         lb = pd.read_csv(StringIO(r.read().decode("utf-8-sig")))
     lb = lb.set_index("id")
 
