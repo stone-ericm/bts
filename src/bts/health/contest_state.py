@@ -72,15 +72,15 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                          f"(now {now.date()}); file is corrupt/untrusted — investigate"),
             ))
         elif latest is not None:
-            # gap==1 stays INFO regardless of time of day: a *persistent daytime*
-            # lag means fetches are failing, which is owned by the separate
-            # throttled fetch-failure DM (cli `_contest_fetch_alert`); it also
-            # escalates here to CRITICAL once the next settlement makes gap>=2.
             # Count of *settled picks* newer than source_date, not calendar days:
             # off-days (All-Star break) have no picks and must not fire a false
-            # CRITICAL. gap==1 stays INFO regardless of time of day (a persistent
-            # daytime lag means fetches are failing, owned by the separate
-            # throttled fetch-failure DM); gap>=2 is genuine staleness.
+            # CRITICAL. gap==1 before noon ET is the expected overnight
+            # settlement window (INFO). gap==1 PERSISTING past noon ET is not —
+            # the 2026-06-12 incident showed the fetch can succeed all day
+            # while the contest never advances (a delivered pick was never
+            # entered in the MLB app; the fetch-failure DM never fires because
+            # nothing fails). That case escalates to WARN, not CRITICAL: the
+            # pick path is already conservative (doubles frozen).
             gap_steps = resolved_pick_settlement_gap(picks_dir, state.source_date)
             if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:
                 alerts.append(Alert(
@@ -91,13 +91,26 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                              f"resolved pick {latest}; live picks are frozen conservatively"),
                 ))
             elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:
-                alerts.append(Alert(
-                    level="INFO",
-                    source=SOURCE,
-                    message=(f"contest state lags 1 settled pick (expected overnight window): "
-                             f"source_date={state.source_date}, latest resolved {latest}; "
-                             "refreshes on the next scheduled fetch"),
-                ))
+                from zoneinfo import ZoneInfo
+                now_et = now.astimezone(ZoneInfo("America/New_York"))
+                if now_et.hour >= 12:
+                    alerts.append(Alert(
+                        level="WARN",
+                        source=SOURCE,
+                        message=(f"contest state lag persisting past noon ET: "
+                                 f"source_date={state.source_date}, latest resolved {latest}. "
+                                 "Fetches are succeeding but the contest never advanced — "
+                                 "check the pick was actually entered in the MLB app "
+                                 "(check-pick-entered) or MLB settlement is delayed"),
+                    ))
+                else:
+                    alerts.append(Alert(
+                        level="INFO",
+                        source=SOURCE,
+                        message=(f"contest state lags 1 settled pick (expected overnight window): "
+                                 f"source_date={state.source_date}, latest resolved {latest}; "
+                                 "refreshes on the next scheduled fetch"),
+                    ))
 
     manual_path = picks_dir / "account_state" / "contest_streak.manual.json"
     if manual_path.exists():

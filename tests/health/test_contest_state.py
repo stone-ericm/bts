@@ -86,9 +86,36 @@ def test_expected_overnight_lag_is_not_critical(tmp_path):
     (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
     (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
-    alerts = check(tmp_path, expected=True)
+    from datetime import datetime, timezone
+    overnight = datetime(2026, 6, 8, 6, 0, tzinfo=timezone.utc)  # 02:00 ET
+    alerts = check(tmp_path, expected=True, now=overnight)
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
     assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+
+
+def test_gap1_persisting_past_noon_et_escalates_to_warn(tmp_path):
+    """2026-06-12 incident: gap==1 at 7pm ET stayed INFO all day while the
+    real cause was a never-entered pick. Overnight lag is only 'expected'
+    overnight — past noon ET it becomes a WARN (still not CRITICAL: the pick
+    path is already conservative)."""
+    state_dir = tmp_path / "account_state"
+    state_dir.mkdir()
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": 2, "best_streak": 9,
+        "source": "mlb_bts_profile", "source_date": "2026-06-06",
+    }))
+    (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+    (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+
+    from datetime import datetime, timezone
+    afternoon = datetime(2026, 6, 8, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
+    alerts = check(tmp_path, expected=True, now=afternoon)
+    assert not any(a.level == "CRITICAL" for a in alerts), alerts
+    warns = [a for a in alerts if a.level == "WARN" and a.source == SOURCE
+             and "persist" in a.message]
+    assert warns, alerts
+    assert "entered" in warns[0].message  # points at the likely cause
 
 
 def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
@@ -112,7 +139,9 @@ def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
     alerts = check(tmp_path, expected=True,
                    now=datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
-    assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+    # 19:00 ET -> the persistence escalation makes this WARN (still never
+    # CRITICAL on the first day back — the H2 protection this test pins)
+    assert any(a.level in ("INFO", "WARN") and a.source == SOURCE for a in alerts), alerts
 
 
 def test_two_day_gap_is_critical(tmp_path):

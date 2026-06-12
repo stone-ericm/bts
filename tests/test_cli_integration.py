@@ -894,3 +894,108 @@ class TestFetchContestStreak:
         data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
         assert data["username"] == "someone_else" and data["active_streak"] == 3   # untouched
         assert len(dm_calls) == 1
+
+
+class TestCheckPickEntered:
+    """check-pick-entered: pre-first-pitch 'did the pick get into the MLB app' DM."""
+
+    @staticmethod
+    def _patch_auth(monkeypatch, username="stonehengee", user_id=50311):
+        import bts.leaderboard.auth as auth
+        from bts.leaderboard.auth import AuthSession
+        monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "uid"})
+        monkeypatch.setattr(auth, "extract_uid", lambda c: "uid")
+        monkeypatch.setattr(auth, "fetch_login_session",
+                            lambda *a, **k: AuthSession(xsid="x_1", user_id=user_id, username=username))
+
+    @staticmethod
+    def _save_pick(picks_dir, date_str, game_time_iso):
+        from bts.picks import DailyPick, Pick, save_pick
+        daily = DailyPick(
+            date=date_str, run_time=f"{date_str}T15:00:00+00:00",
+            pick=Pick(batter_name="Test Batter", batter_id=1, team="NYY",
+                      lineup_position=1, pitcher_name="P", pitcher_id=2,
+                      p_game_hit=0.8, flags=[], projected_lineup=False,
+                      game_pk=1, game_time=game_time_iso),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, picks_dir)
+
+    def _run(self, picks, now_et, extra=None):
+        return CliRunner().invoke(cli, [
+            "check-pick-entered", "--picks-dir", str(picks),
+            "--dm-recipient", "x.bsky.social", "--now-et", now_et,
+        ] + (extra or []))
+
+    def test_missing_entry_in_window_dms_and_exits_nonzero(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")  # 19:10 ET
+
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch
+        assert r.exit_code != 0
+        assert len(dms) == 1 and "NOT entered" in dms[0][1]
+        status = json.loads((picks.parent / "picks" / ".." / "health_state" / "pick_entry_check.json").resolve().read_text()) if False else json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+        assert status["date"] == "2026-06-12" and status["status"] == "alerted"
+
+    def test_entered_pending_confirms_without_dm(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile",
+                            lambda *a, **k: {"predictions": [{"roundId": 7, "result": "pending"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        status = json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+        assert status["status"] == "confirmed"
+
+    def test_outside_window_is_silent_no_network(self, monkeypatch, tmp_path):
+        import bts.contest_fetch as cf
+        def _boom(*a, **k):
+            raise AssertionError("network must not be touched outside the window")
+        monkeypatch.setattr(cf, "fetch_profile", _boom)
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+
+        r = self._run(picks, "2026-06-12T12:00:00")  # 7 hours early
+        assert r.exit_code == 0, r.output
+
+    def test_marker_dedupes_second_alert(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+
+        assert self._run(picks, "2026-06-12T18:30:00").exit_code != 0
+        r2 = self._run(picks, "2026-06-12T18:45:00")
+        assert r2.exit_code == 0  # already alerted; quiet
+        assert len(dms) == 1
+
+    def test_no_pick_today_is_silent(self, tmp_path):
+        picks = tmp_path / "picks"; picks.mkdir()
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0

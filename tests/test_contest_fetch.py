@@ -124,3 +124,30 @@ def test_build_observation_requires_source_date():
             username="stonehengee",
             recorded_at=dt.datetime(2026, 6, 6, 18, 0, tzinfo=dt.UTC),
         )
+
+
+class TestHasPredictionFor:
+    def test_pending_prediction_counts_as_entered(self):
+        from datetime import date
+        from bts.contest_fetch import has_prediction_for
+        success = {"predictions": [{"roundId": 7, "result": "pending"}]}
+        assert has_prediction_for(success, {7: date(2026, 6, 12)}, date(2026, 6, 12)) is True
+
+    def test_settled_prediction_counts(self):
+        from datetime import date
+        from bts.contest_fetch import has_prediction_for
+        success = {"predictions": [{"roundId": 7, "result": "hit"}]}
+        assert has_prediction_for(success, {7: date(2026, 6, 12)}, date(2026, 6, 12)) is True
+
+    def test_absent_date_is_not_entered(self):
+        from datetime import date
+        from bts.contest_fetch import has_prediction_for
+        success = {"predictions": [{"roundId": 6, "result": "hit"}]}
+        rounds = {6: date(2026, 6, 11), 7: date(2026, 6, 12)}
+        assert has_prediction_for(success, rounds, date(2026, 6, 12)) is False
+
+    def test_unknown_round_id_ignored(self):
+        from datetime import date
+        from bts.contest_fetch import has_prediction_for
+        success = {"predictions": [{"roundId": 999, "result": "hit"}, {"result": "hit"}]}
+        assert has_prediction_for(success, {7: date(2026, 6, 12)}, date(2026, 6, 12)) is False

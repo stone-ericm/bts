@@ -51,6 +51,23 @@ def derive_source_date(
     return max(settled_dates) if settled_dates else None
 
 
+def has_prediction_for(success: dict, rounds: dict[int, date], target: date) -> bool:
+    """True if the profile has ANY prediction (pending included) for `target`.
+
+    The did-the-pick-actually-get-entered check (2026-06-12 incident: a pick
+    our system delivered was never entered in the MLB app; nothing alerted
+    until the streak froze a day later). Unlike derive_source_date this does
+    NOT filter to resolved results — a pending row proves entry.
+    """
+    for prediction in success.get("predictions", []):
+        round_id = prediction.get("roundId")
+        if round_id is None:
+            continue
+        if rounds.get(int(round_id)) == target:
+            return True
+    return False
+
+
 def _require_streak_int(success: dict, field: str) -> int:
     value = success.get(field)
     if type(value) is not int:

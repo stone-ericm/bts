@@ -1463,6 +1463,100 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
     return sent
 
 
+@cli.command(name="check-pick-entered")
+@click.option("--picks-dir", default="data/picks", help="Picks directory")
+@click.option("--expected-username", default=None, help="Refuse if session identity differs")
+@click.option("--dm-recipient", default=None, help="Bluesky handle for the not-entered DM")
+@click.option("--window-min", default=75, type=int,
+              help="Check only within this many minutes before first pitch")
+@click.option("--now-et", default=None, help="Test override: naive ET datetime ISO")
+def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
+    """DM if today's delivered pick was never entered in the MLB app.
+
+    Runs from cron every 15 min; exits silently unless NOW is inside the
+    pre-first-pitch window for today's locked pick. One DM per date (marker
+    in data/health_state/pick_entry_check.json). Auth/network failures exit
+    quietly (the fetch cron owns auth alerting; a false "not entered" DM
+    minutes before first pitch would be worse than silence).
+
+    Born from the 2026-06-12 incident: a delivered pick was never entered in
+    the app and nothing alerted until the contest streak froze a day later.
+    """
+    import sys
+    import httpx
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from bts.picks import load_pick
+    from bts.scheduler import _earliest_pick_game_et
+
+    ET = ZoneInfo("America/New_York")
+    now = (datetime.fromisoformat(now_et).replace(tzinfo=ET)
+           if now_et else datetime.now(ET))
+    today = now.date().isoformat()
+
+    picks = Path(picks_dir)
+    daily = load_pick(today, picks)
+    if daily is None:
+        click.echo(f"check-pick-entered: no pick for {today}; nothing to check")
+        return
+
+    first_pitch = _earliest_pick_game_et(daily)
+    minutes_to_pitch = (first_pitch - now).total_seconds() / 60
+    if not (0 <= minutes_to_pitch <= window_min):
+        click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
+        return
+
+    status_path = picks.parent / "health_state" / "pick_entry_check.json"
+    if status_path.exists():
+        try:
+            prior = json.loads(status_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            prior = {}
+        if prior.get("date") == today:
+            click.echo(f"check-pick-entered: already {prior.get('status')} for {today}")
+            return
+
+    from bts.leaderboard.auth import (
+        load_session_cookies, extract_uid, fetch_login_session, AuthError,
+    )
+    import bts.contest_fetch as _cf
+    try:
+        cookies = load_session_cookies()
+        uid = extract_uid(cookies)
+        session = fetch_login_session(uid=uid, cookies=cookies)
+        if expected_username and session.username != expected_username:
+            click.echo(f"check-pick-entered: identity mismatch ({session.username!r}); skipping", err=True)
+            return
+        success = _cf.fetch_profile(session.user_id, cookies, session.xsid)
+        rounds = _fetch_rounds()
+    except (AuthError, httpx.HTTPError, KeyError, ValueError, TypeError) as exc:
+        click.echo(f"check-pick-entered: fetch failed, skipping quietly: {exc}", err=True)
+        return
+
+    entered = _cf.has_prediction_for(success, rounds, now.date())
+    if entered:
+        _atomic_write_json(status_path, {"date": today, "status": "confirmed",
+                                         "checked_at": now.isoformat()})
+        click.echo(f"check-pick-entered: {today} pick is entered in the MLB app")
+        return
+
+    names = daily.pick.batter_name
+    if daily.double_down:
+        names += f" + DD {daily.double_down.batter_name}"
+    msg = (f"\u26a0\ufe0f BTS pick NOT entered in MLB app: {names} — first pitch "
+           f"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Enter it now!")
+    if dm_recipient:
+        try:
+            import bts.dm
+            bts.dm.send_dm(dm_recipient, msg)
+            click.echo(f"check-pick-entered: DM sent to {dm_recipient}")
+        except Exception as exc:
+            click.echo(f"check-pick-entered: DM failed: {exc}", err=True)
+    _atomic_write_json(status_path, {"date": today, "status": "alerted",
+                                     "checked_at": now.isoformat()})
+    sys.exit(1)
+
+
 @cli.command(name="fetch-contest-streak")
 @click.option("--picks-dir", default="data/picks", type=click.Path())
 @click.option("--expected-username", default=None,
