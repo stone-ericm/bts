@@ -145,3 +145,41 @@ def test_leaky_sentinel_uses_same_day_data():
     out = build_leaky_sentinel(pa, daily, entity="batter")
     # SAME-DAY mean miss = 9.0/2 — deliberately leaky, harness must flag it
     assert out.iloc[0]["LEAKY_same_day_miss"] == 4.5
+
+
+def test_daily_aggregates_include_intercept_and_attack_sq():
+    bronze = _bronze([
+        {"description": "foul", "miss_distance": None, "attack_angle": 10.0},
+        {"description": "swinging_strike", "miss_distance": 2.0, "attack_angle": 14.0},
+    ])
+    bronze["intercept_ball_minus_batter_pos_y_inches"] = [30.0, 34.0]
+    daily = daily_swing_aggregates(bronze, entity="batter")
+    row = daily.iloc[0]
+    assert row["intercept_y_sum"] == 64.0
+    assert row["n_intercept_tracked"] == 2
+    assert row["attack_angle_sumsq"] == 10.0**2 + 14.0**2
+
+
+def test_rolling_includes_intercept_y_and_attack_std():
+    daily = pd.DataFrame({
+        "batter": [1, 1, 1],
+        "date": pd.to_datetime(["2025-06-01", "2025-06-02", "2025-06-03"]),
+        "n_swings": [10, 10, 10],
+        "n_swings_tracked": [10, 10, 10],
+        "n_whiffs": [9, 9, 9],
+        "n_whiffs_tracked": [9, 9, 9],
+        "miss_sum": [27.0, 27.0, 27.0],
+        "miss_sumsq": [85.0, 85.0, 85.0],
+        "swing_len_sum": [70.0, 70.0, 70.0],
+        "attack_angle_sum": [100.0, 120.0, 100.0],
+        "attack_angle_sumsq": [1010.0, 1450.0, 1010.0],
+        "n_whiff_high": [4, 4, 4],
+        "n_whiff_low": [5, 5, 5],
+        "intercept_y_sum": [300.0, 320.0, 340.0],
+        "n_intercept_tracked": [10, 10, 10],
+    })
+    feats = rolling_swing_features(daily, entity="batter", windows=[2], min_whiffs=1)
+    # day 3 window = days 1+2: intercept mean (300+320)/20 = 31.0
+    assert abs(feats.iloc[2]["batter_intercept_y_2g"] - 31.0) < 1e-9
+    # attack std from sums: mean=(100+120)/20=11, E[x^2]=(1010+1450)/20=123 -> var=2
+    assert abs(feats.iloc[2]["batter_attack_std_2g"] - np.sqrt(2.0)) < 1e-9

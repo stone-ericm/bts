@@ -40,6 +40,9 @@ def daily_swing_aggregates(bronze: pd.DataFrame, entity: str) -> pd.DataFrame:
     df["_miss"] = pd.to_numeric(df["miss_distance"], errors="coerce")
     df["_swing_len"] = pd.to_numeric(df.get("swing_length"), errors="coerce")
     df["_attack"] = pd.to_numeric(df.get("attack_angle"), errors="coerce")
+    df["_intercept_y"] = pd.to_numeric(
+        df.get("intercept_ball_minus_batter_pos_y_inches"), errors="coerce"
+    )
     sz_mid = (pd.to_numeric(df["sz_top"], errors="coerce")
               + pd.to_numeric(df["sz_bot"], errors="coerce")) / 2
     plate_z = pd.to_numeric(df["plate_z"], errors="coerce")
@@ -56,6 +59,9 @@ def daily_swing_aggregates(bronze: pd.DataFrame, entity: str) -> pd.DataFrame:
         miss_sumsq=("_miss", lambda s: float(np.nansum(np.square(s)))),
         swing_len_sum=("_swing_len", "sum"),
         attack_angle_sum=("_attack", "sum"),
+        attack_angle_sumsq=("_attack", lambda s: float(np.nansum(np.square(s)))),
+        intercept_y_sum=("_intercept_y", "sum"),
+        n_intercept_tracked=("_intercept_y", "count"),
         n_whiff_high=("_whiff_high", "sum"),
         n_whiff_low=("_whiff_low", "sum"),
     ).reset_index()
@@ -93,6 +99,9 @@ def rolling_swing_features(
         attack = _roll_sum("attack_angle_sum", w)
         hi = _roll_sum("n_whiff_high", w)
         lo = _roll_sum("n_whiff_low", w)
+        attack_sumsq = _roll_sum("attack_angle_sumsq", w)
+        icpt_sum = _roll_sum("intercept_y_sum", w)
+        icpt_n = _roll_sum("n_intercept_tracked", w)
 
         enough = whiffs_tracked >= min_whiffs
         mean_miss = (miss_sum / whiffs_tracked).where(enough)
@@ -104,6 +113,10 @@ def rolling_swing_features(
         out[f"{entity}_whiff_high_share_{w}g"] = (hi / (hi + lo)).where((hi + lo) >= min_whiffs)
         out[f"{entity}_swing_len_{w}g"] = (swing_len / swings_tracked).where(swings_tracked >= min_whiffs)
         out[f"{entity}_attack_angle_{w}g"] = (attack / swings_tracked).where(swings_tracked >= min_whiffs)
+        mean_attack = (attack / swings_tracked).where(swings_tracked >= min_whiffs)
+        var_attack = (attack_sumsq / swings_tracked - mean_attack**2).where(swings_tracked >= min_whiffs)
+        out[f"{entity}_attack_std_{w}g"] = np.sqrt(var_attack.clip(lower=0))
+        out[f"{entity}_intercept_y_{w}g"] = (icpt_sum / icpt_n).where(icpt_n >= min_whiffs)
     return out
 
 
