@@ -9,6 +9,7 @@ import lightgbm as lgb
 from pathlib import Path
 from urllib.request import urlopen
 
+from bts import progress
 from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
 
 API_BASE = "https://statsapi.mlb.com"
@@ -108,6 +109,7 @@ def train_blend(
     blend = {}
 
     for config in configs:
+        progress.mark(f"training_blend_{config[0]}")
         if len(config) == 2:
             name, cols = config
             extra_params = {}
@@ -811,9 +813,11 @@ def run_pipeline(
             leave these as None.
     """
     if refresh_data:
+        progress.mark("refreshing_data")
         _refresh_season_data(date, processed_dir=data_dir)
 
     proc = Path(data_dir)
+    progress.mark("loading_parquets")
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
         dfs.append(pd.read_parquet(parquet))
@@ -821,6 +825,7 @@ def run_pipeline(
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
 
     df = pd.concat(dfs, ignore_index=True)
+    progress.mark("computing_features")
     df = compute_all_features(df)
     df["date"] = pd.to_datetime(df["date"])
 
@@ -846,6 +851,7 @@ def run_pipeline(
         model = cached_blend.pop("_model")
         blend = cached_blend
     else:
+        progress.mark("training_single_model")
         model = train_model(df, feature_cols=feature_cols_override)
         blend = train_blend(
             df,
@@ -857,8 +863,10 @@ def run_pipeline(
             to_save = {**blend, "_model": model}
             save_blend(to_save, save_blend_path)
 
+    progress.mark("building_lookups")
     lookups = _build_feature_lookups(df)
 
+    progress.mark("predicting")
     return predict(
         date, df, model, lookups,
         check_openers=check_openers,

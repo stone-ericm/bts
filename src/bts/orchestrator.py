@@ -236,12 +236,14 @@ def run_and_pick(
     predictions is None if all tiers fail.
     pick_result is None if skip or no games.
     """
+    from bts import progress
     from bts.contest_state import load_decision_streak_state
     from bts.picks import get_game_statuses_detailed
     from bts.strategy import select_pick
 
     picks_dir = Path(config["orchestrator"]["picks_dir"])
 
+    progress.mark("running_cascade")
     predictions, tier_name = run_cascade(config["tiers"], date)
     if predictions is None or predictions.empty:
         return predictions, None, tier_name
@@ -249,8 +251,10 @@ def run_and_pick(
     # Persist the full ranked slate (observability only — save_slate never
     # raises). Enables realized slate-level metrics; see bts/slate.py.
     from bts.slate import save_slate
+    progress.mark("persisting_slate")
     save_slate(predictions, date, picks_dir, tier_name)
 
+    progress.mark("loading_decision_state")
     decision_state = load_decision_streak_state(
         picks_dir,
         require_contest_state=_contest_state_required(config),
@@ -259,6 +263,7 @@ def run_and_pick(
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
         game_statuses_detailed = None
+    progress.mark("selecting_pick")
     result = select_pick(
         predictions,
         date,

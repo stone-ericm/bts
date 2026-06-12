@@ -813,8 +813,14 @@ def run_single_check(
     print(f"  {new_count} new confirmed lineup(s). Running predictions...", file=sys.stderr)
 
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
+    stall_after = float(config.get("scheduler", {}).get("heartbeat_stall_after_sec", 900))
+    durations_path = Path("data/health_state/cascade_stage_durations.jsonl")
     try:
-        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+        with heartbeat_watchdog(
+            heartbeat_path, interval_sec=60,
+            kind="primary", date=date,
+            stall_after_sec=stall_after, durations_path=durations_path,
+        ):
             predictions, pick_result, tier = run_and_pick(
                 config,
                 date,
@@ -948,7 +954,15 @@ def _run_shadow_prediction(
             unit=unit,
         )
 
-        with heartbeat_watchdog(heartbeat_path, interval_sec=60):
+        shadow_stall_after = float(
+            config.get("scheduler", {}).get("heartbeat_stall_after_sec", 900)
+        )
+        with heartbeat_watchdog(
+            heartbeat_path, interval_sec=60,
+            kind="shadow", date=date,
+            stall_after_sec=shadow_stall_after,
+            durations_path=Path("data/health_state/cascade_stage_durations.jsonl"),
+        ):
             predictions = predict_local_shadow(
                 date, data_dir=data_dir, models_dir=models_dir
             )
