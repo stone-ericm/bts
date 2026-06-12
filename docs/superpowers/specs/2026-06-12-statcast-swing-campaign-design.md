@@ -31,8 +31,13 @@ knowledge.
   `flawed_percent`, `n_swings`, `whiff_rate`.
 - **Leaderboard aggregates are BANNED as model features** (season-to-date
   scrapes are not date-bounded → leakage). Features come from per-pitch data
-  through the standard date-level `shift(1)` machinery only. Leaderboards are
-  reference/QA.
+  through date-level `shift(1)` machinery only. Leaderboards are reference/QA
+  with a **tolerance protocol, never exact equality** (Savant applies its own
+  tracking/competitive filters and denominators): identical date/season/
+  player-type/pitch-type/minimum filters first, then Spearman ≥ 0.98 on
+  n_swings and whiff rate, median absolute percent error ≤ 2% (p95 ≤ 5%),
+  mean miss-distance median absolute diff ≤ 0.25–0.5"; proprietary buckets
+  (competitive/flawed) are gross-sanity only.
 - Density: starters induce ~5–8 measured whiffs/start → 30d pitcher windows
   hold ~30–50 swings. Pair-level (batter × pitcher) features are REJECTED on
   sparsity; zone-profile aggregates stand in for matchups.
@@ -66,12 +71,27 @@ confirmation. 2026-to-date = separate ABS-era validation stratum (the ABS
 challenge system changes whiff ecology — a real regime variable; never pooled
 silently with 2025; report the 2026 interaction explicitly).
 
-**Stage 0 — ingest + features.** Backfill per-pitch swing columns
-mid-2023→present (pybaseball statcast pulls, swing/bat-tracking columns +
-ids/date only; one box, overnight; politeness-throttled; stored
-`data/processed/swing_{season}.parquet`). Daily incremental pull joins the
-existing refresh path. Features built via date-level aggregate + `shift(1)`
-(same contract as compute.py; same leakage tests).
+**Stage 0 — ingest + features + harness scaffold (Codex round-2 amendments).**
+- **Ingest**: backfill mid-2023→present via pybaseball (verified dep 2.2.7)
+  into a WIDE bronze table `data/processed/swing_{season}.parquet`:
+  game_date/game_pk/at_bat_number/pitch_number/sv_id (when present),
+  batter/pitcher, events/description/type, pitch_type, game_type, count,
+  stand/throws, zone + plate location, ALL swing/bat-tracking columns, plus a
+  stored raw-column manifest. Storage is cheap; re-pulls and schema drift are
+  not. pybaseball hygiene: project-scoped `PYBASEBALL_CACHE`, bounded
+  retries/timeouts (the datasource has none), serial pulls, and the daily
+  incremental re-pulls a rolling recent window (stale current-season cache).
+- **Integration shape (mandated)**: per-pitch data is NEVER merged into the
+  PA frame (no stable pitch keys there). Build `swing_daily_*` aggregate
+  tables keyed (entity_id, date) — keeping denominator rows so "no whiffs" /
+  "no swings" / "no tracking" remain distinguishable — apply
+  `shift(1).rolling(...)` at the date level, then left-join features onto PA
+  rows. Matchup profiles: join SHIFTED batter and pitcher profiles at PA
+  date, then form dot products (never same-day products before shifting).
+- **Metric/control scaffold**: the paired daily NDCG@10 + season-stratified
+  block bootstrap harness does not exist in the repo (scorecard/experiment
+  runner are P@1/P(57)-based) — Stage 0 builds and smoke-tests it. No Stage-1
+  selection until it exists.
 
 **Stage 1 — screen (2024, 3 seeds, 2–3 boxes).** Purpose: prune variants,
 catch leakage/coverage bugs, freeze the bundle. Per-family omnibus models +
@@ -88,7 +108,13 @@ fleet, `BTS_LGBM_DETERMINISTIC=1`, audit_driver pattern).**
 - Baseline = **current prod features + the raw-feature decompression fix**
   (B1), so new features can't take credit for fixing the known aggregation
   defect; B1-vs-B0 (current prod) is reported as its own arm — closing the
-  2026-06-10 live thread.
+  2026-06-10 live thread. **B1 caveat (Codex round 2): the decompression fix
+  is not yet a concrete code path** — it gets defined and validated during
+  Stage 0/1; if it doesn't materialize cheaply, the baseline reverts to B0
+  and decompression is evaluated as its own arm alongside the families.
+- **Deployable surface**: promotion claims attach to the single frozen
+  production config (seed/params as served); the n=10 stratified pooling
+  quantifies seed-noise robustness around it, it is not the deployed object.
 - Secondary attribution: add-one-family / drop-one-family ablations,
   Benjamini–Hochberg FDR across those family claims (labeled exploratory;
   deployment does not depend on them).
@@ -117,12 +143,15 @@ overstate live contribution while serving is stale).
 
 ## Controls & hygiene (all pre-registered)
 
-- **Missingness placebo:** availability-indicator-only model (has-swing-data
-  flags, no values) must show ~nothing, else the eval is confounded by the
-  post-2023 era marker.
+- **Missingness placebo:** availability-indicator-only model — **boolean
+  has-swing-data flags only, no values and no counts** (counts carry real
+  playing-time signal; a coverage-count placebo may be run separately) — must
+  show ~nothing, else the eval is confounded by the post-2023 era marker.
 - **Negative controls:** within-entity permuted features (must show nothing);
-  future-shift sentinel (shift(-1) variant MUST show inflated performance —
-  proves the harness can detect leakage).
+  **one known-strong leaky sentinel** — same-day UNSHIFTED whiff/miss data as
+  a feature — which the harness MUST flag as inflated (proves leakage
+  detectability; weak sparse families are not individually required to
+  inflate).
 - **Coverage ablation:** train 2019+ with NaNs vs train post-coverage-only —
   report both for the bundle.
 - **Whiff-denominator reliability:** min-sample thresholds, pseudocount
@@ -144,6 +173,9 @@ data-relay path. All runs `BTS_LGBM_DETERMINISTIC=1`. Local Mac is fallback
 - SHIP candidate bundle: primary metric positive on 2025 (CI excluding 0
   under the pre-registered test), guardrails non-negative, controls clean,
   2026 stratum not contradicting (point estimate not meaningfully negative).
+  A SHIP includes serving integration (`_build_feature_lookups` + `predict()`
+  row assembly for the new features) and the M3 serving-freshness rider —
+  training-column support alone is not shippable.
 - HOLD/document: anything less. Per-family negative results recorded in the
   experiment backlog with effect sizes + CIs.
 - No mid-campaign metric changes; deviations require a spec amendment.
