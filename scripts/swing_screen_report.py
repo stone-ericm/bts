@@ -120,13 +120,14 @@ def main() -> None:
 
     if gross:
         every_seed_pos = all(x > 0 for x in gross["auc_per_seed"])
-        margin_ok = gross["auc_delta"] >= 3 * null_band if null_band == null_band else False
-        ok = every_seed_pos and margin_ok
+        margin_ok = gross["auc_delta"] >= 5 * null_band if null_band == null_band else False
+        p_ok = gross["auc_p"] <= 0.001
+        ok = every_seed_pos and margin_ok and p_ok
         gate_pass &= ok
         gate_lines.append(
             f"- GATE 1 gross sentinel: {'PASS' if ok else 'FAIL'} — delta "
             f"{gross['auc_delta']:+.5f} (every seed positive: {every_seed_pos}; "
-            f">=3x null band {null_band:.5f}: {margin_ok})"
+            f">=5x null band {null_band:.5f}: {margin_ok}; p<=0.001: {p_ok} (p={gross['auc_p']:.4f}))"
         )
     else:
         gate_pass = False

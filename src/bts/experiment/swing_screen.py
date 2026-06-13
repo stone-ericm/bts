@@ -190,9 +190,14 @@ def build_arm_frame(
         return frame.drop(columns=cols), flag_cols + perm_cols
 
     if arm == "ctl_sentinel_gross":
-        if "GROSS_same_day_whiffs" not in pa.columns:
-            raise ValueError("ctl_sentinel_gross requires GROSS_same_day_whiffs (driver attaches)")
-        return base_frame, flag_cols + ["GROSS_same_day_whiffs"]
+        # GROSS PLUMBING CANARY = same-day game outcome (the label). Proven to
+        # explode (auc->1.0) 2026-06-13: it is the definitive "can the harness
+        # see a leak" test. The earlier same-day-whiff-count sentinel was too
+        # weak at GAME granularity (a batter whiffs AND singles in one game),
+        # which is why it didn't inflate — the harness was never broken.
+        if "ORACLE_game_hit" not in pa.columns:
+            raise ValueError("ctl_sentinel_gross requires ORACLE_game_hit (driver attaches)")
+        return base_frame, flag_cols + ["ORACLE_game_hit"]
 
     if arm == "ctl_sentinel_m3":
         if "M3LEAK_batter_miss_dist_30g" not in pa.columns:

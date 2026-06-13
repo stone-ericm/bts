@@ -176,11 +176,11 @@ def test_sentinel_arms_require_attached_columns():
         build_arm_frame("ctl_sentinel_gross", pa)
     with pytest.raises(ValueError):
         build_arm_frame("ctl_sentinel_m3", pa)
-    pa["GROSS_same_day_whiffs"] = 1.0
+    pa["ORACLE_game_hit"] = 1.0
     pa["M3LEAK_batter_miss_dist_30g"] = 2.5
     f1, c1 = build_arm_frame("ctl_sentinel_gross", pa)
     f2, c2 = build_arm_frame("ctl_sentinel_m3", pa)
-    assert "GROSS_same_day_whiffs" in c1
+    assert "ORACLE_game_hit" in c1
     assert "M3LEAK_batter_miss_dist_30g" in c2
 
 
