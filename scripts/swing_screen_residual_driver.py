@@ -125,10 +125,15 @@ def main() -> None:
                 print(f"[{done}/{total}] skip {target.name}", flush=True)
                 continue
             t1 = time.time()
+            # Every arm — baseline included — carries the common scaffolding
+            # (availability flags + swing_coverage_60g) so the delta isolates
+            # ONLY the candidate feature. Baseline's build_arm_frame returns
+            # just the flags; passing [] for it (earlier bug) let coverage
+            # signal inflate every non-baseline arm incl. the nulls (+0.018
+            # caught on the first-seed sanity 2026-06-13).
             frame, swing_cols = build_arm_frame(arm, pa_s)
             swing_cols = swing_cols + ["swing_coverage_60g"]
-            res = run_residual_arm(frame, [] if arm == "baseline" else swing_cols,
-                                   cov, ev, seed=seed, arm_name=arm)
+            res = run_residual_arm(frame, swing_cols, cov, ev, seed=seed, arm_name=arm)
             res["family"] = FAMILY_OF[arm]
             target.write_text(json.dumps(res))
             print(f"[{done}/{total}] {arm} seed={seed} auc={res['auc_mean']:.4f} "

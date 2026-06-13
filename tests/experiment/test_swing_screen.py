@@ -52,21 +52,22 @@ def test_baseline_flags_match_candidate_flags():
     assert set(base_cols) == {c for c in cand_cols if c.startswith("has_")}
 
 
-def test_permuted_control_preserves_values_but_breaks_dates():
+def test_permuted_control_shuffles_within_date_breaking_entity_link():
+    # 2 dates x 3 batters; within-date shuffle preserves each DAY's value set
+    # but reassigns values across batters (breaks the entity->outcome link).
     pa = pd.DataFrame({
-        "batter_id": [1] * 6, "pitcher_id": [9] * 6,
-        "date": pd.to_datetime([f"2024-05-{d:02d}" for d in range(1, 7)]),
+        "batter_id": [1, 2, 3, 1, 2, 3], "pitcher_id": [9] * 6,
+        "date": pd.to_datetime(["2024-05-01"] * 3 + ["2024-05-02"] * 3),
         "season": 2024, "is_hit": 1,
-        "batter_miss_dist_30g": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        "batter_miss_dist_30g": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
     })
-    # registry permutes within entity with a fixed seed
     frame, cols = build_arm_frame("ctl_permuted", pa, permute_seed=7)
-    # permuted copies carry the VARIANT name (b_miss_30g <- batter_miss_dist_30g)
     col = [c for c in cols if c == "perm_b_miss_30g"]
     assert col, "permuted control must include permuted copies of omnibus features"
-    vals = sorted(frame[col[0]].tolist())
-    assert vals == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]      # marginal preserved
-    assert frame[col[0]].tolist() != pa["batter_miss_dist_30g"].tolist()  # order broken
+    pc = col[0]
+    # each DATE's value set is preserved (within-date permutation)
+    assert sorted(frame.loc[frame.date == "2024-05-01", pc]) == [1.0, 2.0, 3.0]
+    assert sorted(frame.loc[frame.date == "2024-05-02", pc]) == [10.0, 20.0, 30.0]
 
 
 def test_placebo_arm_removed():

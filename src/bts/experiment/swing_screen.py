@@ -178,13 +178,18 @@ def build_arm_frame(
         return frame.drop(columns=cols), flag_cols + mask_cols
 
     if arm == "ctl_permuted":
+        # Shuffle feature values WITHIN DATE (Codex r3/r5: preserve the day's
+        # marginal distribution, BREAK the entity->outcome link). Permuting
+        # within batter_id was WRONG — it preserved each batter's mean and so
+        # leaked batter-quality signal (a null arm showed +0.028, caught on the
+        # first-seed sanity 2026-06-13). Within-date breaks that cleanly.
         frame, cols = _build_variants(base_frame, list(_SINGLE_VARIANTS))
         rng = np.random.default_rng(permute_seed)
         perm_cols = []
         for c in cols:
             name = f"perm_{c}"
             frame[name] = (
-                frame.groupby("batter_id")[c]
+                frame.groupby("date")[c]
                 .transform(lambda s: s.sample(frac=1, random_state=rng.integers(1 << 30)).to_numpy())
             )
             perm_cols.append(name)
