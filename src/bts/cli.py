@@ -1473,14 +1473,19 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
 def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
     """DM if today's delivered pick was never entered in the MLB app.
 
+    *** DISABLED — NOT IN CRON (2026-06-12, same night it shipped). ***
+    The user-profile predictions endpoint contains ONLY settled rows
+    (hit/not_hit/void) — pending same-day entries are INVISIBLE there, so
+    this command would false-alarm "not entered" EVERY day pre-pitch
+    (caught by Eric within hours: he HAD entered the 06-12 pick and the
+    check still said no). Re-enable only after finding an endpoint that
+    exposes pending predictions (likely the round-prediction API the MLB
+    app itself calls — needs traffic inspection). The same-day entry gap
+    is real and worth solving; this data source can't solve it.
+
     Runs from cron every 15 min; exits silently unless NOW is inside the
     pre-first-pitch window for today's locked pick. One DM per date (marker
-    in data/health_state/pick_entry_check.json). Auth/network failures exit
-    quietly (the fetch cron owns auth alerting; a false "not entered" DM
-    minutes before first pitch would be worse than silence).
-
-    Born from the 2026-06-12 incident: a delivered pick was never entered in
-    the app and nothing alerted until the contest streak froze a day later.
+    in data/health_state/pick_entry_check.json).
     """
     import sys
     import httpx
