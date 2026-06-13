@@ -166,7 +166,12 @@ def main() -> None:
     gate_lines.append(f"- GATE 4 nulls unremarkable: {'PASS' if null_ok else 'FAIL'} "
                       f"({ {a: round(stats[a]['auc_delta'], 5) for a in NULL_ARMS if a in stats} })")
 
-    lines = [f"# Swing campaign Stage-1 screen report (amendment #2) — {date.today()}", ""]
+    lines = [f"# Swing campaign Stage-1 screen report (amendment #3, residual stacking) — {date.today()}", ""]
+    lines.append("> Soft-oracle caveat: it is a CONCENTRATED, sparse leak (few rows reveal "
+                 "the exact outcome) calibrated to ~+0.005 mean daily rank-AUC. A real "
+                 "candidate is a DIFFUSE weak signal — same mean delta, different per-day "
+                 "variance — so the soft gate is a floor test of resolving power, not an "
+                 "exact candidate analog.")
     lines.append(f"Seeds: {seeds}; screen days: {stats[arms[0]]['n_days'] if arms else 0}; "
                  f"primary stat: paired daily rank-AUC delta (seed-averaged), "
                  f"week-blocked sign-permutation p")

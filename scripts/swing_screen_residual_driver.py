@@ -44,7 +44,7 @@ EVAL_START, EVAL_END = "2024-07-01", "2024-11-01"
 MIN_COV60 = 0.90
 # Soft-oracle reveal fraction — tuned via scripts/calibrate_soft_oracle.py to
 # give ~+0.005 daily rank-AUC (the candidate effect size). Set 2026-06-13.
-SOFT_REVEAL = float(os.environ.get("BTS_SOFT_REVEAL", "0.06"))
+SOFT_REVEAL = float(os.environ.get("BTS_SOFT_REVEAL", "0.005"))  # ~+0.005 daily rank-AUC (calibrated 2026-06-13)
 
 
 def _swing_coverage_60g(daily_b: pd.DataFrame) -> pd.DataFrame:
