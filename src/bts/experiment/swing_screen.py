@@ -89,7 +89,7 @@ ARMS = (
     + list(_SINGLE_VARIANTS)
     + [f"omni_{f}" for f in _FAMILY_MEMBERS]
     + ["omni_ALL", "ctl_mask_only", "ctl_permuted",
-       "ctl_sentinel_gross", "ctl_sentinel_m3"]
+       "ctl_sentinel_gross", "ctl_sentinel_soft", "ctl_sentinel_m3"]
 )
 
 FAMILY_OF = {"baseline": "baseline"}
@@ -98,7 +98,8 @@ for fam, members in _FAMILY_MEMBERS.items():
         FAMILY_OF[m] = fam
     FAMILY_OF[f"omni_{fam}"] = "omnibus"
 FAMILY_OF["omni_ALL"] = "omnibus"
-for c in ("ctl_mask_only", "ctl_permuted", "ctl_sentinel_gross", "ctl_sentinel_m3"):
+for c in ("ctl_mask_only", "ctl_permuted", "ctl_sentinel_gross",
+          "ctl_sentinel_soft", "ctl_sentinel_m3"):
     FAMILY_OF[c] = "control"
 
 
@@ -198,6 +199,14 @@ def build_arm_frame(
         if "ORACLE_game_hit" not in pa.columns:
             raise ValueError("ctl_sentinel_gross requires ORACLE_game_hit (driver attaches)")
         return base_frame, flag_cols + ["ORACLE_game_hit"]
+
+    if arm == "ctl_sentinel_soft":
+        # CALIBRATED SOFT-ORACLE (Codex round-5): a graded leak tuned to ~+0.005
+        # daily rank-AUC, so the screen's POWER at the candidate effect size is
+        # directly tested — not just the trivial full oracle. Driver attaches.
+        if "SOFT_ORACLE" not in pa.columns:
+            raise ValueError("ctl_sentinel_soft requires SOFT_ORACLE (driver attaches)")
+        return base_frame, flag_cols + ["SOFT_ORACLE"]
 
     if arm == "ctl_sentinel_m3":
         if "M3LEAK_batter_miss_dist_30g" not in pa.columns:
@@ -342,33 +351,43 @@ def build_prod_prior_oof(
     """Full-history production prior as a feature, leak-free.
 
     OOF on covered-train rows: for each week-fold of cov_mask, train on
-    full_mask MINUS that fold's rows, predict the fold (so a covered row's
-    prior never saw that row). Final model (all of full_mask) predicts eval.
-    Returns a Series aligned to pa.index; NaN outside cov∪eval.
+    full_mask MINUS *all rows in the held-out WEEKS* (Codex round-5: group
+    exclusion, not just the cov rows — otherwise same-week uncovered rows
+    leak date-correlated signal into the held-out prediction), predict the
+    fold. Final model (all of full_mask) predicts eval. Returns a Series
+    aligned to pa.index; NaN outside cov∪eval.
     """
     import lightgbm as lgb
     from bts.model.predict import LGB_PARAMS
 
+    assert pa.index.is_unique, "build_prod_prior_oof requires a unique index"
+    assert not (cov_mask & eval_mask).any(), "cov and eval overlap"
+    assert "is_hit" in pa.columns
+    assert all(c not in prod_features for c in ("ORACLE_game_hit", "M3LEAK_batter_miss_dist_30g")), \
+        "leak columns must not be in prod_features"
+
     params = {**LGB_PARAMS, **(lgb_overrides or {}), "deterministic": True, "force_row_wise": True}
     out = pd.Series(np.nan, index=pa.index)
 
+    week = pa["date"].dt.to_period("W")
     cov_idx = pa.index[cov_mask]
     folds = _week_fold_id(pa.loc[cov_idx, "date"], n_folds)
+    full_idx = pa.index[full_mask]
     for f in range(n_folds):
         holdout = cov_idx[folds.to_numpy() == f]
         if len(holdout) == 0:
             continue
-        train_rows = pa.index[full_mask].difference(holdout)
-        Xtr = pa.loc[train_rows, prod_features]
+        holdout_weeks = set(week.loc[holdout].unique())
+        train_rows = full_idx[~week.loc[full_idx].isin(holdout_weeks).to_numpy()]
         m = lgb.LGBMClassifier(**params, random_state=seed)
-        m.fit(Xtr, pa.loc[train_rows, "is_hit"])
+        m.fit(pa.loc[train_rows, prod_features], pa.loc[train_rows, "is_hit"])
         out.loc[holdout] = m.predict_proba(pa.loc[holdout, prod_features])[:, 1]
 
     final = lgb.LGBMClassifier(**params, random_state=seed)
-    ftr = pa.index[full_mask]
-    final.fit(pa.loc[ftr, prod_features], pa.loc[ftr, "is_hit"])
+    final.fit(pa.loc[full_idx, prod_features], pa.loc[full_idx, "is_hit"])
     ev_idx = pa.index[eval_mask]
     out.loc[ev_idx] = final.predict_proba(pa.loc[ev_idx, prod_features])[:, 1]
+    assert out.loc[cov_mask].notna().all() and out.loc[eval_mask].notna().all()
     return out
 
 
@@ -388,8 +407,11 @@ def run_residual_arm(
     out_dir=None,
     arm_name: str | None = None,
 ) -> dict:
-    """Train a covered-era residual model (base = prior + prior daily rank +
-    swing_cols) and score the eval slate. Returns the metric payload."""
+    """Train and score a covered-era residual model at the GAME-BATTER SLATE
+    level (Codex round-5: train granularity must match score granularity, and
+    prior_rank must be ranked over the scored candidate universe — not PA rows,
+    whose multiplicity encodes post-game PA count). base = prior + slate-level
+    prior rank + swing_cols. Returns the metric payload."""
     import json as _json
     from pathlib import Path as _Path
     import lightgbm as lgb
@@ -401,24 +423,29 @@ def run_residual_arm(
     if extra_cols:
         for k, v in extra_cols.items():
             frame[k] = v
-    frame["_prior_rank"] = _daily_rank(frame, prior_col)
     base = [prior_col, "_prior_rank"]
     cols = base + list(swing_cols)
 
-    params = {**LGB_PARAMS, **(lgb_overrides or {}), "deterministic": True, "force_row_wise": True}
-    tr = frame.index[cov_mask]
-    model = lgb.LGBMClassifier(**params, random_state=seed)
-    model.fit(frame.loc[tr, cols], frame.loc[tr, "is_hit"])
+    def _slate(mask: pd.Series) -> pd.DataFrame:
+        # deterministic: sort by stable keys before first(); same-day rolling
+        # features are constant per batter-date, lineup is per game.
+        sub = frame[mask].sort_values(["date", "game_pk", "batter_id"], kind="mergesort")
+        s = sub.groupby(["game_pk", "batter_id"], as_index=False).first()
+        outcome = sub.groupby(["game_pk", "batter_id"])["is_hit"].max().rename("actual_hit")
+        s = s.drop(columns=["is_hit"]).merge(outcome, on=["game_pk", "batter_id"], how="left")
+        s = s.dropna(subset=["actual_hit"])
+        s["_prior_rank"] = s.groupby("date")[prior_col].rank(pct=True)
+        return s
 
-    ev = frame[eval_mask].copy()
-    # one row per (game, batter); outcome = any hit that game
-    slate = ev.groupby(["game_pk", "batter_id"], as_index=False).first()
-    outcome = ev.groupby(["game_pk", "batter_id"])["is_hit"].max().rename("actual_hit")
-    slate = slate.drop(columns=["is_hit"]).merge(outcome, on=["game_pk", "batter_id"], how="left")
-    slate = slate.dropna(subset=["actual_hit"])
-    p_pa = model.predict_proba(slate[cols])[:, 1]
-    est = slate["lineup_position"].map(PA_EST).fillna(4.0)
-    slate["p_game"] = 1 - (1 - p_pa) ** est
+    cov_slate = _slate(cov_mask)
+    eval_slate = _slate(eval_mask)
+
+    params = {**LGB_PARAMS, **(lgb_overrides or {}), "deterministic": True, "force_row_wise": True}
+    model = lgb.LGBMClassifier(**params, random_state=seed)
+    model.fit(cov_slate[cols], cov_slate["actual_hit"])
+    # slate-level model predicts P(game has a hit) directly — no est_pas
+    eval_slate["p_game"] = model.predict_proba(eval_slate[cols])[:, 1]
+    slate = eval_slate
 
     days = []
     for d, day in slate.groupby("date"):

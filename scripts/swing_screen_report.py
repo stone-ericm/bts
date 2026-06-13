@@ -133,23 +133,37 @@ def main() -> None:
         gate_pass = False
         gate_lines.append("- GATE 1 gross sentinel: MISSING")
 
-    if m3:
-        ok = m3["auc_delta"] > null_band
+    # GATE 2 = POWER gate: the soft-oracle is tuned to ~+0.005 (the candidate
+    # effect size). If it can't clear the null band with significance, the
+    # screen cannot resolve +0.005 candidate effects — a null candidate result
+    # would be UNINTERPRETABLE (underpowered), not "no signal".
+    soft = stats.get("ctl_sentinel_soft")
+    if soft:
+        ok = soft["auc_delta"] > null_band and soft["auc_p"] <= 0.05
         gate_pass &= ok
         gate_lines.append(
-            f"- GATE 2 M3 sentinel: {'PASS' if ok else 'FAIL'} — delta "
-            f"{m3['auc_delta']:+.5f} vs null band {null_band:.5f} (p={m3['auc_p']:.3f})"
+            f"- GATE 2 soft-oracle POWER (~+0.005 target): {'PASS' if ok else 'FAIL'} — delta "
+            f"{soft['auc_delta']:+.5f} vs null band {null_band:.5f}, p={soft['auc_p']:.3f}. "
+            f"{'Screen can resolve candidate-size effects.' if ok else 'UNDERPOWERED — null candidates uninterpretable; go to all-2024 folds or 2025.'}"
         )
     else:
         gate_pass = False
-        gate_lines.append("- GATE 2 M3 sentinel: MISSING")
+        gate_lines.append("- GATE 2 soft-oracle: MISSING")
+
+    # M3 = natural subtle-leak probe (reported, not a hard gate — Codex r4/r5)
+    if m3:
+        ok = m3["auc_delta"] > null_band
+        gate_lines.append(
+            f"- GATE 3 M3 natural-leak probe (report-only): {'above' if ok else 'below'} null — "
+            f"delta {m3['auc_delta']:+.5f} vs {null_band:.5f} (p={m3['auc_p']:.3f})"
+        )
 
     null_ok = all(
         not (stats[a]["auc_p"] < 0.05 and stats[a]["auc_delta"] > 0)
         for a in NULL_ARMS if a in stats
     )
     gate_pass &= null_ok
-    gate_lines.append(f"- GATE 3 nulls unremarkable: {'PASS' if null_ok else 'FAIL'} "
+    gate_lines.append(f"- GATE 4 nulls unremarkable: {'PASS' if null_ok else 'FAIL'} "
                       f"({ {a: round(stats[a]['auc_delta'], 5) for a in NULL_ARMS if a in stats} })")
 
     lines = [f"# Swing campaign Stage-1 screen report (amendment #2) — {date.today()}", ""]

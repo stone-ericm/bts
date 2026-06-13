@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -41,6 +42,9 @@ SEEDS = list(range(30))
 COV_START, COV_END = "2023-07-01", "2024-06-30"
 EVAL_START, EVAL_END = "2024-07-01", "2024-11-01"
 MIN_COV60 = 0.90
+# Soft-oracle reveal fraction — tuned via scripts/calibrate_soft_oracle.py to
+# give ~+0.005 daily rank-AUC (the candidate effect size). Set 2026-06-13.
+SOFT_REVEAL = float(os.environ.get("BTS_SOFT_REVEAL", "0.06"))
 
 
 def _swing_coverage_60g(daily_b: pd.DataFrame) -> pd.DataFrame:
@@ -73,6 +77,13 @@ def build_pa_frame() -> pd.DataFrame:
     pa["swing_coverage_60g"] = pa["swing_coverage_60g"].fillna(0.0)
     # gross canary = same-day game outcome (proven to explode 2026-06-13)
     pa["ORACLE_game_hit"] = pa.groupby(["game_pk", "batter_id"])["is_hit"].transform("max").astype(float)
+    # soft-oracle canary = reveal the game outcome for a SOFT_REVEAL fraction of
+    # rows, pure noise otherwise — a graded leak tuned to ~+0.005 (Codex r5).
+    # Deterministic per row (hash of game_pk*1000+batter_id), no global RNG.
+    h = ((pa["game_pk"].astype("int64") * 1009 + pa["batter_id"].astype("int64")) % 997) / 997.0
+    revealed = h < SOFT_REVEAL
+    noise = ((pa["game_pk"].astype("int64") * 7919 + pa["batter_id"].astype("int64")) % 1013) / 1013.0
+    pa["SOFT_ORACLE"] = np.where(revealed, pa["ORACLE_game_hit"], noise)
     m3 = rolling_swing_features(daily_b, entity="batter", windows=[30], shift_days=0)
     m3 = m3[["batter", "date", "batter_miss_dist_30g"]].rename(
         columns={"batter": "batter_id", "batter_miss_dist_30g": "M3LEAK_batter_miss_dist_30g"})
