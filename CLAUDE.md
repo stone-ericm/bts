@@ -89,3 +89,9 @@ See `ARCHITECTURE.md` for full details. Key points:
 - Train on 2019+ data (2017-18 hurts)
 - Starter/reliever PA split in aggregation
 - `notna().any()` not `.all()` — LightGBM handles NaN natively for Statcast features
+
+## Statcast swing campaign (experimental, 2026-06-12) — gotchas
+- Per-pitch swing data: `scripts/backfill_swing_data.py` → `data/processed/swing_{season}.parquet` (mid-2023+ coverage). Set `PYBASEBALL_CACHE=data/raw/pybaseball_cache`; backfill is resumable + has `--incremental-days`.
+- **Savant 403s the default urllib/python User-Agent from datacenter IPs** — pass a browser UA (see `scripts/qa_swing_vs_leaderboard.py`).
+- **Leaderboard `n_swings` = bat-TRACKED swings EXCLUDING bunts.** Matching that definition closed a +3.5% count bias to 0.25% in QA. Bunt descriptions are excluded from `bts.features.swing` sets.
+- Screen runs on the Hetzner box; the controls gate (sentinels + null arms) is a hard STOP — never read family results before the gate passes. Spec/plan: `docs/superpowers/specs|plans/2026-06-12-statcast-swing-*`.
