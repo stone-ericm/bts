@@ -182,3 +182,72 @@ def test_sentinel_arms_require_attached_columns():
     f2, c2 = build_arm_frame("ctl_sentinel_m3", pa)
     assert "GROSS_same_day_whiffs" in c1
     assert "M3LEAK_batter_miss_dist_30g" in c2
+
+
+def _residual_synth(seed=0):
+    """Synthetic covered-era frame: outcome depends on a hidden 'skill' that
+    production features capture partially, plus a same-day leak column."""
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    rows = []
+    # 2 training-relevant seasons of "full history" + covered era
+    for season, d0, n_days in [(2022, "2022-04-01", 60),   # pre-coverage (prior only)
+                               (2023, "2023-08-01", 50),   # covered warm
+                               (2024, "2024-04-01", 170),  # covered: H1 train + H2 score
+                               ]:
+        for i in range(n_days):
+            date = pd.Timestamp(d0) + pd.Timedelta(days=i)
+            for b in range(16):
+                skill = (b % 4) / 4.0                      # latent skill
+                hit_p = 0.45 + 0.25 * skill
+                hit = int(rng.random() < hit_p)
+                covered = season >= 2023
+                rows.append({
+                    "batter_id": b, "pitcher_id": 100 + (i % 3),
+                    "game_pk": season * 1000 + i, "lineup_position": (b % 9) + 1,
+                    "is_home": b < 8,
+                    "date": date, "season": season, "is_hit": hit,
+                    "prod_feat": skill + rng.normal(0, 0.3),   # production feature (partial skill)
+                    # candidate swing feature: extra skill info, covered only
+                    "cand_feat": (skill + rng.normal(0, 0.2)) if covered else np.nan,
+                    # same-day leak: equals the outcome-correlated signal of THIS day
+                    "leak_same_day": float(hit) if covered else 0.0,
+                    "swing_cov60": 0.95 if covered else 0.0,
+                })
+    return pd.DataFrame(rows)
+
+
+def test_residual_prior_is_oof_on_covered_train(tmp_path):
+    from bts.experiment.swing_screen import build_prod_prior_oof
+    pa = _residual_synth()
+    full = pa["season"].isin([2022, 2023, 2024]) & (pa["date"] < "2024-07-01")
+    cov = (pa["season"] >= 2023) & (pa["date"] < "2024-07-01")
+    ev = (pa["season"] == 2024) & (pa["date"] >= "2024-07-01")
+    prior = build_prod_prior_oof(pa, ["prod_feat"], full, cov, ev, seed=42,
+                                 lgb_overrides={"n_estimators": 15, "min_child_samples": 5})
+    assert prior[cov].notna().all()    # OOF prior for every covered-train row
+    assert prior[ev].notna().all()     # final-model prior for every eval row
+    assert prior[~(cov | ev)].isna().all()
+
+
+def test_residual_gross_sentinel_beats_baseline_noise_does_not(tmp_path):
+    from bts.experiment.swing_screen import build_prod_prior_oof, run_residual_arm
+    import numpy as np
+    pa = _residual_synth()
+    full = (pa["date"] < "2024-07-01")
+    cov = (pa["season"] >= 2023) & (pa["date"] < "2024-07-01")
+    ev = (pa["season"] == 2024) & (pa["date"] >= "2024-07-01")
+    pa = pa.copy()
+    pa["prod_prior"] = build_prod_prior_oof(pa, ["prod_feat"], full, cov, ev, seed=42,
+                                            lgb_overrides={"n_estimators": 15, "min_child_samples": 5})
+    ov = {"n_estimators": 20, "min_child_samples": 5}
+    base = run_residual_arm(pa, [], cov, ev, seed=42, lgb_overrides=ov)
+    leak = run_residual_arm(pa, ["leak_same_day"], cov, ev, seed=42, lgb_overrides=ov)
+    noise = run_residual_arm(pa, ["noise_col"], cov, ev, seed=42, lgb_overrides=ov,
+                             extra_cols={"noise_col": np.random.default_rng(1).random(len(pa))})
+    # the same-day leak must lift rank-AUC over baseline, and must clearly
+    # beat a pure-noise column (the harness-sanity claim; robust to the
+    # single-seed jitter of this tiny synthetic — the real screen uses 30
+    # seeds + week-block permutation)
+    assert leak["auc_mean"] > base["auc_mean"] + 0.02
+    assert leak["auc_mean"] > noise["auc_mean"] + 0.02

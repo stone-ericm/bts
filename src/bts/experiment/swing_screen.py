@@ -306,3 +306,133 @@ def run_screen_arm(
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / f"{arm}_seed{seed}.json").write_text(_json.dumps(res))
     return res
+
+
+# --- residual-stacking screen (amendment #3, Codex round-4 co-design) ---------
+# Removes the covered-only-baseline confound: a full-history production prior
+# (production features only) is cross-fit OOF onto covered training rows and
+# predicted onto eval rows, then every arm trains on covered rows with the
+# prior as a base feature. The delta isolates swing value ON TOP of the
+# full-strength production model. See docs/audit/2026-06-13-swing-screen-codex-r4-codesign.md
+
+
+def _week_fold_id(dates: pd.Series, n_folds: int) -> pd.Series:
+    """Group ISO weeks into n_folds buckets (deterministic, no RNG)."""
+    iso = pd.to_datetime(dates).dt.isocalendar()
+    wk = (iso["year"].astype(int) * 53 + iso["week"].astype(int))
+    uniq = {w: i for i, w in enumerate(sorted(wk.unique()))}
+    return wk.map(uniq) % n_folds
+
+
+def build_prod_prior_oof(
+    pa: pd.DataFrame,
+    prod_features: list[str],
+    full_mask: pd.Series,
+    cov_mask: pd.Series,
+    eval_mask: pd.Series,
+    seed: int,
+    lgb_overrides: dict | None = None,
+    n_folds: int = 5,
+) -> pd.Series:
+    """Full-history production prior as a feature, leak-free.
+
+    OOF on covered-train rows: for each week-fold of cov_mask, train on
+    full_mask MINUS that fold's rows, predict the fold (so a covered row's
+    prior never saw that row). Final model (all of full_mask) predicts eval.
+    Returns a Series aligned to pa.index; NaN outside cov∪eval.
+    """
+    import lightgbm as lgb
+    from bts.model.predict import LGB_PARAMS
+
+    params = {**LGB_PARAMS, **(lgb_overrides or {}), "deterministic": True, "force_row_wise": True}
+    out = pd.Series(np.nan, index=pa.index)
+
+    cov_idx = pa.index[cov_mask]
+    folds = _week_fold_id(pa.loc[cov_idx, "date"], n_folds)
+    for f in range(n_folds):
+        holdout = cov_idx[folds.to_numpy() == f]
+        if len(holdout) == 0:
+            continue
+        train_rows = pa.index[full_mask].difference(holdout)
+        Xtr = pa.loc[train_rows, prod_features]
+        m = lgb.LGBMClassifier(**params, random_state=seed)
+        m.fit(Xtr, pa.loc[train_rows, "is_hit"])
+        out.loc[holdout] = m.predict_proba(pa.loc[holdout, prod_features])[:, 1]
+
+    final = lgb.LGBMClassifier(**params, random_state=seed)
+    ftr = pa.index[full_mask]
+    final.fit(pa.loc[ftr, prod_features], pa.loc[ftr, "is_hit"])
+    ev_idx = pa.index[eval_mask]
+    out.loc[ev_idx] = final.predict_proba(pa.loc[ev_idx, prod_features])[:, 1]
+    return out
+
+
+def _daily_rank(frame: pd.DataFrame, col: str) -> pd.Series:
+    return frame.groupby("date")[col].rank(pct=True)
+
+
+def run_residual_arm(
+    pa: pd.DataFrame,
+    swing_cols: list[str],
+    cov_mask: pd.Series,
+    eval_mask: pd.Series,
+    seed: int,
+    prior_col: str = "prod_prior",
+    lgb_overrides: dict | None = None,
+    extra_cols: dict | None = None,
+    out_dir=None,
+    arm_name: str | None = None,
+) -> dict:
+    """Train a covered-era residual model (base = prior + prior daily rank +
+    swing_cols) and score the eval slate. Returns the metric payload."""
+    import json as _json
+    from pathlib import Path as _Path
+    import lightgbm as lgb
+    from bts.health.slate_auc import _rank_auc
+    from bts.model.predict import LGB_PARAMS
+    from bts.validate.slate_rank import daily_ndcg
+
+    frame = pa.copy()
+    if extra_cols:
+        for k, v in extra_cols.items():
+            frame[k] = v
+    frame["_prior_rank"] = _daily_rank(frame, prior_col)
+    base = [prior_col, "_prior_rank"]
+    cols = base + list(swing_cols)
+
+    params = {**LGB_PARAMS, **(lgb_overrides or {}), "deterministic": True, "force_row_wise": True}
+    tr = frame.index[cov_mask]
+    model = lgb.LGBMClassifier(**params, random_state=seed)
+    model.fit(frame.loc[tr, cols], frame.loc[tr, "is_hit"])
+
+    ev = frame[eval_mask].copy()
+    # one row per (game, batter); outcome = any hit that game
+    slate = ev.groupby(["game_pk", "batter_id"], as_index=False).first()
+    outcome = ev.groupby(["game_pk", "batter_id"])["is_hit"].max().rename("actual_hit")
+    slate = slate.drop(columns=["is_hit"]).merge(outcome, on=["game_pk", "batter_id"], how="left")
+    slate = slate.dropna(subset=["actual_hit"])
+    p_pa = model.predict_proba(slate[cols])[:, 1]
+    est = slate["lineup_position"].map(PA_EST).fillna(4.0)
+    slate["p_game"] = 1 - (1 - p_pa) ** est
+
+    days = []
+    for d, day in slate.groupby("date"):
+        v = daily_ndcg(day, "p_game", k=10)
+        if not np.isnan(v):
+            top = day.sort_values("p_game", ascending=False)
+            day_auc = _rank_auc(day.loc[day.actual_hit == 1, "p_game"].tolist(),
+                                day.loc[day.actual_hit == 0, "p_game"].tolist())
+            days.append({"date": str(pd.Timestamp(d).date()), "ndcg": v, "day_auc": day_auc,
+                         "top1": int(top["actual_hit"].iloc[0]),
+                         "top3": float(top["actual_hit"].head(3).mean())})
+    auc = _rank_auc(slate.loc[slate.actual_hit == 1, "p_game"].tolist(),
+                    slate.loc[slate.actual_hit == 0, "p_game"].tolist())
+    res = {"arm": arm_name or "+".join(swing_cols) or "baseline", "seed": seed,
+           "n_days": len(days), "auc_mean": float(auc) if auc is not None else float("nan"),
+           "ndcg_mean": float(np.mean([x["ndcg"] for x in days])) if days else None,
+           "top1_hit": float(np.mean([x["top1"] for x in days])) if days else None,
+           "per_day": days}
+    if out_dir is not None and arm_name:
+        out_dir = _Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / f"{arm_name}_seed{seed}.json").write_text(_json.dumps(res))
+    return res
