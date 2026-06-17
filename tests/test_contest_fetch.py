@@ -151,3 +151,11 @@ class TestHasPredictionFor:
         from bts.contest_fetch import has_prediction_for
         success = {"predictions": [{"roundId": 999, "result": "hit"}, {"result": "hit"}]}
         assert has_prediction_for(success, {7: date(2026, 6, 12)}, date(2026, 6, 12)) is False
+
+
+def test_derive_source_date_counts_not_hit_rounds():
+    """MLB profiles use 'not_hit' for a settled miss; derive_source_date must treat it
+    as settled, else freshness is biased against reset days (the RESOLVED vocab bug)."""
+    rounds = {1: dt.date(2026, 6, 8), 2: dt.date(2026, 6, 9)}
+    preds = [{"roundId": 1, "result": "hit"}, {"roundId": 2, "result": "not_hit"}]
+    assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)

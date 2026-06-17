@@ -7,7 +7,8 @@ import httpx
 
 from bts.leaderboard.endpoints import USER_AGENT, USER_PROFILE_URL_TEMPLATE
 
-RESOLVED = {"hit", "miss", "void"}
+# MLB profile settles rounds as hit / not_hit / void; "miss" kept for legacy/local safety.
+RESOLVED = {"hit", "not_hit", "miss", "void"}
 
 
 class ContestFetchError(Exception):
