@@ -134,13 +134,18 @@ def _streak_subtitle(decision_state, error_message: str | None = None) -> str:
         return "Streak State Error"
     if decision_state is None:
         return "Consecutive Hits"
-    if (
-        decision_state.contest_streak is not None
-        and decision_state.contest_streak != decision_state.model_streak
-    ):
-        return f"Contest State · Replay {decision_state.model_streak}"
-    if decision_state.source == "contest":
-        return "Contest State"
+    status = getattr(decision_state, "status", None)
+    asof = getattr(decision_state, "contest_source_date", None)
+    model = getattr(decision_state, "model_streak", None)
+    # surface the model "what-if" replay as a labeled research note when it diverges
+    replay = f" · Replay {model}" if (model is not None and model != decision_state.streak) else ""
+    if status == "lagged" and asof is not None:
+        return f"Last confirmed through {asof}{replay}"
+    if status == "stale":
+        tail = f" through {asof}" if asof is not None else ""
+        return f"Last confirmed{tail} · current may be lower{replay}"
+    if getattr(decision_state, "source", None) == "contest":
+        return f"Contest State{replay}"
     return "Replay State"
 
 
