@@ -17,23 +17,27 @@ from bts.health.alert import Alert
 
 SOURCE = "contest_state"
 
-# A contest observation legitimately lags our own settlement by exactly one
-# *settled pick*: the scheduler settles day D in the evening (latest_resolved
-# -> D) before the contest account settles D and the next fetch advances
-# source_date. That one-pick lag is expected and harmless, so it is surfaced as
-# INFO. The gap is counted in settled picks, NOT calendar days, so multi-day
-# off-day stretches (the All-Star break) cannot inflate it into a false CRITICAL.
-# A gap of >= 2 settled picks is genuine staleness (the week-long-freeze incident
-# class, where picks resolve daily while source_date is frozen) and is CRITICAL.
+# Under the Phase-1 snapshot/coverage split, source_date is derived from the
+# per-round predictions array, which trails the live activeStreak counter by ~one
+# settled pick BY DESIGN (the counter is current; the per-round ledger lags). So a
+# 1-pick gap is the normal coverage lag, surfaced as INFO at any time of day. The
+# gap is counted in settled picks, NOT calendar days, so off-day stretches (the
+# All-Star break) cannot inflate it. A gap of >= 2 settled picks is unusual (the
+# predictions array shouldn't trail by two) but is NOT a reliable staleness signal
+# under the coverage split (it can be a transient ledger lag) -> WARN, logged not
+# DM'd. A genuinely broken fetch DMs via the auth-failure path; data corruption
+# (no/future source_date, malformed file) stays CRITICAL.
 EXPECTED_OVERNIGHT_LAG_STEPS = 1
 
 
 def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = None) -> list[Alert]:
     """Alert on contest-account state problems that affect live picks.
 
-    CRITICAL: missing/invalid when expected, or STALE when expected — the gap that
-    let a frozen observation silently drive picks for a week. WARN: a legacy/expired
-    manual override file is present (archive it; auto contest_streak.json is the source).
+    CRITICAL: contest state missing/invalid/corrupt when expected (no source_date, a
+    future source_date, or a malformed file). WARN: a >=2 settled-pick coverage gap
+    (the predictions array trailing the live activeStreak counter -- informational,
+    not DM'd), or a legacy/expired manual override (archive it; auto
+    contest_streak.json is the source).
     """
     now = now or datetime.now(timezone.utc)
     try:
@@ -58,8 +62,9 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
             alerts.append(Alert(
                 level="CRITICAL",
                 source=SOURCE,
-                message=(f"contest state has no source_date ({state.path}); freshness "
-                         "cannot be verified — live picks are frozen conservatively"),
+                message=(f"contest state has no source_date ({state.path}); no settled "
+                         "rounds in the profile, so coverage/freshness cannot be verified "
+                         "— investigate the fetch"),
             ))
         elif state.source_date > now.date() + timedelta(days=1):
             # A contest source_date can't be in the future (US contest dates trail
@@ -74,43 +79,32 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
         elif latest is not None:
             # Count of *settled picks* newer than source_date, not calendar days:
             # off-days (All-Star break) have no picks and must not fire a false
-            # CRITICAL. gap==1 before noon ET is the expected overnight
-            # settlement window (INFO). gap==1 PERSISTING past noon ET is not —
-            # the 2026-06-12 incident showed the fetch can succeed all day
-            # while the contest never advances (a delivered pick was never
-            # entered in the MLB app; the fetch-failure DM never fires because
-            # nothing fails). That case escalates to WARN, not CRITICAL: the
-            # pick path is already conservative (doubles frozen).
+            # CRITICAL. Under the Phase-1 snapshot/coverage split, source_date (from
+            # the per-round predictions array) trails the live activeStreak counter
+            # by ~one settled pick BY DESIGN, so gap==1 is the normal coverage lag ->
+            # INFO at any time of day. gap>=2 is unusual but NOT a reliable staleness
+            # signal under the coverage split (it can be a transient ledger lag), so
+            # it is WARN (logged, not DM'd), not CRITICAL.
             gap_steps = resolved_pick_settlement_gap(picks_dir, state.source_date)
             if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:
                 alerts.append(Alert(
-                    level="CRITICAL",
+                    level="WARN",
                     source=SOURCE,
-                    message=(f"contest state is STALE: {gap_steps} settled picks are newer "
-                             f"than source_date={state.source_date} ({state.path}); latest "
-                             f"resolved pick {latest}; live picks are frozen conservatively"),
+                    message=(f"contest coverage lag: {gap_steps} settled picks are newer than "
+                             f"source_date={state.source_date} ({state.path}); latest resolved "
+                             f"pick {latest}. The predictions array trails the live activeStreak "
+                             "counter by >=2 -- usually a transient settlement lag (a broken "
+                             "fetch DMs separately)"),
                 ))
             elif gap_steps == EXPECTED_OVERNIGHT_LAG_STEPS:
-                from zoneinfo import ZoneInfo
-                now_et = now.astimezone(ZoneInfo("America/New_York"))
-                if now_et.hour >= 12:
-                    alerts.append(Alert(
-                        level="WARN",
-                        source=SOURCE,
-                        message=(f"contest state lag persisting past noon ET: "
-                                 f"source_date={state.source_date}, latest resolved {latest}. "
-                                 "Fetches are succeeding but the contest never advanced — "
-                                 "check the pick was actually entered in the MLB app "
-                                 "(check-pick-entered) or MLB settlement is delayed"),
-                    ))
-                else:
-                    alerts.append(Alert(
-                        level="INFO",
-                        source=SOURCE,
-                        message=(f"contest state lags 1 settled pick (expected overnight window): "
-                                 f"source_date={state.source_date}, latest resolved {latest}; "
-                                 "refreshes on the next scheduled fetch"),
-                    ))
+                alerts.append(Alert(
+                    level="INFO",
+                    source=SOURCE,
+                    message=(f"contest state lags 1 settled pick (expected coverage lag — the "
+                             f"predictions array trails the live activeStreak counter): "
+                             f"source_date={state.source_date}, latest resolved {latest}; "
+                             "refreshes on the next fetch"),
+                ))
 
     manual_path = picks_dir / "account_state" / "contest_streak.manual.json"
     if manual_path.exists():

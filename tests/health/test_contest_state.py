@@ -54,7 +54,10 @@ def test_valid_auto_state_is_clean_when_expected(tmp_path):
     assert check(tmp_path, expected=True) == []
 
 
-def test_stale_contest_state_is_critical(tmp_path):
+def test_gap2_coverage_lag_is_warn(tmp_path):
+    """A >=2 settled-pick gap is a coverage lag (the predictions array trailing the
+    live activeStreak counter), NOT reliable staleness under the snapshot/coverage
+    split -> WARN, never a (false) CRITICAL DM."""
     state_dir = tmp_path / "account_state"
     state_dir.mkdir()
     (state_dir / "contest_streak.json").write_text(json.dumps({
@@ -68,7 +71,8 @@ def test_stale_contest_state_is_critical(tmp_path):
         (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
 
     alerts = check(tmp_path, expected=True)
-    assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
+    assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+    assert not any(a.level == "CRITICAL" for a in alerts), alerts
 
 
 def test_expected_overnight_lag_is_not_critical(tmp_path):
@@ -93,11 +97,12 @@ def test_expected_overnight_lag_is_not_critical(tmp_path):
     assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
 
 
-def test_gap1_persisting_past_noon_et_escalates_to_warn(tmp_path):
-    """2026-06-12 incident: gap==1 at 7pm ET stayed INFO all day while the
-    real cause was a never-entered pick. Overnight lag is only 'expected'
-    overnight — past noon ET it becomes a WARN (still not CRITICAL: the pick
-    path is already conservative)."""
+def test_gap1_past_noon_is_info_not_warn(tmp_path):
+    """Phase-1 snapshot/coverage split: source_date is derived from the per-round
+    predictions array, which trails the live activeStreak counter by ~one round BY
+    DESIGN. So a 1-pick gap past noon ET is the normal coverage lag, not a stuck
+    contest — it must be INFO, not the old daily-false WARN (and no 'frozen' wording,
+    since Phase 1 no longer freezes picks on staleness)."""
     state_dir = tmp_path / "account_state"
     state_dir.mkdir()
     (state_dir / "contest_streak.json").write_text(json.dumps({
@@ -111,11 +116,12 @@ def test_gap1_persisting_past_noon_et_escalates_to_warn(tmp_path):
     from datetime import datetime, timezone
     afternoon = datetime(2026, 6, 8, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
     alerts = check(tmp_path, expected=True, now=afternoon)
+    assert not any(a.level == "WARN" for a in alerts), alerts
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
-    warns = [a for a in alerts if a.level == "WARN" and a.source == SOURCE
-             and "persist" in a.message]
-    assert warns, alerts
-    assert "entered" in warns[0].message  # points at the likely cause
+    infos = [a for a in alerts if a.level == "INFO" and a.source == SOURCE]
+    assert infos, alerts
+    assert "frozen" not in infos[0].message.lower()
+    assert "coverage" in infos[0].message.lower()
 
 
 def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
@@ -139,15 +145,16 @@ def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
     alerts = check(tmp_path, expected=True,
                    now=datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
     assert not any(a.level == "CRITICAL" for a in alerts), alerts
-    # 19:00 ET -> the persistence escalation makes this WARN (still never
-    # CRITICAL on the first day back — the H2 protection this test pins)
-    assert any(a.level in ("INFO", "WARN") and a.source == SOURCE for a in alerts), alerts
+    # gap==1 (1 settled pick newer than source) is the normal coverage lag -> INFO,
+    # never CRITICAL on the first day back (the H2 protection this test pins).
+    assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+    assert not any(a.level == "WARN" for a in alerts), alerts
 
 
-def test_two_day_gap_is_critical(tmp_path):
-    """>= 2 settled picks newer than source_date is genuine staleness (the
-    week-long-freeze incident class, where picks resolve daily while source_date
-    is frozen) -> CRITICAL."""
+def test_two_day_gap_is_warn_not_critical(tmp_path):
+    """>= 2 settled picks newer than source_date is a coverage gap (the predictions
+    array trailing the activeStreak counter), not reliable staleness under the
+    snapshot/coverage split -> WARN, not a CRITICAL DM."""
     state_dir = tmp_path / "account_state"
     state_dir.mkdir()
     (state_dir / "contest_streak.json").write_text(json.dumps({
@@ -161,7 +168,8 @@ def test_two_day_gap_is_critical(tmp_path):
     (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
 
     alerts = check(tmp_path, expected=True)
-    assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
+    assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+    assert not any(a.level == "CRITICAL" for a in alerts), alerts
 
 
 def test_future_source_date_is_critical(tmp_path):
