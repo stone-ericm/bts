@@ -1646,6 +1646,16 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         "last_success_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "last_error": None,
     })
+    # persist the full per-round MLB ledger (append-only) for analysis + Phase-2 saver inference
+    ledger_row = {
+        "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "active_streak": success["activeStreak"],
+        "best_streak": success["seasonBestStreak"],
+        "source_date": source_date.isoformat() if source_date is not None else None,
+        "predictions": predictions,
+    }
+    with (picks / "account_state" / "contest_ledger.jsonl").open("a") as _fh:
+        _fh.write(json.dumps(ledger_row) + "\n")
     click.echo(f"wrote {out_path}: {summary}")
 
 
