@@ -12,6 +12,18 @@
 
 **Reference — current behavior being replaced** (`contest_state.py:261-273`): the stale branch returns `max(model_streak, contest.streak)` with `allow_double=False`. That is the inflation + freeze we are removing.
 
+## Codex plan-review adjustments (round 4 — apply during execution)
+
+Codex reviewed this plan against the live source. Verdict: core `contest_state`/`contest_fetch` edits sound, CLI patch targets correct, monkeypatches intercept correctly. Fold in these refinements:
+
+1. **Task 1 — rename** `test_stale_contest_model_does_not_inflate` → `test_lagged_contest_model_does_not_inflate`: its fixture (one resolved pick after `source_date`) is *lagged*, not stale (the `status == "lagged"` assertion is already correct).
+2. **Task 1 — update two stale docstrings**: (a) `load_decision_streak_state` (`contest_state.py:207-213`) still describes the removed max/freeze path; (b) `test_missing_source_date_is_conservative_not_fail_open` still says "freeze + disable doubles". Both: doubles now stay enabled; the streak is the contest value labeled by `status`.
+3. **Task 1 — no change needed** to `test_decision_saver_fallback.py` (tests the *fresh* path, which is preserved → passes unchanged) or `test_contest_state_corrupt_precedence.py` (precedence parsing unchanged). Run them as regressions.
+4. **Task 4 — add a `source_date=None` CLI regression test**: mock a profile with no settled predictions (so `derive_source_date` → None) and assert `contest_streak.json` is still written with `active_streak` set and `source_date` null. This is the core snapshot/coverage-split behavior.
+5. **Task 4 — remove the now-dead imports** (`from bts.contest_state import latest_resolved_pick_date`, and the gate-local `resolved_pick_settlement_gap`) once the currentness gate is deleted; also update the `fetch_contest_streak` docstring (`cli.py:1572-1576`) which still claims it fails on "staleness".
+6. **Task 5 — append the ledger row AFTER the `--dry-run` early return** (real-write path only); add `assert res.exit_code == 0` to `test_fetch_cli_persists_per_round_ledger` *before* checking the file (so a CLI failure reports as a failure, not a missing file).
+7. **Task 6 — robustness**: use `getattr(decision_state, "contest_source_date", None)` in `_streak_subtitle`, and precompute a `replay_subtitle_html` string (empty when `model_streak == streak`) instead of the inline nested f-string, to avoid rendering an empty `<div>`. Existing `test_web_render.py::test_streak_subtitle_flags_decision_state_error` passes unchanged (error path is first).
+
 ---
 
 ### Task 1: Decision-streak core — model never raises, status fresh/lagged/stale, no freeze
