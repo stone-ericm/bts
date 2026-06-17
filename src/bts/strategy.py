@@ -51,9 +51,14 @@ def _load_mdp():
         return None
 
 
-def _mdp_action(p_game_hit: float, streak: int, date: str, saver: bool) -> str | None:
-    """Look up optimal action from MDP policy. Returns None if MDP not available."""
-    mdp = _load_mdp()
+def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str, saver: bool) -> str | None:
+    """Look up the optimal MDP action from an *injected* policy.
+
+    Returns None when there is no policy, so the caller falls back to the heuristic.
+    Pure given ``mdp`` — the policy is resolved once into the DecisionContext rather
+    than loaded here, so ``decide_action`` can be evaluated repeatedly (Phase 2b)
+    without re-doing IO.
+    """
     if not mdp:
         return None
 
@@ -86,6 +91,46 @@ def _double_threshold(streak: int) -> float | None:
         if streak <= max_streak:
             return threshold
     return None
+
+
+@dataclass
+class DecisionContext:
+    """Impure prep for one pick decision; ``decide_action`` is pure over (streak, saver).
+
+    All file/cache/network IO and candidate selection happen while building this in
+    ``select_pick``; the action decision itself reads only these fields plus the
+    scalar (streak, saver). This is the seam Phase 2b evaluates over a plausible set
+    of (streak, saver) states.
+    """
+    primary_p: float            # best candidate's p_game_hit
+    second_p: float | None      # executable different-game second pick's p_game_hit (or None)
+    has_diff_game: bool         # a valid different-game second pick exists
+    date: str                   # YYYY-MM-DD (for MDP days_remaining)
+    allow_double: bool          # global operational clamp (NOT uncertainty logic)
+    mdp: dict | None            # injected MDP policy (None -> heuristic)
+
+
+def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> str:
+    """Pure skip/single/double decision given a prepared context + (streak, saver).
+
+    MDP policy (preferred) or heuristic fallback, then the ``allow_double`` clamp and
+    the "double must be executable (a different-game second pick exists)" guard. No IO.
+    Mirrors the action branch that previously lived inline in ``select_pick``.
+    """
+    action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+    if action is None:
+        if ctx.primary_p < SKIP_THRESHOLD:
+            action = "skip"
+        elif _double_threshold(streak) is not None and ctx.has_diff_game and ctx.second_p is not None:
+            p_both = ctx.primary_p * ctx.second_p
+            action = "double" if p_both >= _double_threshold(streak) else "single"
+        else:
+            action = "single"
+    if action == "double" and not ctx.allow_double:
+        action = "single"
+    if action == "double" and not ctx.has_diff_game:
+        action = "single"
+    return action
 
 
 @dataclass
@@ -229,32 +274,23 @@ def select_pick(
     else:
         diff_game = valid[game_pk_num.notna() & (game_pk_num != best_game_pk)]
 
-    # Determine action: MDP policy (preferred) or heuristic fallback
+    # Determine action: build the decision context (impure prep) then decide.
+    # decide_action owns the MDP-or-heuristic branch, the allow_double clamp, and the
+    # "double must be executable (a different-game second pick exists)" guard. The
+    # context carries the resolved MDP policy, the selected primary/second candidates,
+    # and allow_double. second_p stays a raw pandas value so p_both is computed
+    # exactly as the inline branch did (best_row * second, no dtype coercion).
     saver = load_saver_available(picks_dir) if saver_available is None else saver_available
-    action = _mdp_action(best_row["p_game_hit"], streak, date, saver)
-    if action is None:
-        # Heuristic fallback
-        if best_row["p_game_hit"] < SKIP_THRESHOLD:
-            action = "skip"
-        elif _double_threshold(streak) is not None:
-            if len(diff_game) >= 1:
-                second = diff_game.iloc[0]
-                p_both = best_row["p_game_hit"] * second["p_game_hit"]
-                action = "double" if p_both >= _double_threshold(streak) else "single"
-            else:
-                action = "single"
-        else:
-            action = "single"
-
-    if action == "double" and not allow_double:
-        action = "single"
-
-    # A double is only executable with a valid different-game second pick. If
-    # there is none (e.g. single-game slate, or all candidates share/lack a
-    # game_pk after normalization), keep `action` consistent with what we
-    # actually do — the MDP path can return "double" without this guard.
-    if action == "double" and len(diff_game) == 0:
-        action = "single"
+    second_row = diff_game.iloc[0] if len(diff_game) >= 1 else None
+    ctx = DecisionContext(
+        primary_p=best_row["p_game_hit"],
+        second_p=second_row["p_game_hit"] if second_row is not None else None,
+        has_diff_game=len(diff_game) >= 1,
+        date=date,
+        allow_double=allow_double,
+        mdp=_load_mdp(),
+    )
+    action = decide_action(ctx, streak, saver)
 
     if action == "skip":
         return None

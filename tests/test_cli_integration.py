@@ -173,12 +173,13 @@ class TestBtsRun:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
         778900: {"abstract": "P", "detailed": "Pre-Game"},
     })
-    @patch("bts.strategy._mdp_action")
+    @patch("bts.strategy._mdp_action_from")
     @patch("bts.model.predict.run_pipeline")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_run_uses_fresh_contest_streak_for_live_action(
-        self, mock_pipeline, mock_mdp, _detailed_statuses, _should_post, tmp_path,
+        self, _load_mdp_mock, mock_pipeline, mock_mdp, _detailed_statuses, _should_post, tmp_path,
     ):
-        def action(_p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
             return "skip"
@@ -203,6 +204,7 @@ class TestBtsRun:
             "--models-dir", str(models_dir),
         ])
 
+        mock_mdp.assert_called()  # streak-threading side_effect must actually fire
         assert result.exit_code == 0
         assert "Streak holds at 7" in result.output
 
@@ -212,12 +214,13 @@ class TestBtsPreview:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
         778900: {"abstract": "P", "detailed": "Pre-Game"},
     })
-    @patch("bts.strategy._mdp_action")
+    @patch("bts.strategy._mdp_action_from")
     @patch("bts.model.predict.run_pipeline")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_preview_uses_fresh_contest_streak_for_projected_pick(
-        self, mock_pipeline, mock_mdp, _detailed_statuses, tmp_path,
+        self, _load_mdp_mock, mock_pipeline, mock_mdp, _detailed_statuses, tmp_path,
     ):
-        def action(_p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
             return "skip"
@@ -242,6 +245,7 @@ class TestBtsPreview:
             "--models-dir", str(models_dir),
         ])
 
+        mock_mdp.assert_called()  # streak-threading side_effect must actually fire
         assert result.exit_code == 0
         assert "Skip day" in result.output
         assert not (picks_dir / "2026-04-01.json").exists()

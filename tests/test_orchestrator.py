@@ -145,9 +145,10 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_returns_predictions_and_result(
-        self, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
+        self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
     ):
         import pandas as pd
         from bts.orchestrator import run_and_pick
@@ -173,9 +174,10 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_persists_full_slate(
-        self, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
+        self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
     ):
         import pandas as pd
         from bts.orchestrator import run_and_pick
@@ -202,9 +204,10 @@ class TestRunAndPick:
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    @patch("bts.strategy._mdp_action", return_value="single")
+    @patch("bts.strategy._mdp_action_from", return_value="single")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_emits_progress_marks(
-        self, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
+        self, _load_mdp_mock, _mdp, _statuses, _detailed_statuses, mock_cascade, tmp_path
     ):
         import pandas as pd
         from bts import progress
@@ -254,14 +257,15 @@ class TestRunAndPick:
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "P", "detailed": "Pre-Game"},
     })
-    @patch("bts.strategy._mdp_action")
+    @patch("bts.strategy._mdp_action_from")
+    @patch("bts.strategy._load_mdp", return_value=None)
     def test_uses_fresh_contest_streak_for_live_action(
-        self, mock_mdp, _detailed_statuses, mock_cascade, tmp_path
+        self, _load_mdp_mock, mock_mdp, _detailed_statuses, mock_cascade, tmp_path
     ):
         import pandas as pd
         from bts.orchestrator import run_and_pick
 
-        def action(_p, streak, _date, saver):
+        def action(_mdp, _p, streak, _date, saver):
             assert streak == 7
             assert saver is False
             return "skip"
@@ -289,6 +293,10 @@ class TestRunAndPick:
 
         predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
 
+        # The streak-threading side_effect must actually fire: the sample top pick
+        # (0.763) is below SKIP_THRESHOLD, so the heuristic would also skip -- without
+        # this guard a seam that fell off the call path would pass vacuously.
+        mock_mdp.assert_called()
         assert predictions is not None
         assert tier == "mac"
         assert pick_result is None

@@ -629,7 +629,7 @@ def test_no_double_for_same_game_mixed_type_game_pk(mock_statuses, tmp_path):
     assert result.daily.runner_up is None
 
 
-@patch("bts.strategy._mdp_action", return_value="double")
+@patch("bts.strategy._mdp_action_from", return_value="double")
 @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
 def test_mdp_double_with_single_game_yields_safe_single(mock_statuses, mock_mdp, tmp_path):
     """MDP can return 'double' even when only one game is available; with no
