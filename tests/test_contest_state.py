@@ -70,9 +70,9 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
 
 
 def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
-    # Was test_stale_..._freezes...: model 5, contest 7, 1 pick behind -> lagged.
+    # model 9 > contest 7 so streak==7 also proves no max() inflation (old max(9,7)=9); 1 pick behind -> lagged.
     from bts.contest_state import load_decision_streak_state
-    (tmp_path / "streak.json").write_text(json.dumps({"streak": 5, "saver_available": True}))
+    (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
     _write_pick(tmp_path / "2026-05-28.json", "hit")
     _write_pick(tmp_path / "2026-05-29.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
@@ -243,15 +243,36 @@ def test_unconfirmed_local_miss_marks_stale(tmp_path):
     assert state.status == "stale"      # but flags the stale-high risk
 
 
-def test_unexpired_override_drives_decision_with_status(tmp_path):
-    # Phase 1 P1.4: an operator override is a confirmed contest observation.
+def test_unexpired_override_wins_over_auto_through_decision(tmp_path):
+    # Phase 1 P1.4: an UNEXPIRED operator override beats the auto file AND drives the
+    # decision (8), proving precedence flows through load_decision_streak_state.
+    import datetime as _dt2
     from bts.contest_state import load_decision_streak_state
     (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
     _write_pick(tmp_path / "2026-06-16.json", "hit")
     sd = tmp_path / "account_state"; sd.mkdir()
-    (sd / "contest_streak.manual.json").write_text(json.dumps({
+    (sd / "contest_streak.json").write_text(json.dumps({            # auto says 5
+        "active_streak": 5, "best_streak": 9, "source": "mlb_bts_profile",
+        "source_date": "2026-06-16"}))
+    (sd / "contest_streak.manual.json").write_text(json.dumps({     # override says 8, unexpired
         "active_streak": 8, "best_streak": 9, "source": "manual_cli",
-        "source_date": "2026-06-16", "override_expires_at": "2099-01-01T00:00:00Z"}))
-    state = load_decision_streak_state(tmp_path)
-    assert state.streak == 8 and state.source == "contest" and state.allow_double is True
+        "source_date": "2026-06-16", "override_expires_at": "2026-06-18T00:00:00Z"}))
+    now = _dt2.datetime(2026, 6, 17, 12, 0, tzinfo=_dt2.timezone.utc)
+    state = load_decision_streak_state(tmp_path, now=now)
+    assert state.streak == 8            # override (8) wins over auto (5)
+    assert state.source == "contest" and state.allow_double is True
     assert state.status == "fresh"      # source_date 06-16 covers latest pick 06-16
+
+
+def test_stale_unknown_saver_is_conservative_even_when_streaks_agree(tmp_path):
+    # Saver: equal streaks don't prove the local model saver matches the real account
+    # when stale (manual entry can diverge), so stay conservative -> False.
+    from bts.contest_state import load_decision_streak_state
+    (tmp_path / "streak.json").write_text(json.dumps({"streak": 8, "saver_available": True}))
+    sd = tmp_path / "account_state"; sd.mkdir()
+    (sd / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
+        "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date -> stale, saver unknown
+    state = load_decision_streak_state(tmp_path)
+    assert state.streak == 8 and state.status == "stale"
+    assert state.saver_available is False   # conservative, NOT the model's True
