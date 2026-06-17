@@ -99,16 +99,20 @@ def build_observation(
     username: str | None,
     recorded_at: datetime,
 ) -> dict:
-    """Build the auto contest-streak observation persisted by the CLI."""
-    if source_date is None:
-        raise ContestFetchError("source_date is required")
+    """Build the auto contest-streak observation persisted by the CLI.
+
+    Snapshot/coverage split: the activeStreak snapshot persists even when ledger
+    coverage is unknown. The per-round predictions array lags MLB's own counter, so
+    ``source_date`` may be None; contest_state treats a null source_date as stale
+    (conservative) rather than discarding a current streak.
+    """
     validate_fetch(success)
     return {
         "schema_version": "bts_contest_streak_auto_v1",
         "active_streak": success["activeStreak"],
         "best_streak": success["seasonBestStreak"],
         "source": "mlb_bts_profile",
-        "source_date": source_date.isoformat(),
+        "source_date": source_date.isoformat() if source_date is not None else None,
         "recorded_at": _format_recorded_at(recorded_at),
         "user_id": user_id,
         "username": username,

@@ -115,15 +115,19 @@ def test_build_observation_returns_auto_schema():
     }
 
 
-def test_build_observation_requires_source_date():
-    with pytest.raises(ContestFetchError):
-        build_observation(
-            {"activeStreak": 0, "seasonBestStreak": 9},
-            source_date=None,
-            user_id=50311,
-            username="stonehengee",
-            recorded_at=dt.datetime(2026, 6, 6, 18, 0, tzinfo=dt.UTC),
-        )
+def test_build_observation_allows_none_source_date():
+    """Snapshot (activeStreak) must persist even when ledger coverage is unknown —
+    the predictions array lags the counter, so source_date can be None."""
+    obs = build_observation(
+        {"activeStreak": 8, "seasonBestStreak": 9},
+        source_date=None,
+        user_id=50311,
+        username="stonehengee",
+        recorded_at=dt.datetime(2026, 6, 17, 12, 0, tzinfo=dt.UTC),
+    )
+    assert obs["active_streak"] == 8
+    assert obs["source_date"] is None
+    assert obs["recorded_at"].endswith("Z")
 
 
 class TestHasPredictionFor:
