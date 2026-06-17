@@ -1569,10 +1569,12 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
 @click.option("--dm-recipient", default=None, help="Bluesky handle for throttled failure alerts.")
 @click.option("--dry-run", is_flag=True, help="Print would-write without writing.")
 def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
-    """Fetch the real MLB BTS account streak and write contest_streak.json (atomic, gated).
+    """Fetch the real MLB BTS account streak and write contest_streak.json (atomic).
 
-    Fails safe: on auth/cookie/HTTP/shape/identity/staleness failure it NEVER overwrites
-    the prior good observation; it alerts (throttled DM) and exits nonzero.
+    Fails safe: on auth/cookie/HTTP/shape/identity failure it NEVER overwrites the
+    prior good observation; it alerts (throttled DM) and exits nonzero. A current
+    activeStreak IS written even when the per-round predictions array lags the counter
+    (the snapshot/coverage split); contest_state labels lagged/stale downstream.
     """
     import sys
     import httpx
@@ -1583,7 +1585,6 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     from bts.contest_fetch import (
         fetch_profile, derive_source_date, build_observation, ContestFetchError,
     )
-    from bts.contest_state import latest_resolved_pick_date
 
     picks = Path(picks_dir)
     out_path = picks / "account_state" / "contest_streak.json"
@@ -1624,9 +1625,7 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         success = fetch_profile(session.user_id, cookies, session.xsid)
         predictions = success.get("predictions", [])
         rounds = _fetch_rounds()
-        source_date = derive_source_date(predictions, rounds)
-        if source_date is None:
-            _fail("profile proves no settled result date; refusing to claim freshness")
+        source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags
         observation = build_observation(
             success, source_date, session.user_id, session.username,
             datetime.now(timezone.utc),
@@ -1634,24 +1633,9 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     except (httpx.HTTPError, AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
         _fail(f"profile/rounds shape or fetch error: {exc}")
 
-    # 4. currentness gate — a 200 response is not proof of currency. Refuse to
-    #    overwrite with a non-advancing observation either way, but a 1-settled-
-    #    pick lag is the EXPECTED overnight settlement window (the contest settles
-    #    day D the next day), so exit quietly without a DM; only a >=2-pick lag is
-    #    genuine staleness worth alerting (mirrors the level-aware health check).
-    latest = latest_resolved_pick_date(picks)
-    if latest is not None and source_date < latest:
-        from bts.contest_state import resolved_pick_settlement_gap
-        gap = resolved_pick_settlement_gap(picks, source_date)
-        msg = (f"profile source_date {source_date} < latest resolved pick {latest} "
-               f"({gap} settled pick(s) newer); not current, refusing to overwrite")
-        if gap <= 1:
-            click.echo(f"fetch-contest-streak: {msg}; expected overnight settlement "
-                       "lag, no alert", err=True)
-            sys.exit(0)
-        _fail(msg)
-
-    # 5. write (atomic) or dry-run
+    # write (atomic) or dry-run — a current activeStreak is written even when the
+    # predictions array lags; staleness is labeled by contest_state downstream, not
+    # gated here (the snapshot/coverage split).
     summary = (f"active_streak={observation['active_streak']} "
                f"best_streak={observation['best_streak']} source_date={observation['source_date']}")
     if dry_run:

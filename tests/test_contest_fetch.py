@@ -163,3 +163,56 @@ def test_derive_source_date_counts_not_hit_rounds():
     rounds = {1: dt.date(2026, 6, 8), 2: dt.date(2026, 6, 9)}
     preds = [{"roundId": 1, "result": "hit"}, {"roundId": 2, "result": "not_hit"}]
     assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)
+
+
+def _mock_fetch(monkeypatch, profile, rounds):
+    """Patch the auth + fetch + rounds calls of the fetch-contest-streak CLI.
+    The command does function-local imports, so patch the source modules."""
+    import bts.contest_fetch as cf
+    import bts.leaderboard.auth as auth
+    import bts.cli as climod
+
+    class _Sess:
+        xsid = "x"; user_id = 50311; username = "stonehengee"
+    monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "u"})
+    monkeypatch.setattr(auth, "extract_uid", lambda c: "u")
+    monkeypatch.setattr(auth, "fetch_login_session", lambda uid, cookies: _Sess())
+    monkeypatch.setattr(cf, "fetch_profile", lambda uid, cookies, xsid: profile)
+    monkeypatch.setattr(climod, "_fetch_rounds", lambda: rounds)
+
+
+def test_fetch_cli_persists_current_activestreak_despite_lag(tmp_path, monkeypatch):
+    """Incident: activeStreak=8 is current, but the predictions array lags (latest settled
+    row = 6/15) while a local pick is resolved through 6/16. The CLI must still WRITE 8."""
+    import json
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))   # local resolved 6/16
+    _mock_fetch(monkeypatch,
+                {"activeStreak": 8, "seasonBestStreak": 9,
+                 "predictions": [{"roundId": 1, "result": "hit"}]},          # only 6/15 settled
+                {1: dt.date(2026, 6, 15)})
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 0, res.output
+    written = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+    assert written["active_streak"] == 8
+
+
+def test_fetch_cli_persists_snapshot_when_no_settled_predictions(tmp_path, monkeypatch):
+    """No settled predictions -> derive_source_date None. The snapshot must still persist
+    (activeStreak set, source_date null) — the snapshot/coverage split."""
+    import json
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _mock_fetch(monkeypatch,
+                {"activeStreak": 8, "seasonBestStreak": 9,
+                 "predictions": [{"roundId": 1, "result": None}]},          # nothing settled
+                {1: dt.date(2026, 6, 16)})
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 0, res.output
+    written = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+    assert written["active_streak"] == 8 and written["source_date"] is None
