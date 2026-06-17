@@ -115,15 +115,19 @@ def test_build_observation_returns_auto_schema():
     }
 
 
-def test_build_observation_requires_source_date():
-    with pytest.raises(ContestFetchError):
-        build_observation(
-            {"activeStreak": 0, "seasonBestStreak": 9},
-            source_date=None,
-            user_id=50311,
-            username="stonehengee",
-            recorded_at=dt.datetime(2026, 6, 6, 18, 0, tzinfo=dt.UTC),
-        )
+def test_build_observation_allows_none_source_date():
+    """Snapshot (activeStreak) must persist even when ledger coverage is unknown —
+    the predictions array lags the counter, so source_date can be None."""
+    obs = build_observation(
+        {"activeStreak": 8, "seasonBestStreak": 9},
+        source_date=None,
+        user_id=50311,
+        username="stonehengee",
+        recorded_at=dt.datetime(2026, 6, 17, 12, 0, tzinfo=dt.UTC),
+    )
+    assert obs["active_streak"] == 8
+    assert obs["source_date"] is None
+    assert obs["recorded_at"].endswith("Z")
 
 
 class TestHasPredictionFor:
@@ -151,3 +155,86 @@ class TestHasPredictionFor:
         from bts.contest_fetch import has_prediction_for
         success = {"predictions": [{"roundId": 999, "result": "hit"}, {"result": "hit"}]}
         assert has_prediction_for(success, {7: date(2026, 6, 12)}, date(2026, 6, 12)) is False
+
+
+def test_derive_source_date_counts_not_hit_rounds():
+    """MLB profiles use 'not_hit' for a settled miss; derive_source_date must treat it
+    as settled, else freshness is biased against reset days (the RESOLVED vocab bug)."""
+    rounds = {1: dt.date(2026, 6, 8), 2: dt.date(2026, 6, 9)}
+    preds = [{"roundId": 1, "result": "hit"}, {"roundId": 2, "result": "not_hit"}]
+    assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)
+
+
+def _mock_fetch(monkeypatch, profile, rounds):
+    """Patch the auth + fetch + rounds calls of the fetch-contest-streak CLI.
+    The command does function-local imports, so patch the source modules."""
+    import bts.contest_fetch as cf
+    import bts.leaderboard.auth as auth
+    import bts.cli as climod
+
+    class _Sess:
+        xsid = "x"; user_id = 50311; username = "stonehengee"
+    monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "u"})
+    monkeypatch.setattr(auth, "extract_uid", lambda c: "u")
+    monkeypatch.setattr(auth, "fetch_login_session", lambda uid, cookies: _Sess())
+    monkeypatch.setattr(cf, "fetch_profile", lambda uid, cookies, xsid: profile)
+    monkeypatch.setattr(climod, "_fetch_rounds", lambda: rounds)
+
+
+def test_fetch_cli_persists_current_activestreak_despite_lag(tmp_path, monkeypatch):
+    """Incident: activeStreak=8 is current, but the predictions array lags (latest settled
+    row = 6/15) while a local pick is resolved through 6/16. The CLI must still WRITE 8."""
+    import json
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))   # local resolved 6/16
+    _mock_fetch(monkeypatch,
+                {"activeStreak": 8, "seasonBestStreak": 9,
+                 "predictions": [{"roundId": 1, "result": "hit"}]},          # only 6/15 settled
+                {1: dt.date(2026, 6, 15)})
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 0, res.output
+    written = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+    assert written["active_streak"] == 8
+
+
+def test_fetch_cli_persists_snapshot_when_no_settled_predictions(tmp_path, monkeypatch):
+    """No settled predictions -> derive_source_date None. The snapshot must still persist
+    (activeStreak set, source_date null) — the snapshot/coverage split."""
+    import json
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _mock_fetch(monkeypatch,
+                {"activeStreak": 8, "seasonBestStreak": 9,
+                 "predictions": [{"roundId": 1, "result": None}]},          # nothing settled
+                {1: dt.date(2026, 6, 16)})
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 0, res.output
+    written = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+    assert written["active_streak"] == 8 and written["source_date"] is None
+
+
+def test_fetch_cli_persists_per_round_ledger(tmp_path, monkeypatch):
+    """The full per-round MLB ledger is persisted (append-only) for analysis."""
+    import json
+    from click.testing import CliRunner
+    from bts.cli import cli
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))
+    preds = [{"roundId": 1, "result": "hit", "streak": 8, "streakIncrease": 1,
+              "roundPredictions": [{"playerId": 1, "result": "hit", "hits": 2, "atBats": 4}]}]
+    _mock_fetch(monkeypatch,
+                {"activeStreak": 8, "seasonBestStreak": 9, "predictions": preds},
+                {1: dt.date(2026, 6, 16)})
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 0, res.output
+    ledger = picks / "account_state" / "contest_ledger.jsonl"
+    assert ledger.exists()
+    row = json.loads(ledger.read_text().strip().splitlines()[-1])
+    assert row["active_streak"] == 8 and len(row["predictions"]) == 1
+    assert row["recorded_at"].endswith("Z")

@@ -796,9 +796,10 @@ class TestFetchContestStreak:
         assert not (picks / "account_state" / "contest_streak.json").exists()
         assert len(dm_calls) == 1
 
-    def test_genuinely_stale_profile_alerts(self, monkeypatch, tmp_path):
-        # source 6/1 with FOUR settled picks newer (6/2..6/5) == genuine staleness
-        # (the week-long-freeze class) -> no write, alert, nonzero exit.
+    def test_genuinely_stale_profile_still_writes_snapshot(self, monkeypatch, tmp_path):
+        # source 6/1 with FOUR settled picks newer (6/2..6/5). The activeStreak counter
+        # is still current, so the snapshot/coverage split WRITES it (exit 0, no fetch DM);
+        # contest_state + the level-aware health check surface the >=2-pick staleness.
         import datetime as dt
         import bts.contest_fetch as cf
         import bts.cli as climod
@@ -815,14 +816,14 @@ class TestFetchContestStreak:
             (picks / f"{d}.json").write_text(json.dumps({"result": "hit"}))
         r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
                                      "--dm-recipient", "x.bsky.social"])
-        assert r.exit_code != 0
-        assert not (picks / "account_state" / "contest_streak.json").exists()
-        assert len(dm_calls) == 1
+        assert r.exit_code == 0, r.output
+        data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+        assert data["active_streak"] == 0 and data["source_date"] == "2026-06-01"
+        assert dm_calls == []   # no fetch-level staleness DM; health check handles gap>=2
 
-    def test_expected_settlement_lag_no_write_no_alert(self, monkeypatch, tmp_path):
-        # source 6/4 with ONE settled pick newer (6/5) == the expected overnight
-        # settlement lag: refuse to overwrite, but exit 0 and DON'T DM (the noise
-        # that was firing every morning).
+    def test_expected_settlement_lag_writes_snapshot_no_alert(self, monkeypatch, tmp_path):
+        # source 6/4 with ONE settled pick newer (6/5) == the expected overnight lag.
+        # The current activeStreak is WRITTEN (snapshot/coverage split); no DM noise.
         import datetime as dt
         import bts.contest_fetch as cf
         import bts.cli as climod
@@ -839,8 +840,9 @@ class TestFetchContestStreak:
         r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
                                      "--dm-recipient", "x.bsky.social"])
         assert r.exit_code == 0, r.output
-        assert not (picks / "account_state" / "contest_streak.json").exists()  # still refused
-        assert dm_calls == []  # no noise DM on the expected lag
+        data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+        assert data["active_streak"] == 5 and data["source_date"] == "2026-06-04"
+        assert dm_calls == []  # no noise DM on the lag
 
     def test_auth_failure_dm_throttled(self, monkeypatch, tmp_path):
         import bts.leaderboard.auth as auth
