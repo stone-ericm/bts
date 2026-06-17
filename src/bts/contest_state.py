@@ -179,6 +179,27 @@ def resolved_pick_settlement_gap(picks_dir: Path, source_date: date) -> int:
     return sum(1 for d in _resolved_pick_dates(picks_dir) if d > source_date)
 
 
+def _has_unconfirmed_miss(picks_dir: Path, source_date: date) -> bool:
+    """True if a settled local pick dated strictly after ``source_date`` is a MISS.
+
+    The bot resolves a pick locally before the contest posts it; a local miss the
+    contest hasn't confirmed means the real streak may have reset (stale-high risk).
+    The bot only *recommends*, so this is an uncertainty signal, not proof of a reset.
+    """
+    for path in picks_dir.glob("*.json"):
+        if not _ISO_DATE_RE.match(path.stem):
+            continue
+        if date.fromisoformat(path.stem) <= source_date:
+            continue
+        try:
+            body = json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        if body.get("result") == "miss":
+            return True
+    return False
+
+
 def contest_state_is_fresh(
     contest: ContestStreakState,
     picks_dir: Path,
@@ -206,10 +227,11 @@ def load_decision_streak_state(
 ) -> DecisionStreakState:
     """Return the streak/saver state for live user-facing recommendations.
 
-    Fresh contest state wins. If a contest observation exists but is stale, keep
-    the effective streak at least as high as the last-known contest streak and
-    forbid automatic doubles. This avoids the dangerous under-count path where
-    live recommendations double against a higher real account streak.
+    The decision streak is the real contest (MLB) streak; the model replay can
+    NEVER raise it (the 2026-06-17 inflation bug). ``status`` in {fresh, lagged,
+    stale} reflects settlement freshness. Doubles are not frozen on staleness —
+    Phase 1 surfaces stale-high via ``status``; Phase 2 makes strategy act on the
+    uncertainty.
     """
     model_streak = load_streak(picks_dir)
     model_saver = load_saver_available(picks_dir)
@@ -244,30 +266,34 @@ def load_decision_streak_state(
     else:
         contest_saver = False
     if contest_state_is_fresh(contest, picks_dir):
-        return DecisionStreakState(
-            streak=contest.streak,
-            saver_available=contest_saver,
-            allow_double=True,
-            source="contest",
-            status="fresh",
-            model_streak=model_streak,
-            model_saver_available=model_saver,
-            contest_streak=contest.streak,
-            contest_saver_available=contest.saver_available,
-            contest_source_date=contest.source_date,
-            message=f"using fresh contest streak from {contest.source}",
-        )
+        status = "fresh"
+        message = f"using fresh contest streak from {contest.source}"
+    elif contest.source_date is None:
+        status = "stale"
+        message = "contest streak has no source_date; treating as last-confirmed (stale)"
+    else:
+        gap = resolved_pick_settlement_gap(picks_dir, contest.source_date)
+        if gap >= 2 or _has_unconfirmed_miss(picks_dir, contest.source_date):
+            status = "stale"
+            message = "contest streak stale; using last confirmed value (current may be lower)"
+        else:
+            status = "lagged"
+            message = "contest streak lagged by expected overnight settlement; using last confirmed value"
 
+    # The decision streak is ALWAYS the contest (real MLB) value. The model is a
+    # research replay of the bot's own suggestions and can NEVER raise it (the
+    # 2026-06-17 inflation bug). Doubles are no longer frozen on staleness — Phase 1
+    # surfaces stale-high via `status`; Phase 2 makes strategy act on the uncertainty.
     return DecisionStreakState(
-        streak=max(model_streak, contest.streak),
-        saver_available=False,
-        allow_double=False,
+        streak=contest.streak,
+        saver_available=contest_saver,
+        allow_double=True,
         source="contest",
-        status="stale",
+        status=status,
         model_streak=model_streak,
         model_saver_available=model_saver,
         contest_streak=contest.streak,
         contest_saver_available=contest.saver_available,
         contest_source_date=contest.source_date,
-        message="contest streak is stale; freezing at conservative effective streak and disabling doubles",
+        message=message,
     )
