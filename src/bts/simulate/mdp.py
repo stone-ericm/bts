@@ -5,6 +5,8 @@ possible state (streak, days_remaining, saver_available, quality_bin)
 via backward induction. State space: 57 × 181 × 2 × N_bins ≈ 103K.
 """
 
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -116,16 +118,46 @@ class MDPSolution:
         return "\n".join(lines)
 
     def save(self, path: Path | str = DEFAULT_POLICY_PATH) -> Path:
-        """Save policy table + bin boundaries to disk."""
+        """Save policy table + bin boundaries to disk, atomically.
+
+        Writes to a temp file in the destination directory, then ``os.replace``s it
+        into place. A reader (``load_policy`` / ``strategy._load_mdp``) therefore
+        never sees a half-written ``.npz`` even if the write is interrupted (killed
+        process, disk full) mid-``savez``: the target path always points at a
+        complete file, old or new. ``os.replace`` is atomic only within a single
+        filesystem, so the temp lives in the destination's own directory. Passing an
+        open file object to ``savez_compressed`` avoids its ``.npz`` auto-append, so
+        the temp path is exactly what we replace.
+        """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez_compressed(
-            path,
-            policy_table=self.policy_table,
-            boundaries=np.array(self.quality_bins.boundaries),
-            season_length=np.array(self.season_length),
-            optimal_p57=np.array(self.optimal_p57),
-        )
+        fd, tmp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
+        tmp = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "wb") as f:
+                np.savez_compressed(
+                    f,
+                    policy_table=self.policy_table,
+                    boundaries=np.array(self.quality_bins.boundaries),
+                    season_length=np.array(self.season_length),
+                    optimal_p57=np.array(self.optimal_p57),
+                )
+            # mkstemp creates the temp 0600; restore the mode the previous direct write
+            # produced so an atomic save never silently tightens perms (a reader running
+            # as a different user would otherwise hit PermissionError, which _load_mdp
+            # does not catch). Preserve an existing target's mode; else a normal
+            # umask-respecting create.
+            try:
+                mode = path.stat().st_mode & 0o777
+            except FileNotFoundError:
+                umask = os.umask(0)
+                os.umask(umask)
+                mode = 0o666 & ~umask
+            os.chmod(tmp, mode)
+            os.replace(tmp, path)
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
         return path
 
 
