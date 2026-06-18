@@ -200,11 +200,13 @@ def render_saver_section(ctx: SaverDashboardContext) -> str:
     if ctx.button in ("mark_used", "undo"):
         new_state = "used" if ctx.button == "mark_used" else "active"
         text = "Mark Streak Saver used" if ctx.button == "mark_used" else "Undo (mark active)"
+        # "mark used" is the deliberate primary action; "undo" is a quiet recovery ghost.
+        btn_class = "saver-btn saver-btn-primary" if ctx.button == "mark_used" else "saver-btn"
         parts.append(
             '<form method="POST" action="/saver/transition" style="display:inline">'
             f'<input type="hidden" name="expected_prior" value="{ctx.expected_prior}">'
             f'<input type="hidden" name="new_state" value="{new_state}">'
-            f'<button type="submit">{text}</button></form>')
+            f'<button type="submit" class="{btn_class}">{text}</button></form>')
     return f'<div class="saver-section">{"".join(parts)}</div>'
 
 
@@ -1282,6 +1284,39 @@ def render_page():
                           line-height: 1.1; }}
         .streak-sub {{ color: #D50032; font-size: 0.7em; text-transform: uppercase;
                        letter-spacing: 1px; font-weight: 600; }}
+
+        /* Streak Saver controls — live inside the dark .streak-box, so everything
+           is tuned for light-on-navy contrast (the old markup was unstyled: dark
+           text on navy + a raw browser button). Sizes/radii track the existing
+           .lock-badge house style; "mark used" gets the deliberate brand-red
+           treatment, "undo" stays a quiet recovery ghost. */
+        .saver-section {{ margin-top: 12px; padding-top: 12px;
+                          border-top: 1px solid rgba(255,255,255,0.12);
+                          display: flex; flex-direction: column; align-items: center; gap: 8px; }}
+        .saver-state {{ font-size: 0.7em; font-weight: 700; text-transform: uppercase;
+                        letter-spacing: 1px; padding: 3px 9px; border-radius: 4px;
+                        white-space: nowrap; }}
+        .saver-active {{ background: rgba(46,125,50,0.22); color: #7ee2a8;
+                         border: 1px solid rgba(46,125,50,0.55); }}
+        .saver-used {{ background: rgba(255,255,255,0.07); color: #9fb0cc;
+                       border: 1px solid rgba(255,255,255,0.2); }}
+        .saver-not_earned, .saver-uninitialized {{ background: rgba(255,255,255,0.05);
+                       color: #94a6c8; border: 1px solid rgba(255,255,255,0.13); }}
+        .saver-warn {{ color: #fcd34d; font-size: 0.72em; line-height: 1.35; max-width: 280px; }}
+        .saver-nudge {{ color: #b9c8e6; font-size: 0.72em; line-height: 1.35; max-width: 280px; }}
+        .saver-btn {{ font-family: 'Inter', sans-serif; font-size: 0.72em; font-weight: 600;
+                      text-transform: uppercase; letter-spacing: 0.8px; color: #cdd8ec;
+                      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.22);
+                      border-radius: 6px; padding: 6px 14px; cursor: pointer;
+                      transition: background 0.15s ease, border-color 0.15s ease,
+                                  color 0.15s ease, transform 0.05s ease; }}
+        .saver-btn:hover {{ background: rgba(255,255,255,0.14);
+                            border-color: rgba(255,255,255,0.4); color: #fff; }}
+        .saver-btn:focus-visible {{ outline: 2px solid #9ec5ff; outline-offset: 3px; }}
+        .saver-btn:active {{ transform: translateY(1px); }}
+        /* "Mark Streak Saver used" — the deliberate, brand-red primary action. */
+        .saver-btn-primary {{ color: #fff; background: rgba(213,0,50,0.18); border-color: #D50032; }}
+        .saver-btn-primary:hover {{ background: #D50032; border-color: #D50032; color: #fff; }}
 
         .hero {{ background: #fff; border-radius: 12px; padding: 24px; margin: 20px 0;
                  border: 1px solid #ddd; border-left: 4px solid #D50032;
