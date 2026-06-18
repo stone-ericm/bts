@@ -1,5 +1,7 @@
 import json
 
+from bts.saver_state import transition_saver_state
+
 
 def _write_pick(path, result):
     path.write_text(json.dumps({
@@ -18,11 +20,12 @@ def test_model_state_used_when_no_contest_state(tmp_path):
         "streak": 4,
         "saver_available": True,
     }))
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
 
     state = load_decision_streak_state(tmp_path)
 
     assert state.streak == 4
-    assert state.saver_available is True
+    assert state.saver_available is True  # model-only branch also reads the flag (active)
     assert state.allow_double is True
     assert state.status == "model_only"
 
@@ -60,11 +63,12 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
         "source_date": "2026-05-29",
     }))
 
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
     state = load_decision_streak_state(tmp_path)
 
     assert state.streak == 7
     assert state.model_streak == 4
-    assert state.saver_available is True  # best_streak 7 < 10: never reached the saver zone -> provably available
+    assert state.saver_available is True  # the active flag drives the saver
     assert state.allow_double is True
     assert state.status == "fresh"
 
@@ -79,11 +83,12 @@ def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
     (sd / "contest_streak.manual.json").write_text(json.dumps({
         "active_streak": 7, "source": "manual_screenshot",
         "source_date": "2026-05-28", "saver_available": True}))
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
     state = load_decision_streak_state(tmp_path)
     assert state.streak == 7
     assert state.allow_double is True
     assert state.status == "lagged"
-    assert state.saver_available is True   # contest saver is known (True) here
+    assert state.saver_available is True   # the active flag drives the saver
 
 
 def test_lagged_contest_model_does_not_inflate(tmp_path):

@@ -13,8 +13,10 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts.picks import load_saver_available, load_streak
+from bts.saver_state import load_saver_state, season_for
 
 
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -243,6 +245,7 @@ def load_decision_streak_state(
     """
     model_streak = load_streak(picks_dir)
     model_saver = load_saver_available(picks_dir)
+    now_year = (now or datetime.now(timezone.utc)).astimezone(ZoneInfo("America/New_York")).year
     contest = load_contest_streak_state(picks_dir, now=now)
     if contest is None:
         if require_contest_state:
@@ -252,7 +255,10 @@ def load_decision_streak_state(
             )
         return DecisionStreakState(
             streak=model_streak,
-            saver_available=model_saver,
+            # Model-only fallback still reads the saver from the flag (not streak.json), so the
+            # live saver has one authority whether or not a contest observation exists.
+            saver_available=load_saver_state(
+                picks_dir, season=season_for(None, now_year=now_year)).is_available,
             allow_double=True,
             source="model",
             status="model_only",
@@ -276,22 +282,14 @@ def load_decision_streak_state(
             status = "lagged"
             message = "contest streak lagged by expected overnight settlement; using last confirmed value"
 
-    # Saver: the profile API can't observe the mulligan (contest.saver_available is
-    # usually None). A known contest saver is authoritative; otherwise infer it (Phase 2 --
-    # this replaces the model-saver-when-streaks-agree proxy). The saver is provably
-    # available when best_streak < 10 (the account never reached the 10-15 zone, so the
-    # season-scoped saver was never consumable); else a stable ledger consumption -> consumed,
-    # and anything we can't confirm -> 'unknown'. 'unknown'/'consumed' both resolve
-    # conservatively to unavailable until Phase 2b reasons over complete season coverage.
-    if contest.saver_available is not None:
-        contest_saver = contest.saver_available
-    else:
-        from bts.contest_ledger import parse_latest_ledger, infer_saver
-        led = infer_saver(
-            parse_latest_ledger(picks_dir / "account_state" / "contest_ledger.jsonl"),
-            contest.best_streak,
-        )
-        contest_saver = (led == "available")
+    # Live saver: the SOLE authority is saver_state.json (the manual Streak Saver flag) --
+    # replaces the unsound infer_saver/best_streak inference (the streak-preserving save can
+    # vanish from the windowed ledger, so available-vs-used is not observable from it). See the
+    # 2026-06-18 spec. Read-only here; the flag is written by the fetch-path auto-earn and the
+    # CLI/dashboard. `contest.saver_available` is retired from the decision (it is still surfaced
+    # as the `contest_saver_available` diagnostic below).
+    contest_saver = load_saver_state(
+        picks_dir, season=season_for(contest.source_date, now_year=now_year)).is_available
 
     # The decision streak is ALWAYS the contest (real MLB) value. The model is a
     # research replay of the bot's own suggestions and can NEVER raise it (the
