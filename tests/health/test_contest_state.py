@@ -217,3 +217,32 @@ def test_legacy_manual_present_warns(tmp_path):
 
     alerts = check(tmp_path, expected=True)
     assert any(a.level == "WARN" and "legacy" in a.message.lower() for a in alerts), alerts
+
+
+def _write_contest(tmp_path, active, best):
+    state_dir = tmp_path / "account_state"; state_dir.mkdir(exist_ok=True)
+    (state_dir / "contest_streak.json").write_text(json.dumps({
+        "schema_version": "bts_contest_streak_auto_v1",
+        "active_streak": active, "best_streak": best,
+        "source": "mlb_bts_profile", "source_date": "2026-06-18",
+    }))
+
+
+def test_saver_flag_uninitialized_in_zone_warns(tmp_path):
+    _write_contest(tmp_path, active=12, best=12)   # in the 10-15 zone, no saver_state.json
+    saver_alerts = [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message]
+    assert len(saver_alerts) == 1 and saver_alerts[0].level == "WARN"
+    assert "saver-state --init" in saver_alerts[0].message
+
+
+def test_saver_flag_active_in_zone_is_clean(tmp_path):
+    from bts.saver_state import transition_saver_state
+    _write_contest(tmp_path, active=12, best=12)
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
+                           season=2026, source="t")
+    assert [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message] == []
+
+
+def test_saver_flag_uninitialized_below_zone_no_warn(tmp_path):
+    _write_contest(tmp_path, active=8, best=9)      # below the zone -> saver irrelevant
+    assert [a for a in check(tmp_path, expected=False) if "Streak Saver" in a.message] == []

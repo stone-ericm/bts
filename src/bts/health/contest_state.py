@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts.contest_state import (
     ContestStateError,
@@ -120,5 +121,21 @@ def check(picks_dir: Path, *, expected: bool = False, now: datetime | None = Non
                 message=(f"legacy/expired manual override present at {manual_path}; "
                          "archive it (auto contest_streak.json is the live source)"),
             ))
+
+    # Streak Saver flag health: in the 10-15 zone the flag drives the saver-aware policy, so an
+    # uninitialized/stale-season flag there silently runs conservative -- WARN to prompt an init.
+    from bts.saver_state import load_saver_state, season_for
+    season = season_for(state.source_date,
+                        now_year=now.astimezone(ZoneInfo("America/New_York")).year)
+    saver = load_saver_state(picks_dir, season=season)
+    if saver.state == "uninitialized" and 10 <= state.streak <= 15:
+        detail = (f"stale-season flag, season {saver.season}" if saver.season is not None
+                  else "no saver_state.json")
+        alerts.append(Alert(
+            level="WARN", source=SOURCE,
+            message=(f"Streak Saver flag uninitialized ({detail}) while streak is {state.streak} "
+                     "(in the 10-15 zone) -- the saver-aware policy is running conservative; "
+                     "run `bts saver-state --init`"),
+        ))
 
     return alerts
