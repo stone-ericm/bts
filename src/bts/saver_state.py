@@ -61,3 +61,44 @@ def _write_state(picks_dir: Path, *, state: str, season: int, source: str) -> No
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "source": source,
     }))
+
+
+# Allowed (prior -> new) transitions; anything else is REJECTED (so a scripted/cross-page POST
+# can't do e.g. active -> not_earned). `force=True` (CLI --force only) bypasses the whitelist.
+_ALLOWED = {
+    ("uninitialized", "not_earned"), ("uninitialized", "active"), ("uninitialized", "used"),
+    ("not_earned", "active"), ("active", "used"), ("used", "active"),
+}
+
+
+def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: str,
+                           season: int, source: str, force: bool = False) -> bool:
+    """Guarded atomic transition: writes `new_state` ONLY if (a) `new_state` is valid, (b)
+    `(expected_prior, new_state)` is an allowed transition (unless `force`), and (c) the current
+    persisted state still equals `expected_prior` (re-read just before writing). Returns True iff
+    written. The single monotonic-safe write path — auto-earn, CLI, and the dashboard all use it."""
+    if new_state not in _PERSISTED:
+        raise ValueError(f"invalid saver state: {new_state!r}")
+    if not force and (expected_prior, new_state) not in _ALLOWED:
+        return False
+    if load_saver_state(picks_dir, season=season).state != expected_prior:
+        return False
+    _write_state(picks_dir, state=new_state, season=season, source=source)
+    return True
+
+
+def maybe_auto_earn_saver(picks_dir: Path, *, best_streak: int | None, season: int) -> None:
+    """Fetch-path hook. Safe initialization + the only sound auto transition:
+    - uninitialized + best_streak < 10  -> not_earned  (no save possible yet)
+    - not_earned    + best_streak >= 10 -> active       (sound: best_streak is reliable)
+    Never auto-inits `active` from uninitialized at >=10 (could be earned-and-used before we saw
+    it -> fail-closed), and never overwrites active/used."""
+    if best_streak is None:
+        return
+    current = load_saver_state(picks_dir, season=season).state
+    if current == "uninitialized" and best_streak < 10:
+        transition_saver_state(picks_dir, expected_prior="uninitialized",
+                               new_state="not_earned", season=season, source="auto_earn")
+    elif current == "not_earned" and best_streak >= 10:
+        transition_saver_state(picks_dir, expected_prior="not_earned",
+                               new_state="active", season=season, source="auto_earn")
