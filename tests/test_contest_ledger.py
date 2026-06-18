@@ -7,7 +7,7 @@ confirmation), because the latest values are provisional and can still change.
 """
 import json
 
-from bts.contest_ledger import parse_latest_ledger, LedgerRound
+from bts.contest_ledger import parse_latest_ledger, infer_saver, LedgerRound
 
 
 def test_parses_per_round_with_pre_and_post_streak(tmp_path):
@@ -86,3 +86,74 @@ def test_pre_streak_not_fabricated_after_missing_post(tmp_path):
     by_id = {r.round_id: r for r in parse_latest_ledger(led)}
     assert by_id[902].post_streak is None
     assert by_id[903].pre_streak is None    # NOT 5 -- chain broke at the None-post round
+
+
+# --- saver inference ---
+
+def _r(rid, result, pre, post, is_dd=False, stable=True):
+    return LedgerRound(rid, result, pre, post, None, is_dd, stable)
+
+
+# best_streak < 10: the account never reached the 10-15 zone this season, so the saver was
+# never consumable -> provably available, regardless of ledger contents (best_streak is a
+# reliable season-max counter, immune to ledger windowing).
+
+def test_saver_available_when_best_streak_below_zone():
+    assert infer_saver([_r(1, "hit", 7, 8), _r(2, "hit", 8, 9)], best_streak=9) == "available"
+
+
+def test_saver_available_when_best_streak_below_zone_without_any_rounds():
+    assert infer_saver([], best_streak=5) == "available"
+
+
+# best_streak >= 10: the account reached the saver zone, so the saver MAY have been consumed.
+
+def test_saver_consumed_on_stable_miss_at_10_15_that_did_not_reset():
+    # not_hit at pre-streak 12, post 12 (didn't reset) -> the mulligan absorbed it
+    assert infer_saver([_r(1, "hit", 11, 12), _r(2, "not_hit", 12, 12)], best_streak=12) == "consumed"
+
+
+def test_saver_unknown_when_reached_zone_but_no_confirmed_consumption():
+    # reached 12 but no visible consuming miss -> can't confirm the season saver survived
+    # without complete coverage (Phase 2b) -> unknown (conservatively unavailable)
+    assert infer_saver([_r(1, "hit", 10, 11), _r(2, "hit", 11, 12)], best_streak=12) == "unknown"
+
+
+def test_saver_unknown_on_ambiguous_dd_miss_at_10_15():
+    # a not_hit at 10-15 that didn't reset BUT is a DD (one slot may have missed) -> ambiguous
+    assert infer_saver([_r(1, "hit", 11, 12), _r(2, "not_hit", 12, 12, is_dd=True)], best_streak=12) == "unknown"
+
+
+def test_saver_unknown_on_unstable_consuming_round():
+    # a clear-looking consumption that is still provisional (single-read) -> unknown (adj #2)
+    assert infer_saver([_r(1, "hit", 11, 12), _r(2, "not_hit", 12, 12, stable=False)], best_streak=12) == "unknown"
+
+
+def test_saver_unknown_when_pre_streak_unrecoverable():
+    assert infer_saver([_r(1, "not_hit", None, 11)], best_streak=12) == "unknown"
+
+
+def test_saver_unknown_on_empty_or_no_best_streak():
+    # no best_streak signal and no confirmed consumption -> conservatively unavailable (adj #1)
+    assert infer_saver([]) == "unknown"
+    assert infer_saver([], best_streak=12) == "unknown"
+
+
+def test_saver_consumed_evidence_overrides_low_best_streak():
+    # ledger evidence of a 10-15 consumption wins over best_streak < 10 -- guards an
+    # under-reported best_streak (stale counter / wrong manual override) from a false-available
+    assert infer_saver([_r(1, "hit", 11, 12), _r(2, "not_hit", 12, 12)], best_streak=9) == "consumed"
+
+
+def test_saver_not_available_at_best_streak_exactly_10():
+    # reaching exactly streak 10 makes the saver consumable, so best_streak == 10 is NOT
+    # auto-available (the < 10 boundary is correct)
+    assert infer_saver([_r(1, "hit", 9, 10)], best_streak=10) == "unknown"
+
+
+def test_saver_zone_edges_inclusive_10_to_15():
+    # consumption fires at the inclusive pre-streak edges 10 and 15...
+    assert infer_saver([_r(1, "not_hit", 10, 10)], best_streak=12) == "consumed"
+    assert infer_saver([_r(1, "not_hit", 15, 15)], best_streak=15) == "consumed"
+    # ...but a miss at pre-streak 16 is above the zone -> a reset, not a saver consumption
+    assert infer_saver([_r(1, "not_hit", 16, 0)], best_streak=16) == "unknown"

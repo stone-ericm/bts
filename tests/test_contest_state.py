@@ -64,7 +64,7 @@ def test_fresh_contest_state_drives_live_decision(tmp_path):
 
     assert state.streak == 7
     assert state.model_streak == 4
-    assert state.saver_available is False  # unknown contest saver is conservative
+    assert state.saver_available is True  # best_streak 7 < 10: never reached the saver zone -> provably available
     assert state.allow_double is True
     assert state.status == "fresh"
 
@@ -264,15 +264,16 @@ def test_unexpired_override_wins_over_auto_through_decision(tmp_path):
     assert state.status == "fresh"      # source_date 06-16 covers latest pick 06-16
 
 
-def test_stale_unknown_saver_is_conservative_even_when_streaks_agree(tmp_path):
-    # Saver: equal streaks don't prove the local model saver matches the real account
-    # when stale (manual entry can diverge), so stay conservative -> False.
+def test_saver_conservative_when_reached_zone_but_unconfirmed(tmp_path):
+    # Saver: best_streak >= 10 means the account reached the 10-15 zone, so the season-scoped
+    # saver MAY have been consumed; with no ledger evidence it survived, stay conservative ->
+    # False (the local model saver=True is not trusted).
     from bts.contest_state import load_decision_streak_state
     (tmp_path / "streak.json").write_text(json.dumps({"streak": 8, "saver_available": True}))
     sd = tmp_path / "account_state"; sd.mkdir()
     (sd / "contest_streak.json").write_text(json.dumps({
         "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
-        "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date -> stale, saver unknown
+        "best_streak": 12, "source": "mlb_bts_profile"}))  # reached the zone; no ledger -> unknown
     state = load_decision_streak_state(tmp_path)
     assert state.streak == 8 and state.status == "stale"
-    assert state.saver_available is False   # conservative, NOT the model's True
+    assert state.saver_available is False   # reached zone, unconfirmed -> conservative

@@ -277,17 +277,21 @@ def load_decision_streak_state(
             message = "contest streak lagged by expected overnight settlement; using last confirmed value"
 
     # Saver: the profile API can't observe the mulligan (contest.saver_available is
-    # usually None). A known contest saver is authoritative. Otherwise the local
-    # model saver is a reliable proxy ONLY on the fresh path where model and contest
-    # streak agree (audit D3); when lagged/stale (or streaks diverge) equal streaks
-    # don't prove the model saver matches the real account under manual entry, so
-    # stay conservative. Principled saver handling is Phase 2.
+    # usually None). A known contest saver is authoritative; otherwise infer it (Phase 2 --
+    # this replaces the model-saver-when-streaks-agree proxy). The saver is provably
+    # available when best_streak < 10 (the account never reached the 10-15 zone, so the
+    # season-scoped saver was never consumable); else a stable ledger consumption -> consumed,
+    # and anything we can't confirm -> 'unknown'. 'unknown'/'consumed' both resolve
+    # conservatively to unavailable until Phase 2b reasons over complete season coverage.
     if contest.saver_available is not None:
         contest_saver = contest.saver_available
-    elif status == "fresh" and contest.streak == model_streak:
-        contest_saver = model_saver
     else:
-        contest_saver = False
+        from bts.contest_ledger import parse_latest_ledger, infer_saver
+        led = infer_saver(
+            parse_latest_ledger(picks_dir / "account_state" / "contest_ledger.jsonl"),
+            contest.best_streak,
+        )
+        contest_saver = (led == "available")
 
     # The decision streak is ALWAYS the contest (real MLB) value. The model is a
     # research replay of the bot's own suggestions and can NEVER raise it (the
