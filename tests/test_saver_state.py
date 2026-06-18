@@ -34,6 +34,10 @@ def test_invalid_state_or_bad_json_is_uninitialized(tmp_path):
     assert load_saver_state(tmp_path, season=2026).state == "uninitialized"
     (tmp_path / "account_state" / "saver_state.json").write_text("{not json")
     assert load_saver_state(tmp_path, season=2026).state == "uninitialized"
+    for bad in ("[]", "123", '"active"',                                  # not an object
+                '{"season": 2026, "state": []}', '{"season": 2026, "state": {}}'):  # unhashable state
+        (tmp_path / "account_state" / "saver_state.json").write_text(bad)
+        assert load_saver_state(tmp_path, season=2026).state == "uninitialized"
 
 
 def test_not_earned_and_used_not_available(tmp_path):
@@ -91,3 +95,23 @@ def test_auto_earn_never_overwrites_used(tmp_path):
     transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="used", season=2026, source="t")
     maybe_auto_earn_saver(tmp_path, best_streak=14, season=2026)
     assert load_saver_state(tmp_path, season=2026).state == "used"
+
+
+def test_concurrent_transitions_from_same_prior_serialize(tmp_path):
+    # The lock makes the expected_prior guard race-safe: of many concurrent writers from the
+    # same prior, EXACTLY ONE wins (no lost update) -- the rest re-read the new state -> False.
+    import threading
+    (tmp_path / "account_state").mkdir(parents=True)
+    results = []
+
+    def worker(new_state):
+        results.append(transition_saver_state(tmp_path, expected_prior="uninitialized",
+                                              new_state=new_state, season=2026, source="t"))
+
+    threads = [threading.Thread(target=worker, args=(s,))
+               for s in (["active", "used", "not_earned"] * 4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sum(results) == 1

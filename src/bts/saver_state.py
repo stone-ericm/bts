@@ -5,6 +5,7 @@ See docs/superpowers/specs/2026-06-18-streak-saver-flag-design.md.
 """
 from __future__ import annotations
 
+import fcntl
 import json
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -45,12 +46,14 @@ def load_saver_state(picks_dir: Path, *, season: int) -> SaverState:
         return SaverState("uninitialized", None)
     try:
         d = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return SaverState("uninitialized", None)
+    if not isinstance(d, dict):           # a JSON scalar/list ([], 123, "active") -> fail-closed
         return SaverState("uninitialized", None)
     st = d.get("state")
     fseason = d.get("season") if isinstance(d.get("season"), int) else None
-    if st not in _PERSISTED or fseason != season:
-        return SaverState("uninitialized", fseason)
+    if not isinstance(st, str) or st not in _PERSISTED or fseason != season:
+        return SaverState("uninitialized", fseason)   # isinstance guards an unhashable `state`
     return SaverState(st, fseason, d.get("source"), d.get("updated_at"))
 
 
@@ -81,10 +84,17 @@ def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: s
         raise ValueError(f"invalid saver state: {new_state!r}")
     if not force and (expected_prior, new_state) not in _ALLOWED:
         return False
-    if load_saver_state(picks_dir, season=season).state != expected_prior:
-        return False
-    _write_state(picks_dir, state=new_state, season=season, source=source)
-    return True
+    lock_path = _path(picks_dir).with_suffix(".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as lock:
+        # Serialize concurrent writers (the 4x/day fetch auto-earn vs the CLI/dashboard): the
+        # expected_prior guard must re-read and write UNDER the lock, else two callers from the
+        # same prior could both pass the check before either writes (a lost update).
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        if load_saver_state(picks_dir, season=season).state != expected_prior:
+            return False
+        _write_state(picks_dir, state=new_state, season=season, source=source)
+        return True
 
 
 def maybe_auto_earn_saver(picks_dir: Path, *, best_streak: int | None, season: int) -> None:

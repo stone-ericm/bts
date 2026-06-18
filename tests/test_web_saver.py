@@ -69,3 +69,26 @@ def test_transition_marks_used(tmp_path):
                                         new_state="used", same_origin=True, now=NOW)
     assert code == 200
     assert saver_dashboard_context(tmp_path, now=NOW).state == "used"
+
+
+def test_dashboard_rejects_non_ui_transitions(tmp_path):
+    _setup(tmp_path, "uninitialized")
+    # init transitions are NOT exposed via the dashboard POST (only mark-used / undo)
+    code, _ = saver_transition_response(tmp_path, expected_prior="uninitialized",
+                                        new_state="active", same_origin=True, now=NOW)
+    assert code == 409
+
+
+def test_dashboard_rejects_bogus_new_state(tmp_path):
+    _setup(tmp_path, "active")
+    code, _ = saver_transition_response(tmp_path, expected_prior="active",
+                                        new_state="bogus", same_origin=True, now=NOW)
+    assert code == 409   # rejected, never raises
+
+
+def test_same_origin_helper():
+    from bts.web import _same_origin
+    assert _same_origin({}, "host") is True                            # absent -> allow (non-browser)
+    assert _same_origin({"Origin": "http://host"}, "host") is True     # match
+    assert _same_origin({"Origin": "http://evil"}, "host") is False    # mismatch
+    assert _same_origin({"Origin": "http://[::1"}, "host") is False    # malformed -> reject (no raise)

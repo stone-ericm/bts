@@ -154,26 +154,37 @@ def saver_dashboard_context(picks_dir, *, now) -> SaverDashboardContext:
     return SaverDashboardContext(state, button, state, nudge, warning)
 
 
+# The dashboard exposes ONLY the two button transitions (mark-used / undo) -- NOT init -- so a
+# scripted POST can't initialize/clobber the live flag through the web path (init is CLI-only).
+_DASHBOARD_TRANSITIONS = {("active", "used"), ("used", "active")}
+
+
 def saver_transition_response(picks_dir, *, expected_prior, new_state, same_origin, now):
-    """Guarded dashboard transition -> (status_code, message). 403 cross-origin, 409 guard
-    mismatch / not-allowed transition, 200 success. The whitelist in transition_saver_state
-    keeps a scripted same-origin request from doing e.g. active -> not_earned."""
+    """Guarded dashboard transition -> (status_code, message). 403 cross-origin; 409 for a non-UI
+    transition, a bogus state, or a guard mismatch; 200 success. Never raises."""
     from bts.saver_state import transition_saver_state
     if not same_origin:
         return 403, "cross-origin request rejected"
+    if (expected_prior, new_state) not in _DASHBOARD_TRANSITIONS:
+        return 409, "only mark-used / undo are available from the dashboard"
     season, _ = _saver_season(picks_dir, now)
     ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,
                                 season=season, source="dashboard")
-    return (200, f"saver -> {new_state}") if ok else (
-        409, f"rejected: state is not {expected_prior!r}, or not an allowed transition")
+    return (200, f"saver -> {new_state}") if ok else (409, f"rejected: state is not {expected_prior!r}")
 
 
 def _same_origin(headers, host) -> bool:
     """A browser cross-site POST sends an Origin that won't match Host; allow when absent
-    (curl/non-browser) since the dashboard binds tailnet/loopback only."""
+    (curl/non-browser) since the dashboard binds tailnet/loopback only. A malformed Origin is
+    treated as cross-origin (rejected)."""
     from urllib.parse import urlparse
     origin = headers.get("Origin") or headers.get("Referer")
-    return origin is None or urlparse(origin).netloc == host
+    if origin is None:
+        return True
+    try:
+        return urlparse(origin).netloc == host
+    except ValueError:
+        return False
 
 
 def render_saver_section(ctx: SaverDashboardContext) -> str:
@@ -1552,8 +1563,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-        length = int(self.headers.get("Content-Length", 0))
-        form = parse_qs(self.rfile.read(length).decode())
+        try:
+            length = max(0, int(self.headers.get("Content-Length", 0)))   # clamp -1 (else read-to-EOF)
+        except (TypeError, ValueError):
+            length = 0
+        form = parse_qs(self.rfile.read(length).decode("utf-8", errors="replace"))
         code, msg = saver_transition_response(
             PICKS_DIR,
             expected_prior=form.get("expected_prior", [""])[0],
