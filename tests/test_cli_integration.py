@@ -273,7 +273,8 @@ class TestSetContestStreak:
         assert "override_expires_at" in data
         assert data["active_streak"] == 7
         assert data["best_streak"] == 7
-        assert data["saver_available"] is False
+        assert "saver_available" not in data    # deprecated -> no longer written to the manual file
+        assert "deprecated" in result.output     # the CLI notes the deprecation
         assert data["source_date"] == "2026-05-29"
         assert data["source"] == "manual_screenshot"
         assert data["username"] == "stonehengee"
@@ -284,7 +285,7 @@ class TestSetContestStreak:
         assert state is not None
         assert state.streak == 7
         assert state.best_streak == 7
-        assert state.saver_available is False
+        assert state.saver_available is None    # deprecated: set-contest-streak no longer writes it
         assert state.source == "manual_screenshot"
         assert state.source_date is not None
         assert state.source_date.isoformat() == "2026-05-29"

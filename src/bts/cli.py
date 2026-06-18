@@ -1386,7 +1386,8 @@ def set_contest_streak(
     if best_streak is not None:
         state["best_streak"] = best_streak
     if saver_available is not None:
-        state["saver_available"] = saver_available
+        click.echo("Note: --saver-available/--saver-unavailable is deprecated and no longer "
+                   "affects the live saver (use `bts saver-state`); ignoring it.")
     if username:
         state["username"] = username
     if reason:
@@ -1395,10 +1396,14 @@ def set_contest_streak(
     path = Path(picks_dir) / "account_state" / "contest_streak.manual.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
-    saver_text = "unknown" if saver_available is None else str(saver_available).lower()
+    # Streak Saver flag: safe cold-init / sound auto-earn from the (manual) best_streak.
+    from bts.saver_state import maybe_auto_earn_saver, season_for
+    from zoneinfo import ZoneInfo
+    _season = season_for(observed_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
+    maybe_auto_earn_saver(Path(picks_dir), best_streak=best_streak, season=_season)
     click.echo(
         f"Wrote {path}: active_streak={streak} source_date={observed_date.isoformat()} "
-        f"saver_available={saver_text} override_expires_at={state['override_expires_at']}"
+        f"override_expires_at={state['override_expires_at']}"
     )
 
 
@@ -1656,6 +1661,12 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     }
     with (picks / "account_state" / "contest_ledger.jsonl").open("a") as _fh:
         _fh.write(json.dumps(ledger_row) + "\n")
+    # Streak Saver flag: safe cold-init below 10 + sound auto-earn at 10 from the reliable
+    # seasonBestStreak. Never auto-inits `active` from a cold file at >=10 (fail-closed).
+    from bts.saver_state import maybe_auto_earn_saver, season_for
+    from zoneinfo import ZoneInfo
+    _season = season_for(source_date, now_year=datetime.now(ZoneInfo("America/New_York")).year)
+    maybe_auto_earn_saver(picks, best_streak=observation["best_streak"], season=_season)
     click.echo(f"wrote {out_path}: {summary}")
 
 

@@ -238,3 +238,41 @@ def test_fetch_cli_persists_per_round_ledger(tmp_path, monkeypatch):
     row = json.loads(ledger.read_text().strip().splitlines()[-1])
     assert row["active_streak"] == 8 and len(row["predictions"]) == 1
     assert row["recorded_at"].endswith("Z")
+
+
+def _run_fetch(picks):
+    from click.testing import CliRunner
+    from bts.cli import cli
+    return CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                    "--expected-username", "stonehengee"])
+
+
+def test_fetch_auto_earn_cold_file_at_10_stays_uninitialized(tmp_path, monkeypatch):
+    """Fail-closed: a cold saver_state file + best_streak>=10 must NOT auto-become active
+    (the account could have earned-and-used the saver before we ever observed it)."""
+    import json
+    from bts.saver_state import load_saver_state
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))
+    _mock_fetch(monkeypatch, {"activeStreak": 10, "seasonBestStreak": 10,
+                              "predictions": [{"roundId": 1, "result": "hit", "streak": 10}]},
+                {1: dt.date(2026, 6, 16)})
+    assert _run_fetch(picks).exit_code == 0
+    assert load_saver_state(picks, season=2026).state == "uninitialized"
+
+
+def test_fetch_auto_earn_below_10_inits_not_earned_then_promotes_at_10(tmp_path, monkeypatch):
+    import json
+    from bts.saver_state import load_saver_state
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    (picks / "2026-06-16.json").write_text(json.dumps({"result": "hit"}))
+    _mock_fetch(monkeypatch, {"activeStreak": 8, "seasonBestStreak": 8,
+                              "predictions": [{"roundId": 1, "result": "hit", "streak": 8}]},
+                {1: dt.date(2026, 6, 16)})
+    assert _run_fetch(picks).exit_code == 0
+    assert load_saver_state(picks, season=2026).state == "not_earned"   # safe cold-init below 10
+    _mock_fetch(monkeypatch, {"activeStreak": 10, "seasonBestStreak": 10,
+                              "predictions": [{"roundId": 2, "result": "hit", "streak": 10}]},
+                {2: dt.date(2026, 6, 17)})
+    assert _run_fetch(picks).exit_code == 0
+    assert load_saver_state(picks, season=2026).state == "active"       # sound auto-earn from not_earned
