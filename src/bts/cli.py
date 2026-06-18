@@ -1407,6 +1407,50 @@ def set_contest_streak(
     )
 
 
+@cli.command(name="saver-state")
+@click.option("--show", is_flag=True, help="Print the current Streak Saver flag state.")
+@click.option("--init", "init_state", type=click.Choice(["not_earned", "active", "used"]),
+              default=None, help="Initialize the season's flag (only when uninitialized; --force to override).")
+@click.option("--use", "mark_used", is_flag=True, help="Mark the saver used (active -> used).")
+@click.option("--undo", is_flag=True, help="Undo a mark-used (used -> active).")
+@click.option("--force", is_flag=True, help="With --init, overwrite an already-initialized state.")
+@click.option("--season", type=int, default=None, help="Contest season (default: current ET year).")
+@click.option("--picks-dir", default="data/picks", type=click.Path())
+def saver_state_cmd(show, init_state, mark_used, undo, force, season, picks_dir):
+    """Manage the one-time Streak Saver flag (the sole live saver authority)."""
+    from zoneinfo import ZoneInfo
+    from bts.saver_state import load_saver_state, transition_saver_state
+
+    picks = Path(picks_dir)
+    season = season or datetime.now(ZoneInfo("America/New_York")).year
+
+    if init_state is not None:
+        current = load_saver_state(picks, season=season).state
+        if current == "uninitialized":
+            transition_saver_state(picks, expected_prior="uninitialized", new_state=init_state,
+                                   season=season, source="cli")
+            click.echo(f"Initialized saver flag: {init_state} (season {season})")
+        elif force:
+            transition_saver_state(picks, expected_prior=current, new_state=init_state,
+                                   season=season, source="cli", force=True)
+            click.echo(f"Forced saver flag: {current} -> {init_state} (season {season})")
+        else:
+            raise click.ClickException(
+                f"saver flag already initialized as {current!r}; use --force to override")
+    elif mark_used:
+        ok = transition_saver_state(picks, expected_prior="active", new_state="used",
+                                    season=season, source="cli")
+        click.echo("Marked saver used." if ok
+                   else f"No-op: saver is {load_saver_state(picks, season=season).state}, not active.")
+    elif undo:
+        ok = transition_saver_state(picks, expected_prior="used", new_state="active",
+                                    season=season, source="cli")
+        click.echo("Undid mark-used (saver active again)." if ok
+                   else f"No-op: saver is {load_saver_state(picks, season=season).state}, not used.")
+
+    click.echo(f"saver_state: {load_saver_state(picks, season=season).state} (season {season})")
+
+
 def _atomic_write_json(path, obj):
     """Write JSON atomically: temp file in the same dir, fsync, os.replace."""
     import os

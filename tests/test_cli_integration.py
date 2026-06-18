@@ -1006,3 +1006,37 @@ class TestCheckPickEntered:
         picks = tmp_path / "picks"; picks.mkdir()
         r = self._run(picks, "2026-06-12T18:30:00")
         assert r.exit_code == 0
+
+
+class TestSaverStateCli:
+    def _run(self, picks_dir, *args):
+        return CliRunner().invoke(cli, ["saver-state", "--picks-dir", str(picks_dir),
+                                        "--season", "2026", *args])
+
+    def test_show_uninitialized(self, tmp_path):
+        r = self._run(tmp_path, "--show")
+        assert r.exit_code == 0 and "uninitialized" in r.output
+
+    def test_init_active(self, tmp_path):
+        assert self._run(tmp_path, "--init", "active").exit_code == 0
+        assert "active" in self._run(tmp_path, "--show").output
+
+    def test_init_guarded_requires_force(self, tmp_path):
+        self._run(tmp_path, "--init", "not_earned")
+        r = self._run(tmp_path, "--init", "active")     # already initialized -> rejected
+        assert r.exit_code != 0 and "force" in r.output.lower()
+        assert "not_earned" in self._run(tmp_path, "--show").output   # unchanged
+        assert self._run(tmp_path, "--init", "active", "--force").exit_code == 0
+        assert "active" in self._run(tmp_path, "--show").output
+
+    def test_use_and_undo(self, tmp_path):
+        self._run(tmp_path, "--init", "active")
+        assert self._run(tmp_path, "--use").exit_code == 0
+        assert "used" in self._run(tmp_path, "--show").output
+        assert self._run(tmp_path, "--undo").exit_code == 0
+        assert "active" in self._run(tmp_path, "--show").output
+
+    def test_use_noop_when_not_active(self, tmp_path):
+        self._run(tmp_path, "--init", "not_earned")
+        self._run(tmp_path, "--use")     # not active -> no-op
+        assert "not_earned" in self._run(tmp_path, "--show").output
