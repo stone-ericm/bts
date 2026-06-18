@@ -12,7 +12,8 @@ import json
 import os
 import subprocess
 import html as html_lib
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import urlopen, Request
@@ -119,6 +120,81 @@ def load_dashboard_decision_state():
     from bts.contest_state import load_decision_streak_state
 
     return load_decision_streak_state(PICKS_DIR)
+
+
+@dataclass
+class SaverDashboardContext:
+    state: str                 # not_earned | active | used | uninitialized
+    button: str | None         # "mark_used" | "undo" | None
+    expected_prior: str        # current state (the form's hidden field)
+    nudge: bool                # a likely save in the ledger + state active
+    warning: bool              # active + best_streak > 15 (verify it wasn't already used)
+
+
+def _saver_season(picks_dir, now):
+    from bts.contest_state import load_contest_streak_state
+    from bts.saver_state import season_for
+    contest = load_contest_streak_state(picks_dir, now=now)
+    source_date = contest.source_date if contest is not None else None
+    best_streak = contest.best_streak if contest is not None else None
+    season = season_for(source_date, now_year=now.astimezone(ZoneInfo("America/New_York")).year)
+    return season, best_streak
+
+
+def saver_dashboard_context(picks_dir, *, now) -> SaverDashboardContext:
+    """State + button/nudge/warning for the dashboard Streak Saver controls."""
+    from bts.saver_state import load_saver_state
+    from bts.contest_ledger import parse_latest_ledger, likely_save
+    season, best_streak = _saver_season(picks_dir, now)
+    state = load_saver_state(picks_dir, season=season).state
+    button = "mark_used" if state == "active" else ("undo" if state == "used" else None)
+    nudge = state == "active" and likely_save(
+        parse_latest_ledger(picks_dir / "account_state" / "contest_ledger.jsonl"))
+    warning = state == "active" and best_streak is not None and best_streak > 15
+    return SaverDashboardContext(state, button, state, nudge, warning)
+
+
+def saver_transition_response(picks_dir, *, expected_prior, new_state, same_origin, now):
+    """Guarded dashboard transition -> (status_code, message). 403 cross-origin, 409 guard
+    mismatch / not-allowed transition, 200 success. The whitelist in transition_saver_state
+    keeps a scripted same-origin request from doing e.g. active -> not_earned."""
+    from bts.saver_state import transition_saver_state
+    if not same_origin:
+        return 403, "cross-origin request rejected"
+    season, _ = _saver_season(picks_dir, now)
+    ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                                season=season, source="dashboard")
+    return (200, f"saver -> {new_state}") if ok else (
+        409, f"rejected: state is not {expected_prior!r}, or not an allowed transition")
+
+
+def _same_origin(headers, host) -> bool:
+    """A browser cross-site POST sends an Origin that won't match Host; allow when absent
+    (curl/non-browser) since the dashboard binds tailnet/loopback only."""
+    from urllib.parse import urlparse
+    origin = headers.get("Origin") or headers.get("Referer")
+    return origin is None or urlparse(origin).netloc == host
+
+
+def render_saver_section(ctx: SaverDashboardContext) -> str:
+    """A compact Streak Saver control: state + (mark-used/undo) button + nudge/warning."""
+    label = {"active": "AVAILABLE", "used": "USED", "not_earned": "not yet earned",
+             "uninitialized": "unknown (needs init)"}.get(ctx.state, ctx.state)
+    parts = [f'<span class="saver-state saver-{ctx.state}">Streak Saver: {label}</span>']
+    if ctx.warning:
+        parts.append('<span class="saver-warn">&#9888; streak passed 15 while active &mdash; '
+                     'verify it was not already used</span>')
+    if ctx.nudge:
+        parts.append('<span class="saver-nudge">looks like your saver may have just saved you</span>')
+    if ctx.button in ("mark_used", "undo"):
+        new_state = "used" if ctx.button == "mark_used" else "active"
+        text = "Mark Streak Saver used" if ctx.button == "mark_used" else "Undo (mark active)"
+        parts.append(
+            '<form method="POST" action="/saver/transition" style="display:inline">'
+            f'<input type="hidden" name="expected_prior" value="{ctx.expected_prior}">'
+            f'<input type="hidden" name="new_state" value="{new_state}">'
+            f'<button type="submit">{text}</button></form>')
+    return f'<div class="saver-section">{"".join(parts)}</div>'
 
 
 def load_dashboard_streak_context():
@@ -854,6 +930,11 @@ def render_page():
     health_dm_banner = render_health_dm_delivery_banner(
         load_health_dm_delivery_status()
     )
+    try:
+        saver_section = render_saver_section(
+            saver_dashboard_context(PICKS_DIR, now=datetime.now(timezone.utc)))
+    except Exception:
+        saver_section = ""
 
     today_pick = None
     for p in picks:
@@ -1308,6 +1389,7 @@ def render_page():
                 <div class="streak-label">Current Streak</div>
                 <div class="streak-number">{streak}</div>
                 <div class="streak-sub">{streak_subtitle}</div>
+                {saver_section}
             </div>
         </div>
 
@@ -1463,6 +1545,33 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(render_page().encode())
+
+    def do_POST(self):
+        from urllib.parse import urlparse, parse_qs
+        if urlparse(self.path).path != "/saver/transition":
+            self.send_response(404)
+            self.end_headers()
+            return
+        length = int(self.headers.get("Content-Length", 0))
+        form = parse_qs(self.rfile.read(length).decode())
+        code, msg = saver_transition_response(
+            PICKS_DIR,
+            expected_prior=form.get("expected_prior", [""])[0],
+            new_state=form.get("new_state", [""])[0],
+            same_origin=_same_origin(self.headers, self.headers.get("Host")),
+            now=datetime.now(timezone.utc),
+        )
+        if code == 200:        # PRG: redirect back to the dashboard
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+        else:
+            body = msg.encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
     def _handle_api_live(self, params):
         """Return live scorecard JSON for today's picked batters."""
