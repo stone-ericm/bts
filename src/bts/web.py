@@ -249,6 +249,22 @@ def load_scheduler_state(date_str: str) -> dict:
         return {}
 
 
+def render_skip_banner(summary: dict | None) -> str:
+    """Dashboard banner for a skip day (no pick). Empty string when not a skip.
+    Reads the scheduler's persisted skip_summary; see the 2026-06-18 incident."""
+    if not summary:
+        return ""
+    name = html_lib.escape(str(summary.get("best_batter", "?")))
+    team = html_lib.escape(str(summary.get("best_team", "")))
+    import math
+    p = summary.get("best_p")
+    pct = f"{p:.0%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
+    streak = summary.get("streak")
+    return ('<div class="skip-banner"><strong>SKIP TODAY</strong>'
+            f"<span>No pick — model's best is {name} ({team}) {pct}, below the "
+            f"pick bar. Streak holds at {streak}.</span></div>")
+
+
 def load_health_dm_delivery_status() -> dict:
     """Read health DM delivery status. Returns {} if missing/unreadable."""
     status_path = HEALTH_STATE_DIR / "health_dm_delivery_status.json"
@@ -949,6 +965,18 @@ def render_page():
     except Exception:
         saver_section = ""
 
+    try:
+        _sched_today = load_scheduler_state(today)
+        # Suppress if a pick exists for today (pick file is authoritative — survives
+        # the restart that resets scheduler_state.pick_locked) or the pick is locked.
+        _has_today_pick = any(p.get("date") == today for p in picks)
+        skip_banner = (
+            render_skip_banner(_sched_today.get("skip_summary"))
+            if not _has_today_pick and not _sched_today.get("pick_locked") else ""
+        )
+    except Exception:
+        skip_banner = ""
+
     today_pick = None
     for p in picks:
         if p.get("date") == today:
@@ -1268,6 +1296,15 @@ def render_page():
         .ops-alert strong {{ color:#9a3412; font-size:0.85em; }}
         .ops-alert span {{ font-size:0.82em; line-height:1.4; }}
 
+        /* Skip day (no pick) — informational, distinct from the orange ops-alert. */
+        .skip-banner {{ background:#eff6ff; border:1px solid #93c5fd;
+                        border-left:4px solid #2563eb; border-radius:8px;
+                        color:#1e3a5f; padding:12px 14px; margin-bottom:16px;
+                        display:flex; flex-direction:column; gap:4px;
+                        box-shadow:0 2px 8px rgba(0,0,0,0.04); }}
+        .skip-banner strong {{ color:#1d4ed8; font-size:0.85em; letter-spacing:1px; }}
+        .skip-banner span {{ font-size:0.82em; line-height:1.4; }}
+
         .header {{ display: flex; align-items: center; justify-content: space-between;
                    margin-bottom: 20px; }}
         .header-left h1 {{ color: #041E42; font-size: 1.6em; font-weight: 800; }}
@@ -1440,6 +1477,8 @@ def render_page():
         </div>
 
         {health_dm_banner}
+
+        {skip_banner}
 
         {hero}
 

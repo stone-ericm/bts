@@ -314,6 +314,8 @@ class SchedulerState:
     result_status: str | None  # "final", "suspended", "unresolved", None
     next_wakeup: str | None  # ISO for next day's wake-up
     analytics_jobs: dict | None = None  # shadow/capture attempt status by job name
+    skip_summary: dict | None = None    # {best_batter, best_team, best_p, streak} on a skip day
+    skip_notified_at: str | None = None  # ISO; set once the skip notice is delivered (idempotency)
 
 
 @dataclass
@@ -763,6 +765,83 @@ def _has_pending_future_confirmation_window(
     return False
 
 
+def build_skip_summary(predictions, streak) -> dict | None:
+    """Summarize a skip for log/DM/dashboard: the model's best candidate today and
+    the streak being protected. Returns None on unusable data — this runs in the
+    daemon loop and must never raise. Emits JSON-native types only (no NaN/numpy)."""
+    try:
+        cols = getattr(predictions, "columns", [])
+        if "p_game_hit" not in cols or "batter_name" not in cols:
+            return None
+        import pandas as pd
+        p = pd.to_numeric(predictions["p_game_hit"], errors="coerce")
+        finite = p[p.notna() & (p != float("inf")) & (p != float("-inf"))]
+        if finite.empty:
+            return None
+        idx = finite.idxmax()
+        row = predictions.loc[idx]
+        name, team = row.get("batter_name"), row.get("team")
+        return {
+            "best_batter": str(name) if name is not None and name == name else "?",
+            "best_team": str(team) if team is not None and team == team else "?",
+            "best_p": float(finite.loc[idx]),
+            "streak": int(streak) if streak is not None else None,
+        }
+    except Exception:
+        return None
+
+
+def format_skip_dm(date: str, summary: dict) -> str:
+    """One-line operator notice for a skip. Phrased tentatively — an early cycle's
+    skip may still flip to a pick if a confirmed lineup clears the bar, and a DM
+    can't be retracted, so it must not claim a finality it doesn't have."""
+    return (
+        f"BTS {date}: No pick yet — model's best is {summary['best_batter']} "
+        f"({summary['best_team']}) {summary['best_p']:.0%}, below the ~80% bar "
+        f"(streak holds at {summary['streak']}). Will pick if a confirmed lineup clears it."
+    )
+
+
+def maybe_notify_skip(
+    state: "SchedulerState",
+    summary: dict,
+    config: dict,
+    *,
+    now_iso: str,
+    send=None,
+) -> bool:
+    """Deliver a one-time skip notice for the day. Idempotent via
+    ``state.skip_notified_at`` so the operator is told once, not every cycle.
+    Returns True iff a notice was sent on this call."""
+    if state.skip_notified_at is not None:
+        return False
+    if _pick_delivery_mode(config) != "dm":
+        return False
+    if send is None:
+        from bts.dm import send_dm
+        send = send_dm
+    recipient = config["bluesky"]["dm_recipient"]
+    try:
+        send(recipient, format_skip_dm(state.date, summary))
+    except Exception as e:
+        print(f"  Skip DM failed ({e}); will retry next cycle.", file=sys.stderr)
+        return False
+    state.skip_notified_at = now_iso
+    return True
+
+
+def carry_forward_skip_state(state: "SchedulerState", previous_state) -> "SchedulerState":
+    """Preserve once-per-day skip fields across a same-day scheduler restart.
+    run_day rebuilds SchedulerState fresh each startup (runs_completed reset), so
+    without this the skip notice would re-fire on every restart (deploys, systemd
+    Restart=always). skip_notified_at is the SOLE idempotency guard for a skip —
+    unlike pick delivery, there is no pick file to backstop it."""
+    if previous_state is not None and previous_state.date == state.date:
+        state.skip_summary = previous_state.skip_summary
+        state.skip_notified_at = previous_state.skip_notified_at
+    return state
+
+
 def run_single_check(
     date: str,
     all_game_pks: list[int],
@@ -833,8 +912,28 @@ def run_single_check(
                 "pick_result": None, "pick_name": None, "pick_p": None}
 
     if predictions is None or pick_result is None:
+        skip_summary = None
+        if predictions is not None and not predictions.empty:
+            # Skip day: predictions ran but the policy declined to pick (best
+            # candidate below the pick bar). Surface it instead of staying silent
+            # — the 2026-06-18 incident, where a legit skip looked like a hang.
+            from bts.contest_state import load_decision_streak_state
+            try:
+                streak = load_decision_streak_state(
+                    picks_dir, require_contest_state=False).streak
+            except Exception:
+                streak = None
+            skip_summary = build_skip_summary(predictions, streak)
+            if skip_summary is not None:
+                print(f"  SKIP — best {skip_summary['best_batter']} "
+                      f"({skip_summary['best_team']}) {skip_summary['best_p']:.1%} below the "
+                      f"pick bar; streak holds at {skip_summary['streak']}.", file=sys.stderr)
+            else:
+                print("  No pick this cycle (no usable candidate in predictions).",
+                      file=sys.stderr)
         return {"skipped": False, "new_lineups": new_count, "should_post": False,
-                "pick_result": pick_result, "pick_name": None, "pick_p": None}
+                "pick_result": pick_result, "pick_name": None, "pick_p": None,
+                "skip_summary": skip_summary}
 
     if pick_result.locked:
         print(f"  Pick locked: {pick_result.daily.pick.batter_name} "
@@ -1650,6 +1749,7 @@ def run_day(
         next_wakeup=None,
         analytics_jobs=previous_state.analytics_jobs if previous_state else None,
     )
+    carry_forward_skip_state(state, previous_state)
     save_state(state, picks_dir)
 
     # 4. Main loop — sleep until each check time, then run
@@ -1695,6 +1795,13 @@ def run_day(
         state.confirmed_game_pks = sorted(confirmed_game_pks_derived)
         for g in state.games:
             g["lineup_confirmed"] = g["game_pk"] in confirmed_game_pks_derived
+        skip_summary = result.get("skip_summary")
+        if skip_summary:
+            state.skip_summary = skip_summary
+            try:
+                maybe_notify_skip(state, skip_summary, config, now_iso=_now_et().isoformat())
+            except Exception as e:  # a skip notice must never take down the daemon loop
+                print(f"  Skip notify failed ({e}); continuing.", file=sys.stderr)
         save_state(state, picks_dir)
 
         if result["pick_result"] and result["pick_result"].locked:
