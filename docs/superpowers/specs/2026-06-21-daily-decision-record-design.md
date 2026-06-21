@@ -29,23 +29,32 @@ genuine finalization point**, so it is never provisional. Both consumers read it
   "schema_version": "bts_daily_decision_v1",
   "date": "2026-06-20",
   "action": "skip" | "single" | "double",
-  "source": "mdp" | "heuristic",
+  "source": "mdp" | "heuristic" | "unknown",
   "primary": {"batter_id":..., "batter_name":..., "team":..., "game_pk":..., "p_game_hit":...} | null,
   "double_down": {... same shape ...} | null,
-  "delivery_status": "delivered" | "locked_unconfirmed" | "not_applicable",
+  "streak": int | null,
+  "saver_available": bool | null,
+  "delivery_status": "delivered" | "private_locked" | "locked_unconfirmed" | "locked_by_classification" | "not_applicable",
   "scoreable": true | false,
   "finalized_at": "2026-06-20T23:50:00Z"
 }
 ```
 
 - `action` — the final action. `primary` is the executable declined candidate on `skip`, the
-  chosen primary on a pick. `double_down` is populated only for `double` (Codex: a singular
-  candidate is not authoritative for doubles).
-- `source` — `mdp` when the decision came from the MDP policy, `heuristic` otherwise. **From the
-  resolved decision, not inferred after the fact** (Codex finding #5).
-- `delivery_status` / `scoreable` — make the crash-guard case explicit (Codex #4):
-  `delivered` (posted/DM'd), `locked_unconfirmed` (delivery_attempted crash-guard lock),
-  `not_applicable` (skip). `scoreable` is the gate `check-results` reads (a committed pick).
+  chosen primary on a pick. `double_down` is populated only for `double` (a singular candidate is
+  not authoritative for doubles).
+- `source` — `mdp`/`heuristic` from the **resolved decision** (not inferred after the fact), or
+  **`unknown`** on recovery paths (lock-by-classification, crash-guard) where no `select_pick` ran
+  and `DailyPick` carries no source field. The shadow only acts on `source=="mdp"` *skips*, so
+  `unknown` on a pick is harmless.
+- `streak` / `saver_available` — captured on `skip` (the shadow's status rows display `streak`);
+  `null` on recovery.
+- `delivery_status` — the lock/delivery reason (Codex): `delivered` (posted/DM'd, `pick_was_delivered`
+  true), `private_locked` (private-mode commit — locked, not posted/DM'd), `locked_unconfirmed`
+  (`delivery_attempted` crash-guard), `locked_by_classification` (existing pick detected already
+  locked), `not_applicable` (skip).
+- `scoreable` — the gate `check-results` reads: **true for every committed-pick variant** (all
+  `delivery_status` except `not_applicable`), **false for skip**.
 - **Absence is meaningful:** no `decision.json` ⇒ "no authoritative production decision" (no games,
   no eligible candidates, valid-prediction/status failure *before* an action was chosen, or a
   pick selected but never committed). This is NOT a skip (Codex #6).
@@ -73,46 +82,61 @@ SelectionResult(pick_result: PickResult | None,
 
 ### The scheduler is the single writer, at true finalization points
 
-The scheduler captures the latest `SelectionResult` each cycle and writes `decision.json` exactly
-at finalization (best-effort `try/except`, never affects the pick path):
+`run_day` maintains one **finalization-state** variable, `final_skip_candidate`, and writes
+`decision.json` exactly once, at the genuine finalization, best-effort (`try/except`, never affects
+the pick path).
 
-1. **Pick committed** — every `_deliver_and_lock_pick` success branch (public/DM/private, incl. the
-   two fallback call sites): `action=single|double` (from `daily.double_down`), `primary`+
-   `double_down`, `source` (from the captured metadata), `delivery_status=delivered`,
-   `scoreable=true`. The loop then breaks.
-2. **Lock-by-classification** — `run_single_check` returns an existing pick as locked
-   (`classify_pick_lock_state`) and `run_day` sets `pick_locked=True` directly (Codex #3): write/
-   recover `decision.json` here too (`action=pick`, `delivery_status` from `pick_was_delivered`,
-   `scoreable=true`).
-3. **Crash-guard** — `_deliver_and_lock_pick` `delivery_attempted` lock (Codex #4):
-   `delivery_status=locked_unconfirmed`, `scoreable=true` (matches current behavior — the pick was
-   the day's committed action — but now explicit/auditable).
-4. **End-of-day skip finalization** — at the end of `run_day`, **if not `pick_locked`**, write
-   `action=skip` **only if the latest decision was a genuine MDP skip** (`metadata.action=="skip"
-   and source=="mdp"`), using `metadata.primary_candidate`. Writing the skip here — after the
-   fallback, not on intermediate skip cycles — is what avoids the **stale-skip** bug (Codex #1: an
-   early skip cycle followed by a cached-pick fallback delivery). If the loop ends with a
-   selected-but-uncommitted pick or a no-eligible/error reason → **no record** (correct absence).
+**`final_skip_candidate` is updated by EVERY cycle/fallback attempt** (Codex #1 — "latest metadata"
+alone is unsafe because a later error or failed cached-pick fallback could leave a stale skip):
+- a cycle that returns a genuine MDP skip (`metadata.action=="skip" and source=="mdp"`) → **set** it
+  (the primary candidate + `streak`/`saver_available`).
+- a cycle that **selects or attempts a pick** (committed or not), a heuristic/non-MDP skip, a
+  no-eligible/no-action result, **or any error** (e.g. `ContestStateError`) → **clear** it. An
+  uncommitted/attempted pick or an error must suppress a stale skip.
 
-Because a pick commit breaks the loop and the skip is written once at end-of-day, a day is exactly
-one of {committed pick, finalized skip, no record} — no provisional interleaving, last-write-wins is
-not relied upon.
+**Write points:**
+1. **Pick committed** — every `_deliver_and_lock_pick` success branch + the two fallback call sites:
+   `action=single|double` (from `daily.double_down`), `primary`+`double_down`, `source` from the
+   captured metadata, `delivery_status` per branch (`delivered` public/DM, `private_locked` private),
+   `scoreable=true`. Loop breaks.
+2. **Lock-by-classification** — `run_single_check` returns an existing pick locked
+   (`classify_pick_lock_state`) / `run_day` sets `pick_locked=True` directly (Codex #3): `action=
+   single|double` (from `double_down`), `source="unknown"` (no `select_pick` ran),
+   `delivery_status="locked_by_classification"`, `scoreable=true`.
+3. **Crash-guard** — `_deliver_and_lock_pick` `delivery_attempted` lock:
+   `delivery_status="locked_unconfirmed"`, `source` from metadata else `"unknown"`, `scoreable=true`
+   (the pick was the day's committed action; now explicit/auditable).
+4. **End-of-day skip** — once, **after** final-fallback + missed-pick handling and **before**
+   health/idle (NOT a broad `finally`; Codex #5), **iff `not pick_locked` and `final_skip_candidate`
+   is set**: `action=skip`, the candidate's `primary`/`streak`/`saver_available`, `source="mdp"`,
+   `delivery_status="not_applicable"`, `scoreable=false`. Else → **no record**. (Early no-games /
+   dry-run returns short-circuit before this and correctly write nothing.)
+
+Because every cycle sets/clears `final_skip_candidate`, a committed pick writes its own record and
+breaks the loop, and the skip is written once at end-of-day, a day is exactly one of {committed pick,
+finalized MDP skip, no record} — no stale skip, no reliance on last-write-wins.
 
 ## Consumers
 
 ### `check-results` (the #144 fix)
 
-Load `decision.json` **before** resolving production results. Then:
-- `scoreable == true` → score slots + `update_streak` as today.
-- `action == "skip"`, OR record missing **and** `pick_was_delivered(load_pick(date)) == false` →
-  **do not** resolve slots, **do not** `update_streak`, **do not** save a result onto the stale
-  `<date>.json`.
-- **Fallback** (Codex): record missing **and** `pick_was_delivered(load_pick(date)) == true` →
-  legacy scoreable pick (covers pre-feature / manual / backlog delivered picks). Never fall back to
-  scoring an arbitrary unresolved `<date>.json`.
+Restructured precedence (Codex #7), so the context-stack shadow paths run on every exit and the
+decision gate precedes scoring/idempotency:
 
-The existing context-stack shadow reconciliation / status paths still run regardless (they key off
-`*.shadow.json`).
+1. Load `daily` (`load_pick`) and `decision.json`.
+2. Run the **context-stack shadow reconciliation + status** (they key off `*.shadow.json`,
+   independent of scoring) — moved **before** every no-score early return.
+3. No `daily` → done.
+4. Compute **`scoreable`** = `decision.scoreable` if a `decision.json` record exists, **else** the
+   fallback `pick_was_delivered(daily) or scheduler_state.pick_locked(date)`. The `pick_locked` term
+   covers a committed pick whose best-effort decision write failed in **any** mode (incl. private —
+   Codex #4) and pre-feature / manual / backlog committed picks; a preview / pre-lock / skip file has
+   neither, so it is **not** scoreable.
+5. **Not scoreable** (a `skip` record, or missing + uncommitted) → do NOT resolve slots, NOT
+   `update_streak`, NOT save a result onto the file. Done. **(This is the #144 fix.)**
+6. Already resolved (`daily.result in {hit,miss,void}`) → idempotent skip. Done.
+7. Score slots + `update_streak` + save result (double-down / void handled by the existing slot
+   resolver, unchanged).
 
 ### Skip-policy shadow — migrated onto `decision.json`
 
@@ -120,10 +144,11 @@ Folded into this change (Codex: two authorities invites another mismatch). The s
 `pick_was_delivered` + `_final_decision` + `skip_decision.json` / `record_mdp_skip_decision` layer
 is **deleted**. The nightly updater instead:
 - reads `decision.json`; a date is a divergence iff `action=="skip" && source=="mdp"`, with
-  `primary` as the declined candidate.
+  `primary` as the declined candidate and `streak`/`saver_available` for the record/status rows
+  (which retain `streak` — Codex #6, why those fields are in the schema).
 - keeps a light **supersession re-check**: on each run, drop any existing `*.policy_shadow.json`
-  whose current `decision.json` is no longer `skip&&mdp` (cheap insurance even though the scheduler
-  writes only final decisions).
+  whose current `decision.json` is no longer `skip&&mdp` (cheap insurance; the nightly run reads the
+  day's final record, but this guards a same-day/early run).
 - reconcile / Wilson status / verdict / CLI / dashboard panel are unchanged.
 
 Net: the shadow gets **simpler** (no provisional-artifact resolution) and shares one authority with
@@ -133,6 +158,9 @@ Net: the shadow gets **simpler** (no provisional-artifact resolution) and shares
 
 - All `decision.json` writes are best-effort (`try/except`, atomic) — they must never affect the
   live pick path.
+- A committed-pick write that **fails** is covered by the `check-results` fallback
+  (`pick_was_delivered or scheduler_state.pick_locked`), so a best-effort write failure never
+  silently drops scoring of a real pick (Codex #4).
 - `check-results` fallback as above; a malformed/partial `decision.json` is treated as missing.
 
 ## Testing
@@ -156,10 +184,24 @@ Net: the shadow gets **simpler** (no provisional-artifact resolution) and shares
 `strategy.select_pick`: the marker write + `persist_skip_decision` param (replaced by the metadata
 return + scheduler write). Keep: reconcile/status/verdict/CLI/web/cron.
 
+## Implementation staging (Codex)
+
+Stage and land in this order (the shadow migration depends on the schema being settled):
+1. **`decision.json` writer + `SelectionResult` threading** (strategy + scheduler + orchestrator)
+   — including `final_skip_candidate` and all four write points.
+2. **`check-results` gate** (the #144 fix proper) + its fallback.
+3. **Shadow migration** onto `decision.json` (delete the marker/`pick_was_delivered`/`_final_decision`
+   layer).
+
 ## Risks / open
 
-- **Threading the `SelectionResult`** through `run_single_check`/`run_day` without disturbing the
-  heartbeat/lock/fallback control flow — the highest-care area; cover with the writer tests above.
-- `run_day`'s end-of-day hook must fire on every loop-exit-without-pick path (normal end, contest-
-  state abort, exceptions) — audit each `return`/`break`.
+- **Threading the `SelectionResult`** + `final_skip_candidate` through `run_single_check`/`run_day`
+  without disturbing the heartbeat/lock/fallback control flow — the highest-care area; cover with the
+  writer tests above.
+- **End-of-day hook placement** must be exact (Codex #5): once, after final-fallback + missed-pick
+  handling, before health/idle (`run_day` *idles*, it does not return) — not a broad `finally`; and
+  guarded by `final_skip_candidate` so error/abort days write nothing.
+- **`source` on recovery**: `DailyPick` has no `source` field, so lock-by-classification / crash-guard
+  use `source="unknown"` (the shadow ignores non-`mdp` skips, so this is harmless). If we later want
+  recovered picks attributed, persist `source` on `DailyPick` — out of scope here.
 - Source threading out of `decide_action` (small signature/return change).
