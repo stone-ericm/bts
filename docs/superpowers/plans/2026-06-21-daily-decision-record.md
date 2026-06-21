@@ -357,22 +357,34 @@ change shape — deferring any of these to Task 5 leaves the tree red, Codex r2 
   (build a minimal `SelectionResult(pick_result=<old value>, action=None, source=None,
   primary_candidate=None, double_candidate=None, no_pick_reason=None)`).
 
-**The line numbers above are a guide, not an exhaustive list** (two review rounds each surfaced more
-sites). Before finishing, do a **mechanical sweep** so nothing is missed:
+**The line numbers above are a guide, not an exhaustive list** (review rounds + a controller sweep each
+surfaced more sites — the full set of test files touching these symbols is: test_strategy.py,
+test_decide_action.py, test_orchestrator.py, test_scheduler_skip_visibility.py, test_scheduler.py,
+test_shadow_scheduler.py, tests/health/test_analytics_artifacts_missing.py). Before finishing, run the
+**mechanical sweep** so nothing is missed:
 ```bash
-grep -rn "select_pick(\|run_and_pick(\|\.pick_result\|is None" tests/ src/bts/ | grep -i "select_pick\|run_and_pick"
+grep -rn "select_pick(\|run_and_pick(\|decide_action(\|persist_skip_decision\|\.pick_result" tests/ src/bts/
 ```
-Update every call site / assertion the sweep surfaces (derefs → `.pick_result`; `is None` →
-`.pick_result is None` with an `sel is None or` guard on `run_and_pick` consumers; mocks → return a
-`SelectionResult`), then rely on Step 9's **full-suite** run to catch any residual breakage.
+Update every call site / assertion it surfaces (derefs → `.pick_result`; `is None` → `.pick_result is None`
+with an `sel is None or` guard on `run_and_pick` consumers; mocks → return a `SelectionResult`).
+**Do NOT touch `tests/test_skip_policy_shadow.py`** — it calls `record_mdp_skip_decision(...)` *directly*
+(not via `select_pick`), so removing select_pick's marker write does not break it; its marker layer is
+deleted in Task 5.
 
-- [ ] **Step 9: Run the FULL suite (not just the touched files — the return-shape change ripples widely)**
+- [ ] **Step 9: Run the touched test files (the `-k` sweep alone misses the scheduler mocks)**
 
-Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_strategy.py tests/test_decide_action.py tests/test_orchestrator.py -q`
-then the broader sweep: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q -k "select_pick or run_and_pick or decide_action or orchestrat"`
-Expected: PASS. Any failure here is a missed call-site from the sweep above — fix it (mechanical
-`.pick_result` insertion / `SelectionResult` mock) before moving to Task 3. Model/predict-gated tests are
-hetzner-only; a local `SKIPPED`/collection-skip on those is expected, not a failure.
+Baseline before this task: `test_decide_action.py + test_strategy.py + test_orchestrator.py +
+test_scheduler_skip_visibility.py` = **85 passed** (fast, no model dep) — they must stay green.
+Run the touched set:
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_strategy.py tests/test_decide_action.py \
+  tests/test_orchestrator.py tests/test_scheduler_skip_visibility.py tests/test_scheduler.py \
+  tests/test_shadow_scheduler.py tests/health/test_analytics_artifacts_missing.py -q
+```
+Expected: PASS. Any **shape-mismatch** failure (a `SelectionResult`/`.pick_result`/tuple error) is a
+missed call-site — fix it. `test_scheduler.py`/`test_shadow_scheduler.py` also contain model/predict tests
+that are hetzner-only; if one fails for a *model* reason (not a return-shape reason), confirm it fails the
+same way on BASE `2b2b120` and leave it — it is pre-existing, not Task-2-caused.
 
 - [ ] **Step 10: Commit**
 
