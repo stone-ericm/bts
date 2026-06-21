@@ -185,7 +185,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Interfaces:**
 - Produces:
   - `decide_action(ctx, streak, saver) -> tuple[str, str]` — `(action, source)` where `source ∈ {"mdp","heuristic"}`.
-  - `SelectionResult(pick_result, action, source, primary_candidate, double_candidate, no_pick_reason)` dataclass in `strategy.py`.
+  - `SelectionResult(pick_result, action, source, primary_candidate, double_candidate, no_pick_reason, streak=0, saver_available=None)` dataclass in `strategy.py`.
   - `select_pick(...) -> SelectionResult` (no longer `PickResult | None`; no file writes).
   - `run_and_pick(...) -> tuple[predictions, SelectionResult, tier_name]`.
 
@@ -278,31 +278,101 @@ class SelectionResult:
     primary_candidate: dict | None  # the executable best_row (declined on skip, chosen on pick)
     double_candidate: dict | None
     no_pick_reason: str | None      # "no_eligible"|"status_failure"|"no_valid_predictions"|None
+    streak: int = 0                 # the (streak, saver) the decision was made under — for the
+    saver_available: bool | None = None  # scheduler's final_skip_candidate SET (no re-load needed)
 ```
 
-Refactor `select_pick` so **every** return path returns a `SelectionResult` (drop the marker write + `persist_skip_decision` param entirely):
+`streak`/`saver_available` are the last two fields with defaults, so the positional `SelectionResult(...)`
+calls below stay valid; only the skip/pick returns populate them (they're in `select_pick`'s scope as the
+`streak` param + the resolved `saver`). The CLEAR-path early returns leave the defaults — those values
+are never read.
+
+Refactor `select_pick` so **every** return path returns a `SelectionResult` (drop the marker write + `persist_skip_decision` param entirely). `select_pick` has **five** early returns plus the post-decision return — wrap ALL of them (Codex r3 P0 — the `predictions.empty` guard was previously missed):
+- `predictions.empty` (the **first** guard, `strategy.py:211`, currently `return None`) → `SelectionResult(None, None, None, None, None, "no_valid_predictions")`.
 - locked existing pick → `SelectionResult(PickResult(daily=current, locked=True), action=None, source=None, primary_candidate=None, double_candidate=None, no_pick_reason=None)`.
 - `require_detailed_statuses` with no statuses → `SelectionResult(None, None, None, None, None, "status_failure")`.
 - `available.empty` (no `current`) → `SelectionResult(None, None, None, None, None, "no_eligible")`.
 - `valid.empty` → `SelectionResult(None, None, None, None, None, "no_valid_predictions")`.
 - after `action, source = decide_action(...)`: build `primary_candidate = _row_to_candidate(best_row)`, `double_candidate = _row_to_candidate(second_row) if second_row is not None else None`.
-  - `action == "skip"` → `SelectionResult(None, "skip", source, primary_candidate, double_candidate, None)`.
-  - else build the pick and → `SelectionResult(PickResult(daily=...), action, source, primary_candidate, double_candidate, None)`.
+  - `action == "skip"` → `SelectionResult(None, "skip", source, primary_candidate, double_candidate, None, streak=streak, saver_available=saver)`.
+  - else build the pick and → `SelectionResult(PickResult(daily=...), action, source, primary_candidate, double_candidate, None, streak=streak, saver_available=saver)`.
 
-Add a `_row_to_candidate(row)` helper (native-typed): `{"batter_id": int(row["batter_id"]), "batter_name": row.get("batter_name"), "team": row.get("team"), "game_pk": (int(best_game_pk) if not pd.isna(best_game_pk) else None), "pitcher_name": row.get("pitcher_name"), "p_game_hit": float(row["p_game_hit"])}`.
+Add a top-level `_row_to_candidate(row)` helper (native-typed) that computes `game_pk` **from the
+row itself** (P0: do NOT reference `best_game_pk`, a `select_pick` local — it would `NameError` or
+give the double candidate the primary's game_pk):
 
-- [ ] **Step 8: Update `select_pick` callers**
+```python
+def _row_to_candidate(row) -> dict | None:
+    if row is None:
+        return None
+    gpk = pd.to_numeric(pd.Series([row.get("game_pk")]), errors="coerce").iloc[0]
+    return {"batter_id": int(row["batter_id"]), "batter_name": row.get("batter_name"),
+            "team": row.get("team"), "game_pk": (int(gpk) if pd.notna(gpk) else None),
+            "pitcher_name": row.get("pitcher_name"), "p_game_hit": float(row["p_game_hit"])}
+```
 
-- `orchestrator.run_and_pick`: `result = select_pick(...)` → `sel = select_pick(...)`; the function now returns `(predictions, sel, tier_name)` (change the third tuple element from `result` to `sel`). Update its docstring/return type.
-- `cli.py` (two call sites ~1118, ~1273 — `run`/`preview`): `result = select_pick(...)` → `result = select_pick(...).pick_result`.
-- The scheduler shadow call (`scheduler.py:1084`, `for_shadow=True`): `result = select_pick(...)` → `result = select_pick(...).pick_result`.
+Add a test asserting `sel.double_candidate["game_pk"] != sel.primary_candidate["game_pk"]` on a
+two-different-game slate.
 
-(Scheduler `run_and_pick` consumers are updated in Task 3.)
+- [ ] **Step 8: Update ALL callers + remove `persist_skip_decision` (P0 — must be coordinated so the tree builds)**
 
-- [ ] **Step 9: Run tests**
+**`persist_skip_decision` removal (P0 #3):** `select_pick` drops the param + the marker write. In the
+SAME step, remove `persist_skip_decision` from `orchestrator.run_and_pick`'s signature/forwarding and
+drop the `persist_skip_decision=True` kwarg at both scheduler `run_and_pick` sites (~907, ~1281).
 
-Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_strategy.py tests/test_decide_action.py -q`
-Expected: PASS (update any `TestSelectPick` test that did `result = select_pick(...)` then `result.daily`/`result.locked` to use `.pick_result` — these are the assertions in `test_basic_pick`, `test_double_down_*`, `test_locked_when_game_started`, etc.; mechanical `.pick_result` insertion).
+**`select_pick` direct callers** → unwrap `.pick_result`:
+- `cli.py` ~1118 (`run`), ~1273 (`preview`); scheduler shadow call `scheduler.py:1084`
+  (`for_shadow=True`): `select_pick(...).pick_result`.
+
+**`run_and_pick` returns `(predictions, sel, tier_name)`** where the middle element is a `SelectionResult`
+**OR `None`** — it stays `None` on the no-predictions / no-games early return (`orchestrator.py:249`
+returns `(predictions, None, tier)` *before* `select_pick` is reached). So **every consumer must unwrap
+defensively** (P0 #2 + Codex r2 P0 #4 — an unguarded `sel.pick_result` crashes the no-games path),
+preserving its existing `predictions is None` / `.empty` guard:
+- `orchestrator.orchestrate` (~298): `predictions, sel, tier = run_and_pick(...); result = sel.pick_result if sel is not None else None`
+  (it derefs `.locked`/`.daily` at ~344 only when `result` is not None — unchanged).
+- The two scheduler sites (~907, ~1281): `predictions, sel, tier = run_and_pick(...); pick_result = sel.pick_result if sel is not None else None`.
+  Task 3 then uses `sel` (always guarded with `sel is not None`) for the finalization logic.
+- Direct `select_pick(...)` callers are safe to chain `.pick_result` (select_pick **always** returns a
+  `SelectionResult`, never `None`): `cli.py` ~1118 (`run`), ~1273 (`preview`), scheduler shadow `scheduler.py:1084`.
+
+**Existing tests to update IN THIS TASK** (they break the moment `select_pick`/`run_and_pick`/`decide_action`
+change shape — deferring any of these to Task 5 leaves the tree red, Codex r2 P0 #3):
+- `tests/test_strategy.py`: (a) the `result = select_pick(...)` derefs (~51–82, ~151–215) → unwrap
+  `result = select_pick(...).pick_result`; (b) **delete the marker-write tests** (~88–128: the
+  `from bts.skip_policy_shadow import load_skip_decision`, `persist_skip_decision=True`, and
+  `select_pick(...) is None` assertions) — they test the removed marker; skip-returns-no-pick is now
+  covered by the new `SelectionResult` test (`sel.pick_result is None and sel.action=="skip"`); (c) the
+  **`assert result is None`** sites at **~378, ~408, ~559, ~612** (empty-predictions / no-eligible /
+  no-valid / status-failure cases) → `result = select_pick(...)` then `assert result.pick_result is None`
+  (and, where it sharpens the test, assert the matching `result.no_pick_reason`) — Codex r3 P0.
+- `tests/test_decide_action.py`: `decide_action(...) == "x"` assertions (~22–72) → `decide_action(...)[0] == "x"`;
+  the `select_pick(...).daily` derefs (~100, ~110) → `select_pick(...).pick_result.daily`.
+- `tests/test_orchestrator.py`: ~164 (run_and_pick tuple expectations); and the **`pick_result is None`**
+  assertions at **~253, ~302** — these destructure `predictions, sel, tier = run_and_pick(...)`; the middle
+  is now a `SelectionResult` (a skip/no-pick still produces one, not `None`), so assert `sel.pick_result is None`
+  (the no-games/empty-predictions path still yields `sel is None`, so guard: `sel is None or sel.pick_result is None`).
+- `tests/test_scheduler_skip_visibility.py` (~155) and `tests/test_scheduler.py` (~1736): mocks that
+  return `(predictions, pick_result, tier)` must return a `SelectionResult` as the middle element
+  (build a minimal `SelectionResult(pick_result=<old value>, action=None, source=None,
+  primary_candidate=None, double_candidate=None, no_pick_reason=None)`).
+
+**The line numbers above are a guide, not an exhaustive list** (two review rounds each surfaced more
+sites). Before finishing, do a **mechanical sweep** so nothing is missed:
+```bash
+grep -rn "select_pick(\|run_and_pick(\|\.pick_result\|is None" tests/ src/bts/ | grep -i "select_pick\|run_and_pick"
+```
+Update every call site / assertion the sweep surfaces (derefs → `.pick_result`; `is None` →
+`.pick_result is None` with an `sel is None or` guard on `run_and_pick` consumers; mocks → return a
+`SelectionResult`), then rely on Step 9's **full-suite** run to catch any residual breakage.
+
+- [ ] **Step 9: Run the FULL suite (not just the touched files — the return-shape change ripples widely)**
+
+Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_strategy.py tests/test_decide_action.py tests/test_orchestrator.py -q`
+then the broader sweep: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q -k "select_pick or run_and_pick or decide_action or orchestrat"`
+Expected: PASS. Any failure here is a missed call-site from the sweep above — fix it (mechanical
+`.pick_result` insertion / `SelectionResult` mock) before moving to Task 3. Model/predict-gated tests are
+hetzner-only; a local `SKIPPED`/collection-skip on those is expected, not a failure.
 
 - [ ] **Step 10: Commit**
 
@@ -423,14 +493,102 @@ def _write_endofday_skip(picks_dir, date, fs):
 Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_scheduler_decision_record.py -q`
 Expected: PASS
 
-- [ ] **Step 5: Wire the helpers into the daemon control flow**
+- [ ] **Step 5: Wire the helpers into the daemon control flow (the highest-risk edits)**
 
-Integrate (these are existing-code edits; no new test logic, covered by the helper tests above + the full-suite scheduler regression in Step 6):
-1. **Capture metadata**: `run_and_pick` returns `(predictions, sel, tier)` (Task 2). In `run_single_check`, surface `sel` (action/source/primary_candidate/double_candidate/no_pick_reason) in its returned dict.
-2. **`final_skip_candidate` update** (in `run_day`, each cycle): if `sel.action=="skip" and sel.source=="mdp"` → `fs.final_skip_candidate = {"primary": sel.primary_candidate, "streak": <decision streak>, "saver_available": <saver>}`; on any pick selected/attempted, heuristic/non-mdp skip, no-action, or caught error → `fs.final_skip_candidate = None`.
-3. **Commit write**: in `_deliver_and_lock_pick`, at each branch that sets `state.pick_locked=True` after a real delivery, call `_write_commit_decision(...)` with `delivery_status`: `delivered` (public/DM posted), `private_locked` (private branch), `locked_unconfirmed` (delivery_attempted crash-guard). Pass `source`/`primary`/`double_down` from the captured metadata (thread `fs`/metadata into `_deliver_and_lock_pick` via params).
-4. **Classification write**: where `run_single_check`/`run_day` lock an existing pick via `classify_pick_lock_state`, call `_write_classification_decision(..., delivered=pick_was_delivered(daily), action="double" if daily.double_down else "single", primary=..., double_down=...)`.
-5. **End-of-day skip**: immediately before the end-of-day health-checks block (after final fallback, missed-pick handling, DH rechecks, next-day lookahead, result polling), call `_write_endofday_skip(picks_dir, date, fs)`.
+1. **Capture metadata.** `run_and_pick` returns `(predictions, sel, tier)` (Task 2). `run_single_check`
+   adds `"selection": sel` to **every** return dict, passing the **actual** `sel` (do NOT force it to
+   `None`). `sel` is `None` only where no selection exists: the no-predictions / no-games path
+   (`run_and_pick` returns `(predictions, None, tier)` at orchestrator.py:249) and the `ContestStateError`
+   early return (~909, where `run_and_pick` raised). A **genuine MDP skip returns a real
+   `SelectionResult(action="skip", source="mdp", …)`** (pick_result=None) — it MUST propagate so `run_day`
+   can SET the candidate. `run_day` reads `result.get("selection")` each cycle. The fallback path
+   `_refresh_pick_at_fallback_decision` calls `run_and_pick` (~1277) but returns
+   `FallbackRefreshResult(daily, should_post)` — **extend it with `selection: SelectionResult | None = None`**
+   (P0 #5; the default keeps the 4 existing positional constructors at ~1288/1293/1327/1343 + the test
+   constructors valid — the cached/no-refresh paths leave the default, the fresh-pick paths ~1327/1343 pass
+   `selection=sel`). At the fallback delivery call site (~1935) the code currently chains
+   `daily = _refresh_pick_at_fallback_decision(...).daily` inline — change it to store
+   `refresh = _refresh_pick_at_fallback_decision(...)`, then `daily = refresh.daily`, so `refresh.selection`
+   is in scope to thread into `_deliver_and_lock_pick`. When `refresh.selection is None`, derive
+   `action` from `daily.double_down` and use `source="unknown"`.
+2. **`final_skip_candidate` set/clear — in `run_day` (which owns `fs`), applied each cycle right after
+   `result = run_single_check(...)` (~1781), off `result.get("selection")`** (P1 #6). Narrow lifecycle
+   (Codex r2 P0): only a genuine pick attempt clears; a non-delivered classification must NOT, or the #144
+   skip record is lost:
+   - genuine MDP skip (`sel is not None and sel.action=="skip" and sel.source=="mdp"`) → **SET**
+     `fs.final_skip_candidate = {"primary": sel.primary_candidate, "streak": sel.streak, "saver_available": sel.saver_available}`
+     (read from `sel` — it carries them; no `load_decision_streak_state` re-load needed).
+   - genuine pick selection/attempt (`sel is not None and sel.action in {"single","double"}`) → **CLEAR**
+     (`fs.final_skip_candidate = None`) — the day's intent flipped to a pick.
+   - **everything else leaves `final_skip_candidate` unchanged**: `sel is None` (no-predictions /
+     ContestStateError); an existing-locked-pick **classification** (`sel.action is None`, the #144 stale
+     preview — a non-delivered classification has neither delivery nor a pick intent, so the earlier MDP
+     skip must survive to be recorded at end-of-day); `sel.no_pick_reason` set. End-of-day suppression for
+     real picks is handled by `committed_pick_written` (set on any commit / delivered classification), NOT
+     by clearing — so a delivered classification still suppresses the skip via that flag.
+3. **Commit write** — thread `fs` + the captured `selection` into `_deliver_and_lock_pick` by adding them
+   as **defaulted** params: `def _deliver_and_lock_pick(daily, config, picks_dir, state, date, label, *, fs=None, selection=None)`.
+   The defaults keep existing direct test callers building (e.g. `tests/test_e2_delivery_idempotency.py:38`
+   calls the old signature — Codex r2 P1); when `fs is None` the function delivers as before and simply
+   skips the decision write. At each branch that locks after a real delivery, when `fs is not None`, call
+   `_write_commit_decision(picks_dir, date, action=("double" if daily.double_down else "single"),
+   source=(selection.source if selection is not None else "unknown"),
+   primary=(selection.primary_candidate if selection is not None else _row_from_daily(daily.pick)),
+   double_down=(selection.double_candidate if selection is not None else _row_from_daily(daily.double_down)),
+   delivery_status=X, fs=fs)`:
+   already-delivered (~455) → `delivered`; crash-guard `delivery_attempted` (~464) → `locked_unconfirmed`;
+   private (~479) → `private_locked`; DM (~503) → `delivered`; public posted (~529) → `delivered`.
+   The 3 production call sites all have the metadata in scope: **~1818** (`run_day` main path, after
+   `result = run_single_check(...)`) passes `fs=fs, selection=result.get("selection")`; **~1905** passes
+   `fs=fs, selection=refresh.selection` (the fallback at ~1875 *already* stores `refresh =`); **~1953**
+   passes `fs=fs, selection=refresh.selection` (after the ~1935 store-`refresh` change in point 1).
+   `run_single_check` keeps its existing `"pick_result"` dict key (read at scheduler.py:1816) and *adds*
+   `"selection"` — it does not replace it.
+4. **Classification write — a single chokepoint in `run_day` at ~1809** (`if result["pick_result"] and
+   result["pick_result"].locked:`). ALL locked-classification cases funnel here: the pre-cascade
+   locked-existing return (`run_single_check` ~887, which returns *before* `run_and_pick` so its cycle has
+   `selection=None`) AND any `select_pick`-locked result both arrive as `result["pick_result"].locked`. Do
+   NOT also write in `run_single_check`. Let `ld = result["pick_result"].daily` and call
+   `_write_classification_decision(picks_dir, date, action=("double" if ld.double_down else "single"),
+   delivered=pick_was_delivered(ld), primary=_row_from_daily(ld.pick),
+   double_down=_row_from_daily(ld.double_down), fs=fs)` (writes a scoreable record only when delivered;
+   a non-delivered stale-preview lock writes nothing and does not set `committed_pick_written`).
+5. **End-of-day skip**: immediately before the end-of-day health-checks block (after final fallback,
+   missed-pick handling, DH rechecks, next-day lookahead, result polling — `run_day` *idles*, does not
+   return), call `_write_endofday_skip(picks_dir, date, fs)`. NOT in the early no-games / dry-run returns.
+
+Add a top-level `_row_from_daily(pick)` helper mapping a `Pick` (or None) to the same candidate dict
+shape `_row_to_candidate` produces (so commit/classification records match the skip-path records):
+
+```python
+def _row_from_daily(pick) -> dict | None:
+    if pick is None:
+        return None
+    return {"batter_id": pick.batter_id, "batter_name": pick.batter_name,
+            "team": pick.team, "game_pk": pick.game_pk,
+            "pitcher_name": pick.pitcher_name, "p_game_hit": pick.p_game_hit}
+```
+
+- [ ] **Step 5b: Scheduler integration tests (P0 #4 — pure-helper tests are not enough)**
+
+Add `tests/test_scheduler_decision_record_integration.py` driving the REAL wiring. Mirror the existing
+pattern in `tests/test_scheduler_skip_visibility.py::test_run_single_check_surfaces_skip_instead_of_silent_none`
+(~line 144): use its `_state(**kw)` SchedulerState builder, `monkeypatch.setattr(orch, "run_and_pick",
+lambda config, date, **k: (preds, <crafted SelectionResult>, "local"))`, and call `sch.run_single_check(...)`
+/ drive `run_day`. Classification + end-of-day-skip scenarios stop at `run_single_check`/`run_day`; the
+delivery-branch scenarios (public/private/crash-guard) additionally exercise the posting path — set
+`config.pick_delivery` and monkeypatch `post_to_bluesky` / force `delivery_attempted` — so the real
+`_deliver_and_lock_pick` branch runs and calls `_write_commit_decision`. Assert `load_decision`:
+- committed **public** pick (mock `post_to_bluesky`) → action=single, delivery_status=delivered, scoreable.
+- committed **private** pick (private-mode config) → private_locked, scoreable.
+- **crash-guard** (`delivery_attempted=True`) → locked_unconfirmed, scoreable.
+- **delivered** existing pick classified-locked → scoreable record.
+- **non-delivered** preview file classified-locked on an MDP-skip day → **no pick record**; end-of-day
+  writes `action=skip` (the #144-class case — committed_pick_written stays False).
+- MDP-skip day, no pick → end-of-day skip record; heuristic-skip day → **no record**.
+
+Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_scheduler_decision_record_integration.py -q`
+Expected: PASS
 
 - [ ] **Step 6: Run the scheduler regression**
 
@@ -514,35 +672,58 @@ def test_check_results_missing_decision_undelivered_not_scored(self, mock_check,
 Run: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest "tests/test_cli_integration.py::TestBtsCheckResults::test_check_results_skips_unscoreable_skip_record" -q`
 Expected: FAIL — current code scores it (no "not scoring"; streak changes).
 
-- [ ] **Step 3: Restructure `check_results` precedence**
+- [ ] **Step 3: Insert the scoreable gate — AFTER the already-resolved block, BEFORE slot-scoring (ordering is load-bearing)**
 
-After `daily = load_pick(...)` and the helper defs, BEFORE the existing slot-scoring:
+The real `check_results` (cli.py ~1863–1914) is: `if daily is None: echo "No pick found"; return` →
+def `reconcile_shadow_result` → `if daily.result in (hit,miss,void): reconcile_shadow_result();
+write_shadow_status_artifact(); echo "Already resolved"; return` → slot-scoring loop. **Leave the
+`daily is None` block and the already-resolved (idempotency) block exactly as they are** — do NOT add
+shadow calls to the `daily is None` branch (no test requires it; `reconcile_shadow_result` isn't even
+defined yet at that point). The scoreable gate goes **immediately after the already-resolved block,
+before the `for _, slot in iter_daily_pick_slots(daily)` loop** (P1 #7 — already-resolved precedence
+keeps re-runs idempotent and preserves the 7 already-resolved tests unmodified):
 
 ```python
-from bts.daily_decision import load_decision
-from bts.picks import pick_was_delivered
+    # (existing already-resolved block stays directly above this, unchanged)
 
-decision = load_decision(date, picks_path)
-# shadow paths run regardless (they key off *.shadow.json):
-if daily is None:
-    reconcile_shadow_result(); write_shadow_status_artifact()
-    click.echo(f"No pick found for {date}."); return
+    # GH #144: only score a committed pick. A stale preview / pre-lock / undelivered
+    # <date>.json must not advance the streak. Shadow still reconciles on this exit.
+    from bts.daily_decision import load_decision
+    from bts.picks import pick_was_delivered
 
-if decision is not None:
-    scoreable = bool(decision.get("scoreable"))
-else:
-    scoreable = pick_was_delivered(daily)   # fallback: delivered public/DM (NOT scheduler_state.pick_locked)
+    decision = load_decision(date, picks_path)
+    if decision is not None:
+        scoreable = bool(decision.get("scoreable"))
+    else:
+        scoreable = pick_was_delivered(daily)   # fallback: delivered public/DM (NOT scheduler_state.pick_locked)
 
-if not scoreable:
-    reconcile_shadow_result(); write_shadow_status_artifact()
-    click.echo(f"{date}: decision was not a committed pick (skip / undelivered) — not scoring."); return
+    if not scoreable:
+        reconcile_shadow_result()
+        write_shadow_status_artifact()
+        click.echo(f"{date}: decision was not a committed pick (skip / undelivered) — not scoring.")
+        return
 ```
 
-Keep the existing `if daily.result in (hit, miss, void): ... return` idempotency block and the slot-scoring AFTER this gate. Remove the old early `if daily is None` block if duplicated (move the shadow calls into the new structure).
+The existing slot-scoring (resolve → update_streak → save_pick → reconcile_shadow_result →
+write_shadow_status_artifact → report) stays AFTER this gate, unchanged.
 
-- [ ] **Step 4: Update the 7 pre-existing `TestBtsCheckResults` tests**
+- [ ] **Step 4: Update test fixtures — only the 7 SCORING tests; the 7 already-resolved tests are preserved by Step 3's ordering**
 
-They use `_sample_daily()` (`bluesky_posted=False`) and expect scoring. Make each reflect a committed pick: either `save_pick(_sample_daily(bluesky_posted=True), ...)` OR add `write_decision(<date>, picks_dir, action="single", source="mdp", delivery_status="delivered", scoreable=True)`. (Choose `bluesky_posted=True` — it exercises the fallback path and is minimal.)
+The SCORING tests save `_sample_daily()` (`bluesky_posted=False`, `result=None`) and expect a streak
+change — they now hit the scoreable gate. Add `bluesky_posted=True` to each `_sample_daily(...)` (it
+exercises the `pick_was_delivered` fallback and is minimal):
+- `test_check_results_hit_updates_streak` (~312)
+- `test_check_results_miss_resets_streak` (~332)
+- `test_check_results_none_warns_scratched` (~353)
+- `test_check_results_voids_primary_and_scores_double_once` (~383)
+- `test_check_results_voids_double_and_scores_primary_once` (~422)
+- `test_check_results_all_void_keeps_streak` (~461)
+- `test_check_results_resolves_shadow_with_unresolved_production` (~652) — asserts `"HIT!"`, so production
+  must score; add `bluesky_posted=True` to its `save_pick(_sample_daily(...))`.
+
+Do **NOT** touch the already-resolved tests (`result="hit"`: ~490, ~515, ~554, ~588, ~620, ~685, ~723) or
+`test_check_results_no_pick_found` (~745) — Step 3's already-resolved-first ordering keeps them green
+unchanged (this is why the reorder matters: scoreable-gate-first would have broken all 7 of them too).
 
 - [ ] **Step 5: Run tests**
 

@@ -92,12 +92,17 @@ the genuine finalization, best-effort (`try/except`, never affects the pick path
   `status_lookup_failed` / `fallback_status_locked`, so a lingering `bts preview` `<date>.json` can be
   classified-locked with no genuine commit.
 
-**`final_skip_candidate` is updated by EVERY cycle/fallback attempt** ("latest metadata" alone is
-unsafe — a later error or failed cached-pick fallback could leave a stale skip):
+**`final_skip_candidate` lifecycle — narrow** (Codex r2 P0: an over-broad clear erases the skip in exactly
+the #144 case, where an early genuine MDP skip is followed by a stale-preview classification-lock):
 - a cycle that returns a genuine MDP skip (`metadata.action=="skip" and source=="mdp"`) → **set** it
   (the primary candidate + `streak`/`saver_available`).
-- a cycle that **selects or attempts a pick** (committed or not), a heuristic/non-MDP skip, a
-  no-eligible/no-action result, **or any error** (e.g. `ContestStateError`) → **clear** it.
+- a cycle that **selects or attempts a pick** (`metadata.action in {single,double}`) → **clear** it
+  (the day's intent flipped to a pick).
+- **every other outcome leaves it unchanged**: no selection (`sel is None` — no-predictions /
+  `ContestStateError`); a **non-delivered classification-lock** (a stale/preview `<date>.json`,
+  `action is None` — the #144 case, where the earlier MDP skip must survive to be recorded at end-of-day);
+  a `no_pick_reason` result. Suppression of the end-of-day skip when a pick *was* committed is handled by
+  `committed_pick_written` (write points 1–3), NOT by clearing the candidate.
 
 **Write points** (a scoreable pick record also sets `committed_pick_written`):
 1. **Pick committed** — every `_deliver_and_lock_pick` success branch + the two fallback call sites:
@@ -130,13 +135,16 @@ no record} — no stale skip, no reliance on last-write-wins.
 
 ### `check-results` (the #144 fix)
 
-Restructured precedence (Codex #7), so the context-stack shadow paths run on every exit and the
-decision gate precedes scoring/idempotency:
+Precedence (Codex #7 — **already-resolved idempotency precedes the scoreable gate**, so re-runs stay
+idempotent and the existing already-resolved tests are preserved; scoreable-gate-first would flip them
+all to "not scoring"). The context-stack shadow reconciliation + status write run on every
+*scoring-eligible* exit (already-resolved, not-scoreable, and scored) — matching today's behavior; they
+do **not** run on the `No pick found` exit (no production pick to pair a shadow with):
 
 1. Load `daily` (`load_pick`) and `decision.json`.
-2. Run the **context-stack shadow reconciliation + status** (they key off `*.shadow.json`,
-   independent of scoring) — moved **before** every no-score early return.
-3. No `daily` → done.
+2. No `daily` → `No pick found`, done (unchanged — no shadow).
+3. **Already resolved** (`daily.result in {hit,miss,void}`) → reconcile shadow + write status +
+   `Already resolved` echo, done. Idempotency first, so a re-run never re-evaluates the gate.
 4. Compute **`scoreable`** = `decision.scoreable` if a `decision.json` record exists, **else** the
    fallback `pick_was_delivered(daily)` (covers pre-feature / manual / backlog **delivered** picks and
    a committed public/DM pick whose best-effort write failed). **`scheduler_state.pick_locked` is NOT
@@ -145,11 +153,10 @@ decision gate precedes scoring/idempotency:
    delivered → not scoreable. (A *private* committed pick relies on its `decision.json` record,
    written at its `_deliver_and_lock_pick` commit; a missing record for a private pick — only on a
    rare write failure — would not score, an accepted edge since prod delivery is public/DM.)
-5. **Not scoreable** (a `skip` record, or missing + uncommitted) → do NOT resolve slots, NOT
-   `update_streak`, NOT save a result onto the file. Done. **(This is the #144 fix.)**
-6. Already resolved (`daily.result in {hit,miss,void}`) → idempotent skip. Done.
-7. Score slots + `update_streak` + save result (double-down / void handled by the existing slot
-   resolver, unchanged).
+5. **Not scoreable** (a `skip` record, or missing + uncommitted) → reconcile shadow + write status,
+   then do NOT resolve slots / NOT `update_streak` / NOT save a result. Done. **(This is the #144 fix.)**
+6. Score slots + `update_streak` + save result + reconcile shadow + write status + report
+   (double-down / void handled by the existing slot resolver, unchanged).
 
 ### Skip-policy shadow — migrated onto `decision.json`
 
