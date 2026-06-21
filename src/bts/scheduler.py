@@ -904,6 +904,7 @@ def run_single_check(
                 config,
                 date,
                 require_detailed_statuses=False,
+                persist_skip_decision=True,   # live decision: record genuine MDP skips for the shadow
             )
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — no pick made: {e}", file=sys.stderr)
@@ -1277,6 +1278,7 @@ def _refresh_pick_at_fallback_decision(
                 config,
                 date,
                 require_detailed_statuses=False,
+                persist_skip_decision=True,   # live fallback/refresh decision: record genuine MDP skips
             )
     except ContestStateError:
         raise

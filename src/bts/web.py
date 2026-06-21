@@ -27,6 +27,7 @@ from bts.audit_progress import scan_audit_progress
 PICKS_DIR = Path("data/picks")
 LEADERBOARD_DIR = Path("data/leaderboard")
 HEALTH_STATE_DIR = Path("data/health_state")
+VALIDATION_DIR = Path("data/validation")
 HEARTBEAT_PATH = Path(os.environ.get("BTS_HEARTBEAT_PATH", "data/.heartbeat"))
 PROJECT_ROOT = Path(".")
 PORT = 3003
@@ -98,7 +99,9 @@ def load_all_picks():
     """Load all pick files, sorted by date descending."""
     picks = []
     for f in sorted(PICKS_DIR.glob("*.json"), reverse=True):
-        if f.stem in ("streak", "automation") or f.name.endswith(".shadow.json"):
+        if (f.stem in ("streak", "automation")
+                or f.name.endswith(".shadow.json")
+                or f.name.endswith(".policy_shadow.json")):  # skip-policy shadow decision log
             continue
         try:
             data = json.loads(f.read_text())
@@ -308,6 +311,55 @@ def render_health_dm_delivery_banner(status: dict) -> str:
     return f"""
         <div class="ops-alert">
             <strong>{title}</strong>
+            <span>{detail}</span>
+        </div>"""
+
+
+_SKIP_POLICY_VERDICT_LABEL = {
+    "below_breakeven": "skip validated (picking the band is -EV)",
+    "above_breakeven": "skip is costing streaks (picking is +EV)",
+    "straddles_breakeven": "indeterminate (CI straddles breakeven)",
+    "insufficient_n": "accumulating (insufficient resolved days)",
+}
+
+
+def load_skip_policy_shadow_status() -> dict:
+    """Read the skip-policy shadow status artifact. Returns {} if missing/unreadable."""
+    path = VALIDATION_DIR / "skip_policy_shadow_status.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def render_skip_policy_shadow_section(status: dict) -> str:
+    """Render the skip-policy shadow monitor (does the streak>=8 skip rule cost streaks?).
+
+    See bts/skip_policy_shadow.py + docs/audit/2026-06-20-skip-policy-shadow.md.
+    """
+    counts = status.get("counts") or {}
+    if _status_int(counts.get("divergent_days")) == 0:
+        return ""
+    band = status.get("shadow_band_hit_rate") or {}
+    verdict = band.get("verdict", "insufficient_n")
+    label = _SKIP_POLICY_VERDICT_LABEL.get(verdict, verdict)
+    breakeven = band.get("breakeven_p", 0.744)
+    rate = band.get("rate")
+    ci = band.get("wilson_ci")
+    rate_str = f"{rate:.1%}" if isinstance(rate, (int, float)) else "n/a"
+    ci_str = f" [{ci[0]:.0%}&ndash;{ci[1]:.0%}]" if isinstance(ci, list) and len(ci) == 2 else ""
+    detail = (
+        f"\"Pick-the-band\" shadow policy: on {_status_int(counts.get('divergent_days'))} day(s) the deployed "
+        f"MDP skipped a sub-0.796 top candidate at streak&ge;8. Skipped picks have realized "
+        f"{rate_str}{ci_str} ({_status_int(band.get('hits'))}/{_status_int(band.get('resolved'))} resolved, "
+        f"{_status_int(counts.get('pending'))} pending) vs the {breakeven:.3f} breakeven."
+    )
+    return f"""
+        <div class="policy-shadow">
+            <strong>Skip-policy shadow &mdash; {html_lib.escape(str(label))}</strong>
             <span>{detail}</span>
         </div>"""
 
@@ -977,6 +1029,12 @@ def render_page():
     except Exception:
         skip_banner = ""
 
+    try:
+        skip_policy_shadow_section = render_skip_policy_shadow_section(
+            load_skip_policy_shadow_status())
+    except Exception:
+        skip_policy_shadow_section = ""
+
     today_pick = None
     for p in picks:
         if p.get("date") == today:
@@ -1305,6 +1363,15 @@ def render_page():
         .skip-banner strong {{ color:#1d4ed8; font-size:0.85em; letter-spacing:1px; }}
         .skip-banner span {{ font-size:0.82em; line-height:1.4; }}
 
+        /* Skip-policy shadow monitor — neutral info (purple), distinct from alert/skip. */
+        .policy-shadow {{ background:#f5f3ff; border:1px solid #c4b5fd;
+                          border-left:4px solid #7c3aed; border-radius:8px;
+                          color:#4b5563; padding:12px 14px; margin-bottom:16px;
+                          display:flex; flex-direction:column; gap:4px;
+                          box-shadow:0 2px 8px rgba(0,0,0,0.04); }}
+        .policy-shadow strong {{ color:#6d28d9; font-size:0.85em; }}
+        .policy-shadow span {{ font-size:0.82em; line-height:1.4; }}
+
         .header {{ display: flex; align-items: center; justify-content: space-between;
                    margin-bottom: 20px; }}
         .header-left h1 {{ color: #041E42; font-size: 1.6em; font-weight: 800; }}
@@ -1479,6 +1546,8 @@ def render_page():
         {health_dm_banner}
 
         {skip_banner}
+
+        {skip_policy_shadow_section}
 
         {hero}
 

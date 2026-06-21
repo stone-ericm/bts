@@ -7,6 +7,7 @@
 #   01:00 — check yesterday's results, update streak
 #   02:00 — reconcile (re-check picks for scoring changes)
 #   01:10,02:10,10:30,13:30 — fetch real MLB BTS account streak (contest state); alerts if stale/failed
+#   23:30 — skip-policy shadow: record today's pick-vs-skip-band decision + reconcile (docs/audit/2026-06-20-skip-policy-shadow.md)
 #   03:00 — nightly data refresh + sync to R2 + tomorrow's preview pick
 #   */5  — lineup posting time collection
 #   */5  — healthchecks.io ping
@@ -47,6 +48,7 @@ CRON_LINES="$MARKER
 10 2 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 10 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 30 13 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
+30 23 * * * $PREFIX $UV_BIN run bts skip-policy-shadow-update >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 3 * * * $PREFIX ($UV_BIN run bts data pull --start $DATA_PULL_START --end $DATA_PULL_END && $UV_BIN run bts data build --seasons 2026 && $UV_BIN run bts preview ; $UV_BIN run bts data sync-to-r2) >> $LOG_DIR/cron.log 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER

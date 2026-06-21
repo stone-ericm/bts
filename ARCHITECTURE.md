@@ -57,6 +57,32 @@ Always computed by `compute_all_features()` but only used by the shadow model (v
 
 Shadow picks saved to `{date}.shadow.json`. Report: `bts shadow-report`.
 
+### Skip-policy shadow (counterfactual "pick-the-band" monitor — `skip_policy_shadow.py`)
+
+A second, distinct shadow that is a shadow **policy**, not a shadow model (same predictions,
+different action rule). It tests whether the deployed MDP's **skip at streak≥8 / top candidate
+< 0.796** rule actually costs streaks on the production (estimated-PA) scale — a question
+backtest cannot settle, because the calibrated breakeven (~0.744) sits inside the skipped band's
+realized hit-rate range (see `docs/audit/2026-06-20-skip-policy-shadow.md`). **Ground truth via a
+decision marker:** the live pick path (`select_pick`, with `persist_skip_decision=True` passed
+ONLY by the scheduler's production `run_and_pick` — not preview / manual `bts run` / the shadow
+model) writes `data/picks/<date>/skip_decision.json` at the genuine MDP skip, recording the
+EXECUTABLE declined candidate. That marker write is best-effort and never affects the pick. The
+shadow reads markers (`bts skip-policy-shadow-update`, nightly cron), writes a divergent record
+`{date}.policy_shadow.json` (`bts_skip_policy_shadow_v1`) for each, and reconciles the candidate's
+realized outcome. The marker fires only for a live (`persist_skip_decision`, scheduler-only),
+**MDP-backed** (`ctx.mdp` truthy) skip. **Final-decision by delivery:** the marker and `<date>.json`
+pick file are both provisional/overwritten (preview pre-writes tomorrow's; the fallback re-delivers a
+cached pick), so the authoritative signal is `picks.pick_was_delivered` — a delivered pick is the
+final action; else a skip marker means a skip; a record whose date later resolves to a delivered pick
+is pruned. The status
+artifact `data/validation/skip_policy_shadow_status.json` reports the skipped-band realized hit
+rate (+ Wilson CI) and a verdict vs the 0.744 breakeven (`below_breakeven` = skip validated,
+`above_breakeven` = skip costs streaks, else `straddles`/`insufficient_n`). CLI:
+`bts skip-policy-shadow-update` + `bts skip-policy-shadow-status`. Surfaced on the dashboard
+("Skip-policy shadow" panel). Why a marker (vs reconstructing read-only): see the design doc —
+4 review rounds showed the action + executable candidate aren't otherwise recoverable.
+
 ### Dropped features (tested and rejected)
 - **lineup_position**: Double-counts with PA aggregation (helps with leaky features, hurts or neutral with clean)
 - **is_home**: Noise at PA level

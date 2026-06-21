@@ -183,6 +183,7 @@ def select_pick(
     for_shadow: bool = False,
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
     require_detailed_statuses: bool = False,
+    persist_skip_decision: bool = False,
 ) -> PickResult | None:
     """Select the best pick from available predictions.
 
@@ -293,6 +294,27 @@ def select_pick(
     action = decide_action(ctx, streak, saver)
 
     if action == "skip":
+        if persist_skip_decision and ctx.mdp:
+            # Record the genuine MDP skip + the EXECUTABLE declined candidate for the skip-policy
+            # shadow (bts/skip_policy_shadow.py). Gated on (a) `persist_skip_decision` — only the
+            # LIVE scheduler decision opts in (NOT preview / manual `bts run` / the shadow model) —
+            # and (b) `ctx.mdp` truthy — only MDP-backed skips, never the heuristic fallback (a
+            # missing policy caches to {}, which is falsy). Best-effort: never affects the pick path.
+            try:
+                from bts.skip_policy_shadow import record_mdp_skip_decision
+                record_mdp_skip_decision(
+                    date, picks_dir,
+                    candidate={
+                        "batter_id": int(best_row["batter_id"]),
+                        "batter_name": best_row.get("batter_name"),
+                        "team": best_row.get("team"),
+                        "game_pk": (int(best_game_pk) if not pd.isna(best_game_pk) else None),
+                        "pitcher_name": best_row.get("pitcher_name"),
+                        "p_game_hit": float(best_row["p_game_hit"]),
+                    },
+                    streak=streak, saver_available=saver)
+            except Exception:
+                pass
         return None
 
     new_pick = pick_from_row(best_row)

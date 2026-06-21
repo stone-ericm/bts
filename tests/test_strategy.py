@@ -81,6 +81,52 @@ class TestSelectPick:
 
         assert result.daily.double_down is None
 
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    def test_mdp_skip_writes_marker_only_when_persist(self, mock_statuses, tmp_path):
+        """The shadow marker is written ONLY for a live (persisted), MDP-backed skip."""
+        from bts.strategy import select_pick
+        from bts.skip_policy_shadow import load_skip_decision
+
+        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
+        mdp_stub = {"policy_table": object(), "boundaries": [0.796], "season_length": 180}
+        with patch("bts.strategy._load_mdp", return_value=mdp_stub), \
+             patch("bts.simulate.mdp.lookup_action", return_value="skip"):
+            # default (manual `bts run` / preview / shadow paths): no marker even on an MDP skip
+            assert select_pick(preds, "2026-04-01", tmp_path, streak=10) is None
+            assert load_skip_decision("2026-04-01", tmp_path) is None
+
+            # live scheduler decision opts in: marker carries the executable declined candidate
+            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
+            m = load_skip_decision("2026-04-01", tmp_path)
+            assert m is not None and m["action"] == "skip" and m["streak"] == 10
+            assert m["candidate"]["batter_name"] == "Weak Bat"
+            assert m["candidate"]["game_pk"] == 778899
+
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    def test_shadow_model_path_never_writes_marker(self, mock_statuses, tmp_path):
+        from bts.strategy import select_pick
+        from bts.skip_policy_shadow import load_skip_decision
+
+        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
+        mdp_stub = {"policy_table": object(), "boundaries": [0.796], "season_length": 180}
+        with patch("bts.strategy._load_mdp", return_value=mdp_stub), \
+             patch("bts.simulate.mdp.lookup_action", return_value="skip"):
+            select_pick(preds, "2026-04-01", tmp_path, streak=10, for_shadow=True)  # persist not set
+            assert load_skip_decision("2026-04-01", tmp_path) is None
+
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
+    def test_heuristic_skip_writes_no_marker(self, mock_statuses, tmp_path):
+        """A missing policy caches as {} (falsy) -> heuristic skip -> NOT MDP-backed -> no marker,
+        even when persisted, across repeated calls."""
+        from bts.strategy import select_pick
+        from bts.skip_policy_shadow import load_skip_decision
+
+        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
+        with patch("bts.strategy._load_mdp", return_value={}):
+            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
+            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
+        assert load_skip_decision("2026-04-01", tmp_path) is None
+
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "F", "detailed": "Final"},
     })

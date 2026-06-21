@@ -229,6 +229,7 @@ def run_and_pick(
     date: str,
     *,
     require_detailed_statuses: bool = True,
+    persist_skip_decision: bool = False,
 ) -> tuple[pd.DataFrame | None, "PickResult | None", str | None]:
     """Run cascade and apply strategy. No posting, no DMs.
 
@@ -273,6 +274,7 @@ def run_and_pick(
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
+        persist_skip_decision=persist_skip_decision,
     )
 
     return predictions, result, tier_name

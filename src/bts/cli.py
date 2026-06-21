@@ -2135,6 +2135,71 @@ def shadow_status(picks_dir: str, output: str | None, min_days: int):
         click.echo(f"Wrote status: {output}")
 
 
+@cli.command(name="skip-policy-shadow-update")
+@click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
+@click.option("--status-output", default="data/validation/skip_policy_shadow_status.json",
+              type=click.Path(), help="Status artifact path")
+@click.option("--date", default=None, help="Single decision date YYYY-MM-DD (else recent markers)")
+@click.option("--no-reconcile", is_flag=True, help="Skip realized-outcome reconciliation")
+def skip_policy_shadow_update(picks_dir, status_output, date, no_reconcile):
+    """Record shadow entries from MDP skip markers, reconcile outcomes, refresh status.
+
+    Counterfactual SHADOW POLICY (docs/audit/2026-06-20-skip-policy-shadow.md): the live pick path
+    writes a marker (`<date>/skip_decision.json`) at each genuine MDP skip with the executable
+    declined candidate; this reads those markers, logs what taking the single would have done, and
+    reconciles the realized hit — accumulating the live band hit rate vs the calibrated ~0.744
+    breakeven to settle whether the skip rule costs streaks. Run nightly from cron.
+    """
+    from datetime import datetime, timezone
+    from bts.shadow_eval import _current_git_commit
+    from bts import skip_policy_shadow as sps
+
+    picks_path = Path(picks_dir)
+    now = datetime.now(timezone.utc)
+
+    pruned = sps.prune_superseded(picks_path)   # drop provisional skips that were later picked
+    if pruned:
+        click.echo(f"Pruned {len(pruned)} superseded record(s): {', '.join(pruned)}")
+
+    if date:
+        rec = sps.record_skip_from_marker(date, picks_path, now=now)
+        if rec is None:
+            click.echo(f"{date}: no MDP skip marker (production picked, or no decision); nothing to record.")
+        else:
+            click.echo(f"Recorded {date}: deployed=skip shadow=single (divergent)")
+    else:
+        recorded = sps.record_pending_skips(picks_path, lookback_days=10, now=now)
+        click.echo(f"Recorded {len(recorded)} new skip decision(s): {', '.join(recorded) or 'none'}")
+
+    if not no_reconcile:
+        n = sps.reconcile_pending(picks_path, hit_checker=sps.make_hit_checker(), now=now)
+        click.echo(f"Reconciled {n} pending outcome(s).")
+
+    status = sps.write_status(picks_path, status_output, git_commit=_current_git_commit())
+    v = status["shadow_band_hit_rate"]
+    rate = f"{v['rate']:.1%}" if v["rate"] is not None else "n/a"
+    click.echo(f"Status: {status['counts']['divergent_days']} divergent days, {v['resolved']} resolved, "
+               f"verdict={v['verdict']} (rate={rate} vs breakeven {v['breakeven_p']}). Wrote {status_output}")
+
+
+@cli.command(name="skip-policy-shadow-status")
+@click.option("--status-file", default="data/validation/skip_policy_shadow_status.json", type=click.Path())
+def skip_policy_shadow_status(status_file):
+    """Print the skip-policy shadow verdict (is the streak>=8 skip rule costing streaks?)."""
+    path = Path(status_file)
+    if not path.exists():
+        click.echo(f"No status artifact at {status_file}; run `bts skip-policy-shadow-update` first.")
+        return
+    s = json.loads(path.read_text())
+    c, v = s["counts"], s["shadow_band_hit_rate"]
+    click.echo(f"skip-policy shadow ({s['schema_version']}) generated {s['generated_at']}")
+    click.echo(f"  divergent days: {c['divergent_days']}  ({c['resolved_divergent']} resolved, {c['pending']} pending)")
+    rate = f"{v['rate']:.1%}" if v["rate"] is not None else "n/a"
+    ci = f" CI[{v['wilson_ci'][0]:.1%},{v['wilson_ci'][1]:.1%}]" if v["wilson_ci"] else ""
+    click.echo(f"  skipped-band realized hit rate: {rate}{ci}  vs breakeven {v['breakeven_p']:.3f}")
+    click.echo(f"  VERDICT: {v['verdict']}")
+
+
 @cli.command(name="shadow-backfill-results")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
 @click.option("--raw-dir", type=click.Path(), help="Cached raw game-feed directory; defaults to picks parent/raw")
