@@ -2,7 +2,30 @@
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from bts.daily_decision import write_decision, load_decision, decision_path, DECISION_SCHEMA
+from bts.daily_decision import write_decision, load_decision, decision_path, DECISION_SCHEMA, is_scoreable_commit
+from bts.picks import Pick, DailyPick
+
+
+def _pick():
+    return Pick(
+        batter_name="Jacob Wilson", batter_id=700363, team="ATH", lineup_position=1,
+        pitcher_name="Jose Suarez", pitcher_id=660761, p_game_hit=0.83, flags=[],
+        projected_lineup=False, game_pk=778899, game_time="2026-04-01T23:10:00Z",
+    )
+
+
+def _delivered_daily():
+    return DailyPick(
+        date="2026-04-01", run_time="2026-04-01T15:00:00+00:00",
+        pick=_pick(), double_down=None, runner_up=None, bluesky_posted=True,
+    )
+
+
+def _undelivered_daily():
+    return DailyPick(
+        date="2026-04-01", run_time="2026-04-01T15:00:00+00:00",
+        pick=_pick(), double_down=None, runner_up=None, bluesky_posted=False,
+    )
 
 def _cand(bid=1, p=0.78):
     return {"batter_id": bid, "batter_name": "X", "team": "NYM", "game_pk": 9, "p_game_hit": p}
@@ -40,3 +63,19 @@ def test_double_carries_both_slots(tmp_path):
     loaded = load_decision("2026-06-20", tmp_path)
     assert loaded["action"] == "double"
     assert loaded["double_down"]["batter_id"] == 2
+
+
+def test_is_scoreable_commit(tmp_path):
+    # decision record with scoreable=False -> not a commit (ignores daily delivery state)
+    write_decision("2026-06-20", tmp_path, action="skip", source="mdp",
+                   delivery_status="not_applicable", scoreable=False)
+    assert is_scoreable_commit("2026-06-20", tmp_path, _undelivered_daily()) is False
+
+    # decision record with scoreable=True -> commit (even if daily looks undelivered)
+    write_decision("2026-06-21", tmp_path, action="single", source="mdp",
+                   delivery_status="delivered", scoreable=True)
+    assert is_scoreable_commit("2026-06-21", tmp_path, _undelivered_daily()) is True
+
+    # no decision record -> fall back to pick_was_delivered
+    assert is_scoreable_commit("2026-06-22", tmp_path, _delivered_daily()) is True
+    assert is_scoreable_commit("2026-06-22", tmp_path, _undelivered_daily()) is False

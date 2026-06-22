@@ -59,3 +59,18 @@ def load_decision(date: str, picks_dir) -> dict | None:
         return json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def is_scoreable_commit(date: str, picks_dir, daily) -> bool:
+    """Single source of truth for "should this pick advance the streak / be polled."
+
+    If a decision record exists for *date*, its ``scoreable`` field is authoritative.
+    When no record exists (legacy picks pre-dating decision.json), falls back to
+    ``pick_was_delivered(daily)``.  The ``picks`` import is local to avoid a circular
+    dependency (picks.py is heavier and imports from daily_decision indirectly).
+    """
+    from bts.picks import pick_was_delivered
+    dec = load_decision(date, picks_dir)
+    if dec is not None:
+        return bool(dec.get("scoreable"))
+    return bool(daily is not None and pick_was_delivered(daily))
