@@ -348,7 +348,7 @@ def _row_from_daily(pick) -> dict | None:
         return None
     return {"batter_id": pick.batter_id, "batter_name": pick.batter_name,
             "team": pick.team, "game_pk": pick.game_pk,
-            "pitcher_name": pick.pitcher_name, "p_game_hit": pick.p_game_hit}
+            "p_game_hit": pick.p_game_hit}
 
 
 def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, fs):
@@ -528,16 +528,21 @@ def _deliver_and_lock_pick(
         # SelectionResult when available, else fall back to the DailyPick.
         if fs is None:
             return
-        _write_commit_decision(
-            picks_dir, date,
-            action=("double" if daily.double_down else "single"),
-            source=(selection.source if selection is not None else "unknown"),
-            primary=(selection.primary_candidate if selection is not None
-                     else _row_from_daily(daily.pick)),
-            double_down=(selection.double_candidate if selection is not None
-                         else _row_from_daily(daily.double_down)),
-            delivery_status=delivery_status, fs=fs,
-        )
+        try:
+            # Decision-record writes must never affect pick delivery: isolate
+            # any failure here so it cannot be caught by the delivery try/except.
+            _write_commit_decision(
+                picks_dir, date,
+                action=("double" if daily.double_down else "single"),
+                source=(selection.source if selection is not None else "unknown"),
+                primary=(selection.primary_candidate if selection is not None
+                         else _row_from_daily(daily.pick)),
+                double_down=(selection.double_candidate if selection is not None
+                             else _row_from_daily(daily.double_down)),
+                delivery_status=delivery_status, fs=fs,
+            )
+        except Exception:
+            pass
 
     if pick_was_delivered(daily):
         save_pick(daily, picks_dir)

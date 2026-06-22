@@ -176,7 +176,6 @@ def _row_to_candidate(row) -> "dict | None":
         "batter_name": row.get("batter_name"),
         "team": row.get("team"),
         "game_pk": (int(gpk) if pd.notna(gpk) else None),
-        "pitcher_name": row.get("pitcher_name"),
         "p_game_hit": float(row["p_game_hit"]),
     }
 

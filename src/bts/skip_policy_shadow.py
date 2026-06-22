@@ -39,7 +39,7 @@ MIN_DIVERGENT_DAYS = 30
 # postponed/scratched/data-gap) so live-but-unfinished games are retried, not voided immediately.
 STALE_AFTER_DAYS = 3
 
-_RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "pitcher_name", "p_game_hit")
+_RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "p_game_hit")
 _RESOLVED = ("hit", "miss", "void")
 
 
