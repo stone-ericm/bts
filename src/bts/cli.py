@@ -1124,7 +1124,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
-    )
+    ).pick_result
 
     if result is None:
         # Skip day — post to Bluesky with top pick info
@@ -1279,7 +1279,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
-    )
+    ).pick_result
 
     if result is None:
         top = predictions.iloc[0]

@@ -1725,16 +1725,17 @@ class TestRefreshPickAtFallback:
 
     def test_swaps_to_fresh_pick_when_refresh_returns_different_batter(self, tmp_path):
         from bts.scheduler import _refresh_pick_at_fallback
-        from bts.strategy import PickResult
+        from bts.strategy import PickResult, SelectionResult
 
         cached = self._daily(batter_name="Old Batter", batter_id=1001, p=0.70)
         fresh_daily = self._daily(batter_name="Trea Turner", batter_id=2002, p=0.74)
         fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
 
         config = {"orchestrator": {"picks_dir": str(tmp_path)}}
 
         with patch("bts.scheduler.run_and_pick",
-                   return_value=(None, fresh_result, "local")):
+                   return_value=(None, fresh_sel, "local")):
             result = _refresh_pick_at_fallback(config, "2026-04-12", cached)
 
         assert result.pick.batter_name == "Trea Turner"
@@ -1743,14 +1744,15 @@ class TestRefreshPickAtFallback:
 
     def test_logs_when_pick_changes(self, tmp_path, capsys):
         from bts.scheduler import _refresh_pick_at_fallback
-        from bts.strategy import PickResult
+        from bts.strategy import PickResult, SelectionResult
 
         cached = self._daily(batter_name="Brendan Donovan", batter_id=680977, p=0.7169)
         fresh_daily = self._daily(batter_name="Trea Turner", batter_id=607208, p=0.7426)
         fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
 
         with patch("bts.scheduler.run_and_pick",
-                   return_value=(None, fresh_result, "local")):
+                   return_value=(None, fresh_sel, "local")):
             _refresh_pick_at_fallback(
                 {"orchestrator": {"picks_dir": str(tmp_path)}},
                 "2026-04-12",
@@ -1763,14 +1765,15 @@ class TestRefreshPickAtFallback:
 
     def test_keeps_cached_when_fresh_pick_matches(self, tmp_path, capsys):
         from bts.scheduler import _refresh_pick_at_fallback
-        from bts.strategy import PickResult
+        from bts.strategy import PickResult, SelectionResult
 
         cached = self._daily(batter_name="Same Batter", batter_id=5, p=0.70)
         fresh_daily = self._daily(batter_name="Same Batter", batter_id=5, p=0.71)
         fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
 
         with patch("bts.scheduler.run_and_pick",
-                   return_value=(None, fresh_result, "local")):
+                   return_value=(None, fresh_sel, "local")):
             result = _refresh_pick_at_fallback(
                 {"orchestrator": {"picks_dir": str(tmp_path)}},
                 "2026-04-12",

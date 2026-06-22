@@ -900,12 +900,12 @@ def run_single_check(
             kind="primary", date=date,
             stall_after_sec=stall_after, durations_path=durations_path,
         ):
-            predictions, pick_result, tier = run_and_pick(
+            predictions, sel, tier = run_and_pick(
                 config,
                 date,
                 require_detailed_statuses=False,
-                persist_skip_decision=True,   # live decision: record genuine MDP skips for the shadow
             )
+            pick_result = sel.pick_result if sel is not None else None
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — no pick made: {e}", file=sys.stderr)
         _alert_contest_state_failure(config, e)
@@ -1090,7 +1090,7 @@ def _run_shadow_prediction(
             for_shadow=True,
             game_statuses_detailed=game_statuses_detailed,
             require_detailed_statuses=True,
-        )
+        ).pick_result
         if result is None or result.daily is None:
             _update_analytics_job_status(
                 config,
@@ -1274,12 +1274,12 @@ def _refresh_pick_at_fallback_decision(
 
     try:
         with heartbeat_watchdog(heartbeat_path, interval_sec=60):
-            predictions, pick_result, _ = run_and_pick(
+            predictions, sel, _ = run_and_pick(
                 config,
                 date,
                 require_detailed_statuses=False,
-                persist_skip_decision=True,   # live fallback/refresh decision: record genuine MDP skips
             )
+            pick_result = sel.pick_result if sel is not None else None
     except ContestStateError:
         raise
     except Exception as e:

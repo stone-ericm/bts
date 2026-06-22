@@ -10,6 +10,7 @@ import pytest
 
 from bts.picks import DailyPick, Pick, save_pick, save_shadow_pick
 from bts.scheduler import _run_shadow_prediction
+from bts.strategy import SelectionResult
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +32,7 @@ class TestRunShadowPrediction:
         with (
             patch("bts.scheduler.heartbeat_watchdog", return_value=nullcontext()) as mock_watchdog,
             patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions),
-            patch("bts.scheduler.select_pick", return_value=mock_result),
+            patch("bts.scheduler.select_pick", return_value=SelectionResult(pick_result=mock_result, action="single", source="heuristic", primary_candidate=None, double_candidate=None, no_pick_reason=None)),
             patch("bts.scheduler.save_shadow_pick"),
         ):
             _run_shadow_prediction(
@@ -86,7 +87,7 @@ class TestRunShadowPrediction:
         mock_result.daily.pick.p_game_hit = 0.767
 
         with patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions), \
-             patch("bts.scheduler.select_pick", return_value=mock_result), \
+             patch("bts.scheduler.select_pick", return_value=SelectionResult(pick_result=mock_result, action="single", source="heuristic", primary_candidate=None, double_candidate=None, no_pick_reason=None)), \
              patch("bts.scheduler.save_shadow_pick") as mock_save:
             _run_shadow_prediction(
                 config={"orchestrator": {"picks_dir": str(tmp_path)}},
@@ -188,7 +189,7 @@ class TestRunShadowPrediction:
         mock_result.daily.pick.p_game_hit = 0.767
 
         with patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions), \
-             patch("bts.scheduler.select_pick", return_value=mock_result), \
+             patch("bts.scheduler.select_pick", return_value=SelectionResult(pick_result=mock_result, action="single", source="heuristic", primary_candidate=None, double_candidate=None, no_pick_reason=None)), \
              patch("bts.scheduler.save_shadow_pick"):
             _run_shadow_prediction(
                 config={"orchestrator": {"picks_dir": str(tmp_path)}},
@@ -206,7 +207,7 @@ class TestRunShadowPrediction:
         mock_result.daily.pick.p_game_hit = 0.720
 
         with patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions), \
-             patch("bts.scheduler.select_pick", return_value=mock_result), \
+             patch("bts.scheduler.select_pick", return_value=SelectionResult(pick_result=mock_result, action="single", source="heuristic", primary_candidate=None, double_candidate=None, no_pick_reason=None)), \
              patch("bts.scheduler.save_shadow_pick"):
             _run_shadow_prediction(
                 config={"orchestrator": {"picks_dir": str(tmp_path)}},
@@ -246,7 +247,7 @@ class TestRunShadowPrediction:
         mock_result.daily = real_daily
 
         with patch("bts.scheduler.predict_local_shadow") as mock_predict, \
-             patch("bts.scheduler.select_pick", return_value=mock_result), \
+             patch("bts.scheduler.select_pick", return_value=SelectionResult(pick_result=mock_result, action="single", source="heuristic", primary_candidate=None, double_candidate=None, no_pick_reason=None)), \
              patch("bts.scheduler.save_shadow_pick"):
             mock_predict.return_value = MagicMock()  # truthy -> path proceeds
 

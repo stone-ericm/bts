@@ -161,13 +161,13 @@ class TestRunAndPick:
             "orchestrator": {"picks_dir": str(tmp_path)},
             "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
         }
-        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+        predictions, sel, tier = run_and_pick(config, "2026-04-01")
 
         assert predictions is not None
         assert len(predictions) == 1
         assert tier == "mac"
-        assert pick_result is not None
-        assert pick_result.daily.pick.batter_name == "Jacob Wilson"
+        assert sel is not None and sel.pick_result is not None
+        assert sel.pick_result.daily.pick.batter_name == "Jacob Wilson"
 
     @patch("bts.orchestrator.run_cascade")
     @patch("bts.picks.get_game_statuses_detailed", return_value={
@@ -246,11 +246,11 @@ class TestRunAndPick:
             "orchestrator": {"picks_dir": str(tmp_path)},
             "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
         }
-        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+        predictions, sel, tier = run_and_pick(config, "2026-04-01")
 
         assert predictions is not None
         assert tier == "mac"
-        assert pick_result is None
+        assert sel is None or sel.pick_result is None
         mock_coarse_statuses.assert_not_called()
 
     @patch("bts.orchestrator.run_cascade")
@@ -291,7 +291,7 @@ class TestRunAndPick:
             "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
         }
 
-        predictions, pick_result, tier = run_and_pick(config, "2026-04-01")
+        predictions, sel, tier = run_and_pick(config, "2026-04-01")
 
         # The streak-threading side_effect must actually fire: the sample top pick
         # (0.763) is below SKIP_THRESHOLD, so the heuristic would also skip -- without
@@ -299,4 +299,4 @@ class TestRunAndPick:
         mock_mdp.assert_called()
         assert predictions is not None
         assert tier == "mac"
-        assert pick_result is None
+        assert sel is None or sel.pick_result is None

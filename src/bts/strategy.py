@@ -110,15 +110,20 @@ class DecisionContext:
     mdp: dict | None            # injected MDP policy (None -> heuristic)
 
 
-def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> str:
+def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> tuple[str, str]:
     """Pure skip/single/double decision given a prepared context + (streak, saver).
 
     MDP policy (preferred) or heuristic fallback, then the ``allow_double`` clamp and
     the "double must be executable (a different-game second pick exists)" guard. No IO.
     Mirrors the action branch that previously lived inline in ``select_pick``.
+
+    Returns (action, source) where source is "mdp" or "heuristic".
     """
-    action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
-    if action is None:
+    mdp_action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+    if mdp_action is not None:
+        action, source = mdp_action, "mdp"
+    else:
+        source = "heuristic"
         if ctx.primary_p < SKIP_THRESHOLD:
             action = "skip"
         elif _double_threshold(streak) is not None and ctx.has_diff_game and ctx.second_p is not None:
@@ -130,7 +135,7 @@ def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> str:
         action = "single"
     if action == "double" and not ctx.has_diff_game:
         action = "single"
-    return action
+    return action, source
 
 
 @dataclass
@@ -142,6 +147,38 @@ class PickResult:
     """
     daily: DailyPick
     locked: bool = False
+
+
+@dataclass
+class SelectionResult:
+    """Authoritative output of select_pick.
+
+    Always returned (never None) so callers can inspect the action and source
+    even on a skip day. Use pick_result to check if a pick was actually made.
+    """
+    pick_result: "PickResult | None"
+    action: "str | None"           # "skip"|"single"|"double", or None if no action reached
+    source: "str | None"           # "mdp"|"heuristic", or None
+    primary_candidate: "dict | None"   # executable best_row
+    double_candidate: "dict | None"
+    no_pick_reason: "str | None"   # "no_eligible"|"status_failure"|"no_valid_predictions"|None
+    streak: int = 0
+    saver_available: "bool | None" = None
+
+
+def _row_to_candidate(row) -> "dict | None":
+    """Convert a predictions row to a native-typed candidate dict."""
+    if row is None:
+        return None
+    gpk = pd.to_numeric(pd.Series([row.get("game_pk")]), errors="coerce").iloc[0]
+    return {
+        "batter_id": int(row["batter_id"]),
+        "batter_name": row.get("batter_name"),
+        "team": row.get("team"),
+        "game_pk": (int(gpk) if pd.notna(gpk) else None),
+        "pitcher_name": row.get("pitcher_name"),
+        "p_game_hit": float(row["p_game_hit"]),
+    }
 
 
 def should_lock(
@@ -183,12 +220,11 @@ def select_pick(
     for_shadow: bool = False,
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
     require_detailed_statuses: bool = False,
-    persist_skip_decision: bool = False,
-) -> PickResult | None:
+) -> "SelectionResult":
     """Select the best pick from available predictions.
 
-    Returns PickResult with the selected DailyPick, or None if there's
-    nothing to pick (no games, all started, empty predictions).
+    Always returns a SelectionResult. Check pick_result to see if a pick was made.
+    Use action/source to inspect the decision even on a skip day.
 
     Existing production picks are classified before reuse. Posted picks and
     picks whose committed games have started remain locked; unposted picks
@@ -209,7 +245,7 @@ def select_pick(
     silently degrade to abstract MLB statuses.
     """
     if predictions.empty:
-        return None
+        return SelectionResult(None, None, None, None, None, "no_valid_predictions")
 
     if require_detailed_statuses and game_statuses_detailed is None:
         try:
@@ -221,23 +257,23 @@ def select_pick(
     if not for_shadow:
         current = load_pick(date, picks_dir)
         if require_detailed_statuses and game_statuses_detailed is None and current:
-            return PickResult(daily=current, locked=True)
+            return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
         if current:
             lock_state = classify_pick_lock_state(current, date)
             if lock_state.stale:
                 current = None
             elif lock_state.locked:
-                return PickResult(daily=current, locked=True)
+                return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
 
     if game_statuses_detailed is None:
         if require_detailed_statuses:
-            return None
+            return SelectionResult(None, None, None, None, None, "status_failure")
         try:
             statuses = get_game_statuses(date)
         except Exception:
             if current:
-                return PickResult(daily=current, locked=True)
-            return None
+                return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
+            return SelectionResult(None, None, None, None, None, "status_failure")
 
         # Filter to games not yet started, preserving legacy coarse behavior.
         not_started = predictions["game_pk"].map(lambda pk: statuses.get(pk) == "P")
@@ -254,13 +290,13 @@ def select_pick(
 
     if available.empty:
         if current:
-            return PickResult(daily=current, locked=True)
-        return None
+            return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
+        return SelectionResult(None, None, None, None, None, "no_eligible")
 
     # Filter to valid predictions
     valid = available[available["p_game_hit"].notna()]
     if valid.empty:
-        return None
+        return SelectionResult(None, None, None, None, None, "no_valid_predictions")
 
     best_row = valid.iloc[0]
 
@@ -291,31 +327,14 @@ def select_pick(
         allow_double=allow_double,
         mdp=_load_mdp(),
     )
-    action = decide_action(ctx, streak, saver)
+    action, source = decide_action(ctx, streak, saver)
+
+    primary_candidate = _row_to_candidate(best_row)
+    double_candidate = _row_to_candidate(second_row) if second_row is not None else None
 
     if action == "skip":
-        if persist_skip_decision and ctx.mdp:
-            # Record the genuine MDP skip + the EXECUTABLE declined candidate for the skip-policy
-            # shadow (bts/skip_policy_shadow.py). Gated on (a) `persist_skip_decision` — only the
-            # LIVE scheduler decision opts in (NOT preview / manual `bts run` / the shadow model) —
-            # and (b) `ctx.mdp` truthy — only MDP-backed skips, never the heuristic fallback (a
-            # missing policy caches to {}, which is falsy). Best-effort: never affects the pick path.
-            try:
-                from bts.skip_policy_shadow import record_mdp_skip_decision
-                record_mdp_skip_decision(
-                    date, picks_dir,
-                    candidate={
-                        "batter_id": int(best_row["batter_id"]),
-                        "batter_name": best_row.get("batter_name"),
-                        "team": best_row.get("team"),
-                        "game_pk": (int(best_game_pk) if not pd.isna(best_game_pk) else None),
-                        "pitcher_name": best_row.get("pitcher_name"),
-                        "p_game_hit": float(best_row["p_game_hit"]),
-                    },
-                    streak=streak, saver_available=saver)
-            except Exception:
-                pass
-        return None
+        return SelectionResult(None, "skip", source, primary_candidate, double_candidate, None,
+                               streak=streak, saver_available=saver)
 
     new_pick = pick_from_row(best_row)
 
@@ -340,4 +359,6 @@ def select_pick(
         bluesky_uri=None,
     )
 
-    return PickResult(daily=daily, locked=False)
+    return SelectionResult(PickResult(daily=daily, locked=False), action, source,
+                           primary_candidate, double_candidate, None,
+                           streak=streak, saver_available=saver)

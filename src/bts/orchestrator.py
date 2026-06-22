@@ -229,13 +229,14 @@ def run_and_pick(
     date: str,
     *,
     require_detailed_statuses: bool = True,
-    persist_skip_decision: bool = False,
-) -> tuple[pd.DataFrame | None, "PickResult | None", str | None]:
+) -> tuple[pd.DataFrame | None, "SelectionResult | None", str | None]:
     """Run cascade and apply strategy. No posting, no DMs.
 
-    Returns (predictions, pick_result, tier_name).
+    Returns (predictions, sel, tier_name).
     predictions is None if all tiers fail.
-    pick_result is None if skip or no games.
+    sel is None ONLY on the no-predictions / no-games early return (before
+    select_pick is reached); otherwise it is a SelectionResult — check
+    sel.pick_result for whether a pick was actually made.
     """
     from bts import progress
     from bts.contest_state import load_decision_streak_state
@@ -265,7 +266,7 @@ def run_and_pick(
     except Exception:
         game_statuses_detailed = None
     progress.mark("selecting_pick")
-    result = select_pick(
+    sel = select_pick(
         predictions,
         date,
         picks_dir,
@@ -274,10 +275,9 @@ def run_and_pick(
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
-        persist_skip_decision=persist_skip_decision,
     )
 
-    return predictions, result, tier_name
+    return predictions, sel, tier_name
 
 
 def orchestrate(config_path: Path, date: str) -> bool:
@@ -295,7 +295,7 @@ def orchestrate(config_path: Path, date: str) -> bool:
     dm_recipient = config["bluesky"]["dm_recipient"]
 
     try:
-        predictions, result, tier_name = run_and_pick(config, date)
+        predictions, sel, tier_name = run_and_pick(config, date)
     except ContestStateError as e:
         msg = f"BTS {date}: contest-account streak state invalid. No pick made. ({e})"
         print(msg, file=sys.stderr)
@@ -320,6 +320,7 @@ def orchestrate(config_path: Path, date: str) -> bool:
         print(f"No games found for {date}.", file=sys.stderr)
         return False
 
+    result = sel.pick_result if sel is not None else None
     if result is None:
         decision_state = load_decision_streak_state(
             picks_dir,

@@ -50,10 +50,10 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert not result.locked
-        assert result.daily.pick.batter_name == "Jacob Wilson"
-        assert result.daily.pick.p_game_hit == 0.83
+        assert result.pick_result is not None
+        assert not result.pick_result.locked
+        assert result.pick_result.daily.pick.batter_name == "Jacob Wilson"
+        assert result.pick_result.daily.pick.p_game_hit == 0.83
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_double_down_when_threshold_met(self, mock_statuses, tmp_path):
@@ -65,8 +65,8 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.daily.double_down is not None
-        assert result.daily.double_down.batter_name == "Mangum"
+        assert result.pick_result.daily.double_down is not None
+        assert result.pick_result.daily.double_down.batter_name == "Mangum"
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_no_double_down_below_threshold(self, mock_statuses, tmp_path):
@@ -79,53 +79,36 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.daily.double_down is None
+        assert result.pick_result.daily.double_down is None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    def test_mdp_skip_writes_marker_only_when_persist(self, mock_statuses, tmp_path):
-        """The shadow marker is written ONLY for a live (persisted), MDP-backed skip."""
-        from bts.strategy import select_pick
-        from bts.skip_policy_shadow import load_skip_decision
-
-        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
+    def test_select_pick_returns_selection_result(self, _s, tmp_path):
+        from bts.strategy import select_pick, SelectionResult
+        from unittest.mock import patch as p2
+        preds = _predictions([{"batter_name": "Weak", "p_game_hit": 0.50}])
         mdp_stub = {"policy_table": object(), "boundaries": [0.796], "season_length": 180}
-        with patch("bts.strategy._load_mdp", return_value=mdp_stub), \
-             patch("bts.simulate.mdp.lookup_action", return_value="skip"):
-            # default (manual `bts run` / preview / shadow paths): no marker even on an MDP skip
-            assert select_pick(preds, "2026-04-01", tmp_path, streak=10) is None
-            assert load_skip_decision("2026-04-01", tmp_path) is None
+        with p2("bts.strategy._load_mdp", return_value=mdp_stub), \
+             p2("bts.simulate.mdp.lookup_action", return_value="skip"):
+            sel = select_pick(preds, "2026-04-01", tmp_path, streak=10)
+        assert isinstance(sel, SelectionResult)
+        assert sel.pick_result is None
+        assert sel.action == "skip" and sel.source == "mdp"
+        assert sel.primary_candidate["batter_name"] == "Weak"
 
-            # live scheduler decision opts in: marker carries the executable declined candidate
-            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
-            m = load_skip_decision("2026-04-01", tmp_path)
-            assert m is not None and m["action"] == "skip" and m["streak"] == 10
-            assert m["candidate"]["batter_name"] == "Weak Bat"
-            assert m["candidate"]["game_pk"] == 778899
-
-    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    def test_shadow_model_path_never_writes_marker(self, mock_statuses, tmp_path):
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
+    def test_selection_candidates_carry_distinct_game_pks(self, _s, tmp_path):
+        """Guards the _row_to_candidate game_pk-from-row fix (Codex P0 #1): the double
+        candidate must get its OWN game_pk from its row, not the primary's."""
         from bts.strategy import select_pick
-        from bts.skip_policy_shadow import load_skip_decision
-
-        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
-        mdp_stub = {"policy_table": object(), "boundaries": [0.796], "season_length": 180}
-        with patch("bts.strategy._load_mdp", return_value=mdp_stub), \
-             patch("bts.simulate.mdp.lookup_action", return_value="skip"):
-            select_pick(preds, "2026-04-01", tmp_path, streak=10, for_shadow=True)  # persist not set
-            assert load_skip_decision("2026-04-01", tmp_path) is None
-
-    @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
-    def test_heuristic_skip_writes_no_marker(self, mock_statuses, tmp_path):
-        """A missing policy caches as {} (falsy) -> heuristic skip -> NOT MDP-backed -> no marker,
-        even when persisted, across repeated calls."""
-        from bts.strategy import select_pick
-        from bts.skip_policy_shadow import load_skip_decision
-
-        preds = _predictions([{"batter_name": "Weak Bat", "p_game_hit": 0.50}])
-        with patch("bts.strategy._load_mdp", return_value={}):
-            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
-            assert select_pick(preds, "2026-04-01", tmp_path, streak=10, persist_skip_decision=True) is None
-        assert load_skip_decision("2026-04-01", tmp_path) is None
+        preds = _predictions([
+            {"batter_name": "Wilson", "p_game_hit": 0.82, "game_pk": 778899},
+            {"batter_name": "Mangum", "p_game_hit": 0.81, "game_pk": 778900},
+        ])
+        sel = select_pick(preds, "2026-04-01", tmp_path)
+        assert sel.pick_result.daily.double_down is not None  # it doubled
+        assert sel.primary_candidate["game_pk"] == 778899
+        assert sel.double_candidate["game_pk"] == 778900
+        assert sel.double_candidate["game_pk"] != sel.primary_candidate["game_pk"]
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "F", "detailed": "Final"},
@@ -150,8 +133,8 @@ class TestSelectPick:
         preds = _predictions([{"batter_name": "Wilson", "game_pk": 778899}])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.locked
-        assert result.daily.pick.batter_name == "Wilson"
+        assert result.pick_result.locked
+        assert result.pick_result.daily.pick.batter_name == "Wilson"
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "F", "detailed": "Postponed"},
@@ -181,9 +164,9 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert result.locked is False
-        assert result.daily.pick.batter_name == "Fresh Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "P", "detailed": "Pre-Game"},
@@ -210,9 +193,9 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert result.locked is False
-        assert result.daily.pick.batter_name == "Refreshed Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Refreshed Pick"
 
     @pytest.mark.parametrize(
         ("abstract", "detailed"),
@@ -246,9 +229,9 @@ class TestSelectPick:
         }), patch("bts.strategy.get_game_statuses", return_value={778899: abstract}):
             result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert result.locked is True
-        assert result.daily.pick.batter_name == "Locked Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is True
+        assert result.pick_result.daily.pick.batter_name == "Locked Pick"
 
     @patch("bts.picks.get_game_statuses", side_effect=OSError("abstract unavailable"))
     @patch("bts.picks.get_game_statuses_detailed", side_effect=OSError("detailed unavailable"))
@@ -271,9 +254,9 @@ class TestSelectPick:
         preds = _predictions([{"batter_name": "New Pick", "game_pk": 778899}])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert result.locked is True
-        assert result.daily.pick.batter_name == "Conservative Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is True
+        assert result.pick_result.daily.pick.batter_name == "Conservative Pick"
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_locked_when_already_posted(self, mock_statuses, tmp_path):
@@ -296,7 +279,7 @@ class TestSelectPick:
         preds = _predictions([{"batter_name": "Wilson", "game_pk": 778899}])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.locked
+        assert result.pick_result.locked
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         778899: {"abstract": "P", "detailed": "Pre-Game"},
@@ -323,7 +306,7 @@ class TestSelectPick:
         preds = _predictions([{"batter_name": "Wilson", "game_pk": 778899}])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.locked
+        assert result.pick_result.locked
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_for_shadow_ignores_locked_production(self, mock_statuses, tmp_path):
@@ -361,12 +344,12 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path, for_shadow=True)
 
-        assert result is not None
-        assert result.locked is False
-        assert result.daily.pick.batter_name == "Shadow Top"
-        assert result.daily.pick.p_game_hit == 0.82
-        assert result.daily.bluesky_posted is False
-        assert result.daily.bluesky_uri is None
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Shadow Top"
+        assert result.pick_result.daily.pick.p_game_hit == 0.82
+        assert result.pick_result.daily.bluesky_posted is False
+        assert result.pick_result.daily.bluesky_uri is None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "F"})
     def test_all_games_started_no_prior_pick(self, mock_statuses, tmp_path):
@@ -375,7 +358,7 @@ class TestSelectPick:
         preds = _predictions([{"game_pk": 778899}])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is None
+        assert result.pick_result is None
 
     def test_default_coarse_path_does_not_lookup_detailed_status(self, tmp_path):
         from bts.strategy import select_pick
@@ -387,8 +370,8 @@ class TestSelectPick:
              patch("bts.strategy.get_game_statuses", return_value={778899: "P"}):
             result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is not None
-        assert result.daily.pick.batter_name == "Coarse Path"
+        assert result.pick_result is not None
+        assert result.pick_result.daily.pick.batter_name == "Coarse Path"
 
     def test_strict_detailed_lookup_failure_does_not_use_coarse_statuses(self, tmp_path):
         from bts.strategy import select_pick
@@ -405,7 +388,7 @@ class TestSelectPick:
                 require_detailed_statuses=True,
             )
 
-        assert result is None
+        assert result.pick_result is None
         mock_coarse.assert_not_called()
 
     def test_strict_detailed_lookup_failure_locks_existing_pick(self, tmp_path):
@@ -434,9 +417,9 @@ class TestSelectPick:
                 require_detailed_statuses=True,
             )
 
-        assert result is not None
-        assert result.locked is True
-        assert result.daily.pick.batter_name == "Conservative Existing"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is True
+        assert result.pick_result.daily.pick.batter_name == "Conservative Existing"
         mock_coarse.assert_not_called()
 
     @pytest.mark.parametrize("detailed", ["Postponed", "Cancelled", "Canceled"])
@@ -459,9 +442,9 @@ class TestSelectPick:
             },
         )
 
-        assert result is not None
-        assert result.locked is False
-        assert result.daily.pick.batter_name == "Fresh Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
 
     def test_detailed_missing_candidate_excluded(self, tmp_path):
         from bts.strategy import select_pick
@@ -479,9 +462,9 @@ class TestSelectPick:
             },
         )
 
-        assert result is not None
-        assert result.locked is False
-        assert result.daily.pick.batter_name == "Fresh Pick"
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Fresh Pick"
 
     def test_detailed_preview_candidates_match_coarse_selection(self, tmp_path):
         from bts.strategy import select_pick
@@ -505,12 +488,12 @@ class TestSelectPick:
             game_statuses_detailed=detailed_statuses,
         )
 
-        assert coarse_result is not None
-        assert detailed_result is not None
-        assert detailed_result.daily.pick.batter_name == coarse_result.daily.pick.batter_name
-        assert detailed_result.daily.double_down is not None
-        assert coarse_result.daily.double_down is not None
-        assert detailed_result.daily.double_down.batter_name == coarse_result.daily.double_down.batter_name
+        assert coarse_result.pick_result is not None
+        assert detailed_result.pick_result is not None
+        assert detailed_result.pick_result.daily.pick.batter_name == coarse_result.pick_result.daily.pick.batter_name
+        assert detailed_result.pick_result.daily.double_down is not None
+        assert coarse_result.pick_result.daily.double_down is not None
+        assert detailed_result.pick_result.daily.double_down.batter_name == coarse_result.pick_result.daily.double_down.batter_name
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_runner_up_populated(self, mock_statuses, tmp_path):
@@ -522,8 +505,8 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.daily.runner_up is not None
-        assert result.daily.runner_up["batter_name"] == "Mangum"
+        assert result.pick_result.daily.runner_up is not None
+        assert result.pick_result.daily.runner_up["batter_name"] == "Mangum"
 
     @patch("bts.strategy.get_game_statuses", return_value={
         778899: "P", 778900: "P", 778901: "P", 778902: "P",
@@ -544,7 +527,7 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result.daily.pick.batter_name == "Early Star"
+        assert result.pick_result.daily.pick.batter_name == "Early Star"
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_skip_below_threshold(self, mock_statuses, tmp_path):
@@ -556,7 +539,7 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is None
+        assert result.pick_result is None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_no_double_during_sprint(self, mock_statuses, tmp_path):
@@ -570,8 +553,8 @@ class TestSelectPick:
         # P(both) = 0.748 > any normal threshold, but sprint = no doubling
         result = select_pick(preds, "2026-04-01", tmp_path, streak=50)
 
-        assert result is not None
-        assert result.daily.double_down is None
+        assert result.pick_result is not None
+        assert result.pick_result.daily.double_down is None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_double_during_lockdown(self, mock_statuses, tmp_path):
@@ -585,7 +568,7 @@ class TestSelectPick:
         # P(both) = 0.697 > 0.65 lockdown threshold
         result = select_pick(preds, "2026-04-01", tmp_path, streak=35)
 
-        assert result.daily.double_down is not None
+        assert result.pick_result.daily.double_down is not None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
     def test_allow_double_false_downgrades_to_single(self, mock_statuses, tmp_path):
@@ -598,9 +581,9 @@ class TestSelectPick:
         ])
         result = select_pick(preds, "2026-04-01", tmp_path, allow_double=False)
 
-        assert result is not None
-        assert result.daily.pick.batter_name == "Wilson"
-        assert result.daily.double_down is None
+        assert result.pick_result is not None
+        assert result.pick_result.daily.pick.batter_name == "Wilson"
+        assert result.pick_result.daily.double_down is None
 
     @patch("bts.strategy.get_game_statuses", return_value={778899: "P"})
     def test_empty_predictions(self, mock_statuses, tmp_path):
@@ -609,7 +592,7 @@ class TestSelectPick:
         preds = pd.DataFrame()
         result = select_pick(preds, "2026-04-01", tmp_path)
 
-        assert result is None
+        assert result.pick_result is None
 
 
 class TestShouldLock:
@@ -671,8 +654,8 @@ def test_no_double_for_same_game_mixed_type_game_pk(mock_statuses, tmp_path):
     ])
     result = select_pick(preds, "2026-04-01", tmp_path)
 
-    assert result.daily.double_down is None
-    assert result.daily.runner_up is None
+    assert result.pick_result.daily.double_down is None
+    assert result.pick_result.daily.runner_up is None
 
 
 @patch("bts.strategy._mdp_action_from", return_value="double")
@@ -688,9 +671,9 @@ def test_mdp_double_with_single_game_yields_safe_single(mock_statuses, mock_mdp,
     ])
     result = select_pick(preds, "2026-04-01", tmp_path)
 
-    assert result is not None
-    assert result.daily.pick.batter_name == "Solo"
-    assert result.daily.double_down is None
+    assert result.pick_result is not None
+    assert result.pick_result.daily.pick.batter_name == "Solo"
+    assert result.pick_result.daily.double_down is None
 
 
 @patch("bts.strategy.get_game_statuses", return_value={778899: "P", 778900: "P"})
@@ -704,5 +687,5 @@ def test_double_down_still_works_for_genuinely_different_games(mock_statuses, tm
     ])
     result = select_pick(preds, "2026-04-01", tmp_path)
 
-    assert result.daily.double_down is not None
-    assert result.daily.double_down.batter_name == "Mangum"
+    assert result.pick_result.daily.double_down is not None
+    assert result.pick_result.daily.double_down.batter_name == "Mangum"
