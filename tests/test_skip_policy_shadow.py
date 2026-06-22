@@ -1,20 +1,18 @@
 """Tests for the skip-policy shadow logger (bts/skip_policy_shadow.py).
 
-Ground truth is a decision MARKER the live pick path writes at each genuine MDP skip
-(`record_mdp_skip_decision`, from strategy.select_pick), recording the EXECUTABLE declined
-candidate. The shadow reads markers, logs the counterfactual "pick-the-band" single, and
-reconciles the realized outcome — accumulating the band hit rate vs the ~0.744 breakeven
-(docs/audit/2026-06-20-skip-policy-shadow.md). Pure logic + injected hit checker; no MLB API.
+Ground truth is `decision.json` (bts_daily_decision_v1) written by the scheduler at each
+genuine MDP skip (action="skip", source="mdp"). The shadow reads those records, logs the
+counterfactual "pick-the-band" single, and reconciles the realized outcome — accumulating the
+band hit rate vs the ~0.744 breakeven (docs/audit/2026-06-20-skip-policy-shadow.md).
+Pure logic + injected hit checker; no MLB API.
 """
 import json
 from datetime import datetime, timezone
 
+from bts.daily_decision import write_decision
 from bts.skip_policy_shadow import (
-    record_mdp_skip_decision,
-    load_skip_decision,
-    skip_decision_path,
     build_divergent_record,
-    record_skip_from_marker,
+    record_skip_from_decision,
     record_pending_skips,
     prune_superseded,
     reconcile_decision,
@@ -32,29 +30,17 @@ def _cand(bid=1, p=0.78, *, name="Batter", team="NYM", game_pk=100, pitcher="Pit
             "game_pk": game_pk, "pitcher_name": pitcher, "p_game_hit": p}
 
 
-# ---- decision marker (the cascade-written ground-truth seam) ----
-
-def test_record_and_load_skip_marker(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10,
-                             saver_available=True, now=datetime(2026, 6, 18, tzinfo=UTC))
-    assert skip_decision_path("2026-06-18", tmp_path).exists()
-    m = load_skip_decision("2026-06-18", tmp_path)
-    assert m["schema_version"] == "bts_mdp_skip_decision_v1"
-    assert m["action"] == "skip"
-    assert m["streak"] == 10
-    assert m["candidate"]["batter_id"] == 1
-    assert m["candidate"]["p_game_hit"] == 0.75
+def _write_mdp_skip(date, tmp_path, bid=1, p=0.75, streak=10):
+    """Helper: write an MDP skip decision.json for a date."""
+    write_decision(date, tmp_path, action="skip", source="mdp", primary=_cand(bid, p),
+                   streak=streak, delivery_status="not_applicable", scoreable=False)
 
 
-def test_load_skip_marker_missing_is_none(tmp_path):
-    assert load_skip_decision("2026-01-01", tmp_path) is None
+# ---- build_divergent_record ----
 
-
-# ---- build_divergent_record / record_skip_from_marker ----
-
-def test_build_divergent_record_uses_marker_candidate():
-    marker = {"candidate": _cand(7, 0.74, name="Arraez"), "streak": 10, "saver_available": True}
-    r = build_divergent_record("2026-06-19", marker)
+def test_build_divergent_record_uses_decision_primary():
+    dec = {"primary": _cand(7, 0.74, name="Arraez"), "streak": 10, "saver_available": True}
+    r = build_divergent_record("2026-06-19", dec)
     assert r["deployed_action"] == "skip"
     assert r["shadow_action"] == "single"
     assert r["divergent"] is True
@@ -63,9 +49,32 @@ def test_build_divergent_record_uses_marker_candidate():
     assert r["shadow_pick_result"] is None
 
 
-def test_record_skip_from_marker_writes_decision(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    rec = record_skip_from_marker("2026-06-18", tmp_path)
+# ---- record_skip_from_decision ----
+
+def test_records_mdp_skip_decision(tmp_path):
+    write_decision("2026-06-18", tmp_path, action="skip", source="mdp", primary=_cand(1, 0.75),
+                   streak=10, delivery_status="not_applicable", scoreable=False)
+    rec = record_skip_from_decision("2026-06-18", tmp_path)
+    assert rec is not None and rec["divergent"] is True and rec["rank1"]["batter_id"] == 1
+
+
+def test_ignores_pick_and_heuristic_skip(tmp_path):
+    write_decision("2026-06-19", tmp_path, action="single", source="mdp", primary=_cand(),
+                   delivery_status="delivered", scoreable=True)
+    assert record_skip_from_decision("2026-06-19", tmp_path) is None
+    write_decision("2026-06-20", tmp_path, action="skip", source="heuristic", primary=_cand(),
+                   delivery_status="not_applicable", scoreable=False)
+    assert record_skip_from_decision("2026-06-20", tmp_path) is None
+
+
+def test_record_skip_from_decision_none_without_decision(tmp_path):
+    assert record_skip_from_decision("2026-06-18", tmp_path) is None
+    assert not decision_path("2026-06-18", tmp_path).exists()
+
+
+def test_record_skip_from_decision_writes_shadow_record(tmp_path):
+    _write_mdp_skip("2026-06-18", tmp_path, bid=1, p=0.75, streak=10)
+    rec = record_skip_from_decision("2026-06-18", tmp_path)
     assert rec is not None
     saved = json.loads(decision_path("2026-06-18", tmp_path).read_text())
     assert saved["divergent"] is True
@@ -73,72 +82,49 @@ def test_record_skip_from_marker_writes_decision(tmp_path):
     assert saved["schema_version"] == "bts_skip_policy_shadow_v1"
 
 
-def test_record_skip_from_marker_none_without_marker(tmp_path):
-    assert record_skip_from_marker("2026-06-18", tmp_path) is None
-    assert not decision_path("2026-06-18", tmp_path).exists()
-
-
-def _daily():
-    """A minimal DailyPick-like object (has a pick); delivery is decided by the injected delivered_fn."""
-    return type("D", (), {"pick": object(), "double_down": None})()
-
-
-def test_skip_dropped_when_pick_delivered(tmp_path):
-    # marker present, but production DURABLY DELIVERED a pick -> final = pick -> not a divergence.
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    rec = record_skip_from_marker("2026-06-18", tmp_path,
-                                  pick_loader=lambda d, p: _daily(), delivered_fn=lambda daily: True)
-    assert rec is None
-    assert not decision_path("2026-06-18", tmp_path).exists()
-
-
-def test_skip_recorded_when_pick_not_delivered(tmp_path):
-    # an UNDELIVERED (preview/provisional) pick file exists, but it was never delivered -> skip wins.
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    rec = record_skip_from_marker("2026-06-18", tmp_path,
-                                  pick_loader=lambda d, p: _daily(), delivered_fn=lambda daily: False)
-    assert rec is not None
-    assert decision_path("2026-06-18", tmp_path).exists()
-
-
-def test_record_skip_from_marker_idempotent_preserves_resolved(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    record_skip_from_marker("2026-06-18", tmp_path)
+def test_record_skip_from_decision_idempotent_preserves_resolved(tmp_path):
+    _write_mdp_skip("2026-06-18", tmp_path)
+    record_skip_from_decision("2026-06-18", tmp_path)
     p = decision_path("2026-06-18", tmp_path)
     rec = json.loads(p.read_text()); rec["shadow_pick_result"] = "hit"; p.write_text(json.dumps(rec))
-    assert record_skip_from_marker("2026-06-18", tmp_path) is None       # don't clobber
+    assert record_skip_from_decision("2026-06-18", tmp_path) is None       # don't clobber
     assert json.loads(p.read_text())["shadow_pick_result"] == "hit"
 
 
-def test_prune_removes_when_pick_delivered(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    record_skip_from_marker("2026-06-18", tmp_path)                      # recorded (nothing delivered yet)
-    removed = prune_superseded(tmp_path, pick_loader=lambda d, p: _daily(), delivered_fn=lambda daily: True)
-    assert removed == ["2026-06-18"]
+# ---- prune_superseded ----
+
+def test_prune_drops_record_when_decision_no_longer_mdp_skip(tmp_path):
+    write_decision("2026-06-18", tmp_path, action="skip", source="mdp", primary=_cand(),
+                   delivery_status="not_applicable", scoreable=False)
+    record_skip_from_decision("2026-06-18", tmp_path)
+    # decision flips to a committed pick (e.g. late delivery)
+    write_decision("2026-06-18", tmp_path, action="single", source="mdp", primary=_cand(),
+                   delivery_status="delivered", scoreable=True)
+    assert prune_superseded(tmp_path) == ["2026-06-18"]
     assert not decision_path("2026-06-18", tmp_path).exists()
 
 
-def test_prune_keeps_when_pick_not_delivered(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    record_skip_from_marker("2026-06-18", tmp_path)
-    kept = prune_superseded(tmp_path, pick_loader=lambda d, p: _daily(), delivered_fn=lambda daily: False)
+def test_prune_keeps_genuine_mdp_skip(tmp_path):
+    _write_mdp_skip("2026-06-18", tmp_path)
+    record_skip_from_decision("2026-06-18", tmp_path)
+    kept = prune_superseded(tmp_path)
     assert kept == []
     assert decision_path("2026-06-18", tmp_path).exists()
 
 
-# ---- record_pending_skips (backfill from markers) ----
+# ---- record_pending_skips ----
 
 def test_record_pending_skips_records_only_missing_in_window(tmp_path):
-    record_mdp_skip_decision("2026-06-17", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(2, 0.78), streak=10)
-    record_skip_from_marker("2026-06-18", tmp_path)          # 06-18 already recorded
+    _write_mdp_skip("2026-06-17", tmp_path, bid=1)
+    _write_mdp_skip("2026-06-18", tmp_path, bid=2)
+    record_skip_from_decision("2026-06-18", tmp_path)          # 06-18 already recorded
     recorded = record_pending_skips(tmp_path, lookback_days=10, now=datetime(2026, 6, 18, tzinfo=UTC))
     assert recorded == ["2026-06-17"]
     assert decision_path("2026-06-17", tmp_path).exists()
 
 
 def test_record_pending_skips_respects_lookback(tmp_path):
-    record_mdp_skip_decision("2026-05-01", tmp_path, candidate=_cand(1, 0.75), streak=10)
+    _write_mdp_skip("2026-05-01", tmp_path, bid=1)
     recorded = record_pending_skips(tmp_path, lookback_days=10, now=datetime(2026, 6, 18, tzinfo=UTC))
     assert recorded == []                                    # too old
     assert not decision_path("2026-05-01", tmp_path).exists()
@@ -196,10 +182,10 @@ def test_reconcile_transient_error_recent_stays_pending():
 
 
 def test_reconcile_pending_continues_on_error(tmp_path):
-    record_mdp_skip_decision("2026-06-17", tmp_path, candidate=_cand(1, 0.75), streak=10)
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(2, 0.78), streak=10)
-    record_skip_from_marker("2026-06-17", tmp_path)
-    record_skip_from_marker("2026-06-18", tmp_path)
+    _write_mdp_skip("2026-06-17", tmp_path, bid=1)
+    _write_mdp_skip("2026-06-18", tmp_path, bid=2)
+    record_skip_from_decision("2026-06-17", tmp_path)
+    record_skip_from_decision("2026-06-18", tmp_path)
 
     def flaky(r1):
         if r1["batter_id"] == 1:
@@ -241,11 +227,12 @@ def test_verdict_insufficient_then_below_then_above():
                                            )["shadow_band_hit_rate"]["verdict"] == "above_breakeven"
 
 
-# ---- end-to-end: cascade marker -> record -> reconcile -> status ----
+# ---- end-to-end: decision.json -> record -> reconcile -> status ----
 
-def test_end_to_end_marker_to_status(tmp_path):
-    record_mdp_skip_decision("2026-06-18", tmp_path, candidate=_cand(1, 0.75), streak=10,
-                             now=datetime(2026, 6, 18, tzinfo=UTC))
+def test_end_to_end_decision_to_status(tmp_path):
+    write_decision("2026-06-18", tmp_path, action="skip", source="mdp", primary=_cand(1, 0.75),
+                   streak=10, delivery_status="not_applicable", scoreable=False,
+                   now=datetime(2026, 6, 18, tzinfo=UTC))
     record_pending_skips(tmp_path, lookback_days=10, now=datetime(2026, 6, 19, tzinfo=UTC))
     reconcile_pending(tmp_path, hit_checker=lambda r1: "miss", now=datetime(2026, 6, 19, tzinfo=UTC))
     out = tmp_path / "status.json"

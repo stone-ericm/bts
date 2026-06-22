@@ -2159,13 +2159,13 @@ def shadow_status(picks_dir: str, output: str | None, min_days: int):
 @click.option("--date", default=None, help="Single decision date YYYY-MM-DD (else recent markers)")
 @click.option("--no-reconcile", is_flag=True, help="Skip realized-outcome reconciliation")
 def skip_policy_shadow_update(picks_dir, status_output, date, no_reconcile):
-    """Record shadow entries from MDP skip markers, reconcile outcomes, refresh status.
+    """Record shadow entries from MDP skips in decision.json, reconcile outcomes, refresh status.
 
-    Counterfactual SHADOW POLICY (docs/audit/2026-06-20-skip-policy-shadow.md): the live pick path
-    writes a marker (`<date>/skip_decision.json`) at each genuine MDP skip with the executable
-    declined candidate; this reads those markers, logs what taking the single would have done, and
-    reconciles the realized hit — accumulating the live band hit rate vs the calibrated ~0.744
-    breakeven to settle whether the skip rule costs streaks. Run nightly from cron.
+    Counterfactual SHADOW POLICY (docs/audit/2026-06-20-skip-policy-shadow.md): the scheduler
+    writes `<date>/decision.json` (action=skip, source=mdp) at each genuine MDP skip; this reads
+    those records, logs what taking the single would have done, and reconciles the realized hit —
+    accumulating the live band hit rate vs the calibrated ~0.744 breakeven to settle whether the
+    streak>=8 skip rule costs streaks. Run nightly from cron.
     """
     from datetime import datetime, timezone
     from bts.shadow_eval import _current_git_commit
@@ -2174,14 +2174,14 @@ def skip_policy_shadow_update(picks_dir, status_output, date, no_reconcile):
     picks_path = Path(picks_dir)
     now = datetime.now(timezone.utc)
 
-    pruned = sps.prune_superseded(picks_path)   # drop provisional skips that were later picked
+    pruned = sps.prune_superseded(picks_path)   # drop superseded skips (decision.json flipped to pick)
     if pruned:
         click.echo(f"Pruned {len(pruned)} superseded record(s): {', '.join(pruned)}")
 
     if date:
-        rec = sps.record_skip_from_marker(date, picks_path, now=now)
+        rec = sps.record_skip_from_decision(date, picks_path, now=now)
         if rec is None:
-            click.echo(f"{date}: no MDP skip marker (production picked, or no decision); nothing to record.")
+            click.echo(f"{date}: no MDP skip in decision.json (production picked, or no decision); nothing to record.")
         else:
             click.echo(f"Recorded {date}: deployed=skip shadow=single (divergent)")
     else:

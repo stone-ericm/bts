@@ -6,18 +6,14 @@ That boundary was fit on an ACTUAL-PA probability scale but production serves lo
 probabilities, so almost every top pick collapses below it and gets skipped. A calibrated
 estimated-PA re-solve put the true breakeven at ~0.744, and the skipped candidates' realized hit
 rate straddles it — so backtest could not settle whether the skip rule is +EV. Only live data can.
-This shadow accumulates it: when production records a genuine MDP skip, the shadow logs what taking
-the single would have done and reconciles the realized outcome, comparing the accumulating hit rate
-to the 0.744 breakeven.
+This shadow accumulates it: when the scheduler records a genuine MDP skip in `decision.json`,
+the shadow reads that record, logs what taking the single would have done, and reconciles the
+realized outcome, comparing the accumulating hit rate to the 0.744 breakeven.
 
-GROUND TRUTH via a decision marker (NOT reconstruction). The faithful signal — "the MDP evaluated
-an EXECUTABLE candidate and chose to skip it" — is not recoverable from saved slates / pick files /
-skip_summary (4 review rounds confirmed: select_pick returns None for no-eligible / status-failure
-too, the policy's skip region is state-dependent, and the saved slate is pre-filter). So the live
-pick path writes a small marker AT the skip decision (`record_mdp_skip_decision`, called from
-strategy.select_pick on action=="skip", best-effort/never-raises, not on the shadow-model path),
-recording the actual action + the EXECUTABLE declined candidate. The shadow reads that marker. This
-is a minimal additive write to the cascade — it records, it does not change any pick.
+GROUND TRUTH via `decision.json` (NOT a separate marker). The scheduler writes
+`data/picks/<date>/decision.json` (bts_daily_decision_v1) at each finalization point; when
+`action=="skip"` and `source=="mdp"` that is the authoritative "MDP evaluated an EXECUTABLE
+candidate and chose to skip it" signal. The shadow reads genuine MDP skips directly from there.
 
 This is a SHADOW POLICY, not a shadow model (cf. shadow_eval.py). Pure logic + injected deps
 (hit checker) so tests need no MLB API.
@@ -33,7 +29,6 @@ from bts.util import atomic_write_text
 
 DECISION_SCHEMA = "bts_skip_policy_shadow_v1"
 STATUS_SCHEMA = "bts_skip_policy_shadow_status_v1"
-SKIP_DECISION_SCHEMA = "bts_mdp_skip_decision_v1"  # the cascade-written marker
 
 # Calibrated estimated-PA breakeven for the streak>=8 pick-vs-skip decision (the candidate
 # true hit-prob at which Q(single)==Q(skip)); robust ~0.742-0.752 across boundaries/horizons.
@@ -64,46 +59,6 @@ def _utc_iso(now: datetime | None = None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Cascade-written decision marker (the ground-truth seam). record_mdp_skip_decision is called
-# from strategy.select_pick the moment the MDP chooses to skip; everything else here READS it.
-# ---------------------------------------------------------------------------
-
-def skip_decision_path(date: str, picks_dir) -> Path:
-    return Path(picks_dir) / date / "skip_decision.json"
-
-
-def record_mdp_skip_decision(date: str, picks_dir, *, candidate: dict, streak=None,
-                             saver_available=None, now=None) -> None:
-    """Persist the genuine MDP skip + the EXECUTABLE candidate it declined.
-
-    Called by the live pick path ONLY when ``decide_action`` returned "skip" (never on the
-    shadow-model path). Best-effort: the caller wraps it so production is never affected.
-    """
-    record = {
-        "schema_version": SKIP_DECISION_SCHEMA,
-        "date": date,
-        "action": "skip",
-        "streak": streak,
-        "saver_available": (None if saver_available is None else bool(saver_available)),
-        "candidate": {k: candidate.get(k) for k in _RANK_FIELDS},
-        "recorded_at": _utc_iso(now),
-    }
-    path = skip_decision_path(date, picks_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_text(path, json.dumps(record, indent=2))
-
-
-def load_skip_decision(date: str, picks_dir) -> dict | None:
-    path = skip_decision_path(date, picks_dir)
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
-
-
-# ---------------------------------------------------------------------------
 # Shadow decision records (one per genuine skip day): {date}.policy_shadow.json
 # ---------------------------------------------------------------------------
 
@@ -111,10 +66,10 @@ def decision_path(date: str, picks_dir) -> Path:
     return Path(picks_dir) / f"{date}.policy_shadow.json"
 
 
-def build_divergent_record(date: str, marker: dict, *, now=None) -> dict:
+def build_divergent_record(date: str, dec: dict, *, now=None) -> dict:
     """A skip day = a divergence: deployed skipped, the pick-the-band shadow takes the single on
-    the exact candidate the MDP declined (from the marker)."""
-    cand = marker.get("candidate") or {}
+    the exact candidate from the authoritative decision.json record."""
+    cand = dec.get("primary") or {}
     return {
         "schema_version": DECISION_SCHEMA,
         "date": date,
@@ -122,63 +77,43 @@ def build_divergent_record(date: str, marker: dict, *, now=None) -> dict:
         "deployed_action": "skip",
         "shadow_action": "single",
         "divergent": True,
-        "streak": marker.get("streak"),
-        "saver_available": marker.get("saver_available"),
+        "streak": dec.get("streak"),
+        "saver_available": dec.get("saver_available"),
         "rank1": {k: cand.get(k) for k in _RANK_FIELDS},
         "shadow_pick_result": None,  # filled by reconcile_decision
     }
 
 
-def _final_decision(date: str, picks_dir, *, pick_loader=None, delivered_fn=None) -> str | None:
-    """The day's FINAL production decision: 'pick', 'skip', or None (neither).
-
-    Authoritative signal = `picks.pick_was_delivered` — was a pick DURABLY DELIVERED to a human
-    (posted / DM'd)? Both the `<date>.json` pick file and the skip marker are PROVISIONAL —
-    `bts preview` pre-writes the pick file, the scheduler saves candidates pre-lock, the fallback
-    re-delivers a cached pick (stale run_time), and the marker is overwritten — so mere existence
-    is not authoritative. A delivered pick is production's final action; otherwise a skip marker
-    means a genuine MDP skip. (Prod runs public/DM delivery, so a real final pick sets the
-    pick_was_delivered fields; a private/local-only lock is intentionally not "delivered".)
-    """
-    if pick_loader is None:
-        from bts.picks import load_pick
-        pick_loader = load_pick
-    if delivered_fn is None:
-        from bts.picks import pick_was_delivered
-        delivered_fn = pick_was_delivered
-    daily = pick_loader(date, Path(picks_dir))
-    if daily is not None and getattr(daily, "pick", None) is not None and delivered_fn(daily):
-        return "pick"
-    if load_skip_decision(date, picks_dir):
-        return "skip"
-    return None
-
-
-def record_skip_from_marker(date: str, picks_dir, *, now=None, pick_loader=None, delivered_fn=None) -> dict | None:
-    """Write {date}.policy_shadow.json from the cascade's skip marker.
+def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
+    """Write {date}.policy_shadow.json from the authoritative decision.json.
 
     Returns None (writes nothing) if: a record already exists (idempotent — never clobber a
-    reconciled outcome); or the day's FINAL decision was not a skip (production durably DELIVERED a
-    pick — the authoritative signal, since the pick file and marker are both provisional).
+    reconciled outcome); or the day's decision.json is not an MDP skip
+    (action!="skip" or source!="mdp").
     """
+    from bts.daily_decision import load_decision
     if decision_path(date, picks_dir).exists():
         return None
-    if _final_decision(date, picks_dir, pick_loader=pick_loader, delivered_fn=delivered_fn) != "skip":
+    dec = load_decision(date, picks_dir)
+    if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
         return None
-    record = build_divergent_record(date, load_skip_decision(date, picks_dir), now=now)
-    path = decision_path(date, picks_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_text(path, json.dumps(record, indent=2))
+    record = build_divergent_record(date, dec, now=now)
+    atomic_write_text(decision_path(date, picks_dir), json.dumps(record, indent=2))
     return record
 
 
-def prune_superseded(picks_dir, *, pick_loader=None, delivered_fn=None) -> list[str]:
-    """Delete any policy_shadow record whose date's FINAL decision was NOT a skip — a provisional
-    skip later superseded by a DELIVERED pick. Returns the removed dates."""
+def prune_superseded(picks_dir) -> list[str]:
+    """Delete any policy_shadow record whose date's decision.json is no longer an MDP skip.
+
+    Handles the case where a provisional skip was later superseded by a committed pick written
+    to decision.json (e.g. late delivery after a fallback). Returns the removed dates.
+    """
+    from bts.daily_decision import load_decision
     removed = []
     for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
         date = f.name[: -len(".policy_shadow.json")]
-        if _final_decision(date, picks_dir, pick_loader=pick_loader, delivered_fn=delivered_fn) != "skip":
+        dec = load_decision(date, picks_dir)
+        if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
             try:
                 f.unlink()
                 removed.append(date)
@@ -187,17 +122,16 @@ def prune_superseded(picks_dir, *, pick_loader=None, delivered_fn=None) -> list[
     return removed
 
 
-def record_pending_skips(picks_dir, *, lookback_days: int = 10, now=None, pick_loader=None,
-                         delivered_fn=None) -> list[str]:
-    """Record a shadow entry for every recent skip marker that lacks one (cron-outage safety).
+def record_pending_skips(picks_dir, *, lookback_days: int = 10, now=None) -> list[str]:
+    """Record a shadow entry for every recent MDP skip in decision.json that lacks one.
 
-    record_skip_from_marker enforces idempotency + pick-precedence, so a marker on a date that was
-    ultimately a pick is never recorded.
+    Iterates data/picks/*/decision.json; record_skip_from_decision enforces idempotency and
+    filters non-MDP-skips, so only genuine gaps are filled (cron-outage safety).
     """
     now = now or datetime.now(timezone.utc)
     recorded = []
-    for marker_path in sorted(Path(picks_dir).glob("*/skip_decision.json")):
-        date = marker_path.parent.name
+    for dec_path in sorted(Path(picks_dir).glob("*/decision.json")):
+        date = dec_path.parent.name
         try:
             d = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
@@ -205,8 +139,7 @@ def record_pending_skips(picks_dir, *, lookback_days: int = 10, now=None, pick_l
         age = (now - d).days
         if age < 0 or age > lookback_days:
             continue
-        if record_skip_from_marker(date, picks_dir, now=now, pick_loader=pick_loader,
-                                   delivered_fn=delivered_fn) is not None:
+        if record_skip_from_decision(date, picks_dir, now=now) is not None:
             recorded.append(date)
     return recorded
 
@@ -321,14 +254,14 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
         "initiative": {
             "name": "skip_policy_shadow_v1",
             "description": (
-                "Counterfactual 'pick-the-band' shadow. The live pick path records a marker at each "
-                "genuine MDP skip (the executable declined candidate); this accumulates the realized "
-                "hit rate of those candidates vs the calibrated breakeven (~0.744) to settle whether "
-                "the streak>=8 skip rule is +EV on the production scale."
+                "Counterfactual 'pick-the-band' shadow. The scheduler writes decision.json at each "
+                "genuine MDP skip (action=skip, source=mdp); this accumulates the realized hit rate "
+                "of those candidates vs the calibrated breakeven (~0.744) to settle whether the "
+                "streak>=8 skip rule is +EV on the production scale."
             ),
-            "activation_config": "nightly cron: bts skip-policy-shadow-update (+ select_pick writes the marker)",
+            "activation_config": "nightly cron: bts skip-policy-shadow-update (reads decision.json)",
             "decision_file_pattern": "*.policy_shadow.json",
-            "skip_marker_pattern": "<date>/skip_decision.json",
+            "decision_json_pattern": "<date>/decision.json (action=skip, source=mdp)",
             "breakeven_p": breakeven_p,
             "min_divergent_days_for_readout": min_divergent_days,
             "design_doc": "docs/audit/2026-06-20-skip-policy-shadow.md",
@@ -365,7 +298,7 @@ def write_status(picks_dir, status_path, *, breakeven_p=BREAKEVEN_P,
 
 
 def make_hit_checker():
-    """Realized-outcome callable backed by the MLB Stats API (game_pk is reliable in the marker).
+    """Realized-outcome callable backed by the MLB Stats API (game_pk is reliable in decision.json).
 
     Returns 'hit'/'miss', or None when not resolvable yet (game not final / batter not found) so
     the record stays pending and is retried — NOT voided immediately.
