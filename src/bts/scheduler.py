@@ -336,6 +336,34 @@ class FallbackRefreshResult:
     selection: "SelectionResult | None" = None
 
 
+def _refresh_is_genuine_skip(refresh: "FallbackRefreshResult") -> bool:
+    """True iff a fallback refresh resolved to a genuine MDP skip (D4 / C1).
+
+    A genuine skip (action=="skip", source=="mdp") must SUPPRESS delivery of the
+    cached preview. It is distinct from a cascade error / no-predictions
+    (selection is None), which keep the safety-net "deliver cached" — so the
+    None-selection paths are deliberately NOT genuine skips here.
+    """
+    sel = refresh.selection
+    return sel is not None and sel.action == "skip" and sel.source == "mdp"
+
+
+def _capture_fallback_skip(state: "SchedulerState", refresh: "FallbackRefreshResult") -> None:
+    """Set the EOD skip candidate from a fallback-confirmed genuine skip (D4 / Codex r2).
+
+    On the projected→real flip the earlier projected-PICK cycle already CLEARED
+    final_skip_candidate, and the skip may surface ONLY in the fallback (never via
+    run_single_check's set path), so the fallback must re-capture it here for
+    _write_endofday_skip. Shape mirrors the run_single_check skip-set path.
+    """
+    sel = refresh.selection
+    state.final_skip_candidate = {
+        "primary": sel.primary_candidate,
+        "streak": sel.streak,
+        "saver_available": sel.saver_available,
+    }
+
+
 def _row_from_daily(pick) -> dict | None:
     """Map a Pick (or None) to the candidate dict shape ``_row_to_candidate``
     produces, so commit/classification records match the skip-path records."""
@@ -1412,7 +1440,11 @@ def _refresh_pick_at_fallback_decision(
     if pick_result is None or pick_result.daily is None:
         print("  FALLBACK REFRESH: no fresh pick available, using cached",
               file=sys.stderr)
-        return FallbackRefreshResult(cached_daily, None)
+        # Carry the selection so the caller can distinguish a genuine MDP skip
+        # (sel.action=="skip") — which must SUPPRESS delivery (C1 / GH #144) —
+        # from a no-predictions cascade (sel is None → selection=None), which keeps
+        # the safety-net "deliver cached". The except path above stays selection=None.
+        return FallbackRefreshResult(cached_daily, None, selection=sel)
 
     fresh = pick_result.daily
 
@@ -2048,6 +2080,23 @@ def run_day(
                         _alert_contest_state_failure(config, e)
                         continue
                     daily = refresh.daily
+                    # Honor a STANDING genuine MDP skip (C1 / GH #144): never deliver
+                    # the cached preview on a skip day. "Standing" survives a later
+                    # transient refresh — a confirmed skip captured this/earlier cycle
+                    # (final_skip_candidate set, no commit yet) holds even if THIS
+                    # refresh flaked to selection=None (Codex r3). Capture from the
+                    # freshest genuine skip so EOD records it (the projected→real flip
+                    # cleared the candidate on the earlier pick cycle).
+                    skip_standing = _refresh_is_genuine_skip(refresh) or bool(
+                        state.final_skip_candidate and not state.committed_pick_written
+                    )
+                    if skip_standing:
+                        if _refresh_is_genuine_skip(refresh):
+                            _capture_fallback_skip(state, refresh)
+                        save_state(state, picks_dir)
+                        print("  FALLBACK: standing MDP skip — not delivering cached pick.",
+                              file=sys.stderr)
+                        continue
                     if refresh.should_post is False and has_pending_future_window:
                         archive = _defer_pick_at_fallback(
                             picks_dir,
@@ -2110,12 +2159,31 @@ def run_day(
                     _alert_contest_state_failure(config, e)
                     daily = None
                 else:
-                    print(
-                        f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
-                        file=sys.stderr,
+                    # Honor a STANDING genuine MDP skip (C1 / GH #144). This is the
+                    # post-loop/sequential site — NOT inside a loop — so the no-deliver
+                    # path must fall through (no `continue`) to the subsequent EOD
+                    # steps, which record the captured skip. skip_standing also fires
+                    # when an in-loop fallback already confirmed the skip but THIS
+                    # refresh flaked to selection=None (Codex r3) — never resurrect
+                    # the cached pick. The cascade safety-net (deliver cached) is kept
+                    # only when NOT skip_standing (a genuine PICK day's errored refresh
+                    # leaves final_skip_candidate None).
+                    skip_standing = _refresh_is_genuine_skip(refresh) or bool(
+                        state.final_skip_candidate and not state.committed_pick_written
                     )
-                    _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback",
-                                           selection=refresh.selection)
+                    if skip_standing:
+                        if _refresh_is_genuine_skip(refresh):
+                            _capture_fallback_skip(state, refresh)
+                        save_state(state, picks_dir)
+                        print("  FINAL FALLBACK: standing MDP skip — not delivering cached pick.",
+                              file=sys.stderr)
+                    else:
+                        print(
+                            f"  FALLBACK — {fallback_min}min to first pitch, delivering on projected data.",
+                            file=sys.stderr,
+                        )
+                        _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback",
+                                               selection=refresh.selection)
 
         if state.pick_locked and shadow_model_enabled and daily:
             _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)

@@ -303,3 +303,122 @@ def test_committed_pick_suppresses_endofday_skip(tmp_path, monkeypatch):
     assert d["action"] == "single"      # the commit, not the earlier skip
     assert d["scoreable"] is True
     assert d["delivery_status"] == "delivered"
+
+
+# --- fallback honors a genuine skip (C1 / Task D4) ------------------------
+#
+# These drive the REAL fallback control flow in run_day (run_single_check +
+# _refresh_pick_at_fallback_decision mocked, everything between them under test).
+# A "projected single" cycle (should_post=False, locked=False, pick_result.daily
+# present) leaves the pick unlocked AND clears final_skip_candidate, so the in-loop
+# fallback fires; with the default now_et=23:30 the post-loop fallback fires too.
+
+
+def _projected_single():
+    """A cycle that neither locks nor delivers but CLEARS final_skip_candidate
+    (sel.action=='single') and exposes a pick_result.daily so the in-loop fallback
+    deadline logic engages — the projected→real-flip setup."""
+    return _result(should_post=False, pick_name="Hoerner", pick_p=0.73,
+                   selection=_sel("single", "mdp", primary=_cand()),
+                   pick_result=PickResult(daily=_daily(delivered=False), locked=False))
+
+
+def test_refresh_carries_selection_on_genuine_skip(tmp_path, monkeypatch):
+    """The function change: _refresh_pick_at_fallback_decision carries the
+    SelectionResult on the no-fresh-pick path, so the caller can tell a genuine MDP
+    skip (selection set) from a cascade/no-predictions (selection None)."""
+    from contextlib import nullcontext
+    skip_sel = _sel("skip", "mdp", primary=_cand(), streak=8, saver=True)  # pick_result=None
+    monkeypatch.setattr(sch, "heartbeat_watchdog", lambda *a, **k: nullcontext())
+    monkeypatch.setattr(sch, "run_and_pick", lambda config, date, **k: (None, skip_sel, "local"))
+    cached = _daily(delivered=False)
+    config = {"orchestrator": {"picks_dir": str(tmp_path), "heartbeat_path": str(tmp_path / ".hb")}}
+    refresh = sch._refresh_pick_at_fallback_decision(config, DATE, cached, 0.03)
+    assert refresh.daily is cached          # no fresh pick → fall back to cached
+    assert refresh.should_post is None
+    assert refresh.selection is skip_sel    # genuine skip carried through
+    assert sch._refresh_is_genuine_skip(refresh) is True
+
+
+def test_refresh_no_predictions_is_not_genuine_skip(tmp_path, monkeypatch):
+    """Safety-net distinction: when run_and_pick yields no selection (no-predictions
+    cascade), selection stays None and _refresh_is_genuine_skip is False — the
+    fallback still delivers the cached pick."""
+    from contextlib import nullcontext
+    monkeypatch.setattr(sch, "heartbeat_watchdog", lambda *a, **k: nullcontext())
+    monkeypatch.setattr(sch, "run_and_pick", lambda config, date, **k: (None, None, "local"))
+    cached = _daily(delivered=False)
+    config = {"orchestrator": {"picks_dir": str(tmp_path), "heartbeat_path": str(tmp_path / ".hb")}}
+    refresh = sch._refresh_pick_at_fallback_decision(config, DATE, cached, 0.03)
+    assert refresh.selection is None
+    assert sch._refresh_is_genuine_skip(refresh) is False
+
+
+def test_fallback_genuine_skip_recaptures_after_projected_pick_cleared(tmp_path, monkeypatch):
+    """C1 + Codex r2: cycle 1 is a projected PICK (clears final_skip_candidate). The
+    fallback then re-evaluates to a genuine MDP skip — it must NOT deliver the cached
+    <date>.json, must RE-capture the skip candidate, and EOD must record the skip."""
+    from bts.picks import save_pick, load_pick, pick_was_delivered
+    save_pick(_daily(delivered=False), tmp_path)               # leftover projected preview
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    skip_sel = _sel("skip", "mdp", primary=_cand(), streak=7, saver=False)
+    monkeypatch.setattr(
+        sch, "_refresh_pick_at_fallback_decision",
+        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, None, selection=skip_sel),
+    )
+    _drive_run_day(monkeypatch, tmp_path, _projected_single(), pick_delivery="private")
+
+    cached = load_pick(DATE, tmp_path)
+    assert cached is not None and not pick_was_delivered(cached)   # never delivered
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["action"] == "skip" and d["source"] == "mdp"
+    assert d["scoreable"] is False
+    assert d["streak"] == 7                # re-captured from the fallback selection
+    assert d["saver_available"] is False
+
+
+def test_fallback_cascade_error_still_delivers_cached_safety_net(tmp_path, monkeypatch):
+    """Regression guard: a fallback whose refresh returns selection=None (cascade /
+    no-predictions) on a genuine PICK day (final_skip_candidate None) STILL delivers
+    the cached pick. Only a genuine MDP skip suppresses delivery."""
+    from bts.picks import save_pick
+    save_pick(_daily(delivered=False), tmp_path)
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    monkeypatch.setattr(
+        sch, "_refresh_pick_at_fallback_decision",
+        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, None),  # selection=None
+    )
+    _drive_run_day(monkeypatch, tmp_path, _projected_single(), pick_delivery="private")
+
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["action"] == "single"                 # cached pick committed (safety net intact)
+    assert d["scoreable"] is True
+    assert d["delivery_status"] == "private_locked"
+
+
+def test_standing_skip_survives_post_loop_refresh_flake(tmp_path, monkeypatch):
+    """Codex r3: the in-loop fallback confirms a genuine skip and continues; the
+    post-loop fallback's refresh then FLAKES to selection=None. The standing skip
+    (final_skip_candidate set, no commit) must NOT be resurrected into a delivered
+    cached pick — EOD still records the skip captured in-loop."""
+    from bts.picks import save_pick, load_pick, pick_was_delivered
+    save_pick(_daily(delivered=False), tmp_path)
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    skip_sel = _sel("skip", "mdp", primary=_cand(), streak=9, saver=True)
+    # 1st call (in-loop) → genuine skip; 2nd call (post-loop) → flake (selection=None).
+    refresh_mock = Mock(side_effect=[
+        sch.FallbackRefreshResult(_daily(delivered=False), None, selection=skip_sel),
+        sch.FallbackRefreshResult(_daily(delivered=False), None),
+    ])
+    monkeypatch.setattr(sch, "_refresh_pick_at_fallback_decision", refresh_mock)
+    _drive_run_day(monkeypatch, tmp_path, _projected_single(), pick_delivery="private")
+
+    assert refresh_mock.call_count == 2            # in-loop fired, then post-loop fired
+    cached = load_pick(DATE, tmp_path)
+    assert cached is not None and not pick_was_delivered(cached)   # flake did NOT resurrect it
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["action"] == "skip" and d["scoreable"] is False
+    assert d["streak"] == 9                        # candidate captured in-loop, not lost
