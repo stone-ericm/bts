@@ -56,7 +56,10 @@ def load_decision(date: str, picks_dir) -> dict | None:
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text())
+        rec = json.loads(path.read_text())
+        if not isinstance(rec, dict) or rec.get("schema_version") != DECISION_SCHEMA:
+            return None
+        return rec
     except (json.JSONDecodeError, OSError):
         return None
 

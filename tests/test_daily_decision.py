@@ -57,6 +57,12 @@ def test_load_malformed_json_is_none(tmp_path):
     p.write_text("{not valid json")
     assert load_decision("2026-06-20", tmp_path) is None
 
+def test_load_rejects_wrong_shape(tmp_path):
+    p = decision_path("2026-06-20", tmp_path); p.parent.mkdir(parents=True, exist_ok=True)
+    for bad in ("[]", "\"x\"", "{\"scoreable\": true}"):   # list, string, dict missing schema_version
+        p.write_text(bad)
+        assert load_decision("2026-06-20", tmp_path) is None
+
 def test_double_carries_both_slots(tmp_path):
     write_decision("2026-06-20", tmp_path, action="double", source="mdp",
                    primary=_cand(1), double_down=_cand(2), delivery_status="delivered", scoreable=True)
