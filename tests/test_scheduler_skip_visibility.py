@@ -230,3 +230,61 @@ def test_carry_forward_skip_state_ignores_different_date():
     carry_forward_skip_state(fresh, prev)
     assert fresh.skip_notified_at is None
     assert fresh.skip_summary is None
+
+
+# --- final_skip_candidate / committed_pick_written carry-forward (#3) -------
+# The finalization state now lives on SchedulerState (persisted to
+# scheduler_state.json) so a same-day daemon restart (deploys; Restart=always)
+# after an MDP skip but before end-of-day no longer loses the captured skip.
+
+_SKIP_CAND = {"primary": {"batter_id": 1, "batter_name": "X", "team": "NYM",
+                          "game_pk": 9, "p_game_hit": 0.7},
+              "streak": 10, "saver_available": True}
+
+
+def test_carry_forward_final_skip_candidate_same_date():
+    """A rebuilt same-date SchedulerState inherits the captured MDP-skip candidate
+    (and the committed flag) so the day's finalization survives a restart."""
+    from bts.scheduler import carry_forward_skip_state
+    prev = _state(final_skip_candidate=_SKIP_CAND)
+    fresh = _state()  # restart: finalization fields default to None/False
+    carry_forward_skip_state(fresh, prev)
+    assert fresh.final_skip_candidate == _SKIP_CAND
+    assert fresh.committed_pick_written is False
+
+
+def test_carry_forward_final_skip_candidate_ignores_different_date():
+    from bts.scheduler import carry_forward_skip_state
+    prev = _state(date="2026-06-17", final_skip_candidate=_SKIP_CAND,
+                  committed_pick_written=True)
+    fresh = _state(date="2026-06-18")
+    carry_forward_skip_state(fresh, prev)
+    assert fresh.final_skip_candidate is None
+    assert fresh.committed_pick_written is False
+
+
+def test_carried_forward_skip_candidate_still_writes_endofday_skip(tmp_path):
+    """#3 end-to-end: a same-day restart rebuilds state fresh; the carried-forward
+    candidate must still let _write_endofday_skip record the MDP skip."""
+    from bts.scheduler import carry_forward_skip_state, _write_endofday_skip
+    from bts.daily_decision import load_decision
+    prev = _state(final_skip_candidate=_SKIP_CAND)   # the skip cycle before the restart
+    fresh = _state()
+    carry_forward_skip_state(fresh, prev)
+    _write_endofday_skip(tmp_path, fresh.date, fresh)
+    d = load_decision(fresh.date, tmp_path)
+    assert d is not None and d["action"] == "skip" and d["source"] == "mdp"
+    assert d["scoreable"] is False and d["streak"] == 10
+
+
+def test_carry_forward_committed_pick_written_suppresses_endofday_skip(tmp_path):
+    """A committed pick before a same-day restart carries committed_pick_written
+    forward so the rebuilt state does NOT also write an end-of-day skip."""
+    from bts.scheduler import carry_forward_skip_state, _write_endofday_skip
+    from bts.daily_decision import load_decision
+    prev = _state(final_skip_candidate=_SKIP_CAND, committed_pick_written=True)
+    fresh = _state()
+    carry_forward_skip_state(fresh, prev)
+    assert fresh.committed_pick_written is True
+    _write_endofday_skip(tmp_path, fresh.date, fresh)
+    assert load_decision(fresh.date, tmp_path) is None

@@ -119,7 +119,7 @@ def _drive_run_day(monkeypatch, tmp_path, check_results, *, games=None,
 # --- delivery-branch commit records (real _deliver_and_lock_pick) ----------
 
 def test_public_commit_via_run_day_writes_delivered_scoreable(tmp_path, monkeypatch):
-    """run_day threads fs + selection into _deliver_and_lock_pick; a public post
+    """run_day threads state + selection into _deliver_and_lock_pick; a public post
     records a scoreable 'delivered' decision with the selection's source."""
     sel = _sel("single", "mdp", primary=_cand())
     _drive_run_day(
@@ -138,16 +138,16 @@ def test_public_commit_via_run_day_writes_delivered_scoreable(tmp_path, monkeypa
 
 def test_private_commit_writes_private_locked_scoreable(tmp_path, monkeypatch):
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
-    fs = sch.FinalizationState()
+    st = _state()
     sel = _sel("single", "mdp", primary=_cand())
     config = {"scheduler": {"pick_delivery": "private"}}
-    ok = sch._deliver_and_lock_pick(_daily(), config, tmp_path, _state(), DATE, "test",
-                                    fs=fs, selection=sel)
+    ok = sch._deliver_and_lock_pick(_daily(), config, tmp_path, st, DATE, "test",
+                                    selection=sel)
     assert ok is True
     d = load_decision(DATE, tmp_path)
     assert d["action"] == "single" and d["source"] == "mdp"
     assert d["delivery_status"] == "private_locked" and d["scoreable"] is True
-    assert fs.committed_pick_written is True
+    assert st.committed_pick_written is True
 
 
 def test_crash_guard_writes_locked_unconfirmed_scoreable(tmp_path, monkeypatch):
@@ -155,27 +155,26 @@ def test_crash_guard_writes_locked_unconfirmed_scoreable(tmp_path, monkeypatch):
     DON'T re-send, and record a scoreable 'locked_unconfirmed' decision."""
     posted = []
     monkeypatch.setattr("bts.posting.post_to_bluesky", lambda *a, **k: posted.append(1) or "at://uri")
-    fs = sch.FinalizationState()
+    st = _state()
     sel = _sel("single", "mdp", primary=_cand())
     config = {"scheduler": {"pick_delivery": "public"}}
     ok = sch._deliver_and_lock_pick(_daily(delivery_attempted=True), config, tmp_path,
-                                    _state(), DATE, "test", fs=fs, selection=sel)
+                                    st, DATE, "test", selection=sel)
     assert ok is False
     assert posted == []  # must NOT re-post
     d = load_decision(DATE, tmp_path)
     assert d["delivery_status"] == "locked_unconfirmed" and d["scoreable"] is True
-    assert fs.committed_pick_written is True
+    assert st.committed_pick_written is True
 
 
 def test_double_down_commit_records_action_double(tmp_path, monkeypatch):
     """The recorded action reflects daily.double_down even when selection is present."""
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
-    fs = sch.FinalizationState()
     dd = _pick(bid=2, name="Y", team="KC", gpk=200)
     sel = _sel("double", "mdp", primary=_cand(), double=_cand(bid=2))
     config = {"scheduler": {"pick_delivery": "private"}}
     sch._deliver_and_lock_pick(_daily(double_down=dd), config, tmp_path, _state(), DATE,
-                               "test", fs=fs, selection=sel)
+                               "test", selection=sel)
     d = load_decision(DATE, tmp_path)
     assert d["action"] == "double"
     assert d["double_down"]["batter_id"] == 2

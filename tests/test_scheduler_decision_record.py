@@ -7,48 +7,74 @@ tests/test_scheduler_decision_record_integration.py.
 import json
 from pathlib import Path
 from bts.daily_decision import load_decision
-# Helpers: build a SchedulerState + a SelectionResult; call the small writer helpers the
-# implementation exposes (see Step 3). Tests target the pure decision-writing helpers, NOT the
-# whole daemon loop, to stay fast and deterministic.
+# Helpers: build a SchedulerState (the single finalization object — FinalizationState
+# was dropped); call the small writer helpers the implementation exposes (see Step 3).
+# Tests target the pure decision-writing helpers, NOT the whole daemon loop.
 from bts.scheduler import (_write_commit_decision, _write_classification_decision,
-                           _write_endofday_skip, FinalizationState)
+                           _write_endofday_skip, SchedulerState)
 
 
 def _cand(bid=1, p=0.78):
     return {"batter_id": bid, "batter_name": "X", "team": "NYM", "game_pk": 9, "p_game_hit": p}
 
 
+def _state(date="2026-06-20", **kw):
+    base = dict(
+        date=date, schedule_fetched_at="t", games=[], confirmed_game_pks=[],
+        runs_completed=[], pick_locked=False, pick_locked_at=None,
+        result_status=None, next_wakeup=None,
+    )
+    base.update(kw)
+    return SchedulerState(**base)
+
+
 def test_commit_writes_scoreable_pick(tmp_path):
-    fs = FinalizationState()
+    st = _state()
     _write_commit_decision(tmp_path, "2026-06-20", action="single", source="mdp",
-                           primary=_cand(), double_down=None, delivery_status="delivered", fs=fs)
+                           primary=_cand(), double_down=None, delivery_status="delivered", state=st)
     d = load_decision("2026-06-20", tmp_path)
     assert d["action"] == "single" and d["scoreable"] is True and d["delivery_status"] == "delivered"
-    assert fs.committed_pick_written is True
+    assert st.committed_pick_written is True
 
 
 def test_classification_writes_only_when_delivered(tmp_path):
-    fs = FinalizationState()
+    st = _state(date="2026-06-20")
     # delivered existing pick -> scoreable record
-    _write_classification_decision(tmp_path, "2026-06-20", action="single", delivered=True, double_down=None, primary=_cand(), fs=fs)
-    assert load_decision("2026-06-20", tmp_path)["scoreable"] is True and fs.committed_pick_written
+    _write_classification_decision(tmp_path, "2026-06-20", action="single", delivered=True, double_down=None, primary=_cand(), state=st)
+    assert load_decision("2026-06-20", tmp_path)["scoreable"] is True and st.committed_pick_written
     # NON-delivered (stale preview classified-locked) -> NO record, not committed
-    fs2 = FinalizationState()
-    _write_classification_decision(tmp_path, "2026-06-21", action="single", delivered=False, double_down=None, primary=_cand(), fs=fs2)
-    assert load_decision("2026-06-21", tmp_path) is None and fs2.committed_pick_written is False
+    st2 = _state(date="2026-06-21")
+    _write_classification_decision(tmp_path, "2026-06-21", action="single", delivered=False, double_down=None, primary=_cand(), state=st2)
+    assert load_decision("2026-06-21", tmp_path) is None and st2.committed_pick_written is False
 
 
 def test_endofday_skip_only_when_uncommitted_and_candidate(tmp_path):
-    fs = FinalizationState()
-    fs.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}
-    _write_endofday_skip(tmp_path, "2026-06-20", fs)
+    st = _state(date="2026-06-20")
+    st.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}
+    _write_endofday_skip(tmp_path, "2026-06-20", st)
     d = load_decision("2026-06-20", tmp_path)
     assert d["action"] == "skip" and d["source"] == "mdp" and d["scoreable"] is False and d["streak"] == 10
     # committed pick suppresses the skip
-    fs2 = FinalizationState(); fs2.committed_pick_written = True
-    fs2.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}
-    _write_endofday_skip(tmp_path, "2026-06-22", fs2)
+    st2 = _state(date="2026-06-22", committed_pick_written=True)
+    st2.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}
+    _write_endofday_skip(tmp_path, "2026-06-22", st2)
     assert load_decision("2026-06-22", tmp_path) is None
     # no candidate -> no record
-    _write_endofday_skip(tmp_path, "2026-06-23", FinalizationState())
+    _write_endofday_skip(tmp_path, "2026-06-23", _state(date="2026-06-23"))
     assert load_decision("2026-06-23", tmp_path) is None
+
+
+def test_endofday_skip_does_not_clobber_scoreable_commit_on_disk(tmp_path):
+    """Overwrite-guard (#2b): if a real scoreable commit already exists on disk
+    (e.g. a crash lost committed_pick_written before the state save), the EOD
+    skip must NOT overwrite it — even with a candidate present and the flag False."""
+    st = _state(date="2026-06-24")
+    # A genuine committed pick recorded earlier in the day.
+    _write_commit_decision(tmp_path, "2026-06-24", action="single", source="mdp",
+                           primary=_cand(), double_down=None, delivery_status="delivered", state=st)
+    # Simulate the lost flag (rebuilt state after a crash before the state save).
+    st.committed_pick_written = False
+    st.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}
+    _write_endofday_skip(tmp_path, "2026-06-24", st)
+    d = load_decision("2026-06-24", tmp_path)
+    assert d["action"] == "single" and d["scoreable"] is True  # commit preserved, not clobbered

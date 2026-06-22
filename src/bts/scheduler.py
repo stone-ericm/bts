@@ -316,6 +316,14 @@ class SchedulerState:
     analytics_jobs: dict | None = None  # shadow/capture attempt status by job name
     skip_summary: dict | None = None    # {best_batter, best_team, best_p, streak} on a skip day
     skip_notified_at: str | None = None  # ISO; set once the skip notice is delivered (idempotency)
+    # Finalization state (formerly the run-local FinalizationState). Persisted to
+    # scheduler_state.json + carried forward by carry_forward_skip_state so a
+    # same-day daemon restart (deploys; Restart=always) after an MDP skip but
+    # before end-of-day no longer loses the captured skip (#3 / GH #144).
+    # Defaulted so an old scheduler_state.json still deserializes via
+    # SchedulerState(**data); asdict round-trips the dict cleanly.
+    final_skip_candidate: dict | None = None  # declined MDP-skip candidate to record at EOD
+    committed_pick_written: bool = False       # True once a scoreable commit record was written
 
 
 @dataclass
@@ -328,19 +336,6 @@ class FallbackRefreshResult:
     selection: "SelectionResult | None" = None
 
 
-@dataclass
-class FinalizationState:
-    """The two finalization-state variables tracked across a run_day lifecycle.
-
-    final_skip_candidate: the declined MDP-skip candidate to record at end-of-day
-        if no pick is ever committed (shape {"primary":..., "streak":..., "saver_available":...}).
-    committed_pick_written: True once a commit / delivered-classification decision
-        record was written — suppresses the end-of-day skip record.
-    """
-    final_skip_candidate: dict | None = None
-    committed_pick_written: bool = False
-
-
 def _row_from_daily(pick) -> dict | None:
     """Map a Pick (or None) to the candidate dict shape ``_row_to_candidate``
     produces, so commit/classification records match the skip-path records."""
@@ -351,16 +346,25 @@ def _row_from_daily(pick) -> dict | None:
             "p_game_hit": pick.p_game_hit}
 
 
-def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, fs):
-    """Record an authoritative, scoreable decision at a real commit/lock point."""
+def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, state):
+    """Record an authoritative, scoreable decision at a real commit/lock point.
+
+    Sets ``state.committed_pick_written`` and persists state AFTER the decision
+    write (save-ordering fix #2a): the flag now lives on the persisted state, so
+    a restart between the decision write and the next save must not lose it. The
+    on-disk decision.json is written first, then the flag, then save_state — so
+    every ordering leaves the EOD skip non-clobbering (the decision.json record
+    backstops the flag even if this save fails).
+    """
     from bts.daily_decision import write_decision
     write_decision(date, picks_dir, action=action, source=(source or "unknown"),
                    primary=primary, double_down=double_down,
                    delivery_status=delivery_status, scoreable=True)
-    fs.committed_pick_written = True
+    state.committed_pick_written = True
+    save_state(state, picks_dir)
 
 
-def _write_classification_decision(picks_dir, date, *, action, delivered, primary, double_down, fs):
+def _write_classification_decision(picks_dir, date, *, action, delivered, primary, double_down, state):
     """Record a classification-lock only when the existing pick was genuinely delivered.
 
     A genuinely DELIVERED existing pick recovered via classification-lock -> scoreable.
@@ -370,15 +374,25 @@ def _write_classification_decision(picks_dir, date, *, action, delivered, primar
     if not delivered:
         return
     _write_commit_decision(picks_dir, date, action=action, source="unknown",
-                           primary=primary, double_down=double_down, delivery_status="delivered", fs=fs)
+                           primary=primary, double_down=double_down, delivery_status="delivered", state=state)
 
 
-def _write_endofday_skip(picks_dir, date, fs):
-    """Record the day's MDP skip — only if no pick was committed and a candidate was captured."""
-    from bts.daily_decision import write_decision
-    if fs.committed_pick_written or not fs.final_skip_candidate:
+def _write_endofday_skip(picks_dir, date, state):
+    """Record the day's MDP skip — only if no pick was committed and a candidate was captured.
+
+    Overwrite-guard (#2b): the authoritative "committed today?" is the on-disk
+    decision.json, not just the in-memory flag. If a crash landed between a
+    commit's decision write and its state save, ``committed_pick_written`` may be
+    stale (False) on the rebuilt state while a real scoreable record already
+    exists on disk — so never clobber a scoreable commit with an EOD skip.
+    """
+    from bts.daily_decision import load_decision, write_decision
+    if state.committed_pick_written or not state.final_skip_candidate:
         return
-    c = fs.final_skip_candidate
+    existing = load_decision(date, picks_dir)
+    if existing is not None and existing.get("scoreable"):
+        return
+    c = state.final_skip_candidate
     write_decision(date, picks_dir, action="skip", source="mdp", primary=c.get("primary"),
                    streak=c.get("streak"), saver_available=c.get("saver_available"),
                    delivery_status="not_applicable", scoreable=False)
@@ -507,15 +521,16 @@ def _deliver_and_lock_pick(
     date: str,
     label: str,
     *,
-    fs: "FinalizationState | None" = None,
     selection: "SelectionResult | None" = None,
 ) -> bool:
     """Deliver a pick through the configured channel and persist the lock.
 
-    When ``fs`` is provided (production call sites), each branch that locks after
-    a real delivery writes an authoritative, scoreable decision record. ``fs`` and
-    ``selection`` default to None so existing direct test callers keep building;
-    when ``fs`` is None the delivery runs exactly as before and skips the record.
+    Each branch that locks after a real delivery writes an authoritative,
+    scoreable decision record onto ``state`` (the single finalization object;
+    ``FinalizationState`` was dropped in favor of persisted SchedulerState
+    fields). ``selection`` defaults to None so direct test callers keep building;
+    when present its source/candidate metadata are recorded, else they fall back
+    to the DailyPick.
     """
     from bts.contest_state import ContestStateError, load_decision_streak_state
     from bts.picks import pick_was_delivered, save_pick
@@ -526,8 +541,6 @@ def _deliver_and_lock_pick(
         # Single chokepoint for the 5 lock branches — they differ only in
         # delivery_status. Source/candidate metadata come from the captured
         # SelectionResult when available, else fall back to the DailyPick.
-        if fs is None:
-            return
         try:
             # Decision-record writes must never affect pick delivery: isolate
             # any failure here so it cannot be caught by the delivery try/except.
@@ -539,7 +552,7 @@ def _deliver_and_lock_pick(
                          else _row_from_daily(daily.pick)),
                 double_down=(selection.double_candidate if selection is not None
                              else _row_from_daily(daily.double_down)),
-                delivery_status=delivery_status, fs=fs,
+                delivery_status=delivery_status, state=state,
             )
         except Exception:
             pass
@@ -936,6 +949,12 @@ def carry_forward_skip_state(state: "SchedulerState", previous_state) -> "Schedu
     if previous_state is not None and previous_state.date == state.date:
         state.skip_summary = previous_state.skip_summary
         state.skip_notified_at = previous_state.skip_notified_at
+        # Finalization state (#3): a same-day restart rebuilds SchedulerState
+        # fresh, so without carrying these the captured MDP skip (or the
+        # committed-pick suppression) would be lost between the skip cycle and
+        # end-of-day. Mirror the skip_summary/skip_notified_at copy above.
+        state.final_skip_candidate = previous_state.final_skip_candidate
+        state.committed_pick_written = previous_state.committed_pick_written
     return state
 
 
@@ -1855,13 +1874,12 @@ def run_day(
         next_wakeup=None,
         analytics_jobs=previous_state.analytics_jobs if previous_state else None,
     )
+    # Finalization state (captured MDP-skip candidate + committed_pick_written)
+    # now lives ON `state` and is carried forward across a same-day restart by
+    # carry_forward_skip_state, so it survives a deploy/Restart=always between an
+    # MDP skip and end-of-day (#3 / GH #144).
     carry_forward_skip_state(state, previous_state)
     save_state(state, picks_dir)
-
-    # Finalization state tracked across the day (Task 3): a captured MDP-skip
-    # candidate to record at end-of-day, plus whether a pick was committed
-    # (which suppresses the end-of-day skip record).
-    fs = FinalizationState()
 
     # 4. Main loop — sleep until each check time, then run
     for run_info in runs:
@@ -1904,13 +1922,15 @@ def run_day(
         # suppression for real picks is handled by committed_pick_written.
         sel = result.get("selection")
         if sel is not None and sel.action == "skip" and sel.source == "mdp":
-            fs.final_skip_candidate = {
+            state.final_skip_candidate = {
                 "primary": sel.primary_candidate,
                 "streak": sel.streak,
                 "saver_available": sel.saver_available,
             }
+            save_state(state, picks_dir)  # persist so a same-day restart inherits the skip (#3)
         elif sel is not None and sel.action in {"single", "double"}:
-            fs.final_skip_candidate = None
+            state.final_skip_candidate = None
+            save_state(state, picks_dir)
 
         state.runs_completed.append({
             "time": _now_et().isoformat(),
@@ -1951,13 +1971,13 @@ def run_day(
                 delivered=pick_was_delivered(ld),
                 primary=_row_from_daily(ld.pick),
                 double_down=_row_from_daily(ld.double_down),
-                fs=fs,
+                state=state,
             )
 
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:
             daily = result["pick_result"].daily
             _deliver_and_lock_pick(daily, config, picks_dir, state, date, "lineup",
-                                   fs=fs, selection=result.get("selection"))
+                                   selection=result.get("selection"))
 
         if state.pick_locked:
             # Run shadow model if enabled (after production pick is resolved)
@@ -2045,7 +2065,7 @@ def run_day(
                         continue
                     print(f"  FALLBACK — delivering before game starts.", file=sys.stderr)
                     _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback",
-                                           fs=fs, selection=refresh.selection)
+                                           selection=refresh.selection)
 
                 if state.pick_locked:
                     if shadow_model_enabled and daily:
@@ -2095,7 +2115,7 @@ def run_day(
                         file=sys.stderr,
                     )
                     _deliver_and_lock_pick(daily, config, picks_dir, state, date, "final fallback",
-                                           fs=fs, selection=refresh.selection)
+                                           selection=refresh.selection)
 
         if state.pick_locked and shadow_model_enabled and daily:
             _trigger_shadow_prediction_on_lock(config, date, daily.pick.batter_name)
@@ -2196,7 +2216,7 @@ def run_day(
     # no committed pick, record it here — immediately before the end-of-day health
     # checks (run_day idles after this; it does not return). It is NOT written in
     # the early no-games / dry-run returns, and no-ops if there is nothing to record.
-    _write_endofday_skip(picks_dir, date, fs)
+    _write_endofday_skip(picks_dir, date, state)
 
     # End-of-day health checks. Pure observation — never modifies picks.
     # Each check is failure-isolated; the runner catches per-check errors.
