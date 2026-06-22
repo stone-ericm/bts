@@ -41,44 +41,49 @@ variant on the **same** production slate:
 > shadow_action = take the **single** on days the deployed MDP would **skip** a valid top
 > candidate at 8 ≤ streak < 57; otherwise mirror the deployed action.
 
-Ground truth comes from a **decision marker the live pick path writes**, not from reconstructing
-production's intent read-only. **Four review rounds** established that "the MDP evaluated an
-EXECUTABLE candidate and chose to skip it" is **not** recoverable from saved slates / pick files /
-the scheduler `skip_summary`: `select_pick` returns `None` for no-eligible and status-failure days
-too (not only `action=="skip"`), the policy's skip region is state-dependent (not a flat
-0.796/streak-8 rule), and the saved slate is pre-status-filter. So `select_pick` records the
-decision at the source. This is a small **additive** cascade write — it records, it never changes a
-pick.
+Ground truth comes from a **decision record the scheduler writes to `decision.json`**, not from
+reconstructing production's intent read-only. **Four review rounds** established that "the MDP
+evaluated an EXECUTABLE candidate and chose to skip it" is **not** recoverable from saved slates /
+pick files / the scheduler `skip_summary`: `select_pick` returns `None` for no-eligible and
+status-failure days too (not only `action=="skip"`), the policy's skip region is state-dependent
+(not a flat 0.796/streak-8 rule), and the saved slate is pre-status-filter. So the scheduler
+records the final decision in `decision.json`. This is a small **additive** write — it records,
+it never changes a pick.
 
-### Mechanics (`bts/skip_policy_shadow.py` + the `select_pick` marker write)
+### Mechanics (`bts/skip_policy_shadow.py` + `bts/daily_decision.py`)
 
-- **Skip marker (ground truth):** at a genuine `action == "skip"`, `select_pick` calls
-  `record_mdp_skip_decision` → `data/picks/<date>/skip_decision.json` (schema
-  `bts_mdp_skip_decision_v1`) with the **executable** declined candidate (the post-status-filter,
-  notna `best_row`) + streak/saver. Best-effort (wrapped; never raises / never affects the pick).
-  It fires **only when `persist_skip_decision=True`** — which **only the scheduler's production
-  `run_and_pick` passes** (NOT `bts preview`, manual `bts run`, or the shadow model) — **AND only
-  for an MDP-backed decision** (`ctx.mdp` truthy; a missing policy caches to `{}` → heuristic skip →
-  no marker). So provisional / non-production / heuristic skips never write a marker.
-- **Final-decision resolution (delivery, not existence/chronology):** BOTH the skip marker and the
-  `<date>.json` pick file are provisional/overwritten — `bts preview` pre-writes the *next* day's
-  pick file, the scheduler saves candidates pre-lock, and the fallback re-delivers a cached pick
-  (with a stale `run_time`, which is why a timestamp comparison was insufficient). The authoritative
-  signal is **`picks.pick_was_delivered`** (a pick durably posted/DM'd to a human; set by
-  `_deliver_and_lock_pick`, incl. the fallback path). `_final_decision`: a **delivered** pick →
-  "pick"; else a skip marker → "skip"; else None. A skip is recorded only when it's the final
-  decision; a record whose date later resolves to a delivered pick is deleted (`prune_superseded`);
-  recording is idempotent. (Production runs public/DM delivery, so a real final pick sets the
-  delivery fields; a private/local-only lock is intentionally not treated as "delivered".)
+- **Ground truth via `decision.json`:** the scheduler writes
+  `data/picks/<date>/decision.json` (schema `bts_daily_decision_v1`) at each true finalization
+  point. There are four write points: (1) **pick commit** — `_deliver_and_lock_pick` delivery
+  branches write `scoreable=True` with `delivery_status` ∈ `{delivered, private_locked,
+  locked_unconfirmed}`; (2) **classification-lock** — a pre-existing pick locked by game-start/
+  status is recorded only when `pick_was_delivered` is true (non-delivered stale previews are
+  silently skipped, writing nothing); (3) **crash-guard** — best-effort at abnormal exit; and
+  (4) **end-of-day MDP skip** — `_write_endofday_skip` fires when `committed_pick_written`
+  is still False at EOD, writing `action="skip", source="mdp", scoreable=False,
+  delivery_status="not_applicable"` with the `final_skip_candidate` captured at the genuine MDP
+  skip earlier in the day. The scheduler tracks `committed_pick_written` + `final_skip_candidate`
+  across the day. All writes are best-effort (wrapped; never raise into the pick path) and written
+  by the scheduler ONLY — `bts run`, preview, and the shadow model never write `decision.json`.
+- **`check-results` scoreable gate (GH #144):** `bts check-results` reads `decision.json` first;
+  if present, it scores only when `decision.get("scoreable") == True`. Fallback (no decision
+  file): `picks.pick_was_delivered(daily)`. This eliminates the bug where a stale `bts preview`/
+  pre-lock `<date>.json` on a skip day was scored and corrupted the streak.
+- **Shadow reads `decision.json`:** `record_skip_from_decision` reads the day's `decision.json`
+  and writes `{date}.policy_shadow.json` only when `action=="skip" && source=="mdp"`. Non-MDP
+  skips, delivered picks, and days without `decision.json` produce no shadow record.
+  `prune_superseded` removes shadow records whose `decision.json` has been overwritten to a
+  delivered pick. Recording is idempotent; a cron outage is covered by `record_pending_skips`
+  (scans `*/decision.json` for recent MDP skips lacking a shadow file).
 - **Decision files:** `data/picks/<date>.policy_shadow.json` (schema `bts_skip_policy_shadow_v1`),
-  one per genuine skip: always divergent (deployed=skip, shadow=single), `rank1` = the marker's
+  one per genuine skip: always divergent (deployed=skip, shadow=single), `rank1` = the decision's
   executable candidate, streak/saver (context), `shadow_pick_result` (filled at reconciliation).
 - **Reconciliation:** the realized outcome of the skipped candidate is resolved via the MLB API
   (`picks.check_hit`) → hit/miss. **A not-yet-final game stays *pending* and is retried** (a live
   west-coast game at the nightly cron is never lost); a checker error is treated the same; a record
   still unresolved after `STALE_AFTER_DAYS` (3) is marked `void`.
-- **Backfill:** `record_pending_skips` records any skip marker in the last 10 days that lacks a
-  decision file, so a cron outage doesn't drop a day.
+- **Backfill:** `record_pending_skips` records any MDP skip in `decision.json` within the lookback
+  window that lacks a shadow file, so a cron outage doesn't drop a day.
 - **Status artifact:** `data/validation/skip_policy_shadow_status.json`
   (schema `bts_skip_policy_shadow_status_v1`). Headline = the realized hit rate of the skipped
   candidates with a Wilson CI, plus a **verdict** vs the 0.744 breakeven:
@@ -98,13 +103,14 @@ pick.
 
 ## Honest caveats (what a positive/negative verdict will and won't prove)
 
-- The divergence is the **genuine MDP skip recorded by the marker** (with pick-precedence — a later
-  pick supersedes it), not an inference from the live streak; the recorded streak/saver are context
-  only and can't flip a day's classification.
-- **Candidate eligibility — resolved.** The marker records the *executable* post-status-filter
-  candidate the MDP actually declined (not the pre-filter slate rank-1), so the reconciled outcome
-  is for the pick production could have taken. (The marker is overwritten across a day's repeated
-  scheduler runs — the last genuine skip wins — and pick-precedence covers skip-early/pick-late.)
+- The divergence is the **genuine MDP skip recorded in `decision.json`** (with pick-precedence — a
+  later delivered pick causes `prune_superseded` to remove it), not an inference from the live
+  streak; the recorded streak/saver are context only and can't flip a day's classification.
+- **Candidate eligibility — resolved.** The `decision.json` record contains the *executable*
+  post-status-filter candidate the MDP actually declined (not the pre-filter slate rank-1), so the
+  reconciled outcome is for the pick production could have taken. (`decision.json` is overwritten
+  across a day's repeated scheduler runs — the last genuine skip wins — and `prune_superseded`
+  covers skip-early/pick-late.)
 - A verdict only becomes meaningful once enough **resolved divergent days** accumulate (default
   gate: 30). Until then, `insufficient_n` is the honest state — do not read the interim rate as
   signal.
@@ -115,15 +121,15 @@ pick.
 - The 0.744 breakeven is from a calibrated estimated-PA re-solve; if the model/era changes,
   re-derive it (the value is a module constant `BREAKEVEN_P`).
 
-## Related pre-existing bug (deferred — separate fix)
+## GH #144 fix — `check-results` scoreable gate (landed on this branch)
 
-Investigating the provisional-pick-file problem surfaced a **pre-existing production bug, independent
-of this shadow**: `bts check-results` scores whatever `load_pick(date)` returns, gated only on
-"already resolved." On a day whose final decision was a SKIP, a stale `bts preview` / pre-lock
-`<date>.json` is therefore scored and **the streak is updated from a pick production never made**.
-A one-line `pick_was_delivered` gate is NOT a clean fix: `pick_was_delivered` excludes private/local
-delivery (would regress private-mode scoring), and it breaks 7 existing `check-results` tests that
-score undelivered fixtures. The clean fix is the **explicit end-of-day decision record** Codex's
-design review identified (`{date, action, source, delivered, pick_ref, finalized_at}`) consumed by
-both `check-results` and this shadow — a broader lifecycle change tracked separately, not bundled
-into this shadow.
+Investigating the provisional-pick-file problem identified a **pre-existing production bug**: `bts
+check-results` scored whatever `load_pick(date)` returned, gated only on "already resolved." On a
+day whose final decision was a SKIP, a stale `bts preview` / pre-lock `<date>.json` was therefore
+scored and **the streak was updated from a pick production never made**.
+
+This is fixed in this branch via the `decision.json` scoreable gate: `check-results` reads
+`decision.json` first and scores only when `scoreable == True`; fallback to
+`picks.pick_was_delivered(daily)` when no decision file exists. The `decision.json` record is
+written only by the scheduler at genuine finalization — so preview pre-writes and pre-lock
+candidates no longer trigger scoring.

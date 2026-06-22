@@ -63,25 +63,38 @@ A second, distinct shadow that is a shadow **policy**, not a shadow model (same 
 different action rule). It tests whether the deployed MDP's **skip at streak≥8 / top candidate
 < 0.796** rule actually costs streaks on the production (estimated-PA) scale — a question
 backtest cannot settle, because the calibrated breakeven (~0.744) sits inside the skipped band's
-realized hit-rate range (see `docs/audit/2026-06-20-skip-policy-shadow.md`). **Ground truth via a
-decision marker:** the live pick path (`select_pick`, with `persist_skip_decision=True` passed
-ONLY by the scheduler's production `run_and_pick` — not preview / manual `bts run` / the shadow
-model) writes `data/picks/<date>/skip_decision.json` at the genuine MDP skip, recording the
-EXECUTABLE declined candidate. That marker write is best-effort and never affects the pick. The
-shadow reads markers (`bts skip-policy-shadow-update`, nightly cron), writes a divergent record
-`{date}.policy_shadow.json` (`bts_skip_policy_shadow_v1`) for each, and reconciles the candidate's
-realized outcome. The marker fires only for a live (`persist_skip_decision`, scheduler-only),
-**MDP-backed** (`ctx.mdp` truthy) skip. **Final-decision by delivery:** the marker and `<date>.json`
-pick file are both provisional/overwritten (preview pre-writes tomorrow's; the fallback re-delivers a
-cached pick), so the authoritative signal is `picks.pick_was_delivered` — a delivered pick is the
-final action; else a skip marker means a skip; a record whose date later resolves to a delivered pick
-is pruned. The status
-artifact `data/validation/skip_policy_shadow_status.json` reports the skipped-band realized hit
-rate (+ Wilson CI) and a verdict vs the 0.744 breakeven (`below_breakeven` = skip validated,
+realized hit-rate range (see `docs/audit/2026-06-20-skip-policy-shadow.md`). **Ground truth via
+`decision.json`:** the scheduler writes `data/picks/<date>/decision.json` (schema
+`bts_daily_decision_v1`) at each true finalization point — pick commit (`_deliver_and_lock_pick`,
+delivery branches → `delivered`/`private_locked`/`locked_unconfirmed`), classification-lock (only
+when the recovered pick was genuinely delivered), crash-guard, and end-of-day MDP skip. The
+scheduler tracks `committed_pick_written` + `final_skip_candidate` across the day; all writes are
+best-effort and never affect the pick. The skip-policy shadow reads `decision.json` files: only
+entries with `action=="skip" && source=="mdp"` produce a shadow record `{date}.policy_shadow.json`
+(`bts_skip_policy_shadow_v1`) for the executable declined candidate; reconciliation fills the
+realized outcome from the MLB API. A shadow record is pruned when the corresponding `decision.json`
+is later overwritten to a delivered pick (`prune_superseded`). The status artifact
+`data/validation/skip_policy_shadow_status.json` reports the skipped-band realized hit rate (+
+Wilson CI) and a verdict vs the 0.744 breakeven (`below_breakeven` = skip validated,
 `above_breakeven` = skip costs streaks, else `straddles`/`insufficient_n`). CLI:
 `bts skip-policy-shadow-update` + `bts skip-policy-shadow-status`. Surfaced on the dashboard
-("Skip-policy shadow" panel). Why a marker (vs reconstructing read-only): see the design doc —
-4 review rounds showed the action + executable candidate aren't otherwise recoverable.
+("Skip-policy shadow" panel). Why `decision.json` (vs reconstructing read-only): see the design
+doc — 4 review rounds showed the action + executable candidate aren't otherwise recoverable.
+
+### `decision.json` — authoritative daily action record (`bts/daily_decision.py`)
+
+`data/picks/<date>/decision.json` (schema `bts_daily_decision_v1`) is the single source of truth
+for "what did production finally do on a date." Written ONLY by the scheduler at true finalization
+points; never by `bts run`, preview, or the shadow model. Always best-effort; never raises into
+the pick path. **Who reads it:** `bts check-results` gates scoring on `decision.scoreable`
+(fallback to `picks.pick_was_delivered` when no decision file exists) — the GH #144 fix that stops
+a stale preview `<date>.json` from corrupting the streak on skip days; the skip-policy shadow reads
+it to identify genuine MDP skips (`action=="skip" && source=="mdp"`). **When it is written:**
+(1) pick commit at `_deliver_and_lock_pick` (`scoreable=True`; `delivery_status ∈ {delivered,
+private_locked, locked_unconfirmed}`); (2) classification-lock — only when the existing pick was
+genuinely delivered (non-delivered stale-preview locks write nothing); (3) crash-guard at abnormal
+exit; (4) end-of-day MDP skip via `_write_endofday_skip` (`scoreable=False`,
+`delivery_status="not_applicable"`), fired only when `committed_pick_written` is still False.
 
 ### Dropped features (tested and rejected)
 - **lineup_position**: Double-counts with PA aggregation (helps with leaky features, hurts or neutral with clean)
