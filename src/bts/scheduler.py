@@ -1772,6 +1772,7 @@ def run_day(
     8. Result polling after games finish
     """
     from bts.contest_state import ContestStateError
+    from bts.daily_decision import is_scoreable_commit
     from bts.picks import load_pick, pick_was_delivered
 
     sched_config = config.get("scheduler", {})
@@ -2149,8 +2150,15 @@ def run_day(
     except Exception as e:
         print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
 
-    # 8. Result polling (start 10 min after game start, check for hits mid-game)
-    if state.pick_locked:
+    # 8. Result polling (start 10 min after game start, check for hits mid-game).
+    # Gate on a GENUINE commit, not merely state.pick_locked (C2 / GH #144): a
+    # NON-delivered classification-lock of a stale projected-preview <date>.json
+    # sets pick_locked=True on a skip day, and run_result_polling -> update_streak
+    # has no internal scoreable guard. is_scoreable_commit defers to decision.json
+    # (decision.scoreable) and falls back to pick_was_delivered when no record
+    # exists, so a stale preview is locked (for other purposes) but never scored.
+    daily_for_poll = load_pick(date, picks_dir)
+    if state.pick_locked and daily_for_poll is not None and is_scoreable_commit(date, picks_dir, daily_for_poll):
         daily = load_pick(date, picks_dir)
         if daily and daily.result is None:
             # Wait until earliest pick game (primary or double-down) + 10 min.

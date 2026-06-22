@@ -10,6 +10,7 @@ downstream of it in run_day is the real code under test.
 """
 from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import Mock
 from zoneinfo import ZoneInfo
 
 from bts.daily_decision import load_decision
@@ -81,7 +82,8 @@ def _seq(items):
 
 
 def _drive_run_day(monkeypatch, tmp_path, check_results, *, games=None,
-                   pick_delivery="private", mock_post=False, now_et="23:30"):
+                   pick_delivery="private", mock_post=False, now_et="23:30",
+                   poll_fn=None):
     """Run the REAL run_day to completion with run_single_check mocked.
 
     health_checks disabled and all sleeps/network neutralized so only the
@@ -94,7 +96,8 @@ def _drive_run_day(monkeypatch, tmp_path, check_results, *, games=None,
     monkeypatch.setattr(sch, "_now_et",
                         lambda: datetime.strptime(f"{DATE} {now_et}", "%Y-%m-%d %H:%M").replace(tzinfo=ET))
     monkeypatch.setattr(sch.time, "sleep", lambda *a, **k: None)
-    monkeypatch.setattr(sch, "run_result_polling", lambda *a, **k: "final")
+    monkeypatch.setattr(sch, "run_result_polling",
+                        poll_fn if poll_fn is not None else (lambda *a, **k: "final"))
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
     monkeypatch.setattr(sch, "run_single_check", _seq(list(check_results)))
     if mock_post:
@@ -213,6 +216,54 @@ def test_nondelivered_classified_lock_on_skip_day_writes_skip_not_pick(tmp_path,
     assert d["source"] == "mdp"
     assert d["scoreable"] is False
     assert d["streak"] == 7
+
+
+# --- result-polling commit gate (C2 / GH #144) ----------------------------
+
+def test_nondelivered_classified_lock_on_skip_day_skips_result_polling(tmp_path, monkeypatch):
+    """C2: a stale, NON-delivered <date>.json gets classification-locked
+    (state.pick_locked=True) on an MDP-skip day with no scoreable decision record.
+    The result-polling block must NOT run — otherwise run_result_polling would
+    score the stale preview via update_streak and corrupt the streak, bypassing
+    the check-results scoreable gate entirely."""
+    from bts.picks import load_streak, save_pick, save_streak
+    # The stale projected-preview pick on disk: undelivered, result=None. This is
+    # what load_pick would hand to run_result_polling under the buggy gate.
+    save_pick(_daily(delivered=False), tmp_path)
+    save_streak(7, tmp_path)
+
+    poll = Mock(return_value="final")
+    skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=7, saver=False))
+    classified = _result(pick_result=PickResult(daily=_daily(delivered=False), locked=True),
+                         pick_name="Hoerner", pick_p=0.73, selection=None)
+    _drive_run_day(
+        monkeypatch, tmp_path, [skip, classified],
+        games=[_game(100, "16:10"), _game(200, "19:05")],
+        poll_fn=poll,
+    )
+    poll.assert_not_called()              # polling gated off — update_streak unreachable
+    assert load_streak(tmp_path) == 7     # streak untouched
+    # And the day still records as the MDP skip (non-scoreable), not the stale pick.
+    d = load_decision(DATE, tmp_path)
+    assert d is not None and d["action"] == "skip" and d["scoreable"] is False
+
+
+def test_delivered_pick_enters_result_polling(tmp_path, monkeypatch):
+    """Positive companion: a genuinely delivered (scoreable) pick DOES enter result
+    polling — the commit gate must not over-block real picks."""
+    from bts.picks import save_pick
+    # A delivered pick on disk with result still pending.
+    save_pick(_daily(delivered=True), tmp_path)
+
+    poll = Mock(return_value="final")
+    classified = _result(pick_result=PickResult(daily=_daily(delivered=True), locked=True),
+                         pick_name="Hoerner", pick_p=0.73, selection=None)
+    _drive_run_day(monkeypatch, tmp_path, classified, poll_fn=poll)
+
+    poll.assert_called_once()
+    # Sanity: the classification recorded a scoreable delivered decision.
+    d = load_decision(DATE, tmp_path)
+    assert d is not None and d["scoreable"] is True
 
 
 # --- end-of-day skip records ----------------------------------------------
