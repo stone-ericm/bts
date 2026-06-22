@@ -13,8 +13,9 @@ import bts.model
 from bts.cli import cli
 from bts.picks import (
     Pick, DailyPick, save_pick, save_streak,
-    save_shadow_pick, load_shadow_pick,
+    save_shadow_pick, load_shadow_pick, load_streak,
 )
+from bts.daily_decision import write_decision
 
 
 @pytest.fixture(autouse=True)
@@ -309,7 +310,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
-        save_pick(_sample_daily(), picks_dir)
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)
         save_streak(3, picks_dir)
         mock_check.return_value = True
 
@@ -329,7 +330,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
-        save_pick(_sample_daily(), picks_dir)
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)
         save_streak(5, picks_dir)
         mock_check.return_value = False
 
@@ -350,7 +351,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
-        save_pick(_sample_daily(), picks_dir)
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)
         save_streak(3, picks_dir)
         mock_check.return_value = None
 
@@ -380,7 +381,7 @@ class TestBtsCheckResults:
             team="ATH",
             game_pk=778900,
         )
-        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_pick(_sample_daily(double_down=double, bluesky_posted=True), picks_dir)
         save_streak(3, picks_dir)
         mock_statuses.return_value = {
             778899: {"abstract": "F", "detailed": "Postponed"},
@@ -419,7 +420,7 @@ class TestBtsCheckResults:
             team="ATH",
             game_pk=778900,
         )
-        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_pick(_sample_daily(double_down=double, bluesky_posted=True), picks_dir)
         save_streak(3, picks_dir)
         mock_statuses.return_value = {
             778899: {"abstract": "F", "detailed": "Final"},
@@ -458,7 +459,7 @@ class TestBtsCheckResults:
             team="ATH",
             game_pk=778900,
         )
-        save_pick(_sample_daily(double_down=double), picks_dir)
+        save_pick(_sample_daily(double_down=double, bluesky_posted=True), picks_dir)
         save_streak(3, picks_dir)
         mock_statuses.return_value = {
             778899: {"abstract": "F", "detailed": "Postponed"},
@@ -649,7 +650,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"
         picks_dir.mkdir()
 
-        save_pick(_sample_daily(), picks_dir)
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)
         save_streak(2, picks_dir)
         save_shadow_pick(_sample_daily(
             pick=_sample_pick(
@@ -754,6 +755,51 @@ class TestBtsCheckResults:
 
         assert result.exit_code == 0
         assert "No pick found" in result.output
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
+    @patch("bts.picks.check_hit")
+    def test_check_results_skips_unscoreable_skip_record(self, mock_check, _s, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        save_pick(_sample_daily(bluesky_posted=False), picks_dir)   # stale preview-style file
+        save_streak(5, picks_dir)
+        write_decision("2026-04-01", picks_dir, action="skip", source="mdp",
+                       delivery_status="not_applicable", scoreable=False)
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        assert result.exit_code == 0
+        assert "not scoring" in result.output.lower()
+        assert load_streak(picks_dir) == 5            # untouched
+        mock_check.assert_not_called()
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
+    @patch("bts.picks.check_hit", return_value=True)
+    def test_check_results_scores_scoreable_decision(self, _c, _s, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)
+        save_streak(3, picks_dir)
+        write_decision("2026-04-01", picks_dir, action="single", source="mdp",
+                       delivery_status="delivered", scoreable=True)
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        assert "Streak: 4" in result.output
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
+    @patch("bts.picks.check_hit", return_value=True)
+    def test_check_results_missing_decision_falls_back_to_delivered(self, _c, _s, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        save_pick(_sample_daily(bluesky_posted=True), picks_dir)   # delivered, no decision.json (legacy)
+        save_streak(3, picks_dir)
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        assert "Streak: 4" in result.output
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={})
+    @patch("bts.picks.check_hit")
+    def test_check_results_missing_decision_undelivered_not_scored(self, mock_check, _s, tmp_path):
+        # the core #144 case: a stale preview <date>.json on a skip day, no decision.json, undelivered
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        save_pick(_sample_daily(bluesky_posted=False), picks_dir)
+        save_streak(5, picks_dir)
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        assert load_streak(picks_dir) == 5
+        mock_check.assert_not_called()
 
 
 class TestFetchContestStreak:

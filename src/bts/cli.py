@@ -1911,6 +1911,23 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
         click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
         return
 
+    # GH #144: only score a committed pick. A stale preview / pre-lock / undelivered
+    # <date>.json must not advance the streak. Shadow still reconciles on this exit.
+    from bts.daily_decision import load_decision
+    from bts.picks import pick_was_delivered
+
+    decision = load_decision(date, picks_path)
+    if decision is not None:
+        scoreable = bool(decision.get("scoreable"))
+    else:
+        scoreable = pick_was_delivered(daily)   # fallback: delivered public/DM (NOT scheduler_state.pick_locked)
+
+    if not scoreable:
+        reconcile_shadow_result()
+        write_shadow_status_artifact()
+        click.echo(f"{date}: decision was not a committed pick (skip / undelivered) — not scoring.")
+        return
+
     for _, slot in iter_daily_pick_slots(daily):
         click.echo(f"Checking {slot.batter_name} (game {slot.game_pk})...")
 
