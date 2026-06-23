@@ -1913,14 +1913,9 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
 
     # GH #144: only score a committed pick. A stale preview / pre-lock / undelivered
     # <date>.json must not advance the streak. Shadow still reconciles on this exit.
-    from bts.daily_decision import load_decision
-    from bts.picks import pick_was_delivered
+    from bts.daily_decision import is_scoreable_commit
 
-    decision = load_decision(date, picks_path)
-    if decision is not None:
-        scoreable = bool(decision.get("scoreable"))
-    else:
-        scoreable = pick_was_delivered(daily)   # fallback: delivered public/DM (NOT scheduler_state.pick_locked)
+    scoreable = is_scoreable_commit(date, picks_path, daily)
 
     if not scoreable:
         reconcile_shadow_result()
