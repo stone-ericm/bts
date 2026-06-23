@@ -80,10 +80,18 @@ def _alert_missed_pick(config: dict, daily, mins_to_game: float) -> None:
 def _maybe_alert_missed_pick(
     config: dict, date: str, picks_dir: Path, missed_pick_alert_min: int,
     heartbeat_path: "Path | None",
+    state: "SchedulerState",
 ) -> None:
     """E3: if no pick is delivered by ``missed_pick_alert_min`` minutes before the
     earliest first pitch, DM a one-shot warning. Waits (watchdog-fed) to the alert
-    window, then re-checks — a late delivery during the wait suppresses the alert."""
+    window, then re-checks — a late delivery during the wait suppresses the alert.
+
+    A deliberate MDP skip (state.final_skip_candidate or state.skip_summary set) is
+    never a missed pick — the scheduler chose not to commit.  Gate it here (pre-game;
+    the EOD decision.json may not exist yet) using the in-memory skip state.
+    """
+    if state.final_skip_candidate or state.skip_summary:
+        return
     from bts.picks import load_pick, pick_was_delivered
 
     daily = load_pick(date, picks_dir)
@@ -2192,7 +2200,7 @@ def run_day(
     # operator in-window — while they can still post manually — instead of only
     # the hours-late EOD post_failure DM.
     if not state.pick_locked:
-        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path)
+        _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)
 
     # 6. Doubleheader game 2 re-checks
     for pk in dh_game2s:

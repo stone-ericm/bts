@@ -8,8 +8,9 @@ import subprocess
 from datetime import date, datetime
 from pathlib import Path
 
+from bts.daily_decision import is_scoreable_commit
 from bts.health.alert import Alert
-from bts.picks import load_pick, pick_was_delivered
+from bts.picks import load_pick
 
 log = logging.getLogger(__name__)
 
@@ -48,14 +49,19 @@ def _load_scheduler_state(picks_dir: Path, date_iso: str) -> dict:
 
 
 def _locked_pick_exists(picks_dir: Path, date_iso: str, state: dict) -> bool:
-    if state.get("pick_locked") is True:
-        return True
+    """Return True only for a GENUINE scoreable commit.
+
+    Replaces the old ``pick_locked or pick_was_delivered`` heuristic with
+    ``is_scoreable_commit`` so a classification-lock on a skip day (pick_locked=True
+    but decision.json has action=="skip" or scoreable==False) does NOT trigger
+    shadow/capture artifact alerts (D6 / GH #144).
+    """
     try:
         daily = load_pick(date_iso, picks_dir)
     except Exception as exc:
         log.warning("could not read pick for analytics artifact check: %s", exc)
         return False
-    return bool(daily and pick_was_delivered(daily))
+    return is_scoreable_commit(date_iso, picks_dir, daily)
 
 
 def _repo_root_from_picks_dir(picks_dir: Path) -> Path:

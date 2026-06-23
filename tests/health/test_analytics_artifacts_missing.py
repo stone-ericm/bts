@@ -2,17 +2,34 @@ import json
 from datetime import date
 from types import SimpleNamespace
 
+from bts.daily_decision import DECISION_SCHEMA
 from bts.health import analytics_artifacts_missing
 from bts.health.analytics_artifacts_missing import check
 
+DATE_ISO = "2026-05-21"
+
 
 def _write_state(picks_dir, *, locked=True, jobs=None):
-    state_dir = picks_dir / "2026-05-21"
+    state_dir = picks_dir / DATE_ISO
     state_dir.mkdir(parents=True, exist_ok=True)
     (state_dir / "scheduler_state.json").write_text(json.dumps({
-        "date": "2026-05-21",
+        "date": DATE_ISO,
         "pick_locked": locked,
         "analytics_jobs": jobs or {},
+    }))
+
+
+def _write_decision(picks_dir, *, scoreable: bool, action: str = "commit") -> None:
+    """Write a minimal decision.json so _locked_pick_exists can verify a genuine commit."""
+    state_dir = picks_dir / DATE_ISO
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / "decision.json").write_text(json.dumps({
+        "schema_version": DECISION_SCHEMA,
+        "date": DATE_ISO,
+        "action": action,
+        "source": "mdp",
+        "delivery_status": "delivered" if scoreable else "skipped",
+        "scoreable": scoreable,
     }))
 
 
@@ -49,6 +66,7 @@ def test_missing_shadow_is_warn_after_locked_pick(tmp_path, monkeypatch):
         picks_dir,
         jobs={"shadow": {"status": "dispatched", "updated_at": "now"}},
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: "Result=oom-kill",
@@ -87,6 +105,7 @@ def test_inline_shadow_missing_with_scheduler_death_is_critical(tmp_path, monkey
             }
         },
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -137,6 +156,7 @@ def test_inline_shadow_missing_without_scheduler_death_remains_warn(tmp_path, mo
             }
         },
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -175,6 +195,7 @@ def test_terminalized_inline_shadow_uses_original_dispatch_time(
             }
         },
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -240,6 +261,7 @@ def test_shadow_benign_abstention_is_info_not_warn(tmp_path, monkeypatch):
             }
         },
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -270,6 +292,7 @@ def test_shadow_prediction_failure_remains_warn(tmp_path, monkeypatch):
             }
         },
     )
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -294,6 +317,7 @@ def test_capture_stale_snapshot_is_critical(tmp_path, monkeypatch):
         picks_dir,
         jobs={"live_forward_capture": {"status": "dispatched", "unit": "cap.service"}},
     )
+    _write_decision(picks_dir, scoreable=True)
     artifact_root = tmp_path / "validation"
     _write_capture_status(artifact_root, {
         "status": "failed_recapture_export",
@@ -324,6 +348,7 @@ def test_capture_ok_status_is_clean(tmp_path, monkeypatch):
     picks_dir = tmp_path / "data" / "picks"
     picks_dir.mkdir(parents=True)
     _write_state(picks_dir)
+    _write_decision(picks_dir, scoreable=True)
     artifact_root = tmp_path / "validation"
     _write_capture_status(artifact_root, {
         "status": "existing_verified",
@@ -347,6 +372,7 @@ def test_capture_missing_status_is_critical(tmp_path, monkeypatch):
     picks_dir = tmp_path / "data" / "picks"
     picks_dir.mkdir(parents=True)
     _write_state(picks_dir)
+    _write_decision(picks_dir, scoreable=True)
     monkeypatch.setattr(
         "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
         lambda unit: None,
@@ -362,3 +388,64 @@ def test_capture_missing_status_is_critical(tmp_path, monkeypatch):
     assert len(alerts) == 1
     assert alerts[0].level == "CRITICAL"
     assert "capture status missing" in alerts[0].message
+
+
+# ---------- Decision-gate tests (D6 / GH #144) ----------
+
+def test_no_artifacts_expected_for_skip_classification_lock(tmp_path, monkeypatch):
+    """pick_locked=True but decision.json is a skip (scoreable=False) → no artifact alerts.
+
+    A classification-lock on a skip day must NOT expect shadow/capture artifacts —
+    the pick was never committed so there is no pick to analyse.
+    """
+    picks_dir = tmp_path / "data" / "picks"
+    picks_dir.mkdir(parents=True)
+    _write_state(picks_dir, locked=True)
+    _write_decision(picks_dir, action="skip", scoreable=False)
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
+        lambda unit: None,
+    )
+
+    alerts = check(
+        picks_dir,
+        today=date(2026, 5, 21),
+        shadow_expected=True,
+        capture_expected=True,
+        capture_artifact_root=tmp_path / "validation",
+    )
+    assert alerts == [], (
+        "analytics artifact alerts must be suppressed on skip days — "
+        f"got: {alerts}"
+    )
+
+
+def test_artifacts_expected_for_genuine_committed_pick(tmp_path, monkeypatch):
+    """pick_locked=True + decision.json scoreable=True → artifact alert fires (regression guard).
+
+    A genuine scoreable commit MUST still trigger the shadow/capture checks.
+    """
+    picks_dir = tmp_path / "data" / "picks"
+    picks_dir.mkdir(parents=True)
+    _write_state(
+        picks_dir,
+        jobs={"shadow": {"status": "dispatched", "updated_at": "now"}},
+    )
+    _write_decision(picks_dir, scoreable=True)
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing.read_systemd_unit_summary",
+        lambda unit: None,
+    )
+    monkeypatch.setattr(
+        "bts.health.analytics_artifacts_missing._fatal_scheduler_journal_line",
+        lambda unit, since: None,
+    )
+
+    alerts = check(
+        picks_dir,
+        today=date(2026, 5, 21),
+        shadow_expected=True,
+        capture_expected=False,
+    )
+    assert alerts, "missing shadow artifact must still alert for a genuine committed pick"
+    assert alerts[0].level in ("WARN", "CRITICAL")

@@ -2,8 +2,10 @@
 
 import json
 from datetime import date, datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from bts.daily_decision import DECISION_SCHEMA
 from bts.health.post_failure import check, SOURCE
 
 ET = ZoneInfo("America/New_York")
@@ -126,3 +128,53 @@ class TestPostFailureTimeGuard:
         # When now is None, falls through to datetime.now(ET).
         result = check(tmp_path, today=date(2026, 4, 30), now=None)
         assert isinstance(result, list)
+
+
+def _write_decision(picks_dir: Path, date_iso: str, *, action: str, scoreable: bool) -> None:
+    """Write a minimal decision.json for post_failure tests."""
+    dec_dir = picks_dir / date_iso
+    dec_dir.mkdir(parents=True, exist_ok=True)
+    (dec_dir / "decision.json").write_text(json.dumps({
+        "schema_version": DECISION_SCHEMA,
+        "date": date_iso,
+        "action": action,
+        "source": "mdp",
+        "delivery_status": "skipped" if action == "skip" else "delivered",
+        "scoreable": scoreable,
+    }))
+
+
+class TestPostFailureDecisionGate:
+    """Decision-record gate: a deliberate MDP skip must not trigger a post-failure alert."""
+
+    def test_no_alert_when_decision_is_skip(self, tmp_path):
+        """Undelivered pick + decision.json action=skip → not a failure."""
+        _write_pick(tmp_path, "2026-04-27", posted=False, uri=None)
+        _write_decision(tmp_path, "2026-04-27", action="skip", scoreable=False)
+        now = datetime(2026, 4, 27, 23, 0, tzinfo=ET)
+        alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
+        assert alerts == [], "skip day must not raise a post-failure alert"
+
+    def test_no_alert_when_decision_scoreable_false(self, tmp_path):
+        """Undelivered pick + decision.json scoreable=False → non-committed day, no alert."""
+        _write_pick(tmp_path, "2026-04-27", posted=False, uri=None)
+        _write_decision(tmp_path, "2026-04-27", action="commit", scoreable=False)
+        now = datetime(2026, 4, 27, 23, 0, tzinfo=ET)
+        alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
+        assert alerts == []
+
+    def test_still_alerts_on_genuine_undelivered_committed_pick(self, tmp_path):
+        """Undelivered pick + decision.json scoreable=True → CRITICAL must still fire."""
+        _write_pick(tmp_path, "2026-04-27", posted=False, uri=None)
+        _write_decision(tmp_path, "2026-04-27", action="commit", scoreable=True)
+        now = datetime(2026, 4, 27, 22, 0, tzinfo=ET)
+        alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
+        assert len(alerts) == 1
+        assert alerts[0].level == "CRITICAL"
+
+    def test_no_alert_when_no_decision_and_delivered(self, tmp_path):
+        """Legacy pick (no decision.json) + delivered → no alert (existing behavior unchanged)."""
+        _write_pick(tmp_path, "2026-04-27", posted=True, uri="at://abc/def")
+        now = datetime(2026, 4, 27, 23, 0, tzinfo=ET)
+        alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
+        assert alerts == []

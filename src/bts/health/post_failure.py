@@ -18,6 +18,7 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from bts.daily_decision import load_decision
 from bts.health.alert import Alert
 
 log = logging.getLogger(__name__)
@@ -48,6 +49,12 @@ def check(
     pick = data.get("pick")
     if not pick:
         # No pick (e.g., all games skipped). Nothing to post.
+        return []
+    # Decision gate (D6 / GH #144): a deliberate MDP skip is not a post failure.
+    # A non-scoreable decision (action=="skip" or scoreable==False) means no pick
+    # was committed, so its absence from the public feed is expected, not a failure.
+    dec = load_decision(today.isoformat(), picks_dir)
+    if dec is not None and (dec.get("action") == "skip" or not dec.get("scoreable")):
         return []
     posted = data.get("bluesky_posted")
     uri = data.get("bluesky_uri")
