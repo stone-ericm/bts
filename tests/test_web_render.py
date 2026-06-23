@@ -11,7 +11,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from bts.web import _format_game_time, _format_updated_time, _render_pa_cell, _streak_subtitle
+from bts.web import (
+    _format_game_time,
+    _format_updated_time,
+    _player_link,
+    _render_pa_cell,
+    _streak_subtitle,
+)
 
 
 def test_format_game_time_same_day_et():
@@ -34,6 +40,41 @@ def test_format_updated_time_et():
 
 def test_streak_subtitle_flags_decision_state_error():
     assert _streak_subtitle(None, "bad contest state") == "Streak State Error"
+
+
+class TestPlayerLink:
+    """_player_link wraps a name in an MLB.com game-log link (ID-only URL)."""
+
+    def test_batter_uses_mlbam_id_and_hitting_gamelog(self):
+        html = _player_link("Luis Arraez", 650333, year=2026)
+        assert (
+            'href="https://www.mlb.com/player/650333'
+            '?stats=gamelogs-r-hitting-mlb&year=2026"'
+        ) in html
+        assert ">Luis Arraez</a>" in html
+        assert 'target="_blank"' in html and 'rel="noopener"' in html
+
+    def test_pitcher_uses_pitching_gamelog(self):
+        html = _player_link("Gerrit Cole", 543037, batting=False, year=2026)
+        assert "/player/543037?stats=gamelogs-r-pitching-mlb&year=2026" in html
+        assert ">Gerrit Cole</a>" in html
+
+    def test_missing_id_falls_back_to_plain_name(self):
+        # None and 0 (never a real mlbam) both render as plain text, no anchor.
+        assert _player_link("Shohei Ohtani", None) == "Shohei Ohtani"
+        assert _player_link("Nobody", 0) == "Nobody"
+
+    def test_name_is_escaped(self):
+        html = _player_link("A <b>X", 1, year=2026)
+        assert "<b>" not in html
+        assert "&lt;b&gt;" in html
+
+    def test_year_defaults_to_a_season(self):
+        import re
+
+        html = _player_link("Test Player", 12345)
+        assert re.search(r"year=20\d\d", html)
+        assert "/player/12345?" in html
 
 
 class TestRenderPaCellPlaceholder:
@@ -272,6 +313,47 @@ def test_render_page_shows_dm_sent_badge(monkeypatch):
     assert "NOT SENT" not in html
     assert "POSTED" not in html
     assert "NOT POSTED" not in html
+
+
+def test_render_page_links_player_names_to_mlb_gamelogs(monkeypatch):
+    """Batter + opposing-pitcher names link to MLB.com game logs (hero + history)."""
+    import bts.web
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    year = today[:4]
+    monkeypatch.setattr(bts.web, "load_streak", lambda: 4)
+    monkeypatch.setattr(bts.web, "fetch_bluesky_posts", lambda: [])
+    monkeypatch.setattr(bts.web, "load_scheduler_state", lambda date: {"pick_locked": True})
+    monkeypatch.setattr(bts.web, "_build_live_game_data", lambda pick_data: ([], None))
+    monkeypatch.setattr(bts.web, "load_all_picks", lambda: [{
+        "date": today,
+        "pick": {
+            "batter_name": "Luis Arraez",
+            "batter_id": 650333,
+            "team": "SD",
+            "pitcher_name": "Gerrit Cole",
+            "pitcher_id": 543037,
+            "p_game_hit": 0.72,
+            "game_pk": 123,
+            "game_time": f"{today}T23:00:00+00:00",
+        },
+        "double_down": None,
+    }])
+
+    html = bts.web.render_page()
+
+    # Batter → hitting game log (rendered in both the hero and the history row).
+    assert (
+        f'href="https://www.mlb.com/player/650333'
+        f'?stats=gamelogs-r-hitting-mlb&year={year}"'
+    ) in html
+    # Opposing pitcher → pitching game log.
+    assert (
+        f'href="https://www.mlb.com/player/543037'
+        f'?stats=gamelogs-r-pitching-mlb&year={year}"'
+    ) in html
+    assert ">Luis Arraez</a>" in html
+    assert ">Gerrit Cole</a>" in html
 
 
 def test_api_live_html_uses_pick_result_for_resolved_banner(monkeypatch, tmp_path):

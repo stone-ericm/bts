@@ -812,7 +812,7 @@ def render_scorecard_section(
         batter_rows_html += f"""<tr style="border-bottom:1px solid #eee;">
     <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:28px;{sticky_num_td}">{lineup_pos}</td>
     <td style="padding:6px 8px;min-width:120px;{sticky_name_td}">
-        <div style="font-size:13px;font-weight:600;color:#041E42;">{name}</div>
+        <div style="font-size:13px;font-weight:600;color:#041E42;">{_player_link(name, batter.get('batter_id'))}</div>
         {slash_html}
     </td>
     <td style="padding:6px 8px;color:#888;font-size:11px;text-align:center;width:40px;{sticky_pos_td}">{position}</td>
@@ -952,6 +952,36 @@ def _render_game_tags(scorecards: list[dict | None]) -> str:
     )
 
 
+def _player_link(
+    name: str | None,
+    player_id: int | None,
+    *,
+    batting: bool = True,
+    year: int | None = None,
+) -> str:
+    """Wrap a player name in a link to their MLB.com game log.
+
+    Uses an ID-only URL: ``/player/{mlbam}`` redirects to the canonical
+    name-slug page and *preserves* the query string, so we never generate a
+    slug (a wrong slug silently bounces to ``/players``). ``batting`` selects
+    the hitting vs. pitching game-log tab; ``year`` defaults to the current
+    ET season. Falls back to the bare escaped name when no id is available.
+    """
+    safe = html_lib.escape(str(name)) if name not in (None, "") else "?"
+    if not player_id:
+        return safe
+    stat = "hitting" if batting else "pitching"
+    yr = year or datetime.now(ET).year
+    url = (
+        f"https://www.mlb.com/player/{int(player_id)}"
+        f"?stats=gamelogs-r-{stat}-mlb&year={yr}"
+    )
+    return (
+        f'<a class="player-link" href="{url}" '
+        f'target="_blank" rel="noopener">{safe}</a>'
+    )
+
+
 def render_live_game_section(
     scorecards: list[dict | None],
     scorecard_data: dict | None,
@@ -1049,6 +1079,7 @@ def render_page():
             continue
         pick = p.get("pick", {})
         date = p.get("date", "?")
+        row_year = int(date[:4]) if date[:4].isdigit() else None
         name = pick.get("batter_name", "?")
         team = pick.get("team", "?")
         pitcher = pick.get("pitcher_name", "?")
@@ -1102,8 +1133,8 @@ def render_page():
         <tr class="{row_class}">
             <td class="result-cell">{result_html}</td>
             <td class="date-cell">{date}</td>
-            <td class="batter-cell">{logo_img} <strong>{name}</strong></td>
-            <td class="matchup-cell">vs {p_logo_img}{pitcher}</td>
+            <td class="batter-cell">{logo_img} <strong>{_player_link(name, pick.get('batter_id'), year=row_year)}</strong></td>
+            <td class="matchup-cell">vs {p_logo_img}{_player_link(pitcher, pick.get('pitcher_id'), batting=False, year=row_year)}</td>
             <td class="pct-cell">{pct:.1%}</td>
             <td class="lineup-cell">{lineup_icon} {notes_html}</td>
         </tr>"""
@@ -1136,8 +1167,8 @@ def render_page():
         <tr class="{row_class}">
             <td class="result-cell"><span class="double-plus">+</span></td>
             <td class="date-cell"></td>
-            <td class="batter-cell">{d_logo_img} <strong>{d_name}</strong></td>
-            <td class="matchup-cell">vs {dp_logo_img}{d_pitcher}</td>
+            <td class="batter-cell">{d_logo_img} <strong>{_player_link(d_name, double.get('batter_id'), year=row_year)}</strong></td>
+            <td class="matchup-cell">vs {dp_logo_img}{_player_link(d_pitcher, double.get('pitcher_id'), batting=False, year=row_year)}</td>
             <td class="pct-cell">{d_pct:.1%}</td>
             <td class="lineup-cell">{d_lineup_icon} {d_notes_html}</td>
         </tr>"""
@@ -1279,8 +1310,8 @@ def render_page():
                 {t_logo_img}
             </div>
             <div class="hero-right">
-                <div class="hero-name">{tp.get('batter_name', '?')}</div>
-                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
+                <div class="hero-name">{_player_link(tp.get('batter_name', '?'), tp.get('batter_id'))}</div>
+                <div class="hero-detail">{tp.get('team', '?')} vs {_player_link(tp.get('pitcher_name', '?'), tp.get('pitcher_id'), batting=False)} · {t_time}</div>
             </div>
             <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
         </div>
@@ -1290,8 +1321,8 @@ def render_page():
             </div>
             <div class="hero-right">
                 <div class="hero-label">DOUBLE DOWN · P(BOTH) {p_both:.1%}</div>
-                <div class="hero-name">{dd.get('batter_name', '?')}</div>
-                <div class="hero-detail">{dd.get('team', '?')} vs {dd.get('pitcher_name', '?')} · {d_time}</div>
+                <div class="hero-name">{_player_link(dd.get('batter_name', '?'), dd.get('batter_id'))}</div>
+                <div class="hero-detail">{dd.get('team', '?')} vs {_player_link(dd.get('pitcher_name', '?'), dd.get('pitcher_id'), batting=False)} · {d_time}</div>
             </div>
             <div class="hero-pct">{dd.get('p_game_hit', 0):.1%}</div>
         </div>"""
@@ -1303,8 +1334,8 @@ def render_page():
                 {t_logo_img}
             </div>
             <div class="hero-right">
-                <div class="hero-name">{tp.get('batter_name', '?')}</div>
-                <div class="hero-detail">{tp.get('team', '?')} vs {tp.get('pitcher_name', '?')} · {t_time}</div>
+                <div class="hero-name">{_player_link(tp.get('batter_name', '?'), tp.get('batter_id'))}</div>
+                <div class="hero-detail">{tp.get('team', '?')} vs {_player_link(tp.get('pitcher_name', '?'), tp.get('pitcher_id'), batting=False)} · {t_time}</div>
             </div>
             <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
         </div>"""
@@ -1379,6 +1410,9 @@ def render_page():
         .subtitle {{ color: #666; font-size: 0.85em; margin-top: 4px; }}
         .subtitle a {{ color: #002D72; text-decoration: none; font-weight: 500; }}
         .subtitle a:hover {{ text-decoration: underline; }}
+        a.player-link {{ color: inherit; text-decoration: none;
+            border-bottom: 1px dotted rgba(0,0,0,0.28); }}
+        a.player-link:hover {{ color: #002D72; border-bottom-color: #002D72; }}
 
         .streak-box {{ background: #041E42; border: 2px solid #D50032;
                        border-radius: 12px; padding: 15px 30px; text-align: center; }}
