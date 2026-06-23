@@ -96,6 +96,26 @@ genuinely delivered (non-delivered stale-preview locks write nothing); (3) crash
 exit; (4) end-of-day MDP skip via `_write_endofday_skip` (`scoreable=False`,
 `delivery_status="not_applicable"`), fired only when `committed_pick_written` is still False.
 
+**Daemon-path completion (the full #144 fix, shipped 2026-06-22 — PR #145).** The check-results gate
+alone left the streak corruptible via two pre-existing daemon paths on a skip day (the projected→real
+flip: 3am preview writes a projected `<date>.json`, real lineups flip to a skip, leaving a stale file).
+A shared `daily_decision.is_scoreable_commit(date, picks_dir, daily)` (= `decision.scoreable` if a
+record exists, else `pick_was_delivered`) is now the ONE "is this a committed pick?" predicate, used by
+check-results, result-polling, and the health checks. Closed paths: **(C1)** the fallback
+(`_refresh_pick_at_fallback_decision` + its two `run_day` delivery sites) does NOT deliver the cached
+preview on a genuine MDP skip — a "standing skip" (`state.final_skip_candidate` set, not committed)
+survives a flaky later refresh, but a genuine late pick clears it and delivers, and a cascade *error*
+(selection None) still delivers cached (safety net); **(C2)** `run_result_polling` is gated on
+`is_scoreable_commit`, not just `state.pick_locked`, so a non-delivered classification-lock is never
+scored; **(persistence)** `final_skip_candidate`/`committed_pick_written` live on `SchedulerState`
+(carried across a same-day restart by `carry_forward_skip_state`), and `_write_endofday_skip` has an
+overwrite-guard (won't clobber an on-disk scoreable record); **(alerts)** `_maybe_alert_missed_pick` /
+`health/post_failure` / `health/analytics_artifacts_missing` gate on the skip/commit signal so a
+deliberate skip isn't mis-read as a missed/failed pick. `load_decision` rejects malformed/partial
+records (missing `action`/`scoreable`/`date`, or wrong `schema_version`) as missing. Two accepted
+prod-safe edges remain (private-mode only, prod is public/DM): a private pick whose best-effort
+decision-write fails goes unscored; a private pick isn't re-locked on a restart-before-first-pitch.
+
 ### Dropped features (tested and rejected)
 - **lineup_position**: Double-counts with PA aggregation (helps with leaky features, hurts or neutral with clean)
 - **is_home**: Noise at PA level

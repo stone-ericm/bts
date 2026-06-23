@@ -7,6 +7,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv sync                  # Pi5 (no LightGBM)  [Pi5 BT
 UV_CACHE_DIR=/tmp/uv-cache uv run bts run --date 2026-04-01 --dry-run
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 
+# ⚠️ The full local suite GRINDS for hours (LightGBM imports locally now → simulate/model/experiment/
+# validate run real backtests/training). For NON-model changes, the fast comprehensive regression is:
+UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" \
+  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1483 in ~25s
+
 # Scheduler (Hetzner production — systemd --user unit)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml --dry-run
