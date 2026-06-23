@@ -85,3 +85,32 @@ def test_is_scoreable_commit(tmp_path):
     # no decision record -> fall back to pick_was_delivered
     assert is_scoreable_commit("2026-06-22", tmp_path, _delivered_daily()) is True
     assert is_scoreable_commit("2026-06-22", tmp_path, _undelivered_daily()) is False
+
+
+def test_load_rejects_partial_records(tmp_path):
+    """Fix 3 (post-review): a schema-valid record missing the core fields must be
+    rejected. Accepting e.g. {schema_version, scoreable:true} (no action/date) could
+    mis-authorize scoring a stale preview as an authoritative commit."""
+    p = decision_path("2026-06-20", tmp_path); p.parent.mkdir(parents=True, exist_ok=True)
+    # right schema_version but NO action / date — not authoritative
+    p.write_text(json.dumps({"schema_version": DECISION_SCHEMA, "scoreable": True}))
+    assert load_decision("2026-06-20", tmp_path) is None
+    # missing scoreable (not a bool) — rejected
+    p.write_text(json.dumps({"schema_version": DECISION_SCHEMA, "action": "single", "date": "2026-06-20"}))
+    assert load_decision("2026-06-20", tmp_path) is None
+    # scoreable present but not a bool — rejected
+    p.write_text(json.dumps({"schema_version": DECISION_SCHEMA, "action": "single",
+                             "date": "2026-06-20", "scoreable": "yes"}))
+    assert load_decision("2026-06-20", tmp_path) is None
+    # action not in {skip,single,double} — rejected
+    p.write_text(json.dumps({"schema_version": DECISION_SCHEMA, "action": "bunt",
+                             "date": "2026-06-20", "scoreable": True}))
+    assert load_decision("2026-06-20", tmp_path) is None
+    # missing date — rejected
+    p.write_text(json.dumps({"schema_version": DECISION_SCHEMA, "action": "single", "scoreable": True}))
+    assert load_decision("2026-06-20", tmp_path) is None
+    # a full, valid record still loads (write_decision always writes the core fields)
+    write_decision("2026-06-20", tmp_path, action="single", source="mdp",
+                   delivery_status="delivered", scoreable=True)
+    loaded = load_decision("2026-06-20", tmp_path)
+    assert loaded is not None and loaded["action"] == "single" and loaded["scoreable"] is True

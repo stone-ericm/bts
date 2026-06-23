@@ -422,3 +422,107 @@ def test_standing_skip_survives_post_loop_refresh_flake(tmp_path, monkeypatch):
     assert d is not None
     assert d["action"] == "skip" and d["scoreable"] is False
     assert d["streak"] == 9                        # candidate captured in-loop, not lost
+
+
+# --- standing skip must YIELD to a genuine late pick (post-review Fix 1) ------
+#
+# The inverse of the r3 case above: an earlier cycle decided an MDP skip
+# (final_skip_candidate set), then the fallback refresh resolves to a GENUINE
+# single/double (lineups flipped back). The standing skip must be CLEARED and the
+# real pick delivered — NOT suppressed into an end-of-day skip.
+
+
+def _deliver_spy(monkeypatch):
+    """Wrap _deliver_and_lock_pick so a test can assert it actually ran."""
+    calls = []
+    real = sch._deliver_and_lock_pick
+    monkeypatch.setattr(sch, "_deliver_and_lock_pick",
+                        lambda *a, **k: calls.append(1) or real(*a, **k))
+    return calls
+
+
+def test_standing_skip_yields_to_late_pick_post_loop(tmp_path, monkeypatch):
+    """Fix 1 (post-loop site, ~2179): a genuine MDP skip stands going into the
+    post-loop fallback; the refresh then returns a genuine single. The standing skip
+    must clear — _deliver_and_lock_pick runs and EOD records the PICK, not a skip."""
+    from bts.picks import save_pick
+    save_pick(_daily(delivered=False), tmp_path)          # leftover preview the fallback re-evaluates
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    delivered = _deliver_spy(monkeypatch)
+    pick_sel = _sel("single", "mdp", primary=_cand())
+    monkeypatch.setattr(
+        sch, "_refresh_pick_at_fallback_decision",
+        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
+    )
+    # The day's only cycle is a genuine MDP skip → final_skip_candidate set, unlocked.
+    skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=7, saver=False))
+    _drive_run_day(monkeypatch, tmp_path, skip, pick_delivery="private")
+
+    assert delivered, "_deliver_and_lock_pick must run — the standing skip yields to a real pick"
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["action"] == "single"                        # the late pick, NOT an EOD skip
+    assert d["source"] == "mdp"
+    assert d["scoreable"] is True
+    assert d["delivery_status"] == "private_locked"
+
+
+def test_standing_skip_yields_to_late_pick_in_loop(tmp_path, monkeypatch):
+    """Fix 1 (in-loop site, ~2098): cycle 1 decides an MDP skip (final_skip_candidate
+    set); cycle 2 has selection=None (so it neither sets nor clears the candidate) but
+    exposes a pick_result.daily that engages the in-loop fallback, whose refresh
+    returns a genuine single. The standing skip must yield and deliver in-loop."""
+    from bts.picks import save_pick
+    save_pick(_daily(delivered=False), tmp_path)
+    monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
+    delivered = _deliver_spy(monkeypatch)
+    pick_sel = _sel("single", "mdp", primary=_cand())
+    monkeypatch.setattr(
+        sch, "_refresh_pick_at_fallback_decision",
+        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
+    )
+    skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=7, saver=False))
+    # selection=None → candidate survives into the in-loop fallback; pick_result.daily
+    # present on the LAST run → the in-loop fallback deadline branch engages.
+    unknown = _result(should_post=False, selection=None,
+                      pick_result=PickResult(daily=_daily(delivered=False), locked=False))
+    _drive_run_day(
+        monkeypatch, tmp_path, [skip, unknown],
+        games=[_game(100, "16:10"), _game(200, "19:05")], pick_delivery="private",
+    )
+
+    assert delivered, "_deliver_and_lock_pick must run in-loop — the standing skip yields"
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["action"] == "single" and d["source"] == "mdp"
+    assert d["scoreable"] is True
+    assert d["delivery_status"] == "private_locked"
+
+
+def test_skip_to_pick_flip_clears_skip_summary_unsuppressing_missed_alert(tmp_path, monkeypatch):
+    """Fix 2: an early skip sets skip_summary; a later pick cycle (sel.action single)
+    must clear it in the run_day result block alongside final_skip_candidate. When
+    that pick then fails to deliver, the missed-pick alert (D6) must FIRE — a stale
+    skip_summary must not suppress a genuine missed-pick warning."""
+    from bts.picks import save_pick
+    from bts.contest_state import ContestStateError
+    save_pick(_daily(delivered=False), tmp_path)          # the undelivered pick to alert on
+    fired = []
+    monkeypatch.setattr(sch, "_alert_missed_pick", lambda *a, **k: fired.append(1))
+    monkeypatch.setattr(sch, "_watchdog_ping_sleep", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_alert_contest_state_failure", lambda *a, **k: None)
+    # Post-loop fallback refresh is blocked → the pick stays undelivered/unlocked, so
+    # run_day reaches the missed-pick alert with a genuine undelivered pick on disk.
+    monkeypatch.setattr(sch, "_refresh_pick_at_fallback_decision",
+                        Mock(side_effect=ContestStateError("blocked")))
+    skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=5, saver=False),
+                   skip_summary={"best_batter": "X", "best_team": "NYM", "best_p": 0.70, "streak": 5})
+    # sel.action single clears final_skip_candidate AND (Fix 2) skip_summary; pick_result
+    # None → no in-loop fallback and no delivery in the result block here.
+    flip = _result(should_post=False, selection=_sel("single", "mdp", primary=_cand()),
+                   pick_result=None)
+    _drive_run_day(
+        monkeypatch, tmp_path, [skip, flip],
+        games=[_game(100, "16:10"), _game(200, "19:05")], pick_delivery="private",
+    )
+    assert fired == [1], "missed-pick alert must fire once skip_summary is cleared on the flip"

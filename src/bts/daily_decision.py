@@ -59,6 +59,14 @@ def load_decision(date: str, picks_dir) -> dict | None:
         rec = json.loads(path.read_text())
         if not isinstance(rec, dict) or rec.get("schema_version") != DECISION_SCHEMA:
             return None
+        # Reject partial / wrong-shape records that carry the schema tag but lack the
+        # core fields (post-review Fix 3): accepting e.g. {schema_version, scoreable}
+        # would treat a stale preview as authoritative and could mis-authorize scoring.
+        # write_decision always writes all of these, so genuine records are unaffected.
+        if (rec.get("action") not in {"skip", "single", "double"}
+                or not isinstance(rec.get("scoreable"), bool)
+                or "date" not in rec):
+            return None
         return rec
     except (json.JSONDecodeError, OSError):
         return None

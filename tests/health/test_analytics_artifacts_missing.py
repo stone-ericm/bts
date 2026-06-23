@@ -19,7 +19,7 @@ def _write_state(picks_dir, *, locked=True, jobs=None):
     }))
 
 
-def _write_decision(picks_dir, *, scoreable: bool, action: str = "commit") -> None:
+def _write_decision(picks_dir, *, scoreable: bool, action: str = "single") -> None:
     """Write a minimal decision.json so _locked_pick_exists can verify a genuine commit."""
     state_dir = picks_dir / DATE_ISO
     state_dir.mkdir(parents=True, exist_ok=True)

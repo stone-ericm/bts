@@ -356,6 +356,18 @@ def _refresh_is_genuine_skip(refresh: "FallbackRefreshResult") -> bool:
     return sel is not None and sel.action == "skip" and sel.source == "mdp"
 
 
+def _refresh_is_genuine_pick(refresh: "FallbackRefreshResult") -> bool:
+    """True iff a fallback refresh resolved to a genuine PICK (single/double).
+
+    Mirror of _refresh_is_genuine_skip for the inverse flip (post-review Fix 1): a
+    standing MDP skip captured on an earlier cycle must YIELD to a real late pick
+    when lineups flip back, rather than suppress it into an end-of-day skip. A
+    None-selection refresh (cascade / no-predictions) is NOT a genuine pick.
+    """
+    sel = refresh.selection
+    return sel is not None and sel.action in {"single", "double"}
+
+
 def _capture_fallback_skip(state: "SchedulerState", refresh: "FallbackRefreshResult") -> None:
     """Set the EOD skip candidate from a fallback-confirmed genuine skip (D4 / Codex r2).
 
@@ -1970,6 +1982,11 @@ def run_day(
             save_state(state, picks_dir)  # persist so a same-day restart inherits the skip (#3)
         elif sel is not None and sel.action in {"single", "double"}:
             state.final_skip_candidate = None
+            # Clear skip_summary too (post-review Fix 2): a stale skip_summary left set
+            # after a skip→pick flip would wrongly suppress the missed-pick alert (D6)
+            # if that pick later fails to deliver. Keep both skip signals tracking the
+            # current decision.
+            state.skip_summary = None
             save_state(state, picks_dir)
 
         state.runs_completed.append({
@@ -2095,6 +2112,16 @@ def run_day(
                     # refresh flaked to selection=None (Codex r3). Capture from the
                     # freshest genuine skip so EOD records it (the projected→real flip
                     # cleared the candidate on the earlier pick cycle).
+                    # BUT a genuine late pick (lineups flipped back to a single/double)
+                    # must CLEAR the standing skip first (post-review Fix 1), else the
+                    # real pick is wrongly suppressed into an EOD skip. Clear both skip
+                    # signals (Fix 2) so they track the same decision.
+                    if _refresh_is_genuine_pick(refresh) and (
+                        state.final_skip_candidate is not None or state.skip_summary is not None
+                    ):
+                        state.final_skip_candidate = None
+                        state.skip_summary = None
+                        save_state(state, picks_dir)
                     skip_standing = _refresh_is_genuine_skip(refresh) or bool(
                         state.final_skip_candidate and not state.committed_pick_written
                     )
@@ -2176,6 +2203,15 @@ def run_day(
                     # the cached pick. The cascade safety-net (deliver cached) is kept
                     # only when NOT skip_standing (a genuine PICK day's errored refresh
                     # leaves final_skip_candidate None).
+                    # A genuine late pick (lineups flipped back) must CLEAR the standing
+                    # skip first (post-review Fix 1) so it delivers instead of being
+                    # suppressed into an EOD skip. Clear both skip signals (Fix 2).
+                    if _refresh_is_genuine_pick(refresh) and (
+                        state.final_skip_candidate is not None or state.skip_summary is not None
+                    ):
+                        state.final_skip_candidate = None
+                        state.skip_summary = None
+                        save_state(state, picks_dir)
                     skip_standing = _refresh_is_genuine_skip(refresh) or bool(
                         state.final_skip_candidate and not state.committed_pick_written
                     )

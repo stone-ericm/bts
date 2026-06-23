@@ -158,7 +158,7 @@ class TestPostFailureDecisionGate:
     def test_no_alert_when_decision_scoreable_false(self, tmp_path):
         """Undelivered pick + decision.json scoreable=False → non-committed day, no alert."""
         _write_pick(tmp_path, "2026-04-27", posted=False, uri=None)
-        _write_decision(tmp_path, "2026-04-27", action="commit", scoreable=False)
+        _write_decision(tmp_path, "2026-04-27", action="single", scoreable=False)
         now = datetime(2026, 4, 27, 23, 0, tzinfo=ET)
         alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
         assert alerts == []
@@ -166,7 +166,7 @@ class TestPostFailureDecisionGate:
     def test_still_alerts_on_genuine_undelivered_committed_pick(self, tmp_path):
         """Undelivered pick + decision.json scoreable=True → CRITICAL must still fire."""
         _write_pick(tmp_path, "2026-04-27", posted=False, uri=None)
-        _write_decision(tmp_path, "2026-04-27", action="commit", scoreable=True)
+        _write_decision(tmp_path, "2026-04-27", action="single", scoreable=True)
         now = datetime(2026, 4, 27, 22, 0, tzinfo=ET)
         alerts = check(tmp_path, today=date(2026, 4, 27), now=now)
         assert len(alerts) == 1
