@@ -529,6 +529,27 @@ def _replay_season_streak(
     return streak, saver
 
 
+def is_resume_date_game(game: dict, date) -> bool:
+    """True if this MLB schedule game is a suspended game being *resumed* on ``date``.
+
+    A suspended game keeps its original ``officialDate``; when resumed on a later day it
+    still appears on that day's schedule (officialDate earlier than the queried date).
+    Per BTS rules the resumed portion is never evaluated, so a pick on the resume day can
+    never score -- callers must not offer such a game as a candidate. A missing
+    officialDate defensively returns False (keep the game). Both sides are compared on a
+    ``YYYY-MM-DD`` prefix, which is correct for the ISO date / Timestamp /
+    ``"YYYY-MM-DD 00:00:00"`` forms the MLB schedule and callers use. See
+    docs/audit/2026-06-29-skip-threshold-and-discrimination.md (the 2026-06-17
+    live_forward_resolution stall, game 824912 resumed from 06-16).
+    """
+    official = game.get("officialDate")
+    if not official:
+        return False
+    # Resumed games carry an EARLIER officialDate; use `<` (not `!=`) so a future or
+    # otherwise-odd official date is never silently dropped from the slate.
+    return str(official)[:10] < str(date)[:10]
+
+
 def get_game_statuses(date: str) -> dict[int, str]:
     """Get game statuses for all games on a date.
 
