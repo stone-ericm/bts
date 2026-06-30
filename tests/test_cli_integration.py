@@ -539,6 +539,7 @@ class TestBtsCheckResults:
         mock_check.assert_called_once_with(
             999, 111,
             batter_name="Shadow Batter", date="2026-04-01", team="BOS",
+            return_status=True,
         )
         from bts.picks import load_streak
         assert load_streak(picks_dir) == 2
