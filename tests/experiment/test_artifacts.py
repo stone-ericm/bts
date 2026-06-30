@@ -608,6 +608,7 @@ def test_resolve_live_candidate_artifact_pair_writes_resolved_copy(
         "void_postponement": 0,
         "void_cancellation": 0,
         "void_no_pa": 0,
+        "void_suspended_resume": 0,
         "pending": 0,
     }
     assert "never coerced to actual_hit=0" in resolved_manifest["outcome_missing_semantics"]
@@ -702,6 +703,7 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         "void_postponement": 2,
         "void_cancellation": 0,
         "void_no_pa": 0,
+        "void_suspended_resume": 0,
         "pending": 0,
     }
 
@@ -715,6 +717,7 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         "void_postponement": 2,
         "void_cancellation": 0,
         "void_no_pa": 0,
+        "void_suspended_resume": 0,
         "pending": 0,
     }
     assert resolved_manifest["profile_schema_columns"] == RESOLVED_PROFILE_SCHEMA_COLUMNS
@@ -737,6 +740,137 @@ def test_resolve_live_candidate_artifact_pair_terminal_void_status(
         expected_top_n=2,
     )
     assert verification["ok"] is True
+
+
+def test_resolve_live_candidate_artifact_pair_voids_suspended_resume(tmp_path):
+    """A pick whose game was suspended and resumed the next day terminal-voids as
+    void_suspended_resume rather than stalling at pending.
+
+    The resumed game keeps its original officialDate, so its PA rows are filed under
+    the earlier date while the slate dates the pick on the resume day. Per BTS rules
+    the resumed portion is never evaluated, so the pick is a void. Regression for the
+    2026-06-17 live_forward_resolution stall (game 824912 resumed from 06-16).
+    """
+    artifact_dir = tmp_path / "artifact"
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-06-17")
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    pd.DataFrame([
+        # rank-1 game 1001: suspended 06-16, resumed 06-17 -> all PA filed under officialDate 06-16
+        {"date": "2026-06-16", "batter_id": 11, "game_pk": 1001, "is_hit": 1},
+        {"date": "2026-06-16", "batter_id": 11, "game_pk": 1001, "is_hit": 0},
+        # rank-2 game 1002: a normal 06-17 game (resolves cleanly)
+        {"date": "2026-06-17", "batter_id": 22, "game_pk": 1002, "is_hit": 1},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=tmp_path / "resolved",
+        data_dir=data_dir,
+    )
+
+    assert report["missing_count"] == 0
+    assert report["terminal_void_count"] == 2  # rank-1 in both variants
+    counts = report["outcome_status_counts"]
+    assert counts["void_suspended_resume"] == 2
+    assert counts["resolved"] == 2
+    assert counts["pending"] == 0
+
+    resolved_production = pd.read_parquet(
+        tmp_path / "resolved" / "profiles/production/live_2026-06-17.parquet"
+    )
+    by_rank = resolved_production.set_index("rank")["outcome_status"].to_dict()
+    assert by_rank[1] == "void_suspended_resume"
+    assert by_rank[2] == "resolved"
+
+
+def test_game_pk_pa_dates_maps_each_game_to_its_pa_dates(tmp_path):
+    """game_pk -> the normalized dates its PA is filed under. The resolver uses this
+    row-locally, so a game with PA on a row's slate date is a real slate game (not
+    off-date) even alongside stray off-date rows; year selection normalizes date_keys.
+    """
+    from bts.experiment.artifacts import _game_pk_pa_dates
+
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    pd.DataFrame([
+        {"date": "2026-06-17", "game_pk": 100},  # slate-date only
+        {"date": "2026-06-16", "game_pk": 200},  # off-date only (suspended, resumed 06-17)
+        {"date": "2026-06-17", "game_pk": 300},  # played on the slate date...
+        {"date": "2026-06-16", "game_pk": 300},  # ...and a stray off-date row
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    m = _game_pk_pa_dates(data_dir=data_dir, date_keys=["2026-06-17"])
+    assert m[100] == {"2026-06-17"}
+    assert m[200] == {"2026-06-16"}
+    assert m[300] == {"2026-06-16", "2026-06-17"}  # has slate-date PA -> not off-date for a 06-17 row
+    # a Timestamp key still selects year 2026 and yields the same map
+    assert _game_pk_pa_dates(data_dir=data_dir, date_keys=[pd.Timestamp("2026-06-17")])[200] == {"2026-06-16"}
+
+
+def test_resolve_does_not_void_unplayed_batter_in_slate_game(tmp_path):
+    """A missing row for a game that WAS played on the slate date (the batter just didn't
+    appear) stays pending, not void_suspended_resume -- even if that game_pk has a stray
+    off-date PA row. Guards the row-local off-date detection against voiding a real game.
+    """
+    artifact_dir = tmp_path / "artifact"
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-06-17")  # rank1=(11,1001), rank2=(22,1002)
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    pd.DataFrame([
+        # game 1001 IS on the slate date (a different batter played) + a stray off-date row;
+        # batter 11 never appears -> the rank-1 row must stay PENDING, not suspended-void.
+        {"date": "2026-06-17", "game_pk": 1001, "batter_id": 99, "is_hit": 1},
+        {"date": "2026-06-16", "game_pk": 1001, "batter_id": 99, "is_hit": 0},  # stray off-date row
+        {"date": "2026-06-17", "game_pk": 1002, "batter_id": 22, "is_hit": 1},  # rank-2 resolves
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=tmp_path / "resolved",
+        data_dir=data_dir,
+        allow_partial=True,  # rank-1 (batter 11) genuinely missing -> pending, not an error
+    )
+
+    counts = report["outcome_status_counts"]
+    assert counts["void_suspended_resume"] == 0  # game 1001 has slate-date PA -> not off-date
+    assert counts["pending"] == 2  # rank-1 (batter 11 absent) stays pending in both variants
+    assert counts["resolved"] == 2  # rank-2 resolves
+
+
+def test_resolve_tolerates_malformed_game_pk_row(tmp_path):
+    """A still-missing row with a null game_pk must not crash the resolver -- it stays
+    pending (the off-date detection coerces game_pk defensively). validate_ranked_profiles
+    permits a null game_pk value (it only checks the column exists), so such a row can
+    reach the resolve loop.
+    """
+    artifact_dir = tmp_path / "artifact"
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-06-17")
+    # null out the production rank-1 game_pk (the column still exists -> validation passes)
+    prod_path = artifact_dir / "profiles/production/live_2026-06-17.parquet"
+    frame = pd.read_parquet(prod_path)
+    frame.loc[frame["rank"] == 1, "game_pk"] = pd.NA
+    frame.to_parquet(prod_path, index=False)
+
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    pd.DataFrame([
+        {"date": "2026-06-17", "game_pk": 1002, "batter_id": 22, "is_hit": 1},  # rank-2 resolves
+        {"date": "2026-06-16", "game_pk": 9999, "batter_id": 1, "is_hit": 1},   # unrelated off-date PA
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    # must not raise; the null-game_pk row and the absent-game candidate row stay pending
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir,
+        output_dir=tmp_path / "resolved",
+        data_dir=data_dir,
+        allow_partial=True,
+    )
+
+    counts = report["outcome_status_counts"]
+    assert counts["void_suspended_resume"] == 0
+    assert counts["pending"] == 2  # production rank-1 (null game_pk) + candidate rank-1 (game absent)
+    assert counts["resolved"] == 2  # rank-2 (game 1002) resolves in both variants
 
 
 def test_verify_resolved_artifact_accepts_legacy_zero_outcome_status_count(
@@ -814,6 +948,7 @@ def test_resolve_live_candidate_artifact_pair_final_no_pa_void_status(
         "void_postponement": 0,
         "void_cancellation": 0,
         "void_no_pa": 2,
+        "void_suspended_resume": 0,
         "pending": 0,
     }
 
@@ -908,6 +1043,7 @@ def test_resolve_live_candidate_artifact_pair_mixed_void_and_pending(
         "void_postponement": 2,
         "void_cancellation": 0,
         "void_no_pa": 0,
+        "void_suspended_resume": 0,
         "pending": 2,
     }
 

@@ -34,18 +34,25 @@ OUTCOME_STATUS_RESOLVED = "resolved"
 OUTCOME_STATUS_VOID_POSTPONEMENT = "void_postponement"
 OUTCOME_STATUS_VOID_CANCELLATION = "void_cancellation"
 OUTCOME_STATUS_VOID_NO_PA = "void_no_pa"
+# A pick whose game was suspended and resumed on a later day. The resumed game keeps
+# its original officialDate, so its PA rows stay filed under the earlier date while the
+# slate dates the pick on the resume day -> the row can never match resume-day PA. Per
+# BTS rules the resumed portion is never evaluated, so the pick is a terminal void.
+OUTCOME_STATUS_VOID_SUSPENDED_RESUME = "void_suspended_resume"
 OUTCOME_STATUS_PENDING = "pending"
 OUTCOME_STATUS_VALUES = (
     OUTCOME_STATUS_RESOLVED,
     OUTCOME_STATUS_VOID_POSTPONEMENT,
     OUTCOME_STATUS_VOID_CANCELLATION,
     OUTCOME_STATUS_VOID_NO_PA,
+    OUTCOME_STATUS_VOID_SUSPENDED_RESUME,
     OUTCOME_STATUS_PENDING,
 )
 VOID_OUTCOME_STATUSES = {
     OUTCOME_STATUS_VOID_POSTPONEMENT,
     OUTCOME_STATUS_VOID_CANCELLATION,
     OUTCOME_STATUS_VOID_NO_PA,
+    OUTCOME_STATUS_VOID_SUSPENDED_RESUME,
 }
 PROFILE_REQUIRED_COLUMNS = {
     "date",
@@ -748,6 +755,38 @@ def _load_outcomes_from_pa(
     return outcomes
 
 
+def _game_pk_pa_dates(
+    *,
+    data_dir: str | Path,
+    date_keys: list[str],
+) -> dict[int, set[str]]:
+    """Map each game_pk in the relevant PA parquets to the normalized ``%Y-%m-%d`` dates
+    its PA rows are filed under.
+
+    Used row-locally by the resolver to detect suspended-resumed games: a still-missing
+    slate row whose game_pk has PA but NONE on that row's OWN slate date references a
+    game whose evaluable activity is off the slate date (a suspended game resumed a
+    different day, which per BTS rules is never evaluated) -> terminal-void rather than
+    stall. A game with PA on the row's slate date is a real slate game (the batter simply
+    didn't play -> stays pending), even alongside stray off-date rows; a game absent from
+    PA entirely also stays pending. The per-row date check keeps this correct even if one
+    resolve pass spans multiple slate dates. Years are taken from ``date_keys`` (an
+    artifact only references its own seasons' PA).
+    """
+    data_root = Path(data_dir)
+    years = sorted({pd.Timestamp(d).year for d in date_keys})
+    out: dict[int, set[str]] = {}
+    for year in years:
+        path = data_root / f"pa_{year}.parquet"
+        if not path.exists():
+            continue
+        pa = pd.read_parquet(path, columns=["date", "game_pk"]).dropna(subset=["game_pk"])
+        keys = pd.to_datetime(pa["date"]).dt.strftime("%Y-%m-%d")
+        for gpk, dset in pa.assign(_k=keys).groupby("game_pk")["_k"].agg(set).items():
+            out.setdefault(int(gpk), set()).update(dset)
+    return out
+
+
 def _terminal_void_outcome_status(detailed: str | None) -> str | None:
     return VOID_DETAILED_STATES.get((detailed or "").strip().lower())
 
@@ -899,6 +938,7 @@ def resolve_live_candidate_artifact_pair(
             .iterrows()
         )
     }
+    game_pk_pa_dates = _game_pk_pa_dates(data_dir=data_dir, date_keys=date_keys)
     terminal_void_statuses = (
         detailed_statuses_by_date
         if detailed_statuses_by_date is not None
@@ -955,6 +995,27 @@ def resolve_live_candidate_artifact_pair(
                 )
                 for index, outcome_status in void_statuses.dropna().items():
                     resolved.loc[index, "outcome_status"] = outcome_status
+            # Suspended-then-resumed games (PA filed under the earlier officialDate)
+            # can never match the resume-day slate; terminal-void them per BTS rules
+            # rather than stall forever. Always-on (not gated on the schedule-status
+            # void flag) since such rows are otherwise un-resolvable.
+            if missing_mask.any() and game_pk_pa_dates:
+                # Row-local: void only a still-missing row whose game has PA but NONE on
+                # THIS row's own slate date. Coerce defensively (errors="coerce") and only
+                # iterate well-formed candidate rows, so a malformed/legacy game_pk or date
+                # leaves that row pending rather than crashing the whole resolve.
+                candidate_mask = missing_mask & (
+                    resolved["outcome_status"] == OUTCOME_STATUS_PENDING
+                )
+                row_keys = pd.to_datetime(resolved["date"], errors="coerce").dt.strftime("%Y-%m-%d")
+                game_pks = pd.to_numeric(resolved["game_pk"], errors="coerce")
+                offdate = pd.Series(False, index=resolved.index)
+                for idx in resolved.index[candidate_mask & game_pks.notna() & row_keys.notna()]:
+                    dates = game_pk_pa_dates.get(int(game_pks.loc[idx]))
+                    offdate.loc[idx] = bool(dates) and row_keys.loc[idx] not in dates
+                resolved.loc[candidate_mask & offdate, "outcome_status"] = (
+                    OUTCOME_STATUS_VOID_SUSPENDED_RESUME
+                )
             terminal_void_mask = resolved["outcome_status"].isin(VOID_OUTCOME_STATUSES)
             unresolved_missing_mask = resolved["outcome_status"] == OUTCOME_STATUS_PENDING
 
