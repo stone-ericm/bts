@@ -300,15 +300,17 @@ def write_status(picks_dir, status_path, *, breakeven_p=BREAKEVEN_P,
 def make_hit_checker():
     """Realized-outcome callable backed by the MLB Stats API (game_pk is reliable in decision.json).
 
-    Returns 'hit'/'miss', or None when not resolvable yet (game not final / batter not found) so
-    the record stays pending and is retried — NOT voided immediately.
+    Returns 'hit'/'miss'/'void', or None when not resolvable yet (game not final / batter not
+    found) so the record stays pending and is retried — NOT voided immediately. 'void' is a
+    suspended game with no pre-suspension PA for the batter (the resumed portion is never
+    evaluated for BTS); build_skip_policy_shadow_status excludes voids from the band hit rate.
     """
     from bts.picks import check_hit
 
     def checker(rank1):
         if not rank1:
             return None
-        res = check_hit(rank1.get("game_pk"), rank1.get("batter_id"),
-                        rank1.get("batter_name"), team=rank1.get("team"))
-        return "hit" if res is True else ("miss" if res is False else None)
+        return check_hit(rank1.get("game_pk"), rank1.get("batter_id"),
+                         rank1.get("batter_name"), team=rank1.get("team"),
+                         return_status=True)
     return checker

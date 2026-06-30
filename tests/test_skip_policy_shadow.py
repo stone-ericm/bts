@@ -216,6 +216,27 @@ def test_status_counts_rate_and_void_excluded():
     assert abs(s["shadow_band_hit_rate"]["rate"] - 2 / 3) < 1e-9
 
 
+def test_make_hit_checker_passes_through_void(monkeypatch):
+    """The shadow's realized-outcome checker must surface a suspended-game 'void' (not
+    collapse it to 'miss'), and call check_hit with the status contract. The shadow then
+    excludes voids from the band hit rate.
+    """
+    import bts.picks
+    from bts.skip_policy_shadow import make_hit_checker
+    seen = {}
+
+    def fake_check_hit(game_pk, batter_id, batter_name=None, date=None, team=None,
+                       *, return_status=False):
+        seen["return_status"] = return_status
+        return "void"
+
+    monkeypatch.setattr(bts.picks, "check_hit", fake_check_hit)
+    checker = make_hit_checker()
+    result = checker({"game_pk": 1, "batter_id": 2, "batter_name": "B", "team": "X"})
+    assert result == "void"
+    assert seen["return_status"] is True
+
+
 def test_verdict_insufficient_then_below_then_above():
     assert build_skip_policy_shadow_status([_drec("hit")] * 5, min_divergent_days=30
                                            )["shadow_band_hit_rate"]["verdict"] == "insufficient_n"
