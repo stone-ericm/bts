@@ -1667,9 +1667,11 @@ def _check_hits_midgame(daily, date: str) -> list[bool | None]:
     """Check if picked batters have hits in a live or final game.
 
     Returns list of True/False/None per pick (primary + optional double).
-    None = batter not yet in boxscore or no AB yet.
+    None = batter not yet in boxscore or no AB yet. Suspension-aware: while a suspended
+    game's resumed portion is live, a resumed-portion hit does NOT count (the resumed
+    portion is never evaluated for BTS) -- delegated to picks._check_hit_in_game.
     """
-    from bts.picks import API_BASE
+    from bts.picks import API_BASE, _check_hit_in_game
     results = []
     for pick in [daily.pick] + ([daily.double_down] if daily.double_down else []):
         try:
@@ -1677,15 +1679,7 @@ def _check_hits_midgame(daily, date: str) -> list[bool | None]:
                 f"{API_BASE}/api/v1.1/game/{pick.game_pk}/feed/live",
                 timeout=15,
             ).read())
-            for side in ("away", "home"):
-                players = resp["liveData"]["boxscore"]["teams"][side]["players"]
-                key = f"ID{pick.batter_id}"
-                if key in players:
-                    hits = players[key].get("stats", {}).get("batting", {}).get("hits", 0)
-                    results.append(hits > 0)
-                    break
-            else:
-                results.append(None)
+            results.append(_check_hit_in_game(resp, pick.batter_id, pick.batter_name))
         except Exception:
             results.append(None)
     return results

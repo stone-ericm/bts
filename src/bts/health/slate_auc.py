@@ -105,6 +105,7 @@ def _alerts_for(auc: float | None, thresholds: dict) -> list[Alert]:
 
 def _compute(picks_dir: Path, data_dir: Path, today: date, thresholds: dict) -> dict:
     import pandas as pd
+    from bts.data.build import read_pa_for_bts_scoring  # local: keeps pandas-absent guard
 
     slates_dir = Path(picks_dir) / "slates"
     cutoff = today - timedelta(days=thresholds["window_days"])
@@ -144,7 +145,7 @@ def _compute(picks_dir: Path, data_dir: Path, today: date, thresholds: dict) -> 
         p = Path(data_dir) / f"pa_{y}.parquet"
         if p.exists():
             try:
-                parts.append(pd.read_parquet(p, columns=["batter_id", "game_pk", "is_hit"]))
+                parts.append(read_pa_for_bts_scoring(p, ["batter_id", "game_pk", "is_hit"]))
             except Exception as e:
                 log.warning(f"failed to load {p}: {e}")
     if not parts:

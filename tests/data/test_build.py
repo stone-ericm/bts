@@ -190,6 +190,21 @@ def test_parse_game_feed_flags_resumed_portion(sample_game_feed):
     assert rows[1]["is_resumed_portion"] is True
 
 
+def test_parse_game_feed_missing_starttime_in_suspended_game_is_resumed(sample_game_feed):
+    """In a suspended game, a PA with a missing startTime can't be placed -> treated as
+    resumed (excluded from scoring), the conservative direction matching the production
+    scorer. (Normal games never reach this branch -- resume_dt is None.)
+    """
+    feed = copy.deepcopy(sample_game_feed)
+    feed["gameData"]["datetime"]["resumeDateTime"] = "2025-06-16T18:00:00Z"
+    plays = feed["liveData"]["plays"]["allPlays"]
+    plays[0]["about"]["startTime"] = "2025-06-15T23:30:00Z"  # pre-suspension
+    plays[1]["about"].pop("startTime", None)  # missing -> conservatively resumed
+    rows = parse_game_feed(feed)
+    assert rows[0]["is_resumed_portion"] is False
+    assert rows[1]["is_resumed_portion"] is True
+
+
 def test_parse_game_feed_resume_boundary_inclusive(sample_game_feed):
     """The boundary is `startTime >= resumeDateTime` (resumption instant is resumed)."""
     feed = copy.deepcopy(sample_game_feed)

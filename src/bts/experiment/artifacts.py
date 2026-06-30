@@ -933,16 +933,17 @@ def resolve_live_candidate_artifact_pair(
 
     date_keys = _manifest_date_keys(manifest)
     outcomes = _load_outcomes_from_pa(data_dir=data_dir, date_keys=date_keys)
-    outcome_game_keys = {
-        (str(row["_outcome_date_key"]), int(row["game_pk"]))
-        for _, row in (
-            outcomes[["_outcome_date_key", "game_pk"]]
-            .dropna()
-            .drop_duplicates()
-            .iterrows()
-        )
-    }
     game_pk_pa_dates = _game_pk_pa_dates(data_dir=data_dir, date_keys=date_keys)
+    # Whether a (date, game) produced ANY loaded PA. Derived from UNFILTERED PA dates (not
+    # the resumed-excluded `outcomes`) so a suspended game whose every PA is in the resumed
+    # portion -- zero pre-suspension PA -- still counts as "game produced PA". That lets the
+    # final-game routing void_no_pa an original-day candidate there instead of stalling it
+    # pending (which would re-trigger the live_forward_resolution alert).
+    outcome_game_keys = {
+        (date_key, game_pk)
+        for game_pk, dates in game_pk_pa_dates.items()
+        for date_key in dates
+    }
     terminal_void_statuses = (
         detailed_statuses_by_date
         if detailed_statuses_by_date is not None

@@ -189,7 +189,11 @@ def parse_game_feed(feed: dict) -> list[dict]:
         is_resumed_portion = False
         if resume_dt is not None:
             start_dt = _parse_feed_timestamp(play["about"].get("startTime"))
-            is_resumed_portion = start_dt is not None and start_dt >= resume_dt
+            # A suspended-game PA with a missing/unparseable startTime can't be placed; treat
+            # it as resumed (excluded from BTS scoring) -- the conservative direction (avoids
+            # counting a possible resumed hit) and consistent with
+            # picks._grade_pick_pre_suspension, which skips such plays.
+            is_resumed_portion = start_dt is None or start_dt >= resume_dt
         # Fielding catcher: opposite side of the batter
         fielding_catcher_id = catchers.get("away" if is_home else "home")
         count = play.get("count", {})

@@ -963,6 +963,42 @@ def test_resolve_voids_resumed_only_batter_as_no_pa(tmp_path):
     assert counts["pending"] == 0
 
 
+def test_resolve_all_resumed_game_voids_original_day_candidate(tmp_path):
+    """A suspended game whose ENTIRE PA is in the resumed portion (zero pre-suspension PA)
+    must still void_no_pa an original-day candidate -- not stall it pending. Regression for
+    the all-resumed edge: outcome_game_keys is derived from UNFILTERED PA so the game key
+    survives the resumed-row exclusion and the final-game routing can void.
+    """
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-05-09")  # rank1=(11,1001) rank2=(22,1002)
+    pd.DataFrame([
+        # game 1001 suspended before any PA completed -> ALL of its PA are resumed-portion
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1, "is_resumed_portion": True},
+        {"date": "2026-05-09", "batter_id": 55, "game_pk": 1001, "is_hit": 0, "is_resumed_portion": True},
+        # rank-2 normal game resolves
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 1, "is_resumed_portion": False},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir, output_dir=resolved_dir, data_dir=data_dir,
+        treat_void_games_as_terminal=True,
+        detailed_statuses_by_date={
+            "2026-05-09": {
+                1001: {"abstract": "F", "detailed": "Final"},
+                1002: {"abstract": "F", "detailed": "Final"},
+            }
+        },
+    )
+
+    counts = report["outcome_status_counts"]
+    assert counts["pending"] == 0  # NOT stalled pending
+    assert counts["void_no_pa"] == 2  # rank-1 (all-resumed game 1001) in both variants
+    assert counts["resolved"] == 2  # rank-2
+
+
 def test_verify_resolved_artifact_accepts_legacy_zero_outcome_status_count(
     tmp_path,
 ):
