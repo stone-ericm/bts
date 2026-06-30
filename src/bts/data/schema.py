@@ -62,6 +62,12 @@ PA_COLUMNS = [
     "roof_type",
     "atm_pressure",
     "humidity",
+    # True for plays in the resumed portion of a suspended game (startTime at or
+    # after the feed's resumeDateTime). Per BTS rules the resumed portion is never
+    # evaluated, so BTS/contest scorers exclude these rows when grading an
+    # original-gameday pick; non-BTS consumers (model training, features) keep them.
+    # Always False for normal games. See bts.data.build.parse_game_feed.
+    "is_resumed_portion",
 ]
 
 # Auto-derived schema version. Any change to PA_COLUMNS (addition, removal,

@@ -2,11 +2,66 @@
 
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
 from bts.data.schema import HIT_EVENTS, PA_COLUMNS, PA_ENDING_EVENTS
+
+
+def _parse_feed_timestamp(value: str | None) -> datetime | None:
+    """Parse an MLB feed ISO-8601 UTC timestamp (e.g. '2026-06-17T18:00:00Z').
+
+    Returns a tz-aware datetime, or None if absent. Used to compare per-play
+    ``startTime`` against a suspended game's ``resumeDateTime`` — both are UTC,
+    so the comparison is exact and timezone-safe (unlike a raw date prefix,
+    which a normal late game's UTC innings can cross without any suspension).
+    """
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def filter_out_resumed_portion(pa):
+    """Drop resumed-portion PA rows for BTS/contest scoring.
+
+    The resumed portion of a suspended game is never evaluated for BTS, so an
+    original-gameday outcome must be graded from pre-suspension PA only. Excluding
+    these rows turns a batter whose only PA were post-resumption into a "missing"
+    outcome, which the final-game void routing then resolves as void_no_pa.
+
+    Backward-compatible: a frame lacking the ``is_resumed_portion`` column
+    (pre-enrichment PA) is returned unchanged -- those games had no resumed portion
+    recorded, so nothing is excluded. Non-BTS consumers (model training, features)
+    must NOT call this; the resumed PA are legitimate baseball events for them.
+    """
+    if "is_resumed_portion" not in pa.columns:
+        return pa
+    return pa.loc[~pa["is_resumed_portion"].fillna(False).astype(bool)]
+
+
+def read_pa_for_bts_scoring(path, columns):
+    """Read the given PA columns for BTS/contest scoring, with the resumed portion of
+    suspended games EXCLUDED.
+
+    ``is_resumed_portion`` is read transparently when the parquet carries it (pre-
+    enrichment PA predates the column, so nothing is excluded there) and dropped from
+    the result -- callers get exactly ``columns``. Use this anywhere a PA frame feeds
+    BTS hit/streak scoring, calibration, or contest evaluation. Do NOT use it for model
+    training or feature computation: the resumed PA are legitimate baseball events there.
+    """
+    import pyarrow.parquet as pq
+
+    want = list(columns)
+    read_cols = list(want)
+    if (
+        "is_resumed_portion" not in read_cols
+        and "is_resumed_portion" in pq.ParquetFile(path).schema_arrow.names
+    ):
+        read_cols = read_cols + ["is_resumed_portion"]
+    frame = pd.read_parquet(path, columns=read_cols)
+    return filter_out_resumed_portion(frame)[want]
 
 
 def assert_columns_match_schema(df):
@@ -100,6 +155,10 @@ def parse_game_feed(feed: dict) -> list[dict]:
 
     game_pk = game_data["game"]["pk"]
     date = game_data["datetime"]["officialDate"]
+    # Suspended-then-resumed games carry a resumeDateTime; plays at/after it are the
+    # resumed portion (never evaluated for BTS). None for normal games -> no per-play
+    # timestamp parsing in the hot loop below.
+    resume_dt = _parse_feed_timestamp(game_data["datetime"].get("resumeDateTime"))
     season = int(game_data["game"]["season"])
     venue_id = game_data["venue"]["id"]
     roof_type = game_data["venue"].get("fieldInfo", {}).get("roofType")
@@ -126,6 +185,11 @@ def parse_game_feed(feed: dict) -> list[dict]:
         bat_side = play["matchup"].get("batSide", {}).get("code")
         pitch_hand = play["matchup"].get("pitchHand", {}).get("code")
         is_home = play["about"]["halfInning"] == "bottom"
+        # Resumed-portion flag: only parse the play timestamp for suspended games.
+        is_resumed_portion = False
+        if resume_dt is not None:
+            start_dt = _parse_feed_timestamp(play["about"].get("startTime"))
+            is_resumed_portion = start_dt is not None and start_dt >= resume_dt
         # Fielding catcher: opposite side of the batter
         fielding_catcher_id = catchers.get("away" if is_home else "home")
         count = play.get("count", {})
@@ -246,6 +310,7 @@ def parse_game_feed(feed: dict) -> list[dict]:
             "roof_type": roof_type,
             "atm_pressure": None,
             "humidity": None,
+            "is_resumed_portion": is_resumed_portion,
         })
 
     return rows

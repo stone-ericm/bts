@@ -1,6 +1,12 @@
+import copy
 import json
 import pandas as pd
-from bts.data.build import parse_game_feed, build_season
+from bts.data.build import (
+    parse_game_feed,
+    build_season,
+    filter_out_resumed_portion,
+    read_pa_for_bts_scoring,
+)
 from bts.data.schema import PA_COLUMNS
 
 
@@ -157,6 +163,88 @@ def test_parse_game_feed_statcast_pitch_data(sample_game_feed):
     assert single["pitch_break_vertical"] == [-15.0, -32.0, -28.0, -14.0]
     assert single["pitch_break_horizontal"] == [8.0, -2.0, -12.0, 9.0]
     assert single["pitch_end_speeds"] == [85.0, 78.0, 76.0, 86.0]
+
+
+def test_parse_game_feed_normal_game_never_resumed(sample_game_feed):
+    """No resumeDateTime -> is_resumed_portion is always False, even when a normal
+    late game's UTC play times cross a calendar date. This is the timezone trap a
+    raw date-prefix comparison would fall into; gating on resumeDateTime avoids it.
+    """
+    feed = copy.deepcopy(sample_game_feed)
+    for i, play in enumerate(feed["liveData"]["plays"]["allPlays"]):
+        # UTC times straddling midnight, but NOT a suspension (no resumeDateTime)
+        play["about"]["startTime"] = "2025-06-15T23:55:00Z" if i == 0 else "2025-06-16T00:30:00Z"
+    rows = parse_game_feed(feed)
+    assert all(row["is_resumed_portion"] is False for row in rows)
+
+
+def test_parse_game_feed_flags_resumed_portion(sample_game_feed):
+    """A suspended game flags only plays at/after resumeDateTime as the resumed portion."""
+    feed = copy.deepcopy(sample_game_feed)
+    feed["gameData"]["datetime"]["resumeDateTime"] = "2025-06-16T18:00:00Z"
+    plays = feed["liveData"]["plays"]["allPlays"]
+    plays[0]["about"]["startTime"] = "2025-06-15T23:30:00Z"  # original day -> pre-suspension
+    plays[1]["about"]["startTime"] = "2025-06-16T18:30:00Z"  # resume day -> resumed
+    rows = parse_game_feed(feed)
+    assert rows[0]["is_resumed_portion"] is False
+    assert rows[1]["is_resumed_portion"] is True
+
+
+def test_parse_game_feed_resume_boundary_inclusive(sample_game_feed):
+    """The boundary is `startTime >= resumeDateTime` (resumption instant is resumed)."""
+    feed = copy.deepcopy(sample_game_feed)
+    feed["gameData"]["datetime"]["resumeDateTime"] = "2025-06-16T18:00:00Z"
+    plays = feed["liveData"]["plays"]["allPlays"]
+    plays[0]["about"]["startTime"] = "2025-06-16T17:59:59Z"  # one second before -> pre
+    plays[1]["about"]["startTime"] = "2025-06-16T18:00:00Z"  # exactly at -> resumed
+    rows = parse_game_feed(feed)
+    assert rows[0]["is_resumed_portion"] is False
+    assert rows[1]["is_resumed_portion"] is True
+
+
+def test_filter_out_resumed_portion_drops_resumed_rows():
+    df = pd.DataFrame({
+        "batter_id": [1, 1, 2],
+        "is_hit": [0, 1, 1],
+        "is_resumed_portion": [False, True, False],
+    })
+    out = filter_out_resumed_portion(df)
+    assert len(out) == 2
+    assert not out["is_resumed_portion"].any()
+    # batter 1's resumed-portion hit is dropped; only the pre-suspension out remains
+    assert out[out["batter_id"] == 1]["is_hit"].tolist() == [0]
+
+
+def test_filter_out_resumed_portion_backward_compatible():
+    df = pd.DataFrame({"batter_id": [1], "is_hit": [1]})  # pre-enrichment PA, no column
+    out = filter_out_resumed_portion(df)
+    assert len(out) == 1  # returned unchanged
+
+
+def test_read_pa_for_bts_scoring_excludes_resumed(tmp_path):
+    path = tmp_path / "pa.parquet"
+    pd.DataFrame({
+        "date": ["2026-06-16", "2026-06-16"],
+        "batter_id": [1, 1],
+        "game_pk": [100, 100],
+        "is_hit": [0, 1],
+        "season": [2026, 2026],  # extra column not requested
+        "is_resumed_portion": [False, True],
+    }).to_parquet(path, index=False)
+    out = read_pa_for_bts_scoring(path, ["date", "batter_id", "game_pk", "is_hit"])
+    assert list(out.columns) == ["date", "batter_id", "game_pk", "is_hit"]  # flag dropped
+    assert len(out) == 1  # resumed-portion row excluded
+    assert out["is_hit"].tolist() == [0]
+
+
+def test_read_pa_for_bts_scoring_backward_compatible(tmp_path):
+    path = tmp_path / "pa_old.parquet"
+    pd.DataFrame({
+        "date": ["2026-06-16"], "batter_id": [1], "game_pk": [100], "is_hit": [1],
+    }).to_parquet(path, index=False)  # no is_resumed_portion column
+    out = read_pa_for_bts_scoring(path, ["date", "batter_id", "game_pk", "is_hit"])
+    assert len(out) == 1  # unchanged
+    assert list(out.columns) == ["date", "batter_id", "game_pk", "is_hit"]
 
 
 def test_build_season_filters_game_type(sample_game_feed, tmp_path):
