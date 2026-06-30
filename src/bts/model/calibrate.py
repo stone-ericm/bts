@@ -38,6 +38,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from bts.data.build import filter_out_resumed_portion
+
 log = logging.getLogger(__name__)
 
 DEFAULT_LOOKBACK_DAYS = 30
@@ -61,8 +63,9 @@ def _resolve_pick_outcomes(
         return []
     cutoff = today - timedelta(days=lookback_days)
 
-    # Build a (batter_id, date) → had_hit lookup
-    pa_local = pa_df.copy()
+    # Build a (batter_id, date) → had_hit lookup. Exclude the resumed portion of a
+    # suspended game -- never evaluated for BTS, so it must not flip a pick's outcome.
+    pa_local = filter_out_resumed_portion(pa_df).copy()
     pa_local["date"] = pd.to_datetime(pa_local["date"]).dt.date
     daily_hits = (
         pa_local.groupby(["batter_id", "date"])["is_hit"]

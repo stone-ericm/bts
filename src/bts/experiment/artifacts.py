@@ -19,6 +19,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from bts.data.build import read_pa_for_bts_scoring
 from bts.experiment.base import ExperimentDef
 from bts.experiment.runner import compose_blend_args
 
@@ -720,23 +721,26 @@ def _load_outcomes_from_pa(
     """Load batter-game outcomes for the artifact dates from processed PA data."""
     data_root = Path(data_dir)
     years = sorted({pd.Timestamp(date_key).year for date_key in date_keys})
+    base_columns = ["date", "batter_id", "game_pk", "is_hit"]
     frames = []
     for year in years:
         path = data_root / f"pa_{year}.parquet"
         if not path.exists():
             raise FileNotFoundError(f"missing processed PA parquet: {path}")
-        frames.append(
-            pd.read_parquet(
-                path,
-                columns=["date", "batter_id", "game_pk", "is_hit"],
-            )
-        )
+        # BTS scoring: exclude the resumed portion of suspended games. A batter whose only
+        # PA were post-resumption becomes a missing outcome (-> void_no_pa via the
+        # final-game void routing); a pre-suspension out is not overturned by a resumed hit.
+        frames.append(read_pa_for_bts_scoring(path, base_columns))
     if not frames:
         return pd.DataFrame(
             columns=["_outcome_date_key", "batter_id", "game_pk", "actual_hit", "n_pas"]
         )
 
     pa = pd.concat(frames, ignore_index=True)
+    if pa.empty:
+        return pd.DataFrame(
+            columns=["_outcome_date_key", "batter_id", "game_pk", "actual_hit", "n_pas"]
+        )
     pa["_outcome_date_key"] = pd.to_datetime(pa["date"]).dt.strftime("%Y-%m-%d")
     pa = pa[pa["_outcome_date_key"].isin(date_keys)]
     if pa.empty:
@@ -1106,15 +1110,16 @@ def resolve_live_candidate_artifact_pair(
     )
     resolved_manifest["outcome_status_semantics"] = (
         "resolved rows have observed actual_hit/n_pas values. "
-        "void_postponement, void_cancellation, and void_no_pa rows are terminal "
-        "non-events with actual_hit/n_pas left null. pending rows mean evidence "
-        "is still missing and are not acceptable in official resolved artifacts."
+        "void_postponement, void_cancellation, void_no_pa, and void_suspended_resume "
+        "rows are terminal non-events with actual_hit/n_pas left null. pending rows mean "
+        "evidence is still missing and are not acceptable in official resolved artifacts."
     )
     resolved_manifest["outcome_terminal_void_semantics"] = (
         "When terminal void handling is enabled, missing rows whose original "
-        "game was postponed or cancelled, or whose final game has loaded PA data "
-        "but no PA for the player, remain actual_hit/n_pas null and are counted "
-        "separately from transient missing outcomes."
+        "game was postponed or cancelled, whose final game has loaded PA data "
+        "but no PA for the player, or whose game was suspended and resumed on a later "
+        "day (the resumed portion is never evaluated for BTS), remain actual_hit/n_pas "
+        "null and are counted separately from transient missing outcomes."
     )
     resolved_manifest["outcome_missing_by_variant"] = {
         variant: report["missing_outcomes"]

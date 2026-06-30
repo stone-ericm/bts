@@ -873,6 +873,96 @@ def test_resolve_tolerates_malformed_game_pk_row(tmp_path):
     assert counts["resolved"] == 2  # rank-2 (game 1002) resolves in both variants
 
 
+def test_resolve_excludes_resumed_portion_hit_for_original_day(tmp_path):
+    """An original-gameday pick is graded from pre-suspension PA only: a resumed-portion
+    hit must NOT overturn a pre-suspension out, because the resumed portion is never
+    evaluated for BTS. Without the is_resumed_portion exclusion this would score a hit.
+    """
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-05-09")  # rank1=(11,1001) rank2=(22,1002)
+    pd.DataFrame([
+        # rank-1 batter 11, suspended game 1001: pre-suspension OUT, resumed-portion HIT
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 0, "is_resumed_portion": False},
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1, "is_resumed_portion": True},
+        # rank-2 batter 22, normal game 1002: a clean hit
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 1, "is_resumed_portion": False},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir, output_dir=resolved_dir, data_dir=data_dir,
+    )
+
+    prod = pd.read_parquet(resolved_dir / "profiles/production/live_2026-05-09.parquet").set_index("rank")
+    assert prod.loc[1, "outcome_status"] == "resolved"
+    assert int(prod.loc[1, "actual_hit"]) == 0  # MISS: resumed-portion hit excluded
+    assert prod.loc[2, "outcome_status"] == "resolved"
+    assert int(prod.loc[2, "actual_hit"]) == 1
+
+
+def test_resolve_counts_pre_suspension_hit_for_original_day(tmp_path):
+    """The mirror case: a pre-suspension hit DOES count even if the resumed portion is an
+    out -- pre-suspension activity is evaluated normally.
+    """
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-05-09")
+    pd.DataFrame([
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1, "is_resumed_portion": False},
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 0, "is_resumed_portion": True},
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 0, "is_resumed_portion": False},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir, output_dir=resolved_dir, data_dir=data_dir,
+    )
+
+    prod = pd.read_parquet(resolved_dir / "profiles/production/live_2026-05-09.parquet").set_index("rank")
+    assert prod.loc[1, "outcome_status"] == "resolved"
+    assert int(prod.loc[1, "actual_hit"]) == 1  # pre-suspension hit counts
+
+
+def test_resolve_voids_resumed_only_batter_as_no_pa(tmp_path):
+    """A pick whose batter has ONLY resumed-portion PA (none pre-suspension) is void_no_pa:
+    the original gameday produced no evaluable PA for that player. The game key is present
+    (another batter has pre-suspension PA), and the game is Final.
+    """
+    artifact_dir = tmp_path / "preoutcome"
+    resolved_dir = tmp_path / "resolved"
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    _write_live_preoutcome_artifact(artifact_dir, date="2026-05-09")
+    pd.DataFrame([
+        # rank-1 batter 11: ONLY a resumed-portion PA -> no evaluable original-day PA
+        {"date": "2026-05-09", "batter_id": 11, "game_pk": 1001, "is_hit": 1, "is_resumed_portion": True},
+        # another batter establishes pre-suspension PA in game 1001 -> (date, 1001) game key exists
+        {"date": "2026-05-09", "batter_id": 77, "game_pk": 1001, "is_hit": 0, "is_resumed_portion": False},
+        # rank-2 batter 22 normal
+        {"date": "2026-05-09", "batter_id": 22, "game_pk": 1002, "is_hit": 1, "is_resumed_portion": False},
+    ]).to_parquet(data_dir / "pa_2026.parquet", index=False)
+
+    report = resolve_live_candidate_artifact_pair(
+        artifact_dir=artifact_dir, output_dir=resolved_dir, data_dir=data_dir,
+        treat_void_games_as_terminal=True,
+        detailed_statuses_by_date={
+            "2026-05-09": {
+                1001: {"abstract": "F", "detailed": "Final"},
+                1002: {"abstract": "F", "detailed": "Final"},
+            }
+        },
+    )
+
+    counts = report["outcome_status_counts"]
+    assert counts["void_no_pa"] == 2  # rank-1 (resumed-only batter 11) in both variants
+    assert counts["resolved"] == 2  # rank-2 (batter 22)
+    assert counts["void_suspended_resume"] == 0
+    assert counts["pending"] == 0
+
+
 def test_verify_resolved_artifact_accepts_legacy_zero_outcome_status_count(
     tmp_path,
 ):

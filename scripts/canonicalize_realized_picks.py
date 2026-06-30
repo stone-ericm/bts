@@ -72,6 +72,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from bts.data.build import read_pa_for_bts_scoring
+
 
 @dataclass(frozen=True)
 class RegimeCutoff:
@@ -155,7 +157,10 @@ def build_day_hit_lookup(pa_path: Path) -> dict[tuple[int, str], bool]:
     the entire frame (not lookback-bounded) so the canonical artifact captures
     every resolvable pick.
     """
-    df = pd.read_parquet(pa_path, columns=["batter_id", "date", "is_hit"])
+    # BTS day scoring excludes the resumed portion of suspended games (never evaluated).
+    # NOTE: build_skill_pool_lookup below intentionally does NOT filter -- resumed PA are
+    # legitimate events for a player's prior_pa / prior_hit_rate skill estimate.
+    df = read_pa_for_bts_scoring(pa_path, ["batter_id", "date", "is_hit"])
     df["date"] = pd.to_datetime(df["date"]).dt.date.astype(str)
     daily = df.groupby(["batter_id", "date"])["is_hit"].max().reset_index()
     return {(int(r.batter_id), r.date): bool(r.is_hit) for r in daily.itertuples(index=False)}

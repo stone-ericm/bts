@@ -59,13 +59,16 @@ def _build_day_hit_lookup(data_dir: Path, today: date, lookback_days: int) -> di
         import pandas as pd
     except ImportError:
         return {}
+    # Local import: build.py imports pandas at module level, so importing it lazily here
+    # preserves this function's graceful pandas-absent degradation above.
+    from bts.data.build import read_pa_for_bts_scoring
     cutoff = today - timedelta(days=lookback_days)
     candidates = [data_dir / f"pa_{y}.parquet" for y in (today.year, today.year - 1)]
     parts = []
     for p in candidates:
         if p.exists():
             try:
-                parts.append(pd.read_parquet(p, columns=["batter_id", "date", "is_hit"]))
+                parts.append(read_pa_for_bts_scoring(p, ["batter_id", "date", "is_hit"]))
             except Exception as e:
                 log.warning(f"failed to load {p} for calibration attribution: {e}")
     if not parts:
