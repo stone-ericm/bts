@@ -879,6 +879,22 @@ def _check_hit_in_game(resp: dict, batter_id: int, batter_name: str | None = Non
     return _boxscore_hit(resp, batter_id, batter_name)
 
 
+def grade_pick_in_feed(resp: dict, batter_id: int, batter_name: str | None = None) -> str | None:
+    """Grade a pick from one game-feed response: "hit" / "miss" / "void" / None.
+
+    Suspended-and-resumed games are graded from pre-suspension PA only (void = the batter
+    has no evaluable pre-suspension PA); normal games from the final boxscore. None means
+    the batter was not found in this feed (caller may fall back). This is the
+    status-returning sibling of _check_hit_in_game, which collapses void/miss to a bool --
+    use this wherever the void/miss distinction must survive (streak, shadow backfill).
+    """
+    grade = _grade_pick_pre_suspension(resp, batter_id, batter_name)
+    if grade is not None:
+        return grade
+    hit = _boxscore_hit(resp, batter_id, batter_name)
+    return None if hit is None else ("hit" if hit else "miss")
+
+
 def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = None,
               date: str | None = None, team: str | None = None,
               *, return_status: bool = False):
@@ -892,13 +908,6 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
     portion is never evaluated for BTS); normal games use the final boxscore. If game_pk
     is None or the batter is not found, falls back to searching all Final games on date.
     """
-    def _grade_feed(resp):
-        grade = _grade_pick_pre_suspension(resp, batter_id, batter_name)
-        if grade is not None:
-            return grade
-        hit = _boxscore_hit(resp, batter_id, batter_name)
-        return None if hit is None else ("hit" if hit else "miss")
-
     def _emit(grade):
         return grade if return_status else (grade == "hit")
 
@@ -909,7 +918,7 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
         ).read())
         if resp["gameData"]["status"]["abstractGameCode"] != "F":
             return None
-        grade = _grade_feed(resp)
+        grade = grade_pick_in_feed(resp, batter_id, batter_name)
         if grade is not None:
             return _emit(grade)
 
@@ -929,7 +938,7 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
                     f"{API_BASE}/api/v1.1/game/{g['gamePk']}/feed/live",
                     timeout=15,
                 ).read())
-                grade = _grade_feed(alt_resp)
+                grade = grade_pick_in_feed(alt_resp, batter_id, batter_name)
                 if grade is not None:
                     return _emit(grade)
 

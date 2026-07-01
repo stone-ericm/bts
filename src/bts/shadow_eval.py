@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-from bts.picks import API_BASE, _check_hit_in_game
+from bts.picks import API_BASE, grade_pick_in_feed
 from bts.picks import (
     DailyPick, Pick, load_pick, load_shadow_pick,
     resolve_pick_slot_result,
@@ -152,8 +152,10 @@ def _resolve_hit(
         if _is_void_status(data):
             slot_result = "void"
         elif status == "F":
-            hit = _check_hit_in_game(data, pick.batter_id, pick.batter_name)
-            slot_result = _hit_to_slot_result(hit)
+            # grade_pick_in_feed returns the status string directly ("hit"/"miss"/"void"/None),
+            # preserving a suspended-game "void" that the bool _check_hit_in_game would collapse
+            # to "miss". (resolve_pick_slot_result on the live-API path below is already correct.)
+            slot_result = grade_pick_in_feed(data, pick.batter_id, pick.batter_name)
         return {
             "hit": _slot_result_to_hit(slot_result),
             "slot_result": slot_result,

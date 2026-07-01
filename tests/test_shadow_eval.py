@@ -231,6 +231,43 @@ def test_build_shadow_backfill_manifest_prefers_cached_game_json(tmp_path):
     assert row["api_calls"] == []
 
 
+def test_shadow_backfill_cached_suspended_resumed_only_is_void(tmp_path):
+    """A suspended game where the picked batter has ONLY resumed-portion PA must resolve to
+    'void' in the cached-game path, not 'miss' -- the resumed portion is never evaluated for
+    BTS. Regression: the cached path previously used the bool _check_hit_in_game, which
+    collapses "void" to False -> "miss"; it now uses grade_pick_in_feed.
+    """
+    picks_dir = tmp_path / "picks"
+    raw_dir = tmp_path / "raw"
+    game_pk = 800009
+    (raw_dir / "2026").mkdir(parents=True)
+    (raw_dir / "2026" / f"{game_pk}.json").write_text(json.dumps({
+        "gameData": {
+            "status": {"abstractGameCode": "F"},
+            "datetime": {"resumeDateTime": "2026-04-02T18:00:00Z"},
+        },
+        "liveData": {
+            "plays": {"allPlays": [{
+                "result": {"eventType": "single"},
+                "matchup": {"batter": {"id": 2, "fullName": "Shadow Batter"}},
+                "about": {"startTime": "2026-04-02T18:30:00Z"},  # after resumeDateTime -> resumed
+            }]},
+            "boxscore": {"teams": {
+                "away": {"players": {"ID2": {"stats": {"batting": {"hits": 1}}}}},  # cumulative hit
+                "home": {"players": {}},
+            }},
+        },
+    }))
+    picks_dir.mkdir()
+    save_pick(_daily("2026-04-01", _pick("Prod", 2, game_pk=game_pk), result="void"), picks_dir)
+    save_shadow_pick(_daily("2026-04-01", _pick("Shadow Batter", 2, game_pk=game_pk), result=None), picks_dir)
+
+    manifest = build_shadow_backfill_manifest(picks_dir, raw_dir=raw_dir, n_bootstrap=0)
+    slot = manifest["rows"][0]["shadow"]["slots"][0]
+    assert slot["data_source"] == "cached_game_json"
+    assert slot["slot_result"] == "void"  # NOT "miss": the resumed-portion hit is not evaluated
+
+
 def test_shadow_backfill_results_cli_is_dry_run_by_default(tmp_path):
     picks_dir = tmp_path / "picks"
     output = tmp_path / "manifest.json"
