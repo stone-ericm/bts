@@ -20,6 +20,14 @@ Validated results (walk-forward, provably leak-free):
 - **Filters**: Regular season only (no spring training, postseason, exhibitions, 7-inning COVID doubleheaders)
 - **Storage**: Raw JSON (`data/raw/{season}/{gamePk}.json`) → PA Parquet (`data/processed/pa_{season}.parquet`)
 
+### Suspended-game scoring (`is_resumed_portion`, added 2026-06-30)
+
+A suspended-then-resumed MLB game keeps its original `officialDate`, so ALL its PA (pre-suspension AND resumed) file under the earlier date. Per BTS rules the resumed/rescheduled portion is **never evaluated**. `parse_game_feed` flags each PA with `is_resumed_portion` = (per-play `about.startTime` >= the feed's `gameData.datetime.resumeDateTime`; missing startTime → resumed; always False for normal games — the whole branch is gated on `resumeDateTime`, so normal-game rows are byte-identical).
+
+BTS/contest scoring **excludes** the resumed portion via `build.filter_out_resumed_portion` / `build.read_pa_for_bts_scoring` (reads the column only when present, so pre-enrichment parquets no-op → backward-compatible). Model training, feature computation, and the skill-pool `prior_pa`/`prior_hit_rate` lookup **keep** resumed PA (they are real baseball events). Consumers that grade pre-suspension only: the live-forward resolver (`experiment/artifacts.py`), `model/calibrate`, health `realized_calibration` + `slate_auc`, `scripts/canonicalize_realized_picks.build_day_hit_lookup`, `skip_policy_shadow`, and the production scorer (`picks.grade_pick_in_feed` used by `check_hit`; `scheduler._check_hits_midgame` mid-game). Grading: pre-suspension hit → hit; pre-suspension PA, no hit → miss; **zero** pre-suspension PA → void (`void_no_pa` in the resolver via `outcome_game_keys` derived from *unfiltered* PA; `"void"` in the streak via `check_hit(return_status=True)`).
+
+Separately: the daily slate skips resume-date games entirely (`picks.is_resume_date_game`, `officialDate < date`), and the resolver terminal-voids a stranded resume-day candidate as `void_suspended_resume`. Adds `is_resumed_portion` to `PA_COLUMNS` (SCHEMA_VERSION bump — only `data/sync.py` checks it; the resolver reads the parquet directly). The active season self-heals nightly (`bts data build --seasons 2026` full re-parse); the 3am cron gates `sync-to-r2` on a successful build. See `docs/audit/2026-06-29-skip-threshold-and-discrimination.md`.
+
 ## Features (16, provably leak-free)
 
 All features use date-level shift(1) — only data from dates strictly before the prediction date.
