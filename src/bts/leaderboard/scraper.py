@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -199,7 +199,7 @@ def scrape_leaderboard(
             ranks_type=ranks_type, xsid=xsid,
         )
     body = _get_json(url, cookies=cookies)
-    return parse_leaderboard_response(body, tab=tab, captured_at=datetime.utcnow())
+    return parse_leaderboard_response(body, tab=tab, captured_at=datetime.now(timezone.utc).replace(tzinfo=None))
 
 
 @rate_limited(min_interval_s=DEFAULT_MIN_INTERVAL_S)
@@ -209,7 +209,7 @@ def scrape_user_profile(
     url = USER_PROFILE_URL_TEMPLATE.format(user_id=user_id, xsid=xsid)
     body = _get_json(url, cookies=cookies)
     return parse_user_profile_response(
-        body, captured_at=datetime.utcnow(), user_id_unused=user_id, lookups=lookups,
+        body, captured_at=datetime.now(timezone.utc).replace(tzinfo=None), user_id_unused=user_id, lookups=lookups,
     )
 
 
@@ -279,7 +279,7 @@ def run(
                     ranks_type=RANKS_TYPE_BY_TAB[tab], xsid=xsid,
                 )
             raw = _get_json(url, cookies=cookies)
-            rows = parse_leaderboard_response(raw, tab=tab, captured_at=datetime.utcnow())
+            rows = parse_leaderboard_response(raw, tab=tab, captured_at=datetime.now(timezone.utc).replace(tzinfo=None))
             all_rows.extend(rows[:top_n])
             for entry in raw.get("success", {}).get("ranks", []):
                 tracked.setdefault(entry["username"], int(entry["userId"]))

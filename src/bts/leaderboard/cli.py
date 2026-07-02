@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import click
@@ -54,7 +54,7 @@ def scrape(output_dir: str, top_n: int, dm_recipient: str | None):
                 click.echo(f"(DM also failed: {dm_err})", err=True)
         sys.exit(2)
     scraper_run(cookies=cookies, xsid=xsid, output_dir=Path(output_dir), top_n=top_n)
-    click.echo(f"scrape complete: {datetime.utcnow().isoformat()}Z")
+    click.echo(f"scrape complete: {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}Z")
 
 
 @leaderboard.command()
