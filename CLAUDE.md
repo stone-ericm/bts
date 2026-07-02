@@ -10,7 +10,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 # ⚠️ The full local suite GRINDS for hours (LightGBM imports locally now → simulate/model/experiment/
 # validate run real backtests/training). For NON-model changes, the fast comprehensive regression is:
 UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" \
-  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1483 in ~25s
+  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1533 in ~25s
 
 # Scheduler (Hetzner production — systemd --user unit)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
@@ -27,6 +27,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **🚨 Remote / phone incident response → see [`INCIDENT.md`](INCIDENT.md)** — what a cloud (phone) session can vs. can't fix, exact deploy/rollback commands, and the escalation triggers (esp. the on-box cookie re-capture you can't do from the cloud).
 - **Deploys trigger on push to `deploy` branch** (NOT main, since 2026-04-21). Workflow: commit/push to main freely; when ready to ship, `git push origin main:deploy`. Gives explicit control over when scheduler restart fires (avoids disrupting live-game scorecard polling).
 - **Canary + auto-rollback**: after deploy, workflow waits 30s then checks `systemctl is-active bts-scheduler bts-dashboard` + dashboard HTTP. On failure, auto-reverts to pre-deploy SHA + restarts services.
+- **Deploys restart the scheduler** — before a midday deploy, check the sleep window (`ssh bts-hetzner 'journalctl --user -u bts-scheduler -n 2 | grep "Sleeping until"'`) and land inside it; never deploy during a decisive live observation day (a deploy-transition muddied the 6/22 skip-day read).
 - **Emergency deploy**: `workflow_dispatch` trigger in the GitHub Actions UI — runs deploy without pushing anything.
 - Every push to `deploy` triggers the workflow (no paths filter — `deploy` is a dedicated deploy ref, so any push to it is an intentional deploy). Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
 - See `/Users/stone/.claude/projects/-Users-stone/memory/reference_bts_deploy_workflow.md` for full details.
