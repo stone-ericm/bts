@@ -288,3 +288,114 @@ def test_carry_forward_committed_pick_written_suppresses_endofday_skip(tmp_path)
     assert fresh.committed_pick_written is True
     _write_endofday_skip(tmp_path, fresh.date, fresh)
     assert load_decision(fresh.date, tmp_path) is None
+
+
+# --- flip-day banner gating (2026-07-01): suppression keys on the committed-pick
+# --- predicate (decision.json / delivered), NOT on pick-file existence — a stale
+# --- provisional file from the projected->real-skip flip must not hide the banner.
+
+def _pick_payload(today, *, delivered):
+    return {
+        "date": today, "run_time": f"{today}T18:18:45+00:00",
+        "pick": {"batter_name": "Luis Arraez", "batter_id": 650333, "team": "SF",
+                 "lineup_position": 1, "pitcher_name": "Zac Gallen", "pitcher_id": 668678,
+                 "p_game_hit": 0.8097, "flags": ["PROJECTED lineup"], "projected_lineup": True,
+                 "game_pk": 825064, "game_time": "2026-07-02T01:40:00Z", "pitcher_team": "AZ"},
+        "double_down": None, "runner_up": None,
+        "bluesky_posted": False, "bluesky_uri": None,
+        "notification_sent": delivered,
+        "notification_channel": "dm" if delivered else None,
+        "notification_id": "3abc" if delivered else None,
+        "delivery_attempted": delivered, "result": None, "slot_results": None,
+    }
+
+
+def _flip_day_page(tmp_path, monkeypatch, *, delivered, decision=None):
+    import bts.scorecard as scorecard
+    import bts.web as web
+    today = datetime.now().strftime("%Y-%m-%d")
+    day_dir = tmp_path / today
+    day_dir.mkdir(parents=True)
+    (day_dir / "scheduler_state.json").write_text(json.dumps({
+        "date": today, "pick_locked": False,
+        "skip_summary": {"best_batter": "Luis Arraez", "best_team": "SF",
+                         "best_p": 0.8097, "streak": 17},
+    }))
+    (tmp_path / f"{today}.json").write_text(json.dumps(_pick_payload(today, delivered=delivered)))
+    if decision is not None:
+        (day_dir / "decision.json").write_text(json.dumps({
+            "schema_version": "bts_daily_decision_v1", "date": today,
+            "finalized_at": f"{today}T22:05:00+00:00", **decision}))
+    monkeypatch.setattr(web, "PICKS_DIR", tmp_path)
+    monkeypatch.setattr(web, "fetch_bluesky_posts", lambda *a, **k: [])
+    monkeypatch.setattr(scorecard, "fetch_live_scorecard", lambda *a, **k: None)
+    return web.render_page()
+
+
+def test_banner_shows_over_stale_provisional_pick_file(tmp_path, monkeypatch):
+    """The flip day: an undelivered provisional pick file must NOT suppress the banner."""
+    html = _flip_day_page(tmp_path, monkeypatch, delivered=False)
+    assert "SKIP TODAY" in html
+
+
+def test_banner_suppressed_when_pick_actually_delivered(tmp_path, monkeypatch):
+    html = _flip_day_page(tmp_path, monkeypatch, delivered=True)
+    assert "SKIP TODAY" not in html
+
+
+def test_banner_shows_when_decision_says_skip(tmp_path, monkeypatch):
+    html = _flip_day_page(tmp_path, monkeypatch, delivered=False,
+                          decision={"action": "skip", "source": "mdp", "scoreable": False,
+                                    "delivery_status": "not_applicable"})
+    assert "SKIP TODAY" in html
+
+
+def test_banner_suppressed_when_decision_scoreable(tmp_path, monkeypatch):
+    """decision.json is authoritative: scoreable commit suppresses even if the
+    pick file's own delivery flags lag."""
+    html = _flip_day_page(tmp_path, monkeypatch, delivered=False,
+                          decision={"action": "single", "source": "mdp", "scoreable": True,
+                                    "delivery_status": "delivered"})
+    assert "SKIP TODAY" not in html
+
+
+# --- streak-dependent pick bar surfaced in skip messages (2026-07-01) ---
+
+def test_build_skip_summary_carries_pick_bar():
+    preds = pd.DataFrame([{"batter_name": "X", "team": "SF", "p_game_hit": 0.8097, "game_pk": 1}])
+    s = build_skip_summary(preds, 17, pick_bar=0.8115)
+    assert s["bar"] == 0.8115
+    s2 = build_skip_summary(preds, 17)
+    assert "bar" not in s2
+
+
+def test_render_skip_banner_shows_streak_bar_when_present():
+    from bts.web import render_skip_banner
+    html = render_skip_banner({"best_batter": "Luis Arraez", "best_team": "SF",
+                               "best_p": 0.8097, "streak": 17, "bar": 0.8115})
+    assert "streak-17 bar" in html
+    assert "81.2%" in html          # the bar, 0.1% precision
+    assert "81.0%" in html          # best_p at matching precision
+
+
+def test_render_skip_banner_legacy_summary_keeps_old_wording():
+    from bts.web import render_skip_banner
+    html = render_skip_banner({"best_batter": "Bo Bichette", "best_team": "NYM",
+                               "best_p": 0.75, "streak": 10})
+    assert "below the" in html and "pick bar" in html
+    assert "75%" in html
+
+
+def test_format_skip_dm_shows_streak_bar_when_present():
+    from bts.scheduler import format_skip_dm
+    msg = format_skip_dm("2026-07-01", {"best_batter": "Luis Arraez", "best_team": "SF",
+                                        "best_p": 0.8097, "streak": 17, "bar": 0.8115})
+    assert "streak-17 bar" in msg and "81.2%" in msg and "81.0%" in msg
+    assert "~80%" not in msg
+
+
+def test_format_skip_dm_legacy_summary_keeps_old_wording():
+    from bts.scheduler import format_skip_dm
+    msg = format_skip_dm("2026-06-18", {"best_batter": "Bo Bichette", "best_team": "NYM",
+                                        "best_p": 0.75, "streak": 10})
+    assert "~80% bar" in msg

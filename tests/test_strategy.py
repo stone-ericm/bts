@@ -689,3 +689,31 @@ def test_double_down_still_works_for_genuinely_different_games(mock_statuses, tm
 
     assert result.pick_result.daily.double_down is not None
     assert result.pick_result.daily.double_down.batter_name == "Mangum"
+
+
+# --- effective_pick_bar (2026-07-01): the streak-dependent minimum p the policy
+# --- will play — surfaced in skip messages so "below the pick bar" is honest.
+
+def test_effective_pick_bar_heuristic_fallback_is_skip_threshold():
+    from bts.strategy import effective_pick_bar, SKIP_THRESHOLD
+    assert effective_pick_bar(17, "2026-07-01", True, mdp=None) == SKIP_THRESHOLD
+    assert effective_pick_bar(17, "2026-07-01", True, mdp={}) == SKIP_THRESHOLD
+
+
+def test_effective_pick_bar_reads_policy_bins():
+    import numpy as np
+    from bts.strategy import effective_pick_bar
+    table = np.zeros((58, 181, 2, 5), dtype=np.int64)   # 0 = skip everywhere
+    table[10, :, :, 3:] = 1                             # streak 10: bins 3-4 play -> bar = 3rd boundary
+    table[5, :, :, :] = 1                               # streak 5: everything plays -> bar = 0.0
+    mdp = {"policy_table": table, "boundaries": [0.7, 0.75, 0.8, 0.85], "season_length": 180}
+    assert effective_pick_bar(10, "2026-07-01", True, mdp=mdp) == 0.8
+    assert effective_pick_bar(5, "2026-07-01", True, mdp=mdp) == 0.0
+    assert effective_pick_bar(20, "2026-07-01", True, mdp=mdp) is None   # all-skip streak
+
+
+def test_effective_pick_bar_never_raises_on_junk_policy():
+    from bts.strategy import effective_pick_bar
+    assert effective_pick_bar(10, "2026-07-01", True,
+                              mdp={"policy_table": "junk", "boundaries": None,
+                                   "season_length": 180}) is None

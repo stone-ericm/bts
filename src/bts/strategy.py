@@ -74,6 +74,34 @@ def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str
     )
 
 
+_UNSET = object()
+
+
+def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET) -> float | None:
+    """The smallest p_game_hit the policy will play at (streak, date, saver): the
+    lower edge of the first non-skip quality bin (0.0 when even the bottom bin
+    plays). Heuristic path (no policy) -> SKIP_THRESHOLD. None when every bin
+    skips or the policy is unreadable. Display-only (skip messages) — never
+    raises and never feeds the pick path."""
+    if mdp is _UNSET:
+        mdp = _load_mdp()
+    if not mdp:
+        return SKIP_THRESHOLD
+    try:
+        boundaries = [float(b) for b in mdp["boundaries"]]
+        # One representative p per bin: just under the first boundary (bin 0),
+        # then each boundary (entering bins 1..n). The bar reported for bin i>0
+        # is its lower edge = boundaries[i-1]; for bin 0 it is 0.0.
+        reps = ([boundaries[0] - 1e-9] if boundaries else [0.0]) + boundaries
+        floors = [0.0] + boundaries
+        for rep, floor in zip(reps, floors):
+            if _mdp_action_from(mdp, rep, streak, date, saver) != "skip":
+                return floor
+        return None
+    except Exception:
+        return None
+
+
 # --- Heuristic fallback ---
 SKIP_THRESHOLD = 0.80
 

@@ -261,11 +261,19 @@ def render_skip_banner(summary: dict | None) -> str:
     team = html_lib.escape(str(summary.get("best_team", "")))
     import math
     p = summary.get("best_p")
-    pct = f"{p:.0%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
     streak = summary.get("streak")
+    bar = summary.get("bar")
+    if isinstance(bar, (int, float)) and math.isfinite(bar) and streak is not None:
+        # The bar is streak-dependent and can sit within 0.2pp of best_p (2026-07-01:
+        # 81.0% vs 81.2%) — show both at 0.1% precision so the margin is visible.
+        pct = f"{p:.1%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
+        below = f"below the streak-{streak} bar ({bar:.1%})"
+    else:
+        pct = f"{p:.0%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
+        below = "below the pick bar"
     return ('<div class="skip-banner"><strong>SKIP TODAY</strong>'
-            f"<span>No pick — model's best is {name} ({team}) {pct}, below the "
-            f"pick bar. Streak holds at {streak}.</span></div>")
+            f"<span>No pick — model's best is {name} ({team}) {pct}, {below}. "
+            f"Streak holds at {streak}.</span></div>")
 
 
 def load_health_dm_delivery_status() -> dict:
@@ -1049,12 +1057,19 @@ def render_page():
 
     try:
         _sched_today = load_scheduler_state(today)
-        # Suppress if a pick exists for today (pick file is authoritative — survives
-        # the restart that resets scheduler_state.pick_locked) or the pick is locked.
-        _has_today_pick = any(p.get("date") == today for p in picks)
+        # Suppress only when today's pick actually COMMITTED — decision.json
+        # scoreable, else pick_was_delivered (the #145 shared predicate). A pick
+        # FILE alone is provisional (3am preview / projected-lineup save) and on a
+        # projected-pick->real-skip flip day the stale undelivered file must not
+        # hide a standing skip (2026-07-01). pick_locked is deliberately not
+        # consulted: a classification-lock of an undelivered file would re-hide
+        # the banner after first pitch (the C2 class, dashboard edition).
+        from bts.daily_decision import is_scoreable_commit
+        from bts.picks import load_pick
+        _committed = is_scoreable_commit(today, PICKS_DIR, load_pick(today, PICKS_DIR))
         skip_banner = (
             render_skip_banner(_sched_today.get("skip_summary"))
-            if not _has_today_pick and not _sched_today.get("pick_locked") else ""
+            if not _committed else ""
         )
     except Exception:
         skip_banner = ""

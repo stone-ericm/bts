@@ -923,10 +923,12 @@ def _has_pending_future_confirmation_window(
     return False
 
 
-def build_skip_summary(predictions, streak) -> dict | None:
+def build_skip_summary(predictions, streak, pick_bar: float | None = None) -> dict | None:
     """Summarize a skip for log/DM/dashboard: the model's best candidate today and
     the streak being protected. Returns None on unusable data — this runs in the
-    daemon loop and must never raise. Emits JSON-native types only (no NaN/numpy)."""
+    daemon loop and must never raise. Emits JSON-native types only (no NaN/numpy).
+    ``pick_bar`` (strategy.effective_pick_bar) is carried as ``bar`` when finite so
+    downstream messages can name the streak-dependent bar instead of "~80%"."""
     try:
         cols = getattr(predictions, "columns", [])
         if "p_game_hit" not in cols or "batter_name" not in cols:
@@ -939,12 +941,16 @@ def build_skip_summary(predictions, streak) -> dict | None:
         idx = finite.idxmax()
         row = predictions.loc[idx]
         name, team = row.get("batter_name"), row.get("team")
-        return {
+        summary = {
             "best_batter": str(name) if name is not None and name == name else "?",
             "best_team": str(team) if team is not None and team == team else "?",
             "best_p": float(finite.loc[idx]),
             "streak": int(streak) if streak is not None else None,
         }
+        import math
+        if isinstance(pick_bar, (int, float)) and math.isfinite(float(pick_bar)):
+            summary["bar"] = float(pick_bar)
+        return summary
     except Exception:
         return None
 
@@ -953,6 +959,16 @@ def format_skip_dm(date: str, summary: dict) -> str:
     """One-line operator notice for a skip. Phrased tentatively — an early cycle's
     skip may still flip to a pick if a confirmed lineup clears the bar, and a DM
     can't be retracted, so it must not claim a finality it doesn't have."""
+    bar = summary.get("bar")
+    import math
+    if isinstance(bar, (int, float)) and math.isfinite(bar):
+        # 0.1% precision: the streak-dependent bar can sit within 0.2pp of best_p.
+        return (
+            f"BTS {date}: No pick yet — model's best is {summary['best_batter']} "
+            f"({summary['best_team']}) {summary['best_p']:.1%}, below the "
+            f"streak-{summary['streak']} bar of {bar:.1%} (streak holds at "
+            f"{summary['streak']}). Will pick if a confirmed lineup clears it."
+        )
     return (
         f"BTS {date}: No pick yet — model's best is {summary['best_batter']} "
         f"({summary['best_team']}) {summary['best_p']:.0%}, below the ~80% bar "
@@ -1092,11 +1108,21 @@ def run_single_check(
                     picks_dir, require_contest_state=False).streak
             except Exception:
                 streak = None
-            skip_summary = build_skip_summary(predictions, streak)
+            skip_bar = None
+            try:
+                from bts.strategy import effective_pick_bar
+                if sel is not None and streak is not None:
+                    skip_bar = effective_pick_bar(streak, date, bool(sel.saver_available))
+            except Exception:
+                skip_bar = None
+            skip_summary = build_skip_summary(predictions, streak, pick_bar=skip_bar)
             if skip_summary is not None:
+                bar = skip_summary.get("bar")
+                below = (f"below the streak-{skip_summary['streak']} bar ({bar:.1%})"
+                         if bar is not None else "below the pick bar")
                 print(f"  SKIP — best {skip_summary['best_batter']} "
-                      f"({skip_summary['best_team']}) {skip_summary['best_p']:.1%} below the "
-                      f"pick bar; streak holds at {skip_summary['streak']}.", file=sys.stderr)
+                      f"({skip_summary['best_team']}) {skip_summary['best_p']:.1%} {below}; "
+                      f"streak holds at {skip_summary['streak']}.", file=sys.stderr)
             else:
                 print("  No pick this cycle (no usable candidate in predictions).",
                       file=sys.stderr)
