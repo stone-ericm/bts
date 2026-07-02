@@ -181,8 +181,12 @@ the authoritative signal; do not enter the dashboard pick in the MLB app
   completeness only.
 - **F8 — `datetime.utcnow()` deprecation** in `leaderboard/scraper.py:202`
   (warns on every test run).
-- **F9 — audit-progress full app-auth** still open (endpoint remains
-  tailnet-bound + traversal-guarded; net-new auth infra deferred).
+- **F9 — audit-progress full app-auth** — **CLOSED WON'T-FIX 2026-07-02, risk
+  accepted by Eric** ("not necessary — there's nothing sensitive at risk").
+  Rationale: read-only monitoring endpoint, tailnet-bound + traversal-guarded,
+  only meaningful while an audit fleet exists; exploiting it requires an
+  already-compromised tailnet device. Do not re-flag in future audits absent
+  a change in exposure (e.g. the dashboard ever binding beyond the tailnet).
 
 ## Watch items (no action now)
 
