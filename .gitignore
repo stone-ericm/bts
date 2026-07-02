@@ -7,6 +7,8 @@ data/processed/
 data/models/
 data/picks/
 data/external/odds/
+data/external/team_context/
+data/validation/team_record/
 data/.heartbeat*
 data/.last_deploy_iso
 # Operational state written on the box (untracked; would leak picks/leaderboard/box IPs)
