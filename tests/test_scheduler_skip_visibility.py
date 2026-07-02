@@ -399,3 +399,95 @@ def test_format_skip_dm_legacy_summary_keeps_old_wording():
     msg = format_skip_dm("2026-06-18", {"best_batter": "Bo Bichette", "best_team": "NYM",
                                         "best_p": 0.75, "streak": 10})
     assert "~80% bar" in msg
+
+
+# --- skip-day rendering completeness (2026-07-02): history rows, hero card,
+# --- "Waiting for lineups" placeholder, and the live-game section must all
+# --- respect the decision record / standing skip, not pick-file existence.
+
+def _render_skip_page(tmp_path, monkeypatch, *, pick_date=None, write_pick=True,
+                      delivered=False, decision=None, skip_summary=True,
+                      poison_scorecard=False):
+    import bts.scorecard as scorecard
+    import bts.web as web
+    today = datetime.now().strftime("%Y-%m-%d")
+    pick_date = pick_date or today
+    if skip_summary:
+        day_dir = tmp_path / today
+        day_dir.mkdir(parents=True, exist_ok=True)
+        (day_dir / "scheduler_state.json").write_text(json.dumps({
+            "date": today, "pick_locked": False,
+            "skip_summary": {"best_batter": "Luis Arraez", "best_team": "SF",
+                             "best_p": 0.8097, "streak": 17, "bar": 0.8115},
+        }))
+    if write_pick:
+        (tmp_path / f"{pick_date}.json").write_text(
+            json.dumps(_pick_payload(pick_date, delivered=delivered)))
+    if decision is not None:
+        d_dir = tmp_path / pick_date
+        d_dir.mkdir(parents=True, exist_ok=True)
+        (d_dir / "decision.json").write_text(json.dumps({
+            "schema_version": "bts_daily_decision_v1", "date": pick_date,
+            "finalized_at": f"{pick_date}T22:05:00+00:00", **decision}))
+    monkeypatch.setattr(web, "PICKS_DIR", tmp_path)
+    monkeypatch.setattr(web, "fetch_bluesky_posts", lambda *a, **k: [])
+    if poison_scorecard:
+        def _boom(*a, **k):
+            raise AssertionError("live scorecard must not be fetched on a standing-skip day")
+        monkeypatch.setattr(scorecard, "fetch_live_scorecard", _boom)
+    else:
+        monkeypatch.setattr(scorecard, "fetch_live_scorecard", lambda *a, **k: None)
+    return web.render_page()
+
+
+def test_skip_day_no_waiting_placeholder(tmp_path, monkeypatch):
+    html = _render_skip_page(tmp_path, monkeypatch, write_pick=False)
+    assert "SKIP TODAY" in html
+    assert "Waiting for lineups" not in html
+
+
+def test_waiting_placeholder_still_shows_before_any_skip(tmp_path, monkeypatch):
+    html = _render_skip_page(tmp_path, monkeypatch, write_pick=False, skip_summary=False)
+    assert "Waiting for lineups" in html
+    assert "SKIP TODAY" not in html
+
+
+def test_flip_day_hero_card_suppressed(tmp_path, monkeypatch):
+    """Standing skip + stale provisional today-file: no hero pick card (the banner
+    is the day's status), no live-game fetch."""
+    html = _render_skip_page(tmp_path, monkeypatch, write_pick=True, poison_scorecard=True)
+    assert "SKIP TODAY" in html
+    assert 'class="hero-pct"' not in html   # rendered card, not the CSS rule
+    assert "Waiting for lineups" not in html
+
+
+def test_delivered_day_hero_unchanged(tmp_path, monkeypatch):
+    html = _render_skip_page(tmp_path, monkeypatch, write_pick=True, delivered=True,
+                             skip_summary=False)
+    assert 'class="hero-pct"' in html
+    assert "SKIP TODAY" not in html
+
+
+def test_history_row_shows_skip_not_pending_for_finalized_skip(tmp_path, monkeypatch):
+    """Yesterday's never-delivered flip-day file (decision=skip) must not render as
+    an eternally-pending pick in the history table."""
+    from datetime import timedelta
+    yday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    html = _render_skip_page(tmp_path, monkeypatch, pick_date=yday, write_pick=True,
+                             skip_summary=False,
+                             decision={"action": "skip", "source": "mdp",
+                                       "scoreable": False,
+                                       "delivery_status": "not_applicable"})
+    assert 'class="result-skip"' in html
+    assert 'class="result-pending"' not in html
+
+
+def test_history_row_pending_when_no_decision_yet(tmp_path, monkeypatch):
+    """A provisional file with NO decision record keeps the pending dash (mid-day
+    normal state) — the SKIP marker only appears once the day finalized as a skip."""
+    from datetime import timedelta
+    yday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    html = _render_skip_page(tmp_path, monkeypatch, pick_date=yday, write_pick=True,
+                             skip_summary=False, decision=None)
+    assert 'class="result-pending"' in html
+    assert 'class="result-skip"' not in html

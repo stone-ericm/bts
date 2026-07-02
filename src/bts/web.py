@@ -276,6 +276,17 @@ def render_skip_banner(summary: dict | None) -> str:
             f"Streak holds at {streak}.</span></div>")
 
 
+def _decision_action(date: str) -> str | None:
+    """The authoritative daily action from decision.json for *date*, or None.
+    Display-only and never raises (bad/absent record -> None)."""
+    try:
+        from bts.daily_decision import load_decision
+        rec = load_decision(date, PICKS_DIR)
+        return rec.get("action") if rec else None
+    except Exception:
+        return None
+
+
 def load_health_dm_delivery_status() -> dict:
     """Read health DM delivery status. Returns {} if missing/unreadable."""
     status_path = HEALTH_STATE_DIR / "health_dm_delivery_status.json"
@@ -1108,6 +1119,12 @@ def render_page():
             result_html = '<span class="result-miss">&#10007;</span>'
         elif result == "void":
             result_html = '<span class="result-void">VOID</span>'
+        elif _decision_action(date) == "skip":
+            # A result-less pick FILE whose day finalized as an MDP skip is a
+            # never-delivered provisional (the projected->real flip class) — no
+            # scorer will ever fill its result, so don't render it as pending.
+            result_html = ('<span class="result-skip" '
+                           'title="Never delivered — day finalized as MDP skip">SKIP</span>')
         else:
             result_html = '<span class="result-pending">&ndash;</span>'
 
@@ -1211,9 +1228,12 @@ def render_page():
             <div class="post-text">{text}</div>
         </div>"""
 
-    # Today's pick hero
+    # Today's pick hero. A standing skip (skip_banner non-empty) owns the day's
+    # status: no pick card (a stale provisional file must not render as today's
+    # pick — the flip-day class) and no "Waiting for lineups" placeholder (a late
+    # genuine pick clears the banner and restores the card on the next refresh).
     hero = ""
-    if today_pick:
+    if today_pick and not skip_banner:
         tp = today_pick["pick"]
         dd = today_pick.get("double_down")
         t_logo = team_logo_url(tp.get("team", ""), size=72)
@@ -1354,7 +1374,7 @@ def render_page():
             </div>
             <div class="hero-pct">{tp.get('p_game_hit', 0):.1%}</div>
         </div>"""
-    else:
+    elif not skip_banner:
         hero = """
         <div class="hero">
             <div class="hero-right">
@@ -1364,9 +1384,10 @@ def render_page():
             </div>
         </div>"""
 
-    # Live scorecard (between hero and pick history)
+    # Live scorecard (between hero and pick history) — also owned by the banner on
+    # a standing-skip day (don't fetch/render a declined candidate's game).
     live_game_html = ""
-    if today_pick:
+    if today_pick and not skip_banner:
         scorecards, scorecard_data = _build_live_game_data(today_pick)
         live_game_html = render_live_game_section(scorecards, scorecard_data, today_pick)
 
@@ -1541,6 +1562,7 @@ def render_page():
         .result-hit {{ color: #2e7d32; font-weight: 800; }}
         .result-miss {{ color: #D50032; font-weight: 800; }}
         .result-void {{ color: #6b7280; font-weight: 800; font-size: 0.65em; }}
+        .result-skip {{ color: #6b7280; font-weight: 800; font-size: 0.65em; }}
         .result-pending {{ color: #ccc; }}
 
         .posts {{ margin-top: 8px; }}
