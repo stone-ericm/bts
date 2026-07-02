@@ -1751,15 +1751,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         from urllib.parse import urlparse, parse_qs
-        if urlparse(self.path).path != "/saver/transition":
-            self.send_response(404)
-            self.end_headers()
-            return
         try:
             length = max(0, int(self.headers.get("Content-Length", 0)))   # clamp -1 (else read-to-EOF)
         except (TypeError, ValueError):
             length = 0
-        form = parse_qs(self.rfile.read(length).decode("utf-8", errors="replace"))
+        raw = self.rfile.read(length)   # always drain — closing with an unread body
+        if urlparse(self.path).path != "/saver/transition":   # sends TCP RST, not the response
+            self.send_response(404)
+            self.end_headers()
+            return
+        form = parse_qs(raw.decode("utf-8", errors="replace"))
         code, msg = saver_transition_response(
             PICKS_DIR,
             expected_prior=form.get("expected_prior", [""])[0],

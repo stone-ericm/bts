@@ -92,3 +92,67 @@ def test_same_origin_helper():
     assert _same_origin({"Origin": "http://host"}, "host") is True     # match
     assert _same_origin({"Origin": "http://evil"}, "host") is False    # mismatch
     assert _same_origin({"Origin": "http://[::1"}, "host") is False    # malformed -> reject (no raise)
+
+
+# --- do_POST /saver/transition socket wiring (open item from 2026-06-18: the
+# --- handler had only ad-hoc verification; this exercises the real HTTP path
+# --- against an isolated PICKS_DIR).
+
+def _serve(tmp_path, monkeypatch):
+    import threading
+    from http.server import HTTPServer
+    import bts.web as web
+    monkeypatch.setattr(web, "PICKS_DIR", tmp_path)
+    monkeypatch.setattr(web.Handler, "log_message", lambda *a, **k: None)
+    srv = HTTPServer(("127.0.0.1", 0), web.Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv
+
+
+def _post(port, body, origin=None, path="/saver/transition"):
+    from http.client import HTTPConnection
+    from urllib.parse import urlencode
+    conn = HTTPConnection("127.0.0.1", port, timeout=5)
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    if origin is not None:
+        headers["Origin"] = origin
+    conn.request("POST", path, urlencode(body), headers)
+    resp = conn.getresponse()
+    resp.read()
+    conn.close()
+    return resp
+
+
+def _saver_state(tmp_path):
+    return saver_dashboard_context(tmp_path, now=NOW).state
+
+
+def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
+    _setup(tmp_path, "active")
+    srv = _serve(tmp_path, monkeypatch)
+    try:
+        port = srv.server_address[1]
+
+        r = _post(port, {"expected_prior": "active", "new_state": "used"})
+        assert r.status == 303 and r.getheader("Location") == "/"
+        assert _saver_state(tmp_path) == "used"
+
+        r = _post(port, {"expected_prior": "used", "new_state": "active"})
+        assert r.status == 303
+        assert _saver_state(tmp_path) == "active"
+
+        r = _post(port, {"expected_prior": "active", "new_state": "used"},
+                  origin="http://evil.example")
+        assert r.status == 403
+        assert _saver_state(tmp_path) == "active"     # unchanged
+
+        r = _post(port, {"expected_prior": "used", "new_state": "active"})
+        assert r.status == 409                        # guard mismatch: state is active
+        assert _saver_state(tmp_path) == "active"
+
+        r = _post(port, {"expected_prior": "active", "new_state": "used"}, path="/nope")
+        assert r.status == 404
+        assert _saver_state(tmp_path) == "active"
+    finally:
+        srv.shutdown()
+        srv.server_close()
