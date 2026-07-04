@@ -988,6 +988,7 @@ class TestCheckPickEntered:
         import bts.dm
         self._patch_auth(monkeypatch)
         monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
         dms = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
@@ -1008,6 +1009,7 @@ class TestCheckPickEntered:
         self._patch_auth(monkeypatch)
         monkeypatch.setattr(cf, "fetch_profile",
                             lambda *a, **k: {"predictions": [{"roundId": 7, "result": "pending"}]})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
         dms = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
@@ -1025,6 +1027,7 @@ class TestCheckPickEntered:
         def _boom(*a, **k):
             raise AssertionError("network must not be touched outside the window")
         monkeypatch.setattr(cf, "fetch_profile", _boom)
+        monkeypatch.setattr(cf, "fetch_pending_predictions", _boom)
         picks = tmp_path / "picks"; picks.mkdir()
         self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
 
@@ -1038,6 +1041,7 @@ class TestCheckPickEntered:
         import bts.dm
         self._patch_auth(monkeypatch)
         monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
         dms = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
@@ -1048,6 +1052,56 @@ class TestCheckPickEntered:
         r2 = self._run(picks, "2026-06-12T18:45:00")
         assert r2.exit_code == 0  # already alerted; quiet
         assert len(dms) == 1
+
+    def test_pending_only_entry_confirms_without_dm(self, monkeypatch, tmp_path):
+        # THE v2 fix (2026-07-03): the profile endpoint is settled-only, so a
+        # same-day entry is invisible there — but GET api/predictions exposes
+        # the pending row. Entry via the pending source alone must confirm.
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions",
+                            lambda *a, **k: [{"roundId": 7, "unitId": 1, "playerId": 9,
+                                              "number": 1, "result": None}])
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        status = json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+        assert status["status"] == "confirmed"
+
+    def test_pending_fetch_failure_skips_quietly_no_marker(self, monkeypatch, tmp_path):
+        # A transient /predictions failure must NOT produce a false "not
+        # entered" DM (the exact false-alarm class that killed v1) and must
+        # NOT consume the once-per-day marker — the next 15-min cron retries.
+        import datetime as dt
+        import httpx
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        def _fail(*a, **k):
+            raise httpx.ConnectError("transient")
+        monkeypatch.setattr(cf, "fetch_pending_predictions", _fail)
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
 
     def test_no_pick_today_is_silent(self, tmp_path):
         picks = tmp_path / "picks"; picks.mkdir()

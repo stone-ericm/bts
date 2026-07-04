@@ -43,6 +43,51 @@ def test_fetch_profile_returns_success_payload():
     assert kwargs["headers"]["Accept"] == "application/json"
 
 
+def test_fetch_pending_predictions_returns_current_round_rows():
+    # GET api/predictions — the endpoint that DOES expose the pending
+    # same-day entry (the profile endpoint is settled-only; 2026-06-12 lesson).
+    pending = [{"roundId": 923, "unitId": 1323, "playerId": 377, "number": 1,
+                "streak": 17, "result": None}]
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"success": {"predictions": pending, "resentHistory": []}}
+
+    class Client:
+        calls = []
+
+        @classmethod
+        def get(cls, *args, **kwargs):
+            cls.calls.append((args, kwargs))
+            return Response()
+
+    from bts.contest_fetch import fetch_pending_predictions
+    assert fetch_pending_predictions({"oktaid": "uid"}, "xsid_1", client=Client) == pending
+    args, kwargs = Client.calls[0]
+    assert "/api/predictions?xSid=xsid_1" in args[0]
+    assert kwargs["cookies"] == {"oktaid": "uid"}
+
+
+def test_fetch_pending_predictions_missing_key_is_empty_list():
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"success": {}}
+
+    class Client:
+        @classmethod
+        def get(cls, *args, **kwargs):
+            return Response()
+
+    from bts.contest_fetch import fetch_pending_predictions
+    assert fetch_pending_predictions({}, "x", client=Client) == []
+
+
 def test_derive_source_date_latest_settled():
     rounds = {
         10: dt.date(2026, 6, 4),

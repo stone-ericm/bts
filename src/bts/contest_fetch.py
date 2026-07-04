@@ -5,7 +5,11 @@ from typing import Any
 
 import httpx
 
-from bts.leaderboard.endpoints import USER_AGENT, USER_PROFILE_URL_TEMPLATE
+from bts.leaderboard.endpoints import (
+    PREDICTIONS_URL_TEMPLATE,
+    USER_AGENT,
+    USER_PROFILE_URL_TEMPLATE,
+)
 
 # MLB profile settles rounds as hit / not_hit / void; "miss" kept for legacy/local safety.
 RESOLVED = {"hit", "not_hit", "miss", "void"}
@@ -32,6 +36,31 @@ def fetch_profile(
     )
     response.raise_for_status()
     return response.json()["success"]
+
+
+def fetch_pending_predictions(
+    cookies: dict[str, str],
+    xsid: str,
+    *,
+    client: Any = httpx,
+) -> list[dict]:
+    """Fetch OWN current-round predictions, pending rows included.
+
+    GET api/predictions is the only discovered endpoint that shows a same-day
+    entry before settlement (the profile endpoint is settled-only — the reason
+    check-pick-entered v1 false-alarmed and was disabled 2026-06-12). Rows are
+    flat {roundId, unitId, playerId, number, result, ...}; result is null
+    while pending.
+    """
+    url = PREDICTIONS_URL_TEMPLATE.format(xsid=xsid)
+    response = client.get(
+        url,
+        cookies=cookies,
+        timeout=30.0,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
+    response.raise_for_status()
+    return response.json().get("success", {}).get("predictions") or []
 
 
 def derive_source_date(

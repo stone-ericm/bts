@@ -1522,15 +1522,13 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
 def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
     """DM if today's delivered pick was never entered in the MLB app.
 
-    *** DISABLED — NOT IN CRON (2026-06-12, same night it shipped). ***
-    The user-profile predictions endpoint contains ONLY settled rows
-    (hit/not_hit/void) — pending same-day entries are INVISIBLE there, so
-    this command would false-alarm "not entered" EVERY day pre-pitch
-    (caught by Eric within hours: he HAD entered the 06-12 pick and the
-    check still said no). Re-enable only after finding an endpoint that
-    exposes pending predictions (likely the round-prediction API the MLB
-    app itself calls — needs traffic inspection). The same-day entry gap
-    is real and worth solving; this data source can't solve it.
+    v2 (2026-07-03, RE-ENABLED in cron): entry is now detected from the UNION
+    of two sources — the profile endpoint (settled rows only; v1's sole source
+    and why v1 false-alarmed every pre-pitch day and was disabled 2026-06-12)
+    and GET api/predictions (discovered via the app JS bundle), which exposes
+    the pending same-day row before settlement. Any fetch failure skips
+    quietly WITHOUT consuming the once-per-day marker, so a transient error
+    can never produce the v1 false-alarm class — the next cron run retries.
 
     Runs from cron every 15 min; exits silently unless NOW is inside the
     pre-first-pitch window for today's locked pick. One DM per date (marker
@@ -1582,12 +1580,14 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
             click.echo(f"check-pick-entered: identity mismatch ({session.username!r}); skipping", err=True)
             return
         success = _cf.fetch_profile(session.user_id, cookies, session.xsid)
+        pending = _cf.fetch_pending_predictions(cookies, session.xsid)
         rounds = _fetch_rounds()
     except (AuthError, httpx.HTTPError, KeyError, ValueError, TypeError) as exc:
         click.echo(f"check-pick-entered: fetch failed, skipping quietly: {exc}", err=True)
         return
 
-    entered = _cf.has_prediction_for(success, rounds, now.date())
+    entered = (_cf.has_prediction_for(success, rounds, now.date())
+               or _cf.has_prediction_for({"predictions": pending}, rounds, now.date()))
     if entered:
         _atomic_write_json(status_path, {"date": today, "status": "confirmed",
                                          "checked_at": now.isoformat()})

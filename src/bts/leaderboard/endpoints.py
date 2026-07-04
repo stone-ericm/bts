@@ -51,6 +51,16 @@ USER_PROFILE_URL_TEMPLATE: str = (
     "/{user_id}/profile?xSid={xsid}"
 )
 
+# Own account's CURRENT-round predictions, INCLUDING pending (unsettled) rows.
+# Discovered 2026-07-03 via the app JS bundle (Api.Prediction.get). This is the
+# endpoint the profile endpoint is NOT: profiles carry settled rows only, while
+# /predictions exposes the same-day entry pre-settlement — the check-pick-entered
+# v2 data source. Self only; other users' pending playerIds are server-redacted.
+PREDICTIONS_URL_TEMPLATE: str = (
+    "https://mlb-play.mlbstatic.com/apps/beat-the-streak/game/api/predictions"
+    "?xSid={xsid}"
+)
+
 # Static JSON file: maps roundId -> date. Not auth-required, refreshed by MLB.
 ROUNDS_URL: str = (
     "https://mlb-play.mlbstatic.com/apps/beat-the-streak/game/json/rounds.json"
