@@ -1471,12 +1471,27 @@ def _atomic_write_json(path, obj):
 def _fetch_rounds(client=None):
     """Fetch rounds.json (no auth) -> {roundId: date}. Patchable in tests."""
     import httpx
-    from bts.leaderboard.endpoints import ROUNDS_URL, USER_AGENT
+    from bts.leaderboard.endpoints import ROUNDS_URL, browser_headers
     from bts.leaderboard.scraper import parse_rounds_lookup
     client = client or httpx
-    resp = client.get(ROUNDS_URL, headers={"User-Agent": USER_AGENT}, timeout=30.0)
+    resp = client.get(ROUNDS_URL, headers=browser_headers(), timeout=30.0)
     resp.raise_for_status()
     return parse_rounds_lookup(resp.json())
+
+
+def _fetch_bts_to_mlb(client=None):
+    """Fetch players.json (no auth) -> {bts_player_id: mlb_feed_id}. Patchable."""
+    import httpx
+    from bts.leaderboard.endpoints import browser_headers
+    client = client or httpx
+    url = "https://mlb-play.mlbstatic.com/apps/beat-the-streak/game/json/players.json"
+    resp = client.get(url, headers=browser_headers(), timeout=30.0)
+    resp.raise_for_status()
+    out: dict[int, int] = {}
+    for p in resp.json().get("players", []):
+        if p.get("id") is not None and p.get("feedId") is not None:
+            out[int(p["id"])] = int(p["feedId"])
+    return out
 
 
 def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
@@ -1559,12 +1574,15 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         return
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
+    # Dedup only on TERMINAL states — a "dm_failed" marker (alert computed but the
+    # DM didn't send) is explicitly retryable, so the next run re-checks and
+    # re-alerts rather than silently swallowing the one alert that matters.
     if status_path.exists():
         try:
             prior = json.loads(status_path.read_text())
         except (json.JSONDecodeError, OSError):
             prior = {}
-        if prior.get("date") == today:
+        if prior.get("date") == today and prior.get("status") in ("confirmed", "alerted"):
             click.echo(f"check-pick-entered: already {prior.get('status')} for {today}")
             return
 
@@ -1582,32 +1600,57 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         success = _cf.fetch_profile(session.user_id, cookies, session.xsid)
         pending = _cf.fetch_pending_predictions(cookies, session.xsid)
         rounds = _fetch_rounds()
-    except (AuthError, httpx.HTTPError, KeyError, ValueError, TypeError) as exc:
+        bts_to_mlb = _fetch_bts_to_mlb()
+    except (AuthError, httpx.HTTPError, KeyError, ValueError, TypeError,
+            _cf.ContestFetchError) as exc:
+        # Any fetch failure skips quietly WITHOUT writing the daily marker, so a
+        # transient error can never suppress the real check (the v1 false-alarm
+        # class) and the next */15 cron run retries.
         click.echo(f"check-pick-entered: fetch failed, skipping quietly: {exc}", err=True)
         return
 
-    entered = (_cf.has_prediction_for(success, rounds, now.date())
-               or _cf.has_prediction_for({"predictions": pending}, rounds, now.date()))
-    if entered:
+    # Verify the DELIVERED pick(s) are what got entered — Eric always intends the
+    # entered pick to equal the recommendation, so a wrong player or a missing
+    # double-down slot is a real anomaly, not just "no pick at all".
+    required_mlb_ids = {
+        b for b in (daily.pick.batter_id,
+                    daily.double_down.batter_id if daily.double_down else None)
+        if b is not None
+    }
+    ok, reason = _cf.pick_entry_status(
+        success, pending, rounds, now.date(), required_mlb_ids, bts_to_mlb)
+    if ok:
         _atomic_write_json(status_path, {"date": today, "status": "confirmed",
-                                         "checked_at": now.isoformat()})
-        click.echo(f"check-pick-entered: {today} pick is entered in the MLB app")
+                                         "reason": reason, "checked_at": now.isoformat()})
+        click.echo(f"check-pick-entered: {today} pick entered ({reason})")
         return
 
     names = daily.pick.batter_name
     if daily.double_down:
         names += f" + DD {daily.double_down.batter_name}"
-    msg = (f"\u26a0\ufe0f BTS pick NOT entered in MLB app: {names} — first pitch "
-           f"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Enter it now!")
+    lead = ("BTS pick NOT entered" if reason == "no_pick"
+            else "BTS entry does NOT match the recommended pick")
+    msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
+           f"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Fix it now!")
+    dm_sent = False
     if dm_recipient:
         try:
             import bts.dm
             bts.dm.send_dm(dm_recipient, msg)
+            dm_sent = True
             click.echo(f"check-pick-entered: DM sent to {dm_recipient}")
         except Exception as exc:
             click.echo(f"check-pick-entered: DM failed: {exc}", err=True)
-    _atomic_write_json(status_path, {"date": today, "status": "alerted",
-                                     "checked_at": now.isoformat()})
+    # Burn the once-per-day marker ONLY when the alert actually went out (or
+    # there's no recipient to reach). If the DM failed, leave a retryable marker
+    # so the next run re-alerts — the single alert this feature exists for must
+    # not be silently lost (Codex review, 2026-07-03).
+    if dm_sent or not dm_recipient:
+        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+                                         "reason": reason, "checked_at": now.isoformat()})
+    else:
+        _atomic_write_json(status_path, {"date": today, "status": "dm_failed",
+                                         "reason": reason, "checked_at": now.isoformat()})
     sys.exit(1)
 
 

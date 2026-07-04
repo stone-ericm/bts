@@ -7,8 +7,8 @@ import httpx
 
 from bts.leaderboard.endpoints import (
     PREDICTIONS_URL_TEMPLATE,
-    USER_AGENT,
     USER_PROFILE_URL_TEMPLATE,
+    browser_headers,
 )
 
 # MLB profile settles rounds as hit / not_hit / void; "miss" kept for legacy/local safety.
@@ -32,7 +32,7 @@ def fetch_profile(
         url,
         cookies=cookies,
         timeout=30.0,
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        headers=browser_headers(),
     )
     response.raise_for_status()
     return response.json()["success"]
@@ -57,10 +57,23 @@ def fetch_pending_predictions(
         url,
         cookies=cookies,
         timeout=30.0,
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        headers=browser_headers(),
     )
     response.raise_for_status()
-    return response.json().get("success", {}).get("predictions") or []
+    body = response.json()
+    # Distinguish "authenticated, no pending pick" (success.predictions == [])
+    # from schema drift / an error envelope. A drifted 200 must NOT collapse to
+    # [] — that would read as "no pick entered" and fire a false alarm (the v1
+    # class). Raise so the caller's fetch-failed path skips quietly instead.
+    if not isinstance(body, dict) or "success" not in body:
+        raise ContestFetchError(f"predictions response missing 'success': {str(body)[:200]}")
+    success = body["success"]
+    if not isinstance(success, dict) or "predictions" not in success:
+        raise ContestFetchError("predictions response missing success.predictions")
+    predictions = success["predictions"]
+    if not isinstance(predictions, list):
+        raise ContestFetchError("success.predictions is not a list")
+    return predictions
 
 
 def derive_source_date(
@@ -79,6 +92,69 @@ def derive_source_date(
         if round_date is not None:
             settled_dates.append(round_date)
     return max(settled_dates) if settled_dates else None
+
+
+def entered_bts_player_ids(
+    profile_success: dict,
+    pending_rows: list[dict],
+    rounds: dict[int, date],
+    target: date,
+) -> list[int]:
+    """BTS playerIds entered for `target`, from BOTH endpoint shapes.
+
+    The profile endpoint nests picks under `predictions[].roundPredictions[]`
+    (settled-only); GET /predictions returns FLAT rows {roundId, playerId, ...}
+    (includes pending). Union both so a same-day entry is found pre-settlement.
+    """
+    def _round_matches(round_id) -> bool:
+        if round_id is None:
+            return False
+        return rounds.get(int(round_id)) == target
+
+    ids: list[int] = []
+    for pred in profile_success.get("predictions", []):
+        if _round_matches(pred.get("roundId")):
+            for rp in pred.get("roundPredictions", []):
+                if rp.get("playerId") is not None:
+                    ids.append(int(rp["playerId"]))
+    for row in pending_rows:
+        if _round_matches(row.get("roundId")) and row.get("playerId") is not None:
+            ids.append(int(row["playerId"]))
+    return ids
+
+
+def pick_entry_status(
+    profile_success: dict,
+    pending_rows: list[dict],
+    rounds: dict[int, date],
+    target: date,
+    required_mlb_ids: set[int],
+    bts_to_mlb: dict[int, int],
+) -> tuple[bool, str]:
+    """Is the DELIVERED pick entered? Returns (ok, reason).
+
+    Eric always intends the entered pick to equal the recommendation, so a
+    mismatch (wrong player, or a missing double-down slot) is a real anomaly to
+    surface — NOT a false alarm. But our BTS->MLB crosswalk can be incomplete;
+    when we can't resolve an entered row we fall back to presence-only so OUR
+    gap never fires a false "not entered". Reasons:
+      no_pick            — nothing entered for target -> alert
+      match              — every required MLB id is present -> ok
+      present_unverified — something entered but crosswalk can't confirm -> ok
+      mismatch           — resolved, and a required id is missing -> alert
+    """
+    entered_bts = entered_bts_player_ids(profile_success, pending_rows, rounds, target)
+    if not entered_bts:
+        return False, "no_pick"
+    if not required_mlb_ids:
+        return True, "present_unverified"  # nothing to match against
+    entered_mlb = {bts_to_mlb[b] for b in entered_bts if b in bts_to_mlb}
+    if required_mlb_ids <= entered_mlb:
+        return True, "match"
+    unresolved = [b for b in entered_bts if b not in bts_to_mlb]
+    if unresolved or not bts_to_mlb:
+        return True, "present_unverified"  # can't prove a mismatch -> don't false-alarm
+    return False, "mismatch"
 
 
 def has_prediction_for(success: dict, rounds: dict[int, date], target: date) -> bool:

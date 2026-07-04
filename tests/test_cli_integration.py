@@ -963,15 +963,26 @@ class TestCheckPickEntered:
                             lambda *a, **k: AuthSession(xsid="x_1", user_id=user_id, username=username))
 
     @staticmethod
-    def _save_pick(picks_dir, date_str, game_time_iso):
+    def _patch_crosswalk(monkeypatch, mapping):
+        """Patch the BTS-playerId -> MLB-feedId crosswalk fetch."""
+        import bts.cli as climod
+        monkeypatch.setattr(climod, "_fetch_bts_to_mlb", lambda *a, **k: dict(mapping))
+
+    @staticmethod
+    def _save_pick(picks_dir, date_str, game_time_iso, batter_id=1, dd_batter_id=None):
         from bts.picks import DailyPick, Pick, save_pick
+
+        def _mk(name, bid, gpk):
+            return Pick(batter_name=name, batter_id=bid, team="NYY",
+                        lineup_position=1, pitcher_name="P", pitcher_id=2,
+                        p_game_hit=0.8, flags=[], projected_lineup=False,
+                        game_pk=gpk, game_time=game_time_iso)
+
         daily = DailyPick(
             date=date_str, run_time=f"{date_str}T15:00:00+00:00",
-            pick=Pick(batter_name="Test Batter", batter_id=1, team="NYY",
-                      lineup_position=1, pitcher_name="P", pitcher_id=2,
-                      p_game_hit=0.8, flags=[], projected_lineup=False,
-                      game_pk=1, game_time=game_time_iso),
-            double_down=None, runner_up=None,
+            pick=_mk("Test Batter", batter_id, 1),
+            double_down=_mk("DD Batter", dd_batter_id, 2) if dd_batter_id else None,
+            runner_up=None,
         )
         save_pick(daily, picks_dir)
 
@@ -981,46 +992,136 @@ class TestCheckPickEntered:
             "--dm-recipient", "x.bsky.social", "--now-et", now_et,
         ] + (extra or []))
 
-    def test_missing_entry_in_window_dms_and_exits_nonzero(self, monkeypatch, tmp_path):
-        import datetime as dt
-        import bts.contest_fetch as cf
-        import bts.cli as climod
-        import bts.dm
-        self._patch_auth(monkeypatch)
-        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
-        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
-        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
-        dms = []
-        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
-        picks = tmp_path / "picks"; picks.mkdir()
-        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")  # 19:10 ET
-
-        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch
-        assert r.exit_code != 0
-        assert len(dms) == 1 and "NOT entered" in dms[0][1]
-        status = json.loads((picks.parent / "picks" / ".." / "health_state" / "pick_entry_check.json").resolve().read_text()) if False else json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
-        assert status["date"] == "2026-06-12" and status["status"] == "alerted"
-
-    def test_entered_pending_confirms_without_dm(self, monkeypatch, tmp_path):
+    def _setup(self, monkeypatch, *, profile_preds=(), pending=(), crosswalk=None):
         import datetime as dt
         import bts.contest_fetch as cf
         import bts.cli as climod
         import bts.dm
         self._patch_auth(monkeypatch)
         monkeypatch.setattr(cf, "fetch_profile",
-                            lambda *a, **k: {"predictions": [{"roundId": 7, "result": "pending"}]})
-        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
+                            lambda *a, **k: {"predictions": list(profile_preds)})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: list(pending))
         monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        self._patch_crosswalk(monkeypatch, crosswalk or {})
         dms = []
         monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        return dms
+
+    @staticmethod
+    def _pending(player_id, round_id=7, number=1):
+        return {"roundId": round_id, "unitId": 1, "playerId": player_id,
+                "number": number, "result": None}
+
+    def _status(self, tmp_path):
+        return json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+
+    def test_missing_entry_in_window_dms_and_exits_nonzero(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
         picks = tmp_path / "picks"; picks.mkdir()
-        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch
+        assert r.exit_code != 0
+        assert len(dms) == 1 and "NOT entered" in dms[0][1]
+        status = self._status(tmp_path)
+        assert status["date"] == "2026-06-12" and status["status"] == "alerted"
+        assert status["reason"] == "no_pick"
+
+    def test_matching_entry_confirms_without_dm(self, monkeypatch, tmp_path):
+        # Entered pending pick (BTS id 100) maps to the delivered MLB id 1 -> match.
+        dms = self._setup(monkeypatch, pending=[self._pending(100)], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
 
         r = self._run(picks, "2026-06-12T18:30:00")
         assert r.exit_code == 0, r.output
         assert dms == []
-        status = json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
-        assert status["status"] == "confirmed"
+        assert self._status(tmp_path)["reason"] == "match"
+
+    def test_wrong_player_entered_alerts_mismatch(self, monkeypatch, tmp_path):
+        # Delivered MLB id 1, but the entered pick (BTS 200) maps to MLB 2 -> mismatch.
+        dms = self._setup(monkeypatch, pending=[self._pending(200)], crosswalk={100: 1, 200: 2})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code != 0
+        assert len(dms) == 1 and "does NOT match" in dms[0][1]
+        assert self._status(tmp_path)["reason"] == "mismatch"
+
+    def test_double_down_slot_missing_alerts(self, monkeypatch, tmp_path):
+        # Delivered primary(1)+DD(2); only the primary is entered -> mismatch.
+        dms = self._setup(monkeypatch, pending=[self._pending(100)], crosswalk={100: 1, 200: 2})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, dd_batter_id=2)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code != 0
+        assert self._status(tmp_path)["reason"] == "mismatch"
+
+    def test_both_double_down_slots_entered_confirms(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch,
+                          pending=[self._pending(100, number=1), self._pending(200, number=2)],
+                          crosswalk={100: 1, 200: 2})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, dd_batter_id=2)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert self._status(tmp_path)["reason"] == "match"
+
+    def test_unresolved_crosswalk_falls_back_to_present(self, monkeypatch, tmp_path):
+        # A pick IS entered but our crosswalk can't map it -> don't false-alarm;
+        # confirm as present-but-unverified (OUR gap must never page Eric).
+        dms = self._setup(monkeypatch, pending=[self._pending(999)], crosswalk={})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert self._status(tmp_path)["reason"] == "present_unverified"
+
+    def test_profile_nested_roundpredictions_resolve_identity(self, monkeypatch, tmp_path):
+        # A settled-but-same-day pick can arrive via the nested profile shape.
+        dms = self._setup(
+            monkeypatch,
+            profile_preds=[{"roundId": 7, "result": "hit",
+                            "roundPredictions": [{"number": 1, "playerId": 100}]}],
+            pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert self._status(tmp_path)["reason"] == "match"
+
+    def test_dm_failure_leaves_retryable_marker_and_realerts(self, monkeypatch, tmp_path):
+        # THE Codex #1 fix: if the DM send throws, we must NOT burn the daily
+        # marker as 'alerted' — the next run has to retry, or the one alert this
+        # feature exists for is silently lost.
+        import bts.dm
+        self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        def _boom(h, m):
+            raise RuntimeError("bluesky down")
+        monkeypatch.setattr(bts.dm, "send_dm", _boom)
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r1 = self._run(picks, "2026-06-12T18:30:00")
+        assert r1.exit_code != 0
+        assert self._status(tmp_path)["status"] == "dm_failed"
+
+        # Second run: the DM now succeeds -> it must re-alert (marker was retryable)
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        r2 = self._run(picks, "2026-06-12T18:45:00")
+        assert r2.exit_code != 0
+        assert len(dms) == 1
+        assert self._status(tmp_path)["status"] == "alerted"
 
     def test_outside_window_is_silent_no_network(self, monkeypatch, tmp_path):
         import bts.contest_fetch as cf
@@ -1035,66 +1136,41 @@ class TestCheckPickEntered:
         assert r.exit_code == 0, r.output
 
     def test_marker_dedupes_second_alert(self, monkeypatch, tmp_path):
-        import datetime as dt
-        import bts.contest_fetch as cf
-        import bts.cli as climod
-        import bts.dm
-        self._patch_auth(monkeypatch)
-        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
-        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
-        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
-        dms = []
-        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
         picks = tmp_path / "picks"; picks.mkdir()
-        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
 
         assert self._run(picks, "2026-06-12T18:30:00").exit_code != 0
         r2 = self._run(picks, "2026-06-12T18:45:00")
         assert r2.exit_code == 0  # already alerted; quiet
         assert len(dms) == 1
 
-    def test_pending_only_entry_confirms_without_dm(self, monkeypatch, tmp_path):
-        # THE v2 fix (2026-07-03): the profile endpoint is settled-only, so a
-        # same-day entry is invisible there — but GET api/predictions exposes
-        # the pending row. Entry via the pending source alone must confirm.
-        import datetime as dt
+    def test_pending_fetch_failure_skips_quietly_no_marker(self, monkeypatch, tmp_path):
+        # A transient /predictions failure must NOT produce a false "not
+        # entered" DM (the exact false-alarm class that killed v1) and must
+        # NOT consume the once-per-day marker — the next 15-min cron retries.
+        import httpx
         import bts.contest_fetch as cf
-        import bts.cli as climod
-        import bts.dm
-        self._patch_auth(monkeypatch)
-        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
-        monkeypatch.setattr(cf, "fetch_pending_predictions",
-                            lambda *a, **k: [{"roundId": 7, "unitId": 1, "playerId": 9,
-                                              "number": 1, "result": None}])
-        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
-        dms = []
-        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        def _fail(*a, **k):
+            raise httpx.ConnectError("transient")
+        monkeypatch.setattr(cf, "fetch_pending_predictions", _fail)
         picks = tmp_path / "picks"; picks.mkdir()
         self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
 
         r = self._run(picks, "2026-06-12T18:30:00")
         assert r.exit_code == 0, r.output
         assert dms == []
-        status = json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
-        assert status["status"] == "confirmed"
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
 
-    def test_pending_fetch_failure_skips_quietly_no_marker(self, monkeypatch, tmp_path):
-        # A transient /predictions failure must NOT produce a false "not
-        # entered" DM (the exact false-alarm class that killed v1) and must
-        # NOT consume the once-per-day marker — the next 15-min cron retries.
-        import datetime as dt
-        import httpx
+    def test_schema_drift_skips_quietly_no_false_alarm(self, monkeypatch, tmp_path):
+        # A drifted 200 from /predictions raises ContestFetchError -> quiet skip,
+        # NOT a false "not entered" alert, and no marker consumed.
         import bts.contest_fetch as cf
-        import bts.cli as climod
-        import bts.dm
-        self._patch_auth(monkeypatch)
-        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
-        def _fail(*a, **k):
-            raise httpx.ConnectError("transient")
-        monkeypatch.setattr(cf, "fetch_pending_predictions", _fail)
-        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
-        dms = []
-        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        def _drift(*a, **k):
+            raise cf.ContestFetchError("success.predictions missing")
+        monkeypatch.setattr(cf, "fetch_pending_predictions", _drift)
         picks = tmp_path / "picks"; picks.mkdir()
         self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00")
 

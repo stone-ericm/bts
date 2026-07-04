@@ -40,7 +40,8 @@ def test_fetch_profile_returns_success_payload():
     args, kwargs = Client.calls[0]
     assert "/50311/profile?xSid=xsid_1" in args[0]
     assert kwargs["cookies"] == {"oktaid": "uid"}
-    assert kwargs["headers"]["Accept"] == "application/json"
+    assert "application/json" in kwargs["headers"]["Accept"]
+    assert "Chrome/" in kwargs["headers"]["User-Agent"]
 
 
 def test_fetch_pending_predictions_returns_current_round_rows():
@@ -71,13 +72,15 @@ def test_fetch_pending_predictions_returns_current_round_rows():
     assert kwargs["cookies"] == {"oktaid": "uid"}
 
 
-def test_fetch_pending_predictions_missing_key_is_empty_list():
+def test_fetch_pending_predictions_empty_list_when_no_pending():
+    # An authenticated response with an explicit empty predictions list is the
+    # legitimate "no pick entered yet" state — returns [], does not raise.
     class Response:
         def raise_for_status(self):
             pass
 
         def json(self):
-            return {"success": {}}
+            return {"success": {"predictions": []}}
 
     class Client:
         @classmethod
@@ -86,6 +89,85 @@ def test_fetch_pending_predictions_missing_key_is_empty_list():
 
     from bts.contest_fetch import fetch_pending_predictions
     assert fetch_pending_predictions({}, "x", client=Client) == []
+
+
+def test_fetch_pending_predictions_raises_on_schema_drift():
+    # A 200 whose shape drifted (no success.predictions) must RAISE, not collapse
+    # to [] — else check-pick-entered reads it as "not entered" and false-alarms
+    # (the v1 class). Raising routes it to the caller's quiet-skip path.
+    from bts.contest_fetch import ContestFetchError, fetch_pending_predictions
+
+    for bad in ({"success": {}}, {"errors": ["nope"]}, {"success": {"predictions": "x"}}):
+        class Response:
+            _b = bad
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self._b
+
+        class Client:
+            @classmethod
+            def get(cls, *args, **kwargs):
+                return Response()
+
+        with pytest.raises(ContestFetchError):
+            fetch_pending_predictions({}, "x", client=Client)
+
+
+class TestPickEntryStatus:
+    ROUNDS = {7: dt.date(2026, 6, 12)}
+    TARGET = dt.date(2026, 6, 12)
+    XWALK = {100: 1, 200: 2}  # BTS id -> MLB feed id
+
+    def _status(self, profile=None, pending=None, required=None, xwalk=None):
+        from bts.contest_fetch import pick_entry_status
+        return pick_entry_status(
+            {"predictions": profile or []}, pending or [], self.ROUNDS, self.TARGET,
+            required if required is not None else {1},
+            self.XWALK if xwalk is None else xwalk)
+
+    def test_no_pick_when_nothing_entered(self):
+        assert self._status() == (False, "no_pick")
+
+    def test_match_on_pending_row(self):
+        assert self._status(pending=[{"roundId": 7, "playerId": 100}]) == (True, "match")
+
+    def test_match_on_nested_profile_row(self):
+        prof = [{"roundId": 7, "roundPredictions": [{"playerId": 100}]}]
+        assert self._status(profile=prof) == (True, "match")
+
+    def test_mismatch_wrong_player(self):
+        assert self._status(pending=[{"roundId": 7, "playerId": 200}]) == (False, "mismatch")
+
+    def test_double_down_missing_slot_is_mismatch(self):
+        # required both MLB 1 and 2; only 100->1 entered
+        assert self._status(pending=[{"roundId": 7, "playerId": 100}],
+                            required={1, 2}) == (False, "mismatch")
+
+    def test_double_down_both_slots_match(self):
+        rows = [{"roundId": 7, "playerId": 100}, {"roundId": 7, "playerId": 200}]
+        assert self._status(pending=rows, required={1, 2}) == (True, "match")
+
+    def test_unresolved_crosswalk_is_present_unverified(self):
+        # entered BTS 999 not in the crosswalk -> can't prove a mismatch
+        assert self._status(pending=[{"roundId": 7, "playerId": 999}]) == (True, "present_unverified")
+
+    def test_empty_crosswalk_is_present_unverified(self):
+        assert self._status(pending=[{"roundId": 7, "playerId": 100}], xwalk={}) == (True, "present_unverified")
+
+    def test_other_date_rows_ignored(self):
+        # a pick for a different round/date is not "entered for target"
+        rounds = {7: dt.date(2026, 6, 12), 8: dt.date(2026, 6, 13)}
+        from bts.contest_fetch import pick_entry_status
+        ok, reason = pick_entry_status(
+            {"predictions": []}, [{"roundId": 8, "playerId": 100}], rounds,
+            dt.date(2026, 6, 12), {1}, self.XWALK)
+        assert (ok, reason) == (False, "no_pick")
+
+    def test_no_required_ids_is_present_unverified(self):
+        assert self._status(pending=[{"roundId": 7, "playerId": 100}], required=set()) == (True, "present_unverified")
 
 
 def test_derive_source_date_latest_settled():
