@@ -54,6 +54,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **K-Means clustering is NOT safe** for features — cluster assignments are 90.8% unstable across train/test splits
 - Run `scripts/leakage_audit.py` and the nuclear test after any feature changes
 - **BTS hit-scoring excludes the resumed portion of suspended games** — read PA via `build.read_pa_for_bts_scoring` / `filter_out_resumed_portion` (NOT raw `pd.read_parquet`) anywhere PA feeds hit/streak/calibration/contest scoring; the production scorer grades via `picks.grade_pick_in_feed`. Model training, features, and the skill-pool prior intentionally KEEP resumed PA (real events). See ARCHITECTURE "Suspended-game scoring" (`is_resumed_portion`).
+- **The leaderboard scraper + contest fetch run on Eric's REAL BTS contest account cookies** (`~/.bts-leaderboard-cookies.json`) — a ban costs the actual streak. Deep scraping is authorized but kept low-profile: keep the browser identity (`endpoints.browser_headers`), the jittered gaps, the `profile_top_n` footprint cap, and the **403/429 → `RateLimitedError` kill-switch** (`scraper._get_json`). Don't remove the kill-switch or crank the volume/cadence without a reason. No IP/proxy tricks — this is request hygiene for one authorized account, not evasion.
 
 ## Data
 - Raw JSON: `data/raw/{season}/{gamePk}.json` (gitignored, ~15GB)
