@@ -125,7 +125,9 @@ class TestScrapeLeaderboardWithMock:
         assert "xSid=x_123" in url
         kwargs = mock_get.call_args.kwargs
         assert kwargs["cookies"] == {"a": "b"}
-        assert "bts-leaderboard-watcher" in kwargs["headers"]["User-Agent"]
+        # Browser-fidelity identity (2026-07-03): looks like Chrome, not a bot UA.
+        assert "Chrome/" in kwargs["headers"]["User-Agent"]
+        assert kwargs["headers"]["Referer"].endswith("beat-the-streak/game")
 
 
 class TestParseUserId:

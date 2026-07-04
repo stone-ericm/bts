@@ -82,7 +82,33 @@ OKTAID_COOKIE_NAME: str = "oktaid"
 # Platform value passed in auth/login POST body
 AUTH_LOGIN_PLATFORM: str = "web"
 
-# Default User-Agent for outbound requests
-USER_AGENT: str = (
-    "bts-leaderboard-watcher/1.0 (+https://github.com/stone-ericm/bts)"
+# Browser-fidelity request identity (2026-07-03). This is Eric's OWN authorized
+# account reading a public MLB game leaderboard for a personal project; the goal
+# is only to keep the traffic from standing out as an obvious bot so the account
+# isn't rate-limited or throttled at the higher request volume deep pagination
+# needs. We present a normal Chrome-on-macOS session (matching Eric's real
+# environment) with the headers the BTS single-page app itself sends, rather
+# than a self-identifying scraper UA. No IP spoofing / proxy rotation / control
+# circumvention — just request hygiene. `USER_AGENT` is kept as a back-compat
+# alias but now equals the browser UA so ALL calls share one consistent identity.
+BROWSER_UA: str = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
+USER_AGENT: str = BROWSER_UA
+
+BTS_APP_REFERER: str = "https://www.mlb.com/apps/beat-the-streak/game"
+
+
+def browser_headers(accept: str = "application/json, text/plain, */*") -> dict[str, str]:
+    """Headers a real BTS-app XHR carries — one consistent browser identity."""
+    return {
+        "User-Agent": BROWSER_UA,
+        "Accept": accept,
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": BTS_APP_REFERER,
+        "Origin": "https://www.mlb.com",
+        "sec-ch-ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+    }

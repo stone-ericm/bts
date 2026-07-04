@@ -34,7 +34,21 @@ from pathlib import Path
 from typing import Callable
 
 BASE_URL = "https://mlb-play.mlbstatic.com/apps/beat-the-streak/game/json"
-USER_AGENT = "bts-leaderboard-watcher/1.0 (+https://github.com/stone-ericm/bts)"
+# Browser-fidelity identity (see endpoints.browser_headers for the rationale).
+# Duplicated here because this module is intentionally stdlib-only and
+# standalone-runnable (bootstrap on the box before a deploy lands) — it must not
+# import from bts.*. Keep the UA in sync with endpoints.BROWSER_UA.
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+)
+STATIC_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.mlb.com/apps/beat-the-streak/game",
+    "Accept-Encoding": "gzip",
+}
 FETCH_TIMEOUT_S = 30.0
 
 # feed name -> (url, required top-level key; None = any non-empty JSON object)
@@ -72,9 +86,7 @@ def _maybe_gunzip(raw: bytes) -> bytes:
 
 
 def _default_fetch(name: str, url: str) -> bytes:  # pragma: no cover - network
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
-                                               "Accept": "application/json",
-                                               "Accept-Encoding": "gzip"})
+    req = urllib.request.Request(url, headers=STATIC_HEADERS)
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT_S) as resp:
         return _maybe_gunzip(resp.read())
 

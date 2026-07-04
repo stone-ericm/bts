@@ -21,7 +21,7 @@ from bts.leaderboard.scraper import (
     scrape_user_profile,
     scrape_static_lookups,
 )
-from bts.leaderboard.storage import append_user_picks
+from bts.leaderboard.storage import append_user_picks, safe_filename_component
 
 DEFAULT_OUTPUT_DIR = Path("data/leaderboard")
 
@@ -65,7 +65,8 @@ def scrape(output_dir: str, top_n: int, dm_recipient: str | None,
         sys.exit(2)
     scraper_run(cookies=cookies, xsid=xsid, output_dir=Path(output_dir), top_n=top_n,
                 deep_limit=deep_limit, deep_max_pages=deep_max_pages,
-                deep_min_streak=deep_min_streak, profile_top_n=profile_top_n)
+                deep_min_streak=deep_min_streak, profile_top_n=profile_top_n,
+                dm_recipient=dm_recipient)
     click.echo(f"scrape complete: {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}Z")
 
 
@@ -120,6 +121,8 @@ def backfill(username: str, user_id: int, output_dir: str):
         sys.exit(2)
     lookups = scrape_static_lookups(cookies)
     picks, _ = scrape_user_profile(user_id, cookies=cookies, xsid=xsid, lookups=lookups)
-    user_path = Path(output_dir) / "user_picks" / f"{username}.parquet"
+    # Sanitize the arbitrary username before using it as a path component
+    # (traversal guard — the production scraper does this; backfill must too).
+    user_path = Path(output_dir) / "user_picks" / f"{safe_filename_component(username)}.parquet"
     append_user_picks(user_path, picks)
     click.echo(f"backfilled {len(picks)} picks for {username} (user_id={user_id})")

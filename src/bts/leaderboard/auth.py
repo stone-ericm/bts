@@ -28,7 +28,7 @@ from bts.leaderboard.endpoints import (
     AUTH_LOGIN_URL,
     AUTH_LOGIN_PLATFORM,
     OKTAID_COOKIE_NAME,
-    USER_AGENT,
+    browser_headers,
 )
 
 log = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ def fetch_login_session(
         AUTH_LOGIN_URL,
         cookies=cookies,
         json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},
-        headers={"User-Agent": USER_AGENT, "Content-Type": "application/json"},
+        headers={**browser_headers(), "Content-Type": "application/json"},
         timeout=timeout,
     )
     if response.status_code != 200:
