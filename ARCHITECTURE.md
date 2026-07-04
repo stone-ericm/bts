@@ -276,7 +276,7 @@ Live recommendations are driven by Eric's REAL MLB BTS account streak ("contest 
 - **Manual override** — `bts set-contest-streak` writes an EXPIRING override (`bts_contest_streak_manual_v2`, `--ttl-hours` default 24) for emergencies (e.g. cookie expiry). Can't permanently freeze picks.
 - **Streak Saver** = a MANUAL 3-state flag `account_state/saver_state.json` (`not_earned | active | used`; loader-derived `uninitialized` = fail-closed) — the SOLE live saver authority (`bts.saver_state`, read by `load_decision_streak_state`). It is **NOT inferred** from the ledger: the consuming "save" is a streak-preserving transition (e.g. 14→14) that vanishes from the windowed `predictions` snapshot, so available-vs-used is unobservable. `not_earned→active` auto-earns on `best_streak>=10` from a *tracked* `not_earned` (a cold file at >=10 is fail-closed → `bts saver-state --init active`); `active↔used` is MANUAL (dashboard mark-used/undo button or `bts saver-state --use/--undo`); guarded atomic (fcntl-serialized) transitions. The dashboard nudges on a likely save (a stable held No-Hit at 10-15 in the ledger) and warns if active past streak 15; health WARNs if uninitialized in-zone. `contest.saver_available` + `set-contest-streak --saver-available` are retired from the saver path. Shipped 2026-06-18.
 - Auth: cookies live in `~/.bts-leaderboard-cookies.json` on hetzner; interactive re-capture via `scripts/capture_bts_cookies.py` when they expire (the one human-in-the-loop dependency — failure alerts, never silently freezes).
-- **`bts check-pick-entered` — BUILT 2026-06-12, NOT IN CRON (disabled same day).** Intended as a pre-first-pitch DM if today's delivered pick was never entered in the MLB app (`contest_fetch.has_prediction_for`). ⚠ The user-profile predictions endpoint returns **SETTLED rows only** (`hit`/`not_hit`/`void`) — pending same-day entries are invisible, so it false-alarms every day. Re-enable only after finding an endpoint that exposes pending predictions (likely the round-prediction API the MLB app itself calls; needs traffic inspection). The 2026-06-11 root cause it was built for: Eric didn't enter a delivered pick; everything else behaved correctly; the *only* surviving fix is the noon-ET WARN escalation in the contest_state health check.
+- **`bts check-pick-entered` — v2 RE-ENABLED 2026-07-03 (cron `*/15 10-23` ET).** Pre-first-pitch DM if today's delivered pick was never entered in the MLB app. v1 (2026-06-12) was disabled same-day because its sole source — the user-profile predictions array — returns **SETTLED rows only**, so it false-alarmed every pre-pitch day. v2 detects entry from the UNION of that profile source and `GET api/predictions` (`contest_fetch.fetch_pending_predictions`, endpoint found in the app JS bundle), which exposes the pending same-day row. Any fetch failure skips quietly WITHOUT consuming the once-per-day marker (`data/health_state/pick_entry_check.json`), so a transient error can't reproduce the v1 false-alarm class; the next 15-min run retries. Original incident: 2026-06-11, a delivered pick never entered — this closes that class.
 
 ## Statcast swing campaign (experimental — NOT in production)
 
@@ -414,19 +414,25 @@ src/bts/leaderboard/
   ├── auth.py           — load cookies from macOS Keychain (Mac) or file (Linux); xSid mint via POST /auth/login
   ├── endpoints.py      — discovered MLB.com BTS API URL templates
   ├── models.py         — pydantic schemas (LeaderboardRow, PickRow, SeasonStats)
-  ├── scraper.py        — HTTP wrappers + parsers; static-lookup resolution (rounds + players + units + squads)
+  ├── scraper.py        — HTTP wrappers + parsers; deep active-streak pagination; static-lookup resolution
   ├── ratelimit.py      — per-function 2s minimum gap decorator
   ├── storage.py        — parquet I/O (append-only user_picks; dedupe-on-read)
-  ├── analysis.py       — consensus_pick, percentile_rank
-  └── cli.py            — bts leaderboard {scrape, status, backfill}
+  ├── analysis.py       — consensus_pick (mtime-prefiltered), percentile_rank
+  ├── static_capture.py — content-deduped archival of MLB's PUBLIC static JSONs (stdlib-only, standalone-runnable)
+  └── cli.py            — bts leaderboard {scrape, capture-static, status, backfill}
 ```
 
-**Scheduling:** twice daily via systemd timer (`bts-leaderboard.service` + `.timer`). 10:00 ET captures morning intentions; 01:00 ET captures post-game outcomes. ~3-10 minute scrape budget (rate-limited at 2s/request).
+**Scheduling:** twice daily via systemd timer (`bts-leaderboard.service` + `.timer`) at 10:00 ET / 01:00 ET (the 01:00 run captures settled outcomes; per-user profiles are settled-only, so "morning intentions" are NOT visible there — see the endpoint notes below). Deep scrape budget ~20-30 min at the 2s/request gap. Plus a `*/30` cron `bts leaderboard capture-static` (public files, no auth).
 
 **Storage:**
-- `data/leaderboard/leaderboard_snapshots/{YYYY-MM-DD}.parquet` — 4 tabs × top-100 rows
-- `data/leaderboard/user_picks/{username}.parquet` — append-only per-user picks log
+- `data/leaderboard/leaderboard_snapshots/{YYYY-MM-DD}.parquet` — 3 tabs × top-100 rows + the DEEP active_streak board (paginated to streak ≥ 3, ~10-30k rows, deduped by userId; `user_id` column added 2026-07-03, older files lack it). Deep depth means users remain visible after a streak reset — the censoring fix for field-level analyses (calibration frames, streak transitions).
+- `data/leaderboard/user_picks/{username}.parquet` — append-only per-user picks log; profiles fetched for the union of every tab's top-100 and the deep board's top-`profile_top_n` (default 300)
 - `data/leaderboard/season_stats/{YYYY-MM-DD}.parquet` — best/active streak + accuracy per user
+- `data/leaderboard/static_snapshots/{feed}/{UTC-stamp}.json` — content-deduped captures of the six public static JSONs; `capture_status.json` records last run/store per feed
+
+**Public static JSONs (discovered 2026-07-03 via the app JS bundle — the app is a web app; www.mlb.com 403s datacenter IPs but `mlb-play.mlbstatic.com` serves everywhere):** `most_selected_players.json` = per-round most-picked players with `numberSelections` + MLB's own `probabilityStarter` model, populated for today AND tomorrow — i.e. PREGAME field consensus as an unauthenticated static file. `suggested_players.json` = MLB's own recommended picks up to 2 rounds ahead. `rounds/units/players/checksums.json` are the lookup tables that make old rows interpretable later (units.json only carries current games — without archival, past unitId→game mappings are lost). ⚠️ `numberSelections` semantics unverified (counts looked identical across adjacent rounds at first capture — possibly a rolling popularity stat, not per-round counts); resolve from a few days of captures before building on it.
+
+**Other-user pick visibility (probed 2026-07-03):** another user's pending pick appears in their profile/round rows pre-settlement but with `playerId` server-side REDACTED (null); `unitId` (the game) and the live hits/atBats line are visible once the row exists. Own rows are never redacted, and `GET api/predictions` exposes the own pending same-day entry (the check-pick-entered v2 source). `api/prediction/leaders` returned 500 (params unknown); `allParticipantsCount` ≈ 57k.
 
 **Auth:**
 - Mac: `security` keychain (account `claude-cli`, service `mlb-bts-session-cookies`)
