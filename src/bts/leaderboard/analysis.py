@@ -12,7 +12,7 @@ Two primary analyses (more to come):
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -42,11 +42,22 @@ def consensus_pick(leaderboard_dir: Path, pick_date: date) -> dict | None:
     if not user_files:
         return None
 
+    # Guard band: a picks log whose last append predates pick_date-2d cannot
+    # contain rows for pick_date (rows only ever land at capture time), so
+    # don't pay to open it. Keeps this endpoint O(recently-active users) as
+    # deep scraping grows the tracked-file population into the thousands.
+    mtime_cutoff = (datetime.combine(pick_date, time.min) - timedelta(days=2)).timestamp()
+
     # Per-user: latest pick observation for `pick_date`
     by_player: Counter[int] = Counter()
     names_by_player: dict[int, Counter[str]] = defaultdict(Counter)
     n_users = 0
     for f in user_files:
+        try:
+            if f.stat().st_mtime < mtime_cutoff:
+                continue
+        except OSError:
+            pass
         try:
             table = read_user_picks(f, dedupe="latest_per_pick_date")
         except Exception:

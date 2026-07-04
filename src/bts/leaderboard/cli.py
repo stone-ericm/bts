@@ -37,7 +37,17 @@ def leaderboard():
 @click.option("--top-n", type=int, default=100)
 @click.option("--dm-recipient", default=None,
               help="Bluesky handle for auth-failure notifications")
-def scrape(output_dir: str, top_n: int, dm_recipient: str | None):
+@click.option("--deep-limit", type=int, default=300,
+              help="Rows per page for the deep active_streak paging")
+@click.option("--deep-max-pages", type=int, default=100,
+              help="Deep-paging backstop; 0 disables deep paging (legacy top-N only)")
+@click.option("--deep-min-streak", type=int, default=3,
+              help="Stop deep paging once a page's minimum streak drops below this")
+@click.option("--profile-top-n", type=int, default=300,
+              help="Fetch pick-log profiles for this many top active_streak users")
+def scrape(output_dir: str, top_n: int, dm_recipient: str | None,
+           deep_limit: int, deep_max_pages: int, deep_min_streak: int,
+           profile_top_n: int):
     """Run a full daily scrape: 4 leaderboards + per-user profiles for top-N."""
     try:
         cookies = load_session_cookies()
@@ -53,8 +63,32 @@ def scrape(output_dir: str, top_n: int, dm_recipient: str | None):
             except Exception as dm_err:
                 click.echo(f"(DM also failed: {dm_err})", err=True)
         sys.exit(2)
-    scraper_run(cookies=cookies, xsid=xsid, output_dir=Path(output_dir), top_n=top_n)
+    scraper_run(cookies=cookies, xsid=xsid, output_dir=Path(output_dir), top_n=top_n,
+                deep_limit=deep_limit, deep_max_pages=deep_max_pages,
+                deep_min_streak=deep_min_streak, profile_top_n=profile_top_n)
     click.echo(f"scrape complete: {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}Z")
+
+
+@leaderboard.command(name="capture-static")
+@click.option("--out-dir", type=click.Path(),
+              default=str(DEFAULT_OUTPUT_DIR / "static_snapshots"))
+def capture_static(out_dir: str):
+    """Capture MLB's public BTS static JSONs (pregame consensus + lookups).
+
+    No auth: these are unauthenticated static files. Content-deduped per
+    feed, so a 30-min cron cadence stores bytes only when MLB changes a file.
+    """
+    from bts.leaderboard.static_capture import capture_all
+    results = capture_all(Path(out_dir))
+    for r in results:
+        line = f"{r['feed']}: {r['status']}"
+        if r.get("path"):
+            line += f" -> {r['path']}"
+        if r.get("error"):
+            line += f" ({r['error']})"
+        click.echo(line)
+    if results and all(r["status"] == "fetch_error" for r in results):
+        sys.exit(1)
 
 
 @leaderboard.command()

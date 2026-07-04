@@ -126,3 +126,117 @@ class TestScrapeLeaderboardWithMock:
         kwargs = mock_get.call_args.kwargs
         assert kwargs["cookies"] == {"a": "b"}
         assert "bts-leaderboard-watcher" in kwargs["headers"]["User-Agent"]
+
+
+class TestParseUserId:
+    def test_user_id_populated_from_rank_rows(self):
+        body = _load("leaderboard_active_streak.json")
+        rows = parse_leaderboard_response(
+            body, tab="active_streak", captured_at=datetime(2026, 5, 1, 14, 0))
+        assert rows[0].user_id == body["success"]["ranks"][0]["userId"]
+        assert all(r.user_id is not None for r in rows)
+
+
+def _rank_entry(uid: int, rank: int, streak: int) -> dict:
+    return {"userId": uid, "rank": rank, "username": f"u{uid}",
+            "activeStreak": streak, "streak": streak}
+
+
+def _body(entries: list[dict]) -> dict:
+    return {"success": {"ranks": entries}}
+
+
+class TestDeepScrapeRun:
+    """run() with deep active-streak pagination + expanded profile tier."""
+
+    def _setup(self, monkeypatch, tmp_path, pages: dict[int, list[dict]],
+               fail_pages: set[int] = frozenset()):
+        import bts.leaderboard.scraper as scraper_mod
+        from bts.leaderboard.models import SeasonStats
+
+        requested_pages: list[int] = []
+        profiled: list[int] = []
+
+        def fake_get_json(url: str, cookies=None, **kw):
+            if "ranksType=ACTIVE_STREAK" in url:
+                page = int(url.split("page=")[1].split("&")[0])
+                requested_pages.append(page)
+                if page in fail_pages:
+                    raise RuntimeError(f"boom page {page}")
+                return _body(pages.get(page, []))
+            if "ranksType=SEASON_BEST_STREAK" in url:
+                return _body([_rank_entry(101, 1, 20), _rank_entry(102, 2, 19)])
+            if "ranksType=OVERALL_BEST_STREAK" in url:
+                return _body([_rank_entry(201, 1, 40), _rank_entry(202, 2, 39)])
+            raise AssertionError(f"unexpected _get_json url: {url}")
+
+        def fake_profile(user_id, cookies, xsid, lookups):
+            profiled.append(user_id)
+            return [], SeasonStats(
+                captured_at=datetime(2026, 7, 3, 14, 0), username="unknown",
+                best_streak=0, active_streak=0, pick_accuracy_pct=0.0)
+
+        monkeypatch.setattr(scraper_mod, "_get_json", fake_get_json)
+        monkeypatch.setattr(scraper_mod, "_deep_page_pause", lambda: None)
+        monkeypatch.setattr(scraper_mod, "scrape_static_lookups",
+                            lambda cookies: StaticLookups())
+        monkeypatch.setattr(scraper_mod, "scrape_user_profile", fake_profile)
+        return scraper_mod, requested_pages, profiled
+
+    def test_deep_pagination_dedupes_and_stops_on_min_streak(self, monkeypatch, tmp_path):
+        import pyarrow.parquet as pq
+        pages = {
+            1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29), _rank_entry(3, 3, 28)],
+            2: [_rank_entry(3, 3, 28), _rank_entry(4, 4, 27), _rank_entry(5, 5, 26)],
+            3: [_rank_entry(6, 6, 25), _rank_entry(7, 7, 4), _rank_entry(8, 8, 4)],
+            4: [_rank_entry(99, 9, 3)],  # must never be requested
+        }
+        scraper_mod, requested_pages, profiled = self._setup(monkeypatch, tmp_path, pages)
+        scraper_mod.run(
+            cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
+            today=date(2026, 7, 3), deep_limit=3, deep_max_pages=10,
+            deep_min_streak=5, profile_top_n=4,
+        )
+        assert requested_pages == [1, 2, 3]  # stop AFTER min-streak page, no page 4
+        snap = pq.read_table(
+            tmp_path / "leaderboard_snapshots" / "2026-07-03.parquet").to_pandas()
+        active = snap[snap["tab"] == "active_streak"]
+        assert sorted(active["user_id"]) == [1, 2, 3, 4, 5, 6, 7, 8]  # deduped uid 3
+        assert len(snap) == 8 + 2 + 2  # deep + all_season + all_time (yesterday skipped)
+        # profile tier: first profile_top_n deep users + both other tabs' users
+        assert sorted(profiled) == [1, 2, 3, 4, 101, 102, 201, 202]
+
+    def test_deep_stops_on_short_page(self, monkeypatch, tmp_path):
+        pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29)]}  # < deep_limit
+        scraper_mod, requested_pages, _ = self._setup(monkeypatch, tmp_path, pages)
+        scraper_mod.run(cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
+                        today=date(2026, 7, 3), deep_limit=3, deep_max_pages=10,
+                        deep_min_streak=5, profile_top_n=4)
+        assert requested_pages == [1]
+
+    def test_deep_page_error_keeps_partial(self, monkeypatch, tmp_path):
+        import pyarrow.parquet as pq
+        pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29), _rank_entry(3, 3, 28)]}
+        scraper_mod, requested_pages, profiled = self._setup(
+            monkeypatch, tmp_path, pages, fail_pages={2})
+        scraper_mod.run(cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
+                        today=date(2026, 7, 3), deep_limit=3, deep_max_pages=10,
+                        deep_min_streak=5, profile_top_n=4)
+        assert requested_pages == [1, 2]
+        snap = pq.read_table(
+            tmp_path / "leaderboard_snapshots" / "2026-07-03.parquet").to_pandas()
+        assert len(snap[snap["tab"] == "active_streak"]) == 3  # page-1 rows kept
+        assert 1 in profiled and 101 in profiled  # scrape continued past the failure
+
+    def test_deep_disabled_is_legacy_single_page(self, monkeypatch, tmp_path):
+        import pyarrow.parquet as pq
+        pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29)]}
+        scraper_mod, requested_pages, profiled = self._setup(monkeypatch, tmp_path, pages)
+        scraper_mod.run(cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
+                        today=date(2026, 7, 3), deep_limit=3, deep_max_pages=0,
+                        deep_min_streak=5, profile_top_n=4)
+        assert requested_pages == [1]
+        snap = pq.read_table(
+            tmp_path / "leaderboard_snapshots" / "2026-07-03.parquet").to_pandas()
+        assert len(snap[snap["tab"] == "active_streak"]) == 2
+        assert sorted(profiled) == [1, 2, 101, 102, 201, 202]

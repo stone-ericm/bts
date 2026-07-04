@@ -39,6 +39,7 @@ _LEADERBOARD_SCHEMA = pa.schema([
     ("username", pa.string()),
     ("streak", pa.int32()),
     ("hits_today", pa.int32()),
+    ("user_id", pa.int64()),  # added 2026-07-03; older snapshot files lack it
 ])
 
 _USER_PICKS_SCHEMA = pa.schema([

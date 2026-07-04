@@ -26,6 +26,10 @@ class LeaderboardRow(BaseModel):
     username: str = Field(min_length=1)
     streak: int | None = Field(default=None, ge=0)
     hits_today: int | None = Field(default=None, ge=0)
+    # MLB's stable account id (usernames can collide after filename
+    # sanitization and could in principle change). Optional: rows parsed
+    # before 2026-07-03 predate the column.
+    user_id: int | None = Field(default=None, ge=0)
 
 
 class PickRow(BaseModel):

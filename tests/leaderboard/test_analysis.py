@@ -69,6 +69,34 @@ class TestConsensusPick:
         assert result["consensus_batter_name"] == "Juan Soto"  # picks the non-null
         assert result["n_users"] == 2
 
+    def test_skips_files_last_written_long_before_pick_date(self, tmp_path):
+        """A picks log last appended before pick_date-2d cannot contain rows for
+        pick_date (captures only add rows at capture time), so consensus_pick
+        must not pay to open it — keeps the endpoint O(recently-active users)
+        as deep scraping grows the tracked-file count."""
+        import os
+        leaderboard = tmp_path / "leaderboard"
+        fresh = leaderboard / "user_picks" / "fresh.parquet"
+        stale = leaderboard / "user_picks" / "stale.parquet"
+        append_user_picks(fresh, [_pick("2026-06-12", "Juan Soto", 665742)])
+        append_user_picks(stale, [_pick("2026-06-12", "Vladimir Guerrero Jr.", 665489)])
+        old = datetime(2026, 5, 1, 12, 0).timestamp()
+        os.utime(stale, (old, old))
+        result = consensus_pick(leaderboard, pick_date=date(2026, 6, 12))
+        assert result["n_users"] == 1
+        assert result["consensus_bts_player_id"] == 665742
+
+    def test_recent_mtime_files_still_scanned(self, tmp_path):
+        import os
+        leaderboard = tmp_path / "leaderboard"
+        f = leaderboard / "user_picks" / "u.parquet"
+        append_user_picks(f, [_pick("2026-06-12", "Juan Soto", 665742)])
+        # mtime the day after pick_date — well inside the 2-day guard band
+        ts = datetime(2026, 6, 13, 5, 0).timestamp()
+        os.utime(f, (ts, ts))
+        result = consensus_pick(leaderboard, pick_date=date(2026, 6, 12))
+        assert result is not None and result["n_users"] == 1
+
     def test_returns_none_when_no_users_picked_for_date(self, tmp_path):
         leaderboard = tmp_path / "leaderboard"
         # User has a pick for a different date

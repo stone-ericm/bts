@@ -50,6 +50,18 @@ class TestLeaderboardRow:
                 username="x", streak=10, hits_today=None,
             )
 
+    def test_user_id_optional_defaults_none(self):
+        row = LeaderboardRow(
+            captured_at=datetime(2026, 5, 1), tab="active_streak",
+            rank=1, username="x", streak=10, hits_today=None,
+        )
+        assert row.user_id is None
+        row2 = LeaderboardRow(
+            captured_at=datetime(2026, 5, 1), tab="active_streak",
+            rank=1, username="x", streak=10, hits_today=None, user_id=401629,
+        )
+        assert row2.user_id == 401629
+
 
 class TestPickRow:
     def test_valid_pick_with_api_fields(self):

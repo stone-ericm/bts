@@ -13,6 +13,7 @@ of names + teams + opponents on PickRow.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, date, timezone
 from pathlib import Path
@@ -89,6 +90,7 @@ def parse_leaderboard_response(
                 int(r["streak"]) if r.get("streak") is not None else None
             ),
             hits_today=None,  # 'yesterday' tab doesn't expose explicit hits_today in the rank list
+            user_id=int(r["userId"]) if r.get("userId") is not None else None,
         ))
     return out
 
@@ -237,12 +239,91 @@ def _yesterday_round_id(rounds_lookup: dict[int, date], today: date) -> int | No
     return None
 
 
+def _deep_page_pause() -> None:
+    """Politeness gap between deep leaderboard pages (test seam: monkeypatch)."""
+    time.sleep(DEFAULT_MIN_INTERVAL_S)
+
+
+def _scrape_active_streak_deep(
+    cookies: dict[str, str],
+    xsid: str,
+    season: int,
+    deep_limit: int,
+    deep_max_pages: int,
+    deep_min_streak: int,
+) -> tuple[list[LeaderboardRow], list[dict]]:
+    """Paginate the season active-streak board well past the top-100.
+
+    Verified 2026-07-03: the leaderboard endpoint honors page/limit far beyond
+    rank 100 (allParticipantsCount ~57k; limit=300 accepted). Rank ties make
+    page boundaries overlap or shift between requests, so pages can repeat or
+    skip a user near a boundary — rows are deduped by userId across pages and
+    the result is an approximation of the board, not a census.
+
+    Stops when: a page comes back short (end of board), the page's minimum
+    streak drops below `deep_min_streak` (the long uninformative tail), or
+    `deep_max_pages` is hit (runaway backstop). A page fetch/parse error stops
+    deep paging but KEEPS the rows already collected — a partial board beats
+    aborting the whole scrape.
+
+    Returns (parsed snapshot rows, deduped raw rank entries in rank order).
+    """
+    seen: set[int] = set()
+    parsed: list[LeaderboardRow] = []
+    raw_entries: list[dict] = []
+    for page in range(1, deep_max_pages + 1):
+        if page > 1:
+            _deep_page_pause()
+        url = LEADERBOARD_URL_TEMPLATE.format(
+            season=season, page=page, limit=deep_limit,
+            ranks_type=RANKS_TYPE_BY_TAB["active_streak"], xsid=xsid,
+        )
+        try:
+            body = _get_json(url, cookies=cookies)
+            ranks = body.get("success", {}).get("ranks", [])
+            fresh: list[dict] = []
+            for r in ranks:
+                uid = r.get("userId")
+                if uid is not None:
+                    if int(uid) in seen:
+                        continue
+                    seen.add(int(uid))
+                fresh.append(r)
+            parsed.extend(parse_leaderboard_response(
+                {"success": {"ranks": fresh}}, tab="active_streak",
+                captured_at=datetime.now(timezone.utc).replace(tzinfo=None)))
+            raw_entries.extend(fresh)
+        except Exception as e:  # noqa: BLE001 - keep partial board on any page failure
+            log.warning(f"deep active_streak page {page} failed; "
+                        f"keeping {len(parsed)} rows: {e}")
+            break
+        if len(ranks) < deep_limit:
+            break
+        page_streaks = [r.get("activeStreak", r.get("streak")) for r in ranks]
+        page_streaks = [s for s in page_streaks if s is not None]
+        if page_streaks and min(page_streaks) < deep_min_streak:
+            break
+    return parsed, raw_entries
+
+
 def run(
     cookies: dict[str, str], xsid: str, output_dir: Path, top_n: int = 100,
     tabs: tuple[TabName, ...] = ("active_streak", "all_season", "all_time", "yesterday"),
     today: date | None = None,
+    deep_limit: int = 300,
+    deep_max_pages: int = 100,
+    deep_min_streak: int = 3,
+    profile_top_n: int = 300,
 ) -> None:
-    """Full daily scrape: 4 leaderboards + per-user profiles for top_n users.
+    """Full daily scrape: leaderboards + per-user profiles.
+
+    Since 2026-07-03 the active_streak tab is paginated DEEP (down to streaks
+    of `deep_min_streak`, ~10-30k rows) so users stay visible in snapshots
+    after a reset instead of vanishing off the top-100 cliff — the censoring
+    fix for field-level analyses. Pick-log profiles are fetched for the union
+    of every tab's top-`top_n` and the deep board's top-`profile_top_n`
+    (profiles cost ~2s each; the deep snapshot itself is ~2s per `deep_limit`
+    rows). `deep_max_pages=0` restores the legacy single-page behavior.
 
     Failures during per-user iteration are logged but don't abort the run.
     """
@@ -266,6 +347,18 @@ def run(
 
     for tab in tabs:
         try:
+            if tab == "active_streak" and deep_max_pages > 0:
+                deep_rows, deep_entries = _scrape_active_streak_deep(
+                    cookies=cookies, xsid=xsid, season=today.year,
+                    deep_limit=deep_limit, deep_max_pages=deep_max_pages,
+                    deep_min_streak=deep_min_streak,
+                )
+                all_rows.extend(deep_rows)
+                for entry in deep_entries[:max(top_n, profile_top_n)]:
+                    username, user_id = entry.get("username"), entry.get("userId")
+                    if username and user_id is not None:
+                        tracked.setdefault(str(username), int(user_id))
+                continue
             if tab == "yesterday":
                 if yesterday_rid is None:
                     continue
