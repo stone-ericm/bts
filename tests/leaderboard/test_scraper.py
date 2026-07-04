@@ -197,7 +197,7 @@ class TestDeepScrapeRun:
         scraper_mod.run(
             cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
             today=date(2026, 7, 3), deep_limit=3, deep_max_pages=10,
-            deep_min_streak=5, profile_top_n=4,
+            deep_min_streak=5, profile_top_n=20,  # high: don't let the cap bite here
         )
         assert requested_pages == [1, 2, 3]  # stop AFTER min-streak page, no page 4
         snap = pq.read_table(
@@ -205,8 +205,8 @@ class TestDeepScrapeRun:
         active = snap[snap["tab"] == "active_streak"]
         assert sorted(active["user_id"]) == [1, 2, 3, 4, 5, 6, 7, 8]  # deduped uid 3
         assert len(snap) == 8 + 2 + 2  # deep + all_season + all_time (yesterday skipped)
-        # profile tier: first profile_top_n deep users + both other tabs' users
-        assert sorted(profiled) == [1, 2, 3, 4, 101, 102, 201, 202]
+        # profile tier under a generous cap: all 8 deep active + both other tabs
+        assert sorted(profiled) == [1, 2, 3, 4, 5, 6, 7, 8, 101, 102, 201, 202]
 
     def test_deep_stops_on_short_page(self, monkeypatch, tmp_path):
         pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29)]}  # < deep_limit
@@ -230,13 +230,25 @@ class TestDeepScrapeRun:
         assert len(snap[snap["tab"] == "active_streak"]) == 3  # page-1 rows kept
         assert 1 in profiled and 101 in profiled  # scrape continued past the failure
 
+    def test_profiles_capped_at_profile_top_n(self, monkeypatch, tmp_path):
+        # 3 deep active users + 2 each from all_season/all_time = 7 tracked, but
+        # profile_top_n=4 must cap profile fetches at 4 (footprint bound), and the
+        # deep ACTIVE users (inserted first) must be among those kept.
+        pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29), _rank_entry(3, 3, 4)]}
+        scraper_mod, requested_pages, profiled = self._setup(monkeypatch, tmp_path, pages)
+        scraper_mod.run(cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
+                        today=date(2026, 7, 3), deep_limit=3, deep_max_pages=10,
+                        deep_min_streak=5, profile_top_n=4)
+        assert len(profiled) == 4
+        assert {1, 2, 3} <= set(profiled)  # all 3 deep-active users profiled
+
     def test_deep_disabled_is_legacy_single_page(self, monkeypatch, tmp_path):
         import pyarrow.parquet as pq
         pages = {1: [_rank_entry(1, 1, 30), _rank_entry(2, 2, 29)]}
         scraper_mod, requested_pages, profiled = self._setup(monkeypatch, tmp_path, pages)
         scraper_mod.run(cookies={}, xsid="x", output_dir=tmp_path, top_n=2,
                         today=date(2026, 7, 3), deep_limit=3, deep_max_pages=0,
-                        deep_min_streak=5, profile_top_n=4)
+                        deep_min_streak=5, profile_top_n=20)  # high: don't let the cap bite
         assert requested_pages == [1]
         snap = pq.read_table(
             tmp_path / "leaderboard_snapshots" / "2026-07-03.parquet").to_pandas()

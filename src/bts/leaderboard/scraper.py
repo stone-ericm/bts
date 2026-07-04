@@ -398,9 +398,10 @@ def run(
     Since 2026-07-03 the active_streak tab is paginated DEEP (down to streaks
     of `deep_min_streak`, ~10-30k rows) so users stay visible in snapshots
     after a reset instead of vanishing off the top-100 cliff — the censoring
-    fix for field-level analyses. Pick-log profiles are fetched for the union
-    of every tab's top-`top_n` and the deep board's top-`profile_top_n`.
-    `deep_max_pages=0` restores the legacy single-page behavior.
+    fix for field-level analyses. The full deep board lands in the SNAPSHOT;
+    pick-log PROFILES are capped at `profile_top_n` TOTAL (prioritizing the
+    deep active board, then the other tabs) to bound the authenticated
+    footprint. `deep_max_pages=0` restores the legacy single-page behavior.
 
     Throttle discipline: an HTTP 403/429 anywhere raises RateLimitedError,
     which ABORTS the scrape (a careful client backs off rather than hammering
@@ -480,10 +481,15 @@ def run(
         log.info(f"wrote {len(all_rows)} leaderboard rows to {snapshot_path} "
                  f"(active_streak complete={active_complete})")
 
-        # Shuffle profile fetch order: a real user doesn't page profiles in
-        # strict rank order at a fixed cadence. Selection is still by rank
-        # (tracked = top-N union); only the fetch SEQUENCE is randomized.
-        profile_order = list(tracked.items())
+        # Cap total profile fetches at profile_top_n to bound the authenticated
+        # footprint (Eric: be careful). tracked is insertion-ordered with the
+        # deep ACTIVE board first (processed first in the tab loop), so the cap
+        # keeps the useful pick-logs — active players — and sheds the tail of the
+        # all_season/all_time/yesterday top-100s. The full deep board still lands
+        # in the SNAPSHOT (that's the censoring fix); only pick-log fetches are
+        # capped. Shuffle only the capped set — a real user doesn't page profiles
+        # in strict rank order at a fixed cadence.
+        profile_order = list(tracked.items())[:profile_top_n]
         random.shuffle(profile_order)
         for username, user_id in profile_order:
             try:
