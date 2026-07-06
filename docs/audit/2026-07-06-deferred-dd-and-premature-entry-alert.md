@@ -248,11 +248,22 @@ fixed in the patch, three triaged as deferred/low-risk:
 - **`private_locked`/`locked_unconfirmed` with a missing/failed decision.json
   (HIGH)** — `is_scoreable_commit` falls back only to `pick_was_delivered`, which
   is False for those not-delivered lock states, so if the *best-effort* decision
-  write failed the alert would be suppressed. Narrow (double-fault; private mode
-  isn't used in prod's `dm` config). The robust fix is to gate on the scheduler's
-  authoritative `pick_locked` instead of `is_scoreable_commit` — a deliberate
-  change to the commit signal that also affects `check-results`, so it wants its
-  own change, not this one.
+  write failed the alert would be suppressed. Narrow (multi-fault; private mode
+  isn't used in prod's `dm` config).
+  **Decision (Codex round-3 design review): keep the conservative
+  `is_scoreable_commit` gate; do NOT try to close this by OR-ing in
+  `state.pick_locked`.** That "union" design was scoped and reviewed, and
+  rejected: `classify_pick_lock_state` sets `pick_locked=True` on an *undelivered*
+  preview for `status_lookup_failed` (picks.py:767) and `fallback_status_locked`
+  (picks.py:770) — **pre-first-pitch, in-window** — so a transient MLB
+  status-endpoint blip would make the alert fire "Fix it now!" for a phantom
+  pick. That trades a rare missed-alert for a more-common FALSE alert (the exact
+  failure this whole fix exists to kill). It also reads a non-atomically-written
+  `scheduler_state.json` (torn-read crash risk) and still misses the
+  `delivery_attempted`-set-but-`pick_locked`-unset window. If finding 1 ever
+  needs closing (e.g. adopting private mode), the correct fix is an explicit
+  atomic "committed-for-entry" marker written only by the real-commit branches in
+  `_deliver_and_lock_pick` — its own scoped change.
 - **`load_decision` laxity (MEDIUM)** — it doesn't assert the record's internal
   `date` equals the requested date, and `is_scoreable_commit` ignores `action`
   (an inconsistent `action=skip, scoreable=true` record would alert). Both are
