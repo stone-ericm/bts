@@ -969,7 +969,11 @@ class TestCheckPickEntered:
         monkeypatch.setattr(climod, "_fetch_bts_to_mlb", lambda *a, **k: dict(mapping))
 
     @staticmethod
-    def _save_pick(picks_dir, date_str, game_time_iso, batter_id=1, dd_batter_id=None):
+    def _save_pick(picks_dir, date_str, game_time_iso, batter_id=1, dd_batter_id=None,
+                   delivered=True):
+        """Save a pick. delivered=True marks it committed (dm-delivered) so the
+        entry check runs; delivered=False models an undelivered preview/deferred
+        pick that was never committed/locked."""
         from bts.picks import DailyPick, Pick, save_pick
 
         def _mk(name, bid, gpk):
@@ -983,6 +987,9 @@ class TestCheckPickEntered:
             pick=_mk("Test Batter", batter_id, 1),
             double_down=_mk("DD Batter", dd_batter_id, 2) if dd_batter_id else None,
             runner_up=None,
+            notification_sent=delivered,
+            notification_channel="bluesky_dm" if delivered else None,
+            notification_id="dm_x" if delivered else None,
         )
         save_pick(daily, picks_dir)
 
@@ -1026,6 +1033,37 @@ class TestCheckPickEntered:
         status = self._status(tmp_path)
         assert status["date"] == "2026-06-12" and status["status"] == "alerted"
         assert status["reason"] == "no_pick"
+
+    def test_uncommitted_pick_in_window_no_dm(self, monkeypatch, tmp_path):
+        # A {date}.json exists (preview/deferred) but the pick was never
+        # committed/locked (no decision.json, not delivered). The scheduler
+        # rewrites {date}.json all day with projections, so its mere existence
+        # must NOT trigger a "you didn't enter your pick" nag. Regression for the
+        # 2026-07-06 premature DM on a deferred double-down.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch, in window
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
+
+    def test_dm_countdown_uses_submission_cutoff(self, monkeypatch, tmp_path):
+        # BTS rejects submissions within 5 min of first pitch, so the true
+        # deadline is first pitch - 5. The DM countdown must report minutes to
+        # that cutoff, not minutes to first pitch.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min to first pitch -> 35 to cutoff
+        assert r.exit_code != 0
+        assert len(dms) == 1
+        msg = dms[0][1]
+        assert "35 min to submit" in msg, msg
+        assert "(40 min" not in msg
 
     def test_matching_entry_confirms_without_dm(self, monkeypatch, tmp_path):
         # Entered pending pick (BTS id 100) maps to the delivered MLB id 1 -> match.

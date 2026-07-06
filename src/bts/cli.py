@@ -1567,6 +1567,19 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         click.echo(f"check-pick-entered: no pick for {today}; nothing to check")
         return
 
+    # Only a COMMITTED/locked pick is something Eric was told to enter. The
+    # scheduler rewrites {date}.json all day with previews/projections, and an
+    # un-delivered pick can still be deferred (and its file deleted) minutes
+    # later — so the file's mere existence must not trigger a "not entered" nag.
+    # Gate on the same commit signal check-results uses: decision.json
+    # (decision.scoreable) with a pick_was_delivered fallback. This covers the
+    # delivered / private_locked / locked_unconfirmed commit states and stays
+    # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
+    from bts.daily_decision import is_scoreable_commit
+    if not is_scoreable_commit(today, picks, daily):
+        click.echo(f"check-pick-entered: pick for {today} not committed/locked; nothing to check")
+        return
+
     first_pitch = _earliest_pick_game_et(daily)
     minutes_to_pitch = (first_pitch - now).total_seconds() / 60
     if not (0 <= minutes_to_pitch <= window_min):
@@ -1630,8 +1643,13 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         names += f" + DD {daily.double_down.batter_name}"
     lead = ("BTS pick NOT entered" if reason == "no_pick"
             else "BTS entry does NOT match the recommended pick")
+    # BTS rejects submissions within 5 min of first pitch, so the real deadline
+    # is first pitch - 5. Report time to that cutoff, not to first pitch.
+    submit_cutoff_min = 5
+    minutes_to_cutoff = minutes_to_pitch - submit_cutoff_min
     msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
-           f"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Fix it now!")
+           f"{first_pitch.strftime('%-I:%M %p ET')} "
+           f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
     dm_sent = False
     if dm_recipient:
         try:
