@@ -197,11 +197,13 @@ the alert fix.
 
 ## Recommendations
 
-1. **Ship now:** gate `check-pick-entered` on the **commit/lock state**
-   (decision.json commit / `scoreable`, fallback `pick_was_delivered`) — NOT
-   `pick_was_delivered` alone. Tests: deferred→silent, `private_locked`→DM,
-   `locked_unconfirmed`→DM, `delivered`→DM. Fix the first-pitch − 5 countdown
-   while in the file.
+1. **Ship now — DONE (branch `fix/check-pick-entered-commit-gate`):** gate
+   `check-pick-entered` on the **commit/lock state** via `is_scoreable_commit`
+   (decision.json `scoreable`, fallback `pick_was_delivered`) before the window
+   check and any contest fetch; the firing window now excludes the un-submittable
+   final 5 min; the DM countdown reports minutes to the first-pitch − 5 cutoff.
+   Tests: undelivered preview → silent; decision-record commit → DM; skip-day
+   decision → silent; inside-cutoff → silent; countdown-to-cutoff wording.
 2. **Mostly no change, but verify + harden:** the deferral's delete-and-re-pick is
    correct for the normal flow. Follow-ups: (a) confirm from the evening logs that
    2026-07-06 actually re-picked and delivered; (b) consider the crash-in-the-
@@ -226,6 +228,42 @@ three valid corrections, folded in above; no claim was fabricated or reversed:
 - **Alert fix** — flagged `pick_was_delivered`-only as **incomplete** (suppresses
   `private_locked` / `locked_unconfirmed`). Fix revised to a commit/lock gate.
 - **T-5 nit** and **strategy framing** — confirmed correct.
+
+### Codex pre-merge review of the fix (round 2, gpt-5.5, repo access)
+
+Reviewed `fix/check-pick-entered-commit-gate` adversarially. Five findings; two
+fixed in the patch, three triaged as deferred/low-risk:
+
+**Fixed:**
+- **Window vs cutoff (HIGH)** — the DM used the T-5 cutoff but the firing window
+  still ran to first pitch, so it could nag inside the un-submittable final 5 min
+  and print a negative countdown (`(-1 min to submit)`). Window lower bound raised
+  to `submit_cutoff_min` (5). Regression test `test_no_alert_inside_submission_cutoff`.
+- **Test gap** — the positive tests only exercised the `pick_was_delivered`
+  fallback, not the `decision.json` gate. Added `test_committed_via_decision_record_alerts`
+  (scoreable commit, no delivery flags → DM) and `test_skip_day_decision_no_dm`
+  (action=skip / scoreable=false → silent).
+
+**Deferred (surfaced for decision, not slipped into this patch):**
+- **`private_locked`/`locked_unconfirmed` with a missing/failed decision.json
+  (HIGH)** — `is_scoreable_commit` falls back only to `pick_was_delivered`, which
+  is False for those not-delivered lock states, so if the *best-effort* decision
+  write failed the alert would be suppressed. Narrow (double-fault; private mode
+  isn't used in prod's `dm` config). The robust fix is to gate on the scheduler's
+  authoritative `pick_locked` instead of `is_scoreable_commit` — a deliberate
+  change to the commit signal that also affects `check-results`, so it wants its
+  own change, not this one.
+- **`load_decision` laxity (MEDIUM)** — it doesn't assert the record's internal
+  `date` equals the requested date, and `is_scoreable_commit` ignores `action`
+  (an inconsistent `action=skip, scoreable=true` record would alert). Both are
+  corruption-class and live in code shared with `check-results`; changing shared
+  validation is out of scope for the alert fix.
+- **Alert reads `{date}.json`, not the committed decision payload (MEDIUM)** — a
+  post-lock divergence between `{date}.json` and the decision record would make
+  the alert check the wrong player. Low real risk: the scheduler stops rewriting
+  `{date}.json` once `pick_locked` (breaks the check loop), so they stay aligned
+  post-commit. Reworking the checker to read the decision payload is a larger
+  change; noted as a follow-up.
 
 ## Code references
 

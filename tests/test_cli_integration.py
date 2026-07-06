@@ -993,6 +993,13 @@ class TestCheckPickEntered:
         )
         save_pick(daily, picks_dir)
 
+    @staticmethod
+    def _write_decision(picks_dir, date_str, *, action, scoreable, delivery_status):
+        """Write a decision.json commit record (the authoritative gate source)."""
+        from bts.daily_decision import write_decision
+        write_decision(date_str, picks_dir, action=action, source="test",
+                       delivery_status=delivery_status, scoreable=scoreable)
+
     def _run(self, picks, now_et, extra=None):
         return CliRunner().invoke(cli, [
             "check-pick-entered", "--picks-dir", str(picks),
@@ -1050,6 +1057,18 @@ class TestCheckPickEntered:
         assert dms == []
         assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
 
+    def test_no_alert_inside_submission_cutoff(self, monkeypatch, tmp_path):
+        # Within 5 min of first pitch the pick can no longer be submitted, so
+        # "Fix it now!" is useless (and the cutoff countdown would go negative).
+        # The firing window must exclude the un-submittable final 5 minutes.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T19:06:00")  # 4 min to first pitch (inside cutoff)
+        assert dms == [], r.output
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
+
     def test_dm_countdown_uses_submission_cutoff(self, monkeypatch, tmp_path):
         # BTS rejects submissions within 5 min of first pitch, so the true
         # deadline is first pitch - 5. The DM countdown must report minutes to
@@ -1064,6 +1083,36 @@ class TestCheckPickEntered:
         msg = dms[0][1]
         assert "35 min to submit" in msg, msg
         assert "(40 min" not in msg
+
+    def test_committed_via_decision_record_alerts(self, monkeypatch, tmp_path):
+        # Exercises the real decision.json gate, NOT the delivered fallback: the
+        # pick file carries no delivery flags, but a scoreable commit record
+        # exists (e.g. private_locked / locked_unconfirmed), so the alert fires.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+        self._write_decision(picks, "2026-06-12", action="single",
+                             scoreable=True, delivery_status="private_locked")
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code != 0
+        assert len(dms) == 1 and "NOT entered" in dms[0][1]
+
+    def test_skip_day_decision_no_dm(self, monkeypatch, tmp_path):
+        # A non-scoreable decision (skip day) must not alert, even though a
+        # {date}.json preview exists.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+        self._write_decision(picks, "2026-06-12", action="skip",
+                             scoreable=False, delivery_status="not_applicable")
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
 
     def test_matching_entry_confirms_without_dm(self, monkeypatch, tmp_path):
         # Entered pending pick (BTS id 100) maps to the delivered MLB id 1 -> match.

@@ -1582,7 +1582,11 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
 
     first_pitch = _earliest_pick_game_et(daily)
     minutes_to_pitch = (first_pitch - now).total_seconds() / 60
-    if not (0 <= minutes_to_pitch <= window_min):
+    # BTS rejects submissions within 5 min of first pitch. Only check inside
+    # [cutoff, window]: below the cutoff the pick can no longer be entered, so a
+    # "Fix it now!" nag is useless (and its countdown would go negative).
+    submit_cutoff_min = 5
+    if not (submit_cutoff_min <= minutes_to_pitch <= window_min):
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
 
@@ -1643,9 +1647,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         names += f" + DD {daily.double_down.batter_name}"
     lead = ("BTS pick NOT entered" if reason == "no_pick"
             else "BTS entry does NOT match the recommended pick")
-    # BTS rejects submissions within 5 min of first pitch, so the real deadline
-    # is first pitch - 5. Report time to that cutoff, not to first pitch.
-    submit_cutoff_min = 5
+    # Report time to the submission cutoff (first pitch - 5), not to first pitch.
     minutes_to_cutoff = minutes_to_pitch - submit_cutoff_min
     msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
            f"{first_pitch.strftime('%-I:%M %p ET')} "
