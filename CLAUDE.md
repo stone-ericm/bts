@@ -64,6 +64,13 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - MLB API requires v1.1 (`/api/v1.1/game/{pk}/feed/live`), not v1.
 
 ## Strategy Simulation
+> **⚠ PROFILE BASIS (2026-07-06 gotcha, cost real time):** for policy/model eval use the
+> **`estimated_pa`** profiles (`data/hetzner_results/mdp_estpa_run`, 24 seeds × 5 seasons,
+> rank-1 hit ~0.75 = serving-realistic, has `game_pk`). Do NOT use `data/simulation/backtest_*.parquet`
+> — those are **`actual_pa`** (compounds per-PA prob over the *realized* PA count → hindsight, rank-1
+> hit **0.865**), which INFLATES streaks and can *flip* the policy ranking (MDP looks great on inflated
+> data; always-double wins on realistic). See `docs/audit/2026-07-06-strategy-model-lever-investigation.md`
+> + reproducible comparator `scripts/audit/confirm_mdp_policy_replay.py`.
 ```bash
 # Run blend backtest (5 seasons, ~2-3 hours, needs --extra model)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate backtest --seasons 2021,2022,2023,2024,2025
