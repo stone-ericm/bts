@@ -207,3 +207,18 @@ remaining gates are operational (merge; arming checklist above).
 code activates; then run `bash scripts/cron-setup-hetzner.sh install` on the
 box (sources .env first) to add the 07:45 cron. Until deploy, the shipped
 table sits inert and the box smoke's producer_status.json is already valid.
+
+## 2026 backtest screen result (2026-07-08) — POWERED NULL
+
+Ran as labeled supporting evidence (post-selection caveat): 10 arms × 5 seeds,
+two folds (May+ screen; June+ screen with the regime inside training), full
+control battery. Gate passed (gross 1.0, soft oracle +0.0034/+0.0040 vs seed
+noise ±0.0002-0.0012). `pd_anchored` Δday-pair-AUC: +0.0004 ±0.0005 (fold A
+post-change-point), −0.0001 ±0.0006 (fold B) — null at the ~+0.003 detection
+floor; the rolling-outcome competitor equally null; the expanding shape mildly
+harmful (design-review critique confirmed empirically). Full analysis:
+`docs/audit/2026-07-08-park-drag-2026-screen.md`. Implications: expect the live
+shadow ~neutral on pick quality; promotion to FEATURE_COLS is NOT supported on
+alpha grounds — the feature's standing value is regime observability
+(park_factor is frozen against mid-season ball changes) + the monitoring
+infrastructure. The next ball regime change is observability's test, not alpha's.
