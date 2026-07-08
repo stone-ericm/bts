@@ -14,6 +14,8 @@ requirements under test here:
   - predict() populates row["park_drag_delta"] (Codex #17 populator coverage)
 """
 import json
+import os
+import time
 from pathlib import Path
 
 import numpy as np
@@ -100,10 +102,12 @@ class TestAttach:
         assert out["park_drag_delta"].isna().all()
 
     def test_attach_never_raises(self, monkeypatch):
+        park_drag._reset_cache()  # force the (exploding) load to actually run
         monkeypatch.setattr(park_drag, "load_table",
                             lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
         out = park_drag.attach_park_drag(self._df())  # loads internally -> explodes -> NaN
         assert out["park_drag_delta"].isna().all()
+        park_drag._reset_cache()
 
     def test_row_count_and_order_preserved(self, tmp_path):
         table = park_drag.load_table(_write_table(tmp_path, GOOD_ROWS))
@@ -224,3 +228,95 @@ class TestPredictPopulatesContextCols:
                    if f'row["{c}"]' not in body and f"row['{c}']" not in body
                    and c not in body]
         assert not missing, f"CONTEXT_COLS {missing} not populated in predict()"
+
+
+class TestReviewHardening:
+    """Fixes from the 2026-07-07 pre-merge Codex review (findings 2/3/4/6)."""
+
+    def test_get_table_reloads_on_file_change(self, tmp_path, monkeypatch):
+        # Codex #2: a days-long daemon must pick up the daily table refresh
+        p = _write_table(tmp_path, GOOD_ROWS)
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        park_drag._reset_cache()
+        t1 = park_drag.get_table()
+        assert t1["park_drag_delta"].iloc[0] == pytest.approx(-0.010)
+        rows2 = [dict(GOOD_ROWS[0], park_drag_delta=-0.020)] + GOOD_ROWS[1:]
+        _write_table(tmp_path, rows2)
+        now = time.time()
+        os.utime(p, (now + 5, now + 5))
+        t2 = park_drag.get_table()
+        assert t2["park_drag_delta"].iloc[0] == pytest.approx(-0.020)
+        park_drag._reset_cache()
+
+    def test_get_table_none_then_appears(self, tmp_path, monkeypatch):
+        p = tmp_path / "park_drag_export.csv"
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        park_drag._reset_cache()
+        assert park_drag.get_table() is None
+        _write_table(tmp_path, GOOD_ROWS)
+        assert park_drag.get_table() is not None
+        park_drag._reset_cache()
+
+    def test_serving_beyond_table_coverage_warns_once(self, tmp_path, capsys):
+        # Codex #3: prediction date past the table's last materialized row ->
+        # None for every venue + ONE loud warning (freshness alone would pass)
+        p = _write_table(tmp_path, GOOD_ROWS, manifest_max_date="2026-06-02")
+        table = park_drag.load_table(p)
+        manifest = park_drag.load_manifest(p)
+        park_drag._reset_cache()
+        d = pd.Timestamp("2026-06-03")
+        assert park_drag.serving_value(table, manifest, 1, d) is None
+        assert park_drag.serving_value(table, manifest, 2, d) is None
+        err = capsys.readouterr().err
+        assert err.count("does not cover prediction date") == 1
+        park_drag._reset_cache()
+
+    def test_tz_aware_dates_coerced_to_naive(self, tmp_path):
+        rows = [dict(r, date=r["date"] + "T00:00:00+00:00") for r in GOOD_ROWS]
+        t = park_drag.load_table(_write_table(tmp_path, rows))
+        assert t is not None
+        assert t["date"].dt.tz is None
+
+    def test_non_integral_venue_rejected(self, tmp_path):
+        rows = [dict(GOOD_ROWS[0], venue_id=1.9)]
+        assert park_drag.load_table(_write_table(tmp_path, rows)) is None
+
+    def test_shadow_hash_changes_when_artifact_appears(self, tmp_path, monkeypatch):
+        # Codex #4: a same-day shadow cache trained before the table appeared
+        # must not be reused after it appears — fingerprint is in the filename
+        from bts import orchestrator
+        p = tmp_path / "park_drag_export.csv"
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        absent = orchestrator.shadow_cache_path(tmp_path, "2026-07-07")
+        _write_table(tmp_path, GOOD_ROWS)
+        present = orchestrator.shadow_cache_path(tmp_path, "2026-07-07")
+        assert absent != present
+
+
+class TestShadowVersioning:
+    """Codex #5: v1 shadow history must not count toward v2 review thresholds."""
+
+    def test_save_stamps_current_version(self, tmp_path):
+        from tests.test_shadow_eval import _daily, _pick
+        from bts.picks import save_shadow_pick, load_shadow_pick
+        from bts.shadow_eval import SHADOW_MODEL_NAME
+        save_shadow_pick(_daily("2026-07-01", _pick("A Hitter", 1)), tmp_path)
+        loaded = load_shadow_pick("2026-07-01", tmp_path)
+        assert loaded.shadow_model_version == SHADOW_MODEL_NAME
+
+    def test_v1_files_excluded_from_status(self, tmp_path):
+        from tests.test_shadow_eval import _daily, _pick
+        from bts.picks import save_shadow_pick
+        from bts.shadow_eval import build_shadow_cycle_status
+        save_shadow_pick(_daily("2026-07-02", _pick("B Hitter", 2), result="hit"),
+                         tmp_path)
+        save_shadow_pick(_daily("2026-07-01", _pick("A Hitter", 1), result="hit"),
+                         tmp_path)
+        f = tmp_path / "2026-07-01.shadow.json"
+        d = json.loads(f.read_text())
+        d.pop("shadow_model_version")
+        f.write_text(json.dumps(d))
+        status = build_shadow_cycle_status(tmp_path)
+        counted_dates = {r["date"] for r in status["rows"]}
+        assert "2026-07-02" in counted_dates
+        assert "2026-07-01" not in counted_dates

@@ -63,8 +63,14 @@ def load_table(path: str | Path | None = None) -> pd.DataFrame | None:
             return None
         t["date"] = pd.to_datetime(t["date"], errors="coerce")
         t = t.dropna(subset=["date", "venue_id"])
+        if getattr(t["date"].dt, "tz", None) is not None:
+            t["date"] = t["date"].dt.tz_localize(None)
+        t["date"] = t["date"].dt.normalize()
         t["venue_id"] = pd.to_numeric(t["venue_id"], errors="coerce")
         t = t.dropna(subset=["venue_id"])
+        if (t["venue_id"] % 1 != 0).any():
+            _warn(f"table {p} has non-integral venue_id values; ignoring table")
+            return None
         t["venue_id"] = t["venue_id"].astype("int64")
         if t.duplicated(["venue_id", "date"]).any():
             _warn(f"table {p} has duplicate (venue_id, date) keys; ignoring table")
@@ -89,12 +95,57 @@ def load_manifest(path: str | Path | None = None) -> dict | None:
 
 def _reset_cache() -> None:
     _CACHE.clear()
+    _WARNED.clear()
 
 
-def _get_cached_table() -> pd.DataFrame | None:
-    if "table" not in _CACHE:
+_WARNED: set = set()
+
+
+def _warn_once(key: str, msg: str) -> None:
+    if key not in _WARNED:
+        _WARNED.add(key)
+        _warn(msg)
+
+
+def _file_sig(p: Path):
+    try:
+        st = p.stat()
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def artifact_fingerprint() -> str:
+    """Identity of the external table file (mtime_ns:size, or 'absent').
+
+    Baked into the shadow cache hash so a shadow model trained before the
+    table appeared (or against an older table) is never reused after the
+    file changes."""
+    sig = _file_sig(table_path())
+    return "absent" if sig is None else f"{sig[0]}:{sig[1]}"
+
+
+def get_table() -> pd.DataFrame | None:
+    """Cached table, invalidated when the file's (mtime, size) changes.
+
+    Used by BOTH the training-time attach and the serving-time lookup so a
+    days-long daemon picks up the daily refresh, and both paths read the same
+    snapshot (an atomic file replacement mid-cycle converges on next access)."""
+    sig = _file_sig(table_path())
+    if _CACHE.get("table_sig", "__unset__") != sig:
         _CACHE["table"] = load_table()
-    return _CACHE["table"]
+        _CACHE["table_sig"] = sig
+    return _CACHE.get("table")
+
+
+def get_manifest() -> dict | None:
+    """Cached manifest, invalidated when its file's (mtime, size) changes."""
+    p = table_path().with_name("park_drag_manifest.json")
+    sig = _file_sig(p)
+    if _CACHE.get("manifest_sig", "__unset__") != sig:
+        _CACHE["manifest"] = load_manifest()
+        _CACHE["manifest_sig"] = sig
+    return _CACHE.get("manifest")
 
 
 def attach_park_drag(df: pd.DataFrame, table: object = _UNSET) -> pd.DataFrame:
@@ -105,7 +156,7 @@ def attach_park_drag(df: pd.DataFrame, table: object = _UNSET) -> pd.DataFrame:
     one value by construction.
     """
     try:
-        t = _get_cached_table() if table is _UNSET else table
+        t = get_table() if table is _UNSET else table
         if t is None:
             out = df.copy()
             out["park_drag_delta"] = np.nan
@@ -145,6 +196,12 @@ def serving_value(table: pd.DataFrame | None, manifest: dict | None,
         if table is None or venue_id is None:
             return None
         on_date = pd.Timestamp(on_date).normalize()
+        table_max = table["date"].max()
+        if on_date > table_max:
+            _warn_once(f"cover-{on_date.date()}",
+                       f"table does not cover prediction date {on_date.date()} "
+                       f"(table ends {table_max.date()}); serving None for all venues")
+            return None
         ref = _freshness_reference(table, manifest)
         if ref is None or (on_date - ref).days > stale_after_days:
             _warn(f"table stale for serving on {on_date.date()} "

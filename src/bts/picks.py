@@ -212,6 +212,11 @@ class DailyPick:
     delivery_attempted: bool = False
     result: str | None = None  # "hit", "miss", "void", "suspended", "unresolved", or None (pending)
     slot_results: dict[str, str] | None = None  # {"pick": "hit|miss|void", "double_down": ...}
+    # Shadow-stack identity: stamped by save_shadow_pick with the current
+    # SHADOW_MODEL_NAME so shadow_eval can filter history by feature-stack
+    # version (v1 files must not count toward v2 review thresholds).
+    # None on production picks and on legacy (pre-v2) shadow files.
+    shadow_model_version: str | None = None
     # Provenance v1 (added 2026-05-04, per Codex bus #168). All optional;
     # old picks lack these fields and load_pick backfills via .get(...).
     # See bts.picks.compute_provenance for the helper that populates them.
@@ -346,6 +351,9 @@ def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
     """Save shadow model pick to {date}.shadow.json."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.shadow.json"
+    from bts.shadow_eval import SHADOW_MODEL_NAME  # lazy: avoid import cycle
+    if daily.shadow_model_version is None:
+        daily.shadow_model_version = SHADOW_MODEL_NAME
     atomic_write_text(path, json.dumps(asdict(daily), indent=2))
     return path
 
@@ -384,6 +392,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         feature_env_schema_version=data.get("feature_env_schema_version"),
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),
+        shadow_model_version=data.get("shadow_model_version"),
     )
 
 

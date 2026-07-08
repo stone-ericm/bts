@@ -142,3 +142,31 @@ No findings rejected.
 - Anchored delta vs CUSUM/EWMA state as the shipped shape — carried as variants.
 - Anchor robustness when a regime change occurs *inside* the anchor window
   (first ~10 venue-dates) — accepted v1 limitation, documented.
+
+## Pre-merge implementation review disposition (Codex gpt-5.5, 2026-07-07)
+
+7 findings on the built branch; fixed in the hardening commit: **#2** in-process
+train/serve skew (module cache never invalidated in the days-long daemon while
+predict() reloaded fresh) → both paths now share one mtime/size-aware cache
+(`get_table`/`get_manifest`); **#3** silent no-coverage serving (prediction date
+past the table's last materialized row returned None per venue with no warning
+while the manifest freshness check still passed) → explicit coverage guard +
+one loud warning per date; **#4** shadow cache hash covered column names only
+(a same-day cache trained table-absent would be reused after the table appeared)
+→ artifact fingerprint (mtime:size / "absent") folded into the filename hash;
+**#5** v1 shadow history would count toward v2 review thresholds →
+`shadow_model_version` stamped into shadow pick files by `save_shadow_pick`,
+status/backfill loops filter to the current version (legacy unstamped = v1,
+excluded); **#6** permissive normalization → tz-aware dates coerced to naive
+midnight, non-integral venue_id rejected; **#7** test gaps → 8 new tests
+(cache invalidation, table-appears, coverage warning, tz/venue hardening,
+fingerprint-in-hash, version stamping/exclusion).
+
+**#1 (artifact not deployable via existing prod paths) — accepted as a
+pre-ARMING gate, with a disagreement on framing:** the branch is merge-safe
+without the table (all-NaN + warnings; production FEATURE_COLS untouched), so
+delivery is not a merge blocker — but DO NOT consider the shadow ARMED until:
+(a) table shipped to `data/external/park_drag/` on the box, (b) the daily
+producer/refresh job exists (browser-UA + 403/429 kill-switch per house rules),
+(c) staleness is surfaced as a real health source, not stderr (the stderr
+warnings are invisible in a daemon — Codex is right about that).

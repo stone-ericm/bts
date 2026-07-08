@@ -151,11 +151,14 @@ def shadow_feature_hash() -> str:
     """Short hash of the shadow feature set (FEATURE_COLS + CONTEXT_COLS).
 
     Baked into the shadow model cache filename so a cached model trained on a
-    different context stack can never be loaded against today's columns.
+    different context stack — or before/after the external park_drag table
+    changed (including table-absent -> table-present same-day) — can never be
+    loaded against today's inputs.
     """
     import hashlib
     from bts.features.compute import FEATURE_COLS, CONTEXT_COLS
-    joined = ",".join(FEATURE_COLS + CONTEXT_COLS)
+    from bts.features import park_drag
+    joined = ",".join(FEATURE_COLS + CONTEXT_COLS) + "|" + park_drag.artifact_fingerprint()
     return hashlib.md5(joined.encode()).hexdigest()[:8]
 
 

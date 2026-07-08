@@ -507,6 +507,12 @@ def build_shadow_cycle_status(
         date = _date_from_shadow_file(shadow_path)
         prod_path = picks_dir / f"{date}.json"
         shadow = load_shadow_pick(date, picks_dir)
+        if shadow is not None and (
+            shadow.shadow_model_version or "context_stack_shadow_v1"
+        ) != SHADOW_MODEL_NAME:
+            # Prior feature-stack version: excluded from current-version
+            # review/backfill so v1 history can't count toward v2 thresholds.
+            continue
         production = load_pick(date, picks_dir) if prod_path.exists() else None
         prod_result = production.result if production else None
         shadow_result = shadow.result if shadow else None
@@ -664,6 +670,12 @@ def build_shadow_backfill_manifest(
         date = _date_from_shadow_file(shadow_path)
         prod_path = picks_dir / f"{date}.json"
         shadow = load_shadow_pick(date, picks_dir)
+        if shadow is not None and (
+            shadow.shadow_model_version or "context_stack_shadow_v1"
+        ) != SHADOW_MODEL_NAME:
+            # Prior feature-stack version: excluded from current-version
+            # review/backfill so v1 history can't count toward v2 thresholds.
+            continue
         production = load_pick(date, picks_dir) if prod_path.exists() else None
         prod_eval = evaluate_daily_pick(
             production, date, raw_dir=raw_dir, hit_checker=hit_checker,

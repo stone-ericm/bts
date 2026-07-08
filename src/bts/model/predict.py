@@ -592,8 +592,8 @@ def predict(
     # table the training merge reads — value at (venue_id, today) is computed
     # from strictly-prior games, so train and serve agree by construction.
     from bts.features import park_drag as _park_drag
-    _park_drag_table = _park_drag.load_table()
-    _park_drag_manifest = _park_drag.load_manifest()
+    _park_drag_table = _park_drag.get_table()
+    _park_drag_manifest = _park_drag.get_manifest()
     slots = _fetch_game_slots(date)
 
     if not slots:
