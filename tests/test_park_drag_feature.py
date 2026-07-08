@@ -294,29 +294,100 @@ class TestReviewHardening:
 
 
 class TestShadowVersioning:
-    """Codex #5: v1 shadow history must not count toward v2 review thresholds."""
+    """Codex #5 + round-2 #1: fresh shadow picks are stamped at CREATION
+    (scheduler via stamp_shadow_version); save_shadow_pick never auto-stamps,
+    so a legacy v1 file re-saved after grading keeps version=None and stays
+    excluded from v2 status/backfill/report."""
 
-    def test_save_stamps_current_version(self, tmp_path):
+    def test_save_preserves_unstamped_legacy(self, tmp_path):
         from tests.test_shadow_eval import _daily, _pick
         from bts.picks import save_shadow_pick, load_shadow_pick
-        from bts.shadow_eval import SHADOW_MODEL_NAME
-        save_shadow_pick(_daily("2026-07-01", _pick("A Hitter", 1)), tmp_path)
+        save_shadow_pick(
+            _daily("2026-07-01", _pick("A Hitter", 1), shadow_model_version=None),
+            tmp_path)
+        loaded = load_shadow_pick("2026-07-01", tmp_path)
+        assert loaded.shadow_model_version is None  # grading re-save can't promote
+        save_shadow_pick(loaded, tmp_path)  # simulate check-results re-save
+        assert load_shadow_pick("2026-07-01", tmp_path).shadow_model_version is None
+
+    def test_stamp_helper_round_trips(self, tmp_path):
+        from tests.test_shadow_eval import _daily, _pick
+        from bts.picks import save_shadow_pick, load_shadow_pick
+        from bts.shadow_eval import SHADOW_MODEL_NAME, stamp_shadow_version
+        daily = stamp_shadow_version(
+            _daily("2026-07-01", _pick("A Hitter", 1), shadow_model_version=None))
+        save_shadow_pick(daily, tmp_path)
         loaded = load_shadow_pick("2026-07-01", tmp_path)
         assert loaded.shadow_model_version == SHADOW_MODEL_NAME
+        save_shadow_pick(loaded, tmp_path)  # re-save preserves the stamp
+        assert load_shadow_pick(
+            "2026-07-01", tmp_path).shadow_model_version == SHADOW_MODEL_NAME
 
     def test_v1_files_excluded_from_status(self, tmp_path):
         from tests.test_shadow_eval import _daily, _pick
         from bts.picks import save_shadow_pick
-        from bts.shadow_eval import build_shadow_cycle_status
-        save_shadow_pick(_daily("2026-07-02", _pick("B Hitter", 2), result="hit"),
-                         tmp_path)
-        save_shadow_pick(_daily("2026-07-01", _pick("A Hitter", 1), result="hit"),
-                         tmp_path)
-        f = tmp_path / "2026-07-01.shadow.json"
-        d = json.loads(f.read_text())
-        d.pop("shadow_model_version")
-        f.write_text(json.dumps(d))
+        from bts.shadow_eval import build_shadow_cycle_status, stamp_shadow_version
+        save_shadow_pick(stamp_shadow_version(
+            _daily("2026-07-02", _pick("B Hitter", 2), result="hit")), tmp_path)
+        save_shadow_pick(_daily("2026-07-01", _pick("A Hitter", 1), result="hit",
+                                shadow_model_version=None),
+                         tmp_path)  # unstamped = legacy v1
         status = build_shadow_cycle_status(tmp_path)
         counted_dates = {r["date"] for r in status["rows"]}
         assert "2026-07-02" in counted_dates
         assert "2026-07-01" not in counted_dates
+
+
+class TestPinnedArtifact:
+    """Codex round-2 #2/#3: one prediction cycle must train, serve, and hash
+    from ONE artifact snapshot even if the file is replaced mid-cycle."""
+
+    def test_pin_freezes_across_file_replacement(self, tmp_path, monkeypatch):
+        p = _write_table(tmp_path, GOOD_ROWS)
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        park_drag._reset_cache()
+        with park_drag.pinned():
+            t1 = park_drag.get_table()
+            fp1 = park_drag.artifact_fingerprint()
+            rows2 = [dict(GOOD_ROWS[0], park_drag_delta=-0.030)] + GOOD_ROWS[1:]
+            _write_table(tmp_path, rows2)
+            now = time.time()
+            os.utime(p, (now + 5, now + 5))
+            assert park_drag.get_table()["park_drag_delta"].iloc[0] == \
+                t1["park_drag_delta"].iloc[0]
+            assert park_drag.artifact_fingerprint() == fp1
+        # outside the pin, the refresh is visible
+        assert park_drag.get_table()["park_drag_delta"].iloc[0] == pytest.approx(-0.030)
+        assert park_drag.artifact_fingerprint() != fp1
+        park_drag._reset_cache()
+
+    def test_pin_is_reentrant(self, tmp_path, monkeypatch):
+        p = _write_table(tmp_path, GOOD_ROWS)
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        park_drag._reset_cache()
+        with park_drag.pinned():
+            fp_outer = park_drag.artifact_fingerprint()
+            with park_drag.pinned():
+                assert park_drag.artifact_fingerprint() == fp_outer
+            # inner exit must NOT drop the outer pin
+            assert park_drag.artifact_fingerprint() == fp_outer
+        park_drag._reset_cache()
+
+    def test_decorator_pins(self, tmp_path, monkeypatch):
+        p = _write_table(tmp_path, GOOD_ROWS)
+        monkeypatch.setenv(park_drag.ENV_VAR, str(p))
+        park_drag._reset_cache()
+
+        @park_drag.with_pinned_artifact
+        def cycle():
+            before = park_drag.artifact_fingerprint()
+            now = time.time()
+            os.utime(p, (now + 7, now + 7))
+            return before == park_drag.artifact_fingerprint()
+
+        assert cycle() is True
+        park_drag._reset_cache()
+
+    def test_empty_table_rejected(self, tmp_path):
+        rows = [dict(GOOD_ROWS[0], date="not-a-date")]  # all rows dropped
+        assert park_drag.load_table(_write_table(tmp_path, rows)) is None

@@ -351,9 +351,10 @@ def save_shadow_pick(daily: DailyPick, picks_dir: Path) -> Path:
     """Save shadow model pick to {date}.shadow.json."""
     picks_dir.mkdir(parents=True, exist_ok=True)
     path = picks_dir / f"{daily.date}.shadow.json"
-    from bts.shadow_eval import SHADOW_MODEL_NAME  # lazy: avoid import cycle
-    if daily.shadow_model_version is None:
-        daily.shadow_model_version = SHADOW_MODEL_NAME
+    # NOTE: save does NOT auto-stamp shadow_model_version — grading re-saves
+    # of legacy v1 files must keep version=None so shadow_eval keeps excluding
+    # them. Fresh shadow picks are stamped at creation by the scheduler via
+    # shadow_eval.stamp_shadow_version.
     atomic_write_text(path, json.dumps(asdict(daily), indent=2))
     return path
 

@@ -11,6 +11,7 @@ from urllib.request import urlopen
 
 from bts import progress
 from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
+from bts.features.park_drag import with_pinned_artifact as _park_drag_pin
 from bts.picks import is_resume_date_game
 
 API_BASE = "https://statsapi.mlb.com"
@@ -806,6 +807,7 @@ def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: st
     print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=sys.stderr)
 
 
+@_park_drag_pin
 def run_pipeline(
     date: str,
     data_dir: str = "data/processed",

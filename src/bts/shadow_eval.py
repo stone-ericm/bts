@@ -31,6 +31,16 @@ RESULT_VALUES = {"hit", "miss"}
 RESOLVED_RESULT_VALUES = {"hit", "miss", "void"}
 VOID_DETAILED_STATES = {"postponed", "cancelled", "canceled"}
 SHADOW_MODEL_NAME = "context_stack_shadow_v2"  # v2 2026-07-07: +park_drag_delta (5th context col)
+
+
+def stamp_shadow_version(daily):
+    """Stamp a FRESHLY-CREATED shadow DailyPick with the current version.
+
+    Call at creation time only (scheduler), never on re-save — a legacy v1
+    file re-saved after grading must keep version=None to stay excluded
+    from v2 status/backfill/report."""
+    daily.shadow_model_version = SHADOW_MODEL_NAME
+    return daily
 SHADOW_STATUS_SCHEMA_VERSION = "bts_shadow_cycle_status_v1"
 SHADOW_STATUS_DEFAULT_MIN_DAYS = 30
 

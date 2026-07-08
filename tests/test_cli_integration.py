@@ -46,6 +46,13 @@ def _sample_pick(**overrides):
     return Pick(**defaults)
 
 
+def _save_shadow_stamped(daily, picks_dir):
+    """Shadow files as the scheduler creates them: version-stamped at creation
+    (unstamped files are legacy v1 and excluded from v2 status/report)."""
+    from bts.shadow_eval import stamp_shadow_version
+    return save_shadow_pick(stamp_shadow_version(daily), picks_dir)
+
+
 def _sample_daily(**overrides):
     defaults = dict(
         date="2026-04-01",
@@ -515,7 +522,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(result="hit"), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,
@@ -555,7 +562,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(result="hit"), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,
@@ -589,7 +596,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(result="hit"), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,
@@ -621,7 +628,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(result="hit"), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,
@@ -653,7 +660,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(bluesky_posted=True), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,
@@ -686,7 +693,7 @@ class TestBtsCheckResults:
 
         save_pick(_sample_daily(result="hit"), picks_dir)
         save_streak(2, picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Primary",
                 batter_id=111,
@@ -723,7 +730,7 @@ class TestBtsCheckResults:
         picks_dir.mkdir()
 
         save_pick(_sample_daily(result="hit"), picks_dir)
-        save_shadow_pick(_sample_daily(
+        _save_shadow_stamped(_sample_daily(
             pick=_sample_pick(
                 batter_name="Shadow Batter",
                 batter_id=111,

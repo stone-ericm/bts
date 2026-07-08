@@ -19,6 +19,7 @@ from bts.util import retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
+from bts.features.park_drag import with_pinned_artifact
 from bts.orchestrator import predict_local_shadow, run_and_pick
 from bts.picks import save_shadow_pick
 from bts.strategy import select_pick
@@ -1173,6 +1174,7 @@ def run_single_check(
             "selection": sel}
 
 
+@with_pinned_artifact
 def _run_shadow_prediction(
     config: dict,
     date: str,
@@ -1303,6 +1305,8 @@ def _run_shadow_prediction(
         from bts.picks import attach_provenance
         from bts.simulate.mdp import DEFAULT_POLICY_PATH
         from bts.orchestrator import shadow_cache_path
+        from bts.shadow_eval import stamp_shadow_version
+        stamp_shadow_version(result.daily)
         attach_provenance(
             result.daily,
             blend_path=shadow_cache_path(models_dir, date),

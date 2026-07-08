@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from bts.cli import cli
+from bts.shadow_eval import SHADOW_MODEL_NAME
 
 
 def _write_pick_pair(picks_dir: Path, date: str,
@@ -32,6 +33,10 @@ def _write_pick_pair(picks_dir: Path, date: str,
             "bluesky_uri": None,
             "result": result,
         }
+        if suffix == ".shadow.json":
+            # current-era shadow files carry the feature-stack version;
+            # legacy/v1 files (no field) are excluded by shadow-report
+            data["shadow_model_version"] = SHADOW_MODEL_NAME
         (picks_dir / f"{date}{suffix}").write_text(json.dumps(data))
 
 
@@ -75,3 +80,18 @@ class TestShadowReport:
         assert "Production day hit rate (DD-aware): 2/3 (66.7%)" in result.output
         assert "Shadow recorded day hit rate: 1/2 (50.0%)" in result.output
         assert "Shadow results unresolved: 1/3" in result.output
+
+
+    def test_legacy_v1_shadow_files_excluded(self, tmp_path):
+        # Codex round-2 #4: prior-version shadow history must not blend into
+        # current-version report math (same rule as shadow_eval status).
+        _write_pick_pair(tmp_path, "2026-04-01", "Arraez", 0.77, "hit", "Arraez", 0.76, None)
+        _write_pick_pair(tmp_path, "2026-04-02", "Kwan", 0.72, "hit", "Marte", 0.73, None)
+        legacy = tmp_path / "2026-04-02.shadow.json"
+        d = json.loads(legacy.read_text())
+        d.pop("shadow_model_version")
+        legacy.write_text(json.dumps(d))
+        runner = CliRunner()
+        result = runner.invoke(cli, ["shadow-report", "--picks-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "100.0%" in result.output  # only the stamped 04-01 pair counts

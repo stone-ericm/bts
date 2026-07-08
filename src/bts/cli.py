@@ -2097,6 +2097,11 @@ def shadow_report(picks_dir: str):
             continue
         prod = _json.loads(prod_file.read_text())
         shadow = _json.loads(sf.read_text())
+        from bts.shadow_eval import SHADOW_MODEL_NAME
+        if (shadow.get("shadow_model_version")
+                or "context_stack_shadow_v1") != SHADOW_MODEL_NAME:
+            # prior feature-stack version: excluded, same rule as shadow_eval
+            continue
         pairs.append((date, prod, shadow))
 
     if not pairs:

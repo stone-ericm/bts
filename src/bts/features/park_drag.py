@@ -19,9 +19,11 @@ Hard requirements enforced here:
 """
 from __future__ import annotations
 
+import functools
 import json
 import os
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -75,6 +77,9 @@ def load_table(path: str | Path | None = None) -> pd.DataFrame | None:
         if t.duplicated(["venue_id", "date"]).any():
             _warn(f"table {p} has duplicate (venue_id, date) keys; ignoring table")
             return None
+        if t.empty:
+            _warn(f"table {p} is empty after normalization; ignoring table")
+            return None
         return t
     except Exception as e:  # noqa: BLE001 — never raise into the pick path
         _warn(f"failed to load table {p}: {e}")
@@ -115,22 +120,28 @@ def _file_sig(p: Path):
         return None
 
 
+def _fingerprint_now() -> str:
+    sig = _file_sig(table_path())
+    return "absent" if sig is None else f"{sig[0]}:{sig[1]}"
+
+
 def artifact_fingerprint() -> str:
     """Identity of the external table file (mtime_ns:size, or 'absent').
 
     Baked into the shadow cache hash so a shadow model trained before the
     table appeared (or against an older table) is never reused after the
-    file changes."""
-    sig = _file_sig(table_path())
-    return "absent" if sig is None else f"{sig[0]}:{sig[1]}"
+    file changes. Pin-aware: stable within a pinned() cycle so the cache
+    path computed before run_pipeline and the provenance path computed
+    after it always agree."""
+    pin = _CACHE.get("pin")
+    if pin is not None:
+        return pin["fingerprint"]
+    return _fingerprint_now()
 
 
-def get_table() -> pd.DataFrame | None:
-    """Cached table, invalidated when the file's (mtime, size) changes.
-
-    Used by BOTH the training-time attach and the serving-time lookup so a
-    days-long daemon picks up the daily refresh, and both paths read the same
-    snapshot (an atomic file replacement mid-cycle converges on next access)."""
+def _current_table() -> pd.DataFrame | None:
+    """mtime/size-invalidated table cache (a days-long daemon picks up the
+    daily refresh on the next access after the file changes)."""
     sig = _file_sig(table_path())
     if _CACHE.get("table_sig", "__unset__") != sig:
         _CACHE["table"] = load_table()
@@ -138,14 +149,60 @@ def get_table() -> pd.DataFrame | None:
     return _CACHE.get("table")
 
 
-def get_manifest() -> dict | None:
-    """Cached manifest, invalidated when its file's (mtime, size) changes."""
+def _current_manifest() -> dict | None:
     p = table_path().with_name("park_drag_manifest.json")
     sig = _file_sig(p)
     if _CACHE.get("manifest_sig", "__unset__") != sig:
         _CACHE["manifest"] = load_manifest()
         _CACHE["manifest_sig"] = sig
     return _CACHE.get("manifest")
+
+
+def get_table() -> pd.DataFrame | None:
+    """Table snapshot. Inside a pinned() scope this is frozen for the whole
+    scope, so one prediction cycle trains and serves from the SAME artifact
+    even if the file is atomically replaced mid-cycle."""
+    pin = _CACHE.get("pin")
+    if pin is not None:
+        return pin["table"]
+    return _current_table()
+
+
+def get_manifest() -> dict | None:
+    """Manifest snapshot (pin-aware, see get_table)."""
+    pin = _CACHE.get("pin")
+    if pin is not None:
+        return pin["manifest"]
+    return _current_manifest()
+
+
+@contextmanager
+def pinned():
+    """Freeze (table, manifest, fingerprint) for the enclosed scope.
+
+    Reentrant: an inner pinned() inherits the outer snapshot, so decorating
+    both the scheduler's shadow cycle and run_pipeline is safe."""
+    if _CACHE.get("pin") is not None:
+        yield
+        return
+    _CACHE["pin"] = {
+        "table": _current_table(),
+        "manifest": _current_manifest(),
+        "fingerprint": _fingerprint_now(),
+    }
+    try:
+        yield
+    finally:
+        _CACHE.pop("pin", None)
+
+
+def with_pinned_artifact(fn):
+    """Decorator form of pinned() for whole-cycle functions."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with pinned():
+            return fn(*args, **kwargs)
+    return wrapper
 
 
 def attach_park_drag(df: pd.DataFrame, table: object = _UNSET) -> pd.DataFrame:

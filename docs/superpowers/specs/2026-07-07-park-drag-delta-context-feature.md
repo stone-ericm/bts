@@ -170,3 +170,21 @@ delivery is not a merge blocker — but DO NOT consider the shadow ARMED until:
 producer/refresh job exists (browser-UA + 403/429 kill-switch per house rules),
 (c) staleness is surfaced as a real health source, not stderr (the stderr
 warnings are invisible in a daemon — Codex is right about that).
+
+## Round-2 implementation review disposition (Codex gpt-5.5, final round)
+
+5 findings, all addressed: **#1** save_shadow_pick's auto-stamp would have
+PROMOTED legacy v1 files to v2 when check-results re-saved them after grading
+→ stamping moved to creation time (`shadow_eval.stamp_shadow_version`, called
+by the scheduler); save never stamps; legacy files keep version=None forever.
+**#2/#3** mid-cycle artifact swap could train on table A and serve/hash table B
+→ `pinned()` snapshot (reentrant contextmanager + `with_pinned_artifact`
+decorator) freezes (table, manifest, fingerprint) for a whole cycle:
+`run_pipeline` is pinned (train+serve one snapshot) and the scheduler's
+`_run_shadow_prediction` is pinned end-to-end (predict_local_shadow's cache
+path and the later provenance path always agree). **#4** `bts shadow-report`
+was a third unfiltered glob → same version filter applied. **#5** empty-after-
+normalization tables now rejected. Codex's one pushback — no real circular-
+import risk in the round-1 lazy import — accepted, and made moot by removing
+that import entirely. Review loop converged at 2 rounds per house cap;
+remaining gates are operational (merge; arming checklist above).

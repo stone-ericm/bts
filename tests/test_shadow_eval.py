@@ -10,6 +10,7 @@ from unittest.mock import patch
 from bts.cli import cli
 from bts.picks import DailyPick, Pick, load_shadow_pick, save_pick, save_shadow_pick
 from bts.shadow_eval import (
+    SHADOW_MODEL_NAME,
     apply_shadow_backfill_manifest,
     build_shadow_backfill_manifest,
     build_shadow_cycle_status,
@@ -34,7 +35,10 @@ def _pick(name: str, batter_id: int, *, game_pk: int | None = None) -> Pick:
 
 
 def _daily(date: str, pick: Pick, *, double_down: Pick | None = None,
-           result: str | None = None) -> DailyPick:
+           result: str | None = None,
+           shadow_model_version: str | None = SHADOW_MODEL_NAME) -> DailyPick:
+    # Default = current-era stamped file (what the scheduler creates via
+    # stamp_shadow_version). Pass shadow_model_version=None for legacy v1.
     return DailyPick(
         date=date,
         run_time=f"{date}T15:00:00+00:00",
@@ -44,6 +48,7 @@ def _daily(date: str, pick: Pick, *, double_down: Pick | None = None,
         bluesky_posted=False,
         bluesky_uri=None,
         result=result,
+        shadow_model_version=shadow_model_version,
     )
 
 

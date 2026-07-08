@@ -270,6 +270,11 @@ class TestRunShadowPrediction:
             assert call_kwargs.get("data_dir") == str(custom_data_dir)
             assert call_kwargs.get("models_dir") == str(custom_models_dir)
 
+            # Creation-time version stamp (round-2 Codex #1: stamped here,
+            # never on re-save)
+            from bts.shadow_eval import SHADOW_MODEL_NAME
+            assert real_daily.shadow_model_version == SHADOW_MODEL_NAME
+
             # 2. Provenance attached AND artifact hash reflects the file at
             #    the configured models_dir (not the default path).
             assert real_daily.model_pickle_sha256 is not None
