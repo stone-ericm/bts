@@ -188,3 +188,22 @@ normalization tables now rejected. Codex's one pushback — no real circular-
 import risk in the round-1 lazy import — accepted, and made moot by removing
 that import entirely. Review loop converged at 2 rounds per house cap;
 remaining gates are operational (merge; arming checklist above).
+
+## Arming checklist status (2026-07-08)
+
+1. **Table shipped** ✅ — `data/external/park_drag/` on bts-hetzner (export +
+   manifest + `producer/` seed stores), regenerated ON the box by the smoke run.
+2. **Daily refresh** ✅ code (`features/park_drag_producer.py`, `bts
+   park-drag-refresh`, cron `45 7 * * *` ET in cron-setup-hetzner.sh) — box
+   smoke PASSED from the datacenter IP (browser headers; 4,839 pitches;
+   403/429 kill-switch untriggered). Drift guard test pins the builder to the
+   analysis-repo export (1e-9). NOTE: Savant's search index lags same-night
+   games; the 07:45 ET slot lands after its overnight refresh.
+3. **Health source** ✅ code (`health/park_drag_freshness.py`, wired in
+   runner; ARCHITECTURE table updated): failed-run WARN, data-gap WARN/
+   CRITICAL, generated_at liveness WARN; silent pre-arming and off-season.
+
+**Post-deploy steps (ride the next `git push origin main:deploy`):** the new
+code activates; then run `bash scripts/cron-setup-hetzner.sh install` on the
+box (sources .env first) to add the 07:45 cron. Until deploy, the shipped
+table sits inert and the box smoke's producer_status.json is already valid.

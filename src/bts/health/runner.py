@@ -21,6 +21,7 @@ from bts.health import (
     disk_fill,
     fallback_defer,
     leaderboard_freshness,
+    park_drag_freshness,
     live_forward_resolution,
     memory_growth,
     mdp_policy_alignment,
@@ -204,6 +205,10 @@ def run_all_checks(
         alerts.extend(_safe_run("leaderboard_freshness", lambda: leaderboard_freshness.check(
             leaderboard_dir, thresholds=overrides.get("leaderboard_freshness"),
         )))
+    alerts.extend(_safe_run("park_drag_freshness", lambda: park_drag_freshness.check(
+        Path("data/external/park_drag"), today=today,
+        thresholds=overrides.get("park_drag_freshness"),
+    )))
 
     # Tier 3 — process integrity
     alerts.extend(_safe_run("disk_fill", lambda: disk_fill.check(

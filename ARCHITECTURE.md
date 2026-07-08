@@ -239,6 +239,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `projected_lineup` | 2 | % rolling 14d projected_lineup over threshold |
 | `pitcher_sparsity` | 2 | % rolling 14d picks with `LIMITED pitcher data` flag (added 2026-04-30 — diagnostic for MiLB-transfer ROI; also catches min_periods regression) |
 | `leaderboard_freshness` | 2 | last successful BTS-leaderboard scrape > 12h (WARN) / 36h (CRITICAL); silent if `data/leaderboard/` doesn't exist (pre-deploy state) |
+| `park_drag_freshness` | 2 | park_drag external table: failed refresh run (WARN), source data ≥3d behind (WARN) / ≥6d (CRITICAL), manifest generated_at >30h (WARN, cron liveness); silent if `data/external/park_drag/` absent or off-season (Oct-Feb) |
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |

@@ -2069,6 +2069,29 @@ def reconcile(picks_dir: str, lookback: int):
         click.echo(f"Streak recalculated: {streak}")
 
 
+@cli.command("park-drag-refresh")
+@click.option("--root", default="data/external/park_drag", show_default=True,
+              help="Root of the external park_drag artifact directory.")
+@click.option("--lookback-days", default=3, show_default=True,
+              help="Re-fetch window (days) before the store's newest date.")
+def park_drag_refresh_cmd(root: str, lookback_days: int):
+    """Refresh the park_drag_delta external table (daily cron on the box).
+
+    Fetches recent four-seam pitches + game weather, recomputes game-level
+    drag, rebuilds the serving-correct export atomically. Failures exit
+    non-zero and land in producer_status.json (the park_drag_freshness health
+    source surfaces them)."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from bts.features.park_drag_producer import refresh
+
+    summary = refresh(_Path(root), lookback_days=lookback_days)
+    click.echo(_json.dumps(summary, default=str))
+    if not summary.get("ok"):
+        raise SystemExit(1)
+
+
 @cli.command(name="shadow-report")
 @click.option("--picks-dir", default="data/picks", type=click.Path(), help="Picks directory")
 def shadow_report(picks_dir: str):
