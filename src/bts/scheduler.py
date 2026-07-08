@@ -1302,9 +1302,10 @@ def _run_shadow_prediction(
         # using the same models_dir as the prediction call (per Codex #172).
         from bts.picks import attach_provenance
         from bts.simulate.mdp import DEFAULT_POLICY_PATH
+        from bts.orchestrator import shadow_cache_path
         attach_provenance(
             result.daily,
-            blend_path=Path(models_dir) / f"blend_{date}_shadow.pkl",
+            blend_path=shadow_cache_path(models_dir, date),
             policy_path=DEFAULT_POLICY_PATH,
         )
         save_shadow_pick(result.daily, picks_dir)

@@ -225,7 +225,8 @@ class TestRunShadowPrediction:
         custom_models_dir = tmp_path / "custom_models"
         custom_models_dir.mkdir()
         date = "2026-04-10"
-        blend_artifact = custom_models_dir / f"blend_{date}_shadow.pkl"
+        from bts.orchestrator import shadow_cache_path
+        blend_artifact = shadow_cache_path(custom_models_dir, date)
         blend_artifact.write_bytes(b"dummy shadow blend content")
 
         custom_data_dir = tmp_path / "custom_processed"

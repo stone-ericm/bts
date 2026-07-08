@@ -147,6 +147,24 @@ def predict_local(
     return predictions
 
 
+def shadow_feature_hash() -> str:
+    """Short hash of the shadow feature set (FEATURE_COLS + CONTEXT_COLS).
+
+    Baked into the shadow model cache filename so a cached model trained on a
+    different context stack can never be loaded against today's columns.
+    """
+    import hashlib
+    from bts.features.compute import FEATURE_COLS, CONTEXT_COLS
+    joined = ",".join(FEATURE_COLS + CONTEXT_COLS)
+    return hashlib.md5(joined.encode()).hexdigest()[:8]
+
+
+def shadow_cache_path(models_dir, date: str):
+    """Canonical shadow blend cache path (feature-set-hashed)."""
+    from pathlib import Path as _Path
+    return _Path(models_dir) / f"blend_{date}_shadow_{shadow_feature_hash()}.pkl"
+
+
 def predict_local_shadow(
     date: str,
     data_dir: str = "data/processed",
@@ -155,7 +173,8 @@ def predict_local_shadow(
     """Run shadow predictions locally with context_stack features.
 
     Same as predict_local but uses FEATURE_COLS + CONTEXT_COLS.
-    Gets its own model cache (blend_{date}_shadow.pkl).
+    Gets its own model cache (blend_{date}_shadow_{feature_hash}.pkl — the
+    hash guards against loading a cache trained on a different context stack).
     """
     from bts.model.predict import run_pipeline, load_blend
     from bts.features.compute import FEATURE_COLS, CONTEXT_COLS
@@ -163,7 +182,7 @@ def predict_local_shadow(
 
     shadow_cols = FEATURE_COLS + CONTEXT_COLS
     models_path = Path(models_dir)
-    cache_path = models_path / f"blend_{date}_shadow.pkl"
+    cache_path = shadow_cache_path(models_path, date)
     cached_blend = None
     if cache_path.exists():
         print(f"  [shadow] Loading cached shadow model from {cache_path}", file=sys.stderr)

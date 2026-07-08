@@ -30,7 +30,7 @@ HitChecker = Callable[[int | None, int, str | None, str | None, str | None], boo
 RESULT_VALUES = {"hit", "miss"}
 RESOLVED_RESULT_VALUES = {"hit", "miss", "void"}
 VOID_DETAILED_STATES = {"postponed", "cancelled", "canceled"}
-SHADOW_MODEL_NAME = "context_stack_shadow_v1"
+SHADOW_MODEL_NAME = "context_stack_shadow_v2"  # v2 2026-07-07: +park_drag_delta (5th context col)
 SHADOW_STATUS_SCHEMA_VERSION = "bts_shadow_cycle_status_v1"
 SHADOW_STATUS_DEFAULT_MIN_DAYS = 30
 

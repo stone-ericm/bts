@@ -627,6 +627,12 @@ def compute_all_features(df: pd.DataFrame) -> pd.DataFrame:
         on=["venue_id", "date"], how="left",
     )
 
+    # Park drag delta (venue × date, external as-of table; context/shadow only).
+    # Loader + attach are hardened to never raise into the pick path — any
+    # problem with the external artifact degrades to an all-NaN column.
+    from bts.features import park_drag as _park_drag
+    df = _park_drag.attach_park_drag(df)
+
     # Rest days (batter × date)
     df = df.merge(
         rest_dates[["batter_id", "date", "days_rest"]],
@@ -704,6 +710,7 @@ CONTEXT_COLS = [
     "wind_out_cf",
     "batter_hard_contact_30g",
     "is_indoor",
+    "park_drag_delta",  # external as-of table (park_drag.py), added 2026-07-07
 ]
 
 # Statcast features (9) — computed from game feed pitchData/hitData.

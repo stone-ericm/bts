@@ -355,7 +355,7 @@ def test_build_shadow_cycle_status_tracks_recorded_monitoring_state(tmp_path):
     )
 
     assert status["schema_version"] == "bts_shadow_cycle_status_v1"
-    assert status["model"]["name"] == "context_stack_shadow_v1"
+    assert status["model"]["name"] == "context_stack_shadow_v2"
     assert status["model"]["production_deploy_claim"] is False
     assert status["cycle_state"] == "needs_result_reconciliation"
     assert status["counts"]["shadow_files"] == 2

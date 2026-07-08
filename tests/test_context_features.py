@@ -73,13 +73,14 @@ class TestHardContactLeakFree:
 
 
 class TestContextCols:
-    def test_context_cols_has_4_entries(self):
-        assert len(CONTEXT_COLS) == 4
+    def test_context_cols_has_5_entries(self):
+        assert len(CONTEXT_COLS) == 5
 
     def test_context_cols_names(self):
         assert CONTEXT_COLS == [
             "ump_hr_30g", "wind_out_cf",
             "batter_hard_contact_30g", "is_indoor",
+            "park_drag_delta",
         ]
 
 

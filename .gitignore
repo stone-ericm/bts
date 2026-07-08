@@ -8,6 +8,7 @@ data/models/
 data/picks/
 data/external/odds/
 data/external/team_context/
+data/external/park_drag/
 data/validation/team_record/
 data/.heartbeat*
 data/.last_deploy_iso

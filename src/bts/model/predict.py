@@ -587,6 +587,13 @@ def predict(
         DataFrame of picks sorted by P(game hit), with flags for edge cases.
     """
     today = pd.Timestamp(date)
+
+    # park_drag_delta serving state (context/shadow): the SAME external as-of
+    # table the training merge reads — value at (venue_id, today) is computed
+    # from strictly-prior games, so train and serve agree by construction.
+    from bts.features import park_drag as _park_drag
+    _park_drag_table = _park_drag.load_table()
+    _park_drag_manifest = _park_drag.load_manifest()
     slots = _fetch_game_slots(date)
 
     if not slots:
@@ -660,6 +667,10 @@ def predict(
         # Indoor flag
         rt = str(slot.get("roof_type", "")).lower()
         row["is_indoor"] = 1 if rt in ("dome", "closed", "retractable") else 0
+        # Park drag delta (stale table -> None -> NaN; never a stale number)
+        row["park_drag_delta"] = _park_drag.serving_value(
+            _park_drag_table, _park_drag_manifest, slot["venue_id"], today
+        )
 
         # Days rest
         last = lookups["last_date"].get(bid)
