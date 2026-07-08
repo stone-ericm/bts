@@ -52,7 +52,7 @@ Verified by nuclear test: 260/260 manual spot checks passed.
 | days_rest | Context | Days since batter's last game |
 | batter_pitcher_shrunk_hr | Expanding × shrinkage | Bayesian-shrunk historical (batter, pitcher) hit rate. Promoted 2026-04-29 after Phase 1 t=+3.35, Phase 2 set-1 +2.77pp, set-2 +3.49pp. Aggregated per (batter, pitcher, date) for no within-day leakage; falls back to league prior 0.2195 (K=10). Inference path explicitly populates this from `lookups["batter_pitcher_hr"]` (predict.py); a missing-bpm bug shipped 2026-04-29 → fixed 2026-04-30 commit `ee4190f`. |
 
-### Context features (4, shadow model — CONTEXT_COLS)
+### Context features (5, shadow model — CONTEXT_COLS)
 
 Always computed by `compute_all_features()` but only used by the shadow model (via `feature_cols_override` param). After 30-day evaluation, may graduate to FEATURE_COLS.
 
@@ -62,8 +62,9 @@ Always computed by `compute_all_features()` but only used by the shadow model (v
 | wind_out_cf | Context | Signed wind vector (direction score × speed) |
 | batter_hard_contact_30g | Rolling | Hard-contact rate from categorical hardness column |
 | is_indoor | Context | Binary: dome/closed/retractable roof |
+| park_drag_delta | External as-of table | Park ball-drag regime state (venue rolling-15 Cd minus frozen early-season anchor, shrunk). Read from `data/external/park_drag/park_drag_export.csv` — one row per venue_id × calendar date computed from strictly-prior games, so training merge == serving lookup (`features/park_drag.py`: never-raise loader, mtime-invalidated cache, per-cycle `pinned()` snapshot, staleness→None). Produced daily by `bts park-drag-refresh` (cron 07:45 ET; `features/park_drag_producer.py` — Savant FF fetch w/ browser UA + 403/429 kill-switch); `park_drag_freshness` health source. Added 2026-07-08 (shadow v2 — SHADOW_MODEL_NAME bump, feature-hashed cache `blend_{date}_shadow_{hash}.pkl`, v1 history excluded). **2026 backtest screen = NULL** (`docs/audit/2026-07-08-park-drag-2026-screen.md`): do not promote on alpha grounds; value = regime observability (the expanding park_factor is frozen against mid-season ball changes). Spec: `docs/superpowers/specs/2026-07-07-park-drag-delta-context-feature.md`. |
 
-Shadow picks saved to `{date}.shadow.json`. Report: `bts shadow-report`.
+Shadow picks saved to `{date}.shadow.json` (stamped `shadow_model_version` at creation; unstamped = legacy v1, excluded from v2 status/report/backfill). Report: `bts shadow-report`.
 
 ### Skip-policy shadow (counterfactual "pick-the-band" monitor — `skip_policy_shadow.py`)
 
