@@ -128,10 +128,15 @@ def capture_one(
     if prev == sha:
         return {"feed": name, "status": "unchanged", "sha256": sha, "path": None}
 
-    dest = out_dir / name / snapshot_filename(now)
-    _atomic_write_bytes(dest, raw)
+    # Stored gzipped (audit F14: raw snapshots accumulated ~190 MB/day with no
+    # bound). Dedupe stays keyed on the RAW sha above, so compression never
+    # changes capture behavior; readers gunzip (json/pandas handle .gz natively).
+    dest = out_dir / name / (snapshot_filename(now) + ".gz")
+    compressed = gzip.compress(raw)
+    _atomic_write_bytes(dest, compressed)
     _atomic_write_bytes(marker, (sha + "\n").encode())
-    return {"feed": name, "status": "stored", "sha256": sha, "path": str(dest)}
+    return {"feed": name, "status": "stored", "sha256": sha, "path": str(dest),
+            "bytes": len(compressed)}
 
 
 def capture_all(
@@ -149,12 +154,15 @@ def capture_all(
                for name, (url, key) in feeds.items()]
 
     status_path = out_dir / "capture_status.json"
-    prior_feeds: dict = {}
+    prior_status: dict = {}
     if status_path.exists():
         try:
-            prior_feeds = json.loads(status_path.read_text()).get("feeds", {})
+            prior_status = json.loads(status_path.read_text())
+            if not isinstance(prior_status, dict):
+                prior_status = {}
         except (json.JSONDecodeError, OSError):
-            prior_feeds = {}
+            prior_status = {}
+    prior_feeds: dict = prior_status.get("feeds", {}) or {}
     feeds_status = {}
     for r in results:
         prev = prior_feeds.get(r["feed"], {})
@@ -167,8 +175,16 @@ def capture_all(
         if r.get("error"):
             entry["last_error"] = r["error"]
         feeds_status[r["feed"]] = entry
+    # Growth telemetry (audit F14): bytes stored per UTC day, so the archive's
+    # trajectory is observable in the status file instead of silent.
+    today_utc = now.astimezone(timezone.utc).date().isoformat()
+    run_bytes = sum(r.get("bytes", 0) for r in results if r["status"] == "stored")
+    prior_bytes = (prior_status.get("bytes_stored_today", 0)
+                   if prior_status.get("bytes_day") == today_utc else 0)
     _atomic_write_bytes(status_path, json.dumps(
-        {"last_run_utc": _utc_iso(now), "feeds": feeds_status}, indent=2).encode())
+        {"last_run_utc": _utc_iso(now), "feeds": feeds_status,
+         "bytes_day": today_utc,
+         "bytes_stored_today": prior_bytes + run_bytes}, indent=2).encode())
     return results
 
 

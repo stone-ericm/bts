@@ -81,9 +81,9 @@ class TestCaptureAll:
         assert {r["feed"] for r in results} == set(FEEDS)
         assert all(r["status"] == "stored" for r in results)
         for name in FEEDS:
-            files = list((tmp_path / name).glob("*.json"))
+            files = list((tmp_path / name).glob("*.json.gz"))
             assert len(files) == 1, name
-            assert files[0].name == "20260703T233000Z.json"
+            assert files[0].name == "20260703T233000Z.json.gz"
 
     def test_unchanged_content_not_restored(self, tmp_path):
         pay = _payloads()
@@ -91,7 +91,7 @@ class TestCaptureAll:
         results = capture_all(tmp_path, fetch=_fetcher(pay), now=NOW2)
         assert all(r["status"] == "unchanged" for r in results)
         for name in FEEDS:
-            assert len(list((tmp_path / name).glob("*.json"))) == 1, name
+            assert len(list((tmp_path / name).glob("*.json.gz"))) == 1, name
 
     def test_changed_feed_stores_second_snapshot(self, tmp_path):
         capture_all(tmp_path, fetch=_fetcher(_payloads()), now=NOW)
@@ -100,9 +100,9 @@ class TestCaptureAll:
         results = capture_all(tmp_path, fetch=_fetcher(changed), now=NOW2)
         by_feed = {r["feed"]: r for r in results}
         assert by_feed["most_selected_players"]["status"] == "stored"
-        assert len(list((tmp_path / "most_selected_players").glob("*.json"))) == 2
+        assert len(list((tmp_path / "most_selected_players").glob("*.json.gz"))) == 2
         assert by_feed["rounds"]["status"] == "unchanged"
-        assert len(list((tmp_path / "rounds").glob("*.json"))) == 1
+        assert len(list((tmp_path / "rounds").glob("*.json.gz"))) == 1
 
     def test_invalid_payload_not_stored(self, tmp_path):
         pay = _payloads()
@@ -113,7 +113,7 @@ class TestCaptureAll:
         assert by_feed["most_selected_players"]["status"] == "invalid"
         assert by_feed["units"]["status"] == "invalid"
         assert not (tmp_path / "most_selected_players").exists() or \
-            not list((tmp_path / "most_selected_players").glob("*.json"))
+            not list((tmp_path / "most_selected_players").glob("*.json.gz"))
         assert by_feed["rounds"]["status"] == "stored"
 
     def test_fetch_error_isolated_to_that_feed(self, tmp_path):
@@ -133,8 +133,55 @@ class TestCaptureAll:
         assert feed["status"] == "unchanged"
         assert feed["last_stored_utc"].startswith("2026-07-03T23:30:00")
 
-    def test_stored_bytes_roundtrip(self, tmp_path):
+    def test_stored_bytes_gzip_roundtrip(self, tmp_path):
+        # Audit F14: snapshots are stored gzipped (~10x smaller at ~190MB/day
+        # raw); the original bytes round-trip losslessly.
+        import gzip
         pay = _payloads()
         capture_all(tmp_path, fetch=_fetcher(pay), now=NOW)
-        stored = (tmp_path / "rounds" / "20260703T233000Z.json").read_bytes()
-        assert stored == pay["rounds"]
+        stored = (tmp_path / "rounds" / "20260703T233000Z.json.gz").read_bytes()
+        assert gzip.decompress(stored) == pay["rounds"]
+
+    def test_dedupe_keyed_on_raw_not_compressed(self, tmp_path):
+        # The .last_sha256 marker hashes the RAW payload, so compression can
+        # never change dedupe behavior.
+        pay = _payloads()
+        capture_all(tmp_path, fetch=_fetcher(pay), now=NOW)
+        results = capture_all(tmp_path, fetch=_fetcher(pay), now=NOW2)
+        assert all(r["status"] == "unchanged" for r in results)
+
+
+class TestBytesTelemetry:
+    """Audit F14: capture_status.json tracks bytes stored per UTC day so the
+    growth trajectory is observable instead of silent."""
+
+    def test_status_tracks_bytes_per_utc_day(self, tmp_path):
+        from datetime import timedelta
+        pay = _payloads()
+        capture_all(tmp_path, fetch=_fetcher(pay), now=NOW)
+        s1 = json.loads((tmp_path / "capture_status.json").read_text())
+        assert s1["bytes_day"] == "2026-07-03"
+        assert s1["bytes_stored_today"] > 0
+
+        # NOW2 is the next UTC day: counter resets to that run's bytes
+        changed = _payloads(most_selected_players={"mostSelectedPlayers": [
+            {"roundId": 925, "playerId": 94, "numberSelections": 500}]})
+        capture_all(tmp_path, fetch=_fetcher(changed), now=NOW2)
+        s2 = json.loads((tmp_path / "capture_status.json").read_text())
+        assert s2["bytes_day"] == "2026-07-04"
+        assert 0 < s2["bytes_stored_today"] < s1["bytes_stored_today"]
+
+        # same day, another change: accumulates
+        changed2 = _payloads(most_selected_players={"mostSelectedPlayers": [
+            {"roundId": 926, "playerId": 94, "numberSelections": 600}]})
+        capture_all(tmp_path, fetch=_fetcher(changed2), now=NOW2 + timedelta(hours=2))
+        s3 = json.loads((tmp_path / "capture_status.json").read_text())
+        assert s3["bytes_stored_today"] > s2["bytes_stored_today"]
+
+    def test_unchanged_run_adds_no_bytes(self, tmp_path):
+        pay = _payloads()
+        capture_all(tmp_path, fetch=_fetcher(pay), now=NOW)
+        s1 = json.loads((tmp_path / "capture_status.json").read_text())
+        capture_all(tmp_path, fetch=_fetcher(pay), now=NOW)
+        s2 = json.loads((tmp_path / "capture_status.json").read_text())
+        assert s2["bytes_stored_today"] == s1["bytes_stored_today"]
