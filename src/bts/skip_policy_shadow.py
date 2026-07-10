@@ -164,7 +164,10 @@ def prune_superseded(picks_dir, *, now: datetime | None = None) -> list[str]:
             rec_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
             continue
-        if (now - rec_date).days > CHECKPOINT_ELIGIBLE_AFTER_DAYS:
+        # >= not >: at calendar age exactly CHECKPOINT_ELIGIBLE_AFTER_DAYS the
+        # eligibility cutoff (date <= as_of - N) already admits the record the
+        # same night — it must not simultaneously be prunable (round-3 pre-fix).
+        if (now - rec_date).days >= CHECKPOINT_ELIGIBLE_AFTER_DAYS:
             continue  # membership of fired looks is immutable — never prune aged records
         dec = load_decision(date, picks_dir)
         if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":

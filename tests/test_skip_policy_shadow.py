@@ -415,3 +415,21 @@ def test_prune_superseded_never_touches_aged_records(tmp_path):
     (tmp_path / "2026-07-09" / "decision.json").unlink()
     removed = prune_superseded(tmp_path, now=datetime(2026, 7, 10, tzinfo=UTC))
     assert removed == ["2026-07-09"]
+
+
+def test_prune_fence_and_eligibility_never_overlap(tmp_path):
+    # Boundary (round-3 pre-fix): at calendar age exactly
+    # CHECKPOINT_ELIGIBLE_AFTER_DAYS a record must NOT be prunable — the
+    # eligibility cutoff (date <= as_of - 4d) admits it that same night, and
+    # a record that is both eligible and prunable reopens the R5 hole.
+    from datetime import date
+    from bts.skip_policy_shadow import CHECKPOINT_ELIGIBLE_AFTER_DAYS, prune_superseded
+    _write_mdp_skip("2026-07-06", tmp_path, bid=3)
+    record_skip_from_decision("2026-07-06", tmp_path)
+    (tmp_path / "2026-07-06" / "decision.json").unlink()
+    # age exactly 4 calendar days (eligible tonight): must be fenced
+    now = datetime(2026, 7, 10, 12, 0, tzinfo=UTC)
+    assert (date(2026, 7, 10) - date(2026, 7, 6)).days == CHECKPOINT_ELIGIBLE_AFTER_DAYS
+    removed = prune_superseded(tmp_path, now=now)
+    assert removed == []
+    assert decision_path("2026-07-06", tmp_path).exists()
