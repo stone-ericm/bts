@@ -34,3 +34,5 @@ modal_audit/
 data/simulation_seed*/
 data/simulation/profiles_seed*_season*.parquet
 data/simulation/pa_predictions_seed*_season*.parquet
+data/validation/park_drag_screen_2026*/
+.DS_Store
