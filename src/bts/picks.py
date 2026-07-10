@@ -1010,30 +1010,42 @@ def reconcile_results(
     today = date_cls.today()
     corrections = []
 
+    # Phase 1 (unlocked): resolve boxscore data — network, potentially slow.
+    proposals = []
     for i in range(1, lookback_days + 1):
         d = (today - td(days=i)).isoformat()
         daily = load_pick(d, picks_dir)
         if not daily or daily.result not in ("hit", "miss", "void"):
             continue
-
         slot_results = resolve_daily_slot_results(daily, d)
         if slot_results is None:
             continue
+        proposals.append((d, slot_results))
 
-        current_result = effective_daily_result(slot_results)
-        if current_result != daily.result:
-            corrections.append({
-                "date": d,
-                "batter": daily.pick.batter_name,
-                "old_result": daily.result,
-                "new_result": current_result,
-            })
-            daily.result = current_result
-            daily.slot_results = slot_results
-            save_pick(daily, picks_dir)
-        elif slot_results != daily.slot_results:
-            daily.slot_results = slot_results
-            save_pick(daily, picks_dir)
+    # Phase 2 (locked): reconcile is a writer of BOTH pick files and
+    # streak.json, racing the daemon's result polling until 05:00 (review
+    # 2026-07-09 #4). Reload each pick inside the lock and re-derive against
+    # its CURRENT contents; the season replay + streak save stay inside too
+    # (file I/O only — sub-second).
+    with scoring_lock(picks_dir):
+        for d, slot_results in proposals:
+            daily = load_pick(d, picks_dir)
+            if not daily or daily.result not in ("hit", "miss", "void"):
+                continue
+            current_result = effective_daily_result(slot_results)
+            if current_result != daily.result:
+                corrections.append({
+                    "date": d,
+                    "batter": daily.pick.batter_name,
+                    "old_result": daily.result,
+                    "new_result": current_result,
+                })
+                daily.result = current_result
+                daily.slot_results = slot_results
+                save_pick(daily, picks_dir)
+            elif slot_results != daily.slot_results:
+                daily.slot_results = slot_results
+                save_pick(daily, picks_dir)
 
     # Recompute the streak by FORWARD replay over the season — catches result
     # corrections AND streak-increment bugs, and (unlike the old backward walk)
@@ -1042,10 +1054,10 @@ def reconcile_results(
     # can't reconstruct (see _replay_season_streak / audit D4). On incomplete or
     # unreadable history the replay returns None and we keep the live-tracked
     # streak.json rather than risk a mis-count (fail closed).
-    today_iso = date_cls.today().isoformat()
-    replay = _replay_season_streak(picks_dir, today.year, today_iso)
-    if replay is not None:
-        streak, saver = replay
-        save_streak(streak, picks_dir, saver_available=saver)
+        today_iso = date_cls.today().isoformat()
+        replay = _replay_season_streak(picks_dir, today.year, today_iso)
+        if replay is not None:
+            streak, saver = replay
+            save_streak(streak, picks_dir, saver_available=saver)
 
     return corrections

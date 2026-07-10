@@ -97,3 +97,132 @@ def test_check_results_skips_when_peer_scored_mid_flight(tmp_path, monkeypatch):
         f"streak must not be double-applied (got {streak['streak']}): {r.output}"
     )
     assert "lready" in r.output  # "Already resolved by another scorer"
+
+
+def test_save_nonterminal_result_refuses_to_clobber_terminal(tmp_path):
+    """Review round 2 #1: the daemon's cap/unresolved/suspended writers must
+    not overwrite a terminal result a peer scored while their stale object
+    was in hand."""
+    from bts.scheduler import save_nonterminal_result
+    import bts.picks as picks_mod
+
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    _plant_scoreable_pick(picks_dir, "2026-07-08")
+    peer = picks_mod.load_pick("2026-07-08", picks_dir)
+    peer.result = "hit"
+    picks_mod.save_pick(peer, picks_dir)
+
+    fresh = save_nonterminal_result("2026-07-08", picks_dir, "unresolved")
+
+    assert fresh is not None and fresh.result == "hit"
+    assert picks_mod.load_pick("2026-07-08", picks_dir).result == "hit"
+
+
+def test_save_nonterminal_result_marks_when_not_terminal(tmp_path):
+    from bts.scheduler import save_nonterminal_result
+    import bts.picks as picks_mod
+
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    _plant_scoreable_pick(picks_dir, "2026-07-08")
+
+    fresh = save_nonterminal_result("2026-07-08", picks_dir, "suspended")
+
+    assert fresh is not None and fresh.result == "suspended"
+    assert picks_mod.load_pick("2026-07-08", picks_dir).result == "suspended"
+
+
+def test_check_results_fails_closed_when_pick_vanishes(tmp_path, monkeypatch):
+    """Review round 2 #6: fresh=None inside the lock must not resurrect and
+    score the stale object."""
+    from bts.cli import cli
+    import bts.picks as picks_mod
+
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    _plant_scoreable_pick(picks_dir, "2026-07-08")
+    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+
+    def resolve_and_delete(daily, date):
+        (picks_dir / "2026-07-08.json").unlink()
+        return {"pick": "hit"}
+
+    monkeypatch.setattr(picks_mod, "resolve_daily_slot_results", resolve_and_delete)
+    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08",
+                                 "--picks-dir", str(picks_dir)])
+
+    assert r.exit_code == 0, r.output
+    assert json.loads((picks_dir / "streak.json").read_text())["streak"] == 5
+    assert not (picks_dir / "2026-07-08.json").exists(), "stale object must not be resurrected"
+
+
+def test_check_results_adopts_fresh_metadata_before_scoring(tmp_path, monkeypatch):
+    """Review round 2 #6: a concurrent metadata update (nonterminal) must not
+    be clobbered by saving the stale pre-lock object."""
+    from bts.cli import cli
+    import bts.picks as picks_mod
+
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    _plant_scoreable_pick(picks_dir, "2026-07-08")
+    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+
+    def resolve_and_touch_metadata(daily, date):
+        peer = picks_mod.load_pick(date, picks_dir)
+        peer.notification_id = "peer-updated-mid-flight"
+        picks_mod.save_pick(peer, picks_dir)
+        return {"pick": "hit"}
+
+    monkeypatch.setattr(picks_mod, "resolve_daily_slot_results", resolve_and_touch_metadata)
+    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08",
+                                 "--picks-dir", str(picks_dir)])
+
+    assert r.exit_code == 0, r.output
+    scored = picks_mod.load_pick("2026-07-08", picks_dir)
+    assert scored.result == "hit"
+    assert scored.notification_id == "peer-updated-mid-flight"
+
+
+def test_reconcile_results_saves_under_scoring_lock(tmp_path, monkeypatch):
+    """Review round 2 #4: the 2am reconcile is a streak/pick writer and must
+    hold the shared lock during its mutation phase."""
+    import fcntl
+    import bts.picks as picks_mod
+    from datetime import date as date_cls, timedelta
+
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+    _plant_scoreable_pick(picks_dir, yesterday)
+    scored = picks_mod.load_pick(yesterday, picks_dir)
+    scored.result = "hit"
+    scored.slot_results = {"pick": "hit"}
+    picks_mod.save_pick(scored, picks_dir)
+    (picks_dir / "streak.json").write_text(json.dumps({"streak": 5}))
+
+    lock_held_during_save = []
+
+    real_save = picks_mod.save_pick
+
+    def probing_save(daily, pd):
+        with open(Path(pd) / ".scoring.lock", "w") as f:
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                lock_held_during_save.append(False)
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                lock_held_during_save.append(True)
+        return real_save(daily, pd)
+
+    # correction path: boxscore now says miss
+    monkeypatch.setattr(picks_mod, "resolve_daily_slot_results",
+                        lambda daily, d: {"pick": "miss"})
+    monkeypatch.setattr(picks_mod, "save_pick", probing_save)
+
+    corrections = picks_mod.reconcile_results(picks_dir, lookback_days=2)
+
+    assert corrections and corrections[0]["new_result"] == "miss"
+    assert lock_held_during_save and all(lock_held_during_save), (
+        "reconcile must hold scoring_lock while writing pick/streak state"
+    )

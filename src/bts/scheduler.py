@@ -1741,6 +1741,27 @@ def _check_hits_midgame(daily, date: str) -> list[bool | None]:
     return results
 
 
+def save_nonterminal_result(date: str, picks_dir: Path, result_value: str):
+    """Mark a pick unresolved/suspended WITHOUT clobbering a terminal result.
+
+    The daemon's cap, unresolved-final, and suspended branches used to write a
+    stale in-memory object unlocked; if the 1am cron scored the date while the
+    daemon's API call was in flight, the terminal hit/miss/void got overwritten
+    with a nonterminal state (review 2026-07-09 #1). Locked reload-and-refuse:
+    returns the fresh pick (caller inspects .result), or None if the file is
+    gone."""
+    from bts.picks import load_pick, save_pick, scoring_lock
+    with scoring_lock(picks_dir):
+        fresh = load_pick(date, picks_dir)
+        if fresh is None:
+            return None
+        if fresh.result in ("hit", "miss", "void"):
+            return fresh
+        fresh.result = result_value
+        save_pick(fresh, picks_dir)
+        return fresh
+
+
 def run_result_polling(
     game_pk: int,
     date: str,
@@ -1784,12 +1805,9 @@ def run_result_polling(
         if now.hour >= cap_hour_et and now.hour < 10:
             print(f"  Result polling capped at {cap_hour_et}am ET. Flagging as unresolved.",
                   file=sys.stderr)
-            daily = load_pick(date, picks_dir)
-            if daily and daily.result in ("hit", "miss", "void"):
+            fresh = save_nonterminal_result(date, picks_dir, "unresolved")
+            if fresh is not None and fresh.result in ("hit", "miss", "void"):
                 return "final"
-            if daily:
-                daily.result = "unresolved"
-                save_pick(daily, picks_dir)
             return "unresolved"
 
         daily = load_pick(date, picks_dir)
@@ -1826,15 +1844,25 @@ def run_result_polling(
                 # 1am cron scorer may have already applied this date (F13).
                 with scoring_lock(picks_dir):
                     fresh = load_pick(date, picks_dir)
-                    scored_elsewhere = (fresh is not None
-                                        and fresh.result in ("hit", "miss", "void"))
-                    if scored_elsewhere:
-                        daily = fresh
-                        new_streak = load_streak(picks_dir)
+                    if fresh is None:
+                        # pick file vanished mid-flight: fail closed, next loop
+                        # iteration handles the missing file (review #6)
+                        vanished = True
+                        scored_elsewhere = False
                     else:
-                        new_streak = update_streak([True] * n_picks, picks_dir)
-                        daily.result = "hit"
-                        save_pick(daily, picks_dir)
+                        vanished = False
+                        scored_elsewhere = fresh.result in ("hit", "miss", "void")
+                        daily = fresh  # adopt peer metadata either way
+                        if scored_elsewhere:
+                            new_streak = load_streak(picks_dir)
+                        else:
+                            new_streak = update_streak([True] * n_picks, picks_dir)
+                            daily.result = "hit"
+                            save_pick(daily, picks_dir)
+                if vanished:
+                    print("  Pick file vanished during mid-game scoring; skipping.",
+                          file=sys.stderr)
+                    continue
                 if scored_elsewhere:
                     print(f"  Result already scored elsewhere ({daily.result}); "
                           f"skipping mid-game streak update.", file=sys.stderr)
@@ -1857,16 +1885,19 @@ def run_result_polling(
                 # All games over, haven't replied yet — do final check
                 slot_results = resolve_daily_slot_results(daily, date)
                 if slot_results is None:
-                    daily.result = "unresolved"
-                    save_pick(daily, picks_dir)
+                    fresh = save_nonterminal_result(date, picks_dir, "unresolved")
+                    if fresh is not None and fresh.result in ("hit", "miss", "void"):
+                        return "final"  # peer scored while we were resolving
                     return "unresolved"
 
                 results = active_streak_results(slot_results)
                 # Lock + re-check against the 1am cron scorer (F13).
                 with scoring_lock(picks_dir):
                     fresh = load_pick(date, picks_dir)
-                    if fresh is not None and fresh.result in ("hit", "miss", "void"):
-                        daily = fresh
+                    if fresh is None:
+                        return "unresolved"  # vanished mid-flight: fail closed (review #6)
+                    daily = fresh  # adopt peer metadata before mutating
+                    if daily.result in ("hit", "miss", "void"):
                         new_streak = load_streak(picks_dir)
                         print(f"  Result already scored elsewhere ({daily.result}).",
                               file=sys.stderr)
@@ -1888,10 +1919,8 @@ def run_result_polling(
             return "final"
 
         if any_suspended:
-            daily = load_pick(date, picks_dir)
-            if daily and not early_replied:
-                daily.result = "suspended"
-                save_pick(daily, picks_dir)
+            if not early_replied:
+                save_nonterminal_result(date, picks_dir, "suspended")
             return "suspended"
 
         # Still live — wait and retry. Use _poll_interval_sleep so the

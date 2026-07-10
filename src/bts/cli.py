@@ -2083,19 +2083,30 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
     # Serialize the streak read-modify-write against the daemon's result
     # polling (review F13): re-check INSIDE the lock — the daemon may have
     # scored this date while we were resolving (the pre-check above ran
-    # before the network fetch).
+    # before the network fetch). fresh is adopted before mutation so a
+    # concurrent metadata update isn't clobbered, and fresh=None fails closed
+    # (review #6). Shadow reconciliation (network) stays OUTSIDE the lock
+    # (review #5).
+    skip_reason = None
     with scoring_lock(picks_path):
         fresh = load_pick(date, picks_path)
-        if fresh is not None and fresh.result in ("hit", "miss", "void"):
-            click.echo(f"Already resolved by another scorer: {fresh.result}. "
-                       f"Skipping streak update.")
-            reconcile_shadow_result()
-            write_shadow_status_artifact()
-            return
-        new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
-        daily.slot_results = slot_results
-        daily.result = effective_daily_result(slot_results)
-        save_pick(daily, picks_path)
+        if fresh is None:
+            skip_reason = ("Pick file disappeared during scoring; failing "
+                           "closed (no streak update).")
+        elif fresh.result in ("hit", "miss", "void"):
+            skip_reason = (f"Already resolved by another scorer: {fresh.result}. "
+                           f"Skipping streak update.")
+        else:
+            daily = fresh
+            new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
+            daily.slot_results = slot_results
+            daily.result = effective_daily_result(slot_results)
+            save_pick(daily, picks_path)
+    if skip_reason is not None:
+        click.echo(skip_reason)
+        reconcile_shadow_result()
+        write_shadow_status_artifact()
+        return
 
     reconcile_shadow_result()
     write_shadow_status_artifact()
