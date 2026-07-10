@@ -11,11 +11,11 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta, date as date_type
+from datetime import datetime, timedelta, timezone, date as date_type
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.util import retry_urlopen
+from bts.util import atomic_write_text, retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
@@ -464,17 +464,42 @@ def save_state(state: SchedulerState, picks_dir: Path) -> Path:
                 state.analytics_jobs = merged_jobs
         except Exception:
             pass
-    path.write_text(json.dumps(asdict(state), indent=2))
+    # Atomic: a crash mid-write must never tear the file the next startup
+    # parses — a torn scheduler_state.json previously meant a 30s crash-restart
+    # loop that stayed externally green (audit F3).
+    atomic_write_text(path, json.dumps(asdict(state), indent=2))
     return path
 
 
 def load_state(date: str, picks_dir: Path) -> SchedulerState | None:
-    """Load scheduler state from JSON. Returns None if not found."""
+    """Load scheduler state from JSON. Returns None if not found.
+
+    A corrupt/unparseable file is QUARANTINED (renamed *.corrupt-<ts>) and
+    treated as absent (audit F3): startup proceeds with fresh state instead of
+    crash-looping, the evidence is preserved for diagnosis, and the
+    scheduler_state_integrity health source surfaces the quarantine.
+    """
     path = picks_dir / date / "scheduler_state.json"
     if not path.exists():
         return None
-    data = json.loads(path.read_text())
-    return SchedulerState(**data)
+    try:
+        data = json.loads(path.read_text())
+        return SchedulerState(**data)
+    except (json.JSONDecodeError, TypeError, ValueError) as e:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        quarantine = path.with_name(f"{path.name}.corrupt-{stamp}")
+        try:
+            path.rename(quarantine)
+        except OSError:
+            print(f"WARNING: could not quarantine corrupt state file {path}",
+                  file=sys.stderr)
+        print(
+            f"WARNING: scheduler_state for {date} was corrupt "
+            f"({type(e).__name__}: {e}); quarantined to {quarantine.name} and "
+            f"starting with fresh state",
+            file=sys.stderr,
+        )
+        return None
 
 
 def _update_analytics_job_status(
@@ -1892,6 +1917,12 @@ def run_day(
     cap_hour_et = sched_config.get("results_cap_hour_et", 5)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     heartbeat_path = Path(config.get("orchestrator", {}).get("heartbeat_path", "data/.heartbeat"))
+    # State init BEFORE advertising liveness (audit F3): READY/heartbeat first
+    # meant a daemon about to crash on a torn state file still looked healthy
+    # to systemd, the heartbeat monitor, and the deploy canary. load_state
+    # quarantines corruption rather than raising, so a bad file degrades to a
+    # fresh day-state instead of a crash-loop either way.
+    previous_state = load_state(date, picks_dir)
     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
     notify_ready()
     notify_watchdog()
@@ -1933,7 +1964,7 @@ def run_day(
     # with one side confirmed differs from a game with both sides confirmed,
     # and the prediction pipeline notices — so we count both independently.
     confirmed_sides: set[tuple[int, str]] = set()
-    previous_state = load_state(date, picks_dir)
+    # previous_state was loaded pre-READY at the top of run_day (audit F3).
     state = SchedulerState(
         date=date,
         schedule_fetched_at=_now_et().isoformat(),
