@@ -14,6 +14,9 @@
 #   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #   */30 — capture BTS public static JSONs (pregame consensus + lookups; content-deduped, no auth)
 #   */15 10-23 — DM if today's delivered pick was never entered in the MLB app (pre-first-pitch window)
+#   20 */3 — restic 'ops' backup: data/picks + data/health_state to R2 (audit F5; needs RESTIC_PASSWORD in .env + scripts/install-restic-hetzner.sh)
+#   50 4  — restic 'archive' backup: leaderboard / hetzner_results / external
+#   35 5 Sun — restic prune (reclaims space from forgotten snapshots)
 #
 # IMPORTANT: cron's default shell is /bin/sh (= dash on Debian). dash has no
 # `source` builtin — use `. ./.env` instead. Forgetting this kills every
@@ -60,7 +63,10 @@ CRON_LINES="$MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER
 */30 * * * * $PREFIX $UV_BIN run bts leaderboard capture-static >> $LOG_DIR/static_capture.log 2>&1 $MARKER
-*/15 10-23 * * * $PREFIX $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER"
+*/15 10-23 * * * $PREFIX $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
+20 */3 * * * $PREFIX $UV_BIN run bts backup run --set ops >> $LOG_DIR/backup.log 2>&1 $MARKER
+50 4 * * * $PREFIX $UV_BIN run bts backup run --set archive >> $LOG_DIR/backup.log 2>&1 $MARKER
+35 5 * * 0 $PREFIX $UV_BIN run bts backup prune >> $LOG_DIR/backup.log 2>&1 $MARKER"
 
 case "${1:-show}" in
     install)

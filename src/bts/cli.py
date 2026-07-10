@@ -42,6 +42,9 @@ cli.add_command(experiment)
 from bts.leaderboard.cli import leaderboard
 cli.add_command(leaderboard)
 
+from bts.data.backup_cli import backup
+cli.add_command(backup)
+
 
 @cli.group()
 def validate():

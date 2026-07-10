@@ -16,6 +16,7 @@ STATE_SCHEMA_VERSION = "bts_warn_attention_state_v1"
 
 ALWAYS_ATTENTION_WARN_SOURCES = {
     "analytics_artifacts_missing",
+    "backup_freshness",            # a dead backup must not rot silently (audit F5)
     "disk_fill",
     "live_forward_resolution",
     "pick_entry",                  # committed pick never confirmed (audit F1)

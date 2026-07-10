@@ -158,6 +158,29 @@ class TestRunAllChecks:
         mock_check.assert_called_once_with(picks_dir, today=date(2026, 4, 27))
         assert expected in alerts
 
+    def test_runs_backup_freshness_check(self, tmp_path):
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        expected = Alert(level="INFO", source="backup_freshness", message="called")
+        with patch(
+            "bts.health.runner.backup_freshness.check",
+            return_value=[expected],
+        ) as mock_check:
+            alerts = run_all_checks(
+                picks_dir=picks_dir, models_dir=models_dir,
+                dm_recipient=None, today=date(2026, 4, 27),
+            )
+
+        mock_check.assert_called_once_with(
+            tmp_path / "health_state", thresholds=None,
+        )
+        assert expected in alerts
+
+    def test_backup_freshness_is_always_attention(self):
+        from bts.health.attention import ALWAYS_ATTENTION_WARN_SOURCES
+        assert "backup_freshness" in ALWAYS_ATTENTION_WARN_SOURCES
+
     def test_dm_dispatcher_called_with_full_alert_list(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()

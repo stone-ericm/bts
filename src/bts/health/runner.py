@@ -15,6 +15,7 @@ from pathlib import Path
 
 from bts.health import (
     analytics_artifacts_missing,
+    backup_freshness,
     blend_training,
     calibration,
     contest_state,
@@ -218,6 +219,10 @@ def run_all_checks(
     # Tier 3 — process integrity
     alerts.extend(_safe_run("disk_fill", lambda: disk_fill.check(
         picks_dir, thresholds=overrides.get("disk_fill"),
+    )))
+    alerts.extend(_safe_run("backup_freshness", lambda: backup_freshness.check(
+        picks_dir.parent / "health_state",
+        thresholds=overrides.get("backup_freshness"),
     )))
     alerts.extend(_safe_run("scheduler_state_integrity", lambda: scheduler_state_integrity.check(
         picks_dir, today=today, thresholds=overrides.get("scheduler_state_integrity"),
