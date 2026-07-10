@@ -570,3 +570,37 @@ def test_archive_historical_raw(tmp_path, mock_bucket):
     # Verify the tarball exists in R2
     obj = mock_bucket.get_object(Bucket="test-bucket", Key="raw-archive-2017-2025.tar.gz")
     assert obj["ContentLength"] > 0
+
+
+def test_prev_manifest_copy_failure_aborts_publish(mock_bucket, tmp_path):
+    """Round-3 catch: the round-2 commit CLAIMED this fail-closed behavior but
+    the code still warned-and-published. If the outgoing manifest can't be
+    preserved as manifest.prev.json, publishing anyway makes the outgoing
+    generation immediately pruneable under a concurrent reader — abort the
+    sync instead (the next run retries)."""
+    from botocore.exceptions import ClientError as BotoClientError
+    from bts.data.sync import PREV_MANIFEST_KEY, read_manifest, sync_to_r2
+    processed, models = _mk_dirs(tmp_path)
+    pq = processed / "pa_2026.parquet"
+
+    pq.write_bytes(b"gen-one")
+    client = R2Client.from_env()
+    m1 = sync_to_r2(client=client, processed_dir=processed, models_dir=models)
+
+    pq.write_bytes(b"gen-two")
+    real_copy = client.copy_object
+
+    def failing_copy(src_key, dst_key):
+        if dst_key == PREV_MANIFEST_KEY:
+            raise BotoClientError({"Error": {"Code": "InternalError"}}, "CopyObject")
+        return real_copy(src_key, dst_key)
+
+    client.copy_object = failing_copy
+    with pytest.raises(RuntimeError, match="prev manifest"):
+        sync_to_r2(client=client, processed_dir=processed, models_dir=models)
+
+    # the new manifest must NOT have been published
+    client.copy_object = real_copy
+    current = read_manifest(client)
+    assert current["files"]["parquets/pa_2026.parquet"]["sha256"] == \
+        m1["files"]["parquets/pa_2026.parquet"]["sha256"]

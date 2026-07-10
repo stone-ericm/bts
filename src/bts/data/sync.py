@@ -272,12 +272,19 @@ def sync_to_r2(
     # Preserve the outgoing manifest as manifest.prev.json BEFORE the flip:
     # prune spares objects referenced by either generation, so a restore
     # that loaded the manifest just before this sync keeps its objects
-    # (Codex review I2 — one full generation of reader grace).
+    # (Codex review I2 — one full generation of reader grace). FAIL CLOSED
+    # (round-2 R3, actually implemented in round 3 — the round-2 commit
+    # claimed it without the edit): publishing without the preserved prev
+    # would make the outgoing generation immediately pruneable under a
+    # concurrent reader. Abort instead; the next sync retries.
     if current_manifest.get("files"):
         try:
             client.copy_object(DEFAULT_MANIFEST_KEY, PREV_MANIFEST_KEY)
         except ClientError as e:
-            print(f"  warn: could not preserve prev manifest: {e}", file=sys.stderr)
+            raise RuntimeError(
+                f"could not preserve prev manifest ({e}); aborting sync before "
+                f"publish — the outgoing generation must stay prune-protected"
+            ) from e
     write_manifest_atomic(client, new_manifest)
     return new_manifest
 
