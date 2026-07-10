@@ -74,15 +74,49 @@ _ALLOWED = {
 }
 
 
+def _append_audit(picks_dir: Path, *, expected_prior: str, new_state: str, season: int,
+                  source: str, peer: str | None, outcome: str) -> None:
+    """Append-only transition audit trail (audit F7, accepted-risk detective control).
+
+    saver_state.json keeps only the LAST write; this jsonl keeps every attempt
+    — including rejected ones, which are exactly what a detective control for
+    an unauthenticated tailnet endpoint wants to see. Lives inside data/picks,
+    so the F5 ops backup carries it off-box. Best-effort: an audit write
+    failure must never block the state transition itself.
+    """
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "expected_prior": expected_prior,
+        "new_state": new_state,
+        "season": season,
+        "source": source,
+        "outcome": outcome,
+    }
+    if peer is not None:
+        entry["peer"] = peer
+    try:
+        log_path = _path(picks_dir).parent / "saver_transitions.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError:
+        pass
+
+
 def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: str,
-                           season: int, source: str, force: bool = False) -> bool:
+                           season: int, source: str, force: bool = False,
+                           peer: str | None = None) -> bool:
     """Guarded atomic transition: writes `new_state` ONLY if (a) `new_state` is valid, (b)
     `(expected_prior, new_state)` is an allowed transition (unless `force`), and (c) the current
     persisted state still equals `expected_prior` (re-read just before writing). Returns True iff
-    written. The single monotonic-safe write path — auto-earn, CLI, and the dashboard all use it."""
+    written. The single monotonic-safe write path — auto-earn, CLI, and the dashboard all use it.
+    Every attempt is appended to saver_transitions.jsonl; `peer` records the requesting client
+    for network-originated mutations (audit F7)."""
     if new_state not in _PERSISTED:
         raise ValueError(f"invalid saver state: {new_state!r}")
     if not force and (expected_prior, new_state) not in _ALLOWED:
+        _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                      season=season, source=source, peer=peer, outcome="rejected_disallowed")
         return False
     lock_path = _path(picks_dir).with_suffix(".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,8 +126,13 @@ def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: s
         # same prior could both pass the check before either writes (a lost update).
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         if load_saver_state(picks_dir, season=season).state != expected_prior:
+            _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                          season=season, source=source, peer=peer,
+                          outcome="rejected_state_mismatch")
             return False
         _write_state(picks_dir, state=new_state, season=season, source=source)
+        _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                      season=season, source=source, peer=peer, outcome="written")
         return True
 
 

@@ -115,3 +115,49 @@ def test_concurrent_transitions_from_same_prior_serialize(tmp_path):
     for t in threads:
         t.join()
     assert sum(results) == 1
+
+
+# --- F7 (2026-07-09 audit, accepted-risk + detective control): every
+# transition attempt through the guarded writer lands in an append-only
+# audit trail (inside data/picks -> covered by the F5 ops backup), with
+# the requesting peer recorded when the mutation came over the network.
+
+def test_transition_appends_audit_line_with_peer(tmp_path):
+    import json as _json
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
+                           season=2026, source="t")
+    transition_saver_state(tmp_path, expected_prior="active", new_state="used",
+                           season=2026, source="dashboard", peer="100.64.1.2")
+    log = tmp_path / "account_state" / "saver_transitions.jsonl"
+    lines = [_json.loads(l) for l in log.read_text().splitlines()]
+    assert lines[-1]["source"] == "dashboard"
+    assert lines[-1]["peer"] == "100.64.1.2"
+    assert lines[-1]["outcome"] == "written"
+    assert lines[-1]["expected_prior"] == "active"
+    assert lines[-1]["new_state"] == "used"
+    assert lines[-1]["ts"]
+
+
+def test_rejected_transition_is_also_audited(tmp_path):
+    import json as _json
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
+                           season=2026, source="t")
+    ok = transition_saver_state(tmp_path, expected_prior="used", new_state="active",
+                                season=2026, source="dashboard", peer="100.64.9.9")
+    assert ok is False
+    log = tmp_path / "account_state" / "saver_transitions.jsonl"
+    lines = [_json.loads(l) for l in log.read_text().splitlines()]
+    assert lines[-1]["outcome"] == "rejected_state_mismatch"
+    assert lines[-1]["peer"] == "100.64.9.9"
+
+
+def test_disallowed_transition_not_audited_as_written(tmp_path):
+    import json as _json
+    transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active",
+                           season=2026, source="t")
+    ok = transition_saver_state(tmp_path, expected_prior="active", new_state="not_earned",
+                                season=2026, source="dashboard", peer="100.64.9.9")
+    assert ok is False
+    log = tmp_path / "account_state" / "saver_transitions.jsonl"
+    lines = [_json.loads(l) for l in log.read_text().splitlines()]
+    assert lines[-1]["outcome"] == "rejected_disallowed"

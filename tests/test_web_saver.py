@@ -156,3 +156,18 @@ def test_do_post_saver_transition_socket_wiring(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_dashboard_transition_records_peer_ip(tmp_path):
+    # F7: the web handler threads the requesting peer into the audit trail.
+    _setup(tmp_path, "active")
+    code, _ = saver_transition_response(
+        tmp_path, expected_prior="active", new_state="used",
+        same_origin=True, now=NOW, peer_ip="100.64.7.7",
+    )
+    assert code == 200
+    log = tmp_path / "account_state" / "saver_transitions.jsonl"
+    last = json.loads(log.read_text().splitlines()[-1])
+    assert last["peer"] == "100.64.7.7"
+    assert last["source"] == "dashboard"
+    assert last["outcome"] == "written"

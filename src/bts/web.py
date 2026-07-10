@@ -162,9 +162,12 @@ def saver_dashboard_context(picks_dir, *, now) -> SaverDashboardContext:
 _DASHBOARD_TRANSITIONS = {("active", "used"), ("used", "active")}
 
 
-def saver_transition_response(picks_dir, *, expected_prior, new_state, same_origin, now):
+def saver_transition_response(picks_dir, *, expected_prior, new_state, same_origin, now,
+                              peer_ip=None):
     """Guarded dashboard transition -> (status_code, message). 403 cross-origin; 409 for a non-UI
-    transition, a bogus state, or a guard mismatch; 200 success. Never raises."""
+    transition, a bogus state, or a guard mismatch; 200 success. Never raises. `peer_ip` lands in
+    the saver_transitions.jsonl audit trail (audit F7 — tailnet membership is the only authn on
+    this endpoint by accepted risk, so every mutation attempt records who asked)."""
     from bts.saver_state import transition_saver_state
     if not same_origin:
         return 403, "cross-origin request rejected"
@@ -172,7 +175,7 @@ def saver_transition_response(picks_dir, *, expected_prior, new_state, same_orig
         return 409, "only mark-used / undo are available from the dashboard"
     season, _ = _saver_season(picks_dir, now)
     ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,
-                                season=season, source="dashboard")
+                                season=season, source="dashboard", peer=peer_ip)
     return (200, f"saver -> {new_state}") if ok else (409, f"rejected: state is not {expected_prior!r}")
 
 
@@ -1789,6 +1792,7 @@ class Handler(BaseHTTPRequestHandler):
             new_state=form.get("new_state", [""])[0],
             same_origin=_same_origin(self.headers, self.headers.get("Host")),
             now=datetime.now(timezone.utc),
+            peer_ip=self.client_address[0],
         )
         if code == 200:        # PRG: redirect back to the dashboard
             self.send_response(303)
