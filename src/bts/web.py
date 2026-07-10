@@ -377,11 +377,26 @@ def render_skip_policy_shadow_section(status: dict) -> str:
     ci = band.get("wilson_ci")
     rate_str = f"{rate:.1%}" if isinstance(rate, (int, float)) else "n/a"
     ci_str = f" [{ci[0]:.0%}&ndash;{ci[1]:.0%}]" if isinstance(ci, list) and len(ci) == 2 else ""
+    # The verdict comes from pre-registered checkpoint looks over a FIXED
+    # early sample; the running rate/CI above is monitoring-only. Rendering
+    # them side-by-side without the basis invited misreads (Codex #10).
+    basis = band.get("verdict_basis") or {}
+    if basis.get("checkpoint"):
+        bci = basis.get("ci")
+        bci_str = (f" [{bci[0]:.0%}&ndash;{bci[1]:.0%}]"
+                   if isinstance(bci, list) and len(bci) == 2 else "")
+        basis_str = (
+            f" Verdict basis: pre-registered look at n={basis['checkpoint']} "
+            f"({basis.get('hits_used')}/{basis.get('n_used')}{bci_str}, z={basis.get('z')})."
+        )
+    else:
+        basis_str = " Verdict awaits the first pre-registered look (n=30 eligible)."
     detail = (
         f"\"Pick-the-band\" shadow policy: on {_status_int(counts.get('divergent_days'))} day(s) the deployed "
         f"MDP skipped a sub-0.796 top candidate at streak&ge;8. Skipped picks have realized "
         f"{rate_str}{ci_str} ({_status_int(band.get('hits'))}/{_status_int(band.get('resolved'))} resolved, "
-        f"{_status_int(counts.get('pending'))} pending) vs the {breakeven:.3f} breakeven."
+        f"{_status_int(counts.get('pending'))} pending; monitoring only) vs the {breakeven:.3f} breakeven."
+        f"{basis_str}"
     )
     return f"""
         <div class="policy-shadow">

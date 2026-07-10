@@ -372,3 +372,42 @@ def test_restore_drill_reports_problems(tmp_path):
     )
     assert result["ok"] is False
     assert result["problems"]
+
+
+def test_failed_run_preserves_last_success_snapshot_id(tmp_path):
+    # Codex round-2 R1: a failed run replaced the status entry and dropped
+    # the successful snapshot_id — the drill then fell back to 'latest',
+    # which can be the failed run's PARTIAL snapshot (the I4 condition).
+    repo = _mk_repo(tmp_path)
+    (repo / "data/health_state/backup_status.json").write_text(json.dumps(
+        {"ops": {"set": "ops", "ok": True, "snapshot_id": "goodsnap",
+                 "last_success_at": "2026-07-10T12:00:00+00:00"}}
+    ))
+    runner = FakeRunner(results=[(3, "", "partial backup")])
+    status = backup.run_backup(
+        "ops", repo, env=BASE_ENV, runner=runner, now_fn=lambda: FIXED_NOW,
+    )
+    assert status["ok"] is False
+    assert status["last_success_snapshot_id"] == "goodsnap"
+
+
+def test_restore_drill_uses_last_success_snapshot_even_after_failed_run(tmp_path):
+    repo = _mk_repo(tmp_path)
+    (repo / "data/health_state/backup_status.json").write_text(json.dumps(
+        {"ops": {"set": "ops", "ok": False, "error": "rc=3 partial",
+                 "last_success_snapshot_id": "goodsnap",
+                 "last_success_at": "2026-07-10T12:00:00+00:00"}}
+    ))
+    target = tmp_path / "drill"
+
+    def materialize(cmd):
+        if "restore" in cmd:
+            _mk_restored_ops_tree(target)
+
+    runner = FakeRunner(results=[(0, "", "")], side_effect=materialize)
+    result = backup.restore_drill(
+        repo_root=repo, target=target, env=BASE_ENV, runner=runner,
+    )
+    cmd = runner.calls[0]["cmd"]
+    assert "goodsnap" in cmd and "latest" not in cmd
+    assert result["snapshot"] == "goodsnap"

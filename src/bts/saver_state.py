@@ -99,8 +99,15 @@ def _append_audit(picks_dir: Path, *, expected_prior: str, new_state: str,
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(log_path, "a") as f:
             f.write(json.dumps(entry) + "\n")
-    except OSError:
-        pass
+    except OSError as e:
+        # Never block the transition — but the trail IS the accepted-risk
+        # detective control (F7), so a silent append failure would mean an
+        # unaudited mutation. Shout to the journal (Codex full-batch #4).
+        import logging
+        logging.getLogger(__name__).error(
+            "saver audit append FAILED (%s) — transition %s->%s outcome=%s is UNAUDITED",
+            e, expected_prior, new_state, outcome,
+        )
 
 
 def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: str,
@@ -144,10 +151,19 @@ def append_probe_audit(picks_dir: Path, *, expected_prior: str, new_state: str,
 
     403/409 probes against the unauthenticated dashboard endpoint are exactly
     what the F7 detective control exists to see; without this they left no
-    trace. Best-effort, never raises.
+    trace. Takes the same flock as the guarded writer so the trail's line
+    order matches actual attempt order (round-2 R7). Best-effort, never raises.
     """
-    _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
-                  season=None, source="dashboard", peer=peer, outcome=outcome)
+    try:
+        lock_path = _path(picks_dir).with_suffix(".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w") as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                          season=None, source="dashboard", peer=peer, outcome=outcome)
+    except OSError:
+        _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                      season=None, source="dashboard", peer=peer, outcome=outcome)
 
 
 def maybe_auto_earn_saver(picks_dir: Path, *, best_streak: int | None, season: int) -> None:

@@ -25,7 +25,11 @@ permissions:
 
 concurrency:
   group: deploy
-  cancel-in-progress: true
+  # Queue, never cancel (Codex round-2 R6): cancellation is applied at run
+  # level BEFORE the job-level environment gate, so a mistaken main-branch
+  # dispatch could kill an in-flight deploy mid-SSH — after the box changed
+  # but before its canary/rollback — and only then fail the branch policy.
+  cancel-in-progress: false
 
 jobs:
   deploy:

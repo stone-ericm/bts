@@ -105,8 +105,11 @@ from the cloud (§3) → escalate.
   put `RESTIC_PASSWORD` into `.env` (copy lives in Eric's Mac Keychain:
   `security find-generic-password -a claude-cli -s r2-bts-restic-password -w`) alongside the
   `R2_*` creds, then `bts backup restore-drill --target /tmp/restore-drill` to prove the
-  snapshot reads back (verifies saver flag + contest ledger + decision provenance), and restore
-  for real with `~/.local/bin/restic restore latest --tag ops --target /` — restic re-creates
+  snapshot reads back (verifies streak + saver flag + contest ledger + decision provenance),
+  and restore for real **by the snapshot ID the drill printed — never `latest`** (`latest
+  --tag ops` can select a partial rc=3 snapshot from a failed run; the drill prefers
+  `last_success_snapshot_id` from the backed-up status file):
+  `~/.local/bin/restic restore <SNAPSHOT_ID> --target /` — restic re-creates
   the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
   the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
   `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately.

@@ -145,16 +145,27 @@ def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
     return record
 
 
-def prune_superseded(picks_dir) -> list[str]:
-    """Delete any policy_shadow record whose date's decision.json is no longer an MDP skip.
+def prune_superseded(picks_dir, *, now: datetime | None = None) -> list[str]:
+    """Delete a RECENT policy_shadow record whose date's decision.json is no longer an MDP skip.
 
     Handles the case where a provisional skip was later superseded by a committed pick written
-    to decision.json (e.g. late delivery after a fallback). Returns the removed dates.
+    to decision.json (e.g. late delivery after a fallback) — a same-day/next-day event. Records
+    older than the checkpoint-eligibility window are NEVER pruned (Codex round-2 R5): they may
+    be members of an already-fired pre-registered look, and deleting one would reshuffle the
+    first-c window and un-decide a terminal verdict. An old date whose decision.json vanishes
+    is an anomaly to investigate, not a supersession. Returns the removed dates.
     """
     from bts.daily_decision import load_decision
+    now = now or datetime.now(timezone.utc)
     removed = []
     for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
         date = f.name[: -len(".policy_shadow.json")]
+        try:
+            rec_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if (now - rec_date).days > CHECKPOINT_ELIGIBLE_AFTER_DAYS:
+            continue  # membership of fired looks is immutable — never prune aged records
         dec = load_decision(date, picks_dir)
         if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
             try:

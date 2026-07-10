@@ -193,6 +193,14 @@ def run_backup(
         }
         if "last_success_at" not in entry:
             entry["last_success_at"] = prior.get("last_success_at")
+        # Carry the last SUCCESSFUL snapshot id across failures (Codex round-2
+        # R1): without it, one failed run made the drill fall back to
+        # 'latest --tag ops' — which can be the failed run's partial snapshot.
+        if "last_success_snapshot_id" not in entry:
+            carried = prior.get("last_success_snapshot_id")
+            if carried is None and prior.get("ok") and prior.get("snapshot_id"):
+                carried = prior.get("snapshot_id")
+            entry["last_success_snapshot_id"] = carried
         _write_status_entry(repo_root, set_name, entry)
         return entry
 
@@ -265,6 +273,7 @@ def run_backup(
         "rc": 0,
         "last_success_at": finished.isoformat(),
         "snapshot_id": summary.get("snapshot_id"),
+        "last_success_snapshot_id": summary.get("snapshot_id"),
         "data_added": summary.get("data_added"),
         "total_files_processed": summary.get("total_files_processed"),
         "duration_sec": (finished - started).total_seconds(),
@@ -388,9 +397,11 @@ def restore_drill(
         return {"ok": False, "problems": [str(e)]}
 
     ops_status = read_status(repo_root).get("ops", {})
-    snapshot = (ops_status.get("snapshot_id")
-                if ops_status.get("ok") and ops_status.get("snapshot_id")
-                else None)
+    # last_success_snapshot_id survives failed runs (round-2 R1); legacy
+    # fallback: an ok entry's snapshot_id.
+    snapshot = ops_status.get("last_success_snapshot_id")
+    if not snapshot and ops_status.get("ok"):
+        snapshot = ops_status.get("snapshot_id")
     cmd = [restic_bin(env), "restore", snapshot or "latest"]
     if snapshot is None:
         cmd += ["--tag", "ops"]

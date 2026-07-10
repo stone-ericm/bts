@@ -659,6 +659,33 @@ class TestSchedulerRun:
         assert should_post is False
         assert ungated is True  # gap passes, primary confirmed — gate-only block
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "F", "detailed": "Postponed"},
+        200: {"abstract": "P", "detailed": "Scheduled"},
+    })
+    def test_lock_blocked_when_selected_slot_game_unavailable(self, _detailed):
+        # Codex round-2 R4: the pick was selected while its game was Preview;
+        # the game went postponed before the lock decision. Its row vanishes
+        # from the contender set (no projected contender left), so the stale
+        # confirmed-lineup flag would have locked it — fail closed instead.
+        import pandas as pd
+        from bts.scheduler import _lock_decision_from_predictions
+
+        predictions = pd.DataFrame([
+            {
+                "batter_name": "Double", "batter_id": 3, "team": "MIN",
+                "lineup": 1, "pitcher_name": "Gray", "pitcher_id": 4,
+                "game_pk": 200, "game_time": "2026-04-04T23:15:00Z",
+                "p_hit_pa": 0.28, "p_game_hit": 0.61, "flags": "",
+            },
+        ])
+        daily = _daily_pick(100)  # primary's game 100 is postponed
+        should_post, best_projected, ungated = _lock_decision_from_predictions(
+            predictions, daily, "2026-04-04", early_lock_gap=0.03,
+        )
+        assert should_post is False
+        assert ungated is False
+
     def test_should_defer_at_fallback_gate_only_block_delivers(self):
         from bts.scheduler import _should_defer_at_fallback
 

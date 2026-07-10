@@ -936,6 +936,22 @@ def _lock_decision_from_predictions(
         )
         return False, None, False
 
+    # Round-2 R4: the SELECTED slots must themselves still be lockable.
+    # Contender rows are status-filtered below, but the committed pick/DD
+    # were chosen from an earlier status snapshot — a game that went
+    # postponed/started in between must block the lock (fail closed to the
+    # fallback machinery, which re-picks), not ride a stale lineup flag.
+    for slot in (daily.pick, daily.double_down):
+        if slot is None:
+            continue
+        if not pick_candidate_status_is_available(detailed_statuses.get(slot.game_pk)):
+            print(
+                f"  Selected slot's game {slot.game_pk} is no longer available "
+                f"(postponed/started/missing); should_lock=False.",
+                file=sys.stderr,
+            )
+            return False, None, False
+
     pick_data = {
         "p_game_hit": daily.pick.p_game_hit,
         "projected_lineup": daily.pick.projected_lineup,

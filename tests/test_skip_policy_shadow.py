@@ -97,10 +97,13 @@ def test_prune_drops_record_when_decision_no_longer_mdp_skip(tmp_path):
     write_decision("2026-06-18", tmp_path, action="skip", source="mdp", primary=_cand(),
                    delivery_status="not_applicable", scoreable=False)
     record_skip_from_decision("2026-06-18", tmp_path)
-    # decision flips to a committed pick (e.g. late delivery)
+    # decision flips to a committed pick (e.g. late delivery) — a SAME-DAY
+    # event, so prune sees it inside the age fence (round-2 R5)
     write_decision("2026-06-18", tmp_path, action="single", source="mdp", primary=_cand(),
                    delivery_status="delivered", scoreable=True)
-    assert prune_superseded(tmp_path) == ["2026-06-18"]
+    assert prune_superseded(
+        tmp_path, now=datetime(2026, 6, 18, 23, 0, tzinfo=UTC),
+    ) == ["2026-06-18"]
     assert not decision_path("2026-06-18", tmp_path).exists()
 
 
@@ -388,3 +391,27 @@ def test_end_to_end_decision_to_status(tmp_path):
     assert s["counts"]["divergent_days"] == 1
     assert s["shadow_band_hit_rate"]["resolved"] == 1
     assert s["shadow_band_hit_rate"]["hits"] == 0
+
+
+def test_prune_superseded_never_touches_aged_records(tmp_path):
+    # Codex round-2 R5: the same-day-flip claim must be ENFORCED — an old
+    # record whose decision.json later vanishes/corrupts (backdated recovery
+    # run, disk repair) must NOT be pruned, or a fired checkpoint's
+    # membership could change. Age-fence: only records younger than the
+    # eligibility window are prunable.
+    from bts.skip_policy_shadow import prune_superseded
+    _write_mdp_skip("2026-05-01", tmp_path, bid=1)
+    record_skip_from_decision("2026-05-01", tmp_path)
+    # decision.json vanishes long after the fact
+    (tmp_path / "2026-05-01" / "decision.json").unlink()
+
+    removed = prune_superseded(tmp_path, now=datetime(2026, 7, 10, tzinfo=UTC))
+    assert removed == []
+    assert decision_path("2026-05-01", tmp_path).exists()
+
+    # a RECENT superseded record still prunes (the real same-day case)
+    _write_mdp_skip("2026-07-09", tmp_path, bid=2)
+    record_skip_from_decision("2026-07-09", tmp_path)
+    (tmp_path / "2026-07-09" / "decision.json").unlink()
+    removed = prune_superseded(tmp_path, now=datetime(2026, 7, 10, tzinfo=UTC))
+    assert removed == ["2026-07-09"]

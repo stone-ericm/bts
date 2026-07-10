@@ -1026,7 +1026,8 @@ def data_verify_manifest():
     click.echo(f"updated_at:     {report['updated_at']} ({age_str})")
     click.echo(f"n_files:        {report['n_files']}")
     click.echo(f"stale:          {report['stale']}")
-    click.echo(f"objects_ok:     {report['objects_ok']}"
+    click.echo(f"objects_ok:     {report['objects_ok']} (existence+size only; "
+               f"restores verify sha256)"
                + (f" (missing: {report['objects_missing']}, "
                   f"size mismatch: {report['objects_size_mismatch']})"
                   if not report['objects_ok'] else ""))
@@ -2413,8 +2414,15 @@ def skip_policy_shadow_status(status_file):
     click.echo(f"  divergent days: {c['divergent_days']}  ({c['resolved_divergent']} resolved, {c['pending']} pending)")
     rate = f"{v['rate']:.1%}" if v["rate"] is not None else "n/a"
     ci = f" CI[{v['wilson_ci'][0]:.1%},{v['wilson_ci'][1]:.1%}]" if v["wilson_ci"] else ""
-    click.echo(f"  skipped-band realized hit rate: {rate}{ci}  vs breakeven {v['breakeven_p']:.3f}")
-    click.echo(f"  VERDICT: {v['verdict']}")
+    click.echo(f"  skipped-band realized hit rate: {rate}{ci}  vs breakeven {v['breakeven_p']:.3f}  (monitoring only)")
+    basis = v.get("verdict_basis") or {}
+    if basis.get("checkpoint"):
+        bci = basis.get("ci")
+        bci_str = f" CI[{bci[0]:.1%},{bci[1]:.1%}]" if bci else ""
+        click.echo(f"  VERDICT: {v['verdict']}  — pre-registered look at n={basis['checkpoint']} "
+                   f"({basis.get('hits_used')}/{basis.get('n_used')}{bci_str}, z={basis.get('z')})")
+    else:
+        click.echo(f"  VERDICT: {v['verdict']}  — no pre-registered look fired yet")
 
 
 @cli.command(name="shadow-backfill-results")

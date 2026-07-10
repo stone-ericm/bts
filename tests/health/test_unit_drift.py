@@ -89,3 +89,16 @@ def test_tracked_units_constant():
     assert unit_drift.TRACKED_UNITS == (
         "bts-scheduler.service", "bts-dashboard.service",
     )
+
+
+def test_symlinked_installed_unit_warns(tmp_path):
+    # Codex full-batch #11: a symlink to the repo template matches by hash
+    # forever, even when systemd's loaded definition is stale.
+    repo = tmp_path / "repo"
+    installed = tmp_path / "installed"
+    tpl = _mk(repo, "bts-scheduler.service", UNIT_TEXT)
+    installed.mkdir()
+    (installed / "bts-scheduler.service").symlink_to(tpl)
+    alerts = unit_drift.check(installed_dir=installed, repo_units_dir=repo)
+    assert len(alerts) == 1
+    assert "SYMLINK" in alerts[0].message
