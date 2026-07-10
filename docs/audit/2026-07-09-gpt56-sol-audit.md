@@ -358,3 +358,27 @@ runner changes (prod-invariant; constraint documented in backup.py). L4 — manu
 recovery tools and the operator is the gate (the scheduler is the only automated
 deliverer). Could-not-verify items from both instances fold into the existing
 console checklist (R2 error-code behavior now defensively handles NotFound).
+
+### 2026-07-10 round 2 (Eric: "have codex review the unreviewed work") — deployed 6d74d39
+
+Scope: the round-1 fix batch itself (ea73b78), the CI/ops work (environment binding,
+key rotation, ruleset), plus the morning full-batch report recovered from codex's
+session rollout (that run had completed; the "death" was a watch-loop false positive).
+One gpt-5.6-sol instance with repo + read-only box ssh + embedded GitHub/Hetzner
+config facts; pre/post tamper-check clean. 7 fresh findings + 4 surviving from the
+recovered report → 11 fixed, 2 accepted (commit `6d74d39`, suite 1801):
+
+- **R1 was the catch:** one failed backup run erased the successful snapshot_id from
+  status, regressing restore-drill to `latest --tag ops` — precisely the partial-
+  snapshot hazard the round-1 I4 fix targeted. Fixes-to-fixes need their own review;
+  third consecutive load-bearing round.
+- R3 prev-manifest copy fails closed · R4 selected slots revalidated against fresh
+  game status at lock time · R5 prune_superseded age-fenced (checkpoint membership
+  now provably immutable) · R6 deploy concurrency queues instead of cancelling
+  (cancel fires before the env gate) · R7/#4 probe audits under the flock + append
+  failures logged loudly · #10 verdict basis displayed next to the monitoring CI ·
+  #11 unit_drift symlink warning · R2/#5 runbook restores by snapshot ID;
+  verify-manifest labeled existence+size.
+- Accepted: fresh-box backup bootstrap stays a runbook step (absent-status-silent
+  convention keeps dev machines quiet); deeper postponed-commit hardening already
+  owned by the postponed_pick Tier-1 source.
