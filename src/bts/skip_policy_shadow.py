@@ -28,13 +28,24 @@ from pathlib import Path
 from bts.util import atomic_write_text
 
 DECISION_SCHEMA = "bts_skip_policy_shadow_v1"
-STATUS_SCHEMA = "bts_skip_policy_shadow_status_v1"
+STATUS_SCHEMA = "bts_skip_policy_shadow_status_v2"
 
 # Calibrated estimated-PA breakeven for the streak>=8 pick-vs-skip decision (the candidate
 # true hit-prob at which Q(single)==Q(skip)); robust ~0.742-0.752 across boundaries/horizons.
+# Derivation is VERSIONED (audit F10): scripts/audit/skip_breakeven_derivation.py — the
+# original /tmp diagnostic is gone; that script re-derives it from repo artifacts.
 BREAKEVEN_P = 0.744
-# Minimum resolved divergent days before the verdict is treated as a readout (not noise).
-MIN_DIVERGENT_DAYS = 30
+
+# Pre-registered verdict looks (audit F10). The old design re-tested a 95% Wilson CI every
+# night as n grew — repeated looks inflate the chance of an eventual chance crossing being
+# presented as a verdict. Now the verdict is evaluated ONLY at these resolved-n checkpoints,
+# each at a Bonferroni-split alpha (0.05/3 two-sided -> z=2.394), computed deterministically
+# from the FIRST c resolved records in date order, so the nightly stateless rebuild replays
+# exactly the same looks. A decisive look is terminal. Known edge (documented, accepted): a
+# pending record that resolves late can reshuffle the first-c window once, within
+# STALE_AFTER_DAYS of the checkpoint being crossed.
+CHECKPOINTS = (30, 60, 90)
+Z_CHECKPOINT = 2.394
 # A pending outcome older than this is treated as void (game is final by now; unresolved =
 # postponed/scratched/data-gap) so live-but-unfinished games are retried, not voided immediately.
 STALE_AFTER_DAYS = 3
@@ -84,6 +95,25 @@ def build_divergent_record(date: str, dec: dict, *, now=None) -> dict:
     }
 
 
+def _read_regime(date: str, picks_dir) -> dict | None:
+    """Production-regime fingerprint from the day's saved candidate pick file, or None.
+
+    Same identity realized_calibration pools by (audit F6): (policy_npz_sha256,
+    feature_env_hash). Stored per record so a future stratification can split the
+    accumulating sample on regime changes — the 0.744 breakeven came from one model
+    era and records must stay attributable (audit F10).
+    """
+    try:
+        body = json.loads((Path(picks_dir) / f"{date}.json").read_text())
+    except (OSError, ValueError):
+        return None
+    policy_sha = body.get("policy_npz_sha256")
+    env_hash = body.get("feature_env_hash")
+    if policy_sha is None and env_hash is None:
+        return None
+    return {"policy_npz_sha256": policy_sha, "feature_env_hash": env_hash}
+
+
 def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
     """Write {date}.policy_shadow.json from the authoritative decision.json.
 
@@ -98,6 +128,7 @@ def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
     if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
         return None
     record = build_divergent_record(date, dec, now=now)
+    record["regime"] = _read_regime(date, picks_dir)
     atomic_write_text(decision_path(date, picks_dir), json.dumps(record, indent=2))
     return record
 
@@ -209,25 +240,48 @@ def reconcile_pending(picks_dir, *, hit_checker, now=None, stale_after_days=STAL
     return changed
 
 
-def _verdict(lo: float, hi: float, n: int, breakeven: float, min_n: int) -> str:
-    """below_breakeven -> picking is -EV (skip validated); above_breakeven -> picking is +EV
-    (skip costs); straddles/insufficient_n -> not yet resolvable."""
-    if n < min_n:
-        return "insufficient_n"
-    if hi < breakeven:
-        return "below_breakeven"
-    if lo > breakeven:
-        return "above_breakeven"
-    return "straddles_breakeven"
+def _checkpoint_verdict(results: list[str], breakeven: float,
+                        checkpoints: tuple = CHECKPOINTS,
+                        z: float = Z_CHECKPOINT) -> tuple[str, dict]:
+    """Pre-registered sequential verdict (audit F10).
+
+    ``results`` = 'hit'/'miss' outcomes of resolved divergent days in DATE order.
+    Walks the checkpoints in order; each look tests the Wilson CI (at the
+    Bonferroni-split z) of the FIRST c results against the breakeven. The first
+    decisive look is terminal. Returns (verdict, basis) where basis records
+    which look produced the verdict — n between checkpoints contributes to
+    monitoring only, never to a new look.
+    """
+    basis = {"checkpoint": None, "n_used": None, "hits_used": None,
+             "z": z, "checkpoints": list(checkpoints), "ci": None}
+    n = len(results)
+    if not checkpoints or n < checkpoints[0]:
+        return "insufficient_n", basis
+    verdict = "straddles_breakeven"
+    for c in checkpoints:
+        if n < c:
+            break
+        hits_c = sum(1 for r in results[:c] if r == "hit")
+        _, lo, hi = _wilson(hits_c, c, z=z)
+        basis.update({"checkpoint": c, "n_used": c, "hits_used": hits_c,
+                      "ci": [lo, hi]})
+        if hi < breakeven:
+            return "below_breakeven", basis
+        if lo > breakeven:
+            return "above_breakeven", basis
+    return verdict, basis
 
 
 def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float = BREAKEVEN_P,
-                                    min_divergent_days: int = MIN_DIVERGENT_DAYS,
+                                    checkpoints: tuple = CHECKPOINTS,
+                                    z_checkpoint: float = Z_CHECKPOINT,
                                     generated_at: str | None = None, git_commit: str | None = None) -> dict:
     """Aggregate decision records into the monitoring status artifact.
 
-    Headline = the realized hit rate of the candidates the deployed policy SKIPPED, with a Wilson
-    CI and a verdict against the calibrated breakeven.
+    Headline = the realized hit rate of the candidates the deployed policy SKIPPED. The
+    running Wilson CI is a MONITOR (display only); the verdict comes exclusively from the
+    pre-registered checkpoint looks (audit F10 — nightly re-testing a fixed-N interval is
+    not time-uniform).
     """
     divergent = [r for r in records if r.get("divergent")]
     resolved = [r for r in divergent if r.get("shadow_pick_result") in ("hit", "miss")]
@@ -237,7 +291,13 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
     hits = sum(1 for r in resolved if r["shadow_pick_result"] == "hit")
     n = len(resolved)
     point, lo, hi = _wilson(hits, n)
-    verdict = _verdict(lo, hi, n, breakeven_p, min_divergent_days)
+    resolved_in_date_order = [
+        r["shadow_pick_result"]
+        for r in sorted(resolved, key=lambda r: r.get("date") or "")
+    ]
+    verdict, verdict_basis = _checkpoint_verdict(
+        resolved_in_date_order, breakeven_p, checkpoints, z_checkpoint,
+    )
 
     rows = [
         {"date": r.get("date"), "streak": r.get("streak"),
@@ -263,7 +323,9 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
             "decision_file_pattern": "*.policy_shadow.json",
             "decision_json_pattern": "<date>/decision.json (action=skip, source=mdp)",
             "breakeven_p": breakeven_p,
-            "min_divergent_days_for_readout": min_divergent_days,
+            "breakeven_derivation": "scripts/audit/skip_breakeven_derivation.py",
+            "checkpoints": list(checkpoints),
+            "z_checkpoint": z_checkpoint,
             "design_doc": "docs/audit/2026-06-20-skip-policy-shadow.md",
         },
         "counts": {
@@ -277,19 +339,20 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
             "resolved": n,
             "hits": hits,
             "rate": (point if n else None),
-            "wilson_ci": ([lo, hi] if n else None),
+            "wilson_ci": ([lo, hi] if n else None),   # monitoring display, NOT the verdict basis
             "breakeven_p": breakeven_p,
             "verdict": verdict,
+            "verdict_basis": verdict_basis,
         },
         "rows": rows,
     }
 
 
 def write_status(picks_dir, status_path, *, breakeven_p=BREAKEVEN_P,
-                 min_divergent_days=MIN_DIVERGENT_DAYS, generated_at=None, git_commit=None) -> dict:
+                 checkpoints=CHECKPOINTS, generated_at=None, git_commit=None) -> dict:
     status = build_skip_policy_shadow_status(
         load_decision_records(picks_dir), breakeven_p=breakeven_p,
-        min_divergent_days=min_divergent_days, generated_at=generated_at or _utc_iso(),
+        checkpoints=checkpoints, generated_at=generated_at or _utc_iso(),
         git_commit=git_commit)
     path = Path(status_path)
     path.parent.mkdir(parents=True, exist_ok=True)

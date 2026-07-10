@@ -206,8 +206,8 @@ def _drec(result):
 
 def test_status_counts_rate_and_void_excluded():
     recs = [_drec("hit"), _drec("miss"), _drec("hit"), _drec(None), _drec("void")]
-    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744, min_divergent_days=2)
-    assert s["schema_version"] == "bts_skip_policy_shadow_status_v1"
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744)
+    assert s["schema_version"] == "bts_skip_policy_shadow_status_v2"
     assert s["counts"]["divergent_days"] == 5
     assert s["counts"]["pending"] == 1
     assert s["counts"]["void"] == 1
@@ -237,15 +237,112 @@ def test_make_hit_checker_passes_through_void(monkeypatch):
     assert seen["return_status"] is True
 
 
-def test_verdict_insufficient_then_below_then_above():
-    assert build_skip_policy_shadow_status([_drec("hit")] * 5, min_divergent_days=30
-                                           )["shadow_band_hit_rate"]["verdict"] == "insufficient_n"
-    below = [_drec("hit")] * 10 + [_drec("miss")] * 10      # 0.50; Wilson hi < 0.744
-    assert build_skip_policy_shadow_status(below, breakeven_p=0.744, min_divergent_days=10
-                                           )["shadow_band_hit_rate"]["verdict"] == "below_breakeven"
-    above = [_drec("hit")] * 19 + [_drec("miss")]           # 0.95; Wilson lo > 0.744
-    assert build_skip_policy_shadow_status(above, breakeven_p=0.744, min_divergent_days=10
-                                           )["shadow_band_hit_rate"]["verdict"] == "above_breakeven"
+# ---- F10 (2026-07-09 audit): pre-registered checkpoint verdicts. The old
+# nightly Wilson look inflated the chance of an eventual chance crossing;
+# now the verdict is only evaluated at n ∈ CHECKPOINTS, each look at a
+# Bonferroni-split alpha, computed deterministically from the FIRST c
+# resolved records in date order (stateless: every rebuild replays the same
+# looks). A decisive look is terminal — later data can't un-decide it.
+
+def _dated_recs(results):
+    """Divergent records with distinct increasing dates so 'first c' is stable."""
+    from datetime import timedelta
+    base = datetime(2026, 4, 1, tzinfo=UTC)
+    return [
+        {"divergent": True, "shadow_pick_result": r,
+         "date": (base + timedelta(days=i)).strftime("%Y-%m-%d"), "rank1": _cand()}
+        for i, r in enumerate(results)
+    ]
+
+
+def test_checkpoint_verdict_insufficient_below_first_checkpoint():
+    s = build_skip_policy_shadow_status(_dated_recs(["hit"] * 29))
+    assert s["shadow_band_hit_rate"]["verdict"] == "insufficient_n"
+    assert s["shadow_band_hit_rate"]["verdict_basis"]["checkpoint"] is None
+
+
+def test_checkpoint_verdict_decisive_at_first_look():
+    below = _dated_recs(["hit"] * 10 + ["miss"] * 20)   # 10/30, hi ~= .55 < .744 at z=2.394
+    s = build_skip_policy_shadow_status(below, breakeven_p=0.744)
+    assert s["shadow_band_hit_rate"]["verdict"] == "below_breakeven"
+    basis = s["shadow_band_hit_rate"]["verdict_basis"]
+    assert basis["checkpoint"] == 30
+    assert basis["n_used"] == 30 and basis["hits_used"] == 10
+
+    above = _dated_recs(["hit"] * 29 + ["miss"])        # 29/30, lo ~= .79 > .744 at z=2.394
+    s = build_skip_policy_shadow_status(above, breakeven_p=0.744)
+    assert s["shadow_band_hit_rate"]["verdict"] == "above_breakeven"
+
+
+def test_checkpoint_decisive_verdict_is_terminal():
+    # decisive ABOVE at n=30, then 30 straight misses: the pre-registered
+    # look already fired — the verdict must not flip.
+    recs = _dated_recs(["hit"] * 29 + ["miss"] + ["miss"] * 30)
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744)
+    assert s["shadow_band_hit_rate"]["verdict"] == "above_breakeven"
+    assert s["shadow_band_hit_rate"]["verdict_basis"]["checkpoint"] == 30
+
+
+def test_checkpoint_straddle_advances_to_next_look():
+    # 21/30 (~.70) straddles at the first look; the next 30 all miss →
+    # 21/60 (.35) is decisively below at the SECOND pre-registered look.
+    recs = _dated_recs(["hit"] * 21 + ["miss"] * 9 + ["miss"] * 30)
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744)
+    assert s["shadow_band_hit_rate"]["verdict"] == "below_breakeven"
+    assert s["shadow_band_hit_rate"]["verdict_basis"]["checkpoint"] == 60
+
+
+def test_between_checkpoints_no_new_look():
+    # n=45: the only look so far was at 30 (straddle). The extra 15 misses
+    # feed the monitoring CI but must NOT constitute a new formal look.
+    recs = _dated_recs(["hit"] * 21 + ["miss"] * 9 + ["miss"] * 15)
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744)
+    assert s["shadow_band_hit_rate"]["verdict"] == "straddles_breakeven"
+    basis = s["shadow_band_hit_rate"]["verdict_basis"]
+    assert basis["checkpoint"] == 30
+    assert basis["n_used"] == 30
+    # monitoring stats still reflect ALL resolved records
+    assert s["shadow_band_hit_rate"]["resolved"] == 45
+    assert abs(s["shadow_band_hit_rate"]["rate"] - 21 / 45) < 1e-9
+
+
+def test_checkpoints_use_first_c_in_date_order():
+    # same multiset, different order: early hits vs early misses flip the
+    # first-30 window, so the checkpoint result must follow date order.
+    early_hits = _dated_recs(["hit"] * 29 + ["miss"] + ["miss"] * 15)
+    early_misses = _dated_recs(["miss"] * 15 + ["hit"] * 29 + ["miss"])
+    s_hits = build_skip_policy_shadow_status(early_hits, breakeven_p=0.744)
+    s_misses = build_skip_policy_shadow_status(early_misses, breakeven_p=0.744)
+    assert s_hits["shadow_band_hit_rate"]["verdict"] == "above_breakeven"
+    assert s_misses["shadow_band_hit_rate"]["verdict"] != "above_breakeven"
+
+
+def test_status_schema_v2():
+    s = build_skip_policy_shadow_status(_dated_recs(["hit"] * 5))
+    assert s["schema_version"] == "bts_skip_policy_shadow_status_v2"
+    assert s["initiative"]["checkpoints"] == [30, 60, 90]
+
+
+# ---- F10: regime fingerprint stored per record (future stratification;
+# the breakeven came from one model era — records must be attributable).
+
+def test_record_carries_regime_fingerprint(tmp_path):
+    _write_mdp_skip("2026-06-18", tmp_path, bid=1)
+    (tmp_path / "2026-06-18.json").write_text(json.dumps({
+        "date": "2026-06-18",
+        "policy_npz_sha256": "polsha256",
+        "feature_env_hash": "envhash123",
+    }))
+    rec = record_skip_from_decision("2026-06-18", tmp_path)
+    assert rec["regime"] == {
+        "policy_npz_sha256": "polsha256", "feature_env_hash": "envhash123",
+    }
+
+
+def test_record_regime_none_when_pick_file_absent(tmp_path):
+    _write_mdp_skip("2026-06-18", tmp_path, bid=1)
+    rec = record_skip_from_decision("2026-06-18", tmp_path)
+    assert rec["regime"] is None
 
 
 # ---- end-to-end: decision.json -> record -> reconcile -> status ----
