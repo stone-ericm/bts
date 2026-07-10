@@ -191,6 +191,26 @@ def test_run_backup_partial_paths_backs_up_existing_subset(tmp_path):
     assert status["skipped_paths"] == ["data/external", "data/hetzner_results"]
 
 
+def test_run_backup_timeout_writes_failed_status(tmp_path):
+    import subprocess
+
+    repo = _mk_repo(tmp_path)
+    prior = {"ops": {"set": "ops", "ok": True, "last_success_at": "2026-07-09T12:00:00+00:00"}}
+    (repo / "data/health_state/backup_status.json").write_text(json.dumps(prior))
+
+    def hanging_runner(cmd, env=None, capture_output=True, text=True, timeout=None):
+        raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)
+
+    status = backup.run_backup(
+        "ops", repo, env=BASE_ENV, runner=hanging_runner, now_fn=lambda: FIXED_NOW,
+    )
+    assert status["ok"] is False
+    assert "timed out" in status["error"]
+    assert status["last_success_at"] == "2026-07-09T12:00:00+00:00"
+    on_disk = json.loads((repo / "data/health_state/backup_status.json").read_text())
+    assert on_disk["ops"]["ok"] is False
+
+
 # ---------------------------------------------------------------- prune
 
 def test_run_prune_builds_command_and_reports(tmp_path):

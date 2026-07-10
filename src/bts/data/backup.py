@@ -208,10 +208,19 @@ def run_backup(
         "--exclude", "*.lock",
         "--json",
     ]
-    result = runner(
-        backup_cmd, env=renv, capture_output=True, text=True,
-        timeout=DEFAULT_TIMEOUT_SEC,
-    )
+    try:
+        result = runner(
+            backup_cmd, env=renv, capture_output=True, text=True,
+            timeout=DEFAULT_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        # A hung restic (stale repo lock, network stall) must still leave a
+        # failed status entry — the freshness check measures data-loss
+        # exposure from this file, not from cron tracebacks.
+        return finish({
+            "ok": False,
+            "error": f"restic backup timed out after {DEFAULT_TIMEOUT_SEC}s",
+        })
     if result.returncode != 0:
         return finish({
             "ok": False,
@@ -222,10 +231,15 @@ def run_backup(
     summary = _parse_summary(result.stdout or "")
 
     forget_cmd = [bin_, "forget", "--tag", set_name, *bset.retention]
-    forget = runner(
-        forget_cmd, env=renv, capture_output=True, text=True,
-        timeout=DEFAULT_TIMEOUT_SEC,
-    )
+    try:
+        forget = runner(
+            forget_cmd, env=renv, capture_output=True, text=True,
+            timeout=DEFAULT_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        forget = subprocess.CompletedProcess(
+            forget_cmd, returncode=-1, stdout="", stderr="forget timed out",
+        )
     finished = now_fn()
 
     entry = {
