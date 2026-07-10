@@ -1763,6 +1763,7 @@ def run_result_polling(
         load_streak,
         resolve_daily_slot_results,
         save_pick,
+        scoring_lock,
         update_streak,
     )
 
@@ -1821,11 +1822,25 @@ def run_result_polling(
             confirmed_hits = [h for h in hit_checks[:n_picks] if h is True]
 
             if len(confirmed_hits) == n_picks:
-                # All picks have hits — post early reply
-                new_streak = update_streak([True] * n_picks, picks_dir)
-                daily.result = "hit"
-                save_pick(daily, picks_dir)
-                print(f"  All picks have hits! Streak: {new_streak}.", file=sys.stderr)
+                # All picks have hits — post early reply. Lock + re-check: the
+                # 1am cron scorer may have already applied this date (F13).
+                with scoring_lock(picks_dir):
+                    fresh = load_pick(date, picks_dir)
+                    scored_elsewhere = (fresh is not None
+                                        and fresh.result in ("hit", "miss", "void"))
+                    if scored_elsewhere:
+                        daily = fresh
+                        new_streak = load_streak(picks_dir)
+                    else:
+                        new_streak = update_streak([True] * n_picks, picks_dir)
+                        daily.result = "hit"
+                        save_pick(daily, picks_dir)
+                if scored_elsewhere:
+                    print(f"  Result already scored elsewhere ({daily.result}); "
+                          f"skipping mid-game streak update.", file=sys.stderr)
+                    early_replied = True
+                else:
+                    print(f"  All picks have hits! Streak: {new_streak}.", file=sys.stderr)
 
                 if daily.bluesky_uri:
                     try:
@@ -1847,10 +1862,19 @@ def run_result_polling(
                     return "unresolved"
 
                 results = active_streak_results(slot_results)
-                new_streak = update_streak(results, picks_dir) if results else load_streak(picks_dir)
-                daily.slot_results = slot_results
-                daily.result = effective_daily_result(slot_results)
-                save_pick(daily, picks_dir)
+                # Lock + re-check against the 1am cron scorer (F13).
+                with scoring_lock(picks_dir):
+                    fresh = load_pick(date, picks_dir)
+                    if fresh is not None and fresh.result in ("hit", "miss", "void"):
+                        daily = fresh
+                        new_streak = load_streak(picks_dir)
+                        print(f"  Result already scored elsewhere ({daily.result}).",
+                              file=sys.stderr)
+                    else:
+                        new_streak = update_streak(results, picks_dir) if results else load_streak(picks_dir)
+                        daily.slot_results = slot_results
+                        daily.result = effective_daily_result(slot_results)
+                        save_pick(daily, picks_dir)
                 print(f"  Result: {daily.result}. Streak: {new_streak}.", file=sys.stderr)
 
                 if daily.bluesky_uri:

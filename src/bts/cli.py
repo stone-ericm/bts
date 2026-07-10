@@ -1978,6 +1978,7 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
         load_shadow_pick, save_shadow_pick,
         active_streak_results, effective_daily_result,
         iter_daily_pick_slots, resolve_daily_slot_results,
+        scoring_lock,
     )
 
     picks_path = Path(picks_dir)
@@ -2079,13 +2080,22 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
 
     results = active_streak_results(slot_results)
 
-    # Update streak
-    new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
-
-    # Save result back to pick file
-    daily.slot_results = slot_results
-    daily.result = effective_daily_result(slot_results)
-    save_pick(daily, picks_path)
+    # Serialize the streak read-modify-write against the daemon's result
+    # polling (review F13): re-check INSIDE the lock — the daemon may have
+    # scored this date while we were resolving (the pre-check above ran
+    # before the network fetch).
+    with scoring_lock(picks_path):
+        fresh = load_pick(date, picks_path)
+        if fresh is not None and fresh.result in ("hit", "miss", "void"):
+            click.echo(f"Already resolved by another scorer: {fresh.result}. "
+                       f"Skipping streak update.")
+            reconcile_shadow_result()
+            write_shadow_status_artifact()
+            return
+        new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
+        daily.slot_results = slot_results
+        daily.result = effective_daily_result(slot_results)
+        save_pick(daily, picks_path)
 
     reconcile_shadow_result()
     write_shadow_status_artifact()

@@ -1,5 +1,6 @@
 """Pick persistence, streak tracking, and MLB API helpers for BTS automation."""
 
+import fcntl
 import hashlib
 import json
 import logging
@@ -7,6 +8,7 @@ import math
 import os
 import re
 import subprocess
+from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from collections.abc import Mapping
@@ -460,6 +462,25 @@ def save_streak(streak: int, picks_dir: Path, saver_available: bool | None = Non
         "saver_available": saver_available if saver_available is not None else existing_saver,
         "updated": datetime.now(timezone.utc).isoformat(),
     }))
+
+
+@contextmanager
+def scoring_lock(picks_dir: Path):
+    """Serialize result scoring across the daemon and the 1am cron scorer.
+
+    Both do load daily -> resolve -> update_streak -> save_pick around 01:00 ET
+    on the same date (review F13); an unlocked interleave can double-apply or
+    lose a streak update. Callers MUST re-load the pick and re-check its result
+    inside the lock before updating the streak. Scoring is sub-second, so
+    blocking on the peer is fine (mirrors saver_state's flock)."""
+    lock_path = Path(picks_dir) / ".scoring.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
 def update_streak(results: list[bool], picks_dir: Path) -> int:
