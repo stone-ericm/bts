@@ -136,9 +136,11 @@ def test_sync_to_r2_uploads_parquets_and_writes_manifest(mock_bucket, tmp_path, 
     assert "models/probable_pitcher_lookup.json" in manifest["files"]
     assert manifest["schema_version"]  # Non-empty
 
-    # Verify files are actually in the bucket
+    # Verify files are actually in the bucket at their content-addressed
+    # keys (F8: fresh uploads no longer live at the legacy logical key)
     s3 = mock_bucket
-    obj = s3.get_object(Bucket="test-bucket", Key="parquets/pa_2017.parquet")
+    storage_key = manifest["files"]["parquets/pa_2017.parquet"]["key"]
+    obj = s3.get_object(Bucket="test-bucket", Key=storage_key)
     assert obj["Body"].read() == b"fake-2017-data"
 
 
@@ -338,6 +340,169 @@ def test_sync_from_r2_rejects_newer_manifest_version(mock_bucket, tmp_path):
             models_dir=tmp_path / "m",
             expected_schema_version="ok",
         )
+
+
+# --------------------------------------------------------------------------
+# F8 (2026-07-09 audit): the old protocol overwrote stable keys in place
+# BEFORE replacing the manifest, so an interrupted sync left the old manifest
+# pointing at new bytes — the backup was inconsistent during exactly the
+# failure window it exists to survive. Content-addressed keys make uploads
+# non-destructive; the manifest flip stays the single atomic commit point.
+
+def _sha(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def _mk_dirs(tmp_path):
+    processed = tmp_path / "processed"; processed.mkdir()
+    models = tmp_path / "models"; models.mkdir()
+    return processed, models
+
+
+def test_sync_to_r2_uploads_content_addressed_keys(mock_bucket, tmp_path):
+    from bts.data.sync import sync_to_r2
+    processed, models = _mk_dirs(tmp_path)
+    data = b"fresh-2026-data"
+    (processed / "pa_2026.parquet").write_bytes(data)
+
+    manifest = sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    entry = manifest["files"]["parquets/pa_2026.parquet"]
+    expected_key = f"objects/{_sha(data)}/pa_2026.parquet"
+    assert entry["key"] == expected_key
+    obj = mock_bucket.get_object(Bucket="test-bucket", Key=expected_key)
+    assert obj["Body"].read() == data
+
+
+def test_sync_to_r2_change_never_overwrites_old_object(mock_bucket, tmp_path):
+    from bts.data.sync import sync_to_r2
+    processed, models = _mk_dirs(tmp_path)
+    pq = processed / "pa_2026.parquet"
+
+    pq.write_bytes(b"version-one")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+    old_key = f"objects/{_sha(b'version-one')}/pa_2026.parquet"
+
+    pq.write_bytes(b"version-two")
+    manifest = sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    # old bytes still intact at the old key; manifest points at the new key
+    old = mock_bucket.get_object(Bucket="test-bucket", Key=old_key)
+    assert old["Body"].read() == b"version-one"
+    assert manifest["files"]["parquets/pa_2026.parquet"]["key"] == (
+        f"objects/{_sha(b'version-two')}/pa_2026.parquet"
+    )
+
+
+def test_interrupted_sync_leaves_old_manifest_fully_restorable(mock_bucket, tmp_path, monkeypatch):
+    """THE F8 scenario: uploads succeed, manifest publish fails → a fresh
+    restore from the surviving old manifest must still reproduce the old
+    bytes exactly (previously the old manifest pointed at new bytes)."""
+    from bts.data import sync as sync_mod
+    processed, models = _mk_dirs(tmp_path)
+    pq = processed / "pa_2026.parquet"
+
+    pq.write_bytes(b"committed-state")
+    sync_mod.sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    pq.write_bytes(b"torn-state")
+    def boom(*a, **k):
+        raise RuntimeError("simulated crash before manifest publish")
+    # A scoped MonkeyPatch: undoing the fixture-level `monkeypatch` would
+    # also strip the autouse R2 credential env vars.
+    mp = pytest.MonkeyPatch()
+    mp.setattr(sync_mod, "write_manifest_atomic", boom)
+    try:
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            sync_mod.sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+    finally:
+        mp.undo()
+
+    restore_p = tmp_path / "restore_p"; restore_m = tmp_path / "restore_m"
+    sync_mod.sync_from_r2(
+        client=R2Client.from_env(), processed_dir=restore_p, models_dir=restore_m,
+        expected_schema_version=None,
+    )
+    assert (restore_p / "pa_2026.parquet").read_bytes() == b"committed-state"
+
+
+def test_sync_from_r2_corrupt_download_preserves_existing_file(mock_bucket, tmp_path):
+    from bts.data.sync import sync_from_r2
+    processed, models = _mk_dirs(tmp_path)
+    good = b"known-good-local"
+    dest = processed / "pa_2026.parquet"
+    dest.write_bytes(good)
+
+    # Manifest claims a sha the stored object does not have
+    claimed_sha = _sha(b"what-the-object-should-be")
+    mock_bucket.put_object(
+        Bucket="test-bucket",
+        Key=f"objects/{claimed_sha}/pa_2026.parquet",
+        Body=b"corrupted-bytes",
+    )
+    manifest = {
+        "version": 1, "schema_version": "ok", "git_branch": "main", "git_sha": "x",
+        "updated_at": now_iso(),
+        "files": {"parquets/pa_2026.parquet": {
+            "sha256": claimed_sha, "size": 24, "uploaded_at": now_iso(),
+            "key": f"objects/{claimed_sha}/pa_2026.parquet",
+        }},
+    }
+    mock_bucket.put_object(Bucket="test-bucket", Key="manifest.json",
+                           Body=json.dumps(manifest).encode())
+
+    with pytest.raises(RuntimeError, match="Checksum mismatch"):
+        sync_from_r2(
+            client=R2Client.from_env(), processed_dir=processed, models_dir=models,
+            expected_schema_version="ok",
+        )
+    # the pre-existing good file must survive a failed download
+    assert dest.read_bytes() == good
+    assert list(processed.glob("*.part")) == []
+
+
+def test_verify_manifest_checks_referenced_objects(mock_bucket, tmp_path):
+    from bts.data.sync import sync_to_r2, verify_manifest
+    processed, models = _mk_dirs(tmp_path)
+    (processed / "pa_2026.parquet").write_bytes(b"present-bytes")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    report = verify_manifest(client=R2Client.from_env(), expected_schema_version=None)
+    assert report["objects_ok"] is True
+    assert report["objects_missing"] == []
+
+    # now break it: manifest references an object that is gone
+    missing_key = f"objects/{_sha(b'present-bytes')}/pa_2026.parquet"
+    mock_bucket.delete_object(Bucket="test-bucket", Key=missing_key)
+    report = verify_manifest(client=R2Client.from_env(), expected_schema_version=None)
+    assert report["objects_ok"] is False
+    assert missing_key in report["objects_missing"]
+
+
+def test_prune_unreferenced_deletes_only_old_unreferenced_objects(mock_bucket, tmp_path):
+    from bts.data.sync import sync_to_r2, prune_unreferenced
+    processed, models = _mk_dirs(tmp_path)
+    (processed / "pa_2026.parquet").write_bytes(b"live-bytes")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+    referenced_key = f"objects/{_sha(b'live-bytes')}/pa_2026.parquet"
+
+    mock_bucket.put_object(Bucket="test-bucket", Key="objects/deadbeef/orphan.parquet",
+                           Body=b"orphaned")
+    mock_bucket.put_object(Bucket="test-bucket", Key="raw-archive-2017-2025.tar.gz",
+                           Body=b"cold archive outside objects/ - never touched")
+
+    # age guard on (moto objects are brand new): nothing deleted
+    report = prune_unreferenced(client=R2Client.from_env(), min_age_days=7)
+    assert report["deleted"] == []
+    assert "objects/deadbeef/orphan.parquet" in report["kept_recent"]
+
+    # age guard off: orphan goes, referenced + non-objects/ keys stay
+    report = prune_unreferenced(client=R2Client.from_env(), min_age_days=0)
+    assert report["deleted"] == ["objects/deadbeef/orphan.parquet"]
+    keys = {o["Key"] for o in mock_bucket.list_objects_v2(Bucket="test-bucket")["Contents"]}
+    assert referenced_key in keys
+    assert "raw-archive-2017-2025.tar.gz" in keys
+    assert "objects/deadbeef/orphan.parquet" not in keys
 
 
 def test_archive_historical_raw(tmp_path, mock_bucket):

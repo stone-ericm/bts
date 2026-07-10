@@ -102,6 +102,29 @@ class R2Client:
     def delete_object(self, key: str) -> None:
         self.client.delete_object(Bucket=self.bucket, Key=key)
 
+    def head_object(self, key: str) -> Optional[dict]:
+        """Return {'size': ...} if the object exists, else None."""
+        try:
+            response = self.client.head_object(Bucket=self.bucket, Key=key)
+            return {"size": response["ContentLength"]}
+        except ClientError as e:
+            if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
+                return None
+            raise
+
+    def list_objects(self, prefix: str) -> list[dict]:
+        """List objects under prefix: [{'key', 'size', 'last_modified'}, ...]."""
+        out: list[dict] = []
+        paginator = self.client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                out.append({
+                    "key": obj["Key"],
+                    "size": obj["Size"],
+                    "last_modified": obj["LastModified"],
+                })
+        return out
+
 
 def read_manifest(client: R2Client, key: str = DEFAULT_MANIFEST_KEY) -> Optional[dict]:
     return client.get_object_json(key)
@@ -137,6 +160,17 @@ def _current_git_branch() -> str:
         return "unknown"
 
 
+def _storage_key(sha256: str, name: str) -> str:
+    """Content-addressed object key (audit F8).
+
+    Uploads under objects/<sha>/<name> never overwrite a key an existing
+    manifest references, so a sync interrupted at ANY point leaves the old
+    manifest + old objects fully consistent. The manifest flip (atomic PUT)
+    is the single commit point.
+    """
+    return f"objects/{sha256}/{name}"
+
+
 def sync_to_r2(
     client: R2Client,
     processed_dir: Path,
@@ -145,13 +179,17 @@ def sync_to_r2(
     """Upload changed local files to R2 and write an updated manifest.
 
     Compares SHA-256 of each eligible local file against the current
-    manifest's entry. Only files whose hash differs are uploaded.
-    Unchanged files keep their original uploaded_at timestamp.
-    Writes the manifest last, atomically (tmp + copy + delete).
+    manifest's entry. Only files whose hash differs are uploaded — to a
+    content-addressed key (objects/<sha>/<name>), never overwriting bytes
+    a prior manifest references (audit F8). Unchanged files keep their
+    prior entry verbatim (including legacy pre-F8 keys, so old layouts
+    stay restorable without re-upload). The manifest is written last,
+    atomically (tmp + copy + delete) — that PUT is the commit point.
 
     Eligible files:
     - data/processed/pa_*.parquet
     - data/models/probable_pitcher_lookup.json (if present)
+    - data/models/mdp_policy.npz (if present)
 
     Returns the new manifest (the exact one written to R2).
     """
@@ -169,20 +207,21 @@ def sync_to_r2(
         prior = current_manifest["files"].get(key)
 
         if prior and prior.get("sha256") == local_sha:
-            # Unchanged — keep original uploaded_at for accurate age tracking
-            new_files[key] = {
-                "sha256": local_sha,
-                "size": size,
-                "uploaded_at": prior["uploaded_at"],
-            }
+            # Unchanged — keep the prior entry verbatim: uploaded_at for age
+            # tracking, and its storage key (or legacy absence) untouched.
+            new_files[key] = dict(prior)
+            new_files[key]["size"] = size
             print(f"  skip {key} (unchanged)", file=sys.stderr)
         else:
-            print(f"  upload {key} ({size / 1e6:.1f} MB)", file=sys.stderr)
-            client.upload_file(local_path, key)
+            storage_key = _storage_key(local_sha, local_path.name)
+            print(f"  upload {key} -> {storage_key} ({size / 1e6:.1f} MB)",
+                  file=sys.stderr)
+            client.upload_file(local_path, storage_key)
             new_files[key] = {
                 "sha256": local_sha,
                 "size": size,
                 "uploaded_at": now_iso(),
+                "key": storage_key,
             }
 
     # Parquets
@@ -291,15 +330,25 @@ def sync_from_r2(
             print(f"  skip {key} (already local)", file=sys.stderr)
             continue
 
-        print(f"  download {key} ({meta['size'] / 1e6:.1f} MB)", file=sys.stderr)
-        client.download_file(key=key, dest=dest)
+        # Legacy pre-F8 entries have no storage key: the object lives at the
+        # manifest's logical key itself.
+        storage_key = meta.get("key", key)
+        print(f"  download {storage_key} ({meta['size'] / 1e6:.1f} MB)", file=sys.stderr)
 
-        actual = sha256_file(dest)
-        if actual != meta["sha256"]:
-            dest.unlink()
-            raise RuntimeError(
-                f"Checksum mismatch for {key}: expected {meta['sha256']}, got {actual}"
-            )
+        # Verify in a temp path, then atomically replace — a failed or
+        # corrupt download must never destroy a good local file (audit F8).
+        part = dest.with_name(dest.name + ".part")
+        try:
+            client.download_file(key=storage_key, dest=part)
+            actual = sha256_file(part)
+            if actual != meta["sha256"]:
+                raise RuntimeError(
+                    f"Checksum mismatch for {storage_key}: "
+                    f"expected {meta['sha256']}, got {actual}"
+                )
+            os.replace(part, dest)
+        finally:
+            part.unlink(missing_ok=True)
 
     return manifest
 
@@ -337,6 +386,18 @@ def verify_manifest(
     else:
         stale = True  # Undated manifest treated as stale
 
+    # Object-level verification (audit F8): manifest age says nothing about
+    # whether the referenced bytes are actually present and sized right.
+    objects_missing: list[str] = []
+    objects_size_mismatch: list[str] = []
+    for key, meta in manifest.get("files", {}).items():
+        storage_key = meta.get("key", key)
+        head = client.head_object(storage_key)
+        if head is None:
+            objects_missing.append(storage_key)
+        elif meta.get("size") is not None and head["size"] != meta["size"]:
+            objects_size_mismatch.append(storage_key)
+
     return {
         "exists": True,
         "version": manifest_version,
@@ -350,6 +411,47 @@ def verify_manifest(
         "age_hours": age_hours,
         "stale": stale,
         "n_files": len(manifest.get("files", {})),
+        "objects_missing": objects_missing,
+        "objects_size_mismatch": objects_size_mismatch,
+        "objects_ok": not objects_missing and not objects_size_mismatch,
+    }
+
+
+def prune_unreferenced(
+    client: R2Client,
+    min_age_days: float = 7.0,
+) -> dict:
+    """Delete content-addressed objects the current manifest no longer references.
+
+    Only scans the objects/ prefix — legacy-layout keys, manifest.json and
+    the raw-archive tarball are structurally untouchable. The age guard keeps
+    anything younger than min_age_days so an in-flight sync's fresh uploads
+    (objects exist, manifest not yet flipped) can never be collected.
+    """
+    manifest = read_manifest(client) or {"files": {}}
+    referenced = {
+        meta["key"] for meta in manifest["files"].values() if meta.get("key")
+    }
+
+    now = datetime.now(timezone.utc)
+    deleted: list[str] = []
+    kept_recent: list[str] = []
+    for obj in client.list_objects("objects/"):
+        if obj["key"] in referenced:
+            continue
+        age_days = (now - obj["last_modified"]).total_seconds() / 86400
+        if age_days < min_age_days:
+            kept_recent.append(obj["key"])
+            continue
+        print(f"  prune {obj['key']} (unreferenced, {age_days:.1f}d old)",
+              file=sys.stderr)
+        client.delete_object(obj["key"])
+        deleted.append(obj["key"])
+
+    return {
+        "deleted": sorted(deleted),
+        "kept_recent": sorted(kept_recent),
+        "n_referenced": len(referenced),
     }
 
 

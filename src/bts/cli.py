@@ -949,10 +949,13 @@ def data_backfill_lineup_times(picks_dir):
 @data.command(name="sync-to-r2")
 @click.option("--processed-dir", default="data/processed", type=click.Path())
 @click.option("--models-dir", default="data/models", type=click.Path())
-def data_sync_to_r2(processed_dir, models_dir):
+@click.option("--prune/--no-prune", "do_prune", default=True,
+              help="After a successful sync, delete unreferenced content-addressed "
+                   "objects older than 7 days (age guard protects in-flight syncs)")
+def data_sync_to_r2(processed_dir, models_dir, do_prune):
     """Upload local parquets + lookup cache to R2, atomically updating manifest."""
     from pathlib import Path
-    from bts.data.sync import R2Client, sync_to_r2
+    from bts.data.sync import R2Client, prune_unreferenced, sync_to_r2
 
     processed = Path(processed_dir)
     models = Path(models_dir)
@@ -974,6 +977,12 @@ def data_sync_to_r2(processed_dir, models_dir):
         models_dir=models,
     )
     click.echo(f"Sync complete: {len(manifest['files'])} files, schema={manifest['schema_version']}")
+    if do_prune:
+        report = prune_unreferenced(client)
+        click.echo(
+            f"Prune: {len(report['deleted'])} unreferenced objects deleted, "
+            f"{len(report['kept_recent'])} kept (age guard)"
+        )
 
 
 @data.command(name="sync-from-r2")
@@ -1017,7 +1026,11 @@ def data_verify_manifest():
     click.echo(f"updated_at:     {report['updated_at']} ({age_str})")
     click.echo(f"n_files:        {report['n_files']}")
     click.echo(f"stale:          {report['stale']}")
-    if report['stale'] or not report['schema_version_match']:
+    click.echo(f"objects_ok:     {report['objects_ok']}"
+               + (f" (missing: {report['objects_missing']}, "
+                  f"size mismatch: {report['objects_size_mismatch']})"
+                  if not report['objects_ok'] else ""))
+    if report['stale'] or not report['schema_version_match'] or not report['objects_ok']:
         raise SystemExit(1)
 
 
