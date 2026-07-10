@@ -18,7 +18,7 @@ from bts.health.realized_calibration import check, SOURCE
 
 
 def _write_pick(picks_dir: Path, d: date, predicted_p: float, result: str | None,
-                run_time: str | None = None):
+                run_time: str | None = None, fingerprint: tuple | None = None):
     picks_dir.mkdir(parents=True, exist_ok=True)
     body = {
         "date": d.isoformat(),
@@ -28,6 +28,10 @@ def _write_pick(picks_dir: Path, d: date, predicted_p: float, result: str | None
         body["result"] = result
     if run_time is not None:
         body["run_time"] = run_time
+    if fingerprint is not None:
+        body["model_pickle_sha256"] = fingerprint[0]
+        body["policy_npz_sha256"] = fingerprint[1]
+        body["feature_env_hash"] = fingerprint[2]
     (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
 
 
@@ -230,3 +234,82 @@ class TestSinceDeployFilter:
         # All 20 missing run_time → all filtered out → no alert
         assert check(picks_dir, today=today,
                      since_deploy_iso="2026-04-01T00:00:00+00:00") == []
+
+
+class TestRegimeFingerprintPooling:
+    """Audit F6: reset the calibration pool on production-REGIME change, not on
+    every deploy stamp. 11 deploys in 10 days (docs/shadow/ops) kept erasing the
+    sample so min_bucket_n was never reached — the check was dead exactly during
+    active development. Pick files already stamp model/policy/feature-env hashes;
+    those define the regime."""
+
+    REGIME_A = ("model-aaa", "policy-aaa", "env-aaa")
+    REGIME_B = ("model-bbb", "policy-bbb", "env-bbb")
+
+    def test_pools_across_deploy_when_regime_unchanged(self, tmp_path):
+        # 8 badly overconfident picks: 4 before + 4 after a deploy stamp, all
+        # the SAME regime. Wall-clock filtering kept 4 (< min_bucket_n=5) and
+        # stayed silent; regime pooling must keep all 8 and fire.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+        mid_deploy = (today - timedelta(days=4)).isoformat() + "T00:00:00+00:00"
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=mid_deploy)
+
+        assert alerts, "same-regime picks straddling a deploy must pool together"
+        assert alerts[0].source == SOURCE
+        assert "n=8" in alerts[0].message
+
+    def test_regime_change_resets_pool(self, tmp_path):
+        # 4 old-regime + 3 new-regime overconfident picks. Only the newest
+        # regime may pool (3 < min_bucket_n) -> silence, even though 7 picks
+        # share the window and the deploy stamp covers them all.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(4):
+            d = today - timedelta(days=i + 4)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+        for i in range(3):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_B)
+        ancient = "2026-01-01T00:00:00+00:00"
+
+        assert check(picks_dir, today=today, since_deploy_iso=ancient) == [], (
+            "old-regime picks must not contaminate the new regime's pool"
+        )
+
+    def test_unstamped_picks_keep_deploy_iso_fallback(self, tmp_path):
+        # Pre-provenance pick files (no hashes): legacy wall-clock filtering
+        # still applies — 4 post-deploy < min_bucket_n -> quiet.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00")
+        mid_deploy = (today - timedelta(days=4)).isoformat() + "T00:00:00+00:00"
+
+        assert check(picks_dir, today=today, since_deploy_iso=mid_deploy) == []
+
+    def test_message_names_regime_filter(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(6):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=self.REGIME_A)
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=None)
+
+        assert alerts
+        assert "regime" in alerts[0].message
