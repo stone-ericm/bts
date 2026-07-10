@@ -326,3 +326,35 @@ world beyond Tailscale?). GitHub repo settings: Actions default token permission
 (read-only), `deploy` branch protection, environment approval + `HETZNER_SSH_KEY`
 secret scoping. R2 restore drill from a NON-box machine (proves credentials + password
 escrow work without the box).
+
+### 2026-07-10 review round on the backburner batch (gpt-5.6-sol ×2, diff-scoped)
+
+Two adversarial instances (infra half / behavior half; the single full-batch run died
+to a macOS read-only-seatbelt sandbox issue — use `--sandbox workspace-write` for
+review runs on the Mac). 16 findings, 14 fixed (commit `ea73b78`), load-bearing again:
+
+- **L1 (HIGH, the catch of the round):** the F2 gate composed badly with the in-loop
+  fallback's deferral — `has_pending_future_window` counts UNRELATED games, so a
+  gate-only block at the deadline would archive the day's only deliverable pair and
+  bet on a later cascade. Now the pre-gate `should_lock` value is threaded through,
+  and a gate-only block DELIVERS at the deadline (same principle as the T−35
+  exemption). Without the review this shipped with a new lose-the-day tail.
+- **I1/I3/I4/I8:** backup subsystem honesty — required roots, missing-binary status,
+  drill snapshot-id + empty-target + streak probe, status-file flock.
+- **I2/I6:** sync reader-grace (prev-manifest sparing in prune) + pid-suffixed temps.
+- **L3:** checkpoint looks now draw only from records past the staleness window
+  (membership immutable by construction — the 'terminal verdict' claim is now true).
+- **L2/L6:** derivation streak grid 8..30 with per-band medians — core 8–16
+  p\*=0.7418 (reach57) / 0.7485 (E[max]) so **0.744 stands**; tail 17–30 runs
+  0.7616/0.7764 (interpret high-streak shadow records against the band numbers, not
+  the headline); the D-horizon sweep was a provable no-op and is removed.
+- **L5/L7/L8:** regime stamp records pick_run_time (mutable-file staleness caveat);
+  all saver audit appends under the flock; 403/409 dashboard probes audited with peer.
+
+**Won't-fix, recorded:** I5 — backup paths are repo-root-relative and health derives
+from `picks_dir.parent`; relocating `picks_dir` off-repo would need BACKUP_SETS +
+runner changes (prod-invariant; constraint documented in backup.py). L4 — manual
+`bts run`/`bts orchestrate` delivery bypasses both lineup gates; they are operator
+recovery tools and the operator is the gate (the scheduler is the only automated
+deliverer). Could-not-verify items from both instances fold into the existing
+console checklist (R2 error-code behavior now defensively handles NotFound).
