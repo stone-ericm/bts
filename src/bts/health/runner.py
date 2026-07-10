@@ -39,6 +39,7 @@ from bts.health import (
     scheduler_state_integrity,
     slate_auc,
     streak_validation,
+    unit_drift,
 )
 from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
 from bts.health.attention import apply_warn_attention_policy
@@ -223,6 +224,10 @@ def run_all_checks(
     alerts.extend(_safe_run("backup_freshness", lambda: backup_freshness.check(
         picks_dir.parent / "health_state",
         thresholds=overrides.get("backup_freshness"),
+    )))
+    alerts.extend(_safe_run("unit_drift", lambda: unit_drift.check(
+        installed_dir=Path.home() / ".config" / "systemd" / "user",
+        repo_units_dir=_repo_path(picks_dir, "scripts/systemd"),
     )))
     alerts.extend(_safe_run("scheduler_state_integrity", lambda: scheduler_state_integrity.check(
         picks_dir, today=today, thresholds=overrides.get("scheduler_state_integrity"),

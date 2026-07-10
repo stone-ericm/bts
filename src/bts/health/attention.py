@@ -34,6 +34,7 @@ REPEATED_ATTENTION_WARN_SOURCES = {
     "dd_pair_residual_corr",
     "dd_pair_realized_shortfall",
     "same_team_corr",
+    "unit_drift",                  # persistent config drift (audit F12)
 }
 
 REPEATED_ATTENTION_MIN_STREAK = 2
