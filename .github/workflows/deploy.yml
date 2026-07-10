@@ -17,6 +17,12 @@ on:
         type: boolean
         default: false
 
+# The workflow needs nothing from the GitHub token — deploy auth is the SSH
+# secret. Least-privilege the token so a compromised earlier step can't use it
+# (Codex review F11: all steps share the runner trust boundary).
+permissions:
+  contents: read
+
 concurrency:
   group: deploy
   cancel-in-progress: true
@@ -30,10 +36,10 @@ jobs:
       # `--locked` rejects the lockfile. Run the test gate in ET to match.
       TZ: America/New_York
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
         with:
           # Pin to the production box's uv so `--locked` interprets the
           # exclude-newer timestamp identically (newer uv shifted it 04:00Z->00:00Z
