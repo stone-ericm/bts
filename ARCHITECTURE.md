@@ -92,7 +92,10 @@ Bonferroni z=2.394 (0.05/3 two-sided) over the FIRST-c records in date order —
 the stateless nightly rebuild replays identical looks; a decisive look is terminal
 (`verdict_basis` in the status records which look fired). The old nightly-95%-CI re-test was not
 time-uniform (peeking). Records carry a `(policy_npz_sha256, feature_env_hash)` regime
-fingerprint for future stratification. The 0.744 derivation is versioned:
+fingerprint for future stratification. Aged records whose decision.json no longer says
+mdp-skip are EXCLUDED from the sample as void-equivalent reclassifications and reported
+via `counts.aged_superseded_records` (nightly update prints the warning; round-3 F3);
+same-day flips are pruned by `prune_superseded` (age-fenced to the eligibility window). The 0.744 derivation is versioned:
 `scripts/audit/skip_breakeven_derivation.py` re-derives it from the estimated-PA profiles
 (reach57 median p* 0.7418 / E[max] 0.7485 — `docs/audit/2026-07-10-skip-breakeven-derivation.json`).
 CLI: `bts skip-policy-shadow-update` + `bts skip-policy-shadow-status`. Surfaced on the dashboard
