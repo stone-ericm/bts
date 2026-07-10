@@ -34,6 +34,29 @@ History-safe secret scan: 3,454 reachable blobs, zero key/token/JWT matches, zer
 ### Could not verify (guardrail-blocked; human/console steps)
 R2 object integrity + restore drill; Hetzner console snapshots/firewall; GitHub token permissions + deploy-branch protection + secret scoping; crash-loop reproduction (staging only); fast test suite (sandbox blocked uv cache — run `UV_CACHE_DIR=/tmp/uv-cache uv run pytest -m "not slow" ...` outside sandbox).
 
+## Fix-batch adversarial review round (same day, gpt-5.6-sol, xhigh)
+
+The Tier-A implementation branch was itself adversarially reviewed by a fresh
+GPT-5.6 instance (read-only, full repo). 12 findings; dispositions:
+
+**Fixed on the branch (8):**
+- **#1 (HIGH)** `present_unverified` was terminal `confirmed` — a wrong player hidden by a crosswalk gap ended the day's checking. Now: only exact `match` is terminal; unverified presence re-verifies every run; a missing slot COUNT is a `mismatch` regardless of crosswalk coverage (new check in `pick_entry_status`).
+- **#2 (HIGH, would have shipped F6 dead)** the regime fingerprint included `model_pickle_sha256`, but the blend retrains DAILY (box-verified: sha differed 7/06→07→08 while policy+env stayed stable across a deploy) → one-day pools. Fingerprint is now `(policy_npz_sha256, feature_env_hash)`. Residual documented: predictor-code-only changes don't reset (future: explicit regime-version stamp).
+- **#7 (MED)** partial/missing stamps on the NEWEST pick no longer silently adopt an older pick's regime — falls back to the wall-clock deploy filter.
+- **#3 (HIGH)** single 20-min churn window missed slow (~10-min-cycle) crash loops → multi-horizon windows (20m/+3, 60m/+3, 180m/+4).
+- **#10 (LOW)** churn auxiliary state hardened: `{"samples": null}`, naive timestamps, malformed entries can't crash the monitor; whole churn block wrapped so the liveness ping always goes out.
+- **#4 (MED)** `pick_entry` + `scheduler_state_integrity` added to ALWAYS_ATTENTION_WARN_SOURCES (they were journal-only); integrity lookback 3→7 days to survive multi-day breaks.
+- **#5 (MED)** per-file `OSError` no longer swallowed in calibration/projected_lineup lookback scans — content corruption skips, filesystem failures propagate.
+- **#8 (LOW)** window boundary off-by-one: exactly first_pitch−5 is now outside the window (entry already locked; no "0 min to submit" DM).
+- **#12 (LOW)** `--dry-run` no longer quarantines (mutates) a corrupt live state file.
+
+**Deferred (3):**
+- **#6 (MED)** postponed-game awareness in the entry checker + pick_entry source (nag DMs / false EOD WARN for a selection that will Pass) — needs a product call on status-API integration; pre-existing behavior, escalations amplify it mildly. → Eric.
+- **#9 (LOW)** lookback off-by-one (31 calendar days) — pre-existing, shared pattern across sources; cosmetic for a 30d window.
+- **#11 (LOW)** DM-sent-but-marker-write-failed re-DM loop — outbox machinery is YAGNI for a disk-failure-only scenario.
+
+Suite after both rounds: 1710 fast tests green (baseline 1651).
+
 ---
 
 ## Raw GPT-5.6 sol report (verbatim)

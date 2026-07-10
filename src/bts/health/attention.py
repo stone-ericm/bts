@@ -18,7 +18,9 @@ ALWAYS_ATTENTION_WARN_SOURCES = {
     "analytics_artifacts_missing",
     "disk_fill",
     "live_forward_resolution",
+    "pick_entry",                  # committed pick never confirmed (audit F1)
     "postponed_pick",
+    "scheduler_state_integrity",   # quarantined day-state (audit F3)
 }
 
 REPEATED_ATTENTION_WARN_SOURCES = {

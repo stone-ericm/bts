@@ -313,3 +313,63 @@ class TestRegimeFingerprintPooling:
 
         assert alerts
         assert "regime" in alerts[0].message
+
+
+class TestRegimeFingerprintStability:
+    """Codex review #2: the blend model retrains DAILY (blend_<date>.pkl), so
+    model_pickle_sha256 changes every pick day. A fingerprint that includes it
+    pools one day at a time — the check stays dead. The regime identity is
+    (policy_npz_sha256, feature_env_hash); verified stable on the box across
+    2026-07-06..08 including a deploy, while the model sha changed daily."""
+
+    def test_daily_model_retrain_still_pools(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"model-daily-{i}", "policy-X", "env-X"))
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=None)
+
+        assert alerts, "daily model retrains must not fragment the regime pool"
+        assert "n=8" in alerts[0].message
+
+    def test_policy_change_still_resets(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(4):
+            d = today - timedelta(days=i + 4)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-{i}", "policy-OLD", "env-X"))
+        for i in range(3):
+            d = today - timedelta(days=i + 1)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-new-{i}", "policy-NEW", "env-X"))
+
+        assert check(picks_dir, today=today, since_deploy_iso=None) == []
+
+    def test_newest_pick_unstamped_falls_back_to_deploy_iso(self, tmp_path):
+        # Codex review #7: a partial/missing stamp on the NEWEST pick must not
+        # silently adopt an older pick's regime — fall back to the wall-clock
+        # deploy filter for the whole computation instead.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 9)
+        for i in range(6):
+            d = today - timedelta(days=i + 2)
+            _write_pick(picks_dir, d, 0.78, "miss",
+                        run_time=f"{d.isoformat()}T16:00:00+00:00",
+                        fingerprint=(f"m-{i}", "policy-X", "env-X"))
+        # newest pick: stamps lost (e.g. I/O failure during write)
+        _write_pick(picks_dir, today - timedelta(days=1), 0.78, "miss",
+                    run_time=f"{(today - timedelta(days=1)).isoformat()}T16:00:00+00:00")
+        recent_deploy = (today - timedelta(days=1)).isoformat() + "T00:00:00+00:00"
+
+        alerts = check(picks_dir, today=today, since_deploy_iso=recent_deploy)
+
+        # fallback keeps only the 1 post-deploy pick (< min_bucket_n) -> quiet;
+        # adopting the older regime would have pooled 6 and fired.
+        assert alerts == []

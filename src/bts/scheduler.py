@@ -1921,8 +1921,10 @@ def run_day(
     # meant a daemon about to crash on a torn state file still looked healthy
     # to systemd, the heartbeat monitor, and the deploy canary. load_state
     # quarantines corruption rather than raising, so a bad file degrades to a
-    # fresh day-state instead of a crash-loop either way.
-    previous_state = load_state(date, picks_dir)
+    # fresh day-state instead of a crash-loop either way. --dry-run skips the
+    # load entirely: it promises read-only behavior and must not quarantine
+    # (rename) a live state file (Codex review #12).
+    previous_state = None if dry_run else load_state(date, picks_dir)
     write_heartbeat(heartbeat_path, state=HeartbeatState.RUNNING)
     notify_ready()
     notify_watchdog()

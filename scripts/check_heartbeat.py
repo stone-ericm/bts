@@ -101,8 +101,12 @@ def is_stale(
 # A deterministic startup crash restarts every 30s (Restart=always) and can
 # refresh the heartbeat each cycle, so freshness alone scores a crash-loop as
 # healthy. NRestarts climbing inside a short window is the external tell.
-CHURN_WINDOW_S = 20 * 60
-CHURN_THRESHOLD = 3
+# Multiple horizons (Codex review #3): a fast 30s crash-loop trips the 20-min
+# window; a slow ~10-min failure cycle only adds +2 per 20 min and needs the
+# 60-min horizon; anything churning a few times over hours trips the 3-hour
+# one. The daily lifecycle restart (+1/day) and deploys (manual restarts do
+# not increment NRestarts) stay far below every threshold.
+CHURN_WINDOWS = ((20 * 60, 3), (60 * 60, 3), (180 * 60, 4))
 
 
 def read_nrestarts(unit: str, run=subprocess.run) -> int | None:
@@ -133,47 +137,61 @@ def assess_churn(
     samples: list[dict],
     current_n: int | None,
     now: datetime,
-    window_s: int = CHURN_WINDOW_S,
-    threshold: int = CHURN_THRESHOLD,
+    windows: tuple = CHURN_WINDOWS,
 ) -> tuple[bool, str, list[dict]]:
     """Return (churn, reason, updated_samples).
 
     samples: [{"ts": iso, "n": int}] prior NRestarts readings. Churn fires when
-    the counter climbed >= threshold above the window's minimum. Samples older
-    than the window — or larger than current (counter reset on daemon-reload) —
-    are pruned so a reset rebaselines instead of firing.
+    the counter climbed >= a window's threshold above that window's minimum.
+    Samples older than the LONGEST window — or larger than current (counter
+    reset on daemon-reload) — are pruned so a reset rebaselines instead of
+    firing. Timezone-naive sample timestamps are treated as UTC; malformed
+    samples are dropped (Codex review #10 — auxiliary state must never crash
+    the liveness monitor).
     """
     if current_n is None:
         return False, "nrestarts unavailable (churn check skipped)", samples
 
-    cutoff = now - timedelta(seconds=window_s)
-    kept = []
+    max_window_s = max(w for w, _ in windows)
+    kept: list[tuple[datetime, int]] = []
     for s in samples:
         try:
-            ts = datetime.fromisoformat(s["ts"])
+            ts = datetime.fromisoformat(str(s["ts"]))
             n = int(s["n"])
         except (KeyError, TypeError, ValueError):
             continue
-        if ts >= cutoff and n <= current_n:
-            kept.append({"ts": s["ts"], "n": n})
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        if ts >= now - timedelta(seconds=max_window_s) and n <= current_n:
+            kept.append((ts, n))
 
-    updated = kept + [{"ts": now.isoformat(), "n": current_n}]
-    baseline = min((s["n"] for s in kept), default=current_n)
-    delta = current_n - baseline
-    if delta >= threshold:
-        return True, (
-            f"restart churn: NRestarts +{delta} within {window_s // 60} min "
-            f"(now {current_n}) — daemon is crash-looping behind a fresh heartbeat"
-        ), updated
-    return False, f"nrestarts {current_n} (+{delta} in window)", updated
+    updated = ([{"ts": ts.isoformat(), "n": n} for ts, n in kept]
+               + [{"ts": now.isoformat(), "n": current_n}])
+    for window_s, threshold in windows:
+        cutoff = now - timedelta(seconds=window_s)
+        in_window = [n for ts, n in kept if ts >= cutoff]
+        delta = current_n - min(in_window, default=current_n)
+        if delta >= threshold:
+            return True, (
+                f"restart churn: NRestarts +{delta} within {window_s // 60} min "
+                f"(now {current_n}) — daemon is crash-looping behind a fresh heartbeat"
+            ), updated
+
+    short_cutoff = now - timedelta(seconds=windows[0][0])
+    short_delta = current_n - min(
+        (n for ts, n in kept if ts >= short_cutoff), default=current_n)
+    return False, f"nrestarts {current_n} (+{short_delta} in window)", updated
 
 
 def load_churn_samples(path: Path) -> list[dict]:
     try:
         data = json.loads(path.read_text())
-        return data.get("samples", []) if isinstance(data, dict) else []
     except (OSError, json.JSONDecodeError):
         return []
+    if not isinstance(data, dict):
+        return []
+    samples = data.get("samples")
+    return samples if isinstance(samples, list) else []
 
 
 def save_churn_samples(path: Path, unit: str, samples: list[dict]) -> None:
@@ -217,17 +235,22 @@ def main():
     # Churn overrides a fresh heartbeat: a crash-loop refreshes the heartbeat
     # every 30s cycle, so freshness alone cannot clear the daemon (audit F3).
     if not stale and not args.no_churn:
-        state_path = args.churn_state or (
-            args.heartbeat_path.parent / "health_state" / "scheduler_churn.json"
-        )
-        samples = load_churn_samples(state_path)
-        current = read_nrestarts(args.churn_unit)
-        churn, churn_reason, samples = assess_churn(
-            samples, current, datetime.now(timezone.utc)
-        )
-        save_churn_samples(state_path, args.churn_unit, samples)
-        if churn:
-            stale, reason = True, churn_reason
+        try:
+            state_path = args.churn_state or (
+                args.heartbeat_path.parent / "health_state" / "scheduler_churn.json"
+            )
+            samples = load_churn_samples(state_path)
+            current = read_nrestarts(args.churn_unit)
+            churn, churn_reason, samples = assess_churn(
+                samples, current, datetime.now(timezone.utc)
+            )
+            save_churn_samples(state_path, args.churn_unit, samples)
+            if churn:
+                stale, reason = True, churn_reason
+        except Exception as e:  # noqa: BLE001 — churn is auxiliary; the
+            # liveness ping must go out even if churn state is malformed
+            print(f"churn check errored (continuing with liveness only): {e}",
+                  file=sys.stderr)
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     print(f"[{stamp}] stale={stale}  reason={reason}")
 

@@ -134,3 +134,27 @@ def test_run_day_recovers_from_corrupt_state_and_still_readies(tmp_path, monkeyp
     assert list(p.parent.glob("scheduler_state.json.corrupt-*")), (
         "corrupt state must be quarantined during startup"
     )
+
+
+def test_dry_run_does_not_quarantine_corrupt_state(tmp_path, monkeypatch):
+    # Codex review #12: --dry-run promises read-only behavior; it must not
+    # rename a corrupt live state file into quarantine.
+    p = _state_path(tmp_path)
+    p.parent.mkdir(parents=True)
+    p.write_text('{"date": "2026-07-09", TORN')
+
+    events = []
+    monkeypatch.setattr("bts.scheduler.fetch_schedule", lambda d: [])
+    monkeypatch.setattr("bts.scheduler._idle_until_next_wakeup",
+                        lambda *a, **k: events.append("idle"))
+    monkeypatch.setattr("bts.scheduler._next_day_wakeup",
+                        lambda *a, **k: __import__("datetime").datetime(2026, 7, 10, 10, 0))
+    monkeypatch.setattr("bts.scheduler.notify_ready", lambda: None)
+    monkeypatch.setattr("bts.scheduler.notify_watchdog", lambda: None)
+    config = {"orchestrator": {"picks_dir": str(tmp_path),
+                               "heartbeat_path": str(tmp_path / ".heartbeat")},
+              "scheduler": {}}
+    run_day("2026-07-09", config, dry_run=True)
+
+    assert p.exists(), "dry-run must not mutate live state"
+    assert not list(p.parent.glob("*.corrupt-*"))

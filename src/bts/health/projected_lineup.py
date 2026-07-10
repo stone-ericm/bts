@@ -58,7 +58,9 @@ def check(picks_dir: Path, today: date | None = None,
             continue
         try:
             data = json.loads(p.read_text())
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # content corruption is tolerated per-file; an OSError (permission,
+            # I/O) is a filesystem problem and must propagate (Codex review #5)
             continue
         pick = data.get("pick") or {}
         dd = data.get("double_down") or {}

@@ -139,14 +139,16 @@ def _iso_before(run_time: str, since_deploy_iso: str) -> bool:
 def _regime_fingerprint(body: dict) -> tuple | None:
     """Production-regime identity of a pick, or None if unstamped.
 
-    (model_pickle_sha256, policy_npz_sha256, feature_env_hash) — the stamps
-    every pick file carries since provenance v1. Two picks with the same
-    fingerprint were produced by byte-identical model + policy + feature env,
-    so pooling them for calibration is valid REGARDLESS of deploys in between
-    (audit F6: wall-clock deploy resets erased the sample on docs/shadow/ops
-    deploys — 11 in 10 days — leaving min_bucket_n unreachable)."""
+    (policy_npz_sha256, feature_env_hash) — stamps every pick file carries
+    since provenance v1. Deliberately EXCLUDES model_pickle_sha256: the blend
+    retrains daily (blend_<date>.pkl), so its sha changes every pick day and
+    would fragment the pool back to n≈1 (Codex review #2; box-verified
+    2026-07-06..08: model sha differed daily, policy+env stable across a
+    deploy). Two picks sharing policy + feature-env come from the same
+    probability regime for calibration purposes (audit F6). Known residual:
+    a predictor-CODE-only change doesn't flip either stamp and thus doesn't
+    reset the pool — an explicit regime-version stamp is the future fix."""
     fp = (
-        body.get("model_pickle_sha256"),
         body.get("policy_npz_sha256"),
         body.get("feature_env_hash"),
     )
@@ -216,17 +218,18 @@ def check(
             continue
         candidates.append((pick_date, body))
 
-    # Audit F6: pool by production-regime fingerprint when available. The
-    # current regime = the fingerprint of the newest stamped pick; only picks
-    # from that regime pool together, so a no-regime-change deploy (docs,
-    # shadow, ops) no longer erases the accumulated sample, while a genuine
-    # model/policy/feature-env change still resets it. Unstamped (pre-
-    # provenance) pick sets fall back to the wall-clock deploy filter.
+    # Audit F6: pool by production-regime fingerprint. The current regime is
+    # the fingerprint of the NEWEST pick by date — if that pick is unstamped
+    # (pre-provenance data, or a partial stamp after an I/O failure), do NOT
+    # silently adopt an older pick's regime (Codex review #7); fall back to
+    # the wall-clock deploy filter for the whole computation instead. With a
+    # regime in hand, a no-regime-change deploy (docs/shadow/ops) no longer
+    # erases the accumulated sample, while a genuine policy/feature-env
+    # change still resets it.
     current_regime = None
-    for _, body in sorted(candidates, key=lambda c: c[0]):
-        fp = _regime_fingerprint(body)
-        if fp is not None:
-            current_regime = fp
+    if candidates:
+        newest_body = max(candidates, key=lambda c: c[0])[1]
+        current_regime = _regime_fingerprint(newest_body)
 
     for pick_date, body in candidates:
         if current_regime is not None:

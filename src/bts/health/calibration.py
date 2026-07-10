@@ -80,7 +80,9 @@ def compute_drift_metrics(
             continue
         try:
             data = json.loads(p.read_text())
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # content corruption is tolerated per-file; an OSError (permission,
+            # I/O) is a filesystem problem and must propagate (Codex review #5)
             continue
         pick = data.get("pick") or {}
         top1 = pick.get("p_game_hit")

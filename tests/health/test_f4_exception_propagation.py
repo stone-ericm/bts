@@ -84,3 +84,20 @@ def test_safe_run_converts_propagated_crash_to_critical(tmp_path):
     assert alerts[0].level == "CRITICAL"
     assert alerts[0].source == "health_runner"
     assert "calibration" in alerts[0].message
+
+
+# --- per-file OSError must propagate (Codex review #5) ------------------------
+
+def test_projected_lineup_per_file_oserror_propagates(tmp_path, monkeypatch):
+    _plant_pick(tmp_path, "2026-07-01")
+    from pathlib import Path
+    real_read = Path.read_text
+
+    def failing_read(self, *a, **k):
+        if self.name == "2026-07-01.json":
+            raise PermissionError("chmod 000")
+        return real_read(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", failing_read)
+    with pytest.raises(PermissionError):
+        projected_lineup.check(tmp_path)

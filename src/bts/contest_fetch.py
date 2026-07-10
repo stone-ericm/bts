@@ -146,6 +146,11 @@ def pick_entry_status(
     entered_bts = entered_bts_player_ids(profile_success, pending_rows, rounds, target)
     if not entered_bts:
         return False, "no_pick"
+    if required_mlb_ids and len(entered_bts) < len(required_mlb_ids):
+        # Fewer rows entered than slots delivered: a slot is missing no matter
+        # how the crosswalk resolves identities — unverifiable identity must
+        # not mask a missing double-down (Codex review 2026-07-09 #1).
+        return False, "mismatch"
     if not required_mlb_ids:
         return True, "present_unverified"  # nothing to match against
     entered_mlb = {bts_to_mlb[b] for b in entered_bts if b in bts_to_mlb}

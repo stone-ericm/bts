@@ -20,7 +20,10 @@ log = logging.getLogger(__name__)
 SOURCE = "scheduler_state_integrity"
 
 DEFAULT_THRESHOLDS = {
-    "lookback_days": 3,
+    # 7 covers a multi-day break (All-Star ~4 days) during which no EOD suite
+    # runs — a quarantine early in a break must still be visible at the first
+    # post-break evaluation (Codex review #4).
+    "lookback_days": 7,
 }
 
 

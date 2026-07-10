@@ -184,3 +184,11 @@ def test_memory_warn_with_restart_spike_enters_attention(tmp_path):
     assert policy == []
     assert len(attention) == 1
     assert attention[0].source == "memory_growth"
+
+
+def test_new_f1_f3_sources_are_always_attention():
+    # Codex review #4: WARNs from pick_entry / scheduler_state_integrity must
+    # reach the DM channel, not just the journal — both are rare + actionable.
+    from bts.health.attention import ALWAYS_ATTENTION_WARN_SOURCES
+    assert "pick_entry" in ALWAYS_ATTENTION_WARN_SOURCES
+    assert "scheduler_state_integrity" in ALWAYS_ATTENTION_WARN_SOURCES

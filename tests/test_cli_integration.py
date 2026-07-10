@@ -1449,3 +1449,107 @@ class TestCheckPickEnteredEscalation:
 
         self._run(picks, "2026-06-12T18:35:00")  # 30 to cutoff
         assert len(dms) == 1, "escalations still apply to a legacy marker"
+
+
+class TestCheckPickEnteredUnverified:
+    """Codex review #1: present_unverified must NOT become terminal confirmed —
+    a wrong player missing from the BTS->MLB crosswalk would end the day's
+    checking with the DD slot silently unfilled. Only an exact match is
+    terminal; unverified presence keeps re-verifying. A missing slot COUNT is a
+    mismatch regardless of crosswalk coverage."""
+
+    H = TestCheckPickEntered
+
+    def _setup(self, monkeypatch, *, pending=(), crosswalk=None):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self.H._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: list(pending))
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        self.H._patch_crosswalk(monkeypatch, crosswalk or {})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        return dms
+
+    def _run(self, picks, now_et):
+        return CliRunner().invoke(cli, [
+            "check-pick-entered", "--picks-dir", str(picks),
+            "--dm-recipient", "x.bsky.social", "--now-et", now_et,
+        ])
+
+    def _status(self, tmp_path):
+        return json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+
+    def test_unverified_presence_is_nonterminal(self, monkeypatch, tmp_path):
+        # Entry present but the entered player is absent from the crosswalk.
+        dms = self._setup(monkeypatch, pending=[self.H._pending(999)], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+
+        assert r.exit_code == 0, r.output
+        assert dms == []  # ok-ish state: no alarm, no all-clear
+        assert self._status(tmp_path)["status"] == "present_unverified"
+
+    def test_unverified_then_match_confirms(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[self.H._pending(100)], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+        hs = tmp_path / "health_state"; hs.mkdir()
+        (hs / "pick_entry_check.json").write_text(json.dumps({
+            "date": "2026-06-12", "status": "present_unverified",
+            "reason": "present_unverified", "checked_at": "2026-06-12T18:00:00-04:00",
+            "escalations": []}))
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+
+        assert r.exit_code == 0, r.output
+        assert self._status(tmp_path)["status"] == "confirmed"
+
+    def test_missing_slot_count_is_mismatch_despite_crosswalk_gap(self, monkeypatch, tmp_path):
+        # DD requires 2 players; only ONE row entered, and it is unmapped.
+        # Unverifiable identity must not mask a missing slot.
+        dms = self._setup(monkeypatch, pending=[self.H._pending(999)], crosswalk={})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                          batter_id=1, dd_batter_id=2)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+
+        assert r.exit_code != 0
+        assert len(dms) == 1 and "does NOT match" in dms[0][1]
+
+
+class TestCheckPickEnteredCutoffBoundary:
+    """Codex review #8: at exactly first_pitch - 5 the entry is already locked;
+    the checker must treat it as outside the window, not DM '0 min to submit'."""
+
+    H = TestCheckPickEntered
+
+    def test_exactly_five_minutes_is_outside_window(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self.H._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        self.H._patch_crosswalk(monkeypatch, {100: 1})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = CliRunner().invoke(cli, [
+            "check-pick-entered", "--picks-dir", str(picks),
+            "--dm-recipient", "x.bsky.social", "--now-et", "2026-06-12T19:05:00",
+        ])
+
+        assert r.exit_code == 0, r.output
+        assert "outside window" in r.output
+        assert dms == []

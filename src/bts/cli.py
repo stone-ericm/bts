@@ -1598,7 +1598,9 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     # [cutoff, window]: below the cutoff the pick can no longer be entered, so a
     # "Fix it now!" nag is useless (and its countdown would go negative).
     submit_cutoff_min = 5
-    if not (submit_cutoff_min <= minutes_to_pitch <= window_min):
+    # Strict lower bound: at exactly first_pitch-5 the entry is already locked
+    # (Codex review #8) — never DM "0 min to submit".
+    if not (submit_cutoff_min < minutes_to_pitch <= window_min):
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
 
@@ -1658,10 +1660,21 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     }
     ok, reason = _cf.pick_entry_status(
         success, pending, rounds, now.date(), required_mlb_ids, bts_to_mlb)
+    if ok and reason != "match":
+        # present_unverified: entries exist but the crosswalk can't prove
+        # identity. NOT terminal (Codex review #1): a wrong player hiding
+        # behind a crosswalk gap must keep being re-verified until lock; a
+        # later crosswalk refresh can still resolve it either way.
+        _atomic_write_json(status_path, {"date": today, "status": "present_unverified",
+                                         "reason": reason, "checked_at": now.isoformat(),
+                                         "escalations": prior_escalations})
+        click.echo(f"check-pick-entered: {today} entry present but identity "
+                   f"unverified; will re-verify")
+        return
     if ok:
         _atomic_write_json(status_path, {"date": today, "status": "confirmed",
                                          "reason": reason, "checked_at": now.isoformat()})
-        if was_alerted and dm_recipient:
+        if (was_alerted or "initial" in prior_escalations) and dm_recipient:
             # One-time all-clear on the alerted -> confirmed transition: the
             # operator got a scary DM; close the loop when the fix lands.
             try:

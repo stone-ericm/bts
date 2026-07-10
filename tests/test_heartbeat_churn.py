@@ -37,12 +37,26 @@ def test_crash_loop_delta_fires():
     assert "+8" in reason
 
 
-def test_old_samples_outside_window_pruned():
-    # +8 restarts but spread over 3 hours: baseline inside the window is 8.
-    prior = [_sample(180, 1), _sample(15, 8)]
-    churn, _, samples = assess_churn(prior, 9, NOW)
+def test_slow_benign_drift_no_churn():
+    # +2 over three hours (daily-cycle territory): no window fires.
+    prior = [_sample(170, 1), _sample(15, 2)]
+    churn, _, _ = assess_churn(prior, 3, NOW)
     assert churn is False
-    assert all(s["n"] >= 8 for s in samples), "stale samples must be pruned"
+
+
+def test_slow_crash_loop_caught_by_hour_window(): 
+    # Codex review #3: a ~10-min failure cycle adds only +2 per 20-min window
+    # and evaded the single-window check; the 60-min horizon must catch it.
+    prior = [_sample(55, 1), _sample(45, 2), _sample(35, 3), _sample(25, 4), _sample(15, 5)]
+    churn, reason, _ = assess_churn(prior, 7, NOW)
+    assert churn is True
+    assert "60 min" in reason
+
+
+def test_samples_beyond_max_window_pruned():
+    prior = [_sample(200, 1), _sample(15, 2)]
+    _, _, samples = assess_churn(prior, 2, NOW)
+    assert all(s["n"] >= 2 for s in samples), "samples beyond the max window must drop"
 
 
 def test_counter_reset_rebaselines_without_firing():
@@ -59,3 +73,20 @@ def test_unreadable_nrestarts_skips_quietly():
     assert churn is False
     assert "skipped" in reason
     assert samples == prior, "samples must not be polluted with a None reading"
+
+
+def test_null_samples_value_handled():
+    # Codex review #10: {"samples": null} in the state file must not crash the
+    # monitor before it pings.
+    from scripts.check_heartbeat import load_churn_samples
+    import json, tempfile, pathlib
+    d = pathlib.Path(tempfile.mkdtemp())
+    f = d / "churn.json"
+    f.write_text(json.dumps({"unit": "x", "samples": None}))
+    assert load_churn_samples(f) == []
+
+
+def test_naive_timestamp_sample_does_not_crash():
+    prior = [{"ts": "2026-07-09T11:45:00", "n": 1}]  # tz-naive
+    churn, _, samples = assess_churn(prior, 1, NOW)
+    assert churn is False
