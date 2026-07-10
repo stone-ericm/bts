@@ -1555,8 +1555,11 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     can never produce the v1 false-alarm class — the next cron run retries.
 
     Runs from cron every 15 min; exits silently unless NOW is inside the
-    pre-first-pitch window for today's locked pick. One DM per date (marker
-    in data/health_state/pick_entry_check.json).
+    pre-first-pitch window for today's locked pick. v3 (audit F1): "alerted"
+    is non-terminal — every run re-verifies until the entry is confirmed or
+    the cutoff passes, with throttled escalations at T-30/T-15 to cutoff and
+    a one-time all-clear DM once the entry appears (marker with escalation
+    ledger in data/health_state/pick_entry_check.json).
     """
     import sys
     import httpx
@@ -1600,17 +1603,27 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         return
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
-    # Dedup only on TERMINAL states — a "dm_failed" marker (alert computed but the
-    # DM didn't send) is explicitly retryable, so the next run re-checks and
-    # re-alerts rather than silently swallowing the one alert that matters.
+    # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
+    # RE-VERIFYING on every run until the entry appears or the window closes —
+    # a delivered warning is not verified remediation (the 7/08 missed DD leg
+    # sailed past a single 18:00 DM). "dm_failed" stays fully retryable
+    # (Codex review, 2026-07-03).
+    prior = {}
     if status_path.exists():
         try:
             prior = json.loads(status_path.read_text())
         except (json.JSONDecodeError, OSError):
             prior = {}
-        if prior.get("date") == today and prior.get("status") in ("confirmed", "alerted"):
-            click.echo(f"check-pick-entered: already {prior.get('status')} for {today}")
+        if prior.get("date") != today:
+            prior = {}
+        if prior.get("status") == "confirmed":
+            click.echo(f"check-pick-entered: already confirmed for {today}")
             return
+    was_alerted = prior.get("status") == "alerted"
+    # Markers written before the escalation ladder lack the field: the initial
+    # alert has by definition already fired on an "alerted" marker.
+    prior_escalations = list(prior.get("escalations")
+                             or (["initial"] if was_alerted else []))
 
     from bts.leaderboard.auth import (
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
@@ -1648,19 +1661,52 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     if ok:
         _atomic_write_json(status_path, {"date": today, "status": "confirmed",
                                          "reason": reason, "checked_at": now.isoformat()})
+        if was_alerted and dm_recipient:
+            # One-time all-clear on the alerted -> confirmed transition: the
+            # operator got a scary DM; close the loop when the fix lands.
+            try:
+                import bts.dm
+                bts.dm.send_dm(dm_recipient,
+                               f"✅ BTS pick entry confirmed for {today} ({reason}).")
+                click.echo(f"check-pick-entered: confirmation DM sent to {dm_recipient}")
+            except Exception as exc:
+                click.echo(f"check-pick-entered: confirmation DM failed: {exc}", err=True)
         click.echo(f"check-pick-entered: {today} pick entered ({reason})")
         return
 
     names = daily.pick.batter_name
     if daily.double_down:
         names += f" + DD {daily.double_down.batter_name}"
-    lead = ("BTS pick NOT entered" if reason == "no_pick"
-            else "BTS entry does NOT match the recommended pick")
     # Report time to the submission cutoff (first pitch - 5), not to first pitch.
     minutes_to_cutoff = minutes_to_pitch - submit_cutoff_min
-    msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
-           f"{first_pitch.strftime('%-I:%M %p ET')} "
-           f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
+
+    # Escalation ladder (audit F1): the initial alert fires on first detection;
+    # T-30 and T-15 (minutes to the submission cutoff) re-alert if the entry is
+    # STILL missing. Each tier fires at most once; an alert sent at/below a
+    # threshold consumes that tier too — one DM near the cutoff suffices.
+    if "initial" not in prior_escalations:
+        tier = "initial"
+    elif "t30" not in prior_escalations and minutes_to_cutoff <= 30:
+        tier = "t30"
+    elif "t15" not in prior_escalations and minutes_to_cutoff <= 15:
+        tier = "t15"
+    else:
+        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+                                         "reason": reason, "checked_at": now.isoformat(),
+                                         "escalations": prior_escalations})
+        click.echo(f"check-pick-entered: still not entered ({reason}); "
+                   f"re-verifying each run until cutoff")
+        sys.exit(1)
+
+    if tier == "initial":
+        lead = ("BTS pick NOT entered" if reason == "no_pick"
+                else "BTS entry does NOT match the recommended pick")
+        msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
+               f"{first_pitch.strftime('%-I:%M %p ET')} "
+               f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
+    else:
+        msg = (f"\u23f0 STILL NOT entered ({reason}): {names} — "
+               f"{minutes_to_cutoff:.0f} min left to submit!")
     dm_sent = False
     if dm_recipient:
         try:
@@ -1670,16 +1716,25 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
             click.echo(f"check-pick-entered: DM sent to {dm_recipient}")
         except Exception as exc:
             click.echo(f"check-pick-entered: DM failed: {exc}", err=True)
-    # Burn the once-per-day marker ONLY when the alert actually went out (or
-    # there's no recipient to reach). If the DM failed, leave a retryable marker
-    # so the next run re-alerts — the single alert this feature exists for must
-    # not be silently lost (Codex review, 2026-07-03).
+    # Consume tiers ONLY when the alert actually went out (or there's no
+    # recipient to reach) — a failed DM must stay retryable at every tier
+    # (Codex review, 2026-07-03).
     if dm_sent or not dm_recipient:
+        consumed = set(prior_escalations) | {"initial"}
+        for t_name, threshold in (("t30", 30), ("t15", 15)):
+            if minutes_to_cutoff <= threshold:
+                consumed.add(t_name)
         _atomic_write_json(status_path, {"date": today, "status": "alerted",
-                                         "reason": reason, "checked_at": now.isoformat()})
-    else:
+                                         "reason": reason, "checked_at": now.isoformat(),
+                                         "escalations": sorted(consumed)})
+    elif tier == "initial" and not was_alerted:
         _atomic_write_json(status_path, {"date": today, "status": "dm_failed",
                                          "reason": reason, "checked_at": now.isoformat()})
+    else:
+        # Failed escalation DM: keep the marker unchanged so the tier retries.
+        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+                                         "reason": reason, "checked_at": now.isoformat(),
+                                         "escalations": prior_escalations})
     sys.exit(1)
 
 

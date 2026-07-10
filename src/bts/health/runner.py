@@ -27,6 +27,7 @@ from bts.health import (
     mdp_policy_alignment,
     pitcher_sparsity,
     pooled_training,
+    pick_entry,
     post_failure,
     postponed_pick,
     predicted_vs_realized,
@@ -125,6 +126,9 @@ def run_all_checks(
         alerts.extend(_safe_run("pooled_training", lambda: pooled_training.check(
             pooled_dir=pooled_dir, today=today,
         )))
+    alerts.extend(_safe_run("pick_entry", lambda: pick_entry.check(
+        picks_dir, today=today,
+    )))
     alerts.extend(_safe_run("post_failure", lambda: post_failure.check(
         picks_dir, today=today,
     )))

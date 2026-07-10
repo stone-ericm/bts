@@ -1230,14 +1230,17 @@ class TestCheckPickEntered:
         assert r.exit_code == 0, r.output
 
     def test_marker_dedupes_second_alert(self, monkeypatch, tmp_path):
+        # v3 (audit F1): "alerted" is re-verified, not terminal — a second run
+        # in the SAME escalation tier re-checks the account but sends no
+        # duplicate DM, and exits nonzero while the entry is still missing.
         dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
         picks = tmp_path / "picks"; picks.mkdir()
         self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
 
-        assert self._run(picks, "2026-06-12T18:30:00").exit_code != 0
-        r2 = self._run(picks, "2026-06-12T18:45:00")
-        assert r2.exit_code == 0  # already alerted; quiet
-        assert len(dms) == 1
+        assert self._run(picks, "2026-06-12T18:30:00").exit_code != 0  # 35 to cutoff
+        r2 = self._run(picks, "2026-06-12T18:32:00")  # 33 to cutoff: same tier zone
+        assert r2.exit_code != 0  # still unentered — problem persists
+        assert len(dms) == 1  # but no duplicate DM within the tier
 
     def test_pending_fetch_failure_skips_quietly_no_marker(self, monkeypatch, tmp_path):
         # A transient /predictions failure must NOT produce a false "not
@@ -1311,3 +1314,138 @@ class TestSaverStateCli:
         self._run(tmp_path, "--init", "not_earned")
         self._run(tmp_path, "--use")     # not active -> no-op
         assert "not_earned" in self._run(tmp_path, "--show").output
+
+
+class TestCheckPickEnteredEscalation:
+    """Audit F1: 'alerted' must not be terminal. After the first not-entered DM
+    the checker keeps RE-VERIFYING every run until confirmed or cutoff, fires
+    throttled escalations at T-30 and T-15 minutes-to-cutoff (each once), and
+    sends a one-time all-clear when the entry finally appears."""
+
+    H = TestCheckPickEntered
+
+    def _setup(self, monkeypatch, *, pending=(), crosswalk=None):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self.H._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: list(pending))
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        self.H._patch_crosswalk(monkeypatch, crosswalk or {100: 1})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        return dms
+
+    def _run(self, picks, now_et):
+        return CliRunner().invoke(cli, [
+            "check-pick-entered", "--picks-dir", str(picks),
+            "--dm-recipient", "x.bsky.social", "--now-et", now_et,
+        ])
+
+    def _pick(self, tmp_path):
+        picks = tmp_path / "picks"
+        picks.mkdir(exist_ok=True)
+        # game 23:10Z = 19:10 ET -> submission cutoff 19:05 ET
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+        return picks
+
+    def _marker(self, tmp_path, escalations=("initial",), status="alerted"):
+        hs = tmp_path / "health_state"
+        hs.mkdir(exist_ok=True)
+        body = {"date": "2026-06-12", "status": status, "reason": "no_pick",
+                "checked_at": "2026-06-12T17:55:00-04:00"}
+        if escalations is not None:
+            body["escalations"] = list(escalations)
+        (hs / "pick_entry_check.json").write_text(json.dumps(body))
+
+    def _status(self, tmp_path):
+        return json.loads((tmp_path / "health_state" / "pick_entry_check.json").read_text())
+
+    def test_alerted_reverifies_and_confirms_when_entry_appears(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch,
+                          pending=[self.H._pending(100)], crosswalk={100: 1})
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min to pitch
+
+        assert r.exit_code == 0, r.output
+        assert self._status(tmp_path)["status"] == "confirmed"
+        # one-time all-clear DM on the alerted -> confirmed transition
+        assert len(dms) == 1 and "confirmed" in dms[0][1].lower()
+
+    def test_alerted_before_thresholds_reverifies_without_dm(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+
+        r = self._run(picks, "2026-06-12T18:10:00")  # 55 to cutoff
+
+        assert r.exit_code != 0
+        assert dms == []
+        assert self._status(tmp_path)["escalations"] == ["initial"]
+
+    def test_t30_escalation_fires_once(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+
+        r1 = self._run(picks, "2026-06-12T18:35:00")  # 30 to cutoff
+        assert r1.exit_code != 0
+        assert len(dms) == 1 and "STILL NOT entered" in dms[0][1]
+        assert "t30" in self._status(tmp_path)["escalations"]
+
+        r2 = self._run(picks, "2026-06-12T18:40:00")  # 25 to cutoff
+        assert len(dms) == 1, "t30 must fire at most once"
+
+    def test_t15_escalation_after_t30(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path, escalations=("initial", "t30"))
+
+        self._run(picks, "2026-06-12T18:50:00")  # 15 to cutoff
+
+        assert len(dms) == 1
+        assert "t15" in self._status(tmp_path)["escalations"]
+
+    def test_initial_near_cutoff_consumes_lower_tiers(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)  # no marker: first detection late
+
+        self._run(picks, "2026-06-12T18:35:00")  # initial at 30 to cutoff
+        esc = self._status(tmp_path)["escalations"]
+        assert "initial" in esc and "t30" in esc and "t15" not in esc
+
+        self._run(picks, "2026-06-12T18:40:00")  # 25 to cutoff
+        assert len(dms) == 1, "initial at <=30 min already covered the t30 tier"
+
+    def test_escalation_dm_failure_retries_next_run(self, monkeypatch, tmp_path):
+        import bts.dm
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+
+        monkeypatch.setattr(bts.dm, "send_dm",
+                            lambda h, m: (_ for _ in ()).throw(RuntimeError("bsky down")))
+        self._run(picks, "2026-06-12T18:35:00")
+        assert "t30" not in self._status(tmp_path)["escalations"], (
+            "a failed escalation DM must stay retryable"
+        )
+
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        self._run(picks, "2026-06-12T18:40:00")  # still <=30 to cutoff
+        assert len(dms) == 1
+        assert "t30" in self._status(tmp_path)["escalations"]
+
+    def test_legacy_marker_without_escalations_treated_as_initial(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path, escalations=None)  # pre-F1 marker schema
+
+        self._run(picks, "2026-06-12T18:10:00")  # 55 to cutoff
+        assert dms == [], "legacy alerted marker must not re-fire the initial DM"
+
+        self._run(picks, "2026-06-12T18:35:00")  # 30 to cutoff
+        assert len(dms) == 1, "escalations still apply to a legacy marker"
