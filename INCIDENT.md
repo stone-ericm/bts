@@ -132,6 +132,9 @@ git push origin HEAD:deploy
 > ⚠️ **Then land the same fix on `main`** (merge the PR). `deploy` and `main` are independent,
 > so the next normal `main:deploy` will **revert** anything that's on `deploy` but not on
 > `main`. An emergency branch-ship is not done until main has it too.
+> **Use a true merge, not a squash**: a squash-merge means the emergency commit is not an
+> ancestor of `main`, so the reconciling `main:deploy` push is non-fast-forward and the
+> `protect-main-deploy` ruleset will reject it (see the break-glass note under blunt rollback).
 
 **Revert a bad change** (preferred — history keeps moving forward):
 
@@ -147,6 +150,13 @@ git push origin main:deploy     # ship the revert
 ```bash
 git push origin <good-sha>:deploy --force   # workflow hard-resets the box to this ref
 ```
+
+> 🛑 **Break-glass required (2026-07-10):** the `protect-main-deploy` ruleset blocks
+> force-pushes and deletions on `main` + `deploy` for EVERYONE (no bypass actors) — a stray
+> tool rewinding `deploy` would otherwise hard-reset production. To run this rollback:
+> repo → Settings → Rules → Rulesets → `protect-main-deploy` → Enforcement **Disabled** →
+> force-push → re-enable. 30 seconds, and a deliberate speed bump before hard-resetting prod.
+> Prefer the revert flow above whenever there's time.
 
 **Just restart services** off the current `deploy` ref, no code change: GitHub → Actions →
 "Deploy to Hetzner" → **Run workflow** (`workflow_dispatch`).
