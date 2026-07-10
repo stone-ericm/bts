@@ -182,13 +182,16 @@ def check(
     today: date | None = None,
     thresholds: dict | None = None,
 ) -> list[Alert]:
-    """Top-level entrypoint for the runner. Returns alerts (no I/O beyond reading)."""
-    try:
-        metrics = compute_drift_metrics(picks_dir, today=today)
-        return evaluate_drift(metrics, thresholds=thresholds)
-    except Exception as e:
-        log.exception(f"calibration check failed to compute metrics: {e}")
-        return []
+    """Top-level entrypoint for the runner. Returns alerts (no I/O beyond reading).
+
+    Deliberately NO blanket except (audit F4): an unexpected crash must reach
+    _safe_run, which surfaces it as a CRITICAL health_runner alert — swallowing
+    here made an evaluation failure indistinguishable from healthy. Expected
+    data-absence (empty dir, corrupt individual files) is handled inside
+    compute_drift_metrics and stays quiet.
+    """
+    metrics = compute_drift_metrics(picks_dir, today=today)
+    return evaluate_drift(metrics, thresholds=thresholds)
 
 
 def run_calibration_check(

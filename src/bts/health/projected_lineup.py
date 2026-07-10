@@ -44,32 +44,31 @@ def check(picks_dir: Path, today: date | None = None,
 
     n_total = 0
     n_projected = 0
-    try:
-        for p in sorted(picks_dir.glob("*.json")):
-            if "." in p.stem:
-                continue
-            try:
-                file_date = date.fromisoformat(p.stem)
-            except ValueError:
-                continue
-            if file_date < cutoff or file_date > today:
-                continue
-            try:
-                data = json.loads(p.read_text())
-            except (json.JSONDecodeError, OSError):
-                continue
-            pick = data.get("pick") or {}
-            dd = data.get("double_down") or {}
-            if not pick:
-                continue
-            n_total += 1
-            pick_proj = bool(pick.get("projected_lineup"))
-            dd_proj = bool(dd.get("projected_lineup")) if dd else False
-            if pick_proj or dd_proj:
-                n_projected += 1
-    except Exception as e:
-        log.exception(f"projected_lineup check failed: {e}")
-        return []
+    # Per-file corruption is skipped (continue); anything else propagates to
+    # _safe_run → CRITICAL (audit F4 — the outer blanket except made a crashing
+    # check indistinguishable from healthy).
+    for p in sorted(picks_dir.glob("*.json")):
+        if "." in p.stem:
+            continue
+        try:
+            file_date = date.fromisoformat(p.stem)
+        except ValueError:
+            continue
+        if file_date < cutoff or file_date > today:
+            continue
+        try:
+            data = json.loads(p.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        pick = data.get("pick") or {}
+        dd = data.get("double_down") or {}
+        if not pick:
+            continue
+        n_total += 1
+        pick_proj = bool(pick.get("projected_lineup"))
+        dd_proj = bool(dd.get("projected_lineup")) if dd else False
+        if pick_proj or dd_proj:
+            n_projected += 1
 
     if n_total < int(t["min_days"]):
         return []

@@ -40,11 +40,10 @@ def check(
     pick_path = picks_dir / f"{today.isoformat()}.json"
     if not pick_path.exists():
         return []
-    try:
-        data = json.loads(pick_path.read_text())
-    except (json.JSONDecodeError, OSError):
-        log.warning(f"could not parse {pick_path}; skipping pick_delivery check")
-        return []
+    # An unreadable pick file on a day a pick EXISTS is itself alarming — let
+    # it propagate to _safe_run → CRITICAL rather than silently skipping the
+    # delivery check (audit F4).
+    data = json.loads(pick_path.read_text())
 
     pick = data.get("pick")
     if not pick:

@@ -1,6 +1,7 @@
 """Tests for Tier-1 Bluesky post failure check."""
 
 import json
+import pytest
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -78,11 +79,12 @@ class TestPostFailure:
         alerts = check(tmp_path, today=date(2026, 4, 27))
         assert alerts == []
 
-    def test_handles_corrupt_pick_file(self, tmp_path):
+    def test_corrupt_pick_file_propagates_to_runner(self, tmp_path):
+        # Audit F4: an unreadable pick file on a day a pick exists is itself
+        # alarming — it must reach _safe_run (-> CRITICAL), not be skipped.
         (tmp_path / "2026-04-27.json").write_text("not json{{{")
-        # Should not crash; logs warning and returns []
-        alerts = check(tmp_path, today=date(2026, 4, 27))
-        assert alerts == []
+        with pytest.raises(json.JSONDecodeError):
+            check(tmp_path, today=date(2026, 4, 27))
 
 
 class TestPostFailureTimeGuard:

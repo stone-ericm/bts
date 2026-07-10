@@ -33,11 +33,9 @@ DEFAULT_THRESHOLDS = {
 def check(path: Path, thresholds: dict | None = None) -> list[Alert]:
     """Returns alerts based on disk-fill % at the given path."""
     t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
-    try:
-        usage = shutil.disk_usage(str(path))
-    except (FileNotFoundError, PermissionError, OSError) as e:
-        log.warning(f"disk_fill check failed for {path}: {e}")
-        return []
+    # disk_usage failing IS a disk problem — propagate to _safe_run → CRITICAL
+    # instead of reporting silence exactly when the disk is unreadable (audit F4).
+    usage = shutil.disk_usage(str(path))
     pct = usage.used / usage.total
     if pct < t["info_pct"]:
         return []

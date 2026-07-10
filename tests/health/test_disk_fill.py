@@ -1,5 +1,7 @@
 """Tests for Tier-3 disk fill check."""
 
+import pytest
+
 from collections import namedtuple
 from unittest.mock import patch
 
@@ -36,9 +38,12 @@ class TestDiskFill:
             alerts = check(tmp_path)
             assert alerts[0].level == "CRITICAL"
 
-    def test_handles_oserror(self, tmp_path):
+    def test_oserror_propagates_to_runner(self, tmp_path):
+        # Audit F4: disk_usage failing IS a disk problem — it must reach
+        # _safe_run (-> CRITICAL), not read as healthy silence.
         with patch("bts.health.disk_fill.shutil.disk_usage", side_effect=OSError("not found")):
-            assert check(tmp_path) == []
+            with pytest.raises(OSError):
+                check(tmp_path)
 
     def test_message_includes_gb(self, tmp_path):
         usage = _Usage(total=100 * 1024 ** 3, used=92 * 1024 ** 3, free=8 * 1024 ** 3)
