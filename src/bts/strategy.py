@@ -212,15 +212,27 @@ def should_lock(
     top_pick: dict,
     all_picks: list[dict],
     early_lock_gap: float,
+    double_down: dict | None = None,
 ) -> bool:
     """Decide if the current top pick should be locked (posted to Bluesky).
 
     Locks when:
     1. The top pick has a confirmed (not projected) lineup, AND
-    2. Either all picks have confirmed lineups, OR the gap between
+    2. The selected double-down (if any) has a confirmed lineup, AND
+    3. Either all picks have confirmed lineups, OR the gap between
        the top pick and the best projected-lineup pick exceeds early_lock_gap.
+
+    Condition 2 is audit F2: a double commits BOTH slots, so the gap rule —
+    valid for a single pick racing projected alternatives — must not carry a
+    projected DD through on the primary's confirmation. The T-35 final
+    fallback deliberately bypasses this function (delivering on projected
+    data beats missing the day), so the gate can only delay a lock, never
+    lose one.
     """
     if top_pick.get("projected_lineup", True):
+        return False
+
+    if double_down is not None and double_down.get("projected_lineup", True):
         return False
 
     # Find the best projected-lineup pick (excluding the top pick's game)

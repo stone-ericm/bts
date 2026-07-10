@@ -37,6 +37,7 @@ def _daily_pick(
     *,
     batter_name: str = "Díaz",
     double_down_game_pk: int | None = None,
+    double_down_projected: bool = False,
     bluesky_posted: bool = False,
 ):
     from bts.picks import Pick, DailyPick
@@ -52,7 +53,8 @@ def _daily_pick(
         double_down = Pick(
             batter_name="Double", batter_id=3, team="MIN",
             lineup_position=1, pitcher_name="Gray", pitcher_id=4,
-            p_game_hit=0.71, flags=[], projected_lineup=False,
+            p_game_hit=0.71, flags=["PROJECTED lineup"] if double_down_projected else [],
+            projected_lineup=double_down_projected,
             game_pk=double_down_game_pk, game_time="2026-04-04T23:15:00Z",
         )
     return DailyPick(
@@ -581,6 +583,48 @@ class TestSchedulerRun:
         assert should_post is False
         assert best_projected is None
         mock_coarse_statuses.assert_not_called()
+
+    # --- F2 (2026-07-09 audit): the scheduler-level case where the projected
+    # contender IS the selected double-down. Confirmed .72 primary with a huge
+    # gap previously locked and committed the projected DD 51-133min early.
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "P", "detailed": "Scheduled"},
+        200: {"abstract": "P", "detailed": "Scheduled"},
+    })
+    def test_projected_double_down_blocks_lock_decision(self, _detailed):
+        import pandas as pd
+        from bts.scheduler import _lock_decision_from_predictions
+
+        predictions = pd.DataFrame([
+            {
+                "batter_name": "Díaz", "batter_id": 1, "team": "TB",
+                "lineup": 1, "pitcher_name": "Abel", "pitcher_id": 2,
+                "game_pk": 100, "game_time": "2026-04-04T23:10:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.72, "flags": "",
+            },
+            {
+                "batter_name": "Double", "batter_id": 3, "team": "MIN",
+                "lineup": 1, "pitcher_name": "Gray", "pitcher_id": 4,
+                "game_pk": 200, "game_time": "2026-04-04T23:15:00Z",
+                "p_hit_pa": 0.28, "p_game_hit": 0.61, "flags": "PROJECTED lineup",
+            },
+        ])
+        daily = _daily_pick(100, double_down_game_pk=200, double_down_projected=True)
+
+        should_post, _ = _lock_decision_from_predictions(
+            predictions, daily, "2026-04-04", early_lock_gap=0.03,
+        )
+        assert should_post is False
+
+        # identical slate with the DD confirmed locks as before
+        predictions_confirmed = predictions.copy()
+        predictions_confirmed.loc[1, "flags"] = ""
+        daily_confirmed = _daily_pick(100, double_down_game_pk=200)
+        should_post, _ = _lock_decision_from_predictions(
+            predictions_confirmed, daily_confirmed, "2026-04-04", early_lock_gap=0.03,
+        )
+        assert should_post is True
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.picks.get_game_statuses_detailed", return_value={

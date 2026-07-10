@@ -637,6 +637,50 @@ class TestShouldLock:
         ]
         assert should_lock(top_pick, all_picks, early_lock_gap=0.03) is False
 
+    # --- F2 (2026-07-09 audit): the gate must cover BOTH committed slots.
+    # A projected double-down previously rode through on the primary's
+    # confirmation (11 production days, 4 locked 51-133min early).
+
+    def test_projected_double_down_blocks_early_lock(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.80, "projected_lineup": True, "game_pk": 200},
+        ]
+        double_down = {"p_game_hit": 0.80, "projected_lineup": True, "game_pk": 200}
+        # Identical numbers lock without a DD (test_locks_when_gap_exceeds_threshold);
+        # the projected contender being the SELECTED double must not.
+        assert should_lock(
+            top_pick, all_picks, early_lock_gap=0.03, double_down=double_down,
+        ) is False
+
+    def test_confirmed_double_down_allows_early_lock(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.80, "projected_lineup": False, "game_pk": 200},
+        ]
+        double_down = {"p_game_hit": 0.80, "projected_lineup": False, "game_pk": 200}
+        assert should_lock(
+            top_pick, all_picks, early_lock_gap=0.03, double_down=double_down,
+        ) is True
+
+    def test_no_double_down_keeps_prior_behavior(self):
+        from bts.strategy import should_lock
+
+        top_pick = {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100}
+        all_picks = [
+            {"p_game_hit": 0.85, "projected_lineup": False, "game_pk": 100},
+            {"p_game_hit": 0.80, "projected_lineup": True, "game_pk": 200},
+        ]
+        assert should_lock(
+            top_pick, all_picks, early_lock_gap=0.03, double_down=None,
+        ) is True
+
 
 # --- Hardening: game_pk normalization so a NaN / type-mismatched value can't
 #     masquerade as a different game and trigger a same-game (correlated) double ---

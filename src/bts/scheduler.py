@@ -914,6 +914,15 @@ def _lock_decision_from_predictions(
         "projected_lineup": daily.pick.projected_lineup,
         "game_pk": daily.pick.game_pk,
     }
+    # F2: the selected double-down is part of the same commit — its
+    # confirmation status gates the lock exactly like the primary's.
+    double_down_data = None
+    if daily.double_down is not None:
+        double_down_data = {
+            "p_game_hit": daily.double_down.p_game_hit,
+            "projected_lineup": daily.double_down.projected_lineup,
+            "game_pk": daily.double_down.game_pk,
+        }
     all_pick_data = []
     best_projected = None
     for _, row in predictions.iterrows():
@@ -931,7 +940,10 @@ def _lock_decision_from_predictions(
                 if best_projected is None or float(row["p_game_hit"]) > best_projected:
                     best_projected = float(row["p_game_hit"])
 
-    return should_lock(pick_data, all_pick_data, early_lock_gap), best_projected
+    return (
+        should_lock(pick_data, all_pick_data, early_lock_gap, double_down=double_down_data),
+        best_projected,
+    )
 
 
 def _has_pending_future_confirmation_window(
