@@ -30,6 +30,12 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The root SSH key lives ONLY in this environment (rotated 2026-07-10;
+    # audit could-not-verify item "secret scoping"). Its branch policy allows
+    # just `deploy`, so no other workflow/branch can read the key — and a
+    # workflow_dispatch MUST select the `deploy` branch or the run fails at
+    # this gate by design.
+    environment: production
     env:
       # uv.lock is generated in America/New_York (box + Mac); the date-only
       # exclude-newer resolves in local time, so a UTC runner shifts it and

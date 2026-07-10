@@ -40,7 +40,10 @@ or `ssh root@bts-hetzner`, you're in a **cloud sandbox** — stay inside the §2
 - ✅ **Ship it** by pushing to `deploy` — the canary + auto-rollback protect you.
 - ✅ **Roll back / revert** (§5).
 - ✅ **Re-run a deploy** with no code change: GitHub → Actions → "Deploy to Hetzner" →
-  **Run workflow** (`workflow_dispatch`). Restarts services off the current `deploy` ref.
+  **Run workflow** (`workflow_dispatch`) — **select the `deploy` branch in the dropdown**
+  (defaults to `main`, which fails at the environment gate: the root SSH key lives in the
+  `production` environment whose branch policy allows only `deploy`; rotated 2026-07-10).
+  Restarts services off the current `deploy` ref.
 - ✅ **Read the last deploy's Actions log** — the canary prints exactly which check failed.
   This is your best remote diagnostic.
 
