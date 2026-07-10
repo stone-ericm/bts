@@ -95,6 +95,18 @@ from the cloud (§3) → escalate.
   worse with a rushed change.
 - **Dashboard down, picks fine:** a redeploy (or `workflow_dispatch`) restarts `bts-dashboard`.
   If that doesn't fix it, it's on-box → escalate.
+- **Box/filesystem loss — operational-state restore (audit F5, needs SSH):** encrypted restic
+  backups of `data/picks` + `data/health_state` (ops set, 3h cadence) and
+  leaderboard/hetzner_results/external (archive set, daily) live in the R2 bucket under
+  `restic/`. On the (re)built box: install restic (`bash scripts/install-restic-hetzner.sh`),
+  put `RESTIC_PASSWORD` into `.env` (copy lives in Eric's Mac Keychain:
+  `security find-generic-password -a claude-cli -s r2-bts-restic-password -w`) alongside the
+  `R2_*` creds, then `bts backup restore-drill --target /tmp/restore-drill` to prove the
+  snapshot reads back (verifies saver flag + contest ledger + decision provenance), and restore
+  for real with `~/.local/bin/restic restore latest --tag ops --target /` — restic re-creates
+  the original absolute paths (`/home/bts/projects/bts/data/...`). Parquets/models come from
+  the separate artifact sync: `bts data sync-from-r2`. Systemd units: repo templates via
+  `bash scripts/install-systemd-hetzner.sh` (audit F12), then enable + start deliberately.
 
 ## 5. Deploy / rollback commands
 

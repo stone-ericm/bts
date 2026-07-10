@@ -83,10 +83,19 @@ entries with `action=="skip" && source=="mdp"` produce a shadow record `{date}.p
 (`bts_skip_policy_shadow_v1`) for the executable declined candidate; reconciliation fills the
 realized outcome from the MLB API. A shadow record is pruned when the corresponding `decision.json`
 is later overwritten to a delivered pick (`prune_superseded`). The status artifact
-`data/validation/skip_policy_shadow_status.json` reports the skipped-band realized hit rate (+
-Wilson CI) and a verdict vs the 0.744 breakeven (`below_breakeven` = skip validated,
-`above_breakeven` = skip costs streaks, else `straddles`/`insufficient_n`). CLI:
-`bts skip-policy-shadow-update` + `bts skip-policy-shadow-status`. Surfaced on the dashboard
+`data/validation/skip_policy_shadow_status.json` (schema v2, 2026-07-10) reports the skipped-band
+realized hit rate + a running Wilson CI (MONITORING display only) and a verdict vs the 0.744
+breakeven (`below_breakeven` = skip validated, `above_breakeven` = skip costs streaks, else
+`straddles`/`insufficient_n`). **Verdict statistics (audit F10, 2026-07-10):** verdicts come ONLY
+from pre-registered looks at n∈{30,60,90} resolved divergent days, each a Wilson test at
+Bonferroni z=2.394 (0.05/3 two-sided) over the FIRST-c records in date order — deterministic, so
+the stateless nightly rebuild replays identical looks; a decisive look is terminal
+(`verdict_basis` in the status records which look fired). The old nightly-95%-CI re-test was not
+time-uniform (peeking). Records carry a `(policy_npz_sha256, feature_env_hash)` regime
+fingerprint for future stratification. The 0.744 derivation is versioned:
+`scripts/audit/skip_breakeven_derivation.py` re-derives it from the estimated-PA profiles
+(reach57 median p* 0.7418 / E[max] 0.7485 — `docs/audit/2026-07-10-skip-breakeven-derivation.json`).
+CLI: `bts skip-policy-shadow-update` + `bts skip-policy-shadow-status`. Surfaced on the dashboard
 ("Skip-policy shadow" panel). Why `decision.json` (vs reconstructing read-only): see the design
 doc — 4 review rounds showed the action + executable candidate aren't otherwise recoverable.
 
@@ -194,18 +203,39 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 │  Tailscale: bts-hetzner (stable identity)        │
 │  Deploy: GHA SSH → git pull + systemctl restart  │
 │  Backup: R2 bucket bts-backup-data               │
+│    - artifact sync (parquets/models, manifest)   │
+│    - restic repo (operational state, encrypted)  │
 └──────────────────────────────────────────────────┘
 ```
 
+**Operational-state backup (audit F5, 2026-07-10):** `data/picks` (decisions, contest ledger,
+delivery IDs, skip-shadow records, the manual saver flag) and `data/health_state` exist ONLY on
+the box — gitignored and excluded from the artifact sync — so box loss was irrecoverable
+operational state. `bts backup run --set ops` (cron `20 */3`) and `--set archive`
+(leaderboard/hetzner_results/external research data, cron `50 4`) push restic snapshots
+(encrypted, versioned, deduped) to the R2 bucket under `restic/`; `35 5 Sun` prunes. Secrets:
+`RESTIC_PASSWORD` in box `.env` + Eric's Mac Keychain (`r2-bts-restic-password`); R2 creds reuse
+the sync's env vars (mapped to `AWS_*` for restic's S3 backend, subprocess env only — never
+argv). Each run writes `data/health_state/backup_status.json` (per-set, preserves
+`last_success_at` across failures) → `backup_freshness` health source. Restore:
+`bts backup restore-drill --target <dir>` restores the latest ops snapshot and verifies the
+saver flag, contest ledger, and decision provenance parse — run it after any restore and
+periodically (INCIDENT.md). Binary: `scripts/install-restic-hetzner.sh` (pinned + SHA256SUMS-verified,
+`~/.local/bin`, no root). The R2 *artifact* sync (`bts data sync-to-r2`) is a separate system:
+content-addressed since 2026-07-10 (audit F8) — uploads go to `objects/<sha>/<name>` so the
+manifest flip is the only commit point; restores verify into a `.part` temp then `os.replace`;
+`verify_manifest` HEADs every referenced object; unreferenced objects >7d old are pruned after
+each sync (`--no-prune` to skip).
+
 **Daily lifecycle (scheduler daemon, `Type=notify` + `Restart=always` + `RestartSec=30` + `WatchdogSec=1800` + `SuccessExitStatus=143`):**
-- `SuccessExitStatus=143` (both units, added 2026-07-01, box-side — the unit files are not repo-tracked): the deploy workflow stops units with SIGTERM, which Python exits as 143; without this every deploy logged `Failed with result 'exit-code'`, drowning real crash signal in the journal. A genuine crash (non-zero exit, signal ≠ TERM) still logs as failure and still auto-restarts.
+- `SuccessExitStatus=143` (both units, added 2026-07-01 box-side; unit files are repo-tracked since 2026-07-10 at `scripts/systemd/` with a `unit_drift` health check — audit F12): the deploy workflow stops units with SIGTERM, which Python exits as 143; without this every deploy logged `Failed with result 'exit-code'`, drowning real crash signal in the journal. A genuine crash (non-zero exit, signal ≠ TERM) still logs as failure and still auto-restarts.
 - The scheduler stays alive across days: after IDLE_END_OF_DAY it sleeps until tomorrow's wake (via `_idle_until_next_wakeup`). When the sleep ends and run_day returns, systemd auto-restarts within 30s; new run_day starts with `datetime.now(UTC)`'s new date. Process exits and clean restarts only happen at day boundaries.
 - **Heartbeat-watchdog discipline (added 2026-04-22/23)**: any `time.sleep(>60s)` in scheduler.py must be wrapped by one of: `heartbeat_watchdog` (RUNNING-state work like predictions), `_poll_interval_sleep` (result_polling between-iteration sleep), `_watchdog_ping_sleep` (SLEEPING-state waits where pre-sleep heartbeat metadata is authoritative), or `_idle_until_next_wakeup` (end-of-day overnight sleep). Each variant feeds systemd watchdog (notify_watchdog every 60s) AND cooperates with the external check_heartbeat.py monitor's freshness rules. Five bugs found in this class shipped Apr 22-23 — see git log + memory `project_bts_2026_04_23_phase_b_heartbeat.md`.
 - **NotifyAccess=all (NOT main)** is required because `uv run` wraps Python in a subprocess; systemd's "main PID" is uv (the launcher), but sd_notify pings come from the Python child. `NotifyAccess=main` rejects the child's pings and TimeoutStartSec kills the service.
 - Morning init: loads game schedule for the day, plans lineup-check windows
 - `game_time - 45min`: runs full prediction cascade at each check (no skip optimization — pipeline determines projected vs confirmed per-batter)
 - Short-circuit: if existing pick is already locked (game started or posted to Bluesky), skips the expensive SSH cascade entirely
-- `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based). Gap check excludes batters from non-Preview games (started, finished, postponed).
+- `early_lock_gap`: once confirmed lineups are available, posts picks to Bluesky (confirmation-based, not time-based). Gap check excludes batters from non-Preview games (started, finished, postponed). **Both-slots gate (audit F2, 2026-07-10):** on double days `should_lock` also requires the SELECTED double-down lineup-confirmed — the gap rule alone let a projected DD ride through on the primary's confirmation (11 production days, 4 locked 51–133min early). Applies to normal early locks and the in-loop fallback deferral (same helper); the T−35 final fallback deliberately bypasses `should_lock`, so the gate can only delay delivery within a day, never lose it.
 - Logging: each check logs the selected pick, probability, should_lock decision, and gap vs best projected pick. Pick name/probability recorded in `scheduler_state.json` for audit trail.
 - Result polling: starts `game_start + 10min`, checks boxscore every 15min. Posts reply (✅/❌ + streak) as soon as all picks have hits (mid-game early exit) or game goes Final.
 - `bts reconcile`: 8-day lookback for scoring changes (hit overturned to error). Recalculates streak from scratch if corrections found. Cron at 2am ET. Resolves boxscores unlocked, then applies corrections + the season replay under `picks.scoring_lock` against reloaded state (2026-07-10 review).
@@ -229,7 +259,7 @@ Hetzner VPS (CPX42, Helsinki) runs scheduler, dashboard, and cron via systemd. (
 
 ## Health Monitoring
 
-End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 23 sources as of 2026-07-09. Source modules must NOT blanket-catch their own crashes (audit F4, 2026-07-09): an unexpected exception propagates to `_safe_run`, which surfaces it as a CRITICAL `health_runner` alert — expected data-absence stays quiet, per-file content corruption is skipped, but filesystem errors (OSError) propagate.
+End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 25 sources as of 2026-07-10. Source modules must NOT blanket-catch their own crashes (audit F4, 2026-07-09): an unexpected exception propagates to `_safe_run`, which surfaces it as a CRITICAL `health_runner` alert — expected data-absence stays quiet, per-file content corruption is skipped, but filesystem errors (OSError) propagate.
 
 | Source | Tier | Detects |
 |---|---|---|
@@ -257,6 +287,8 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `analytics_artifacts_missing` | 2 | end-of-day visibility for missing shadow / live-forward validation artifacts after a locked pick |
 | `live_forward_resolution` | 2 | canonical live-forward resolution stalled — pending outcomes aging past grace (3d, WARN) / critical (7d) thresholds; the 2026-06-17 suspended-game stall class |
 | `mdp_policy_alignment` | 2 | recent production picks collapsing into one MDP quality bin (probability-scale drift vs saved policy boundaries — Gate-B diagnostic; no effect on selection) |
+| `backup_freshness` | 3 | (added 2026-07-10, audit F5) restic backup staleness from `data/health_state/backup_status.json`: ops set (picks+health, 3h cron) WARN ≥7h / CRITICAL ≥26h since last success; archive set (leaderboard/results/external, daily) WARN ≥30h / CRITICAL ≥78h; failed-last-run WARN even when fresh. Silent if the status file is absent (backups not armed — local dev). Always-attention. |
+| `unit_drift` | 3 | (added 2026-07-10, audit F12) installed `~/.config/systemd/user/bts-{scheduler,dashboard}.service` differs from the canonical templates in `scripts/systemd/` (sha256), or an installed tracked unit has no template. Read-only; install stays an explicit operator action (`scripts/install-systemd-hetzner.sh`). Repeated-attention (2+ days). |
 
 **Tier 1**: silent failures with damage. **Tier 2**: quality decay. **Tier 3**: process integrity.
 

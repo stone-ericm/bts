@@ -262,3 +262,67 @@ Suite after both rounds: 1710 fast tests green (baseline 1651).
 - Shadow cache identity uses `mtime_ns:size`, not a content hash, at [park_drag.py:123](/Users/eric/projects/bts/src/bts/features/park_drag.py:123). A same-size, mtime-preserving restore could reuse a shadow model trained against different bytes. Normal producer replacement changes mtime and this is shadow-only, so I did not promote it.
 - `slate_auc` increments `n_days` before joining outcomes at [slate_auc.py:113](/Users/eric/projects/bts/src/bts/health/slate_auc.py:113), but gates only post-join row count at [slate_auc.py:158](/Users/eric/projects/bts/src/bts/health/slate_auc.py:158). Under outcome-data lag, “20 days” need not mean 20 resolved days. Current status was `n_days=21`, `n_rows=5133`, `auc=.57675`; no current trigger, so this remains a telemetry defect rather than a ranked failure.
 - Falsified candidates: a history-safe secret scan covered 3,454 reachable blobs with zero matches for private-key, GitHub/OpenAI/AWS/Slack/JWT patterns and zero `.env` paths; production dashboard binding was exactly tailnet-only; park-drag export uses strict-prior `allow_exact_matches=False` at [park_drag_producer.py:252](/Users/eric/projects/bts/src/bts/features/park_drag_producer.py:252); and a production scan found zero invariant mismatches across all 17 existing `decision.json` files.
+
+## 2026-07-10 backburner dispositions (Tier B/C batch)
+
+Eric's calls + implementation, one day after the Tier-A batch. Suite 1720 → 1786.
+
+- **F5 — IMPLEMENTED (top pick).** restic (0.19.1, pinned + checksum-verified, no root)
+  to the existing R2 bucket under `restic/`: ops set = `data/picks` + `data/health_state`
+  every 3h; archive set = leaderboard / hetzner_results / external research data daily;
+  weekly prune. `bts backup run/status/prune/restore-drill`; per-set
+  `backup_status.json` (preserves `last_success_at` across failures) feeding a
+  `backup_freshness` health source (always-attention; ops 7h WARN / 26h CRITICAL).
+  `RESTIC_PASSWORD` in box `.env` + Mac Keychain (`r2-bts-restic-password`). Restore
+  drill wired into INCIDENT.md; first live drill at deploy time.
+- **F12 — IMPLEMENTED.** Live units captured byte-identical into `scripts/systemd/`
+  (scheduler sha `74a3cf3e…` matches the audit's prod hash), stale Pi5 unit deleted,
+  `unit_drift` health source (read-only sha256 compare, repeated-attention),
+  `install-systemd-hetzner.sh` (explicit operator action; never enables/restarts).
+- **F8 — IMPLEMENTED.** Content-addressed uploads `objects/<sha256>/<name>` — a prior
+  manifest's bytes are never overwritten, making the atomic manifest flip the single
+  commit point; unchanged legacy entries preserved verbatim (no migration churn);
+  restores verify in a `.part` temp then `os.replace` (a corrupt download can no longer
+  delete a good local file); `verify_manifest` HEADs every referenced object
+  (`objects_ok`, CLI exit 1); unreferenced `objects/` keys >7d pruned post-sync
+  (age guard protects in-flight syncs; legacy keys/manifest/raw-archive structurally
+  untouched). Regression test reproduces the audit's interrupted-sync scenario.
+- **F2 — IMPLEMENTED (Eric: "makes sense. let's do it", after a delivery-impact
+  walkthrough).** `should_lock` requires the selected DD confirmed; normal early locks +
+  in-loop fallback deferral gated, T−35 final fallback exempt (can only delay delivery,
+  never lose a day). Scheduler-level test covers the projected-contender-IS-the-DD case.
+  Expected cost: later delivery ~4 days/quarter; benefit: kills the displacement tail on
+  double days.
+- **F7 — ACCEPTED RISK + detective control (Eric).** The 7/01 dashboard-auth won't-fix
+  extends to `POST /saver/transition`: tailnet-only binding + `expected_prior` guard
+  stand; a mutation token adds little (embedded token readable by any peer that can GET
+  the page; the highest-exposure peers hold box SSH keys anyway). In exchange, EVERY
+  transition attempt through the single guarded writer — including rejected ones — now
+  lands in append-only `account_state/saver_transitions.jsonl` with the requesting peer
+  IP for network mutations. The trail rides the F5 ops backup.
+- **F10 — IMPLEMENTED.** `/tmp/skip_qdelta.py` confirmed GONE from the box; the
+  derivation is re-created as `scripts/audit/skip_breakeven_derivation.py`
+  (Q(single)==Q(skip) on the calibrated estimated-PA value function; sweeps n_bins ∈
+  {4,5,6}, D ∈ {150,180,210}, saver on/off, both objectives). Run on the box against
+  `estpa_profiles_2026-06-29`: reach57 median-of-medians p* = 0.7418 (medians
+  0.7258–0.7485), E[max] = 0.7485 (0.7452–0.7538) — reproduces the recorded ~0.744
+  (0.742–0.752). Constant left at 0.744: it sits inside the re-derived band and moving a
+  pre-registered threshold mid-experiment is itself a peeking violation. Inputs
+  fingerprinted in `docs/audit/2026-07-10-skip-breakeven-derivation.json`. The verdict
+  peeking is fixed: pre-registered looks at n∈{30,60,90} (Bonferroni z=2.394, first-c
+  records in date order, decisive look terminal; status schema v2 + `verdict_basis`);
+  the running Wilson CI remains as labeled monitoring. Records now carry the
+  (policy_sha, feature_env_hash) regime fingerprint for future stratification.
+- **F9 — QUEUED (Eric), not today.** A future focused session: bounded sensitivity
+  re-ranking captured production slates with pregame probable-pitcher identity and no
+  realized-participation filter, measuring movement in rank-1 hit rate and the
+  breakeven. Not urgent because every decision it currently feeds was shown insensitive
+  (6-29: skip threshold cosmetic; 7-06: MDP≈always-double, no model headroom) — it
+  becomes load-bearing only if a future decision hinges on estimated_pa precision.
+
+**Still open — console-only items (Eric, from the could-not-verify list):**
+Hetzner Console: provider snapshots/backups on the box; firewall (is 22 open to the
+world beyond Tailscale?). GitHub repo settings: Actions default token permissions
+(read-only), `deploy` branch protection, environment approval + `HETZNER_SSH_KEY`
+secret scoping. R2 restore drill from a NON-box machine (proves credentials + password
+escrow work without the box).
