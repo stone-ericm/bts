@@ -201,6 +201,32 @@ def record_pending_skips(picks_dir, *, lookback_days: int = 10, now=None) -> lis
     return recorded
 
 
+def find_aged_contradictions(picks_dir, *, now: datetime | None = None) -> list[str]:
+    """Dates of AGED records whose authoritative decision.json no longer says mdp-skip.
+
+    Complement of the prune age fence (round-3): fired-look membership stays
+    frozen (that is what pre-registration means), but a historical backfill or
+    recovery run rewriting an old date's decision.json creates a record that
+    contradicts the authoritative source — report it loudly so the operator
+    investigates instead of the divergent set silently carrying a non-skip day.
+    """
+    from bts.daily_decision import load_decision
+    now = now or datetime.now(timezone.utc)
+    contradictions = []
+    for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
+        date = f.name[: -len(".policy_shadow.json")]
+        try:
+            rec_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if (now - rec_date).days < CHECKPOINT_ELIGIBLE_AFTER_DAYS:
+            continue  # young records are prune_superseded's territory
+        dec = load_decision(date, picks_dir)
+        if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
+            contradictions.append(date)
+    return contradictions
+
+
 def load_decision_records(picks_dir) -> list[dict]:
     records = []
     for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
@@ -385,11 +411,14 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
 
 
 def write_status(picks_dir, status_path, *, breakeven_p=BREAKEVEN_P,
-                 checkpoints=CHECKPOINTS, generated_at=None, git_commit=None) -> dict:
+                 checkpoints=CHECKPOINTS, generated_at=None, git_commit=None,
+                 now: datetime | None = None) -> dict:
     status = build_skip_policy_shadow_status(
         load_decision_records(picks_dir), breakeven_p=breakeven_p,
         checkpoints=checkpoints, generated_at=generated_at or _utc_iso(),
         git_commit=git_commit)
+    status["counts"]["aged_superseded_records"] = find_aged_contradictions(
+        picks_dir, now=now)
     path = Path(status_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(path, json.dumps(status, indent=2))

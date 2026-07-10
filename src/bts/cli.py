@@ -2423,6 +2423,9 @@ def skip_policy_shadow_status(status_file):
                    f"({basis.get('hits_used')}/{basis.get('n_used')}{bci_str}, z={basis.get('z')})")
     else:
         click.echo(f"  VERDICT: {v['verdict']}  — no pre-registered look fired yet")
+    aged = c.get("aged_superseded_records") or []
+    if aged:
+        click.echo(f"  ⚠ AGED CONTRADICTIONS (frozen in sample, decision.json no longer mdp-skip): {aged}")
 
 
 @cli.command(name="shadow-backfill-results")

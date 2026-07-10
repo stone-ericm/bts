@@ -433,3 +433,34 @@ def test_prune_fence_and_eligibility_never_overlap(tmp_path):
     removed = prune_superseded(tmp_path, now=now)
     assert removed == []
     assert decision_path("2026-07-06", tmp_path).exists()
+
+
+def test_aged_superseded_contradiction_is_flagged_not_pruned(tmp_path):
+    # Round-3 finding (both partial runs converged on it): an AGED record
+    # whose decision.json later flips to non-skip (historical backfill /
+    # recovery run) escapes pruning by design — fired-look membership is
+    # frozen. But the contradiction must be FLAGGED, not silently carried:
+    # the status now reports aged records whose authoritative decision no
+    # longer says mdp-skip.
+    from bts.skip_policy_shadow import find_aged_contradictions
+    _write_mdp_skip("2026-05-01", tmp_path, bid=1)
+    record_skip_from_decision("2026-05-01", tmp_path)
+    # authoritative decision later rewritten to a delivered single
+    write_decision("2026-05-01", tmp_path, action="single", source="mdp", primary=_cand(),
+                   delivery_status="delivered", scoreable=True)
+
+    now = datetime(2026, 7, 10, tzinfo=UTC)
+    assert prune_superseded(tmp_path, now=now) == []          # frozen membership
+    assert find_aged_contradictions(tmp_path, now=now) == ["2026-05-01"]
+
+    out = tmp_path / "status.json"
+    write_status(tmp_path, out, generated_at="2026-07-10T00:00:00Z", now=now)
+    s = json.loads(out.read_text())
+    assert s["counts"]["aged_superseded_records"] == ["2026-05-01"]
+
+    # a RECENT flip is handled by prune, not flagged
+    _write_mdp_skip("2026-07-09", tmp_path, bid=2)
+    record_skip_from_decision("2026-07-09", tmp_path)
+    write_decision("2026-07-09", tmp_path, action="single", source="mdp", primary=_cand(),
+                   delivery_status="delivered", scoreable=True)
+    assert find_aged_contradictions(tmp_path, now=now) == ["2026-05-01"]
