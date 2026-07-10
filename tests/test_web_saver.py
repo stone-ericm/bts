@@ -171,3 +171,29 @@ def test_dashboard_transition_records_peer_ip(tmp_path):
     assert last["peer"] == "100.64.7.7"
     assert last["source"] == "dashboard"
     assert last["outcome"] == "written"
+
+
+def test_rejected_probes_are_audited_with_peer(tmp_path):
+    # Codex review L8: 403/409 probes against the unauthenticated endpoint
+    # are exactly what a detective control wants to see — they must land in
+    # the trail even though the guarded writer is never reached.
+    _setup(tmp_path, "active")
+    log = tmp_path / "account_state" / "saver_transitions.jsonl"
+
+    code, _ = saver_transition_response(
+        tmp_path, expected_prior="active", new_state="used",
+        same_origin=False, now=NOW, peer_ip="100.64.66.6",
+    )
+    assert code == 403
+    last = json.loads(log.read_text().splitlines()[-1])
+    assert last["outcome"] == "rejected_cross_origin"
+    assert last["peer"] == "100.64.66.6"
+
+    code, _ = saver_transition_response(
+        tmp_path, expected_prior="active", new_state="not_earned",
+        same_origin=True, now=NOW, peer_ip="100.64.66.7",
+    )
+    assert code == 409
+    last = json.loads(log.read_text().splitlines()[-1])
+    assert last["outcome"] == "rejected_non_ui_transition"
+    assert last["peer"] == "100.64.66.7"

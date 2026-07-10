@@ -168,10 +168,14 @@ def saver_transition_response(picks_dir, *, expected_prior, new_state, same_orig
     transition, a bogus state, or a guard mismatch; 200 success. Never raises. `peer_ip` lands in
     the saver_transitions.jsonl audit trail (audit F7 — tailnet membership is the only authn on
     this endpoint by accepted risk, so every mutation attempt records who asked)."""
-    from bts.saver_state import transition_saver_state
+    from bts.saver_state import append_probe_audit, transition_saver_state
     if not same_origin:
+        append_probe_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                           peer=peer_ip, outcome="rejected_cross_origin")
         return 403, "cross-origin request rejected"
     if (expected_prior, new_state) not in _DASHBOARD_TRANSITIONS:
+        append_probe_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                           peer=peer_ip, outcome="rejected_non_ui_transition")
         return 409, "only mark-used / undo are available from the dashboard"
     season, _ = _saver_season(picks_dir, now)
     ok = transition_saver_state(picks_dir, expected_prior=expected_prior, new_state=new_state,

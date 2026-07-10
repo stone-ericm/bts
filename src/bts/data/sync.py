@@ -25,6 +25,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 DEFAULT_MANIFEST_KEY = "manifest.json"
+PREV_MANIFEST_KEY = "manifest.prev.json"
 DEFAULT_BUCKET = "bts-backup-data"
 MANIFEST_VERSION = 1
 
@@ -80,7 +81,7 @@ class R2Client:
             response = self.client.get_object(Bucket=self.bucket, Key=key)
             return json.loads(response["Body"].read())
         except ClientError as e:
-            if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
+            if e.response["Error"]["Code"] in ("NoSuchKey", "404", "NotFound"):
                 return None
             raise
 
@@ -108,7 +109,9 @@ class R2Client:
             response = self.client.head_object(Bucket=self.bucket, Key=key)
             return {"size": response["ContentLength"]}
         except ClientError as e:
-            if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
+            # HEAD has no error body, so S3-compatible stores answer with
+            # "404" or "NotFound" rather than NoSuchKey (Codex review).
+            if e.response["Error"]["Code"] in ("NoSuchKey", "404", "NotFound"):
                 return None
             raise
 
@@ -266,6 +269,15 @@ def sync_to_r2(
         "schema_version": SCHEMA_VERSION,
         "files": new_files,
     }
+    # Preserve the outgoing manifest as manifest.prev.json BEFORE the flip:
+    # prune spares objects referenced by either generation, so a restore
+    # that loaded the manifest just before this sync keeps its objects
+    # (Codex review I2 — one full generation of reader grace).
+    if current_manifest.get("files"):
+        try:
+            client.copy_object(DEFAULT_MANIFEST_KEY, PREV_MANIFEST_KEY)
+        except ClientError as e:
+            print(f"  warn: could not preserve prev manifest: {e}", file=sys.stderr)
     write_manifest_atomic(client, new_manifest)
     return new_manifest
 
@@ -337,7 +349,9 @@ def sync_from_r2(
 
         # Verify in a temp path, then atomically replace — a failed or
         # corrupt download must never destroy a good local file (audit F8).
-        part = dest.with_name(dest.name + ".part")
+        # Pid-suffixed so concurrent restores can't swap each other's
+        # verified bytes through a shared temp name (Codex review I6).
+        part = dest.with_name(f"{dest.name}.{os.getpid()}.part")
         try:
             client.download_file(key=storage_key, dest=part)
             actual = sha256_file(part)
@@ -428,10 +442,12 @@ def prune_unreferenced(
     anything younger than min_age_days so an in-flight sync's fresh uploads
     (objects exist, manifest not yet flipped) can never be collected.
     """
-    manifest = read_manifest(client) or {"files": {}}
-    referenced = {
-        meta["key"] for meta in manifest["files"].values() if meta.get("key")
-    }
+    referenced = set()
+    for manifest_key in (DEFAULT_MANIFEST_KEY, PREV_MANIFEST_KEY):
+        manifest = client.get_object_json(manifest_key) or {"files": {}}
+        referenced |= {
+            meta["key"] for meta in manifest["files"].values() if meta.get("key")
+        }
 
     now = datetime.now(timezone.utc)
     deleted: list[str] = []

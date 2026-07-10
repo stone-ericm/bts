@@ -74,8 +74,8 @@ _ALLOWED = {
 }
 
 
-def _append_audit(picks_dir: Path, *, expected_prior: str, new_state: str, season: int,
-                  source: str, peer: str | None, outcome: str) -> None:
+def _append_audit(picks_dir: Path, *, expected_prior: str, new_state: str,
+                  season: int | None, source: str, peer: str | None, outcome: str) -> None:
     """Append-only transition audit trail (audit F7, accepted-risk detective control).
 
     saver_state.json keeps only the LAST write; this jsonl keeps every attempt
@@ -114,17 +114,19 @@ def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: s
     for network-originated mutations (audit F7)."""
     if new_state not in _PERSISTED:
         raise ValueError(f"invalid saver state: {new_state!r}")
-    if not force and (expected_prior, new_state) not in _ALLOWED:
-        _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
-                      season=season, source=source, peer=peer, outcome="rejected_disallowed")
-        return False
     lock_path = _path(picks_dir).with_suffix(".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with open(lock_path, "w") as lock:
         # Serialize concurrent writers (the 4x/day fetch auto-earn vs the CLI/dashboard): the
         # expected_prior guard must re-read and write UNDER the lock, else two callers from the
-        # same prior could both pass the check before either writes (a lost update).
+        # same prior could both pass the check before either writes (a lost update). ALL audit
+        # appends happen under the same lock so the trail's line order matches the actual
+        # mutation order (Codex review L7).
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        if not force and (expected_prior, new_state) not in _ALLOWED:
+            _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                          season=season, source=source, peer=peer, outcome="rejected_disallowed")
+            return False
         if load_saver_state(picks_dir, season=season).state != expected_prior:
             _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
                           season=season, source=source, peer=peer,
@@ -134,6 +136,18 @@ def transition_saver_state(picks_dir: Path, *, expected_prior: str, new_state: s
         _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
                       season=season, source=source, peer=peer, outcome="written")
         return True
+
+
+def append_probe_audit(picks_dir: Path, *, expected_prior: str, new_state: str,
+                       peer: str | None, outcome: str) -> None:
+    """Audit a request REJECTED before reaching the guarded writer (Codex review L8).
+
+    403/409 probes against the unauthenticated dashboard endpoint are exactly
+    what the F7 detective control exists to see; without this they left no
+    trace. Best-effort, never raises.
+    """
+    _append_audit(picks_dir, expected_prior=expected_prior, new_state=new_state,
+                  season=None, source="dashboard", peer=peer, outcome=outcome)
 
 
 def maybe_auto_earn_saver(picks_dir: Path, *, best_streak: int | None, season: int) -> None:

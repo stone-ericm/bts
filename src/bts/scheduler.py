@@ -343,6 +343,30 @@ class FallbackRefreshResult:
     # cached / no-refresh paths; the fresh-pick paths carry the real selection
     # so the fallback delivery can record source + candidate metadata.
     selection: "SelectionResult | None" = None
+    # should_lock computed WITHOUT the F2 double-down gate (Codex review L1).
+    # When only the gate blocks (True here, should_post False), the in-loop
+    # fallback DELIVERS instead of deferring: deferral archives the day's
+    # pick on the strength of pending windows in unrelated games, and if the
+    # later cascade fails there is nothing left to deliver. None on the
+    # cached/error paths (defer semantics preserved).
+    should_post_ungated: bool | None = None
+
+
+def _should_defer_at_fallback(
+    *,
+    should_post: bool | None,
+    should_post_ungated: bool | None,
+    has_pending_future_window: bool,
+) -> bool:
+    """Defer the in-loop fallback ONLY for genuine pre-gate blocks.
+
+    A gate-only block (primary confirmed, gap passed, DD still projected) at
+    the deadline delivers on projected data — the same principle as the T-35
+    final fallback: a projected DD beats losing the day (Codex review L1).
+    """
+    if should_post is not False or not has_pending_future_window:
+        return False
+    return should_post_ungated is not True
 
 
 def _refresh_is_genuine_skip(refresh: "FallbackRefreshResult") -> bool:
@@ -892,8 +916,11 @@ def _lock_decision_from_predictions(
     daily,
     date: str,
     early_lock_gap: float,
-) -> tuple[bool, float | None]:
-    """Return should_lock plus the best projected contender, if any."""
+) -> tuple[bool, float | None, bool]:
+    """Return (should_lock, best projected contender, should_lock ignoring
+    the F2 double-down gate). The ungated value lets the in-loop fallback
+    distinguish a gate-only block (deliver at the deadline) from a genuine
+    pre-gate block (defer) — Codex review L1."""
     from bts.picks import (
         get_game_statuses_detailed,
         pick_candidate_status_is_available,
@@ -907,7 +934,7 @@ def _lock_decision_from_predictions(
             "  Detailed game-status lookup failed; should_lock=False.",
             file=sys.stderr,
         )
-        return False, None
+        return False, None, False
 
     pick_data = {
         "p_game_hit": daily.pick.p_game_hit,
@@ -940,10 +967,12 @@ def _lock_decision_from_predictions(
                 if best_projected is None or float(row["p_game_hit"]) > best_projected:
                     best_projected = float(row["p_game_hit"])
 
-    return (
-        should_lock(pick_data, all_pick_data, early_lock_gap, double_down=double_down_data),
-        best_projected,
+    ungated = should_lock(pick_data, all_pick_data, early_lock_gap)
+    gated = (
+        should_lock(pick_data, all_pick_data, early_lock_gap, double_down=double_down_data)
+        if double_down_data is not None else ungated
     )
+    return gated, best_projected, ungated
 
 
 def _has_pending_future_confirmation_window(
@@ -1189,7 +1218,7 @@ def run_single_check(
     )
     save_pick(pick_result.daily, picks_dir)
 
-    do_post, best_projected = _lock_decision_from_predictions(
+    do_post, best_projected, _ = _lock_decision_from_predictions(
         predictions,
         pick_result.daily,
         date,
@@ -1568,7 +1597,7 @@ def _refresh_pick_at_fallback_decision(
         )
         return FallbackRefreshResult(fresh, None, selection=sel)
 
-    should_post, best_projected = _lock_decision_from_predictions(
+    should_post, best_projected, ungated = _lock_decision_from_predictions(
         predictions,
         fresh,
         date,
@@ -1582,7 +1611,8 @@ def _refresh_pick_at_fallback_decision(
         f"  FALLBACK REFRESH: should_lock={should_post}{gap_info}",
         file=sys.stderr,
     )
-    return FallbackRefreshResult(fresh, should_post, selection=sel)
+    return FallbackRefreshResult(fresh, should_post, selection=sel,
+                                 should_post_ungated=ungated)
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
@@ -2255,7 +2285,11 @@ def run_day(
                         print("  FALLBACK: standing MDP skip — not delivering cached pick.",
                               file=sys.stderr)
                         continue
-                    if refresh.should_post is False and has_pending_future_window:
+                    if _should_defer_at_fallback(
+                        should_post=refresh.should_post,
+                        should_post_ungated=refresh.should_post_ungated,
+                        has_pending_future_window=has_pending_future_window,
+                    ):
                         archive = _defer_pick_at_fallback(
                             picks_dir,
                             date,

@@ -573,7 +573,7 @@ class TestSchedulerRun:
             },
         ])
 
-        should_post, best_projected = _lock_decision_from_predictions(
+        should_post, best_projected, ungated = _lock_decision_from_predictions(
             predictions,
             _daily_pick(100),
             "2026-04-03",
@@ -582,6 +582,7 @@ class TestSchedulerRun:
 
         assert should_post is False
         assert best_projected is None
+        assert ungated is False  # status failure blocks pre-gate too
         mock_coarse_statuses.assert_not_called()
 
     # --- F2 (2026-07-09 audit): the scheduler-level case where the projected
@@ -612,7 +613,7 @@ class TestSchedulerRun:
         ])
         daily = _daily_pick(100, double_down_game_pk=200, double_down_projected=True)
 
-        should_post, _ = _lock_decision_from_predictions(
+        should_post, _, _ = _lock_decision_from_predictions(
             predictions, daily, "2026-04-04", early_lock_gap=0.03,
         )
         assert should_post is False
@@ -621,10 +622,72 @@ class TestSchedulerRun:
         predictions_confirmed = predictions.copy()
         predictions_confirmed.loc[1, "flags"] = ""
         daily_confirmed = _daily_pick(100, double_down_game_pk=200)
-        should_post, _ = _lock_decision_from_predictions(
+        should_post, _, _ = _lock_decision_from_predictions(
             predictions_confirmed, daily_confirmed, "2026-04-04", early_lock_gap=0.03,
         )
         assert should_post is True
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "P", "detailed": "Scheduled"},
+        200: {"abstract": "P", "detailed": "Scheduled"},
+    })
+    def test_lock_decision_reports_ungated_value(self, _detailed):
+        # Codex review L1: when ONLY the DD gate blocks, the in-loop fallback
+        # must know the pre-gate decision so it delivers instead of archiving
+        # the day's only deliverable pair on a stale pending-window flag.
+        import pandas as pd
+        from bts.scheduler import _lock_decision_from_predictions
+
+        predictions = pd.DataFrame([
+            {
+                "batter_name": "Díaz", "batter_id": 1, "team": "TB",
+                "lineup": 1, "pitcher_name": "Abel", "pitcher_id": 2,
+                "game_pk": 100, "game_time": "2026-04-04T23:10:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.72, "flags": "",
+            },
+            {
+                "batter_name": "Double", "batter_id": 3, "team": "MIN",
+                "lineup": 1, "pitcher_name": "Gray", "pitcher_id": 4,
+                "game_pk": 200, "game_time": "2026-04-04T23:15:00Z",
+                "p_hit_pa": 0.28, "p_game_hit": 0.61, "flags": "PROJECTED lineup",
+            },
+        ])
+        daily = _daily_pick(100, double_down_game_pk=200, double_down_projected=True)
+        should_post, _, ungated = _lock_decision_from_predictions(
+            predictions, daily, "2026-04-04", early_lock_gap=0.03,
+        )
+        assert should_post is False
+        assert ungated is True  # gap passes, primary confirmed — gate-only block
+
+    def test_should_defer_at_fallback_gate_only_block_delivers(self):
+        from bts.scheduler import _should_defer_at_fallback
+
+        # gate-only block at the deadline → deliver (no defer), even with
+        # pending future windows: deferring would archive the only pair
+        assert _should_defer_at_fallback(
+            should_post=False, should_post_ungated=True,
+            has_pending_future_window=True,
+        ) is False
+        # genuine pre-gate block (primary projected / gap fail) → defer
+        assert _should_defer_at_fallback(
+            should_post=False, should_post_ungated=False,
+            has_pending_future_window=True,
+        ) is True
+        # unknown ungated (cached/error refresh paths) → preserve old behavior
+        assert _should_defer_at_fallback(
+            should_post=False, should_post_ungated=None,
+            has_pending_future_window=True,
+        ) is True
+        # no pending windows → never defer
+        assert _should_defer_at_fallback(
+            should_post=False, should_post_ungated=False,
+            has_pending_future_window=False,
+        ) is False
+        # should_post not False → never defer
+        assert _should_defer_at_fallback(
+            should_post=None, should_post_ungated=None,
+            has_pending_future_window=True,
+        ) is False
 
     @patch("bts.scheduler.check_confirmed_lineups")
     @patch("bts.picks.get_game_statuses_detailed", return_value={

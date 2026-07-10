@@ -130,13 +130,21 @@ def read_status(repo_root: Path) -> dict:
 
 
 def _write_status_entry(repo_root: Path, set_name: str, entry: dict) -> None:
+    import fcntl
+
     from bts.util import atomic_write_text
 
     health_dir = Path(repo_root) / "data" / "health_state"
     health_dir.mkdir(parents=True, exist_ok=True)
-    status = read_status(repo_root)
-    status[set_name] = entry
-    atomic_write_text(health_dir / STATUS_FILENAME, json.dumps(status, indent=2))
+    # flock serializes the read-modify-write: a slow ops run finishing
+    # alongside an archive run must not clobber the other's entry
+    # (Codex review I8). The final write stays atomic (tmp+rename).
+    lock_path = health_dir / (STATUS_FILENAME + ".lock")
+    with open(lock_path, "w") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        status = read_status(repo_root)
+        status[set_name] = entry
+        atomic_write_text(health_dir / STATUS_FILENAME, json.dumps(status, indent=2))
 
 
 def _parse_summary(stdout: str) -> dict:
@@ -174,8 +182,7 @@ def run_backup(
     started = now_fn()
     prior = read_status(repo_root).get(set_name, {})
 
-    existing = [p for p in bset.paths if (repo_root / p).exists()]
-    skipped = sorted(set(bset.paths) - set(existing))
+    missing = sorted(p for p in bset.paths if not (repo_root / p).exists())
 
     def finish(entry: dict) -> dict:
         entry = {
@@ -189,10 +196,13 @@ def run_backup(
         _write_status_entry(repo_root, set_name, entry)
         return entry
 
-    if not existing:
+    if missing:
+        # Every path in a set is REQUIRED. A "success" that silently omitted
+        # data/picks would advance last_success_at and keep health green
+        # while the irreplaceable payload went unprotected (Codex review I1).
         return finish({
             "ok": False,
-            "error": f"all paths missing under {repo_root}: {sorted(bset.paths)}",
+            "error": f"required backup paths missing under {repo_root}: {missing}",
         })
 
     try:
@@ -203,7 +213,7 @@ def run_backup(
     bin_ = restic_bin(env)
     backup_cmd = [
         bin_, "backup",
-        *[str(repo_root / p) for p in existing],
+        *[str(repo_root / p) for p in bset.paths],
         "--tag", set_name,
         "--exclude", "*.lock",
         "--json",
@@ -220,6 +230,14 @@ def run_backup(
         return finish({
             "ok": False,
             "error": f"restic backup timed out after {DEFAULT_TIMEOUT_SEC}s",
+        })
+    except OSError as e:
+        # Missing/unexecutable restic binary (cron installed before the
+        # install script ran). Without a status entry the absent-file
+        # convention keeps health silent forever (Codex review I3).
+        return finish({
+            "ok": False,
+            "error": f"restic could not be executed ({bin_}): {e}",
         })
     if result.returncode != 0:
         return finish({
@@ -250,10 +268,8 @@ def run_backup(
         "data_added": summary.get("data_added"),
         "total_files_processed": summary.get("total_files_processed"),
         "duration_sec": (finished - started).total_seconds(),
-        "paths": existing,
+        "paths": list(bset.paths),
     }
-    if skipped:
-        entry["skipped_paths"] = skipped
     if forget.returncode != 0:
         # Retention failure doesn't invalidate the snapshot; note it.
         entry["forget_error"] = (forget.stderr or "").strip()[-300:]
@@ -291,6 +307,15 @@ def verify_restored_ops_tree(root: Path) -> list[str]:
     """
     root = Path(root)
     problems: list[str] = []
+
+    streaks = list(root.rglob("streak.json"))
+    if not streaks:
+        problems.append("streak.json not found in restore")
+    else:
+        try:
+            json.loads(streaks[0].read_text())
+        except (OSError, ValueError) as e:
+            problems.append(f"streak.json unreadable/corrupt: {e}")
 
     savers = list(root.rglob("saver_state.json"))
     if not savers:
@@ -338,23 +363,38 @@ def restore_drill(
     env: dict,
     runner: Callable = subprocess.run,
 ) -> dict:
-    """Restore the latest ops snapshot to `target` and verify recoverability.
+    """Restore the last SUCCESSFUL ops snapshot to `target` and verify it.
 
-    Proves the two claims the F5 audit finding demands: the manual saver
-    flag and current-day decision provenance actually come back from R2.
+    Proves the claims the F5 audit finding demands: streak, the manual saver
+    flag, the contest ledger, and decision provenance actually come back
+    from R2. Two hardenings from the Codex review (I4): the target must be
+    empty/new (stale files from an earlier drill could pass verification a
+    partial snapshot never earned), and when backup_status.json records a
+    successful snapshot_id we restore THAT — `latest --tag ops` could select
+    a partial (rc=3) snapshot restic created during a run we recorded as
+    failed.
     """
     target = Path(target)
+    if target.exists() and any(target.iterdir()):
+        return {
+            "ok": False,
+            "problems": [f"target {target} is not empty — a reused drill target "
+                         f"can mask omissions in the restored snapshot"],
+        }
     target.mkdir(parents=True, exist_ok=True)
     try:
         renv = restic_env(env)
     except RuntimeError as e:
         return {"ok": False, "problems": [str(e)]}
 
-    cmd = [
-        restic_bin(env), "restore", "latest",
-        "--tag", "ops",
-        "--target", str(target),
-    ]
+    ops_status = read_status(repo_root).get("ops", {})
+    snapshot = (ops_status.get("snapshot_id")
+                if ops_status.get("ok") and ops_status.get("snapshot_id")
+                else None)
+    cmd = [restic_bin(env), "restore", snapshot or "latest"]
+    if snapshot is None:
+        cmd += ["--tag", "ops"]
+    cmd += ["--target", str(target)]
     result = runner(
         cmd, env=renv, capture_output=True, text=True, timeout=DEFAULT_TIMEOUT_SEC,
     )
@@ -365,4 +405,9 @@ def restore_drill(
         }
 
     problems = verify_restored_ops_tree(target)
-    return {"ok": not problems, "problems": problems, "target": str(target)}
+    return {
+        "ok": not problems,
+        "problems": problems,
+        "target": str(target),
+        "snapshot": snapshot or "latest",
+    }

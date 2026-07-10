@@ -40,15 +40,19 @@ BREAKEVEN_P = 0.744
 # night as n grew — repeated looks inflate the chance of an eventual chance crossing being
 # presented as a verdict. Now the verdict is evaluated ONLY at these resolved-n checkpoints,
 # each at a Bonferroni-split alpha (0.05/3 two-sided -> z=2.394), computed deterministically
-# from the FIRST c resolved records in date order, so the nightly stateless rebuild replays
-# exactly the same looks. A decisive look is terminal. Known edge (documented, accepted): a
-# pending record that resolves late can reshuffle the first-c window once, within
-# STALE_AFTER_DAYS of the checkpoint being crossed.
+# from the FIRST c checkpoint-ELIGIBLE records in date order, so the nightly stateless
+# rebuild replays exactly the same looks. A decisive look is terminal. Eligibility (Codex
+# review L3): only records older than the void-staleness window count toward checkpoint
+# membership — younger records can still flip (late resolution) or vanish (prune_superseded
+# is same-day), which would reshuffle an already-fired look. Once past the window a record's
+# fate is sealed (hit/miss terminal in reconcile; pending forced to void), so membership is
+# immutable by construction. Recent records feed the monitoring CI only.
 CHECKPOINTS = (30, 60, 90)
 Z_CHECKPOINT = 2.394
 # A pending outcome older than this is treated as void (game is final by now; unresolved =
 # postponed/scratched/data-gap) so live-but-unfinished games are retried, not voided immediately.
 STALE_AFTER_DAYS = 3
+CHECKPOINT_ELIGIBLE_AFTER_DAYS = STALE_AFTER_DAYS + 1
 
 _RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "p_game_hit")
 _RESOLVED = ("hit", "miss", "void")
@@ -111,7 +115,15 @@ def _read_regime(date: str, picks_dir) -> dict | None:
     env_hash = body.get("feature_env_hash")
     if policy_sha is None and env_hash is None:
         return None
-    return {"policy_npz_sha256": policy_sha, "feature_env_hash": env_hash}
+    # pick_run_time: the {date}.json pick file is mutable and an MDP-skip
+    # cycle does NOT re-save it, so this stamp is best-effort (a mid-day
+    # deploy can leave it one regime behind — Codex review L5). Recording
+    # the pick's run_time lets future stratification detect staleness.
+    return {
+        "policy_npz_sha256": policy_sha,
+        "feature_env_hash": env_hash,
+        "pick_run_time": body.get("run_time"),
+    }
 
 
 def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
@@ -275,6 +287,7 @@ def _checkpoint_verdict(results: list[str], breakeven: float,
 def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float = BREAKEVEN_P,
                                     checkpoints: tuple = CHECKPOINTS,
                                     z_checkpoint: float = Z_CHECKPOINT,
+                                    as_of=None,
                                     generated_at: str | None = None, git_commit: str | None = None) -> dict:
     """Aggregate decision records into the monitoring status artifact.
 
@@ -291,13 +304,22 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
     hits = sum(1 for r in resolved if r["shadow_pick_result"] == "hit")
     n = len(resolved)
     point, lo, hi = _wilson(hits, n)
-    resolved_in_date_order = [
+
+    # Checkpoint eligibility (Codex review L3): only records old enough that
+    # their fate is sealed can be look members; younger ones monitor only.
+    from datetime import timedelta as _timedelta
+    as_of = as_of or datetime.now(timezone.utc).date()
+    cutoff = (as_of - _timedelta(days=CHECKPOINT_ELIGIBLE_AFTER_DAYS)).isoformat()
+    eligible = [
         r["shadow_pick_result"]
         for r in sorted(resolved, key=lambda r: r.get("date") or "")
+        if (r.get("date") or "9999") <= cutoff
     ]
     verdict, verdict_basis = _checkpoint_verdict(
-        resolved_in_date_order, breakeven_p, checkpoints, z_checkpoint,
+        eligible, breakeven_p, checkpoints, z_checkpoint,
     )
+    verdict_basis["eligible_n"] = len(eligible)
+    verdict_basis["eligibility_cutoff_date"] = cutoff
 
     rows = [
         {"date": r.get("date"), "streak": r.get("streak"),

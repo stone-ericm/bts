@@ -42,8 +42,12 @@ for unit in "$SRC_DIR"/*.service; do
     changed=1
 done
 
-if [ "$changed" = 1 ]; then
-    systemctl --user daemon-reload
-    echo "daemon-reload done. Units NOT restarted — use the deploy workflow,"
-    echo "or 'systemctl --user restart <unit>' deliberately."
+# Always reload (Codex review I7): if a previous run copied files but its
+# reload failed, a rerun sees identical files and would otherwise skip the
+# reload, leaving systemd's loaded units stale while disk looks current.
+systemctl --user daemon-reload
+echo "daemon-reload done. Units NOT restarted — use the deploy workflow,"
+echo "or 'systemctl --user restart <unit>' deliberately."
+if [ "$changed" = 0 ]; then
+    echo "(no unit files changed)"
 fi

@@ -22,7 +22,12 @@ WHAT IS DERIVED
     Reported across the streak>=8 skip-rule states under BOTH objectives the
     project uses (P(reach 57) — the deployed solve — and E[season-best
     streak], evaluated at the m==s frontier), with robustness sweeps over
-    horizon D, bin count, and saver availability.
+    bin count and saver availability. NOTE (Codex review L6): a D-horizon
+    sweep is a NO-OP by construction — V at a fixed days-remaining d depends
+    only on the recursion below d, so the d-grid IS the horizon sensitivity;
+    D is fixed at 180. Streak grid runs 8..30 (review L2): the breakeven
+    rises with streak, and shadow records above the 8-16 core band must be
+    interpreted against the per-band numbers below, not the headline.
 
 DATA
     Estimated-PA profiles (live-matched probability scale):
@@ -53,7 +58,7 @@ from skip_threshold_resolve import bin_arrays, solve_reach  # noqa: E402
 from bts.simulate.quality_bins import compute_bins  # noqa: E402
 
 TARGET = 57
-STREAKS = range(8, 17)          # the streak>=8 skip rule's operating range
+STREAKS = range(8, 31)          # skip rule operating range + high-streak tail (review L2)
 DAY_GRID = (30, 60, 90, 120, 150)
 
 
@@ -180,14 +185,15 @@ def main():
     for n_bins in (4, 5, 6):
         bins = compute_bins(profiles, n_bins=n_bins)
         freq, ph, pb, boundaries = bin_arrays(bins)
-        for D in (150, 180, 210):
-            V, _ = solve_reach(freq, ph, pb, D=D)
-            for sv in (0, 1):
-                rows = qdelta_breakevens_reach(V, freq, sv)
-                report["sweeps"].append({
-                    "objective": "reach57", "n_bins": n_bins, "D": D, "saver": sv,
-                    "boundaries": boundaries, "summary": summarize(rows),
-                })
+        V, _ = solve_reach(freq, ph, pb, D=180)
+        for sv in (0, 1):
+            rows = qdelta_breakevens_reach(V, freq, sv)
+            report["sweeps"].append({
+                "objective": "reach57", "n_bins": n_bins, "D": 180, "saver": sv,
+                "boundaries": boundaries, "summary": summarize(rows),
+                "summary_core_8_16": summarize([r for r in rows if r["s"] <= 16]),
+                "summary_tail_17_30": summarize([r for r in rows if r["s"] >= 17]),
+            })
         # E[max] is heavier — snapshot only at the default horizon
         snaps = solve_emax_snapshots(freq, ph, pb, snapshot_days=set(DAY_GRID), D=180)
         for sv in (0, 1):
@@ -195,17 +201,20 @@ def main():
             report["sweeps"].append({
                 "objective": "emax", "n_bins": n_bins, "D": 180, "saver": sv,
                 "boundaries": boundaries, "summary": summarize(rows),
+                "summary_core_8_16": summarize([r for r in rows if r["s"] <= 16]),
+                "summary_tail_17_30": summarize([r for r in rows if r["s"] >= 17]),
             })
         print(f"n_bins={n_bins} done", file=sys.stderr)
 
     for obj in ("reach57", "emax"):
-        meds = [s["summary"]["median"] for s in report["sweeps"]
-                if s["objective"] == obj and s["summary"]]
-        if meds:
-            report[f"{obj}_median_of_medians"] = float(np.median(meds))
-            report[f"{obj}_median_range"] = [float(min(meds)), float(max(meds))]
-            print(f"{obj}: median-of-medians p* = {np.median(meds):.4f} "
-                  f"(medians span {min(meds):.4f}-{max(meds):.4f})")
+        for band, key in (("core_8_16", "summary_core_8_16"), ("tail_17_30", "summary_tail_17_30")):
+            meds = [s[key]["median"] for s in report["sweeps"]
+                    if s["objective"] == obj and s.get(key)]
+            if meds:
+                report[f"{obj}_{band}_median_of_medians"] = float(np.median(meds))
+                report[f"{obj}_{band}_median_range"] = [float(min(meds)), float(max(meds))]
+                print(f"{obj} [{band}]: median-of-medians p* = {np.median(meds):.4f} "
+                      f"(medians span {min(meds):.4f}-{max(meds):.4f})")
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(report, indent=2))

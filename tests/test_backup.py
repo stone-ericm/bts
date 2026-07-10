@@ -177,18 +177,39 @@ def test_run_backup_all_paths_missing_fails_without_invoking_restic(tmp_path):
     assert "missing" in status["error"]
 
 
-def test_run_backup_partial_paths_backs_up_existing_subset(tmp_path):
+def test_run_backup_any_missing_path_fails_loudly(tmp_path):
+    # Codex review I1: a "successful" backup that silently omitted a
+    # required root (e.g. data/picks deleted) advanced last_success_at and
+    # kept health green while the irreplaceable payload was unprotected.
+    # Every path in a set is REQUIRED; these dirs always exist in prod.
     repo = _mk_repo(tmp_path)
-    (repo / "data" / "leaderboard").mkdir()
-    runner = FakeRunner(results=[(0, SUMMARY_LINE, ""), (0, "", "")])
+    (repo / "data" / "leaderboard").mkdir()  # hetzner_results/external missing
+    runner = FakeRunner()
     status = backup.run_backup(
         "archive", repo, env=BASE_ENV, runner=runner, now_fn=lambda: FIXED_NOW,
     )
-    cmd = runner.calls[0]["cmd"]
-    assert str(repo / "data" / "leaderboard") in cmd
-    assert str(repo / "data" / "hetzner_results") not in cmd
-    assert status["ok"] is True
-    assert status["skipped_paths"] == ["data/external", "data/hetzner_results"]
+    assert status["ok"] is False
+    assert runner.calls == []
+    assert "data/external" in status["error"]
+    assert "data/hetzner_results" in status["error"]
+
+
+def test_run_backup_missing_binary_writes_failed_status(tmp_path):
+    # Codex review I3: cron installed before the restic binary exists →
+    # FileNotFoundError escaped, backup_status.json was never created, and
+    # the absent-file convention kept health silent FOREVER.
+    repo = _mk_repo(tmp_path)
+
+    def no_binary(cmd, env=None, capture_output=True, text=True, timeout=None):
+        raise FileNotFoundError(2, "No such file or directory", cmd[0])
+
+    status = backup.run_backup(
+        "ops", repo, env=BASE_ENV, runner=no_binary, now_fn=lambda: FIXED_NOW,
+    )
+    assert status["ok"] is False
+    assert "restic" in status["error"]
+    on_disk = json.loads((repo / "data/health_state/backup_status.json").read_text())
+    assert on_disk["ops"]["ok"] is False
 
 
 def test_run_backup_timeout_writes_failed_status(tmp_path):
@@ -242,6 +263,7 @@ def _mk_restored_ops_tree(target: Path) -> Path:
     (base / "2026-07-09" / "decision.json").write_text(json.dumps(
         {"action": "double", "date": "2026-07-09", "schema_version": "bts_daily_decision_v1"}
     ))
+    (base / "streak.json").write_text(json.dumps({"streak": 1, "saver_available": True}))
     return target
 
 
@@ -290,6 +312,56 @@ def test_restore_drill_invokes_restic_restore_and_verifies(tmp_path):
     assert "--target" in cmd and str(target) in cmd
     assert result["ok"] is True
     assert result["problems"] == []
+
+
+def test_restore_drill_refuses_nonempty_target(tmp_path):
+    # Codex review I4: a reused target can contain files from an EARLIER
+    # drill — recursive verification then passes on stale state a partial
+    # snapshot never restored.
+    target = tmp_path / "drill"
+    target.mkdir()
+    (target / "leftover.json").write_text("{}")
+    runner = FakeRunner()
+    result = backup.restore_drill(
+        repo_root=tmp_path, target=target, env=BASE_ENV, runner=runner,
+    )
+    assert result["ok"] is False
+    assert any("not empty" in p for p in result["problems"])
+    assert runner.calls == []
+
+
+def test_restore_drill_prefers_last_successful_snapshot_id(tmp_path):
+    # Codex review I4: 'latest --tag ops' can select a PARTIAL (rc=3)
+    # snapshot restic created during a run we recorded as failed. The last
+    # SUCCESSFUL run's snapshot_id in backup_status.json is the recovery
+    # target of record.
+    repo = _mk_repo(tmp_path)
+    (repo / "data/health_state/backup_status.json").write_text(json.dumps(
+        {"ops": {"set": "ops", "ok": True, "snapshot_id": "goodsnap123",
+                 "last_success_at": "2026-07-10T12:00:00+00:00"}}
+    ))
+    target = tmp_path / "drill"
+
+    def materialize(cmd):
+        if "restore" in cmd:
+            _mk_restored_ops_tree(target)
+
+    runner = FakeRunner(results=[(0, "", "")], side_effect=materialize)
+    result = backup.restore_drill(
+        repo_root=repo, target=target, env=BASE_ENV, runner=runner,
+    )
+    cmd = runner.calls[0]["cmd"]
+    assert "goodsnap123" in cmd
+    assert "latest" not in cmd
+    assert result["ok"] is True
+    assert result["snapshot"] == "goodsnap123"
+
+
+def test_verify_restored_ops_tree_flags_missing_streak(tmp_path):
+    _mk_restored_ops_tree(tmp_path)  # helper writes streak.json too
+    next(tmp_path.rglob("streak.json")).unlink()
+    problems = backup.verify_restored_ops_tree(tmp_path)
+    assert any("streak.json" in p for p in problems)
 
 
 def test_restore_drill_reports_problems(tmp_path):

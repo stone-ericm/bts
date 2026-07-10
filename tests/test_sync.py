@@ -505,6 +505,40 @@ def test_prune_unreferenced_deletes_only_old_unreferenced_objects(mock_bucket, t
     assert "objects/deadbeef/orphan.parquet" not in keys
 
 
+def test_prune_spares_previous_manifest_objects(mock_bucket, tmp_path):
+    """Codex review I2: a restore that loaded the manifest just before a sync
+    replaced it must not have its objects pruned out from under it. Prune
+    spares everything referenced by the current OR the immediately previous
+    manifest — one full generation of reader grace."""
+    from bts.data.sync import sync_to_r2, prune_unreferenced
+    processed, models = _mk_dirs(tmp_path)
+    pq = processed / "pa_2026.parquet"
+
+    pq.write_bytes(b"gen-one")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+    gen1_key = f"objects/{_sha(b'gen-one')}/pa_2026.parquet"
+
+    pq.write_bytes(b"gen-two")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+    gen2_key = f"objects/{_sha(b'gen-two')}/pa_2026.parquet"
+
+    # gen-one is unreferenced by the CURRENT manifest but held by the previous
+    report = prune_unreferenced(client=R2Client.from_env(), min_age_days=0)
+    assert gen1_key not in report["deleted"]
+    keys = {o["Key"] for o in mock_bucket.list_objects_v2(Bucket="test-bucket")["Contents"]}
+    assert gen1_key in keys
+
+    pq.write_bytes(b"gen-three")
+    sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    # now gen-one is two generations back — collectable; gen-two spared as prev
+    report = prune_unreferenced(client=R2Client.from_env(), min_age_days=0)
+    assert gen1_key in report["deleted"]
+    keys = {o["Key"] for o in mock_bucket.list_objects_v2(Bucket="test-bucket")["Contents"]}
+    assert gen1_key not in keys
+    assert gen2_key in keys
+
+
 def test_archive_historical_raw(tmp_path, mock_bucket):
     # Create a fake raw directory with historical seasons
     raw_dir = tmp_path / "raw"

@@ -323,6 +323,31 @@ def test_status_schema_v2():
     assert s["initiative"]["checkpoints"] == [30, 60, 90]
 
 
+def test_checkpoint_membership_excludes_mutable_recent_records():
+    # Codex review L3: records younger than the void-staleness window can
+    # still change (a pending record resolving late reshuffles the first-c
+    # window). Checkpoint membership is therefore restricted to records old
+    # enough that their fate is sealed; recent ones feed monitoring only.
+    from datetime import date, timedelta
+    recs = _dated_recs(["hit"] * 10 + ["miss"] * 20)          # decisively below at c=30
+    last_date = max(r["date"] for r in recs)
+    # 'today' is the day after the last record: the newest records are
+    # inside the mutability window -> not yet checkpoint-eligible
+    as_of = date.fromisoformat(last_date) + timedelta(days=1)
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744, as_of=as_of)
+    assert s["shadow_band_hit_rate"]["verdict"] == "insufficient_n"
+    basis = s["shadow_band_hit_rate"]["verdict_basis"]
+    assert basis["eligible_n"] < 30
+    # monitoring still sees everything
+    assert s["shadow_band_hit_rate"]["resolved"] == 30
+
+    # once every record has aged past the window, the look fires
+    as_of = date.fromisoformat(last_date) + timedelta(days=10)
+    s = build_skip_policy_shadow_status(recs, breakeven_p=0.744, as_of=as_of)
+    assert s["shadow_band_hit_rate"]["verdict"] == "below_breakeven"
+    assert s["shadow_band_hit_rate"]["verdict_basis"]["eligible_n"] == 30
+
+
 # ---- F10: regime fingerprint stored per record (future stratification;
 # the breakeven came from one model era — records must be attributable).
 
@@ -330,13 +355,17 @@ def test_record_carries_regime_fingerprint(tmp_path):
     _write_mdp_skip("2026-06-18", tmp_path, bid=1)
     (tmp_path / "2026-06-18.json").write_text(json.dumps({
         "date": "2026-06-18",
+        "run_time": "2026-06-18T15:00:00+00:00",
         "policy_npz_sha256": "polsha256",
         "feature_env_hash": "envhash123",
     }))
     rec = record_skip_from_decision("2026-06-18", tmp_path)
-    assert rec["regime"] == {
-        "policy_npz_sha256": "polsha256", "feature_env_hash": "envhash123",
-    }
+    assert rec["regime"]["policy_npz_sha256"] == "polsha256"
+    assert rec["regime"]["feature_env_hash"] == "envhash123"
+    # Codex review L5: the pick file is mutable and a skip cycle doesn't
+    # re-save it, so the stamp is best-effort — run_time is recorded so a
+    # future stratification can detect a stale-provenance stamp.
+    assert rec["regime"]["pick_run_time"] == "2026-06-18T15:00:00+00:00"
 
 
 def test_record_regime_none_when_pick_file_absent(tmp_path):
