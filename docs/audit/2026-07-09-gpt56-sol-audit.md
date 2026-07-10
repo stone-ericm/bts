@@ -382,3 +382,38 @@ recovered report → 11 fixed, 2 accepted (commit `6d74d39`, suite 1801):
 - Accepted: fresh-box backup bootstrap stays a runbook step (absent-status-silent
   convention keeps dev machines quiet); deeper postponed-commit hardening already
   owned by the postponed_pick Tier-1 source.
+
+### 2026-07-10 F9 disposition — RESOLVED BY MEASUREMENT (settled decision affirmed)
+
+Eric: "let's look at the tier c issues." Instead of the queued half-day counterfactual,
+a staged approach: measure the PREVALENCE of both contamination channels first
+(`scripts/audit/f9_estpa_basis_prevalence.py`, box, read-only).
+
+**Channel 1 — eligibility (the 11.33%):** replicated exactly (243,533 batter-games,
+11.33% dropped by the faced-the-realized-starter rule). Decomposed by starting-lineup
+membership (first 9 distinct batters per side in PA order): **~90% of the dropped rows
+are bench/pinch-hitters production never ranks either.** Lineup members dropped:
+**1.16%** of lineup slots (2,509/216,324; seasonal range 0.96–1.56%) — early-starter-exit
+games, concentrated in marginal lineup spots, essentially never the rank-1 star.
+The auditor's own self-refutation ("probably bench/pinch hitters") called it.
+
+**Channel 2 — starter identity:** probable (pregame feed lookup) vs realized first
+pitcher disagrees on **0.15%** of game-sides historically (probables missing 0.05%).
+Caveat noted: final-feed `probablePitchers` could be update-biased toward the actual
+starter, so the live check is the authoritative one — across all 29 captured
+production slates (6/11–7/09), **0 of 286 top-10 candidate rows** carried a serving
+pitcher who didn't start. At the decision-relevant top of the slate, at the times
+picks actually lock, the identity gap measures zero.
+
+**Impact bound:** rank-1 hit rate and the quality bins feeding the MDP/breakeven can
+shift by at most ~(contamination rate × hit-prob delta of affected rows) — with both
+channels ≈1% and affected rows mostly marginal, that is <<0.005, far inside the
+breakeven's own re-derived robustness band (0.742–0.752) and the ±0.04 live
+calibration bound from 7/03. **Stage 2 (full 5-season pregame-basis re-run) is NOT
+warranted:** it would spend hours of compute chasing an effect bounded below the
+noise floor of every decision it feeds. The 7/06 "estimated_pa is good enough" call
+stands, now with numbers instead of judgment.
+
+**Tier C wildcards** (from the raw report's D7 section): `slate_auc` n_days pre-join
+count and the park_drag mtime:size shadow-cache key remain accepted telemetry nits —
+documented here, fix opportunistically if ever touched.
