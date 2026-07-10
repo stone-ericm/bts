@@ -34,6 +34,7 @@ from bts.health import (
     realized_calibration,
     restart_spike,
     same_team_corr,
+    scheduler_state_integrity,
     slate_auc,
     streak_validation,
 )
@@ -213,6 +214,9 @@ def run_all_checks(
     # Tier 3 — process integrity
     alerts.extend(_safe_run("disk_fill", lambda: disk_fill.check(
         picks_dir, thresholds=overrides.get("disk_fill"),
+    )))
+    alerts.extend(_safe_run("scheduler_state_integrity", lambda: scheduler_state_integrity.check(
+        picks_dir, today=today, thresholds=overrides.get("scheduler_state_integrity"),
     )))
     if scheduler_pid is not None:
         # history_path enables daily JSONL append + Tuesday-EOD weekly digest INFO.
