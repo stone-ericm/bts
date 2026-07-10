@@ -399,6 +399,11 @@ def test_interrupted_sync_leaves_old_manifest_fully_restorable(mock_bucket, tmp_
     restore from the surviving old manifest must still reproduce the old
     bytes exactly (previously the old manifest pointed at new bytes)."""
     from bts.data import sync as sync_mod
+    # Pin the provenance stamp: this test round-trips a manifest built by the
+    # real sync_to_r2 through sync_from_r2, whose main-branch refusal would
+    # otherwise trip on CI checkouts of the deploy branch (2026-07-10 deploy
+    # gate failure). The refusal itself has its own dedicated test.
+    monkeypatch.setattr(sync_mod, "_current_git_branch", lambda: "main")
     processed, models = _mk_dirs(tmp_path)
     pq = processed / "pa_2026.parquet"
 
