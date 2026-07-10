@@ -1,7 +1,7 @@
 import json
 import click
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 
@@ -14,6 +14,17 @@ def _today_et() -> str:
     polling + late-slate pick delivery (audit finding O2).
     """
     return datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+
+
+def _tomorrow_et() -> str:
+    """Tomorrow's date (YYYY-MM-DD) in US Eastern — the contest's timezone.
+
+    Default for `bts preview`. Deliberately NOT UTC: between ~8pm and midnight
+    ET, UTC has already rolled to tomorrow, so utcnow()+1day targets the day
+    AFTER tomorrow and an evening/recovery preview writes the wrong slate
+    (GPT-5.6 audit F15 — same class as _today_et / audit finding O2).
+    """
+    return (datetime.now(ZoneInfo("America/New_York")) + timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 @click.group()
@@ -1226,15 +1237,13 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
     Designed to run from the overnight cron (after 3am data refresh)
     so the dashboard shows a pending pick instead of blank.
     """
-    from datetime import datetime, timedelta, timezone
     from bts.contest_state import load_decision_streak_state
     from bts.model.predict import run_pipeline, load_blend
     from bts.picks import get_game_statuses_detailed, save_pick, load_pick
     from bts.strategy import select_pick
 
     if date is None:
-        tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
-        date = tomorrow.strftime("%Y-%m-%d")
+        date = _tomorrow_et()
 
     picks_path = Path(picks_dir)
     models_path = Path(models_dir)
