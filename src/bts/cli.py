@@ -2398,6 +2398,12 @@ def skip_policy_shadow_update(picks_dir, status_output, date, no_reconcile):
     rate = f"{v['rate']:.1%}" if v["rate"] is not None else "n/a"
     click.echo(f"Status: {status['counts']['divergent_days']} divergent days, {v['resolved']} resolved, "
                f"verdict={v['verdict']} (rate={rate} vs breakeven {v['breakeven_p']}). Wrote {status_output}")
+    aged = status["counts"].get("aged_superseded_records") or []
+    if aged:
+        # cron runs only `update` (round-3 F3) — the contradiction warning
+        # must land in cron.log, not only in the manual status command.
+        click.echo(f"⚠ AGED CONTRADICTIONS excluded from sample "
+                   f"(decision.json no longer mdp-skip; investigate): {aged}")
 
 
 @cli.command(name="skip-policy-shadow-status")
@@ -2421,11 +2427,14 @@ def skip_policy_shadow_status(status_file):
         bci_str = f" CI[{bci[0]:.1%},{bci[1]:.1%}]" if bci else ""
         click.echo(f"  VERDICT: {v['verdict']}  — pre-registered look at n={basis['checkpoint']} "
                    f"({basis.get('hits_used')}/{basis.get('n_used')}{bci_str}, z={basis.get('z')})")
+    elif "verdict_basis" not in v and v["verdict"] != "insufficient_n":
+        click.echo(f"  VERDICT: {v['verdict']}  — LEGACY v1 artifact (retired nightly-Wilson "
+                   f"rule); rerun `bts skip-policy-shadow-update` for a pre-registered verdict")
     else:
         click.echo(f"  VERDICT: {v['verdict']}  — no pre-registered look fired yet")
     aged = c.get("aged_superseded_records") or []
     if aged:
-        click.echo(f"  ⚠ AGED CONTRADICTIONS (frozen in sample, decision.json no longer mdp-skip): {aged}")
+        click.echo(f"  ⚠ AGED CONTRADICTIONS (excluded from sample; decision.json no longer mdp-skip): {aged}")
 
 
 @cli.command(name="shadow-backfill-results")

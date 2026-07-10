@@ -411,3 +411,45 @@ def test_restore_drill_uses_last_success_snapshot_even_after_failed_run(tmp_path
     cmd = runner.calls[0]["cmd"]
     assert "goodsnap" in cmd and "latest" not in cmd
     assert result["snapshot"] == "goodsnap"
+
+
+def test_success_with_missing_summary_id_keeps_prior_pin(tmp_path):
+    # Round-3 F6b: a zero-rc backup whose JSON summary lacks snapshot_id must
+    # not overwrite a good last_success_snapshot_id with None.
+    repo = _mk_repo(tmp_path)
+    (repo / "data/health_state/backup_status.json").write_text(json.dumps(
+        {"ops": {"set": "ops", "ok": True, "snapshot_id": "goodsnap",
+                 "last_success_snapshot_id": "goodsnap",
+                 "last_success_at": "2026-07-10T12:00:00+00:00"}}
+    ))
+    runner = FakeRunner(results=[(0, "no summary line here", ""), (0, "", "")])
+    status = backup.run_backup(
+        "ops", repo, env=BASE_ENV, runner=runner, now_fn=lambda: FIXED_NOW,
+    )
+    assert status["ok"] is True
+    assert status["snapshot_id"] is None
+    assert status["last_success_snapshot_id"] == "goodsnap"
+
+
+def test_carry_reads_fresh_prior_under_lock(tmp_path):
+    # Round-3 F6a: a slow run must not carry from the status it read at START —
+    # a peer's success recorded meanwhile would be clobbered. The carry now
+    # resolves against the on-disk prior at write time, under the flock.
+    repo = _mk_repo(tmp_path)
+
+    def peer_succeeds_midrun(cmd):
+        # simulate a concurrent peer recording a success while this run's
+        # restic is still executing
+        (repo / "data/health_state/backup_status.json").write_text(json.dumps(
+            {"ops": {"set": "ops", "ok": True, "snapshot_id": "peer-snap",
+                     "last_success_snapshot_id": "peer-snap",
+                     "last_success_at": "2026-07-10T15:00:00+00:00"}}
+        ))
+
+    runner = FakeRunner(results=[(1, "", "Fatal: locked")], side_effect=peer_succeeds_midrun)
+    status = backup.run_backup(
+        "ops", repo, env=BASE_ENV, runner=runner, now_fn=lambda: FIXED_NOW,
+    )
+    assert status["ok"] is False
+    assert status["last_success_snapshot_id"] == "peer-snap"
+    assert status["last_success_at"] == "2026-07-10T15:00:00+00:00"

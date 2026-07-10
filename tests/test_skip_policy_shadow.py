@@ -464,3 +464,30 @@ def test_aged_superseded_contradiction_is_flagged_not_pruned(tmp_path):
     write_decision("2026-07-09", tmp_path, action="single", source="mdp", primary=_cand(),
                    delivery_status="delivered", scoreable=True)
     assert find_aged_contradictions(tmp_path, now=now) == ["2026-05-01"]
+
+
+def test_aged_contradictions_excluded_from_checkpoint_eligibility(tmp_path):
+    # Round-3 F3: annotation isn't enough — a contradicted aged record is a
+    # reclassification (void-equivalent) and must leave the eligible sequence,
+    # not be frozen into a future look's first-30.
+    from datetime import date, timedelta
+    base = date(2026, 4, 1)
+    for i in range(30):
+        d = (base + timedelta(days=i)).isoformat()
+        _write_mdp_skip(d, tmp_path, bid=100 + i)
+        record_skip_from_decision(d, tmp_path)
+        p = decision_path(d, tmp_path)
+        rec = json.loads(p.read_text()); rec["shadow_pick_result"] = "miss"
+        p.write_text(json.dumps(rec))
+    # one record's authoritative decision later flips to a delivered single
+    write_decision("2026-04-05", tmp_path, action="single", source="mdp", primary=_cand(),
+                   delivery_status="delivered", scoreable=True)
+
+    out = tmp_path / "status.json"
+    now = datetime(2026, 7, 1, tzinfo=UTC)
+    write_status(tmp_path, out, generated_at="2026-07-01T00:00:00Z", now=now)
+    s = json.loads(out.read_text())
+    assert s["counts"]["aged_superseded_records"] == ["2026-04-05"]
+    # 30 records minus the contradicted one -> below the first checkpoint
+    assert s["shadow_band_hit_rate"]["verdict_basis"]["eligible_n"] == 29
+    assert s["shadow_band_hit_rate"]["verdict"] == "insufficient_n"

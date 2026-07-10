@@ -390,30 +390,77 @@ a staged approach: measure the PREVALENCE of both contamination channels first
 (`scripts/audit/f9_estpa_basis_prevalence.py`, box, read-only).
 
 **Channel 1 — eligibility (the 11.33%):** replicated exactly (243,533 batter-games,
-11.33% dropped by the faced-the-realized-starter rule). Decomposed by starting-lineup
-membership (first 9 distinct batters per side in PA order): **~90% of the dropped rows
-are bench/pinch-hitters production never ranks either.** Lineup members dropped:
-**1.16%** of lineup slots (2,509/216,324; seasonal range 0.96–1.56%) — early-starter-exit
-games, concentrated in marginal lineup spots, essentially never the rank-1 star.
-The auditor's own self-refutation ("probably bench/pinch hitters") called it.
+11.33% dropped by the faced-the-realized-starter rule). Decomposed by lineup membership
+— proxy: first 9 distinct PA participants per side (round-3 validation vs
+`lineup_position`: 6 disagreements in 216k slots; zero-PA starters are invisible to the
+frame but are contest-VOID picks anyway): **~90% of the dropped rows are bench/
+pinch-hitters production never ranks either.** Lineup members dropped: **1.16%** of
+lineup slots (2,509/216,324; seasonal range 0.96–1.56%). Round-3 re-analysis of the
+distribution: omissions touch 51.8% of dates somewhere in the slate, but 94.8% sit in
+slate positions 5–9; positions 1–4 are affected on 11.6% of dates.
 
 **Channel 2 — starter identity:** probable (pregame feed lookup) vs realized first
-pitcher disagrees on **0.15%** of game-sides historically (probables missing 0.05%).
-Caveat noted: final-feed `probablePitchers` could be update-biased toward the actual
-starter, so the live check is the authoritative one — across all 29 captured
-production slates (6/11–7/09), **0 of 286 top-10 candidate rows** carried a serving
-pitcher who didn't start. At the decision-relevant top of the slate, at the times
-picks actually lock, the identity gap measures zero.
+pitcher disagrees on **0.15%** of game-sides historically — a FLOOR, since feeds are
+pulled post-Final and `probablePitchers` may be update-biased (round-3 confirmed the
+pull timing). Live check across all 29 captured production slates (6/11–7/09):
+**0 observed mismatches over 218 unique game-sides** (deduplicated from 286 top-10
+rows; 95% upper bound **1.36%**, not zero). Round-3 caveats accepted: slates are
+last-write-wins (near lock time, which IS the decision-relevant basis, but
+earlier-in-day previews are unobservable) and rows for already-started games match
+tautologically (serving switches to the realized pitcher once plays exist). The live
+evidence is reassuring but bounds the gap at ~1%, it does not prove zero.
 
-**Impact bound:** rank-1 hit rate and the quality bins feeding the MDP/breakeven can
-shift by at most ~(contamination rate × hit-prob delta of affected rows) — with both
-channels ≈1% and affected rows mostly marginal, that is <<0.005, far inside the
-breakeven's own re-derived robustness band (0.742–0.752) and the ±0.04 live
-calibration bound from 7/03. **Stage 2 (full 5-season pregame-basis re-run) is NOT
-warranted:** it would spend hours of compute chasing an effect bounded below the
-noise floor of every decision it feeds. The 7/06 "estimated_pa is good enough" call
-stands, now with numbers instead of judgment.
+**Impact assessment (revised per round-3 F4 — the original "<<0.005 bound" was a
+slot-average argument misapplied to a rank statistic, RETRACTED):** Stage 1
+establishes PREVALENCE, not a bound on rank-1/bin movement — one omitted candidate
+can reshuffle a day's top ranks nonlinearly. What the prevalence supports: 94.8% of
+omissions sit in slate positions 5–9; a rank-1 distortion requires an omitted
+candidate to have outranked the day's top, possible on at most the 11.6% of dates
+where positions 1–4 are touched, and plausibly far rarer. **Stage 2 remains
+unjustified, but on DECISION-INSENSITIVITY grounds:** every decision these profiles
+feed was already shown insensitive to deltas larger than any plausible effect here —
+the skip threshold is cosmetic under ±re-solve (6-29), the policy choice is ~a wash
+(7-06), and the breakeven's own robustness band spans 0.742–0.752. If a future
+decision comes to hinge on estimated_pa precision at the <1pp level, run Stage 2
+then. The 7/06 call stands; the affirmation is "no decision-relevant sensitivity,"
+not "provably tiny effect." 
 
 **Tier C wildcards** (from the raw report's D7 section): `slate_auc` n_days pre-join
 count and the park_drag mtime:size shadow-cache key remain accepted telemetry nits —
 documented here, fix opportunistically if ever touched.
+
+### 2026-07-10 round 3 (final round — convergence) — fixes on main, deploy next window
+
+Scope: the round-2 fixes, the F9 analysis ("what's overstated?"), CI/ops work. One
+gpt-5.6-sol instance, repo + read-only box, re-ran the F9 numbers itself. 9 findings.
+Notable: **the round-2 commit CLAIMED the R3 fail-closed sync fix but the code edit
+was never made** — caught and actually implemented (`d960958`); commit messages are
+now part of the reviewed surface. Landed during/after the round:
+
+- **F2** deploys now reset the box to the run's TESTED SHA (`github.sha`), not the
+  mutable `origin/deploy` — an in-flight run could previously ship a later queued
+  commit whose own gate never ran.
+- **F3** aged contradicted shadow records are EXCLUDED from the sample (void-equivalent
+  reclassification), not just annotated; the nightly `update` prints the warning so it
+  lands in cron.log (cron never runs `status`).
+- **F6** backup last-success carry moved under the status flock against the FRESH
+  on-disk prior (a slow run could clobber a concurrent peer's success); a success with
+  a missing summary snapshot_id no longer overwrites a good pin with None.
+- **F7** legacy v1 status artifacts render decisive verdicts labeled "legacy — rebuild
+  pending" instead of masquerading as pre-registered results.
+- **F9** dangling-symlink units now WARN (is_symlink before exists).
+- **F4/F5/F8 (overstatements, accepted):** the F9 disposition is revised — the
+  "<<0.005 bound" is retracted (slot-average argument misapplied to a rank statistic;
+  omissions touch slate positions 1–4 on 11.6% of dates); "0/286" is restated as
+  0/218 unique sides (95% UB 1.36%) with the hindsight-conditioning caveats; the
+  lineup proxy is documented (first-9-PA-participants, 6/216k disagreement vs
+  lineup_position). **Skip-Stage-2 stands on decision-insensitivity grounds.**
+  Part-2 live-check code committed into the analysis script (was result-only).
+- **F1 DEFERRED (pre-existing):** the cached-fallback safety net can deliver a pick
+  whose game went postponed when the refresh finds no eligible replacement, and
+  postponed_pick health ignores delivered picks. Contest-wise a void pick and no pick
+  are the same outcome (streak unchanged), and the path predates this batch — folds
+  into the standing postponed-game-awareness product call (round-1 deferral).
+
+Review cap reached (3 rounds); converged. Unresolved disagreements: none — every
+finding fixed, accepted with rationale, or deferred with an owner.

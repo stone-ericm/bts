@@ -15,6 +15,7 @@ Measures, per season 2021-2025:
      from the pregame probablePitchers lookup.
 """
 import json
+import sys
 
 import pandas as pd
 
@@ -89,3 +90,57 @@ print("\nInterpretation: the audit's drop% includes bench/PH production never "
 # (plus 4 rows in games missing from the PA frame: postponed/suspended).
 # See docs/audit/2026-07-09-gpt56-sol-audit.md, F9 disposition.
 # ---------------------------------------------------------------------------
+
+
+def live_slate_cross_check():
+    """Part 2 implementation (round-3: the result was committed without the
+    code). For each captured production slate, compare each top-10
+    candidate's serving-time pitcher_id against the realized starter of the
+    OPPOSING side of his game (strict, not either-side). Dedupe to unique
+    (game_pk, batter-side) pairs for the effective n.
+
+    2026-07-10 result: 29 days, 286 rows -> 218 unique game-sides,
+    0 mismatches (95% upper bound 1.36%). Caveats in the audit doc: slates
+    are last-write-wins (near lock time); already-started rows match
+    tautologically (serving uses realized pitchers once plays exist).
+    """
+    import glob
+
+    pa = pd.read_parquet("data/processed/pa_2026.parquet",
+                         columns=["game_pk", "is_home", "pitcher_id", "batter_id"])
+    starters = (pa.groupby(["game_pk", "is_home"], sort=False)["pitcher_id"]
+                .first().rename("realized").reset_index())
+    batter_side = pa[["game_pk", "batter_id", "is_home"]].drop_duplicates()
+
+    sides = set()
+    mismatches = []
+    for f in sorted(glob.glob("data/picks/slates/*.json")):
+        try:
+            rows = json.load(open(f)).get("candidates") or []
+        except (OSError, ValueError):
+            continue
+        for c in rows[:10]:
+            gpk, pid, bid = c.get("game_pk"), c.get("pitcher_id"), c.get("batter_id")
+            if None in (gpk, pid, bid):
+                continue
+            side = batter_side[(batter_side.game_pk == gpk)
+                               & (batter_side.batter_id == bid)]
+            if side.empty:
+                continue  # batter never appeared (scratch) or game not in PA
+            is_home = bool(side.iloc[0]["is_home"])
+            real = starters[(starters.game_pk == gpk)
+                            & (starters.is_home == is_home)]["realized"]
+            if real.empty:
+                continue
+            key = (int(gpk), is_home)
+            sides.add(key)
+            if int(pid) != int(real.iloc[0]):
+                mismatches.append((f, bid, pid, int(real.iloc[0])))
+    print(f"unique game-sides: {len(sides)} | mismatches: {len(mismatches)}")
+    for m in mismatches:
+        print("  MISMATCH:", m)
+
+
+if __name__ == "__main__" and "--live-check" in sys.argv:
+    live_slate_cross_check()
+    sys.exit(0)

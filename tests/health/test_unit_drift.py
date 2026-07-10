@@ -102,3 +102,15 @@ def test_symlinked_installed_unit_warns(tmp_path):
     alerts = unit_drift.check(installed_dir=installed, repo_units_dir=repo)
     assert len(alerts) == 1
     assert "SYMLINK" in alerts[0].message
+
+
+def test_dangling_symlink_still_warns(tmp_path):
+    # Round-3 F9: exists() is False for a broken symlink, silently skipping it.
+    repo = tmp_path / "repo"
+    installed = tmp_path / "installed"
+    _mk(repo, "bts-scheduler.service", UNIT_TEXT)
+    installed.mkdir()
+    (installed / "bts-scheduler.service").symlink_to(tmp_path / "gone.service")
+    alerts = unit_drift.check(installed_dir=installed, repo_units_dir=repo)
+    assert len(alerts) == 1
+    assert "SYMLINK" in alerts[0].message

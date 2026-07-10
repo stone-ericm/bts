@@ -46,17 +46,25 @@ def check(*, installed_dir: Path, repo_units_dir: Path) -> list[Alert]:
     alerts: list[Alert] = []
     for name in TRACKED_UNITS:
         installed = installed_dir / name
-        if not installed.exists():
+        # is_symlink() BEFORE exists(): exists() follows the link and is False
+        # for a DANGLING symlink, which would silently read as "not deployed"
+        # (round-3 F9) — but systemd may still have the old definition loaded.
+        if not installed.is_symlink() and not installed.exists():
             continue  # unit not deployed here — silent
         if installed.is_symlink():
             # A symlinked unit can track the repo template byte-for-byte
             # while systemd's LOADED definition is stale (no daemon-reload
             # observed a change) — hash equality proves nothing (Codex #11).
+            try:
+                target = installed.resolve()
+            except OSError:
+                target = "<unresolvable>"
             alerts.append(Alert(
                 level="WARN", source=SOURCE,
-                message=(f"{name} is a SYMLINK ({installed} -> "
-                         f"{installed.resolve()}) — drift detection assumes real "
-                         f"files; replace with a copy via scripts/install-systemd-hetzner.sh"),
+                message=(f"{name} is a SYMLINK ({installed} -> {target}"
+                         f"{'' if installed.exists() else ', DANGLING'}) — drift "
+                         f"detection assumes real files; replace with a copy via "
+                         f"scripts/install-systemd-hetzner.sh"),
             ))
             continue
         template = repo_units_dir / name

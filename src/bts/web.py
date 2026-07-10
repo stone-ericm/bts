@@ -389,6 +389,13 @@ def render_skip_policy_shadow_section(status: dict) -> str:
             f" Verdict basis: pre-registered look at n={basis['checkpoint']} "
             f"({basis.get('hits_used')}/{basis.get('n_used')}{bci_str}, z={basis.get('z')})."
         )
+    elif "verdict_basis" not in band and verdict != "insufficient_n":
+        # A decisive verdict WITHOUT any basis block = pre-checkpoint (v1)
+        # artifact still on disk after deploy — its verdict came from the
+        # retired nightly-Wilson rule (round-3 F7). Label it, don't present
+        # it as a pre-registered result.
+        label = f"{label} (legacy artifact — nightly rebuild pending)"
+        basis_str = ""
     else:
         basis_str = " Verdict awaits the first pre-registered look (n=30 eligible)."
     detail = (

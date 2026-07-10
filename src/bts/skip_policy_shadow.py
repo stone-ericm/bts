@@ -413,12 +413,19 @@ def build_skip_policy_shadow_status(records: list[dict], *, breakeven_p: float =
 def write_status(picks_dir, status_path, *, breakeven_p=BREAKEVEN_P,
                  checkpoints=CHECKPOINTS, generated_at=None, git_commit=None,
                  now: datetime | None = None) -> dict:
+    # Aged contradictions are EXCLUDED from the sample, not just annotated
+    # (round-3 F3): a record whose authoritative decision.json no longer says
+    # mdp-skip is not a genuine divergence — carrying it into a future look
+    # would poison the estimand. Exclusion is a data CORRECTION (like a void
+    # reclassification), reported loudly via counts.aged_superseded_records.
+    contradicted = set(find_aged_contradictions(picks_dir, now=now))
+    records = [r for r in load_decision_records(picks_dir)
+               if r.get("date") not in contradicted]
     status = build_skip_policy_shadow_status(
-        load_decision_records(picks_dir), breakeven_p=breakeven_p,
+        records, breakeven_p=breakeven_p,
         checkpoints=checkpoints, generated_at=generated_at or _utc_iso(),
         git_commit=git_commit)
-    status["counts"]["aged_superseded_records"] = find_aged_contradictions(
-        picks_dir, now=now)
+    status["counts"]["aged_superseded_records"] = sorted(contradicted)
     path = Path(status_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(path, json.dumps(status, indent=2))

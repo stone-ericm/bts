@@ -71,10 +71,17 @@ jobs:
         # Pinned to a commit SHA (not the floating @v1) because this step
         # receives the root HETZNER_SSH_KEY — a moved tag could exfiltrate it.
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
+        env:
+          # Deploy the TRIGGERING commit, not the mutable ref (round-3 F2):
+          # resetting to origin/deploy at execution time let an in-flight run
+          # ship a LATER queued commit whose own test/environment gate had
+          # not run yet. github.sha is exactly what this run's gate tested.
+          TARGET_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: TARGET_SHA
           script: |
             set -e
             cd /home/bts/projects/bts
@@ -84,15 +91,14 @@ jobs:
             echo "Pre-deploy SHA: $(echo $OLD_SHA | cut -c1-7)"
 
             sudo -Hu bts git config --global --add safe.directory /home/bts/projects/bts
-            # Hard-reset the working tree to whatever was just pushed to `deploy`.
-            # Previously used `git pull --ff-only` which pulled origin/main (bts-mlb's
-            # tracked branch) — but `git push origin main:deploy` only advances
-            # origin/deploy, leaving origin/main behind. Result was silent no-op
-            # deploys: workflow succeeded, scheduler restarted, but no new code.
-            # Hard-reset to origin/deploy makes the deploy atomic: a single push
-            # to deploy is sufficient, and the working tree is guaranteed to match.
+            # Hard-reset the working tree to THIS RUN's tested commit.
+            # History: `git pull --ff-only` pulled origin/main (silent no-op
+            # deploys); then `reset --hard origin/deploy` fixed that but read
+            # the MUTABLE ref at execution time — an in-flight run could ship
+            # a later queued commit that its own gate never tested (round-3
+            # F2). $TARGET_SHA is the exact SHA this run's test gate passed.
             sudo -Hu bts git fetch origin
-            sudo -Hu bts git reset --hard origin/deploy
+            sudo -Hu bts git reset --hard "$TARGET_SHA"
             sudo -Hu bts env UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv sync --locked --extra model
             # Self-heal: legacy system-level units (created before April 11)
             # race the canonical user-level units. Remove if present.

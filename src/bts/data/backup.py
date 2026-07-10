@@ -143,6 +143,17 @@ def _write_status_entry(repo_root: Path, set_name: str, entry: dict) -> None:
     with open(lock_path, "w") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         status = read_status(repo_root)
+        # Carry last-success fields from the FRESH on-disk prior, under the
+        # lock (round-3 F6a): a slow run carrying from the status it read at
+        # START would clobber a peer's success recorded meanwhile.
+        prior = status.get(set_name) or {}
+        if "last_success_at" not in entry:
+            entry["last_success_at"] = prior.get("last_success_at")
+        if "last_success_snapshot_id" not in entry:
+            carried = prior.get("last_success_snapshot_id")
+            if carried is None and prior.get("ok") and prior.get("snapshot_id"):
+                carried = prior.get("snapshot_id")
+            entry["last_success_snapshot_id"] = carried
         status[set_name] = entry
         atomic_write_text(health_dir / STATUS_FILENAME, json.dumps(status, indent=2))
 
@@ -180,27 +191,19 @@ def run_backup(
     bset = BACKUP_SETS[set_name]
     repo_root = Path(repo_root)
     started = now_fn()
-    prior = read_status(repo_root).get(set_name, {})
 
     missing = sorted(p for p in bset.paths if not (repo_root / p).exists())
 
     def finish(entry: dict) -> dict:
+        # last_success_at / last_success_snapshot_id (Codex round-2 R1) are
+        # deliberately NOT filled here: _write_status_entry carries them from
+        # the fresh on-disk prior UNDER the flock (round-3 F6a).
         entry = {
             "set": set_name,
             "started_at": started.isoformat(),
             "finished_at": now_fn().isoformat(),
             **entry,
         }
-        if "last_success_at" not in entry:
-            entry["last_success_at"] = prior.get("last_success_at")
-        # Carry the last SUCCESSFUL snapshot id across failures (Codex round-2
-        # R1): without it, one failed run made the drill fall back to
-        # 'latest --tag ops' — which can be the failed run's partial snapshot.
-        if "last_success_snapshot_id" not in entry:
-            carried = prior.get("last_success_snapshot_id")
-            if carried is None and prior.get("ok") and prior.get("snapshot_id"):
-                carried = prior.get("snapshot_id")
-            entry["last_success_snapshot_id"] = carried
         _write_status_entry(repo_root, set_name, entry)
         return entry
 
@@ -268,12 +271,16 @@ def run_backup(
         )
     finished = now_fn()
 
+    summary_id = summary.get("snapshot_id")
     entry = {
         "ok": True,
         "rc": 0,
         "last_success_at": finished.isoformat(),
-        "snapshot_id": summary.get("snapshot_id"),
-        "last_success_snapshot_id": summary.get("snapshot_id"),
+        "snapshot_id": summary_id,
+        # Only pin when the summary actually carried an id — a success with a
+        # missing/unparsed summary must not replace a good pin with None
+        # (round-3 F6b); the under-lock carry preserves the prior pin.
+        **({"last_success_snapshot_id": summary_id} if summary_id else {}),
         "data_added": summary.get("data_added"),
         "total_files_processed": summary.get("total_files_processed"),
         "duration_sec": (finished - started).total_seconds(),
