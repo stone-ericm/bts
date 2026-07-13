@@ -54,6 +54,23 @@ class TestRunAllChecks:
             assert crits == []
             mock_dm.assert_called_once()
 
+    def test_dispatch_receives_processed_date_for_dedup(self, tmp_path):
+        # Round-2 review #5: a post-midnight EOD for date D must stamp the DM
+        # ledger with D, not the wall date (D+1) — otherwise D+1's real EOD
+        # sees "already sent today" and suppresses a reminder the operator
+        # never got for that slate day.
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        with patch("bts.health.runner.dispatch_dm_for_health_alerts") as mock_dm:
+            mock_dm.return_value = False
+            run_all_checks(
+                picks_dir=picks_dir, models_dir=models_dir,
+                dm_recipient="x.bsky.social",
+                today=date(2026, 4, 27),
+            )
+        assert mock_dm.call_args.kwargs.get("now_et_date") == date(2026, 4, 27)
+
     def test_missing_blend_triggers_critical(self, tmp_path):
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         models_dir = tmp_path / "models"; models_dir.mkdir()

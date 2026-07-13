@@ -1,6 +1,7 @@
 """Tests for Tier-1 NRestarts spike check."""
 
 import json
+from datetime import date
 
 from bts.health.restart_spike import check, SOURCE
 
@@ -48,12 +49,57 @@ class TestRestartSpike:
         assert len(alerts) == 1
         assert alerts[0].level == "CRITICAL"
 
-    def test_checkpoint_advances_after_run(self, tmp_path):
-        # Each run updates the checkpoint to the current value
-        check(tmp_path, current_nrestarts=52)
-        check(tmp_path, current_nrestarts=53)
+    def test_checkpoint_anchored_within_a_day(self, tmp_path):
+        # 2026-07-12 incident: the checkpoint advanced on EVERY run, so a
+        # Restart=always loop re-running EOD every ~48s moved the baseline
+        # +1 at a time — a 47-restart storm never tripped the +3 threshold.
+        # Same-day runs must keep the first observation as the anchor.
+        d = date(2026, 7, 12)
+        check(tmp_path, current_nrestarts=52, today=d)
+        check(tmp_path, current_nrestarts=53, today=d)
         cp = json.loads((tmp_path / ".nrestarts_checkpoint").read_text())
-        assert cp["nrestarts"] == 53
+        assert cp["nrestarts"] == 52, "same-day runs must not advance the anchor"
+
+    def test_same_day_creep_accumulates_to_critical(self, tmp_path):
+        # +1 per run, three runs: the deltas alias to +1 each under the old
+        # behavior; day-anchored they accumulate to +3 → CRITICAL.
+        d = date(2026, 7, 12)
+        assert check(tmp_path, current_nrestarts=52, today=d) == []
+        assert check(tmp_path, current_nrestarts=53, today=d) == []
+        assert check(tmp_path, current_nrestarts=54, today=d) == []
+        alerts = check(tmp_path, current_nrestarts=55, today=d)
+        assert len(alerts) == 1 and alerts[0].level == "CRITICAL"
+        assert "+3" in alerts[0].message
+
+    def test_new_day_advances_anchor(self, tmp_path):
+        d1, d2 = date(2026, 7, 12), date(2026, 7, 13)
+        check(tmp_path, current_nrestarts=52, today=d1)
+        assert check(tmp_path, current_nrestarts=54, today=d2) == []  # +2 vs 52
+        cp = json.loads((tmp_path / ".nrestarts_checkpoint").read_text())
+        assert cp["nrestarts"] == 54 and cp["day"] == "2026-07-13"
+        # Later same-new-day run diffs against the new anchor
+        alerts = check(tmp_path, current_nrestarts=57, today=d2)  # +3 vs 54
+        assert len(alerts) == 1
+
+    def test_multiday_gap_budgets_planned_restarts(self, tmp_path):
+        # Round-2 review #4: the daily lifecycle exits once per day by design
+        # (idle → return → Restart=always), and no-games days never run this
+        # check. A 4-day break accumulates +4 PLANNED restarts against a
+        # frozen anchor — that must not read as a spike.
+        check(tmp_path, current_nrestarts=50, today=date(2026, 7, 12))
+        alerts = check(tmp_path, current_nrestarts=54, today=date(2026, 7, 16))
+        assert alerts == [], "planned one-exit-per-day restarts must be budgeted"
+
+    def test_multiday_gap_still_catches_real_loops(self, tmp_path):
+        check(tmp_path, current_nrestarts=50, today=date(2026, 7, 12))
+        alerts = check(tmp_path, current_nrestarts=97, today=date(2026, 7, 16))
+        assert len(alerts) == 1 and alerts[0].level == "CRITICAL"
+
+    def test_legacy_checkpoint_without_day_still_compares(self, tmp_path):
+        (tmp_path / ".nrestarts_checkpoint").write_text(
+            json.dumps({"nrestarts": 52, "checkpointed_at": "2026-07-11T23:00:00+00:00"}))
+        alerts = check(tmp_path, current_nrestarts=55, today=date(2026, 7, 12))
+        assert len(alerts) == 1 and "+3" in alerts[0].message
 
     def test_corrupt_checkpoint_treated_as_fresh(self, tmp_path):
         (tmp_path / ".nrestarts_checkpoint").write_text("not json{{{")

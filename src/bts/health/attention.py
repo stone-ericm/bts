@@ -137,6 +137,10 @@ def _with_streak(alert: Alert, streak: int) -> Alert:
         level=alert.level,
         source=alert.source,
         message=f"{alert.message} ({_streak_label(streak)})",
+        # Preserve the dedup identity through reconstruction (round-2 review
+        # #4 follow-up): dropping it degrades distinct incidents sharing a
+        # source back to source-level dedup.
+        incident_key=alert.incident_key,
     )
 
 

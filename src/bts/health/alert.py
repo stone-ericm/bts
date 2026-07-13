@@ -14,8 +14,9 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from bts.dm import send_dm
 
@@ -28,6 +29,11 @@ class Alert:
     level: str  # "INFO" | "WARN" | "CRITICAL"
     source: str  # name of the check, e.g. "calibration_drift", "blend_training"
     message: str
+    # Dedup identity when `source` is too coarse (round-2 review #6): two
+    # DIFFERENT checks crashing both carry source="health_runner" — without a
+    # distinct key the second crash would be suppressed as "already seen
+    # today". None → the source is the identity (the common case).
+    incident_key: str | None = None
 
 
 def log_alerts(alerts: list[Alert]) -> None:
@@ -50,6 +56,8 @@ def _write_health_dm_delivery_status(
     warn_attention_count: int,
     body: str,
     error: str | None = None,
+    sent_day: str | None = None,
+    sent_sources: list[str] | None = None,
 ) -> None:
     if status_path is None:
         return
@@ -67,6 +75,10 @@ def _write_health_dm_delivery_status(
     }
     if error is not None:
         payload["error"] = error
+    if sent_day is not None:
+        payload["sent_day"] = sent_day
+    if sent_sources is not None:
+        payload["sent_sources"] = sent_sources
 
     try:
         path = Path(status_path)
@@ -157,12 +169,22 @@ def dispatch_dm_for_health_alerts(
     dm_recipient: str | None,
     warn_attention: list[Alert] | None = None,
     status_path: Path | str | None = None,
+    now_et_date: date | None = None,
 ) -> bool:
     """Send one Bluesky DM for CRITICALs and selected WARN attention.
 
     Returns True if a DM was attempted, False otherwise. Send failures are
     logged at ERROR/exception level and suppressed so health reporting cannot
     break the scheduler lifecycle.
+
+    Per-day source-set dedup (2026-07-12 incident): this dispatcher was
+    designed to run once per day, but a Restart=always thrash re-walked EOD
+    every ~48s and re-sent the same CRITICAL 47 times. If today (ET) already
+    sent a DM covering every (level, source) in this call, suppress the
+    resend. Keyed on the source SET, not the body hash — a growing metric
+    (restart_spike's delta) changes the body every run while remaining the
+    same problem. A new source same-day still sends (escalation visible);
+    a prior FAILED send is never suppressed (H6 resurface flow).
     """
     warn_attention = warn_attention or []
     critical = [a for a in alerts if a.level == "CRITICAL"]
@@ -172,6 +194,31 @@ def dispatch_dm_for_health_alerts(
         body = resurface + ("\n\n" + body if body else "")
     if body is None:
         return False
+
+    now_day = (now_et_date or datetime.now(ZoneInfo("America/New_York")).date()).isoformat()
+    alert_key = sorted(
+        {f"CRITICAL:{a.incident_key or a.source}" for a in critical}
+        | {f"WARN_ATTENTION:{a.incident_key or a.source}" for a in warn_attention}
+    )
+    prior_sent_sources: list[str] = []
+    if status_path is not None and resurface is None:
+        try:
+            prior = json.loads(Path(status_path).read_text())
+        except (FileNotFoundError, ValueError, OSError):
+            prior = None
+        if (
+            prior
+            and prior.get("status") == "sent"
+            and prior.get("sent_day") == now_day
+        ):
+            prior_sent_sources = list(prior.get("sent_sources") or [])
+            if alert_key and set(alert_key) <= set(prior_sent_sources):
+                log.info(
+                    "health DM suppressed: %s already covered by today's DM (day=%s)",
+                    alert_key, now_day,
+                )
+                return False
+
     if not dm_recipient:
         _write_health_dm_delivery_status(
             status_path,
@@ -193,6 +240,8 @@ def dispatch_dm_for_health_alerts(
             critical_count=len(critical),
             warn_attention_count=len(warn_attention),
             body=body,
+            sent_day=now_day,
+            sent_sources=sorted(set(prior_sent_sources) | set(alert_key)),
         )
         log.info(
             "sent health DM to %s (%d CRITICAL, %d WARN attention)",

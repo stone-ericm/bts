@@ -62,6 +62,9 @@ def _safe_run(name: str, fn) -> list[Alert]:
             level="CRITICAL",
             source="health_runner",
             message=f"health check '{name}' crashed: {type(e).__name__}: {e}",
+            # Distinct dedup identity per crashed check: two different dead
+            # detectors the same day must both reach the operator (review #6).
+            incident_key=f"health_runner:{name}",
         )]
 
 
@@ -267,6 +270,10 @@ def run_all_checks(
         dm_recipient,
         warn_attention=warn_attention,
         status_path=_path(health_dm_status_path),
+        # Dedup by the PROCESSED day, not the wall date: a post-midnight EOD
+        # for date D must not consume D+1's "already sent today" budget
+        # (round-2 review #5).
+        now_et_date=today,
     )
     return alerts
 

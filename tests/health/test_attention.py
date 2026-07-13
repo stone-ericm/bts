@@ -192,3 +192,12 @@ def test_new_f1_f3_sources_are_always_attention():
     from bts.health.attention import ALWAYS_ATTENTION_WARN_SOURCES
     assert "pick_entry" in ALWAYS_ATTENTION_WARN_SOURCES
     assert "scheduler_state_integrity" in ALWAYS_ATTENTION_WARN_SOURCES
+
+
+def test_with_streak_preserves_incident_key():
+    # Round-2 review #4 follow-up: reconstruction must not drop the dedup
+    # identity, or distinct incidents sharing a source degrade to
+    # source-level dedup downstream.
+    from bts.health.attention import _with_streak
+    a = Alert("WARN", "s", "m", incident_key="s:x")
+    assert _with_streak(a, 2).incident_key == "s:x"
