@@ -129,7 +129,9 @@ Blocking findings, all fixed same session:
    (scheduler EOD only; check-results does not dispatch health DMs). Accepted
    risk, noted here; flock if a second dispatcher ever appears.
 9. **CRITICAL threshold ~1.3σ under correct overlapping-window SE (≈0.094)**:
-   `drift_critical` 0.12 → 0.25 (catastrophic/pipeline tier); WARN 0.08 stays
+   `drift_critical` 0.12 → 0.25 (catastrophic/pipeline tier); WARN 0.08 kept
+   at the time — superseded same night to 0.15 by the production-clock
+   simulation (see 2026-07-12-dd-leg-calibration.md); it originally stayed
    the attention signal. Day-block bootstrap recalibration queued. ⚠️ Policy
    change — tonight's episode would now be a WARN-attention item, not a
    CRITICAL DM.
@@ -175,8 +177,9 @@ Deploy-time checks:
 - `memory_growth_history.jsonl` took 49 rows for 2026-07-12 (one per loop
   cycle; ~190MB short-lived processes). INFO-digest-only data; optionally
   dedupe to the day's first row.
-- First post-deploy EOD (7/16) will LOG a `predicted_vs_realized` WARN
-  (per-slot drift +0.1276 as of 7/12, from the DD-leg cold streak). A DM
-  digest fires only if the WARN persists a second consecutive day (attention
-  policy; round-3 correction — the break also reset any prior streak).
-  Either way, the confounded CRITICAL it replaces is gone.
+- Based on the 7/12 snapshot (windows slide before 7/16, so levels may
+  shift): the first post-deploy EOD logs a `predicted_vs_realized` INFO
+  (per-slot drift +0.1276, below the recalibrated WARN=0.15 — see
+  2026-07-12-dd-leg-calibration.md) plus a `realized_calibration` 70-75%
+  DD-leg WARN (absolute-level, the new coverage). Either way, the confounded
+  CRITICAL is gone.
