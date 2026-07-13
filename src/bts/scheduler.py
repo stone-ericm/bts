@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone, date as date_type
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from bts.util import atomic_write_text, retry_urlopen
+from bts.util import atomic_write_text, is_regular_season_game, retry_urlopen
 from bts.picks import API_BASE
 from bts.heartbeat import write_heartbeat, HeartbeatState, heartbeat_watchdog
 from bts.sd_notify import notify_ready, notify_watchdog
@@ -129,7 +129,10 @@ def fetch_schedule(date: str) -> list[dict]:
     games = []
     for d in resp.get("dates", []):
         games.extend(d.get("games", []))
-    return games
+    # Regular season only — see is_regular_season_game (shared with the
+    # prediction slate fetch in model/predict.py, which pulls the schedule
+    # independently; both paths must agree on what is pickable).
+    return [g for g in games if is_regular_season_game(g)]
 
 
 def game_time_et(game: dict) -> datetime:
@@ -203,14 +206,21 @@ def compute_wakeup_time(
     games: list[dict],
     default_hour_et: int = 10,
     early_buffer_min: int = 60,
+    now_et: datetime | None = None,
 ) -> datetime:
     """Compute scheduler wake-up time based on earliest game.
 
     If any game starts before the default init hour, wakes up
     early_buffer_min before the earliest game.
+
+    With no games the result anchors to `now_et` (caller's clock; wall clock
+    when omitted): TODAY's default hour, already past by end-of-day. Callers
+    idling on this value must go through _next_day_wakeup, which bumps a past
+    result to tomorrow morning (2026-07-12 eve-of-break incident).
     """
     if not games:
-        return datetime.now(ET).replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
+        anchor = now_et if now_et is not None else datetime.now(ET)
+        return anchor.replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
 
     earliest = min(game_time_et(g) for g in games)
     default_wakeup = earliest.replace(hour=default_hour_et, minute=0, second=0, microsecond=0)
@@ -226,23 +236,43 @@ def _next_day_wakeup(date: str, sched_config: dict) -> datetime:
     """A FUTURE wake time for the day after ``date``, used to idle through
     off-days instead of thrashing systemd Restart=always (audit E1).
 
-    Uses tomorrow's earliest game if any, else the default morning hour. Always
-    returns a time strictly in the future — on a multi-day break compute_wakeup_time
-    would return today's hour (already past), so we bump to tomorrow morning.
+    Uses tomorrow's earliest game if any, else the default morning hour.
+    Always returns a time strictly in the future, but the day-bump is
+    reserved for EMPTY tomorrows (multi-day break: compute_wakeup_time
+    returns today's hour, already past → tomorrow morning). When tomorrow
+    HAS games and its wake is already past (post-midnight EOD before an
+    early-start slate, e.g. London 06:10 ET), bumping a calendar day would
+    sleep through the entire real slate — instead hand off within a minute
+    and let the daily exit→restart cycle start the new day (round-2 review
+    #1). A schedule-fetch failure likewise hands off on a short retry
+    rather than guessing that the default morning hour is safe — tomorrow
+    might hold a 09:05 start (round-2 review #2).
     """
     default_hour = sched_config.get("default_init_hour_et", 10)
     tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    now = _now_et()
     try:
+        games = fetch_schedule(tomorrow)
+        # Inside the SAME try as the fetch (round-3 fix of round-2 #1): a
+        # malformed game in a successful response (bad/missing gameDate)
+        # raising here would propagate through step 7 and recreate a bare
+        # 30s churn loop with no handoff pacing — the incident class again.
         wakeup = compute_wakeup_time(
-            fetch_schedule(tomorrow),
+            games,
             default_hour_et=default_hour,
             early_buffer_min=sched_config.get("early_game_buffer_min", 60),
+            now_et=now,
         )
     except Exception as e:
-        print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
-        wakeup = _now_et().replace(hour=default_hour, minute=0, second=0, microsecond=0)
-    now = _now_et()
+        print(f"  Failed to fetch/compute tomorrow's schedule: {e} — retrying "
+              "in 15min via handoff (not assuming a safe morning).", file=sys.stderr)
+        return now + timedelta(minutes=15)
     if wakeup <= now:
+        if games:
+            print(f"  Tomorrow's wake ({wakeup.strftime('%H:%M ET')}) already "
+                  "passed with a real slate scheduled — immediate handoff.",
+                  file=sys.stderr)
+            return now + timedelta(minutes=1)
         wakeup = (now + timedelta(days=1)).replace(
             hour=default_hour, minute=0, second=0, microsecond=0
         )
@@ -859,18 +889,36 @@ def _idle_until_next_wakeup(
     final). Observed live 2026-04-23 post-games: 7 restarts in 25 min before
     discovery.
 
-    No-op if ``next_wakeup_iso`` is None, malformed, tz-naive, or in the past.
+    No-op if ``next_wakeup_iso`` is None, malformed, tz-naive, or in the past —
+    but LOUDLY: the 2026-07-12 eve-of-break incident rode a silent no-op here
+    (past wakeup → return → exit 0 → Restart=always → ~48s DM spam cycle) and
+    the journal showed nothing about why the daemon kept exiting. The no-op
+    still returns rather than substituting a made-up wake time: sleeping on a
+    guessed date could sleep through a REAL game day, which is strictly worse
+    than bounded restart churn (restart_spike + check_heartbeat both watch it).
     """
+    def _no_idle(reason: str) -> None:
+        print(
+            f"  WARNING: not idling — next_wakeup {next_wakeup_iso!r} {reason}. "
+            "run_day will return and systemd will relaunch in ~30s "
+            "(2026-07-12 incident class; see _next_day_wakeup).",
+            file=sys.stderr,
+        )
+
     if not next_wakeup_iso:
+        _no_idle("is unset")
         return
     try:
         wakeup = datetime.fromisoformat(next_wakeup_iso)
     except (ValueError, TypeError):
+        _no_idle("is malformed")
         return
     if wakeup.tzinfo is None:
+        _no_idle("is tz-naive")
         return
     now = datetime.now(UTC)
     if wakeup <= now:
+        _no_idle(f"is in the past (now {now.isoformat(timespec='seconds')})")
         return
     wait_secs = (wakeup - now).total_seconds()
     if heartbeat_path:
@@ -2441,19 +2489,19 @@ def run_day(
             notify_watchdog()
 
     # 7. Next-day lookahead for wake-up time
-    tomorrow = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
-    try:
-        tomorrow_games = fetch_schedule(tomorrow)
-        wakeup = compute_wakeup_time(
-            tomorrow_games,
-            default_hour_et=sched_config.get("default_init_hour_et", 10),
-            early_buffer_min=sched_config.get("early_game_buffer_min", 60),
-        )
-        state.next_wakeup = wakeup.isoformat()
-        save_state(state, picks_dir)
-        print(f"  Tomorrow's wake-up: {wakeup.strftime('%H:%M ET')}", file=sys.stderr)
-    except Exception as e:
-        print(f"  Failed to fetch tomorrow's schedule: {e}", file=sys.stderr)
+    # _next_day_wakeup (audit E1) never returns a past time and never raises.
+    # The raw compute_wakeup_time call this replaces returned TODAY's default
+    # hour when tomorrow had no games (eve of the All-Star break) — hours in
+    # the past by EOD — which _idle_until_next_wakeup treats as a no-op →
+    # run_day returns → Restart=always thrash + one health DM per ~48s cycle
+    # (2026-07-12 incident, NRestarts 3→50). The no-games path already used
+    # the helper; this games-day lookahead was the remaining raw call.
+    wakeup = _next_day_wakeup(date, sched_config)
+    state.next_wakeup = wakeup.isoformat()
+    save_state(state, picks_dir)
+    # %a %m-%d: "10:00 ET" alone hid that the stored date was TODAY, not
+    # tomorrow, all through the incident journal.
+    print(f"  Tomorrow's wake-up: {wakeup.strftime('%a %m-%d %H:%M ET')}", file=sys.stderr)
 
     # 8. Result polling (start 10 min after game start, check for hits mid-game).
     # Gate on a GENUINE commit, not merely state.pick_locked (C2 / GH #144): a

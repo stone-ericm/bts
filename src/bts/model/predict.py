@@ -13,6 +13,7 @@ from bts import progress
 from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
 from bts.features.park_drag import with_pinned_artifact as _park_drag_pin
 from bts.picks import is_resume_date_game
+from bts.util import is_regular_season_game
 
 API_BASE = "https://statsapi.mlb.com"
 
@@ -438,6 +439,8 @@ def _fetch_game_slots(date: str) -> list[dict]:
     resume_skipped = 0
     for d in sched.get("dates", []):
         for g in d.get("games", []):
+            if not is_regular_season_game(g):
+                continue  # All-Star/exhibition: never a pickable slate (review #3)
             if is_resume_date_game(g, date):
                 resume_skipped += 1
                 continue  # suspended game resumed today -> never scoreable, don't offer

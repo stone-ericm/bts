@@ -54,3 +54,13 @@ def retry_urlopen(req, timeout=15, max_retries=3, delay=5, idempotent=True):
                 time.sleep(delay * (attempt + 1))
             else:
                 raise
+
+
+def is_regular_season_game(game: dict) -> bool:
+    """BTS is a regular-season contest: exhibition, All-Star, and postseason
+    schedule entries must never enter pick pipelines (an unfiltered 7/14
+    would treat the All-Star Game as a real 1-game slate — 2026-07-12
+    incident, round-2 review #3). Lenient on a missing gameType so older
+    fixtures keep working; statsapi always sends it.
+    """
+    return game.get("gameType", "R") == "R"
