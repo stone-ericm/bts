@@ -134,6 +134,167 @@ class TestRealizedCalibration:
         # 0.78 predicted, 50% realized = +28pp gap, but n=4 → no alert
         assert check(picks_dir, today=today) == []
 
+
+def _write_dd_day(picks_dir: Path, d: date, p1: float, pdd: float,
+                  slot_pick: str, slot_dd: str):
+    picks_dir.mkdir(parents=True, exist_ok=True)
+    both = slot_pick == "hit" and slot_dd == "hit"
+    body = {
+        "date": d.isoformat(),
+        "pick": {"p_game_hit": p1, "batter_name": "X", "batter_id": 1},
+        "double_down": {"p_game_hit": pdd, "batter_name": "Y", "batter_id": 2},
+        "result": "hit" if both else "miss",
+        "slot_results": {"pick": slot_pick, "double_down": slot_dd},
+    }
+    (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
+
+
+class TestDDLegBucket:
+    """DD-band coverage (2026-07-12 analysis): season DD legs realized 0.545
+    vs stated 0.731 in [0.70, 0.75) while primaries in the SAME band were
+    calibrated (-2.8pp) — pooling would dilute the signal below WARN, and the
+    only absolute-level monitor watched [0.75, 0.80). The DD-leg-only
+    [0.70, 0.75) bucket closes the hole. Slot outcomes come from
+    slot_results (production-graded), the same priority predicted_vs_realized
+    uses — no PA frame needed.
+    """
+
+    def test_dd_leg_70_75_overconfidence_alerts(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        # 10 DD days: primaries at 0.79 all hit (calibrated); DD legs at 0.73
+        # realize 5/10 → +23pp → WARN.
+        for i in range(10):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.79, pdd=0.73,
+                          slot_pick="hit", slot_dd="hit" if i < 5 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1, alerts
+        assert alerts[0].level == "WARN"
+        assert "70-75% DD-leg" in alerts[0].message
+        assert alerts[0].incident_key and "70-75" in alerts[0].incident_key
+
+    def test_primary_70_75_does_not_feed_dd_bucket(self, tmp_path):
+        # Primaries at 0.72 wildly overconfident + only 4 DD legs (below
+        # min_bucket_n): the DD-only bucket must not borrow primary slots.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(16):
+            _write_pick(picks_dir, today - timedelta(days=i + 1), 0.72,
+                        "miss" if i < 12 else "hit")
+        for i in range(4):
+            _write_dd_day(picks_dir, today - timedelta(days=20 + i),
+                          p1=0.79, pdd=0.73, slot_pick="hit", slot_dd="miss")
+        assert check(picks_dir, today=today) == []
+
+    def test_both_buckets_alert_with_distinct_incident_keys(self, tmp_path):
+        # 20 DD days carrying BOTH an overconfident 75-80 primary (0.78
+        # stated, 12/20 realized → +18pp WARN) AND a collapsed DD leg (0.73
+        # stated, 2/20 realized → +63pp, n=20 → CRITICAL).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(20):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.78, pdd=0.73,
+                          slot_pick="hit" if i < 12 else "miss",
+                          slot_dd="hit" if i < 2 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 2, alerts
+        keys = {a.incident_key for a in alerts}
+        assert len(keys) == 2
+        levels = {a.level for a in alerts}
+        assert levels == {"WARN", "CRITICAL"}
+
+    def test_small_n_caps_critical_at_warn(self, tmp_path):
+        # 2/8 at 0.73 stated is +48pp but only an exact tail of ~0.0064 —
+        # above the 1e-3 catastrophic epsilon, so it caps at WARN
+        # (2026-07-12 analysis: the live DD shortfall is suggestive, not
+        # conclusive; a CRITICAL claiming "real signal" would overstate it).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="hit", slot_dd="hit" if i < 2 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1
+        assert alerts[0].level == "WARN"
+
+    def test_zero_hits_small_n_still_escalates_critical(self, tmp_path):
+        # 0/8 at 0.73 has exact tail 2.8e-5 — effectively impossible under
+        # calibration (a grading/serving pipeline failure signature). The
+        # small-n gate must not hide it (round-2 review #4).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="hit", slot_dd="miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 1
+        assert alerts[0].level == "CRITICAL"
+
+    def test_legacy_bucket_override_translated(self, tmp_path):
+        # A pre-2026-07-12 override supplying only bucket_low/high must keep
+        # working as a single-bucket spec, not be silently ignored (r2#7).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 4, 29)
+        for i in range(20):
+            _write_pick(picks_dir, today - timedelta(days=i + 1), 0.65,
+                        "miss" if i < 15 else "hit")
+        alerts = check(picks_dir, today=today,
+                       thresholds={"bucket_low": 0.60, "bucket_high": 0.70})
+        assert len(alerts) == 1
+        assert "60-70%" in alerts[0].message
+        # And the default buckets are replaced, not merged: 0.65 picks are
+        # the only data, so no second alert can exist anyway; assert the
+        # translated label to pin the path.
+        assert alerts[0].incident_key == "realized_calibration:60-70%"
+
+    def test_slot_results_beats_pa_frame_on_conflict(self, tmp_path):
+        # Production slot_results (live-feed graded, contest-semantic) wins
+        # over the PA-frame join when both exist (r2#9 conflict boundary).
+        import pandas as pd
+        picks_dir = tmp_path / "picks"
+        data_dir = tmp_path / "processed"
+        data_dir.mkdir()
+        today = date(2026, 4, 29)
+        # 8 primaries at 0.78, slot_results says ALL HIT; PA frame says the
+        # batter had zero hits every day (a stale/contradictory parquet).
+        for i in range(8):
+            d = today - timedelta(days=i + 1)
+            body = {
+                "date": d.isoformat(),
+                "pick": {"p_game_hit": 0.78, "batter_name": "X", "batter_id": 7},
+                "result": "hit",
+                "slot_results": {"pick": "hit"},
+            }
+            picks_dir.mkdir(parents=True, exist_ok=True)
+            (picks_dir / f"{d.isoformat()}.json").write_text(json.dumps(body))
+        pd.DataFrame({
+            "batter_id": [7] * 8,
+            "date": [(today - timedelta(days=i + 1)).isoformat() for i in range(8)],
+            "is_hit": [0] * 8,
+        }).to_parquet(data_dir / "pa_2026.parquet")
+        # slot_results wins → realized 1.0 at 0.78 stated → no alert.
+        # (PA precedence would read 0/8 → +78pp CRITICAL.)
+        assert check(picks_dir, today=today, data_dir=data_dir) == []
+
+    def test_dd_slot_results_grading_beats_day_result(self, tmp_path):
+        # A DD day where the primary missed (day result "miss") but the DD
+        # leg HIT must count the DD leg as a hit — day-level attribution was
+        # the exact bias the 2026-05-01 fix documented. Primary p sits at
+        # 0.82 (outside every bucket) so only the DD-leg grading is under
+        # test.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="miss", slot_dd="hit")
+        # All 8 DD legs hit at 0.73 stated → under-confident, no alert.
+        assert check(picks_dir, today=today) == []
+
     def test_lookback_window_30d(self, tmp_path):
         # Old picks (>30d) should not influence the check
         picks_dir = tmp_path / "picks"

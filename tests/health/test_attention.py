@@ -201,3 +201,29 @@ def test_with_streak_preserves_incident_key():
     from bts.health.attention import _with_streak
     a = Alert("WARN", "s", "m", incident_key="s:x")
     assert _with_streak(a, 2).incident_key == "s:x"
+
+
+def test_realized_calibration_is_attention_listed():
+    # 2026-07-12: the DD-band bucket makes realized_calibration the absolute
+    # -level monitor for chronic slot miscalibration; without attention
+    # membership its WARNs never reach the DM digest no matter how long
+    # they persist.
+    from bts.health.attention import REPEATED_ATTENTION_WARN_SOURCES
+    assert "realized_calibration" in REPEATED_ATTENTION_WARN_SOURCES
+
+
+def test_streaks_keyed_by_incident_not_source(tmp_path):
+    # r2#3 of the DD-band work: realized_calibration's two buckets are
+    # distinct incidents. Bucket A warning yesterday must not make bucket
+    # B's first WARN today read as "2nd consecutive day".
+    a = Alert("WARN", "realized_calibration", "75-80% over",
+              incident_key="realized_calibration:75-80%")
+    b = Alert("WARN", "realized_calibration", "70-75% DD over",
+              incident_key="realized_calibration:70-75% DD-leg")
+    state = tmp_path / "warn_state.json"
+    policy_day1, att1 = apply_warn_attention_policy(
+        [a], state_path=state, today=date(2026, 7, 16))
+    policy_day2, att2 = apply_warn_attention_policy(
+        [b], state_path=state, today=date(2026, 7, 17))
+    # Day-2 bucket B is streak 1 → below the min streak → NOT in attention.
+    assert att2 == []

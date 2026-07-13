@@ -31,6 +31,10 @@ REPEATED_ATTENTION_WARN_SOURCES = {
     "pooled_training",
     "predicted_vs_realized",
     "projected_lineup",
+    # 2026-07-12: the DD-band bucket makes this check the absolute-level
+    # monitor for chronic slot miscalibration; a persistent WARN must reach
+    # the DM digest, not sit in the journal.
+    "realized_calibration",
     "dd_pair_residual_corr",
     "dd_pair_realized_shortfall",
     "same_team_corr",
@@ -69,7 +73,14 @@ def _write_state(path: Path, state: dict) -> None:
 
 
 def _source_key(alert: Alert) -> str:
-    return alert.source
+    # Streak identity = incident identity (round-2 review #3 of the DD-band
+    # work): realized_calibration's two buckets are distinct incidents — a
+    # source-keyed streak would label a DD-band WARN "2nd consecutive day"
+    # because the OTHER bucket warned yesterday. Sources that don't set
+    # incident_key keep source-keyed streaks (zero state migration; a
+    # pre-change source-keyed entry is never read under a bucket key and
+    # simply stays inert in the state file).
+    return alert.incident_key or alert.source
 
 
 def _is_consecutive(last_seen: str | None, today: date) -> bool:

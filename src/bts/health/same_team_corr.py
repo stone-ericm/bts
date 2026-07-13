@@ -11,6 +11,14 @@ separate pair-dependence assumption. These are different failure modes:
 
 The first signal stays visible, but it should not be labeled as pair
 correlation by itself.
+
+Known blind spot (2026-07-12 analysis): BOTH signals here are drift-framed
+(14d window vs overlapping 28d baseline), so a CHRONIC shortfall spanning
+both windows reads as drift ≈ 0 and never alerts — the season-long DD-leg
+shortfall (realized 0.595 vs stated 0.734 over 42 legs) was invisible to
+this check by construction. The absolute-level complement lives in
+realized_calibration's 70-75% DD-leg bucket; this check's distinct job
+remains ACCELERATION and the residual (correlation) decomposition.
 """
 
 from __future__ import annotations

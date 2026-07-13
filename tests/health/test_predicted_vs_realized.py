@@ -157,16 +157,17 @@ class TestEvaluate:
         assert alerts[0].level in ("INFO", "WARN")
 
     def test_warn_drift(self):
-        alerts = evaluate(self._m(28, 0.18, 0.08))  # drift 0.10 → WARN at threshold 0.08
+        alerts = evaluate(self._m(28, 0.24, 0.08))  # drift 0.16 ≥ 0.15 → WARN
         assert any(a.level == "WARN" or a.level == "CRITICAL" for a in alerts)
 
-    def test_moderate_drift_is_warn_not_critical(self):
-        # Round-2 review #9: the drift of overlapping 14d/28d windows has
-        # SE ≈ 0.094 at day level — 0.12-0.14 is ~1.3σ, not CRITICAL signal.
-        # CRITICAL is reserved for catastrophic/pipeline-scale drift (≥0.25)
-        # pending a day-block bootstrap recalibration.
+    def test_moderate_drift_is_info_not_warn(self):
+        # Bootstrap-calibrated thresholds (scripts/audit/
+        # pvr_threshold_bootstrap.py): overlapping windows make crossings
+        # serially persistent — 0.08-0.14 drifts occur in ~45-82% of
+        # calibrated seasons and would feed the 2-consecutive-day attention
+        # digest in ~2/3 of them. They stay INFO (visible, not paging).
         alerts = evaluate(self._m(28, 0.22, 0.08))  # drift 0.14
-        assert len(alerts) == 1 and alerts[0].level == "WARN"
+        assert len(alerts) == 1 and alerts[0].level == "INFO"
 
     def test_critical_drift(self):
         alerts = evaluate(self._m(28, 0.36, 0.08))  # drift 0.28 ≥ 0.25 → CRITICAL

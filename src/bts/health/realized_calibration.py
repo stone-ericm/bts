@@ -17,7 +17,10 @@ and ~+12.3pp in the [0.75, 0.80) bucket — **less alarming than the
 proxy-based "+14pp" finding from 2026-04-29**, which was inflated by the
 DD attribution bias. Thresholds are recalibrated accordingly.
 
-Severity ladder (75-80% bucket only; other buckets ignored):
+Severity ladder (applied per configured bucket; since 2026-07-12 the default
+buckets are the 75-80% primary band AND a 70-75% DD-leg-only band — the DD
+band had no absolute-level monitor while its legs ran 0.545 realized vs
+0.731 stated over the season):
   predicted - realized < 8pp:     no alert (well-calibrated under proper attribution)
   >= 8pp:                         INFO  (worth observing)
   >= 15pp:                        WARN  (significantly overconfident)
@@ -45,9 +48,43 @@ DEFAULT_THRESHOLDS = {
     "critical_pp": 25.0,
     "lookback_days": 30,
     "min_bucket_n": 5,
-    "bucket_low": 0.75,
-    "bucket_high": 0.80,
+    # CRITICAL additionally requires this n: at the 25pp bar, SE(realized)
+    # is ~10pp only once n≥20 (0.74·0.26/0.10² ≈ 19), so smaller samples
+    # cap at WARN — the attention digest carries a persistent WARN to the
+    # operator without a 2σ-ish reading claiming "real signal" outright.
+    "min_bucket_n_critical": 20,
+    # ...UNLESS the exact Poisson-binomial tail under the stated p's is
+    # effectively impossible (review r2#4: 0-for-8 at 0.73 has tail 2.8e-5 —
+    # a grading/serving pipeline failure must not hide behind the n gate).
+    "critical_tail_epsilon": 1e-3,
+    # Buckets: (low, high, slot filter, label); each alerts independently
+    # (distinct incident_key) on the same pp ladder. The original single
+    # [0.75, 0.80) bucket watches where most PRIMARY picks land. The
+    # [0.70, 0.75) DD-leg bucket was added 2026-07-12: season data showed
+    # DD legs realizing 0.545 vs stated 0.731 in that band while primaries
+    # in the SAME band were calibrated (-2.8pp) — a pooled bucket dilutes
+    # the slot-specific signal below the WARN bar, and no absolute-level
+    # monitor watched the DD band at all (predicted_vs_realized + dd_pair
+    # are drift-based, so a chronic shortfall spanning their baselines is
+    # invisible to them by construction).
+    "buckets": [
+        {"low": 0.75, "high": 0.80, "slots": None, "label": "75-80%"},
+        {"low": 0.70, "high": 0.75, "slots": ["double_down"], "label": "70-75% DD-leg"},
+    ],
 }
+
+
+def _poisson_binomial_tail_le(ps: list[float], k: int) -> float:
+    """Exact P(X <= k) for X = sum of independent Bernoulli(ps). O(n²) DP —
+    bucket sizes are tens at most."""
+    probs = [1.0]
+    for p in ps:
+        nxt = [0.0] * (len(probs) + 1)
+        for j, pr in enumerate(probs):
+            nxt[j] += pr * (1 - p)
+            nxt[j + 1] += pr * p
+        probs = nxt
+    return sum(probs[: k + 1])
 
 
 def _build_day_hit_lookup(data_dir: Path, today: date, lookback_days: int) -> dict:
@@ -162,11 +199,12 @@ def check(
     data_dir: Path | None = None,
     since_deploy_iso: str | None = None,
 ) -> list[Alert]:
-    """Returns INFO/WARN/CRITICAL alert when 75-80% bucket is overconfident.
+    """Returns INFO/WARN/CRITICAL alert per overconfident bucket.
 
-    When ``data_dir`` is provided AND the season parquet exists, uses true
-    per-pick day-hit attribution. Otherwise falls back to streak-result
-    proxy (biased on DD days; preserved for backward compatibility).
+    Slot outcomes come from production-graded ``slot_results`` when present
+    (authoritative), then the PA-frame join when ``data_dir`` is provided,
+    then the day-result proxy (primary slot on non-DD days only — day-level
+    results misattribute DD picks, the 2026-05-01 bias).
 
     Pooling (audit F6): picks are pooled by production-REGIME fingerprint
     (model/policy/feature-env hashes stamped on every pick) — the pool is all
@@ -180,6 +218,22 @@ def check(
     long-running project.
     """
     t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
+    if thresholds and "buckets" not in thresholds and (
+        "bucket_low" in thresholds or "bucket_high" in thresholds
+    ):
+        # Legacy single-bucket override (pre-2026-07-12 schema): translate
+        # instead of silently ignoring it (review r2#7 — a box override
+        # supplying only bucket_low/high would otherwise monitor the
+        # defaults while claiming to monitor something else).
+        low = float(thresholds.get("bucket_low", 0.75))
+        high = float(thresholds.get("bucket_high", 0.80))
+        log.warning(
+            "realized_calibration: legacy bucket_low/bucket_high override "
+            "translated to a single-bucket spec [%s, %s); use 'buckets'.",
+            low, high,
+        )
+        t["buckets"] = [{"low": low, "high": high, "slots": None,
+                         "label": f"{low * 100:.0f}-{high * 100:.0f}%"}]
     if today is None:
         today = date.today()
     if not picks_dir.exists():
@@ -192,7 +246,9 @@ def check(
     using_pa_attribution = bool(day_hit_lookup)
 
     cutoff = today - timedelta(days=t["lookback_days"])
-    in_bucket: list[tuple[float, int]] = []
+    buckets = t["buckets"]
+    in_bucket: list[list[tuple[float, int]]] = [[] for _ in buckets]
+    attribution_counts = {"slot_results": 0, "pa": 0, "proxy": 0}
     skipped_pre_deploy = 0
     skipped_other_regime = 0
     try:
@@ -245,50 +301,45 @@ def check(
         if result not in ("hit", "miss"):
             continue
         slot_results = body.get("slot_results") or {}
-        # Iterate primary + double_down so both picks contribute to the bucket
-        # under the proper PA-frame attribution path. The biased fallback path
-        # uses primary-only because streak result misattributes DD picks.
+        dd_present = bool(body.get("double_down"))
+        # Iterate primary + double_down; each graded slot feeds every bucket
+        # whose range AND slot filter it matches. Grading priority
+        # (2026-07-12, mirrors predicted_vs_realized): production-graded
+        # slot_results first (authoritative live-feed grading), PA-frame join
+        # second, day-result proxy last — primary-only AND only on non-DD
+        # days (day result misattributes DD picks; the 2026-05-01 bias the
+        # old fallback knowingly kept is now excluded instead).
         for slot_key in ("pick", "double_down"):
-            if slot_results.get(slot_key) == "void":
+            outcome = slot_results.get(slot_key)
+            if outcome == "void":
                 continue
             slot = body.get(slot_key) or {}
             p = slot.get("p_game_hit")
             if p is None:
                 continue
-            if not (t["bucket_low"] <= p < t["bucket_high"]):
-                continue
-            if using_pa_attribution:
+            if outcome in ("hit", "miss"):
+                day_hit = 1 if outcome == "hit" else 0
+                attribution_counts["slot_results"] += 1
+            elif using_pa_attribution:
                 bid = slot.get("batter_id")
                 if bid is None:
                     continue  # PA-frame join needs batter_id
-                day_hit = day_hit_lookup.get((int(bid), pick_date))
-                if day_hit is None:
+                looked = day_hit_lookup.get((int(bid), pick_date))
+                if looked is None:
                     continue  # late data; skip rather than guess
-                in_bucket.append((float(p), int(day_hit)))
+                day_hit = int(looked)
+                attribution_counts["pa"] += 1
+            elif slot_key == "pick" and not dd_present:
+                day_hit = 1 if result == "hit" else 0
+                attribution_counts["proxy"] += 1
             else:
-                # Biased fallback: streak result. Only trustworthy for primary picks
-                # (and only on primary-only days at that — but DD-presence isn't
-                # checked here; this is the legacy path before the PA-frame fix).
-                if slot_key == "pick":
-                    in_bucket.append((float(p), 1 if result == "hit" else 0))
+                continue
+            for bi, spec in enumerate(buckets):
+                if spec.get("slots") is not None and slot_key not in spec["slots"]:
+                    continue
+                if spec["low"] <= p < spec["high"]:
+                    in_bucket[bi].append((float(p), day_hit))
 
-    if len(in_bucket) < t["min_bucket_n"]:
-        return []
-
-    mean_predicted = sum(p for p, _ in in_bucket) / len(in_bucket)
-    realized_rate = sum(h for _, h in in_bucket) / len(in_bucket)
-    overconf_pp = (mean_predicted - realized_rate) * 100
-
-    if overconf_pp < t["info_pp"]:
-        return []
-    if overconf_pp >= t["critical_pp"]:
-        level = "CRITICAL"
-    elif overconf_pp >= t["warn_pp"]:
-        level = "WARN"
-    else:
-        level = "INFO"
-
-    attribution = "pa-frame" if using_pa_attribution else "streak-proxy (biased on DD days)"
     if current_regime is not None:
         deploy_filter = (
             f"regime-fingerprint (skipped {skipped_other_regime} other-regime)"
@@ -299,11 +350,43 @@ def check(
         )
     else:
         deploy_filter = "ALL-PICKS (iteration-contaminated)"
-    msg = (
-        f"75-80% bucket overconfident by {overconf_pp:+.1f}pp over last "
-        f"{t['lookback_days']}d (n={len(in_bucket)}, predicted {mean_predicted:.3f}, "
-        f"realized {realized_rate:.3f}, attribution={attribution}, filter={deploy_filter})"
+    attribution = (
+        f"all-slots slot_results:{attribution_counts['slot_results']}"
+        f"/pa:{attribution_counts['pa']}/proxy:{attribution_counts['proxy']}"
     )
-    if level == "CRITICAL":
-        msg += ". Real current-model overconfidence signal — investigate distribution shift."
-    return [Alert(level=level, source=SOURCE, message=msg)]
+
+    alerts: list[Alert] = []
+    for bi, spec in enumerate(buckets):
+        obs = in_bucket[bi]
+        if len(obs) < t["min_bucket_n"]:
+            continue
+        mean_predicted = sum(p for p, _ in obs) / len(obs)
+        realized_rate = sum(h for _, h in obs) / len(obs)
+        overconf_pp = (mean_predicted - realized_rate) * 100
+        if overconf_pp < t["info_pp"]:
+            continue
+        if overconf_pp >= t["critical_pp"] and (
+            len(obs) >= t["min_bucket_n_critical"]
+            or _poisson_binomial_tail_le(
+                [p for p, _ in obs], sum(h for _, h in obs)
+            ) <= t["critical_tail_epsilon"]
+        ):
+            level = "CRITICAL"
+        elif overconf_pp >= t["warn_pp"] or overconf_pp >= t["critical_pp"]:
+            level = "WARN"
+        else:
+            level = "INFO"
+        msg = (
+            f"{spec['label']} bucket overconfident by {overconf_pp:+.1f}pp over last "
+            f"{t['lookback_days']}d (n={len(obs)}, predicted {mean_predicted:.3f}, "
+            f"realized {realized_rate:.3f}, attribution={attribution}, filter={deploy_filter})"
+        )
+        if level == "CRITICAL":
+            msg += ". Real current-model overconfidence signal — investigate distribution shift."
+        alerts.append(Alert(
+            level=level, source=SOURCE, message=msg,
+            # Per-bucket dedup identity: the DD-band and primary-band buckets
+            # are distinct incidents for the same-day health-DM dedup.
+            incident_key=f"{SOURCE}:{spec['label']}",
+        ))
+    return alerts

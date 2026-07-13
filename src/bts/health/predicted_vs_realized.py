@@ -39,16 +39,23 @@ class PredRealMetrics:
 
 
 DEFAULT_THRESHOLDS = {
-    # The drift statistic is a 14d window MINUS its overlapping 28d baseline:
-    # at one obs/day its SE is ≈0.094 (NOT the standalone n=14 Bernoulli
-    # SE≈0.13 the original comment used — round-2 review #9), so the old
-    # 0.12 CRITICAL was ~1.3σ. DD days pool a second, same-day-correlated
-    # slot, which doesn't buy the independence a lower bar would need.
-    # WARN stays a cheap attention signal; CRITICAL is reserved for
-    # catastrophic/pipeline-scale drift until a day-block bootstrap
-    # recalibrates these (TODO, queued with the post-Aug window widening).
+    # Calibrated-null alarm surface, simulated on the season's OBSERVED
+    # schedule with this check's exact window semantics AND the production
+    # clock (health runs every calendar game-day incl. skips; attention
+    # needs calendar-adjacent WARN-band days) —
+    # scripts/audit/pvr_threshold_bootstrap.py, 20k trials, 2026-07-12:
+    #   thr    P(any check-day ≥ thr)   P(2 cal-consec WARN-band)
+    #   0.08          0.82                    0.69
+    #   0.12          0.45                    0.31   ← the pre-incident CRITICAL
+    #   0.15          0.21                    0.13
+    #   0.25          0.004                   ~0
+    # Overlapping 14d/28d windows make crossings serially persistent, so a
+    # 0.08 WARN would feed the two-consecutive-day attention digest in ~2/3
+    # of calibrated seasons — WARN sits at 0.15 (~13%/season digest rate),
+    # INFO keeps low drifts visible in logs/dashboard, and CRITICAL is the
+    # catastrophic/pipeline tier.
     "drift_info": 0.05,
-    "drift_warn": 0.08,
+    "drift_warn": 0.15,
     "drift_critical": 0.25,
     "min_days_14d": 10,  # require n≥10 in 14-day window for stat power
     "min_days_28d": 20,  # require n≥20 in 28-day baseline
