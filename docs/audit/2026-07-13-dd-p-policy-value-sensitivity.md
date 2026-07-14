@@ -169,8 +169,11 @@ realized replay is the only evaluator trusted here — L1 is structural only,
 L2 is the decision layer. Mechanism unidentified:
 candidates include schedule/phase structure, conditional miscalibration
 along runs, and repeat-batter form regression (the model's recency features
-chasing hot batters whose true rate regresses); none tested. Open thread:
-condition run survival on repeat-batter identity.
+chasing hot batters whose true rate regresses). Open thread: condition run
+survival on repeat-batter identity — **tested same day, not supported under
+its pre-registered stage-1 rule** (`2026-07-13-repeat-batter-stage1.md`:
+CIs include 0, seasons split, live primaries do not corroborate; stage 2
+not triggered).
 
 **6. The re-solve arm is an optimistically-biased in-sample benchmark, not a
 decision (r1#7).** A policy re-solved on the shaded environment beats
