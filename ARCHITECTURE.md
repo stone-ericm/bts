@@ -329,6 +329,13 @@ An exploratory campaign testing per-pitch Statcast swing data (miss distance, sw
 
 Monte Carlo simulator and MDP solver for evaluating and optimizing play strategies.
 
+> **⚠ iid-solver caveat (2026-07-13):** every DP value below (incl. the P(57) headline)
+> assumes iid day-types. Realized rank-1 sequences suppress long all-hit windows
+> ×0.10-0.14 vs order nulls, making iid milestone values policy-dependent-wrong
+> (always-single inflated ×3.6, doubling understated). Use realized-sequence replay
+> for policy comparisons — CLAUDE.md "RUN STRUCTURE" gotcha +
+> `docs/audit/2026-07-13-dd-p-policy-value-sensitivity.md` finding 5.
+
 ```
 src/bts/simulate/
     strategies.py       — Strategy dataclass, 7 named profiles, streak-aware thresholds
