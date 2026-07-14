@@ -1,4 +1,4 @@
-# 2026-07-13 — Repeat-batter conditioning, stage 1: mechanism unsupported, stage 2 not triggered
+# 2026-07-13 — Repeat-batter conditioning, stage 1: not supported under the pre-registered rule; stage 2 not triggered
 
 Tests the leading mechanism hypothesis from
 `2026-07-13-dd-p-policy-value-sensitivity.md` finding 5 (run-structure
@@ -13,10 +13,11 @@ first run): proceed to stage 2 (run-conditional decomposition) only if the
 repeat-vs-fresh gap difference is negative with a 95% date-cluster
 bootstrap CI excluding 0 AND the direction holds in ≥4/5 seasons.
 Outcome: NOT MET on any flag → stage 2 not run; the repeat-batter
-mechanism is unsupported.**
+mechanism is not supported under this rule (the marginal stage-1 screen —
+run-survival conditioning itself was deliberately never measured).**
 
 Script `scripts/audit/repeat_batter_conditioning.py` (tests
-`tests/scripts/test_repeat_batter_conditioning.py`; fast suite 1865→1871);
+`tests/scripts/test_repeat_batter_conditioning.py`; fast suite 1865→1872);
 artifact `2026-07-13-repeat-batter-stage1.json` (input fingerprints, full
 strata). Same estimated_pa profiles as the sensitivity analysis; clusters =
 (season, date) so the 24 seeds' date reuse cannot manufacture precision
@@ -75,16 +76,24 @@ aggregate miss is not evidence for it) and run-conditional miscalibration
 not mediated by pick identity. No further mechanism work queued — the
 finding's practical consequence (use realized-sequence replay, not iid DP,
 for milestone values) stands regardless of mechanism, and the policy
-conclusions of the sensitivity analysis did not depend on it. One review
-round (gpt-5.6-sol xhigh): machinery validated (cluster resampling proven
-algebraically exact, numbers reproduced); 5 wording/rigor findings adopted,
-incl. this section's own earlier "dead"/"regime evidence" overclaims.
+conclusions of the sensitivity analysis did not depend on it. Two review
+rounds (gpt-5.6-sol xhigh): r1 validated the machinery (cluster resampling
+proven algebraically exact, numbers reproduced) with 5 wording/rigor
+findings adopted, incl. this section's own earlier "dead"/"regime evidence"
+overclaims; r2 recomputed the live contrasts exactly and left 4 residuals —
+title/outcome qualifier, live-CSV fingerprint + row archival, the
+null-overwrite reproduce footgun, and the cross-reference's "tested"
+overclaim (stage 1 is a marginal screen, not run-survival conditioning) —
+all applied in this revision; converged.
 
 ## Reproduce
 
 ```
 uv run pytest tests/scripts/test_repeat_batter_conditioning.py -q
-uv run python scripts/audit/repeat_batter_conditioning.py
-# live side-check: run scripts/audit/build_slot_dataset.py on the box,
-# repeat flags over scored primaries in date order
+# live CSV: run scripts/audit/build_slot_dataset.py on the box first
+# (writes /tmp/slot_dataset_2026.csv there; scp it local)
+uv run python scripts/audit/repeat_batter_conditioning.py --live-csv <slot_dataset_2026.csv>
 ```
+
+Omitting `--live-csv` writes an artifact without the live block (the script
+warns; the committed artifact includes it, rows + CSV sha256 archived).

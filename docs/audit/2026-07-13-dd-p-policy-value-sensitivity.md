@@ -170,10 +170,11 @@ L2 is the decision layer. Mechanism unidentified:
 candidates include schedule/phase structure, conditional miscalibration
 along runs, and repeat-batter form regression (the model's recency features
 chasing hot batters whose true rate regresses). Open thread: condition run
-survival on repeat-batter identity — **tested same day, not supported under
-its pre-registered stage-1 rule** (`2026-07-13-repeat-batter-stage1.md`:
-CIs include 0, seasons split, live primaries do not corroborate; stage 2
-not triggered).
+survival on repeat-batter identity — **screened same day via its marginal
+stage-1 test, not supported under the pre-registered rule**
+(`2026-07-13-repeat-batter-stage1.md`: CIs include 0, seasons split, live
+primaries do not corroborate; the run-survival conditioning itself — stage
+2 — was deliberately not run).
 
 **6. The re-solve arm is an optimistically-biased in-sample benchmark, not a
 decision (r1#7).** A policy re-solved on the shaded environment beats
