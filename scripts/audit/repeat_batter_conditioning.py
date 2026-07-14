@@ -200,6 +200,7 @@ def live_primary_contrast(csv_path: str | Path, ks: tuple[int, ...] = REPEAT_KS)
     same positional repeat semantics as the profiles. No bootstrap — n is
     tens; this is archived for the audit trail, labeled directional.
     """
+    csv_path = Path(csv_path)
     df = pd.read_csv(csv_path)
     prim = df[(df["slot"] == "pick") & df["outcome"].isin(["hit", "miss"])].sort_values("date")
     frame = pd.DataFrame(
@@ -215,7 +216,23 @@ def live_primary_contrast(csv_path: str | Path, ks: tuple[int, ...] = REPEAT_KS)
     )
     frame = add_repeat_flags(frame, ks=ks)
     frame["gap"] = frame["hit"] - frame["stated"]
-    out = {"n_days": int(len(frame)), "date_range": [str(frame["date"].min()), str(frame["date"].max())]}
+    out = {
+        "n_days": int(len(frame)),
+        "date_range": [str(frame["date"].min()), str(frame["date"].max())],
+        # full audit trail (review r2#4): the CSV's identity and every scored
+        # row with its repeat assignment, so attributions are reproducible
+        "csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
+        "rows": [
+            {
+                "date": str(r.date),
+                "batter_id": int(r.batter_id),
+                "stated": float(r.stated),
+                "hit": int(r.hit),
+                **{f"repeat_{k}": bool(getattr(r, f"repeat_{k}")) for k in ks},
+            }
+            for r in frame.itertuples(index=False)
+        ],
+    }
     for k in ks:
         flag = f"repeat_{k}"
         r, f = frame[frame[flag]], frame[~frame[flag]]
@@ -300,6 +317,11 @@ def main(argv: list[str] | None = None) -> int:
                 f"  repeat_{k}: n_rep {v['n_repeat']} | gap repeat {v['repeat_gap']:+.4f} "
                 f"vs fresh {v['fresh_gap']:+.4f} | diff {v['diff']:+.4f}"
             )
+    else:
+        print(
+            "\nNOTE: --live-csv omitted — the written artifact will lack the "
+            "live_2026_primaries_directional block (the committed artifact has it)."
+        )
 
     payload = {
         "generated_by": "scripts/audit/repeat_batter_conditioning.py",
@@ -307,8 +329,9 @@ def main(argv: list[str] | None = None) -> int:
         "params": {"n_boot": args.n_boot, "boot_seed": BOOT_SEED, "repeat_ks": list(REPEAT_KS)},
         "inputs": _fingerprint(files),
         "results": results,
-        "live_2026_primaries_directional": live,
     }
+    if live is not None:
+        payload["live_2026_primaries_directional"] = live
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=1, sort_keys=True))

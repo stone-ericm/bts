@@ -123,6 +123,36 @@ def test_stratified_contrast_matches_direct_computation():
     assert strata[2]["diff"] == pytest.approx(direct, abs=1e-12)
 
 
+def test_live_primary_contrast_semantics(tmp_path):
+    from scripts.audit.repeat_batter_conditioning import live_primary_contrast
+
+    csv = tmp_path / "slots.csv"
+    pd.DataFrame(
+        [
+            # date, slot, batter_id, p, outcome — dd rows and unresolved
+            # primaries must be excluded
+            {"date": "2026-04-01", "slot": "pick", "batter_id": 10, "p": 0.78, "outcome": "hit"},
+            {"date": "2026-04-01", "slot": "double_down", "batter_id": 99, "p": 0.74, "outcome": "miss"},
+            {"date": "2026-04-02", "slot": "pick", "batter_id": 10, "p": 0.77, "outcome": "miss"},
+            {"date": "2026-04-03", "slot": "pick", "batter_id": 20, "p": 0.76, "outcome": "hit"},
+            {"date": "2026-04-04", "slot": "pick", "batter_id": 30, "p": 0.75, "outcome": ""},
+        ]
+    ).to_csv(csv, index=False)
+    out = live_primary_contrast(csv, ks=(1,))
+    assert out["n_days"] == 3  # unresolved row dropped, dd row not a primary
+    v = out["repeat_1"]
+    assert v["n_repeat"] == 1 and v["n_fresh"] == 2
+    # repeat day: batter 10 on 04-02 (miss, stated .77) -> gap -0.77
+    assert v["repeat_gap"] == pytest.approx(-0.77, abs=1e-12)
+    # fresh: 04-01 (hit, .78) + 04-03 (hit, .76) -> mean gap +0.23
+    assert v["fresh_gap"] == pytest.approx((1 - 0.78 + 1 - 0.76) / 2, abs=1e-12)
+    assert v["diff"] == pytest.approx(v["repeat_gap"] - v["fresh_gap"], abs=1e-12)
+    # audit trail archived: csv fingerprint + per-row repeat assignments
+    assert len(out["csv_sha256"]) == 64
+    assert [r["batter_id"] for r in out["rows"]] == [10, 10, 20]
+    assert [r["repeat_1"] for r in out["rows"]] == [False, True, False]
+
+
 def test_gap_contrast_null_ci_covers_zero():
     rng = np.random.default_rng(5)
     rows = []
