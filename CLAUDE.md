@@ -74,6 +74,14 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 > hit **0.865**), which INFLATES streaks and can *flip* the policy ranking (MDP looks great on inflated
 > data; always-double wins on realistic). See `docs/audit/2026-07-06-strategy-model-lever-investigation.md`
 > + reproducible comparator `scripts/audit/confirm_mdp_policy_replay.py`.
+>
+> **⚠ RUN STRUCTURE (2026-07-13 gotcha):** even on the right profiles, iid day-type solvers
+> (`solve_mdp` / any DP over quality bins) get milestone probabilities policy-DEPENDENT-wrong:
+> realized rank-1 sequences suppress long all-hit windows (20-windows ×0.10-0.14 vs iid/permutation
+> nulls, all 5 seasons) — iid inflates always-single reach-20 ×3.6 while UNDERSTATING doubling
+> policies. For milestone/policy comparisons, replay realized sequences (pattern:
+> `scripts/audit/dd_p_policy_value_sensitivity.py` L2); treat iid DP values as structure only.
+> See `docs/audit/2026-07-13-dd-p-policy-value-sensitivity.md` finding 5.
 ```bash
 # Run blend backtest (5 seasons, ~2-3 hours, needs --extra model)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate backtest --seasons 2021,2022,2023,2024,2025
