@@ -10,7 +10,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 # ⚠️ The full local suite GRINDS for hours (LightGBM imports locally now → simulate/model/experiment/
 # validate run real backtests/training). For NON-model changes, the fast comprehensive regression is:
 UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" \
-  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1872 in ~30s
+  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1873 in ~30s
 
 # Scheduler (Hetzner production — systemd --user unit)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
@@ -31,6 +31,14 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **Emergency deploy**: `workflow_dispatch` trigger in the GitHub Actions UI — runs deploy without pushing anything. **Select the `deploy` branch in the dropdown** (defaults to main, which fails at the `production` environment gate — the root SSH key is branch-scoped since 2026-07-10).
 - Every push to `deploy` triggers the workflow (no paths filter — `deploy` is a dedicated deploy ref, so any push to it is an intentional deploy). Workflow SSHes as root, runs `git pull --ff-only` + restarts `bts-scheduler` + `bts-dashboard` as user `bts`. **Don't manually `systemctl restart` on bts-mlb after pushing** — workflow does it.
 - See `the claude-shared memory file reference_bts_deploy_workflow.md` for full details.
+
+## Box access (bts-hetzner) gotchas
+- Non-interactive SSH lands as user `bts` with `uv` NOT on PATH → use `~/.local/bin/uv`. No sudo needed (or available) for the user units: `export XDG_RUNTIME_DIR=/run/user/$(id -u)` then `systemctl --user ...`.
+- The dashboard binds the **tailnet IP only** (`tailscale ip -4`:3003) — `curl localhost:3003` returns 000 by design, not an outage.
+- Data layout: `data/picks/<date>/decision.json` (per-day dirs) vs `data/picks/<date>.policy_shadow.json` (flat files) — skip-day shadow records are NOT inside the date dirs.
+
+## Testing gotchas
+- **Don't write date-relative tests against `date.today()`-defaulting checks** — health `check()` functions date-filter planted files before reading them, so a hardcoded planted date silently expires out of the lookback window and the test goes vacuous/red weeks later (the F4 projected_lineup tests expired 2026-07-16; root-caused + pinned 2026-08-03, `5bde492`). Always pass an explicit `today=` pinned to the planted data.
 
 ## Feature computation env vars (set in production via `.env` or systemd unit; defaults in code)
 - `BTS_ROOKIE_GATE_K` (default `20`): rookie shrinkage strength. Rookies (career PAs < 100) get PA-weighted rolling + pseudocount shrinkage toward 0.2195 league prior on `batter_hr_{30,60,120}g`. Veterans untouched. Set to `0` to revert.
