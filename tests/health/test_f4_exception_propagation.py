@@ -7,6 +7,7 @@ failure looked identical to healthy. Contract: expected data-absence stays
 quiet; unexpected exceptions PROPAGATE.
 """
 import json
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -30,6 +31,14 @@ def test_calibration_empty_picks_dir_stays_quiet(tmp_path):
 
 # --- projected_lineup ------------------------------------------------------
 
+# check() defaults today=date.today() and date-filters files older than the
+# 14-day lookback BEFORE reading them. Every test must pin `today` to the
+# planted file's date or, once the wall clock moves past the lookback, the
+# file is skipped unread and the patched crash never fires (the original
+# unpinned tests silently expired on 2026-07-16).
+_PLANTED_DAY = date(2026, 7, 1)
+
+
 def _plant_pick(picks_dir, date_str, projected=False):
     (picks_dir / f"{date_str}.json").write_text(json.dumps({
         "pick": {"batter_name": "X", "projected_lineup": projected},
@@ -42,12 +51,12 @@ def test_projected_lineup_internal_crash_propagates(tmp_path):
     with patch("bts.health.projected_lineup.json.loads",
                side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError):
-            projected_lineup.check(tmp_path)
+            projected_lineup.check(tmp_path, today=_PLANTED_DAY)
 
 
 def test_projected_lineup_corrupt_file_still_skipped_quietly(tmp_path):
     (tmp_path / "2026-07-01.json").write_text("{not json")
-    assert projected_lineup.check(tmp_path) == []
+    assert projected_lineup.check(tmp_path, today=_PLANTED_DAY) == []
 
 
 # --- post_failure ----------------------------------------------------------
@@ -100,4 +109,4 @@ def test_projected_lineup_per_file_oserror_propagates(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "read_text", failing_read)
     with pytest.raises(PermissionError):
-        projected_lineup.check(tmp_path)
+        projected_lineup.check(tmp_path, today=_PLANTED_DAY)
