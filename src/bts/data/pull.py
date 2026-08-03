@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.request import urlopen, Request
 
+from bts.util import retry_urlopen
+
 API_BASE = "https://statsapi.mlb.com"
 OPEN_METEO_BASE = "https://archive-api.open-meteo.com/v1/archive"
 
@@ -28,7 +30,11 @@ def discover_games(start_date: str, end_date: str) -> list[dict]:
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
         url = f"{API_BASE}/api/v1/schedule?sportId=1&date={date_str}"
-        resp = urlopen(url, timeout=15)
+        # retry_urlopen, not bare urlopen: this walks the range one day at a
+        # time, so a single transient MLB blip on day 40 of 180 would otherwise
+        # throw away every day already fetched. GET is idempotent, so the
+        # default retry policy applies unchanged.
+        resp = retry_urlopen(url, timeout=15)
         data = json.loads(resp.read())
 
         for date_entry in data.get("dates", []):

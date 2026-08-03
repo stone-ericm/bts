@@ -1,5 +1,6 @@
 import json
 from unittest.mock import patch, MagicMock
+from urllib.error import URLError
 from bts.data.pull import discover_games, download_game_feed, pull_feeds, enrich_weather
 
 
@@ -37,17 +38,37 @@ def _mock_urlopen(url, **kwargs):
     return resp
 
 
-@patch("bts.data.pull.urlopen", side_effect=_mock_urlopen)
+@patch("bts.data.pull.retry_urlopen", side_effect=_mock_urlopen)
 def test_discover_games_returns_final_games_only(mock_open):
     games = discover_games("2025-06-01", "2025-06-01")
     assert len(games) == 1
     assert games[0]["gamePk"] == 823651
 
 
-@patch("bts.data.pull.urlopen", side_effect=_mock_urlopen)
+@patch("bts.data.pull.retry_urlopen", side_effect=_mock_urlopen)
 def test_discover_games_includes_date(mock_open):
     games = discover_games("2025-06-01", "2025-06-01")
     assert games[0]["date"] == "2025-06-01"
+
+
+def test_discover_games_survives_transient_failure():
+    """A single transient blip must not abort a multi-day backfill.
+
+    ``discover_games`` walks a date range one request at a time; a bare
+    ``urlopen`` meant one dropped connection on day 40 of 180 threw away the
+    whole loop. Routed through the shared ``retry_urlopen`` like every other
+    caller in the codebase (picks, scorecard, posting, dm).
+    """
+    with patch("bts.util.time.sleep"), \
+         patch("bts.util.urlopen",
+               side_effect=[URLError("connection reset"), _mock_urlopen("url")]) as shared_open, \
+         patch("bts.data.pull.urlopen",
+               side_effect=AssertionError("must go through retry_urlopen")) as bare_open:
+        games = discover_games("2025-06-01", "2025-06-01")
+
+    assert shared_open.call_count == 2  # failed once, then succeeded
+    bare_open.assert_not_called()
+    assert games[0]["gamePk"] == 823651
 
 
 def test_download_game_feed_writes_json(tmp_path):
