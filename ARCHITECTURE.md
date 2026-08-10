@@ -74,7 +74,7 @@ different action rule). It tests whether the deployed MDP's **skip at streak≥8
 backtest cannot settle, because the calibrated breakeven (~0.744) sits inside the skipped band's
 realized hit-rate range (see `docs/audit/2026-06-20-skip-policy-shadow.md`). **Ground truth via
 `decision.json`:** the scheduler writes `data/picks/<date>/decision.json` (schema
-`bts_daily_decision_v1`) at each true finalization point — pick commit (`_deliver_and_lock_pick`,
+`bts_daily_decision_v2` since 2026-08-09; v1 accepted for legacy files) at each true finalization point — pick commit (`_deliver_and_lock_pick`,
 delivery branches → `delivered`/`private_locked`/`locked_unconfirmed`), classification-lock (only
 when the recovered pick was genuinely delivered), crash-guard, and end-of-day MDP skip. The
 scheduler tracks `committed_pick_written` + `final_skip_candidate` across the day; all writes are
@@ -104,9 +104,15 @@ doc — 4 review rounds showed the action + executable candidate aren't otherwis
 
 ### `decision.json` — authoritative daily action record (`bts/daily_decision.py`)
 
-`data/picks/<date>/decision.json` (schema `bts_daily_decision_v1`) is the single source of truth
-for "what did production finally do on a date." Written ONLY by the scheduler at true finalization
-points; never by `bts run`, preview, or the shadow model. Always best-effort; never raises into
+`data/picks/<date>/decision.json` (schema `bts_daily_decision_v2` since 2026-08-09; readers accept
+{v1, v2}) is the single source of truth for "what did production finally do on a date." Written
+ONLY by the scheduler at true finalization points; never by `bts run`, preview, or the shadow
+model. **v2 adds state provenance on EVERY record** — streak, saver_available, state_source,
+state_status, allow_double, contest_source_date, stamped in `orchestrator.run_and_pick` from the
+exact DecisionStreakState that fed `select_pick` — plus `second_candidate` on skips (the
+executable different-game runner-up). Motivation: the 2026-08-09 boundary-shadow census found
+31/44 v1 records state-null (only MDP skips persisted state), making retrospective state
+recovery depend on a ledger-as-of join; v2 records are exact by construction. Always best-effort; never raises into
 the pick path. **Who reads it:** `bts check-results` gates scoring on `decision.scoreable`
 (fallback to `picks.pick_was_delivered` when no decision file exists) — the GH #144 fix that stops
 a stale preview `<date>.json` from corrupting the streak on skip days; the skip-policy shadow reads
@@ -246,7 +252,7 @@ each sync (`--no-prune` to skip).
 **Scoring serialization (`picks.scoring_lock`, 2026-07-09/10):** every writer of pick-result/streak state — `check-results`, the daemon's mid-game and all-final scoring paths, its cap/unresolved/suspended markers (via `scheduler.save_nonterminal_result`, a locked reload that refuses to overwrite a terminal `hit/miss/void`), and `reconcile_results` — holds a shared flock on `data/picks/.scoring.lock` around the read-modify-write, re-loads the pick INSIDE the lock (adopting fresh metadata; failing closed if the file vanished), and skips if a peer already scored. Resolution (network) stays outside the lock. Known deferral: streak.json + pick-file remain a two-file non-atomic pair under crash (healed by the 2am replay + contest anchoring).
 
 **Scheduler state integrity (audit F3, 2026-07-09):** `scheduler_state.json` writes are atomic (`util.atomic_write_text`); a corrupt/torn file is QUARANTINED to `scheduler_state.json.corrupt-<ts>` at load (evidence preserved, fresh day-state, `scheduler_state_integrity` WARNs) instead of crash-looping; state loads BEFORE `notify_ready()`/heartbeat so a failing init can't advertise liveness (`--dry-run` skips the load — it must not mutate). Externally, `scripts/check_heartbeat.py` samples the unit's NRestarts each cron tick: +3 in 20 min, +3 in 60 min, or +4 in 180 min is treated exactly like a stale heartbeat (fail ping) — a crash-loop refreshing its heartbeat every cycle can no longer look healthy.
-- 1am cron remains as a safety-net `bts check-results` fallback. Skips when scheduler has already set result ("hit"/"miss") to avoid double-counting streak. Does NOT post to Bluesky; scheduler owns all posting.
+- 1am cron remains as a safety-net `bts check-results` fallback. Skips when scheduler has already set result ("hit"/"miss") to avoid double-counting streak. Does NOT post to Bluesky; scheduler owns all posting. Since 2026-08-09 the cron passes `--wait-deadline-et 06:00` (in-process 15-min retry until the grader itself reports production+shadow settled; hard deadline; `flock -n` singleton) and `check-results` attempts shadow reconciliation on every exit path; a stale-scoring guard refuses streak-bearing scoring for dates >2 days old without `--allow-stale-scoring` (out-of-order `update_streak` corrupts the streak). Residual stranded results surface via the `result_resolution` health source.
 
 **Key modules:**
 - `strategy.py` — MDP-optimal pick logic with heuristic fallback. Auto-loads `data/models/mdp_policy.npz` for provably optimal skip/single/double decisions based on (streak, days_remaining, saver, quality_bin). Double-down must be from a different game. Falls back to heuristic thresholds if policy file absent. Shared by `bts run` and orchestrator. The action choice is a PURE `decide_action(ctx, streak, saver)` over a `DecisionContext` (resolved MDP policy + selected candidates + allow_double); `select_pick` builds the context (impure prep) then calls it — the seam a future uncertainty layer evaluates over a state set.
@@ -262,7 +268,7 @@ each sync (`--no-prune` to skip).
 
 ## Health Monitoring
 
-End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 25 sources as of 2026-07-10. Source modules must NOT blanket-catch their own crashes (audit F4, 2026-07-09): an unexpected exception propagates to `_safe_run`, which surfaces it as a CRITICAL `health_runner` alert — expected data-absence stays quiet, per-file content corruption is skipped, but filesystem errors (OSError) propagate.
+End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Each check module returns 0+ `Alert` objects (level: INFO/WARN/CRITICAL); CRITICAL alerts DM Bluesky via `bts.dm`. 26 sources as of 2026-08-09 (`result_resolution` added — stranded shadow/production results, version-blind, always-attention). Source modules must NOT blanket-catch their own crashes (audit F4, 2026-07-09): an unexpected exception propagates to `_safe_run`, which surfaces it as a CRITICAL `health_runner` alert — expected data-absence stays quiet, per-file content corruption is skipped, but filesystem errors (OSError) propagate.
 
 | Source | Tier | Detects |
 |---|---|---|
