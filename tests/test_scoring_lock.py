@@ -88,7 +88,7 @@ def test_check_results_skips_when_peer_scored_mid_flight(tmp_path, monkeypatch):
     monkeypatch.setattr(picks_mod, "resolve_daily_slot_results",
                         resolve_and_simulate_peer)
 
-    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08",
+    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08", "--allow-stale-scoring",
                                  "--picks-dir", str(picks_dir)])
 
     assert r.exit_code == 0, r.output
@@ -149,7 +149,7 @@ def test_check_results_fails_closed_when_pick_vanishes(tmp_path, monkeypatch):
         return {"pick": "hit"}
 
     monkeypatch.setattr(picks_mod, "resolve_daily_slot_results", resolve_and_delete)
-    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08",
+    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08", "--allow-stale-scoring",
                                  "--picks-dir", str(picks_dir)])
 
     assert r.exit_code == 0, r.output
@@ -175,7 +175,7 @@ def test_check_results_adopts_fresh_metadata_before_scoring(tmp_path, monkeypatc
         return {"pick": "hit"}
 
     monkeypatch.setattr(picks_mod, "resolve_daily_slot_results", resolve_and_touch_metadata)
-    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08",
+    r = CliRunner().invoke(cli, ["check-results", "--date", "2026-07-08", "--allow-stale-scoring",
                                  "--picks-dir", str(picks_dir)])
 
     assert r.exit_code == 0, r.output

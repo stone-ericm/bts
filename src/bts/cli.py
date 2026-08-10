@@ -1,8 +1,25 @@
 import json
+import time
 import click
 from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+# check-results wait-loop hooks — module-level so tests can monkeypatch the
+# clock and the sleep without reaching into the command closure.
+_CHECK_RESULTS_ET = ZoneInfo("America/New_York")
+
+
+def _now_et() -> datetime:
+    return datetime.now(_CHECK_RESULTS_ET)
+
+
+_sleep = time.sleep
+
+# Streak-bearing scoring is refused for dates older than this without
+# --allow-stale-scoring: update_streak applies results against the CURRENT
+# streak state, so out-of-order historical grading corrupts the streak.
+STALE_SCORING_MAX_AGE_DAYS = 2
 
 
 def _today_et() -> str:
@@ -1984,10 +2001,50 @@ def schedule(date: str | None, config_path: str, dry_run: bool):
         "Defaults to <picks parent>/validation/context_stack_shadow_status.json."
     ),
 )
-def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
+@click.option(
+    "--wait-deadline-et",
+    default=None,
+    help=(
+        "Retry in-process every --wait-interval-min minutes until production "
+        "and shadow results are settled or this ET wall-clock time (HH:MM, "
+        "today) is reached. Already past at start = single attempt. "
+        "Default: single attempt (prior behavior)."
+    ),
+)
+@click.option(
+    "--wait-interval-min",
+    default=15,
+    show_default=True,
+    type=click.IntRange(min=1, max=120),
+    help="Minutes between retries when --wait-deadline-et is set.",
+)
+@click.option(
+    "--allow-stale-scoring",
+    is_flag=True,
+    default=False,
+    help=(
+        "Permit streak-bearing scoring for dates older than "
+        "2 days. ONLY for a chronologically-ordered backfill after a "
+        "multi-day outage — update_streak applies results against the "
+        "CURRENT streak state, so out-of-order grading corrupts it."
+    ),
+)
+def check_results(
+    date: str,
+    picks_dir: str,
+    shadow_status_output: str | None,
+    wait_deadline_et: str | None,
+    wait_interval_min: int,
+    allow_stale_scoring: bool,
+):
     """Check if yesterday's pick got a hit and update the streak.
 
-    Designed to run via cron at 1am ET (after all games finish).
+    Designed to run via cron at 1am ET (after all games finish). With
+    --wait-deadline-et the cron invocation rides out not-yet-final games
+    (e.g. West Coast extras) by retrying in-process — the grader's own
+    resolvability is the "day over" signal, so suspended/postponed/void
+    semantics stay defined in one place. Old dates never re-grade: a
+    terminal production result is always "settled".
     """
     from pathlib import Path
     from bts.picks import (
@@ -1999,7 +2056,6 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
     )
 
     picks_path = Path(picks_dir)
-    daily = load_pick(date, picks_path)
 
     def write_shadow_status_artifact() -> None:
         shadow_files = list(picks_path.glob("*.shadow.json"))
@@ -2018,28 +2074,32 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
         except Exception as e:
             click.echo(f"WARNING: Failed to write shadow status — {e}", err=True)
 
-    if daily is None:
-        click.echo(f"No pick found for {date}.")
-        return
+    def reconcile_shadow_result() -> tuple[str, str | None]:
+        """Resolve the shadow pick independently from production streak state.
 
-    def reconcile_shadow_result() -> tuple[bool, str | None]:
-        """Resolve the shadow pick independently from production streak state."""
+        Returns (state, result). state: "absent" (no shadow file), "already"
+        (terminal before this call), "resolved" (graded just now), or
+        "pending" (game not final / batter not found / resolver error —
+        worth retrying tonight).
+        """
         shadow = load_shadow_pick(date, picks_path)
-        if shadow is None or shadow.result in ("hit", "miss", "void"):
-            return False, shadow.result if shadow else None
+        if shadow is None:
+            return "absent", None
+        if shadow.result in ("hit", "miss", "void"):
+            return "already", shadow.result
 
         try:
             slot_results = resolve_daily_slot_results(shadow, date)
         except Exception as e:
             click.echo(f"ERROR: Failed to check shadow result — {e}", err=True)
-            return False, None
+            return "pending", None
 
         if slot_results is None:
             click.echo(
                 "WARNING: Shadow pick has an active game not final or batter not found. "
                 "Shadow result unchanged."
             )
-            return False, None
+            return "pending", None
 
         shadow.slot_results = slot_results
         shadow.result = effective_daily_result(slot_results)
@@ -2060,99 +2120,166 @@ def check_results(date: str, picks_dir: str, shadow_status_output: str | None):
             f"  Shadow: {' + '.join(shadow_names) if shadow_names else 'all picks void'} — "
             f"{shadow.result.upper()}"
         )
-        return True, shadow.result
+        return "resolved", shadow.result
 
-    # Skip if scheduler already resolved this pick (avoid double-counting streak)
-    if daily.result in ("hit", "miss", "void"):
-        reconcile_shadow_result()
+    def _reconcile_shadow_and_status() -> bool:
+        """Attempt shadow reconciliation + status artifact write; True when
+        the shadow side is settled (absent, already terminal, or graded now)."""
+        state, _ = reconcile_shadow_result()
         write_shadow_status_artifact()
-        click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
-        return
+        return state != "pending"
 
-    # GH #144: only score a committed pick. A stale preview / pre-lock / undelivered
-    # <date>.json must not advance the streak. Shadow still reconciles on this exit.
-    from bts.daily_decision import is_scoreable_commit
+    def _attempt() -> bool:
+        """One grading pass over production + shadow for --date.
 
-    scoreable = is_scoreable_commit(date, picks_path, daily)
+        Returns True when nothing is left that could still resolve tonight —
+        the wait loop's stop signal. Every exit path attempts shadow
+        reconciliation first: the 2026-07-10 shadow stayed unresolved for a
+        month because two paths returned before trying it and no later
+        nightly run revisits old dates.
+        """
+        daily = load_pick(date, picks_path)
+        if daily is None:
+            settled = _reconcile_shadow_and_status()
+            click.echo(f"No pick found for {date}.")
+            return settled
 
-    if not scoreable:
-        reconcile_shadow_result()
-        write_shadow_status_artifact()
-        click.echo(f"{date}: decision was not a committed pick (skip / undelivered) — not scoring.")
-        return
+        # Skip if scheduler already resolved this pick (avoid double-counting streak)
+        if daily.result in ("hit", "miss", "void"):
+            settled = _reconcile_shadow_and_status()
+            click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
+            return settled
 
-    for _, slot in iter_daily_pick_slots(daily):
-        click.echo(f"Checking {slot.batter_name} (game {slot.game_pk})...")
+        # GH #144: only score a committed pick. A stale preview / pre-lock / undelivered
+        # <date>.json must not advance the streak. Shadow still reconciles on this exit.
+        from bts.daily_decision import is_scoreable_commit
 
-    try:
-        slot_results = resolve_daily_slot_results(daily, date)
-    except Exception as e:
-        click.echo(f"ERROR: Failed to check game result — {e}", err=True)
-        return
+        scoreable = is_scoreable_commit(date, picks_path, daily)
 
-    if slot_results is None:
-        click.echo("WARNING: Active pick game not final or batter not found. "
-                   "Streak unchanged. Check manually.")
-        return
+        if not scoreable:
+            settled = _reconcile_shadow_and_status()
+            click.echo(f"{date}: decision was not a committed pick (skip / undelivered) — not scoring.")
+            return settled
 
-    results = active_streak_results(slot_results)
+        # Out-of-order protection (Codex r2 #1): cron grades yesterday;
+        # anything older refuses streak-bearing scoring without the explicit
+        # override. Shadow reconciliation still happens — it never touches
+        # streak state, which is what makes manual old-date remediation safe.
+        from datetime import date as _date_cls
 
-    # Serialize the streak read-modify-write against the daemon's result
-    # polling (review F13): re-check INSIDE the lock — the daemon may have
-    # scored this date while we were resolving (the pre-check above ran
-    # before the network fetch). fresh is adopted before mutation so a
-    # concurrent metadata update isn't clobbered, and fresh=None fails closed
-    # (review #6). Shadow reconciliation (network) stays OUTSIDE the lock
-    # (review #5).
-    skip_reason = None
-    with scoring_lock(picks_path):
-        fresh = load_pick(date, picks_path)
-        if fresh is None:
-            skip_reason = ("Pick file disappeared during scoring; failing "
-                           "closed (no streak update).")
-        elif fresh.result in ("hit", "miss", "void"):
-            skip_reason = (f"Already resolved by another scorer: {fresh.result}. "
-                           f"Skipping streak update.")
+        age_days = (_now_et().date() - _date_cls.fromisoformat(date)).days
+        if age_days > STALE_SCORING_MAX_AGE_DAYS and not allow_stale_scoring:
+            settled = _reconcile_shadow_and_status()
+            click.echo(
+                f"{date} is {age_days} days old — refusing streak-bearing "
+                f"scoring (out-of-order update_streak risk); shadow "
+                f"reconciliation attempted. Use --allow-stale-scoring only "
+                f"for a chronologically-ordered backfill."
+            )
+            return settled
+
+        for _, slot in iter_daily_pick_slots(daily):
+            click.echo(f"Checking {slot.batter_name} (game {slot.game_pk})...")
+
+        try:
+            slot_results = resolve_daily_slot_results(daily, date)
+        except Exception as e:
+            click.echo(f"ERROR: Failed to check game result — {e}", err=True)
+            _reconcile_shadow_and_status()
+            return False
+
+        if slot_results is None:
+            click.echo("WARNING: Active pick game not final or batter not found. "
+                       "Streak unchanged. Check manually.")
+            _reconcile_shadow_and_status()
+            return False
+
+        results = active_streak_results(slot_results)
+
+        # Serialize the streak read-modify-write against the daemon's result
+        # polling (review F13): re-check INSIDE the lock — the daemon may have
+        # scored this date while we were resolving (the pre-check above ran
+        # before the network fetch). fresh is adopted before mutation so a
+        # concurrent metadata update isn't clobbered, and fresh=None fails closed
+        # (review #6). Shadow reconciliation (network) stays OUTSIDE the lock
+        # (review #5).
+        skip_reason = None
+        vanished = False
+        with scoring_lock(picks_path):
+            fresh = load_pick(date, picks_path)
+            if fresh is None:
+                vanished = True
+                skip_reason = ("Pick file disappeared during scoring; failing "
+                               "closed (no streak update).")
+            elif fresh.result in ("hit", "miss", "void"):
+                skip_reason = (f"Already resolved by another scorer: {fresh.result}. "
+                               f"Skipping streak update.")
+            else:
+                daily = fresh
+                new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
+                daily.slot_results = slot_results
+                daily.result = effective_daily_result(slot_results)
+                save_pick(daily, picks_path)
+        if skip_reason is not None:
+            click.echo(skip_reason)
+            settled = _reconcile_shadow_and_status()
+            # A vanished file may be restored later tonight — stay pending
+            # (bounded by the deadline) instead of reading as settled.
+            return settled and not vanished
+
+        settled = _reconcile_shadow_and_status()
+
+        # Report
+        void_names = [
+            slot.batter_name
+            for slot_key, slot in iter_daily_pick_slots(daily)
+            if slot_results.get(slot_key) == "void"
+        ]
+        if void_names:
+            click.echo(f"VOID: {', '.join(void_names)}.")
+
+        if daily.result == "void":
+            click.echo(f"All picks void. Streak unchanged: {new_streak}")
+        elif daily.result == "hit":
+            hit_names = [
+                slot.batter_name
+                for slot_key, slot in iter_daily_pick_slots(daily)
+                if slot_results.get(slot_key) == "hit"
+            ]
+            click.echo(f"HIT! {' + '.join(hit_names)}. Streak: {new_streak}")
         else:
-            daily = fresh
-            new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
-            daily.slot_results = slot_results
-            daily.result = effective_daily_result(slot_results)
-            save_pick(daily, picks_path)
-    if skip_reason is not None:
-        click.echo(skip_reason)
-        reconcile_shadow_result()
-        write_shadow_status_artifact()
-        return
+            miss_names = [
+                slot.batter_name
+                for slot_key, slot in iter_daily_pick_slots(daily)
+                if slot_results.get(slot_key) == "miss"
+            ]
+            click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
+        return settled
 
-    reconcile_shadow_result()
-    write_shadow_status_artifact()
+    deadline = None
+    if wait_deadline_et:
+        try:
+            hh, mm = (int(part) for part in wait_deadline_et.split(":", 1))
+            deadline = _now_et().replace(hour=hh, minute=mm, second=0, microsecond=0)
+        except ValueError:
+            raise click.BadParameter("expected HH:MM (ET)", param_hint="--wait-deadline-et")
 
-    # Report
-    void_names = [
-        slot.batter_name
-        for slot_key, slot in iter_daily_pick_slots(daily)
-        if slot_results.get(slot_key) == "void"
-    ]
-    if void_names:
-        click.echo(f"VOID: {', '.join(void_names)}.")
-
-    if daily.result == "void":
-        click.echo(f"All picks void. Streak unchanged: {new_streak}")
-    elif daily.result == "hit":
-        hit_names = [
-            slot.batter_name
-            for slot_key, slot in iter_daily_pick_slots(daily)
-            if slot_results.get(slot_key) == "hit"
-        ]
-        click.echo(f"HIT! {' + '.join(hit_names)}. Streak: {new_streak}")
-    else:
-        miss_names = [
-            slot.batter_name
-            for slot_key, slot in iter_daily_pick_slots(daily)
-            if slot_results.get(slot_key) == "miss"
-        ]
-        click.echo(f"MISS: {', '.join(miss_names)}. Streak reset to 0.")
+    while True:
+        if _attempt() or deadline is None:
+            break
+        now = _now_et()
+        if now >= deadline:
+            click.echo(
+                f"Wait deadline {wait_deadline_et} ET reached with results still "
+                "unresolved; giving up. The result_resolution health check "
+                "flags anything still stranded after tonight."
+            )
+            break
+        # Hard bound: cap the sleep so no attempt STARTS after the deadline —
+        # the last attempt runs at the deadline itself, then the loop exits.
+        remaining = (deadline - now).total_seconds()
+        click.echo(f"Results not settled; retrying in {wait_interval_min} min.")
+        _sleep(min(wait_interval_min * 60, remaining))
 
     # Bluesky result reply is handled by the scheduler's result polling.
     # This cron safety net only updates the local pick file.

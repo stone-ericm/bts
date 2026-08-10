@@ -37,6 +37,7 @@ from bts.health import (
     restart_spike,
     same_team_corr,
     scheduler_state_integrity,
+    shadow_resolution,
     slate_auc,
     streak_validation,
     unit_drift,
@@ -146,6 +147,10 @@ def run_all_checks(
     if current_nrestarts is not None:
         alerts.extend(_safe_run("restart_spike", lambda: restart_spike.check(
             picks_dir, current_nrestarts=current_nrestarts, today=today,
+        )))
+    if shadow_model_enabled:
+        alerts.extend(_safe_run("shadow_resolution", lambda: shadow_resolution.check(
+            picks_dir, today=today, thresholds=overrides.get("shadow_resolution"),
         )))
     if shadow_model_enabled or live_forward_capture_enabled:
         alerts.extend(_safe_run("analytics_artifacts_missing", lambda: (

@@ -323,7 +323,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -343,7 +343,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -364,7 +364,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -398,7 +398,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -437,7 +437,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -475,7 +475,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -501,7 +501,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -535,7 +535,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -574,7 +574,7 @@ class TestBtsCheckResults:
         mock_check.return_value = True
 
         result = CliRunner().invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
             "--shadow-status-output", str(status_path),
         ])
@@ -612,7 +612,7 @@ class TestBtsCheckResults:
             side_effect=RuntimeError("status failed"),
         ):
             result = CliRunner().invoke(cli, [
-                "check-results", "--date", "2026-04-01",
+                "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
                 "--picks-dir", str(picks_dir),
             ])
 
@@ -640,7 +640,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -673,7 +673,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -712,7 +712,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -743,7 +743,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -757,7 +757,7 @@ class TestBtsCheckResults:
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "check-results", "--date", "2026-04-01",
+            "check-results", "--date", "2026-04-01", "--allow-stale-scoring",
             "--picks-dir", str(picks_dir),
         ])
 
@@ -772,7 +772,7 @@ class TestBtsCheckResults:
         save_streak(5, picks_dir)
         write_decision("2026-04-01", picks_dir, action="skip", source="mdp",
                        delivery_status="not_applicable", scoreable=False)
-        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--allow-stale-scoring", "--picks-dir", str(picks_dir)])
         assert result.exit_code == 0
         assert "not scoring" in result.output.lower()
         assert load_streak(picks_dir) == 5            # untouched
@@ -786,7 +786,7 @@ class TestBtsCheckResults:
         save_streak(3, picks_dir)
         write_decision("2026-04-01", picks_dir, action="single", source="mdp",
                        delivery_status="delivered", scoreable=True)
-        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--allow-stale-scoring", "--picks-dir", str(picks_dir)])
         assert "Streak: 4" in result.output
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={})
@@ -795,7 +795,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         save_pick(_sample_daily(bluesky_posted=True), picks_dir)   # delivered, no decision.json (legacy)
         save_streak(3, picks_dir)
-        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--allow-stale-scoring", "--picks-dir", str(picks_dir)])
         assert "Streak: 4" in result.output
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={})
@@ -805,7 +805,7 @@ class TestBtsCheckResults:
         picks_dir = tmp_path / "picks"; picks_dir.mkdir()
         save_pick(_sample_daily(bluesky_posted=False), picks_dir)
         save_streak(5, picks_dir)
-        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--picks-dir", str(picks_dir)])
+        result = CliRunner().invoke(cli, ["check-results", "--date", "2026-04-01", "--allow-stale-scoring", "--picks-dir", str(picks_dir)])
         assert load_streak(picks_dir) == 5
         mock_check.assert_not_called()
 

@@ -50,7 +50,7 @@ DATA_PULL_END='$(date +\%Y-\%m-\%d)'
 # decoupled: a preview error doesn't block the R2 backup, and a sync failure (R2
 # outage) doesn't block preview.
 CRON_LINES="$MARKER
-0 1 * * * $PREFIX $UV_BIN run bts check-results --date $YESTERDAY >> $LOG_DIR/cron.log 2>&1 $MARKER
+0 1 * * * $PREFIX $UV_BIN run bts check-results --date $YESTERDAY --wait-deadline-et 06:00 >> $LOG_DIR/cron.log 2>&1 $MARKER
 0 2 * * * $PREFIX $UV_BIN run bts reconcile >> $LOG_DIR/cron.log 2>&1 $MARKER
 10 1 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
 10 2 * * * $PREFIX $UV_BIN run bts fetch-contest-streak --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
