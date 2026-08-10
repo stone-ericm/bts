@@ -21,6 +21,7 @@ ALWAYS_ATTENTION_WARN_SOURCES = {
     "live_forward_resolution",
     "pick_entry",                  # committed pick never confirmed (audit F1)
     "postponed_pick",
+    "result_resolution",           # stranded result must not rot silently (2026-07-10 incident)
     "scheduler_state_integrity",   # quarantined day-state (audit F3)
 }
 

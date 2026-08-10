@@ -380,3 +380,34 @@ class TestRunAllChecks:
         assert history_arg == memory_history
         assert state_arg == warn_state
         assert dm_status_arg == dm_status
+
+
+class TestResultResolutionWiring:
+    def test_fires_even_with_shadow_model_disabled(self, tmp_path):
+        # Codex r2 #4: disabling shadow GENERATION must not disable monitoring
+        # of already-written unresolved shadow files. The check self-silences
+        # when no files exist, so it runs unconditionally.
+        import json as _json
+        picks_dir = tmp_path / "picks"; picks_dir.mkdir()
+        models_dir = tmp_path / "models"; models_dir.mkdir()
+        _set_up_picks_dir(picks_dir, models_dir)
+        (picks_dir / "2026-04-20.shadow.json").write_text(_json.dumps({
+            "date": "2026-04-20",
+            "run_time": "2026-04-20T15:00:00+00:00",
+            "pick": {"batter_name": "X", "batter_id": 1, "team": "ATH",
+                     "lineup_position": 1, "pitcher_name": "P", "pitcher_id": 2,
+                     "p_game_hit": 0.8, "flags": [], "projected_lineup": False,
+                     "game_pk": 1, "game_time": "2026-04-20T23:10:00Z"},
+            "double_down": None, "runner_up": None,
+            "bluesky_posted": False, "bluesky_uri": None,
+            "result": None,
+        }))
+        with patch("bts.health.runner.dispatch_dm_for_health_alerts") as mock_dm:
+            mock_dm.return_value = False
+            alerts = run_all_checks(
+                picks_dir=picks_dir, models_dir=models_dir,
+                dm_recipient="x.bsky.social",
+                today=date(2026, 4, 27),
+                shadow_model_enabled=False,
+            )
+        assert any(a.source == "result_resolution" for a in alerts)

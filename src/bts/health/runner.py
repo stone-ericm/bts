@@ -35,9 +35,9 @@ from bts.health import (
     projected_lineup,
     realized_calibration,
     restart_spike,
+    result_resolution,
     same_team_corr,
     scheduler_state_integrity,
-    shadow_resolution,
     slate_auc,
     streak_validation,
     unit_drift,
@@ -148,10 +148,12 @@ def run_all_checks(
         alerts.extend(_safe_run("restart_spike", lambda: restart_spike.check(
             picks_dir, current_nrestarts=current_nrestarts, today=today,
         )))
-    if shadow_model_enabled:
-        alerts.extend(_safe_run("shadow_resolution", lambda: shadow_resolution.check(
-            picks_dir, today=today, thresholds=overrides.get("shadow_resolution"),
-        )))
+    # Runs unconditionally (Codex r2 #4): the check self-silences when no
+    # files exist, and gating on shadow_model_enabled would stop monitoring
+    # already-written unresolved files the moment generation is turned off.
+    alerts.extend(_safe_run("result_resolution", lambda: result_resolution.check(
+        picks_dir, today=today, thresholds=overrides.get("result_resolution"),
+    )))
     if shadow_model_enabled or live_forward_capture_enabled:
         alerts.extend(_safe_run("analytics_artifacts_missing", lambda: (
             analytics_artifacts_missing.check(

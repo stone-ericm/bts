@@ -808,5 +808,9 @@ def apply_shadow_backfill_manifest(
 def write_manifest_json(manifest: dict, path: Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+    # Atomic replace: the wait loop rewrites this artifact repeatedly and a
+    # signal mid-write must never leave a torn file for concurrent readers.
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+    tmp.replace(path)
     return path

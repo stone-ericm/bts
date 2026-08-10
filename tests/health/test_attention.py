@@ -227,3 +227,14 @@ def test_streaks_keyed_by_incident_not_source(tmp_path):
         [b], state_path=state, today=date(2026, 7, 17))
     # Day-2 bucket B is streak 1 → below the min streak → NOT in attention.
     assert att2 == []
+
+
+def test_result_resolution_warn_enters_digest_immediately(tmp_path):
+    policy, attention = apply_warn_attention_policy(
+        [Alert("WARN", "result_resolution", "shadow result for 2026-07-10 unresolved")],
+        state_path=tmp_path / "warn_attention.json",
+        today=date(2026, 5, 21),
+    )
+    assert policy == []
+    assert len(attention) == 1
+    assert attention[0].source == "result_resolution"
