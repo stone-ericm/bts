@@ -434,8 +434,13 @@ def _capture_fallback_skip(state: "SchedulerState", refresh: "FallbackRefreshRes
     sel = refresh.selection
     state.final_skip_candidate = {
         "primary": sel.primary_candidate,
+        "double": getattr(sel, "double_candidate", None),
         "streak": sel.streak,
         "saver_available": sel.saver_available,
+        "state_source": getattr(sel, "state_source", None),
+        "state_status": getattr(sel, "state_status", None),
+        "allow_double": getattr(sel, "allow_double", None),
+        "contest_source_date": getattr(sel, "contest_source_date", None),
     }
 
 
@@ -449,7 +454,9 @@ def _row_from_daily(pick) -> dict | None:
             "p_game_hit": pick.p_game_hit}
 
 
-def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, state):
+def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, state,
+                           streak=None, saver_available=None, state_source=None,
+                           state_status=None, allow_double=None, contest_source_date=None):
     """Record an authoritative, scoreable decision at a real commit/lock point.
 
     Sets ``state.committed_pick_written`` and persists state AFTER the decision
@@ -462,6 +469,9 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
     from bts.daily_decision import write_decision
     write_decision(date, picks_dir, action=action, source=(source or "unknown"),
                    primary=primary, double_down=double_down,
+                   streak=streak, saver_available=saver_available,
+                   state_source=state_source, state_status=state_status,
+                   allow_double=allow_double, contest_source_date=contest_source_date,
                    delivery_status=delivery_status, scoreable=True)
     state.committed_pick_written = True
     save_state(state, picks_dir)
@@ -497,7 +507,11 @@ def _write_endofday_skip(picks_dir, date, state):
         return
     c = state.final_skip_candidate
     write_decision(date, picks_dir, action="skip", source="mdp", primary=c.get("primary"),
+                   second_candidate=c.get("double"),
                    streak=c.get("streak"), saver_available=c.get("saver_available"),
+                   state_source=c.get("state_source"), state_status=c.get("state_status"),
+                   allow_double=c.get("allow_double"),
+                   contest_source_date=c.get("contest_source_date"),
                    delivery_status="not_applicable", scoreable=False)
 
 
@@ -680,6 +694,12 @@ def _deliver_and_lock_pick(
                          else _row_from_daily(daily.pick)),
                 double_down=(selection.double_candidate if selection is not None
                              else _row_from_daily(daily.double_down)),
+                streak=(selection.streak if selection is not None else None),
+                saver_available=(selection.saver_available if selection is not None else None),
+                state_source=getattr(selection, "state_source", None),
+                state_status=getattr(selection, "state_status", None),
+                allow_double=getattr(selection, "allow_double", None),
+                contest_source_date=getattr(selection, "contest_source_date", None),
                 delivery_status=delivery_status, state=state,
             )
         except Exception:
@@ -2193,8 +2213,13 @@ def run_day(
         if sel is not None and sel.action == "skip" and sel.source == "mdp":
             state.final_skip_candidate = {
                 "primary": sel.primary_candidate,
+                "double": sel.double_candidate,
                 "streak": sel.streak,
                 "saver_available": sel.saver_available,
+                "state_source": sel.state_source,
+                "state_status": sel.state_status,
+                "allow_double": sel.allow_double,
+                "contest_source_date": sel.contest_source_date,
             }
             save_state(state, picks_dir)  # persist so a same-day restart inherits the skip (#3)
         elif sel is not None and sel.action in {"single", "double"}:

@@ -13,7 +13,10 @@ from pathlib import Path
 
 from bts.util import atomic_write_text
 
-DECISION_SCHEMA = "bts_daily_decision_v1"
+DECISION_SCHEMA = "bts_daily_decision_v2"
+# v1 records (through 2026-08-09) persist state only on MDP skips and never
+# the second candidate; readers accept both so legacy files stay authoritative.
+ACCEPTED_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2")
 _RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "p_game_hit")
 
 
@@ -30,16 +33,28 @@ def decision_path(date: str, picks_dir) -> Path:
 
 
 def write_decision(date, picks_dir, *, action, source, primary=None, double_down=None,
-                   streak=None, saver_available=None, delivery_status, scoreable, now=None) -> dict | None:
+                   streak=None, saver_available=None, delivery_status, scoreable,
+                   second_candidate=None, state_source=None, state_status=None,
+                   allow_double=None, contest_source_date=None, now=None) -> dict | None:
     """Best-effort atomic write of the day's decision record. Returns the record, or None on any
-    failure (must never raise into the live pick path)."""
+    failure (must never raise into the live pick path).
+
+    v2 fields (2026-08-09, boundary-census follow-up): state provenance on
+    every record — (streak, saver_available, state_source, state_status,
+    allow_double, contest_source_date) from the DecisionStreakState that fed
+    the action — and second_candidate, the executable different-game runner-up
+    at skip time. All default None so legacy call paths stay valid."""
     try:
         record = {
             "schema_version": DECISION_SCHEMA, "date": date,
             "action": action, "source": source,
             "primary": _summary(primary), "double_down": _summary(double_down),
+            "second_candidate": _summary(second_candidate),
             "streak": streak,
             "saver_available": (None if saver_available is None else bool(saver_available)),
+            "state_source": state_source, "state_status": state_status,
+            "allow_double": (None if allow_double is None else bool(allow_double)),
+            "contest_source_date": contest_source_date,
             "delivery_status": delivery_status, "scoreable": bool(scoreable),
             "finalized_at": _utc_iso(now),
         }
@@ -57,7 +72,7 @@ def load_decision(date: str, picks_dir) -> dict | None:
         return None
     try:
         rec = json.loads(path.read_text())
-        if not isinstance(rec, dict) or rec.get("schema_version") != DECISION_SCHEMA:
+        if not isinstance(rec, dict) or rec.get("schema_version") not in ACCEPTED_SCHEMAS:
             return None
         # Reject partial / wrong-shape records that carry the schema tag but lack the
         # core fields (post-review Fix 3): accepting e.g. {schema_version, scoreable}

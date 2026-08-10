@@ -78,3 +78,58 @@ def test_endofday_skip_does_not_clobber_scoreable_commit_on_disk(tmp_path):
     _write_endofday_skip(tmp_path, "2026-06-24", st)
     d = load_decision("2026-06-24", tmp_path)
     assert d["action"] == "single" and d["scoreable"] is True  # commit preserved, not clobbered
+
+
+# --- bts_daily_decision_v2: state provenance threading (2026-08-09) ---
+
+def _cand2(bid=2, p=0.74):
+    return {"batter_id": bid, "batter_name": "Y", "team": "PIT", "game_pk": 11, "p_game_hit": p}
+
+
+def test_commit_decision_persists_selection_state(tmp_path):
+    st = _state()
+    _write_commit_decision(
+        tmp_path, "2026-06-20", action="single", source="mdp",
+        primary=_cand(), double_down=None, delivery_status="delivered", state=st,
+        streak=6, saver_available=True,
+        state_source="contest", state_status="fresh", allow_double=False,
+        contest_source_date="2026-06-19",
+    )
+    d = load_decision("2026-06-20", tmp_path)
+    assert d["streak"] == 6 and d["saver_available"] is True
+    assert d["state_source"] == "contest" and d["state_status"] == "fresh"
+    assert d["allow_double"] is False
+    assert d["contest_source_date"] == "2026-06-19"
+
+
+def test_endofday_skip_persists_second_candidate_and_state_meta(tmp_path):
+    st = _state(date="2026-06-20")
+    st.final_skip_candidate = {
+        "primary": _cand(), "double": _cand2(),
+        "streak": 10, "saver_available": True,
+        "state_source": "contest", "state_status": "lagged",
+        "allow_double": True, "contest_source_date": "2026-06-19",
+    }
+    _write_endofday_skip(tmp_path, "2026-06-20", st)
+    d = load_decision("2026-06-20", tmp_path)
+    assert d["action"] == "skip" and d["streak"] == 10
+    assert d["second_candidate"]["batter_id"] == 2
+    assert d["state_source"] == "contest" and d["state_status"] == "lagged"
+    assert d["allow_double"] is True
+
+
+def test_capture_fallback_skip_includes_double_and_state_meta(tmp_path):
+    from types import SimpleNamespace
+    from bts.scheduler import _capture_fallback_skip
+    st = _state(date="2026-06-20")
+    sel = SimpleNamespace(
+        primary_candidate=_cand(), double_candidate=_cand2(),
+        streak=9, saver_available=True,
+        state_source="contest", state_status="stale",
+        allow_double=True, contest_source_date="2026-06-18",
+    )
+    _capture_fallback_skip(st, SimpleNamespace(selection=sel))
+    c = st.final_skip_candidate
+    assert c["double"]["batter_id"] == 2
+    assert c["state_source"] == "contest" and c["state_status"] == "stale"
+    assert c["allow_double"] is True and c["contest_source_date"] == "2026-06-18"

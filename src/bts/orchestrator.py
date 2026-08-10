@@ -298,6 +298,16 @@ def run_and_pick(
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
     )
+    # bts_daily_decision_v2 provenance: record WHICH state stream fed this
+    # selection so decision records are exact by construction (the 8/09
+    # boundary census found 31/44 v1 records state-null).
+    sel.state_source = decision_state.source
+    sel.state_status = decision_state.status
+    sel.allow_double = decision_state.allow_double
+    sel.contest_source_date = (
+        decision_state.contest_source_date.isoformat()
+        if decision_state.contest_source_date is not None else None
+    )
 
     return predictions, sel, tier_name
 

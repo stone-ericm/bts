@@ -192,6 +192,13 @@ class SelectionResult:
     no_pick_reason: "str | None"   # "no_eligible"|"status_failure"|"no_valid_predictions"|None
     streak: int = 0
     saver_available: "bool | None" = None
+    # bts_daily_decision_v2 provenance — stamped by the orchestrator from the
+    # DecisionStreakState that fed this selection; None on paths without one
+    # (shadow, direct test callers, classification recoveries).
+    state_source: "str | None" = None
+    state_status: "str | None" = None
+    allow_double: "bool | None" = None
+    contest_source_date: "str | None" = None
 
 
 def _row_to_candidate(row) -> "dict | None":
