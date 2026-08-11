@@ -1048,6 +1048,67 @@ class TestCheckPickEntered:
         assert status["date"] == "2026-06-12" and status["status"] == "alerted"
         assert status["reason"] == "no_pick"
 
+    def test_auth_uses_bounded_attempts(self, monkeypatch, tmp_path):
+        # Deadline-sensitive caller: the */15 cron is the outer retry loop, so
+        # in-process auth retries stay bounded at 2 (Codex review 2026-08-11 #2).
+        import bts.leaderboard.auth as auth
+        from bts.leaderboard.auth import AuthSession
+        self._setup(monkeypatch, pending=[self._pending(100)], crosswalk={100: 1})
+        seen = {}
+
+        def _rec(*a, **k):
+            seen.update(k)
+            return AuthSession(xsid="x_1", user_id=50311, username="stonehengee")
+        monkeypatch.setattr(auth, "fetch_login_session", _rec)
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert seen.get("attempts") == 2
+
+    def test_transient_auth_outage_skips_quietly(self, monkeypatch, tmp_path):
+        # Exhausted-outage shape = any other fetch failure: quiet skip, no DM,
+        # no marker consumed; the next */15 run re-verifies (v3 design).
+        import bts.leaderboard.auth as auth
+        from bts.leaderboard.auth import TransientAuthError
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+
+        def _boom(*a, **k):
+            raise TransientAuthError("auth/login transient failure persisted after 2 attempts")
+        monkeypatch.setattr(auth, "fetch_login_session", _boom)
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")
+        assert r.exit_code == 0, r.output
+        assert dms == []
+        assert "skipping quietly" in r.output
+        assert not (tmp_path / "health_state" / "pick_entry_check.json").exists()
+
+    def test_no_nag_when_cutoff_passes_during_fetch(self, monkeypatch, tmp_path):
+        # Auth retries + profile fetches can take minutes; a "Fix it now" DM for
+        # an entry that LOCKED mid-fetch is noise (Codex review 2026-08-11 #2).
+        import time as _time
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        calls = {"n": 0}
+
+        def _mono():
+            calls["n"] += 1
+            return 1000.0 if calls["n"] == 1 else 1000.0 + 40 * 60   # +40 min elapsed
+        monkeypatch.setattr(_time, "monotonic", _mono)
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+
+        r = self._run(picks, "2026-06-12T18:30:00")   # 40 to pitch, 35 to cutoff
+        assert r.exit_code != 0
+        assert dms == []
+        assert "cutoff passed during fetch" in r.output
+        # No DM — but the day must stay visible to the EOD pick_entry audit,
+        # whose WARN keys on marker status "alerted" (Codex r2 #3).
+        status = self._status(tmp_path)
+        assert status["status"] == "alerted" and status["reason"] == "no_pick"
+
     def test_uncommitted_pick_in_window_no_dm(self, monkeypatch, tmp_path):
         # A {date}.json exists (preview/deferred) but the pick was never
         # committed/locked (no decision.json, not delivered). The scheduler

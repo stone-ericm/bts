@@ -54,6 +54,32 @@ class TestLeaderboardCLI:
         assert result.exit_code != 0
         assert "auth" in result.output.lower()
 
+    def test_scrape_transient_outage_message_not_cookie_advice(self, tmp_path):
+        # The 2026-08-11 misdiagnosis fix, applied to this entry point too:
+        # an exhausted outage must not tell the operator to re-capture cookies.
+        from bts.leaderboard.auth import TransientAuthError
+        runner = CliRunner()
+        with patch("bts.leaderboard.cli.load_session_cookies", return_value={"oktaid": "00u"}), \
+             patch("bts.leaderboard.cli.extract_uid", return_value="00u"), \
+             patch("bts.leaderboard.cli.fetch_xsid",
+                   side_effect=TransientAuthError("persisted after 3 attempts")):
+            result = runner.invoke(leaderboard, ["scrape", "--output-dir", str(tmp_path)])
+        assert result.exit_code != 0
+        assert "outage" in result.output.lower()
+        assert "capture_bts_cookies" not in result.output
+
+    def test_scrape_rate_limited_message_says_back_off(self, tmp_path):
+        from bts.leaderboard.auth import RateLimitedLoginError
+        runner = CliRunner()
+        with patch("bts.leaderboard.cli.load_session_cookies", return_value={"oktaid": "00u"}), \
+             patch("bts.leaderboard.cli.extract_uid", return_value="00u"), \
+             patch("bts.leaderboard.cli.fetch_xsid",
+                   side_effect=RateLimitedLoginError("auth/login returned 429")):
+            result = runner.invoke(leaderboard, ["scrape", "--output-dir", str(tmp_path)])
+        assert result.exit_code != 0
+        assert "rate-limited" in result.output.lower()
+        assert "capture_bts_cookies" not in result.output
+
 
 class TestCaptureStaticCLI:
     def test_capture_static_reports_per_feed(self, tmp_path):

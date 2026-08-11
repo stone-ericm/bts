@@ -403,3 +403,194 @@ def test_fetch_auto_earn_below_10_inits_not_earned_then_promotes_at_10(tmp_path,
                 {2: dt.date(2026, 6, 17)})
     assert _run_fetch(picks).exit_code == 0
     assert load_saver_state(picks, season=2026).state == "active"       # sound auto-earn from not_earned
+
+
+def _mock_auth_failure(monkeypatch, exc):
+    """Cookie load + uid succeed; fetch_login_session raises `exc`."""
+    import bts.leaderboard.auth as auth
+
+    def _raise(uid, cookies):
+        raise exc
+    monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "u"})
+    monkeypatch.setattr(auth, "extract_uid", lambda c: "u")
+    monkeypatch.setattr(auth, "fetch_login_session", _raise)
+
+
+def test_fetch_cli_transient_auth_failure_says_outage_not_cookies(tmp_path, monkeypatch):
+    """Retries-exhausted upstream flap (e.g. MLB temp down) must NOT tell the operator
+    to re-capture cookies — that advice misdiagnosed the 2026-08-11 outage."""
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import TransientAuthError
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _mock_auth_failure(monkeypatch, TransientAuthError(
+        "auth/login transient failure persisted after 3 attempts: body[:200]=''"))
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 2
+    assert "transient" in res.output
+    assert "capture_bts_cookies" not in res.output
+    assert not (picks / "account_state" / "contest_streak.json").exists()
+
+
+def test_fetch_cli_plain_auth_failure_keeps_cookie_advice(tmp_path, monkeypatch):
+    """A credential-SHAPED failure (dead cookies are the common cause, though a
+    server-side envelope quirk can't be ruled out) keeps the cookie-refresh advice."""
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import AuthError
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _mock_auth_failure(monkeypatch, AuthError("xSid missing from auth/login response"))
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 2
+    assert "capture_bts_cookies" in res.output
+    assert not (picks / "account_state" / "contest_streak.json").exists()
+
+
+def test_fetch_cli_rate_limited_says_back_off_not_cookies(tmp_path, monkeypatch):
+    """A login-time 429 must NOT advise cookie re-capture — the interactive
+    re-capture flow would ADD auth traffic against a rate limiter."""
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import RateLimitedLoginError
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    _mock_auth_failure(monkeypatch, RateLimitedLoginError(
+        "auth/login returned 429 — rate-limited at login"))
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 2
+    assert "RATE-LIMITED" in res.output
+    assert "capture_bts_cookies" not in res.output
+    assert not (picks / "account_state" / "contest_streak.json").exists()
+
+
+def test_transient_alert_does_not_suppress_later_actionable_alert(tmp_path, monkeypatch):
+    """Per-category DM cooldowns: a transient-outage DM inside the 6h window must
+    not eat a subsequent cookie-death DM (Codex review 2026-08-11 #8) — while a
+    REPEAT of the same category inside the window stays throttled."""
+    import bts.dm
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import AuthError, TransientAuthError
+    sent = []
+    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    args = ["fetch-contest-streak", "--picks-dir", str(picks),
+            "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]
+
+    _mock_auth_failure(monkeypatch, TransientAuthError("persisted after 3 attempts"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert len(sent) == 1 and "transient" in sent[0]
+
+    _mock_auth_failure(monkeypatch, AuthError("xSid missing from auth/login response"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert len(sent) == 2 and "capture_bts_cookies" in sent[1]   # NOT suppressed
+
+    _mock_auth_failure(monkeypatch, TransientAuthError("still flapping"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert len(sent) == 2                                        # same-category throttled
+
+
+def _mock_auth_success(monkeypatch):
+    """Auth succeeds as stonehengee; the caller then patches the profile stage."""
+    import bts.leaderboard.auth as auth
+
+    class _Sess:
+        xsid = "x"; user_id = 50311; username = "stonehengee"
+    monkeypatch.setattr(auth, "load_session_cookies", lambda: {"oktaid": "u"})
+    monkeypatch.setattr(auth, "extract_uid", lambda c: "u")
+    monkeypatch.setattr(auth, "fetch_login_session", lambda uid, cookies, **k: _Sess())
+
+
+def test_profile_5xx_categorized_transient_not_cookie_shaped(tmp_path, monkeypatch):
+    """A 503 at the PROFILE stage is upstream-shaped: transient DM category (must
+    not consume the actionable cooldown) and no cookie advice (r2 #6)."""
+    import httpx
+    from unittest.mock import MagicMock
+    import bts.contest_fetch as cf
+    from click.testing import CliRunner
+    from bts.cli import cli
+    _mock_auth_success(monkeypatch)
+    exc = httpx.HTTPStatusError("503", request=MagicMock(),
+                                response=MagicMock(status_code=503))
+    monkeypatch.setattr(cf, "fetch_profile",
+                        lambda *a, **k: (_ for _ in ()).throw(exc))
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 2
+    assert "upstream/network" in res.output
+    assert "capture_bts_cookies" not in res.output
+
+
+def test_profile_429_categorized_rate_limited(tmp_path, monkeypatch):
+    """A 429 at the profile stage is more traffic against the real account:
+    back-off message, rate_limited cooldown category (r2 #6)."""
+    import httpx
+    from unittest.mock import MagicMock
+    import bts.contest_fetch as cf
+    from click.testing import CliRunner
+    from bts.cli import cli
+    _mock_auth_success(monkeypatch)
+    exc = httpx.HTTPStatusError("429", request=MagicMock(),
+                                response=MagicMock(status_code=429))
+    monkeypatch.setattr(cf, "fetch_profile",
+                        lambda *a, **k: (_ for _ in ()).throw(exc))
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    res = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                   "--expected-username", "stonehengee"])
+    assert res.exit_code == 2
+    assert "RATE-LIMITED" in res.output
+    assert "capture_bts_cookies" not in res.output
+
+
+def test_legacy_cooldown_stamp_suppresses_every_category(tmp_path, monkeypatch):
+    """A pre-upgrade record has one global last_alert_at: keep pure legacy
+    semantics — nothing re-DMs inside the old window in ANY category — until
+    the first new-format stamp exists; never a double DM on upgrade (r2 #5)."""
+    import json as _json
+    import datetime as _dt
+    import bts.dm
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import AuthError, TransientAuthError
+    sent = []
+    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    hs = tmp_path / "health_state"; hs.mkdir()
+    hour_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=1)
+                ).isoformat().replace("+00:00", "Z")
+    (hs / "contest_streak_fetch_status.json").write_text(_json.dumps(
+        {"last_error": "old", "last_error_at": hour_ago, "last_alert_at": hour_ago}))
+    args = ["fetch-contest-streak", "--picks-dir", str(picks),
+            "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]
+    _mock_auth_failure(monkeypatch, TransientAuthError("flap"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    _mock_auth_failure(monkeypatch, AuthError("xSid missing"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert sent == []
+
+
+def test_cooldown_stamps_survive_a_successful_run(tmp_path, monkeypatch):
+    """flap DM -> recovery -> flap again within 6h stays throttled: the
+    success-path status write keeps the per-category stamps (r2 #7)."""
+    import bts.dm
+    from click.testing import CliRunner
+    from bts.cli import cli
+    from bts.leaderboard.auth import TransientAuthError
+    sent = []
+    monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: sent.append(m))
+    picks = tmp_path / "picks"; (picks / "account_state").mkdir(parents=True)
+    args = ["fetch-contest-streak", "--picks-dir", str(picks),
+            "--expected-username", "stonehengee", "--dm-recipient", "x.bsky.social"]
+    _mock_auth_failure(monkeypatch, TransientAuthError("flap"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert len(sent) == 1
+    _mock_fetch(monkeypatch, {"activeStreak": 0, "seasonBestStreak": 18,
+                              "predictions": [{"roundId": 2, "result": "hit", "streak": 0}]},
+                {2: dt.date(2026, 8, 10)})
+    assert CliRunner().invoke(cli, args).exit_code == 0
+    _mock_auth_failure(monkeypatch, TransientAuthError("flap again"))
+    assert CliRunner().invoke(cli, args).exit_code == 2
+    assert len(sent) == 1     # still throttled: the stamps survived the success

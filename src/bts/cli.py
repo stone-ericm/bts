@@ -1537,16 +1537,30 @@ def _fetch_bts_to_mlb(client=None):
     return out
 
 
-def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
-    """DM on failure, throttled via status_path (>=cooldown_hours between DMs). Returns whether sent."""
+def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
+                         category="actionable"):
+    """DM on failure, throttled via status_path — >=cooldown_hours between DMs
+    PER CATEGORY, so a transient-outage DM can't suppress a later actionable
+    cookie/identity DM inside the same window (Codex review 2026-08-11 #8).
+    Returns whether sent."""
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
-    last_alert = None
+    prior = {}
     if status_path.exists():
         try:
-            last_alert = json.loads(status_path.read_text()).get("last_alert_at")
+            prior = json.loads(status_path.read_text())
         except (json.JSONDecodeError, OSError):
-            last_alert = None
+            prior = {}
+    by_cat = prior.get("last_alert_at_by_category")
+    if not isinstance(by_cat, dict):
+        # Legacy single-stamp record: apply it to EVERY category — pure legacy
+        # suppression semantics (nothing re-DMs inside the old window) until
+        # the first new-format stamp exists; never double-DMs on upgrade
+        # (Codex r2 #5: per-category migration was order-dependent).
+        legacy = prior.get("last_alert_at")
+        by_cat = ({c: legacy for c in ("transient", "rate_limited", "actionable")}
+                  if legacy else {})
+    last_alert = by_cat.get(category)
     should_alert = True
     if last_alert:
         try:
@@ -1562,10 +1576,18 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6):
             sent = True
         except Exception as exc:
             click.echo(f"(DM failed: {exc})", err=True)
-    record = {"last_error": msg, "last_error_at": now.isoformat().replace("+00:00", "Z")}
-    # Only consume the cooldown when a DM was actually SENT (not on missing recipient / send failure),
-    # so a later run with the recipient fixed can still alert on the transition.
-    record["last_alert_at"] = now.isoformat().replace("+00:00", "Z") if sent else last_alert
+    now_iso = now.isoformat().replace("+00:00", "Z")
+    # Only consume the cooldown when a DM was actually SENT (not on missing
+    # recipient / send failure), so a later run with the recipient fixed can
+    # still alert on the transition.
+    if sent:
+        by_cat = {**by_cat, category: now_iso}
+    record = {"last_error": msg, "last_error_at": now_iso,
+              "last_error_category": category,
+              "last_alert_at_by_category": by_cat}
+    # Legacy field kept for older readers: newest stamp across categories.
+    stamps = [v for v in by_cat.values() if isinstance(v, str)]
+    record["last_alert_at"] = max(stamps) if stamps else None
     _atomic_write_json(status_path, record)
     return sent
 
@@ -1596,6 +1618,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     ledger in data/health_state/pick_entry_check.json).
     """
     import sys
+    import time
     import httpx
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -1665,10 +1688,13 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
     )
     import bts.contest_fetch as _cf
+    fetch_started = time.monotonic()
     try:
         cookies = load_session_cookies()
         uid = extract_uid(cookies)
-        session = fetch_login_session(uid=uid, cookies=cookies)
+        # Bounded retries: this caller is deadline-sensitive and the */15 cron
+        # is already the outer retry loop (Codex review 2026-08-11 #2).
+        session = fetch_login_session(uid=uid, cookies=cookies, attempts=2)
         if expected_username and session.username != expected_username:
             click.echo(f"check-pick-entered: identity mismatch ({session.username!r}); skipping", err=True)
             return
@@ -1724,8 +1750,25 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     names = daily.pick.batter_name
     if daily.double_down:
         names += f" + DD {daily.double_down.batter_name}"
-    # Report time to the submission cutoff (first pitch - 5), not to first pitch.
-    minutes_to_cutoff = minutes_to_pitch - submit_cutoff_min
+    # Report time to the submission cutoff (first pitch - 5), not to first
+    # pitch — net of wall-clock spent in the auth/profile fetches above (their
+    # bounded retries can add ~a minute, and a nag for an entry that LOCKED
+    # mid-fetch is worse than none; Codex review 2026-08-11 #2). monotonic
+    # keeps --now-et tests meaningful: the override anchors the clock while
+    # elapsed still advances.
+    elapsed_min = (time.monotonic() - fetch_started) / 60
+    minutes_to_cutoff = minutes_to_pitch - submit_cutoff_min - elapsed_min
+    if minutes_to_cutoff <= 0:
+        # Too late to fix, so no nag DM — but the day must stay visible to the
+        # EOD pick_entry audit, whose WARN keys on marker status "alerted"
+        # (Codex r2 #3). Like the tier-exhausted branch, "alerted" here means
+        # detected-and-unresolved, not "a DM was just sent".
+        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+                                         "reason": reason, "checked_at": now.isoformat(),
+                                         "escalations": prior_escalations})
+        click.echo("check-pick-entered: submission cutoff passed during fetch; "
+                   "skipping the nag (entry can no longer change)")
+        sys.exit(1)
 
     # Escalation ladder (audit F1): the initial alert fires on first detection;
     # T-30 and T-15 (minutes to the submission cutoff) re-alert if the entry is
@@ -1804,6 +1847,7 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     from datetime import datetime, timezone
     from bts.leaderboard.auth import (
         load_session_cookies, extract_uid, fetch_login_session, AuthError,
+        TransientAuthError, RateLimitedLoginError,
     )
     from bts.contest_fetch import (
         fetch_profile, derive_source_date, build_observation, ContestFetchError,
@@ -1813,9 +1857,9 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
     out_path = picks / "account_state" / "contest_streak.json"
     status_path = picks.parent / "health_state" / "contest_streak_fetch_status.json"
 
-    def _fail(msg, code=2):
+    def _fail(msg, code=2, category="actionable"):
         click.echo(f"fetch-contest-streak: {msg}", err=True)
-        _contest_fetch_alert(status_path, dm_recipient, msg)
+        _contest_fetch_alert(status_path, dm_recipient, msg, category=category)
         sys.exit(code)
 
     # 1. auth + identity guard
@@ -1823,10 +1867,22 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         cookies = load_session_cookies()
         uid = extract_uid(cookies)
         session = fetch_login_session(uid=uid, cookies=cookies)
+    except RateLimitedLoginError as exc:
+        # Kill-switch shape at login: cookie re-capture would ADD auth traffic.
+        _fail(f"auth/login RATE-LIMITED — back off: do not re-run manually and do "
+              f"not re-capture cookies; investigate request volume if it persists. "
+              f"({exc})", category="rate_limited")
+    except TransientAuthError as exc:
+        # Upstream flap/outage (or a rejection-lookalike page, deliberately NOT
+        # retried) — cookies are not implicated; the next scheduled run usually
+        # clears it. (2026-08-11 incident: the cookie-refresh advice below
+        # misdiagnosed a plain MLB outage.)
+        _fail(f"auth/login transient upstream failure — cookie refresh NOT indicated "
+              f"unless this persists across runs. ({exc})", category="transient")
     except AuthError as exc:
         _fail(f"auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({exc})")
     except httpx.HTTPError as exc:
-        _fail(f"auth network error: {exc}")
+        _fail(f"auth network error: {exc}", category="transient")
 
     if expected_username and session.username != expected_username:
         _fail(f"identity mismatch: got {session.username!r}, expected {expected_username!r}; refusing to write")
@@ -1853,7 +1909,20 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
             success, source_date, session.user_id, session.username,
             datetime.now(timezone.utc),
         )
-    except (httpx.HTTPError, AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
+    except httpx.HTTPError as exc:
+        # Categorize by shape (r2 #6): these DMs must not consume the actionable
+        # cooldown, and a 429 is more traffic against the real account.
+        code = getattr(getattr(exc, "response", None), "status_code", None)
+        if code == 429:
+            _fail(f"profile/rounds RATE-LIMITED — back off: do not re-run manually "
+                  f"or increase cadence. ({exc})", category="rate_limited")
+        elif code is None or code >= 500:
+            _fail(f"profile/rounds fetch error (upstream/network — cookie refresh "
+                  f"NOT indicated unless persistent): {exc}", category="transient")
+        else:
+            # 4xx at the profile stage can be session/cookie-shaped: keep actionable.
+            _fail(f"profile/rounds shape or fetch error: {exc}")
+    except (AttributeError, TypeError, ValueError, KeyError, ContestFetchError) as exc:
         _fail(f"profile/rounds shape or fetch error: {exc}")
 
     # write (atomic) or dry-run — a current activeStreak is written even when the
@@ -1865,10 +1934,20 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
         click.echo(f"[dry-run] would write {out_path}: {summary}")
         return
     _atomic_write_json(out_path, observation)
-    _atomic_write_json(status_path, {
+    success_record = {
         "last_success_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "last_error": None,
-    })
+    }
+    # DM cooldown stamps survive a success: a flap that recovers and re-breaks
+    # inside the window must stay throttled (Codex r2 #7).
+    try:
+        _prior_status = json.loads(status_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        _prior_status = {}
+    for _k in ("last_alert_at_by_category", "last_alert_at"):
+        if _prior_status.get(_k) is not None:
+            success_record[_k] = _prior_status[_k]
+    _atomic_write_json(status_path, success_record)
     # persist the full per-round MLB ledger (append-only) for analysis + Phase-2 saver inference
     ledger_row = {
         "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),

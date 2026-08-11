@@ -14,7 +14,8 @@ from pathlib import Path
 import click
 
 from bts.leaderboard.auth import (
-    AuthError, load_session_cookies, extract_uid, fetch_xsid,
+    AuthError, TransientAuthError, RateLimitedLoginError,
+    load_session_cookies, extract_uid, fetch_xsid,
 )
 from bts.leaderboard.scraper import (
     run as scraper_run,
@@ -54,7 +55,16 @@ def scrape(output_dir: str, top_n: int, dm_recipient: str | None,
         uid = extract_uid(cookies)
         xsid = fetch_xsid(uid=uid, cookies=cookies)
     except AuthError as e:
-        msg = f"BTS leaderboard scrape: auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({e})"
+        # Same misdiagnosis fix as fetch-contest-streak (2026-08-11 incident):
+        # only credential-shaped failures should advise a cookie re-capture.
+        if isinstance(e, RateLimitedLoginError):
+            msg = (f"BTS leaderboard scrape: RATE-LIMITED at login — back off; do NOT "
+                   f"re-run or re-capture cookies. ({e})")
+        elif isinstance(e, TransientAuthError):
+            msg = (f"BTS leaderboard scrape: MLB auth/login outage-shaped failure — "
+                   f"cookie refresh NOT indicated unless it persists across runs. ({e})")
+        else:
+            msg = f"BTS leaderboard scrape: auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({e})"
         click.echo(msg, err=True)
         if dm_recipient:
             try:
