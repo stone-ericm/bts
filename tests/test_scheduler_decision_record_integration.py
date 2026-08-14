@@ -247,6 +247,112 @@ def test_nondelivered_classified_lock_on_skip_day_skips_result_polling(tmp_path,
     assert d is not None and d["action"] == "skip" and d["scoreable"] is False
 
 
+def test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert(tmp_path, monkeypatch):
+    """The 2026-08-13 incident: a real pick candidate (no MDP skip standing) hit a
+    NON-delivered classification lock. pick_locked=True suppressed the E3
+    missed-pick alert, check-pick-entered keyed off committed_pick_written, and
+    the day passed with zero notification. The E3 alert must fire whenever no
+    scoreable commit was written and the on-disk pick is undelivered."""
+    from bts.picks import save_pick
+
+    alert = Mock()
+    monkeypatch.setattr(sch, "_alert_missed_pick", alert)
+    save_pick(_daily(delivered=False), tmp_path)  # the undelivered candidate on disk
+
+    classified = _result(pick_result=PickResult(daily=_daily(delivered=False), locked=True),
+                         pick_name="Hoerner", pick_p=0.73,
+                         selection=_sel("single", "mdp", primary=_cand()))
+    _drive_run_day(monkeypatch, tmp_path, classified)
+
+    alert.assert_called_once()
+
+
+def test_delivered_commit_does_not_fire_missed_pick_alert(tmp_path, monkeypatch):
+    """A normally delivered pick (scoreable commit written) must not trip the
+    re-gated E3 call site."""
+    alert = Mock()
+    monkeypatch.setattr(sch, "_alert_missed_pick", alert)
+
+    sel = _sel("single", "mdp", primary=_cand())
+    _drive_run_day(
+        monkeypatch, tmp_path,
+        _result(should_post=True, selection=sel, pick_name="Hoerner", pick_p=0.73,
+                pick_result=PickResult(daily=_daily(), locked=False)),
+        pick_delivery="public", mock_post=True,
+    )
+    alert.assert_not_called()
+
+
+def test_scoreable_commit_short_circuits_cascade_despite_warmup(tmp_path, monkeypatch):
+    """Committed means immutable (Codex r2 #2): a scoreable on-disk decision
+    (e.g. private_locked, whose pick file carries no delivery flags) must lock
+    the pre-cascade short-circuit even when the game status alone (Warmup)
+    would classify the pick as refreshable — a same-day restart must not
+    reselect over a committed pick."""
+    from bts.daily_decision import write_decision
+    from bts.picks import save_pick
+
+    save_pick(_daily(delivered=False), tmp_path)
+    write_decision(DATE, tmp_path, action="single", source="mdp",
+                   primary=_cand(), delivery_status="private_locked", scoreable=True)
+    monkeypatch.setattr("bts.picks.get_game_statuses_detailed",
+                        lambda date: {100: {"abstract": "L", "detailed": "Warmup"}})
+    monkeypatch.setattr("bts.orchestrator.run_and_pick",
+                        Mock(side_effect=AssertionError("cascade must not run")))
+
+    config = {"orchestrator": {"picks_dir": str(tmp_path)}}
+    result = sch.run_single_check(date=DATE, all_game_pks=[100],
+                                  confirmed_sides=set(), config=config,
+                                  early_lock_gap=0.03)
+    assert result["pick_result"] is not None
+    assert result["pick_result"].locked is True
+
+
+def test_delivery_attempted_classified_lock_finalizes_locked_unconfirmed(tmp_path, monkeypatch):
+    """Codex r3 #1: a restart after a crash mid-send classifies the pick locked
+    on its durable delivery_attempted marker BEFORE _deliver_and_lock_pick can
+    run its unconfirmed-attempt branch. The classification chokepoint must
+    finalize the day itself: scoreable locked_unconfirmed decision, E3
+    suppressed, result polling enabled."""
+    from bts.picks import save_pick
+
+    alert = Mock()
+    monkeypatch.setattr(sch, "_alert_missed_pick", alert)
+    attempted = _daily(delivered=False, delivery_attempted=True)
+    save_pick(attempted, tmp_path)
+    classified = _result(pick_result=PickResult(daily=attempted, locked=True),
+                         pick_name="Hoerner", pick_p=0.73, selection=None)
+    poll = Mock(return_value="final")
+    _drive_run_day(monkeypatch, tmp_path, classified, poll_fn=poll)
+
+    d = load_decision(DATE, tmp_path)
+    assert d is not None
+    assert d["delivery_status"] == "locked_unconfirmed"
+    assert d["scoreable"] is True
+    alert.assert_not_called()
+    poll.assert_called_once()
+
+
+def test_classified_lock_does_not_clobber_existing_scoreable_decision(tmp_path, monkeypatch):
+    """Codex r3 #3: a restart re-classifies a delivered pick as locked and hits
+    the chokepoint again. It must not overwrite the authoritative decision
+    (source, state provenance, finalized_at) with a source="unknown" record."""
+    from bts.daily_decision import write_decision
+
+    write_decision(DATE, tmp_path, action="single", source="mdp",
+                   primary=_cand(), delivery_status="delivered", scoreable=True,
+                   streak=7, saver_available=True)
+    delivered = _daily(delivered=True)
+    _drive_run_day(
+        monkeypatch, tmp_path,
+        _result(pick_result=PickResult(daily=delivered, locked=True),
+                pick_name="Hoerner", pick_p=0.73, selection=None),
+    )
+    d = load_decision(DATE, tmp_path)
+    assert d["source"] == "mdp"
+    assert d["streak"] == 7
+
+
 def test_delivered_pick_enters_result_polling(tmp_path, monkeypatch):
     """Positive companion: a genuinely delivered (scoreable) pick DOES enter result
     polling — the commit gate must not over-block real picks."""

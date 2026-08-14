@@ -93,8 +93,15 @@ def _maybe_alert_missed_pick(
     """
     if state.final_skip_candidate or state.skip_summary:
         return
+    from bts.daily_decision import load_decision
     from bts.picks import load_pick, pick_was_delivered
 
+    decision = load_decision(date, picks_dir)
+    if decision is not None and decision.get("scoreable"):
+        # The on-disk decision is the authority; the in-memory
+        # committed_pick_written flag can be stale after a crash between the
+        # decision write and the state save.
+        return
     daily = load_pick(date, picks_dir)
     if not daily or pick_was_delivered(daily):
         return
@@ -467,27 +474,50 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
     backstops the flag even if this save fails).
     """
     from bts.daily_decision import write_decision
-    write_decision(date, picks_dir, action=action, source=(source or "unknown"),
-                   primary=primary, double_down=double_down,
-                   streak=streak, saver_available=saver_available,
-                   state_source=state_source, state_status=state_status,
-                   allow_double=allow_double, contest_source_date=contest_source_date,
-                   delivery_status=delivery_status, scoreable=True)
-    state.committed_pick_written = True
+    record = write_decision(date, picks_dir, action=action, source=(source or "unknown"),
+                            primary=primary, double_down=double_down,
+                            streak=streak, saver_available=saver_available,
+                            state_source=state_source, state_status=state_status,
+                            allow_double=allow_double, contest_source_date=contest_source_date,
+                            delivery_status=delivery_status, scoreable=True)
+    if record is not None:
+        # write_decision is best-effort (None on failure). The flag must track
+        # the on-disk truth: a flag set with no record behind it suppresses the
+        # E3 missed-pick alert while leaving nothing for result polling.
+        state.committed_pick_written = True
     save_state(state, picks_dir)
 
 
-def _write_classification_decision(picks_dir, date, *, action, delivered, primary, double_down, state):
-    """Record a classification-lock only when the existing pick was genuinely delivered.
+def _write_classification_decision(picks_dir, date, *, action, delivered, primary, double_down, state,
+                                   attempted=False):
+    """Record a classification-lock only when it represents a real commit.
 
     A genuinely DELIVERED existing pick recovered via classification-lock -> scoreable.
-    A non-delivered classification-lock (stale preview locked by game-start/status) -> nothing,
-    so the earlier MDP-skip record can still be written at end-of-day (the GH #144 case).
+    An UNDELIVERED pick with delivery_attempted=True -> scoreable locked_unconfirmed:
+    the classifier locks on the durable marker before _deliver_and_lock_pick can run
+    its own unconfirmed-attempt branch after a restart, so finalization must happen
+    here or the day ends with no record, no polling, and a spurious E3 alert.
+    Any other non-delivered classification-lock (stale preview locked by
+    game-start/status) -> nothing, so the earlier MDP-skip record can still be
+    written at end-of-day (the GH #144 case).
+
+    Never clobbers an existing scoreable decision: the original commit carries
+    real source/state provenance; this recovery path only knows "unknown".
     """
-    if not delivered:
+    if not delivered and not attempted:
+        return
+    from bts.daily_decision import load_decision
+    existing = load_decision(date, picks_dir)
+    if existing is not None and existing.get("scoreable"):
+        # Restart after a real commit: the record on disk is the authority —
+        # just resync the in-memory flag.
+        state.committed_pick_written = True
+        save_state(state, picks_dir)
         return
     _write_commit_decision(picks_dir, date, action=action, source="unknown",
-                           primary=primary, double_down=double_down, delivery_status="delivered", state=state)
+                           primary=primary, double_down=double_down,
+                           delivery_status=("delivered" if delivered else "locked_unconfirmed"),
+                           state=state)
 
 
 def _write_endofday_skip(picks_dir, date, state):
@@ -1204,6 +1234,21 @@ def run_single_check(
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     existing = load_pick(date, picks_dir)
     if existing:
+        # Committed means immutable: a scoreable decision on disk (delivered /
+        # private_locked / locked_unconfirmed) locks the day regardless of game
+        # status. Without this, a same-day restart during a not-started status
+        # (Preview or Warmup) reselects over a private commit — its pick file
+        # carries no delivery flags, so status classification alone reopens it.
+        from bts.daily_decision import load_decision
+        decision = load_decision(date, picks_dir)
+        if decision is not None and decision.get("scoreable"):
+            print("  Pick already committed (scoreable decision on disk) — "
+                  "skipping cascade.", file=sys.stderr)
+            return {"skipped": False, "new_lineups": new_count, "should_post": False,
+                    "pick_result": PickResult(daily=existing, locked=True),
+                    "pick_name": existing.pick.batter_name,
+                    "pick_p": existing.pick.p_game_hit,
+                    "selection": None}
         lock_state = classify_pick_lock_state(existing, date)
         if lock_state.stale:
             print(
@@ -2264,10 +2309,16 @@ def run_day(
             # stale-preview lock writes nothing and does not set committed_pick_written
             # (so the captured MDP skip still records at end-of-day — GH #144).
             ld = result["pick_result"].daily
+            attempted = bool(getattr(ld, "delivery_attempted", False))
+            if attempted and not pick_was_delivered(ld):
+                print("  DELIVERY OUTCOME UNKNOWN — prior attempt unconfirmed; "
+                      "finalizing as locked_unconfirmed. Verify manually.",
+                      file=sys.stderr)
             _write_classification_decision(
                 picks_dir, date,
                 action=("double" if ld.double_down else "single"),
                 delivered=pick_was_delivered(ld),
+                attempted=attempted,
                 primary=_row_from_daily(ld.pick),
                 double_down=_row_from_daily(ld.double_down),
                 state=state,
@@ -2480,8 +2531,11 @@ def run_day(
 
     # 5b. Missed-pick early alert (audit E3): if delivery failed, warn the
     # operator in-window — while they can still post manually — instead of only
-    # the hours-late EOD post_failure DM.
-    if not state.pick_locked:
+    # the hours-late EOD post_failure DM. Gate on committed_pick_written, not
+    # pick_locked: a non-delivered classification lock sets pick_locked without
+    # any delivery (2026-08-13 incident) and must still alert; skip days are
+    # handled inside _maybe_alert_missed_pick via the in-memory skip state.
+    if not state.committed_pick_written:
         _maybe_alert_missed_pick(config, date, picks_dir, missed_pick_alert_min, heartbeat_path, state)
 
     # 6. Doubleheader game 2 re-checks

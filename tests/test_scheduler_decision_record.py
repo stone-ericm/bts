@@ -48,6 +48,31 @@ def test_classification_writes_only_when_delivered(tmp_path):
     assert load_decision("2026-06-21", tmp_path) is None and st2.committed_pick_written is False
 
 
+def test_commit_flag_not_set_when_decision_write_fails(tmp_path, monkeypatch):
+    """Codex r3 #2: write_decision is best-effort and returns None on failure.
+    committed_pick_written must reflect the on-disk truth — setting it on a
+    failed write suppresses the E3 missed-pick alert with no record backing it."""
+    monkeypatch.setattr("bts.daily_decision.write_decision", lambda *a, **k: None)
+    st = _state()
+    _write_commit_decision(tmp_path, "2026-06-20", action="single", source="mdp",
+                           primary=_cand(), double_down=None, delivery_status="delivered", state=st)
+    assert st.committed_pick_written is False
+
+
+def test_classification_attempted_writes_locked_unconfirmed(tmp_path):
+    """Codex r3 #1: an undelivered pick with delivery_attempted=True classified
+    as locked must finalize as a scoreable locked_unconfirmed commit."""
+    st = _state(date="2026-06-22")
+    _write_classification_decision(tmp_path, "2026-06-22", action="single",
+                                   delivered=False, attempted=True,
+                                   double_down=None, primary=_cand(), state=st)
+    d = load_decision("2026-06-22", tmp_path)
+    assert d is not None
+    assert d["delivery_status"] == "locked_unconfirmed"
+    assert d["scoreable"] is True
+    assert st.committed_pick_written is True
+
+
 def test_endofday_skip_only_when_uncommitted_and_candidate(tmp_path):
     st = _state(date="2026-06-20")
     st.final_skip_candidate = {"primary": _cand(), "streak": 10, "saver_available": True}

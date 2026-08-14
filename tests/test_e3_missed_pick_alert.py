@@ -84,6 +84,26 @@ def test_no_alert_on_skip_day_skip_summary(tmp_path, monkeypatch):
     assert dispatched == [], "missed-pick alert must not fire when skip_summary is set"
 
 
+def test_no_alert_when_scoreable_decision_on_disk(monkeypatch, tmp_path):
+    """The on-disk decision.json is the authority (crash between decision write
+    and state save leaves committed_pick_written stale). A scoreable commit on
+    disk suppresses the alert regardless of in-memory state (Codex r2 #3)."""
+    from bts.daily_decision import write_decision
+
+    dispatched = []
+    monkeypatch.setattr("bts.scheduler._alert_missed_pick",
+                        lambda *a, **kw: dispatched.append(True))
+    monkeypatch.setattr("bts.scheduler._now_et",
+                        lambda: datetime(2026, 4, 6, 20, 5, tzinfo=ET))
+    save_pick(_daily(), tmp_path)  # pick file itself carries no delivery flags
+    write_decision("2026-04-06", tmp_path, action="single", source="mdp",
+                   primary={"batter_id": 1, "batter_name": "Hoerner", "team": "CHC",
+                            "game_pk": 100, "p_game_hit": 0.73},
+                   delivery_status="private_locked", scoreable=True)
+    _maybe_alert_missed_pick(_cfg(tmp_path), "2026-04-06", tmp_path, 10, None, _no_skip_state())
+    assert dispatched == [], "a scoreable on-disk commit must suppress the alert"
+
+
 def test_true_missed_pick_still_alerts(monkeypatch, tmp_path):
     """No skip state + undelivered pick → alert MUST still fire (regression guard)."""
     dispatched = []
