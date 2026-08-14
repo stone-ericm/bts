@@ -51,6 +51,18 @@ missed-delivery alert when a day ends `game_started_or_final` with a never-deliv
 **Frequency/urgency:** 1-game slates are rare (post-ASB opener, odd makeup days) — low urgency,
 small blast radius, but silent when it hits.
 
+### Independent day-outcome watchdog (proposed in 2026-08-13 incident review; backlogged 2026-08-14)
+The 2026-08-13 silent pass (undelivered pick classified locked off the DD game's Warmup status) was
+fixed at the classifier and the E3 alert gate, but every in-process protection still shares the
+scheduler's fate: E3 runs once when `run_day` reaches step 5b, EOD health runs once, and the
+**no-games-day early return bypasses step 5b and EOD health entirely** — a leftover candidate on a
+day the schedule fetch returns empty gets no protection. Codex round-1 proposal, worth doing as a
+cron-side audit: a recurring check keyed on durable disk state only (candidate pick exists; not
+actually delivered; no scoreable commit; no deliberate skip recorded), independent of
+`state.pick_locked` / in-process flags, with alert-delivery retry. Composes with the existing
+`check-pick-entered` cron (which correctly gates on scoreable commits and so ignores exactly this
+case) rather than replacing it.
+
 ## Feature Ideas
 - Batter H2H history vs specific pitcher (sparse but might add on top of archetype)
 - Pitcher recent workload (days since last start, innings in last 7/14 days)
