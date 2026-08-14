@@ -591,9 +591,9 @@ class TestGetGameStatusesExtended:
 
         result = get_game_statuses_detailed("2026-04-01")
         assert result == {
-            100: {"abstract": "P", "detailed": "Scheduled"},
-            200: {"abstract": "L", "detailed": "In Progress"},
-            300: {"abstract": "F", "detailed": "Final"},
+            100: {"abstract": "P", "detailed": "Scheduled", "code": ""},
+            200: {"abstract": "L", "detailed": "In Progress", "code": ""},
+            300: {"abstract": "F", "detailed": "Final", "code": ""},
         }
 
     @patch("bts.picks.retry_urlopen")
@@ -617,7 +617,7 @@ class TestGetGameStatusesExtended:
         ).encode()
 
         result = get_game_statuses_detailed("2026-04-01")
-        assert result[500] == {"abstract": "P", "detailed": ""}
+        assert result[500] == {"abstract": "P", "detailed": "", "code": ""}
 
     @patch("bts.picks.retry_urlopen")
     def test_empty_schedule(self, mock_urlopen):

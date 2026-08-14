@@ -616,6 +616,7 @@ def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
             statuses[g["gamePk"]] = {
                 "abstract": g["status"]["abstractGameCode"],
                 "detailed": g["status"].get("detailedState", ""),
+                "code": g["status"].get("statusCode", ""),
             }
     return statuses
 
@@ -654,6 +655,21 @@ def _classify_unposted_game_status(
             detailed=detailed,
         )
 
+    code = (status.get("code") or "").strip().upper()
+    if code == "PW" or (detailed or "").strip().lower() == "warmup":
+        # Warmup (statusCode PW) is abstract-Live but pre-first-pitch — the only
+        # MLB state where abstract != Preview yet the contest still accepts the
+        # pick. Locking here silently passed the day on 2026-08-13. statusCode
+        # is the machine signal; the detailed-string match keeps older cached
+        # status shapes (no "code" key) working.
+        return PickLockState(
+            locked=False,
+            reason="warmup_not_started",
+            game_pk=game_pk,
+            abstract=abstract,
+            detailed=detailed,
+        )
+
     if abstract != "P":
         return PickLockState(
             locked=True,
@@ -673,9 +689,16 @@ def _classify_unposted_game_status(
 
 
 def pick_candidate_status_is_available(status: dict[str, str] | None) -> bool:
-    """Return whether a prediction row's game is eligible for a fresh pick."""
+    """Return whether a prediction row's game is eligible for a fresh pick.
+
+    Warmup is deliberately NOT available here even though it does not lock an
+    existing committed pick: contest entry closes 5 minutes before scheduled
+    first pitch, so the fresh-selection pool stays conservative while an
+    already-chosen candidate in a warmup game remains deliverable.
+    """
     lock_state = _classify_unposted_game_status(status)
-    return not lock_state.stale and not lock_state.locked
+    return (not lock_state.stale and not lock_state.locked
+            and lock_state.reason != "warmup_not_started")
 
 
 def iter_daily_pick_slots(daily: DailyPick) -> list[tuple[str, Pick]]:
@@ -787,6 +810,14 @@ def classify_pick_lock_state(daily: DailyPick, date: str) -> PickLockState:
     if pick_was_delivered(daily):
         reason = "bluesky_posted" if daily.bluesky_posted else "notification_sent"
         return PickLockState(locked=True, reason=reason)
+
+    if getattr(daily, "delivery_attempted", False):
+        # Unconfirmed send (daemon crashed between sending and recording
+        # success). _deliver_and_lock_pick refuses to re-send on this marker;
+        # classifying the pick refreshable would let select_pick overwrite the
+        # file with delivery_attempted=False and erase the idempotency guard —
+        # a duplicate-delivery path. The durable marker wins over game status.
+        return PickLockState(locked=True, reason="delivery_attempt_unconfirmed")
 
     game_pks = _committed_pick_game_pks(daily)
     try:

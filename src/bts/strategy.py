@@ -336,7 +336,13 @@ def select_pick(
 
     if available.empty:
         if current:
-            return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
+            # Every candidate game is unavailable (started, or warmup — which
+            # the fresh pool deliberately excludes) but the existing pick itself
+            # classified deliverable above. Return it UNLOCKED so the
+            # fallback-deadline path can still deliver it; returning it locked
+            # recreates the 2026-08-13 silent pass when the pick's own games
+            # are merely in warmup.
+            return SelectionResult(PickResult(daily=current, locked=False), None, None, None, None, None)
         return SelectionResult(None, None, None, None, None, "no_eligible")
 
     # Filter to valid predictions

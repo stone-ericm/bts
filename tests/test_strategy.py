@@ -197,11 +197,93 @@ class TestSelectPick:
         assert result.pick_result.locked is False
         assert result.pick_result.daily.pick.batter_name == "Refreshed Pick"
 
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "L", "detailed": "Warmup"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "L"})
+    def test_existing_warmup_unposted_does_not_lock(self, mock_statuses, _detailed_statuses, tmp_path):
+        """Warmup is abstract-Live but pre-first-pitch — the only such MLB state.
+        The 2026-08-13 incident: an undelivered candidate was classified
+        game_started_or_final off the DD game's warmup window and the day passed
+        silently. Warmup must stay refreshable/deliverable."""
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Morning Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=True,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        # A higher-p candidate in the warmup game and a lower-p one in a
+        # preview game: the existing pick must unlock (deliverable), but the
+        # fresh pool stays conservative — warmup games are excluded from
+        # selection (contest entry closes T-5 before scheduled first pitch).
+        preds = _predictions([
+            {"batter_name": "Warmup Game Bat", "p_game_hit": 0.84, "game_pk": 778899},
+            {"batter_name": "Preview Game Bat", "p_game_hit": 0.80, "game_pk": 778900},
+        ])
+        # Live-caller shape (orchestrator.run_and_pick): strict detailed statuses.
+        result = select_pick(
+            preds, "2026-04-01", tmp_path,
+            game_statuses_detailed={
+                778899: {"abstract": "L", "detailed": "Warmup"},
+                778900: {"abstract": "P", "detailed": "Scheduled"},
+            },
+            require_detailed_statuses=True,
+        )
+
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Preview Game Bat"
+
+    def test_existing_warmup_pick_stays_deliverable_when_pool_empty(self, tmp_path):
+        """Codex r3 #4: when every candidate game is unavailable (warmup) but the
+        existing pick itself classified deliverable, select_pick must return it
+        UNLOCKED so the fallback-deadline path can still deliver — returning it
+        locked recreates the 2026-08-13 silent pass."""
+        from bts.strategy import select_pick
+
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Morning Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=True,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+
+        preds = _predictions([
+            {"batter_name": "Warmup Game Bat", "p_game_hit": 0.84, "game_pk": 778899},
+        ])
+        with patch("bts.picks.get_game_statuses_detailed", return_value={
+            778899: {"abstract": "L", "detailed": "Warmup"},
+        }):
+            result = select_pick(
+                preds, "2026-04-01", tmp_path,
+                game_statuses_detailed={778899: {"abstract": "L", "detailed": "Warmup"}},
+                require_detailed_statuses=True,
+            )
+
+        assert result.pick_result is not None
+        assert result.pick_result.locked is False
+        assert result.pick_result.daily.pick.batter_name == "Morning Pick"
+
     @pytest.mark.parametrize(
         ("abstract", "detailed"),
         [
-            ("L", "Warmup"),
             ("L", "In Progress"),
+            ("L", "Delayed: Rain"),
             ("L", "Suspended"),
             ("F", "Final"),
             ("F", "Game Over"),
