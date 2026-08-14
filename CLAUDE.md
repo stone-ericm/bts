@@ -39,6 +39,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - Data layout: `data/picks/<date>/decision.json` (per-day dirs) vs `data/picks/<date>.policy_shadow.json` (flat files) — skip-day shadow records are NOT inside the date dirs.
 
 ## Testing gotchas
+- **pi5 clone (`/home/stonehengee/projects/bts`) has 22 known env-only fast-suite failures** (verified identical with/without diff via stash-compare, 2026-08-14): LightGBM not installed (plain `uv sync`, by design) fails tests/test_lgb_params + predict/calibrate/blend/local_tier/preview files, and the box-ported real `.env` credentials shadow the test fixtures in tests/test_dm.py + test_posting.py. A clean run on pi5 = exactly these 22; anything else is yours.
 - **Don't write date-relative tests against `date.today()`-defaulting checks** — health `check()` functions date-filter planted files before reading them, so a hardcoded planted date silently expires out of the lookback window and the test goes vacuous/red weeks later (the F4 projected_lineup tests expired 2026-07-16; root-caused + pinned 2026-08-03, `5bde492`). Always pass an explicit `today=` pinned to the planted data.
 
 ## Feature computation env vars (set in production via `.env` or systemd unit; defaults in code)
