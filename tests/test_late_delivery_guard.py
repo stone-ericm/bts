@@ -138,6 +138,52 @@ def test_already_delivered_pick_still_locks_after_cutoff(mock_now, mock_dm, _cap
     mock_dm.assert_not_called()
 
 
+@patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+@patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+@patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+@patch("bts.dm.send_dm", return_value="msg-1")
+@patch("bts.scheduler._now_et")
+def test_clock_crossing_cutoff_between_guard_and_send_refuses(mock_now, mock_dm, _cap, _dss,
+                                                              mock_alert, cfg, tmp_path):
+    """Codex r2 F1: the top-of-function guard passed, but the contest-state fetch
+    ate the window — the pre-send re-check must refuse, and must not leave the
+    delivery_attempted crash marker set."""
+    times = iter([datetime(2026, 8, 30, 13, 34, 0, tzinfo=ET)])   # guard passes...
+    late = datetime(2026, 8, 30, 13, 35, 30, tzinfo=ET)           # ...everything after is late
+    mock_now.side_effect = lambda: next(times, late)
+    daily = _daily()
+    save_pick(daily, tmp_path)
+    state = _state()
+    ok = _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "lineup")
+    assert ok is False and state.pick_locked is False
+    mock_dm.assert_not_called()
+    assert daily.delivery_attempted is False
+    assert list((tmp_path / DATE).glob("refused_delivery_*.json"))
+
+
+@patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+@patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+@patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+@patch("bts.dm.send_dm", return_value="msg-1")
+@patch("bts.scheduler._now_et")
+def test_unconfirmed_prior_attempt_pages_critical(mock_now, mock_dm, _cap, _dss,
+                                                  mock_alert, cfg, tmp_path):
+    """Codex r2 F2 (partial): the crash-idempotency lock is silent today; it must
+    page so the operator verifies the send and the MLB entry immediately."""
+    mock_now.return_value = datetime(2026, 8, 30, 13, 0, tzinfo=ET)
+    daily = _daily()
+    daily.delivery_attempted = True
+    save_pick(daily, tmp_path)
+    state = _state()
+    ok = _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "lineup")
+    assert ok is False and state.pick_locked is True
+    mock_dm.assert_not_called()
+    alerts = mock_alert.call_args.args[0]
+    assert alerts[0].level == "CRITICAL"
+    assert "outcome unknown" in alerts[0].message.lower()
+    assert "never confirmed" in alerts[0].message.lower()
+
+
 def test_legacy_pick_file_without_delivered_at_loads(tmp_path):
     """Old <date>.json files predate the field; load_pick backfills None."""
     daily = _daily()

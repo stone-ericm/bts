@@ -103,6 +103,7 @@ def run_all_checks(
     live_forward_capture_unit: str | None = "bts-live-forward-capture.service",
     shadow_unit: str | None = None,
     contest_state_expected: bool = False,
+    operator_reserve_min: float = 10,
 ) -> list[Alert]:
     """Run all enabled health checks. Returns aggregated alerts.
 
@@ -145,7 +146,7 @@ def run_all_checks(
     # EOD backstop for the delivery-cutoff guard (2026-08-30): a pick sent
     # at/after first pitch − 5 or a refused late delivery is CRITICAL.
     alerts.extend(_safe_run("late_delivery", lambda: late_delivery.check(
-        picks_dir, today=today,
+        picks_dir, today=today, operator_reserve_min=operator_reserve_min,
     )))
     alerts.extend(_safe_run("postponed_pick", lambda: postponed_pick.check(
         picks_dir, today=today,

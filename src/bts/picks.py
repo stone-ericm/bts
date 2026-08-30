@@ -333,10 +333,19 @@ def earliest_pick_game_et(daily: DailyPick) -> datetime:
     """
     from zoneinfo import ZoneInfo
     et = ZoneInfo("America/New_York")
-    times = [datetime.fromisoformat(daily.pick.game_time.replace("Z", "+00:00")).astimezone(et)]
+
+    def _slot_et(ts: str) -> datetime:
+        t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            # Pick.game_time is documented UTC. A naive value must NOT be read in
+            # the host timezone (Codex r2 F8: under TZ=America/New_York that made
+            # the cutoff four hours late). Assume UTC.
+            t = t.replace(tzinfo=timezone.utc)
+        return t.astimezone(et)
+
+    times = [_slot_et(daily.pick.game_time)]
     if daily.double_down:
-        times.append(datetime.fromisoformat(
-            daily.double_down.game_time.replace("Z", "+00:00")).astimezone(et))
+        times.append(_slot_et(daily.double_down.game_time))
     return min(times)
 
 

@@ -98,6 +98,34 @@ def test_legacy_block_reasons_keep_the_old_rule():
                  ).action == "deliver"
 
 
+def test_second_contender_with_feasible_window_defers():
+    """Codex r2 F7: the TOP contender's window is infeasible but a second in-gap
+    contender's window is feasible — the decision can still change in time."""
+    runs = [{"time_et": T(15, 10), "game_pks": [823987]},    # top contender: 15:10+20 > 15:25
+            {"time_et": T(12, 30), "game_pks": [824636]}]    # second contender: feasible
+    plan = _plan(now=T(12, 0), cutoff=T(15, 35), remaining_runs=runs, confirmed_sides=set(),
+                 contender_game_pk=823987, contender_game_pks=(823987, 824636))
+    assert plan.action == "defer" and plan.window_time_et == T(12, 30)
+
+
+def test_measured_durations_are_chronological():
+    """Codex r2 F9: run and refresh durations interleave in wall time; 'last two'
+    must be chronological, and reused-cascade entries are excluded."""
+    from types import SimpleNamespace
+    from bts.scheduler import _measured_cascade_durations
+    state = SimpleNamespace(
+        runs_completed=[
+            {"time": "2026-08-30T11:30:55-04:00", "duration_sec": 930.0},
+            {"time": "2026-08-30T13:36:11-04:00", "duration_sec": 300.0},
+        ],
+        fallback_refreshes=[
+            {"finished": "2026-08-30T13:20:34-04:00", "duration_sec": 920.0},
+            {"finished": "2026-08-30T13:40:00-04:00", "duration_sec": 0.0,
+             "reused_check_cascade": True},                     # not a real cascade
+        ])
+    assert _measured_cascade_durations(state) == [930.0, 920.0, 300.0]
+
+
 def test_effective_budget_uses_last_two_measured_runs():
     from bts.scheduler import effective_cascade_budget_min
     assert effective_cascade_budget_min(12, []) == 12

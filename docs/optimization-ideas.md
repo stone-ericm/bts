@@ -50,8 +50,11 @@ missed-delivery alert when a day ends `game_started_or_final` with a never-deliv
 
 *2026-08-30 update:* the deferred-fallback gate is now `plan_fallback_action` (deadline-aware; see
 `docs/audit/2026-08-30-late-pick-delivery.md`) and the delivery chokepoint refuses sends past the
-cutoff, so a never-delivered day now surfaces via the `late_delivery` health source. The
-singleton-slate / moved-up-start gap above is otherwise unchanged and still composes with the planner.
+cutoff. A refusal pages CRITICAL via `late_delivery`; a stranded started-game preview is archived
+and re-selected by `run_single_check`; a day that still ends undelivered surfaces via the
+missed-pick alert + `post_failure`/`pick_entry`, as before (`late_delivery` is silent on undelivered
+picks by design). The singleton-slate / moved-up-start gap above is otherwise unchanged and still
+composes with the planner.
 
 **Frequency/urgency:** 1-game slates are rare (post-ASB opener, odd makeup days) — low urgency,
 small blast radius, but silent when it hits.

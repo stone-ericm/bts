@@ -120,6 +120,101 @@ def test_kwan_delivered_at_13_20(tmp_path, capsys):
     assert "gap_no_feasible_window" in err and "LOCKED (fallback)" in err
 
 
+def test_check_overrunning_deadline_reuses_its_cascade(tmp_path, capsys):
+    """Codex r2 F3: a scheduled check that finishes at/after the fallback deadline
+    must not launch a SECOND full refresh — its own fresh LockDecision feeds the
+    planner directly (the floor only budgets ONE cascade after the deadline)."""
+    from bts.picks import save_pick
+    from bts.scheduler import LockDecision, run_day
+    from bts.strategy import PickResult
+
+    clock = Clock(datetime(2026, 8, 30, 12, 40, tzinfo=ET))
+    daily = _kwan_daily()
+    save_pick(daily, tmp_path)
+
+    def fake_check(**kw):                     # starts 12:40, overruns to 13:10 (> 13:05 deadline)
+        clock.advance(timedelta(minutes=30))
+        return {"skipped": False, "new_lineups": 4, "should_post": False,
+                "pick_result": PickResult(daily=daily, locked=False),
+                "pick_name": "Steven Kwan", "pick_p": 0.7566, "selection": None,
+                "lock_decision": LockDecision(False, 0.741, False, "gap", 823987, (823987,))}
+
+    def fake_sleep(secs):
+        clock.advance(timedelta(seconds=secs))
+
+    with patch("bts.scheduler.fetch_schedule", side_effect=[_schedule(), []]), \
+         patch("bts.scheduler._now_et", side_effect=clock), \
+         patch("bts.scheduler.time.sleep", side_effect=fake_sleep), \
+         patch("bts.scheduler.run_single_check", side_effect=fake_check), \
+         patch("bts.scheduler._refresh_pick_at_fallback_decision") as mock_refresh, \
+         patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.scheduler.run_result_polling", return_value="final"), \
+         patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.dm.send_dm", return_value="dm-1") as mock_dm, \
+         patch("bts.contest_state.load_decision_streak_state") as dss:
+        dss.return_value.streak = 0
+        run_day(date=DATE, config=_config(tmp_path))
+
+    mock_refresh.assert_not_called()
+    mock_dm.assert_called_once()
+    delivered = json.loads((tmp_path / f"{DATE}.json").read_text())
+    assert delivered["delivered_at"].startswith("2026-08-30T13:10")
+    state = json.loads((tmp_path / DATE / "scheduler_state.json").read_text())
+    assert state["fallback_refreshes"][0]["reused_check_cascade"] is True
+
+
+def test_confirmation_sync_is_bounded_to_planner_relevant_games(tmp_path):
+    """Codex r2 F4: the fallback syncs only the games in remaining scheduled runs
+    (the only games the planner consults), not the whole slate."""
+    from bts.scheduler import FallbackRefreshResult
+
+    clock = Clock(datetime(2026, 8, 30, 12, 35, tzinfo=ET))
+    calls = []
+
+    def capture_cnc(pks, confirmed):
+        calls.append(sorted(pks))
+        return 0
+
+    from bts.picks import save_pick
+    from bts.scheduler import run_day
+    from bts.strategy import PickResult
+
+    daily = _kwan_daily()
+    save_pick(daily, tmp_path)
+
+    def fake_check(**kw):
+        clock.advance(CASCADE)
+        return {"skipped": False, "new_lineups": 4, "should_post": False,
+                "pick_result": PickResult(daily=daily, locked=False),
+                "pick_name": "Steven Kwan", "pick_p": 0.7566}
+
+    def fake_refresh(config, date, cached, gap, **kw):
+        clock.advance(CASCADE)
+        return FallbackRefreshResult(daily=daily, should_post=False, should_post_ungated=False,
+                                     block_reason="gap", contender_game_pk=823987)
+
+    def fake_sleep(secs):
+        clock.advance(timedelta(seconds=secs))
+
+    with patch("bts.scheduler.fetch_schedule", side_effect=[_schedule(), []]), \
+         patch("bts.scheduler._now_et", side_effect=clock), \
+         patch("bts.scheduler.time.sleep", side_effect=fake_sleep), \
+         patch("bts.scheduler.run_single_check", side_effect=fake_check), \
+         patch("bts.scheduler._refresh_pick_at_fallback_decision", side_effect=fake_refresh), \
+         patch("bts.scheduler.count_new_confirmations", side_effect=capture_cnc), \
+         patch("bts.scheduler.run_result_polling", return_value="final"), \
+         patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.dm.send_dm", return_value="dm-1"), \
+         patch("bts.contest_state.load_decision_streak_state") as dss:
+        dss.return_value.streak = 0
+        run_day(date=DATE, config=_config(tmp_path))
+
+    assert calls, "fallback confirmation sync never ran"
+    allowed = {823662, 823987, 824636}          # games of the remaining scheduled runs
+    for pks in calls:
+        assert set(pks) <= allowed and 824393 not in pks
+
+
 def test_stale_refresh_result_never_sends_after_cutoff(tmp_path, capsys):
     """Even if the planner were to deliver late (here: a cascade that overran the
     cutoff), the chokepoint guard refuses — nothing is sent after 13:35."""

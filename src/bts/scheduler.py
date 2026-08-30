@@ -400,6 +400,7 @@ class FallbackRefreshResult:
     # this pick's cutoff (2026-08-30). None on the cached/error paths.
     block_reason: str | None = None
     contender_game_pk: int | None = None
+    contender_game_pks: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -415,6 +416,10 @@ class LockDecision:
     should_lock_ungated: bool
     block_reason: str | None = None
     contender_game_pk: int | None = None
+    # ALL projected contenders within early_lock_gap (deduped game_pks): any of
+    # them confirming can flip the decision, so the planner defers for any of
+    # their windows, not just the current top's (Codex r2 F7).
+    contender_game_pks: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -441,13 +446,19 @@ def effective_cascade_budget_min(config_min: float, recent_durations_sec: list) 
 
 
 def _measured_cascade_durations(state: "SchedulerState") -> list[float]:
-    """Cascade durations measured today, in loop order (lineup checks, then
-    fallback refreshes appended as they happen)."""
-    out = [r.get("duration_sec") for r in state.runs_completed
-           if r.get("duration_sec") is not None]
-    out += [f.get("duration_sec") for f in (state.fallback_refreshes or [])
-            if f.get("duration_sec") is not None]
-    return out
+    """Cascade durations measured today, CHRONOLOGICAL by end time (Codex r2 F9:
+    runs and fallback refreshes interleave in wall time, so concatenating the two
+    arrays put stale refreshes after fresh runs). Reused-cascade entries are not
+    real cascades and are excluded."""
+    entries: list[tuple[str, float]] = []
+    for r in state.runs_completed:
+        if r.get("duration_sec") is not None:
+            entries.append((str(r.get("time") or ""), float(r["duration_sec"])))
+    for f in (state.fallback_refreshes or []):
+        if f.get("duration_sec") is not None and not f.get("reused_check_cascade"):
+            entries.append((str(f.get("finished") or ""), float(f["duration_sec"])))
+    entries.sort(key=lambda t: t[0])
+    return [d for _, d in entries]
 
 
 def _fallback_min_with_floor(resolved_min: int, budget_min: float,
@@ -476,6 +487,7 @@ def plan_fallback_action(
     should_post_ungated: bool | None,
     block_reason: str | None,
     contender_game_pk: int | None,
+    contender_game_pks: tuple = (),
     remaining_runs: list[dict],
     confirmed_sides: set[tuple[int, str]],
     budget_min: float,
@@ -515,8 +527,10 @@ def plan_fallback_action(
         return start + timedelta(minutes=budget_min) <= deliver_by
 
     if block_reason == "gap":
-        relevant = ([r for r in pending if contender_game_pk in r["game_pks"]]
-                    if contender_game_pk is not None else pending)
+        relevant_pks = set(contender_game_pks) or (
+            {contender_game_pk} if contender_game_pk is not None else None)
+        relevant = (pending if relevant_pks is None
+                    else [r for r in pending if relevant_pks & set(r["game_pks"])])
         for r in relevant:
             if feasible(r):
                 return FallbackPlan("defer", "gap_contender_window_feasible", r["time_et"])
@@ -900,6 +914,20 @@ def _deliver_and_lock_pick(
         state.pick_locked_at = _now_et().isoformat()
         save_state(state, picks_dir)
         _record_commit("locked_unconfirmed")
+        # Codex r2 F2 (partial): this branch used to be journal-only. Page the
+        # operator — whether the send landed, and whether the entry exists, both
+        # need eyes NOW. (The delivery_unknown/non-scoreable redesign is a
+        # recorded follow-up; scoring semantics are out of scope here.)
+        from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+        dispatch_dm_for_health_alerts(
+            [Alert("CRITICAL", "late_delivery",
+                   f"DELIVERY OUTCOME UNKNOWN for {date}: a prior send attempt for "
+                   f"{daily.pick.batter_name} was never confirmed (crash mid-send?). "
+                   f"Locked without re-sending — verify the DM/feed and the MLB app "
+                   f"entry immediately.")],
+            config.get("bluesky", {}).get("dm_recipient"),
+            status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
+        )
         return False
 
     # Fail-closed submission-cutoff guard (2026-08-30 incident: a lineup lock
@@ -944,6 +972,13 @@ def _deliver_and_lock_pick(
         if not recipient:
             print("  Pick DM failed: bluesky.dm_recipient is not configured", file=sys.stderr)
             return False
+        # Last-responsible-moment re-check (Codex r2 F1): the contest-state fetch
+        # above can eat minutes; never BEGIN a send once the cutoff has passed.
+        # Residual race = the transport's own duration (seconds).
+        now = _now_et()
+        if now >= cutoff:
+            _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+            return False
         daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
         save_pick(daily, picks_dir)
         try:
@@ -967,6 +1002,11 @@ def _deliver_and_lock_pick(
             print(f"  Pick DM failed: {e}", file=sys.stderr)
             return False
 
+    # Last-responsible-moment re-check (Codex r2 F1) — see the DM branch.
+    now = _now_et()
+    if now >= cutoff:
+        _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+        return False
     daily.delivery_attempted = True  # persist BEFORE the network call (E2 idempotency)
     save_pick(daily, picks_dir)
     try:
@@ -1239,6 +1279,7 @@ def _lock_decision_from_predictions(
     all_pick_data = []
     best_projected = None
     best_projected_pk = None
+    gap_contender_pks: set[int] = set()
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
             game_pk = int(row["game_pk"])
@@ -1251,9 +1292,14 @@ def _lock_decision_from_predictions(
                 "game_pk": game_pk,
             })
             if is_proj and game_pk != pick_data["game_pk"]:
-                if best_projected is None or float(row["p_game_hit"]) > best_projected:
-                    best_projected = float(row["p_game_hit"])
+                p = float(row["p_game_hit"])
+                if best_projected is None or p > best_projected:
+                    best_projected = p
                     best_projected_pk = game_pk
+                # Codex r2 F7: every projected contender within the gap can flip
+                # the decision when it confirms, not just the current top one.
+                if pick_data["p_game_hit"] - p < early_lock_gap:
+                    gap_contender_pks.add(game_pk)
 
     ungated = should_lock(pick_data, all_pick_data, early_lock_gap)
     gated = (
@@ -1268,7 +1314,8 @@ def _lock_decision_from_predictions(
         reason, contender = "dd_projected", None
     else:
         reason, contender = None, None
-    return LockDecision(gated, best_projected, ungated, reason, contender)
+    contenders = tuple(sorted(gap_contender_pks)) if reason == "gap" else ()
+    return LockDecision(gated, best_projected, ungated, reason, contender, contenders)
 
 
 def _has_pending_future_confirmation_window(
@@ -1382,6 +1429,11 @@ def carry_forward_skip_state(state: "SchedulerState", previous_state) -> "Schedu
         # end-of-day. Mirror the skip_summary/skip_notified_at copy above.
         state.final_skip_candidate = previous_state.final_skip_candidate
         state.committed_pick_written = previous_state.committed_pick_written
+        # Codex r2 F6: a same-day restart must not erase the delivery-refusal
+        # record (the EOD late_delivery backstop) or the measured cascade
+        # durations that calibrate the fallback budget.
+        state.delivery_refusals = previous_state.delivery_refusals
+        state.fallback_refreshes = previous_state.fallback_refreshes
     return state
 
 
@@ -1408,7 +1460,13 @@ def run_single_check(
     """
     from bts.contest_state import ContestStateError
     from bts.orchestrator import run_and_pick
-    from bts.picks import save_pick, load_pick, classify_pick_lock_state
+    from bts.picks import (
+        _committed_pick_game_pks,
+        classify_pick_lock_state,
+        load_pick,
+        pick_was_delivered,
+        save_pick,
+    )
     from bts.strategy import PickResult
 
     new_count = count_new_confirmations(all_game_pks, confirmed_sides)
@@ -1416,6 +1474,18 @@ def run_single_check(
     # Short-circuit: if pick is already locked, skip the expensive cascade
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     existing = load_pick(date, picks_dir)
+    if existing and unavailable_game_pks and not pick_was_delivered(existing):
+        # Codex r2 F5: an undelivered preview whose committed game is past its
+        # cutoff would classify as locked (game started) and strand the day.
+        # Archive it and re-select from the games that are still enterable.
+        past = set(_committed_pick_game_pks(existing)) & set(unavailable_game_pks)
+        if past:
+            print(f"  Existing undelivered pick's game(s) {sorted(past)} past the "
+                  f"submission cutoff — archiving and re-selecting.", file=sys.stderr)
+            _archive_and_remove_pick(
+                picks_dir, date, existing, prefix="stale_pick", key="stale_pick",
+                at_key="staled_at", reason="committed_game_past_cutoff")
+            existing = None
     if existing:
         # Committed means immutable: a scoreable decision on disk (delivered /
         # private_locked / locked_unconfirmed) locks the day regardless of game
@@ -1932,7 +2002,8 @@ def _refresh_pick_at_fallback_decision(
     return FallbackRefreshResult(fresh, decision.should_lock, selection=sel,
                                  should_post_ungated=decision.should_lock_ungated,
                                  block_reason=decision.block_reason,
-                                 contender_game_pk=decision.contender_game_pk)
+                                 contender_game_pk=decision.contender_game_pk,
+                                 contender_game_pks=decision.contender_game_pks)
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
@@ -2613,7 +2684,9 @@ def run_day(
             has_earlier_check = any(r["time_et"] <= fallback_deadline for r in future_runs)
 
             if not has_earlier_check:
+                slept_to_deadline = False
                 if now < fallback_deadline:
+                    slept_to_deadline = True
                     write_heartbeat(
                         heartbeat_path,
                         state=HeartbeatState.SLEEPING,
@@ -2634,33 +2707,62 @@ def run_day(
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
                 if daily and not pick_was_delivered(daily):
-                    # Sync confirmations BEFORE the refresh so we can tell, after
-                    # it, which lineups arrived while it ran (the only reason to
-                    # still execute an overrun scheduled check).
-                    try:
-                        count_new_confirmations(all_game_pks, confirmed_sides)
-                    except Exception as e:
-                        print(f"  (pre-refresh confirmation sync failed: {e})", file=sys.stderr)
-                    before_refresh = set(confirmed_sides)
-                    refresh_started = _now_et()
-                    refresh_t0 = time.monotonic()
-                    try:
-                        refresh = _refresh_pick_at_fallback_decision(
-                            config,
-                            date,
-                            daily,
-                            early_lock_gap,
-                            unavailable_game_pks=_games_past_cutoff(state.games, refresh_started),
+                    # Only the games in the remaining scheduled runs matter to the
+                    # planner — sync just those (Codex r2 F4: a full-slate sync can
+                    # burn minutes of retry timeouts, twice over).
+                    sync_pks = sorted({pk for r in future_runs for pk in r["game_pks"]})
+                    fresh_decision = result.get("lock_decision")
+                    if not slept_to_deadline and fresh_decision is not None:
+                        # Codex r2 F3: this iteration's own cascade just finished —
+                        # we never slept, the check simply overran the deadline. A
+                        # second full refresh would spend a budget the floor only
+                        # reserves once; reuse the fresh decision instead.
+                        print("  FALLBACK: reusing this check's fresh cascade "
+                              "decision (no second refresh).", file=sys.stderr)
+                        before_refresh = set(confirmed_sides)
+                        refresh_started = _now_et()
+                        refresh_duration = 0.0
+                        reused_check_cascade = True
+                        refresh = FallbackRefreshResult(
+                            daily, fresh_decision.should_lock,
+                            selection=result.get("selection"),
+                            should_post_ungated=fresh_decision.should_lock_ungated,
+                            block_reason=fresh_decision.block_reason,
+                            contender_game_pk=fresh_decision.contender_game_pk,
+                            contender_game_pks=fresh_decision.contender_game_pks,
                         )
-                    except ContestStateError as e:
-                        print(
-                            f"  FALLBACK BLOCKED — contest state invalid: {e}",
-                            file=sys.stderr,
-                        )
-                        _alert_contest_state_failure(config, e)
-                        continue
-                    refresh_duration = round(time.monotonic() - refresh_t0, 1)
-                    daily = refresh.daily
+                    else:
+                        reused_check_cascade = False
+                        # Sync confirmations BEFORE the refresh so we can tell,
+                        # after it, which lineups arrived while it ran (the only
+                        # reason to still execute an overrun scheduled check).
+                        try:
+                            if sync_pks:
+                                count_new_confirmations(sync_pks, confirmed_sides)
+                        except Exception as e:
+                            print(f"  (pre-refresh confirmation sync failed: {e})",
+                                  file=sys.stderr)
+                        before_refresh = set(confirmed_sides)
+                        refresh_started = _now_et()
+                        refresh_t0 = time.monotonic()
+                        try:
+                            refresh = _refresh_pick_at_fallback_decision(
+                                config,
+                                date,
+                                daily,
+                                early_lock_gap,
+                                unavailable_game_pks=_games_past_cutoff(
+                                    state.games, refresh_started),
+                            )
+                        except ContestStateError as e:
+                            print(
+                                f"  FALLBACK BLOCKED — contest state invalid: {e}",
+                                file=sys.stderr,
+                            )
+                            _alert_contest_state_failure(config, e)
+                            continue
+                        refresh_duration = round(time.monotonic() - refresh_t0, 1)
+                        daily = refresh.daily
                     # Honor a STANDING genuine MDP skip (C1 / GH #144): never deliver
                     # the cached preview on a skip day. "Standing" survives a later
                     # transient refresh — a confirmed skip captured this/earlier cycle
@@ -2691,16 +2793,20 @@ def run_day(
                     # Re-decide against the LIVE clock and freshly synced
                     # confirmations (2026-08-30: the old boolean was snapshotted
                     # before a 15-min sleep + a 15-min refresh and counted windows
-                    # after first pitch).
-                    try:
-                        count_new_confirmations(all_game_pks, confirmed_sides)
-                    except Exception as e:
-                        print(f"  (post-refresh confirmation sync failed: {e})", file=sys.stderr)
+                    # after first pitch). The reuse path skips the re-sync — the
+                    # check synced the full slate seconds ago.
+                    if sync_pks and not reused_check_cascade:
+                        try:
+                            count_new_confirmations(sync_pks, confirmed_sides)
+                        except Exception as e:
+                            print(f"  (post-refresh confirmation sync failed: {e})",
+                                  file=sys.stderr)
                     new_since_refresh = confirmed_sides - before_refresh
                     now = _now_et()
-                    budget_eff = effective_cascade_budget_min(
-                        cascade_budget_min_cfg,
-                        _measured_cascade_durations(state) + [refresh_duration])
+                    measured = _measured_cascade_durations(state)
+                    if not reused_check_cascade:
+                        measured = measured + [refresh_duration]
+                    budget_eff = effective_cascade_budget_min(cascade_budget_min_cfg, measured)
                     cutoff = submission_cutoff_et(daily)
                     plan = plan_fallback_action(
                         now=now, cutoff=cutoff,
@@ -2708,11 +2814,13 @@ def run_day(
                         should_post_ungated=refresh.should_post_ungated,
                         block_reason=refresh.block_reason,
                         contender_game_pk=refresh.contender_game_pk,
+                        contender_game_pks=getattr(refresh, "contender_game_pks", ()),
                         remaining_runs=future_runs, confirmed_sides=confirmed_sides,
                         budget_min=budget_eff, operator_reserve_min=operator_reserve_min)
                     state.fallback_refreshes = (state.fallback_refreshes or []) + [{
                         "started": refresh_started.isoformat(), "finished": now.isoformat(),
                         "duration_sec": refresh_duration,
+                        "reused_check_cascade": reused_check_cascade,
                         "action": plan.action, "reason": plan.reason}]
                     save_state(state, picks_dir)
                     if plan.action == "defer":
@@ -2949,6 +3057,9 @@ def run_day(
             run_all_checks(
                 picks_dir=picks_dir,
                 models_dir=models_dir,
+                # Codex r2 F11: the audit's WARN threshold tracks the planner's
+                # configured reserve, not a duplicated default.
+                operator_reserve_min=operator_reserve_min,
                 # The day being processed (NOT date.today()): a post-midnight or
                 # early-finish EOD run must evaluate THIS date's picks/artifacts.
                 today=datetime.strptime(date, "%Y-%m-%d").date(),

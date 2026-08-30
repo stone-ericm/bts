@@ -108,6 +108,30 @@ the run_day path.
 - 8/29 15:50: Arraez was the *projected primary* → still deferred (unchanged).
 - 7/06 (early confirmed DD, late projected primary): still deferred (unchanged).
 
+## Round 2 (adversarial review of the patch itself; 13 findings)
+
+Accepted and fixed on the branch: naive `game_time` read in the host TZ (F8 —
+now assumed UTC); only the top projected contender gating deferral (F7 — all
+in-gap contender games now count); a scheduled check overrunning the fallback
+deadline triggering a SECOND full cascade (F3 — its fresh `LockDecision` is
+reused); unbounded full-slate confirmation syncs (F4 — bounded to the remaining
+runs' games, skipped on reuse); the classification-lock stranding an undelivered
+past-cutoff preview (F5 — archived as `stale_pick_*` and re-selected); refusal
+history + measured durations lost on same-day restart (F6 —
+`carry_forward_skip_state`); non-chronological "last two" durations (F9); a
+pre-send cutoff re-check at the last responsible moment (F1 partial — residual
+race = the transport's own seconds); a CRITICAL page on the crash-idempotency
+`locked_unconfirmed` branch (F2 partial); the audit WARN threshold now tracks
+the configured reserve (F11); doc corrections (F13).
+
+Deferred, recorded here: the full `delivery_unknown` non-scoreable terminal
+state for unconfirmed attempts (F2 — changes streak-scoring semantics of a
+pre-existing crash path); feed-file validation / atomic temp-file downloads and
+a memo manifest (F10 — pre-existing download hygiene); enforcing the deadline
+inside the Bluesky transport itself (F1 residual). Disagreed: shipping the
+pair-correlation audit doc/script on this branch (docs-only, zero runtime
+surface; repo convention is audits land with the work).
+
 ## Follow-ups
 
 - Deploy in the idle window; confirm on 8/31 that the second cascade logs

@@ -68,6 +68,49 @@ def test_existing_pick_in_unavailable_game_is_replaced(_st, tmp_path):
     assert again.pick_result.daily.pick.batter_name == "McNeil"
 
 
+def test_run_single_check_archives_undelivered_pick_past_cutoff(tmp_path):
+    """Codex r2 F5: an undelivered preview whose committed game is past its cutoff
+    used to classify as locked (game started) and strand the day; it must be
+    archived so the cascade re-picks from later games."""
+    from bts.picks import DailyPick, Pick, save_pick
+    from bts.scheduler import run_single_check
+    pick = Pick(batter_name="Kwan", batter_id=1, team="CLE", lineup_position=1,
+                pitcher_name="L", pitcher_id=2, p_game_hit=0.75, flags=[],
+                projected_lineup=False, game_pk=100, game_time="2026-08-30T17:40:00Z")
+    save_pick(DailyPick(date="2026-08-30", run_time="x", pick=pick, double_down=None,
+                        runner_up=None), tmp_path)
+    config = {"orchestrator": {"picks_dir": str(tmp_path),
+                               "heartbeat_path": str(tmp_path / ".hb")}, "tiers": []}
+    with patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.orchestrator.run_and_pick", return_value=(None, None, None)) as rap:
+        run_single_check(date="2026-08-30", all_game_pks=[100, 200], confirmed_sides=set(),
+                         config=config, early_lock_gap=0.03, unavailable_game_pks={100})
+    rap.assert_called_once()                                  # cascade ran (no strand)
+    assert list((tmp_path / "2026-08-30").glob("stale_pick_*.json"))
+    assert not (tmp_path / "2026-08-30.json").exists()
+
+
+def test_run_single_check_keeps_delivered_pick_past_cutoff(tmp_path):
+    """A DELIVERED pick whose game started stays locked — that is the committed day."""
+    from bts.picks import DailyPick, Pick, save_pick
+    from bts.scheduler import run_single_check
+    pick = Pick(batter_name="Kwan", batter_id=1, team="CLE", lineup_position=1,
+                pitcher_name="L", pitcher_id=2, p_game_hit=0.75, flags=[],
+                projected_lineup=False, game_pk=100, game_time="2026-08-30T17:40:00Z")
+    save_pick(DailyPick(date="2026-08-30", run_time="x", pick=pick, double_down=None,
+                        runner_up=None, notification_sent=True, notification_id="m"), tmp_path)
+    config = {"orchestrator": {"picks_dir": str(tmp_path),
+                               "heartbeat_path": str(tmp_path / ".hb")}, "tiers": []}
+    with patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.orchestrator.run_and_pick") as rap:
+        result = run_single_check(date="2026-08-30", all_game_pks=[100], confirmed_sides=set(),
+                                  config=config, early_lock_gap=0.03,
+                                  unavailable_game_pks={100})
+    rap.assert_not_called()
+    assert result["pick_result"].locked is True
+    assert (tmp_path / "2026-08-30.json").exists()
+
+
 @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "P", 300: "P"})
 def test_all_games_unavailable_reports_no_eligible(_st, tmp_path):
     from bts.strategy import select_pick

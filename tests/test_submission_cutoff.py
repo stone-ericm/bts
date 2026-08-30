@@ -40,6 +40,15 @@ def test_single_pick_cutoff():
     assert submission_cutoff_et(_daily()) == datetime(2026, 8, 30, 13, 35, tzinfo=ET)
 
 
+def test_naive_game_time_is_treated_as_utc():
+    """Pick.game_time is documented UTC; a naive value must not be read in the
+    host timezone (Codex r2 F8: under TZ=America/New_York a naive intended-UTC
+    17:40 produced a cutoff four hours late)."""
+    from bts.picks import submission_cutoff_et
+    d = _daily(primary_utc="2026-08-30T17:40:00")   # tz-naive, intended UTC
+    assert submission_cutoff_et(d) == datetime(2026, 8, 30, 13, 35, tzinfo=ET)
+
+
 def test_scheduler_and_health_reuse_the_constant():
     from bts.health import pick_entry
     from bts.picks import SUBMISSION_CUTOFF_MIN

@@ -188,6 +188,22 @@ def test_carry_forward_skip_state_first_run_of_day():
     assert fresh.skip_summary is None
 
 
+def test_carry_forward_preserves_refusals_and_measured_budget():
+    """Codex r2 F6: a same-day restart (deploy, Restart=always) must not erase the
+    delivery-refusal record (the EOD late_delivery backstop) or the measured
+    cascade durations that calibrate the fallback budget."""
+    from bts.scheduler import carry_forward_skip_state
+    prev = _state()
+    prev.delivery_refusals = [{"at": "2026-06-18T13:36:14-04:00", "batter": "Kwan"}]
+    prev.fallback_refreshes = [{"finished": "2026-06-18T13:20:34-04:00",
+                                "duration_sec": 920.0, "action": "defer",
+                                "reason": "gap_contender_window_feasible"}]
+    fresh = _state()
+    carry_forward_skip_state(fresh, prev)
+    assert fresh.delivery_refusals == prev.delivery_refusals
+    assert fresh.fallback_refreshes == prev.fallback_refreshes
+
+
 def test_build_skip_summary_returns_none_on_all_nan_probs():
     preds = pd.DataFrame([
         {"batter_name": "A", "team": "X", "p_game_hit": float("nan"), "game_pk": 1},
