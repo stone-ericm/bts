@@ -391,6 +391,27 @@ class FallbackRefreshResult:
     # later cascade fails there is nothing left to deliver. None on the
     # cached/error paths (defer semantics preserved).
     should_post_ungated: bool | None = None
+    # Why should_post is False (LockDecision.block_reason) and, for a gap
+    # block, WHICH game's confirmation could change the pick — the fallback
+    # planner defers only for THAT window, and only when it can finish before
+    # this pick's cutoff (2026-08-30). None on the cached/error paths.
+    block_reason: str | None = None
+    contender_game_pk: int | None = None
+
+
+@dataclass(frozen=True)
+class LockDecision:
+    """Result of _lock_decision_from_predictions.
+
+    block_reason: None | "status_failure" | "slot_unavailable" |
+    "primary_projected" | "gap" | "dd_projected". contender_game_pk is set for a
+    "gap" block: the game of the best projected contender whose confirmation
+    could still change the pick."""
+    should_lock: bool
+    best_projected: float | None
+    should_lock_ungated: bool
+    block_reason: str | None = None
+    contender_game_pk: int | None = None
 
 
 def _should_defer_at_fallback(
@@ -1046,11 +1067,14 @@ def _lock_decision_from_predictions(
     daily,
     date: str,
     early_lock_gap: float,
-) -> tuple[bool, float | None, bool]:
-    """Return (should_lock, best projected contender, should_lock ignoring
-    the F2 double-down gate). The ungated value lets the in-loop fallback
-    distinguish a gate-only block (deliver at the deadline) from a genuine
-    pre-gate block (defer) — Codex review L1."""
+) -> LockDecision:
+    """Return a LockDecision: should_lock, the best projected contender, the
+    lock decision ignoring the F2 double-down gate, WHY the lock is blocked and
+    (for a gap block) which game the contender is in. The ungated value lets
+    the in-loop fallback distinguish a gate-only block (deliver at the
+    deadline) from a genuine pre-gate block — Codex review L1; the block reason
+    + contender game let the planner defer only for a window that matters
+    (2026-08-30)."""
     from bts.picks import (
         get_game_statuses_detailed,
         pick_candidate_status_is_available,
@@ -1064,7 +1088,7 @@ def _lock_decision_from_predictions(
             "  Detailed game-status lookup failed; should_lock=False.",
             file=sys.stderr,
         )
-        return False, None, False
+        return LockDecision(False, None, False, "status_failure")
 
     # Round-2 R4: the SELECTED slots must themselves still be lockable.
     # Contender rows are status-filtered below, but the committed pick/DD
@@ -1080,7 +1104,7 @@ def _lock_decision_from_predictions(
                 f"(postponed/started/missing); should_lock=False.",
                 file=sys.stderr,
             )
-            return False, None, False
+            return LockDecision(False, None, False, "slot_unavailable")
 
     pick_data = {
         "p_game_hit": daily.pick.p_game_hit,
@@ -1098,6 +1122,7 @@ def _lock_decision_from_predictions(
         }
     all_pick_data = []
     best_projected = None
+    best_projected_pk = None
     for _, row in predictions.iterrows():
         if row.get("p_game_hit") and row["p_game_hit"] == row["p_game_hit"]:  # not NaN
             game_pk = int(row["game_pk"])
@@ -1112,13 +1137,22 @@ def _lock_decision_from_predictions(
             if is_proj and game_pk != pick_data["game_pk"]:
                 if best_projected is None or float(row["p_game_hit"]) > best_projected:
                     best_projected = float(row["p_game_hit"])
+                    best_projected_pk = game_pk
 
     ungated = should_lock(pick_data, all_pick_data, early_lock_gap)
     gated = (
         should_lock(pick_data, all_pick_data, early_lock_gap, double_down=double_down_data)
         if double_down_data is not None else ungated
     )
-    return gated, best_projected, ungated
+    if pick_data["projected_lineup"]:
+        reason, contender = "primary_projected", None
+    elif not ungated:
+        reason, contender = "gap", best_projected_pk
+    elif not gated:
+        reason, contender = "dd_projected", None
+    else:
+        reason, contender = None, None
+    return LockDecision(gated, best_projected, ungated, reason, contender)
 
 
 def _has_pending_future_confirmation_window(
@@ -1381,12 +1415,13 @@ def run_single_check(
     )
     save_pick(pick_result.daily, picks_dir)
 
-    do_post, best_projected, _ = _lock_decision_from_predictions(
+    decision = _lock_decision_from_predictions(
         predictions,
         pick_result.daily,
         date,
         early_lock_gap,
     )
+    do_post, best_projected = decision.should_lock, decision.best_projected
 
     # Log the decision
     pick = pick_result.daily.pick
@@ -1762,22 +1797,26 @@ def _refresh_pick_at_fallback_decision(
         )
         return FallbackRefreshResult(fresh, None, selection=sel)
 
-    should_post, best_projected, ungated = _lock_decision_from_predictions(
+    decision = _lock_decision_from_predictions(
         predictions,
         fresh,
         date,
         early_lock_gap,
     )
+    best_projected = decision.best_projected
     gap_info = ""
     if best_projected is not None:
         gap = fresh.pick.p_game_hit - best_projected
         gap_info = f", gap={gap:.1%} vs projected {best_projected:.1%}"
+    block_info = f", block={decision.block_reason}" if decision.block_reason else ""
     print(
-        f"  FALLBACK REFRESH: should_lock={should_post}{gap_info}",
+        f"  FALLBACK REFRESH: should_lock={decision.should_lock}{gap_info}{block_info}",
         file=sys.stderr,
     )
-    return FallbackRefreshResult(fresh, should_post, selection=sel,
-                                 should_post_ungated=ungated)
+    return FallbackRefreshResult(fresh, decision.should_lock, selection=sel,
+                                 should_post_ungated=decision.should_lock_ungated,
+                                 block_reason=decision.block_reason,
+                                 contender_game_pk=decision.contender_game_pk)
 
 
 def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):

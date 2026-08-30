@@ -573,16 +573,17 @@ class TestSchedulerRun:
             },
         ])
 
-        should_post, best_projected, ungated = _lock_decision_from_predictions(
+        decision = _lock_decision_from_predictions(
             predictions,
             _daily_pick(100),
             "2026-04-03",
             early_lock_gap=0.03,
         )
 
-        assert should_post is False
-        assert best_projected is None
-        assert ungated is False  # status failure blocks pre-gate too
+        assert decision.should_lock is False
+        assert decision.best_projected is None
+        assert decision.should_lock_ungated is False  # status failure blocks pre-gate too
+        assert decision.block_reason == "status_failure"
         mock_coarse_statuses.assert_not_called()
 
     # --- F2 (2026-07-09 audit): the scheduler-level case where the projected
@@ -613,19 +614,21 @@ class TestSchedulerRun:
         ])
         daily = _daily_pick(100, double_down_game_pk=200, double_down_projected=True)
 
-        should_post, _, _ = _lock_decision_from_predictions(
+        decision = _lock_decision_from_predictions(
             predictions, daily, "2026-04-04", early_lock_gap=0.03,
         )
-        assert should_post is False
+        assert decision.should_lock is False
+        assert decision.block_reason == "dd_projected"
 
         # identical slate with the DD confirmed locks as before
         predictions_confirmed = predictions.copy()
         predictions_confirmed.loc[1, "flags"] = ""
         daily_confirmed = _daily_pick(100, double_down_game_pk=200)
-        should_post, _, _ = _lock_decision_from_predictions(
+        decision = _lock_decision_from_predictions(
             predictions_confirmed, daily_confirmed, "2026-04-04", early_lock_gap=0.03,
         )
-        assert should_post is True
+        assert decision.should_lock is True
+        assert decision.block_reason is None
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         100: {"abstract": "P", "detailed": "Scheduled"},
@@ -653,11 +656,12 @@ class TestSchedulerRun:
             },
         ])
         daily = _daily_pick(100, double_down_game_pk=200, double_down_projected=True)
-        should_post, _, ungated = _lock_decision_from_predictions(
+        decision = _lock_decision_from_predictions(
             predictions, daily, "2026-04-04", early_lock_gap=0.03,
         )
-        assert should_post is False
-        assert ungated is True  # gap passes, primary confirmed — gate-only block
+        assert decision.should_lock is False
+        assert decision.should_lock_ungated is True  # gap passes, primary confirmed — gate-only block
+        assert decision.block_reason == "dd_projected"
 
     @patch("bts.picks.get_game_statuses_detailed", return_value={
         100: {"abstract": "F", "detailed": "Postponed"},
@@ -680,11 +684,12 @@ class TestSchedulerRun:
             },
         ])
         daily = _daily_pick(100)  # primary's game 100 is postponed
-        should_post, best_projected, ungated = _lock_decision_from_predictions(
+        decision = _lock_decision_from_predictions(
             predictions, daily, "2026-04-04", early_lock_gap=0.03,
         )
-        assert should_post is False
-        assert ungated is False
+        assert decision.should_lock is False
+        assert decision.should_lock_ungated is False
+        assert decision.block_reason == "slot_unavailable"
 
     def test_should_defer_at_fallback_gate_only_block_delivers(self):
         from bts.scheduler import _should_defer_at_fallback
