@@ -314,6 +314,35 @@ def pick_was_delivered(daily: DailyPick) -> bool:
     return bool(daily.bluesky_posted or (daily.notification_sent and daily.notification_id))
 
 
+# BTS rejects submissions within 5 min of first pitch. The ONLY definition —
+# cli check-pick-entered, health pick_entry/late_delivery and the scheduler's
+# delivery guard all import it (2026-08-30 incident: a pick DM'd at 13:36 for a
+# 13:40 first pitch was already unenterable, and the scheduler had no notion of
+# the cutoff at all).
+SUBMISSION_CUTOFF_MIN = 5
+
+
+def earliest_pick_game_et(daily: DailyPick) -> datetime:
+    """Earliest first pitch among the committed slots, ET-aware.
+
+    The BTS app locks BOTH picks at the first game to start, so every deadline
+    (fallback, cutoff, entry nag) keys on the earlier of primary and double-down.
+    """
+    from zoneinfo import ZoneInfo
+    et = ZoneInfo("America/New_York")
+    times = [datetime.fromisoformat(daily.pick.game_time.replace("Z", "+00:00")).astimezone(et)]
+    if daily.double_down:
+        times.append(datetime.fromisoformat(
+            daily.double_down.game_time.replace("Z", "+00:00")).astimezone(et))
+    return min(times)
+
+
+def submission_cutoff_et(daily: DailyPick) -> datetime:
+    """Last instant the committed slots can still be entered (first pitch − 5 min)."""
+    from datetime import timedelta
+    return earliest_pick_game_et(daily) - timedelta(minutes=SUBMISSION_CUTOFF_MIN)
+
+
 def append_lineup_evolution(daily: DailyPick, picks_dir: Path) -> Path:
     """Append one observation row to data/picks/lineup_evolution_{date}.jsonl.
 

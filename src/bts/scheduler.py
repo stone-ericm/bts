@@ -865,19 +865,14 @@ def _now_et() -> datetime:
 
 
 def _earliest_pick_game_et(daily) -> datetime:
-    """Return the earliest game start time among primary and double-down picks (ET).
+    """Earliest first pitch among primary + double-down (ET).
 
     BTS-app deadline = first game in the slate to start, since the user has to
-    submit BOTH picks before either game begins. The fallback-post deadline must
-    therefore use this earlier time, NOT the primary pick's game time, in cases
-    where the double-down's game starts first.
+    submit BOTH picks before either game begins. Delegates to
+    bts.picks.earliest_pick_game_et; kept under this name for cli/test imports.
     """
-    times = [datetime.fromisoformat(daily.pick.game_time).astimezone(ET)]
-    if daily.double_down:
-        times.append(
-            datetime.fromisoformat(daily.double_down.game_time).astimezone(ET)
-        )
-    return min(times)
+    from bts.picks import earliest_pick_game_et
+    return earliest_pick_game_et(daily)
 
 
 def _compute_result_poll_start(daily) -> datetime:

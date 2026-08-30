@@ -1654,7 +1654,8 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     # BTS rejects submissions within 5 min of first pitch. Only check inside
     # [cutoff, window]: below the cutoff the pick can no longer be entered, so a
     # "Fix it now!" nag is useless (and its countdown would go negative).
-    submit_cutoff_min = 5
+    from bts.picks import SUBMISSION_CUTOFF_MIN
+    submit_cutoff_min = SUBMISSION_CUTOFF_MIN
     # Strict lower bound: at exactly first_pitch-5 the entry is already locked
     # (Codex review #8) — never DM "0 min to submit".
     if not (submit_cutoff_min < minutes_to_pitch <= window_min):

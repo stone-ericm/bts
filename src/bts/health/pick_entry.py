@@ -15,12 +15,13 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from bts.health.alert import Alert
+from bts.picks import SUBMISSION_CUTOFF_MIN
 
 log = logging.getLogger(__name__)
 
 SOURCE = "pick_entry"
 
-SUBMIT_CUTOFF_MIN = 5  # BTS rejects submissions within 5 min of first pitch
+SUBMIT_CUTOFF_MIN = SUBMISSION_CUTOFF_MIN  # single definition lives in bts.picks
 
 
 def _earliest_cutoff_utc(picks_dir: Path, today: date) -> datetime | None:
