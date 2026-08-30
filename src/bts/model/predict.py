@@ -1,6 +1,7 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
 import json
+import os
 import pickle  # noqa: S403 — caching trained ML models, not untrusted data
 import sys
 import numpy as np
@@ -785,6 +786,15 @@ def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: st
 
     Downloads any new Final games from season start through yesterday,
     then rebuilds the season's parquet. Skips already-downloaded games.
+
+    Memoized per (season, yesterday): a successful pull+rebuild writes
+    ``{processed_dir}/.refreshed_{season}_through_{yesterday}`` and later
+    calls the same day return immediately. The training window ends at
+    yesterday, so re-running intraday re-discovers the same schedule and
+    rebuilds the same parquet (~12 min/cascade; 2026-08-30 late-pick incident).
+    ``BTS_REFRESH_ALWAYS=1`` forces a refresh. Known limitation: a game from
+    yesterday that finalizes later today (suspended/resumed) is picked up by
+    tomorrow's first refresh, not intraday.
     """
     from bts.data.pull import pull_feeds
     from bts.data.build import build_season
@@ -801,13 +811,27 @@ def _refresh_season_data(date: str, raw_dir: str = "data/raw", processed_dir: st
     raw = Path(raw_dir)
     proc = Path(processed_dir)
 
+    marker = proc / f".refreshed_{season}_through_{yesterday}"
+    output_path = proc / f"pa_{season}.parquet"
+    # The parquet must exist too: a marker alone must never hide a missing
+    # season file (run_pipeline loads pa_*.parquet right after this).
+    if (marker.exists() and output_path.exists()
+            and os.environ.get("BTS_REFRESH_ALWAYS", "0") != "1"):
+        print(f"  Season data already refreshed through {yesterday} "
+              f"({marker.name}); skipping intraday re-pull.", file=sys.stderr)
+        return
+
     print(f"  Refreshing {season} data through {yesterday}...", file=sys.stderr)
     paths = pull_feeds(season_start, yesterday, raw, delay=0.3)
     print(f"  {len(paths)} game feeds ({sum(1 for _ in (raw / str(season)).glob('*.json'))} total)", file=sys.stderr)
 
-    output_path = proc / f"pa_{season}.parquet"
     df = build_season(raw, output_path, season)
     print(f"  Rebuilt {output_path.name}: {len(df)} PAs", file=sys.stderr)
+
+    # Written only after a successful pull+rebuild so a failed build re-runs
+    # on the next cascade.
+    proc.mkdir(parents=True, exist_ok=True)
+    marker.write_text(datetime.now().isoformat())
 
 
 @_park_drag_pin
