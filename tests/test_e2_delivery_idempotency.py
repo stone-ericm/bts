@@ -1,10 +1,23 @@
 """E2: delivery idempotency — a crash mid-send must not double-post on restart."""
+from datetime import datetime
 from unittest.mock import patch, MagicMock
+from zoneinfo import ZoneInfo
+
+import pytest
 
 from bts.scheduler import _deliver_and_lock_pick, SchedulerState
 from bts.picks import DailyPick, Pick
 
 CONFIG = {"scheduler": {"pick_delivery": "public"}}
+ET = ZoneInfo("America/New_York")
+
+
+@pytest.fixture(autouse=True)
+def _clock_before_cutoff():
+    """The pick's game is 2026-04-06 16:10 ET; the delivery guard (2026-08-30)
+    refuses sends at/after first pitch − 5, so pin the clock inside the window."""
+    with patch("bts.scheduler._now_et", return_value=datetime(2026, 4, 6, 15, 0, tzinfo=ET)):
+        yield
 
 
 def _state(date="2026-04-06"):

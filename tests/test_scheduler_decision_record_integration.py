@@ -82,12 +82,14 @@ def _seq(items):
 
 
 def _drive_run_day(monkeypatch, tmp_path, check_results, *, games=None,
-                   pick_delivery="private", mock_post=False, now_et="23:30",
+                   pick_delivery="private", mock_post=False, now_et="18:40",
                    poll_fn=None):
     """Run the REAL run_day to completion with run_single_check mocked.
 
     health_checks disabled and all sleeps/network neutralized so only the
-    decision-record control flow under test runs.
+    decision-record control flow under test runs. The clock sits past the
+    18:20 lineup check but BEFORE the 19:00 submission cutoff of the 19:05
+    game: the delivery guard (2026-08-30) refuses anything later.
     """
     games = games or [_game(100, "19:05")]
     if not isinstance(check_results, (list, tuple)):
@@ -138,6 +140,7 @@ def test_public_commit_via_run_day_writes_delivered_scoreable(tmp_path, monkeypa
 
 def test_private_commit_writes_private_locked_scoreable(tmp_path, monkeypatch):
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_now_et", lambda: datetime(2026, 4, 6, 18, 40, tzinfo=ET))
     st = _state()
     sel = _sel("single", "mdp", primary=_cand())
     config = {"scheduler": {"pick_delivery": "private"}}
@@ -170,6 +173,7 @@ def test_crash_guard_writes_locked_unconfirmed_scoreable(tmp_path, monkeypatch):
 def test_double_down_commit_records_action_double(tmp_path, monkeypatch):
     """The recorded action reflects daily.double_down even when selection is present."""
     monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
+    monkeypatch.setattr(sch, "_now_et", lambda: datetime(2026, 4, 6, 18, 40, tzinfo=ET))
     dd = _pick(bid=2, name="Y", team="KC", gpk=200)
     sel = _sel("double", "mdp", primary=_cand(), double=_cand(bid=2))
     config = {"scheduler": {"pick_delivery": "private"}}

@@ -370,6 +370,10 @@ class SchedulerState:
     # SchedulerState(**data); asdict round-trips the dict cleanly.
     final_skip_candidate: dict | None = None  # declined MDP-skip candidate to record at EOD
     committed_pick_written: bool = False       # True once a scoreable commit record was written
+    # Fail-closed delivery-guard refusals (2026-08-30): each entry
+    # {at, label, batter, double_down, cutoff_et, late_min, archive}. The EOD
+    # late_delivery health source turns any entry into a CRITICAL.
+    delivery_refusals: list[dict] | None = None
 
 
 @dataclass
@@ -761,6 +765,18 @@ def _deliver_and_lock_pick(
         _record_commit("locked_unconfirmed")
         return False
 
+    # Fail-closed submission-cutoff guard (2026-08-30 incident: a lineup lock
+    # DM'd Kwan at 13:36 for a 13:40 first pitch). Applies to every delivery
+    # mode incl. private — a pick locked after the cutoff is unenterable, and
+    # this is the single chokepoint every caller (lineup lock, in-loop
+    # fallback, final fallback) goes through.
+    from bts.picks import submission_cutoff_et
+    cutoff = submission_cutoff_et(daily)
+    now = _now_et()
+    if now >= cutoff:
+        _refuse_late_delivery(daily, config, picks_dir, state, date, label, cutoff, now)
+        return False
+
     if mode == "private":
         save_pick(daily, picks_dir)
         state.pick_locked = True
@@ -796,6 +812,7 @@ def _deliver_and_lock_pick(
         try:
             from bts.dm import send_dm
             msg_id = send_dm(recipient, text)
+            daily.delivered_at = _now_et().isoformat()
             daily.notification_sent = True
             daily.notification_channel = "bluesky_dm"
             daily.notification_id = msg_id
@@ -818,6 +835,7 @@ def _deliver_and_lock_pick(
     try:
         from bts.posting import post_to_bluesky
         uri = post_to_bluesky(text)
+        daily.delivered_at = _now_et().isoformat()
         daily.bluesky_posted = True
         daily.bluesky_uri = uri
         save_pick(daily, picks_dir)
@@ -1749,22 +1767,62 @@ def _refresh_pick_at_fallback(config: dict, date: str, cached_daily):
     ).daily
 
 
-def _defer_pick_at_fallback(picks_dir: Path, date: str, daily, reason: str) -> Path:
-    """Archive and remove an unsafe fallback candidate so later checks refresh."""
+def _archive_and_remove_pick(picks_dir: Path, date: str, daily, *, prefix: str, key: str,
+                             at_key: str, reason: str, extra: dict | None = None) -> Path:
+    """Archive the live <date>.json under <date>/<prefix>_<stamp>.json and remove it
+    so later cycles re-select instead of reusing a candidate we chose not to (defer)
+    or could not (past cutoff) deliver."""
     source = picks_dir / f"{date}.json"
     archive_dir = picks_dir / date
     archive_dir.mkdir(parents=True, exist_ok=True)
-    stamp = _now_et().strftime("%Y%m%dT%H%M%S%z")
-    archive = archive_dir / f"deferred_fallback_{stamp}.json"
+    now = _now_et()
+    archive = archive_dir / f"{prefix}_{now.strftime('%Y%m%dT%H%M%S%z')}.json"
     payload = asdict(daily)
-    payload["deferred_fallback"] = {
-        "reason": reason,
-        "deferred_at": _now_et().isoformat(),
-    }
+    payload[key] = {"reason": reason, at_key: now.isoformat(), **(extra or {})}
     archive.write_text(json.dumps(payload, indent=2))
     if source.exists():
         source.unlink()
     return archive
+
+
+def _defer_pick_at_fallback(picks_dir: Path, date: str, daily, reason: str) -> Path:
+    """Archive and remove an unsafe fallback candidate so later checks refresh."""
+    return _archive_and_remove_pick(picks_dir, date, daily, prefix="deferred_fallback",
+                                    key="deferred_fallback", at_key="deferred_at",
+                                    reason=reason)
+
+
+def _refuse_late_delivery(daily, config: dict, picks_dir: Path, state: SchedulerState,
+                          date: str, label: str, cutoff: datetime, now: datetime) -> None:
+    """Delivery-guard action (2026-08-30): archive+remove the dead candidate, record
+    the refusal on state, DM a CRITICAL. Leaves pick_locked False so the next cycle
+    re-picks from games that are still enterable (past-cutoff games are excluded
+    from selection by _games_past_cutoff)."""
+    from bts.health.alert import Alert, dispatch_dm_for_health_alerts
+
+    late_min = round((now - cutoff).total_seconds() / 60, 2)
+    names = daily.pick.batter_name + (
+        f" + {daily.double_down.batter_name}" if daily.double_down else "")
+    print(f"  DELIVERY REFUSED ({label}) — {names}: submission cutoff "
+          f"{cutoff.strftime('%H:%M ET')} passed {late_min:.1f} min ago; not delivering an "
+          f"unenterable pick.", file=sys.stderr)
+    archive = _archive_and_remove_pick(
+        picks_dir, date, daily, prefix="refused_delivery", key="refused_delivery",
+        at_key="refused_at", reason="past_submission_cutoff",
+        extra={"label": label, "cutoff_et": cutoff.isoformat(), "late_min": late_min})
+    state.delivery_refusals = (state.delivery_refusals or []) + [{
+        "at": now.isoformat(), "label": label, "batter": daily.pick.batter_name,
+        "double_down": daily.double_down.batter_name if daily.double_down else None,
+        "cutoff_et": cutoff.isoformat(), "late_min": late_min, "archive": archive.name}]
+    save_state(state, picks_dir)
+    msg = (f"LATE DELIVERY REFUSED: {names} would have been sent {late_min:.0f} min after the "
+           f"{cutoff.strftime('%H:%M ET')} cutoff. Nothing delivered; the scheduler will re-pick "
+           f"from later games if any remain. Enter a pick manually if you want one now.")
+    dispatch_dm_for_health_alerts(
+        [Alert("CRITICAL", "late_delivery", msg)],
+        config.get("bluesky", {}).get("dm_recipient"),
+        status_path=picks_dir.parent / "health_state" / "health_dm_delivery_status.json",
+    )
 
 
 def _trigger_live_forward_capture_on_lock(config: dict, date: str) -> None:

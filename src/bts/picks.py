@@ -212,6 +212,9 @@ class DailyPick:
     # cleared on a caught failure. If it survives as True while the pick is not
     # delivered, the daemon crashed mid-send → don't re-send (avoid a duplicate).
     delivery_attempted: bool = False
+    # ET ISO timestamp of the successful DM/post (2026-08-30). run_time is the
+    # SELECTION time; this is the DELIVERY time the late_delivery audit needs.
+    delivered_at: str | None = None
     result: str | None = None  # "hit", "miss", "void", "suspended", "unresolved", or None (pending)
     slot_results: dict[str, str] | None = None  # {"pick": "hit|miss|void", "double_down": ...}
     # Shadow-stack identity: stamped by save_shadow_pick with the current
@@ -416,6 +419,7 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         notification_channel=data.get("notification_channel"),
         notification_id=data.get("notification_id"),
         delivery_attempted=data.get("delivery_attempted", False),
+        delivered_at=data.get("delivered_at"),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         model_git_sha=data.get("model_git_sha"),
@@ -450,6 +454,7 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         notification_channel=data.get("notification_channel"),
         notification_id=data.get("notification_id"),
         delivery_attempted=data.get("delivery_attempted", False),
+        delivered_at=data.get("delivered_at"),
         result=data.get("result"),
         slot_results=data.get("slot_results"),
         # Provenance v1 — defaults to None for picks saved before these fields existed.
