@@ -104,6 +104,7 @@ def pull_feeds(
     for i, game in enumerate(games):
         season = game["date"][:4]
         output_dir = data_dir / season
+        cached = (output_dir / f"{game['gamePk']}.json").exists()
         try:
             path = download_game_feed(game["gamePk"], output_dir)
             paths.append(path)
@@ -111,7 +112,9 @@ def pull_feeds(
             failed.append(game["gamePk"])
             print(f"  SKIP {game['gamePk']}: {e}", file=sys.stderr)
 
-        if delay > 0 and i < len(games) - 1:
+        # Throttle only between REAL requests: 2,100 cached feeds × 0.3 s was
+        # ~10.6 min of sleep per intraday prediction run (2026-08-30 incident).
+        if not cached and delay > 0 and i < len(games) - 1:
             time.sleep(delay)
 
     if failed:

@@ -173,3 +173,43 @@ def test_pull_feeds_orchestrates(tmp_path):
     assert len(paths) == 2
     assert (tmp_path / "2025" / "111.json").exists()
     assert (tmp_path / "2025" / "222.json").exists()
+
+
+def test_pull_feeds_does_not_sleep_on_cache_hits(tmp_path):
+    """Cached feeds must not pay the inter-request throttle.
+
+    An intraday prediction run walks ~2,100 already-downloaded feeds; sleeping
+    0.3 s after each cache hit was ~10.6 min of pure sleep per cascade
+    (2026-08-30 late-pick incident).
+    """
+    games = [{"gamePk": 111, "date": "2025-06-01"}, {"gamePk": 222, "date": "2025-06-01"}]
+    (tmp_path / "2025").mkdir()
+    (tmp_path / "2025" / "111.json").write_text("{}")
+    (tmp_path / "2025" / "222.json").write_text("{}")
+    with patch("bts.data.pull.discover_games", return_value=games), \
+         patch("bts.data.pull.urlopen") as mock_open, \
+         patch("bts.data.pull.time.sleep") as mock_sleep:
+        paths = pull_feeds("2025-06-01", "2025-06-01", tmp_path, delay=0.3)
+    assert len(paths) == 2
+    mock_open.assert_not_called()
+    mock_sleep.assert_not_called()
+
+
+def test_pull_feeds_sleeps_only_after_real_downloads(tmp_path):
+    games = [{"gamePk": 111, "date": "2025-06-01"}, {"gamePk": 222, "date": "2025-06-01"},
+             {"gamePk": 333, "date": "2025-06-01"}]
+    (tmp_path / "2025").mkdir()
+    (tmp_path / "2025" / "222.json").write_text("{}")          # cached; 111 and 333 fetched
+    sample = {"gameData": {}, "liveData": {}}
+
+    def _mock(url, **kwargs):
+        resp = MagicMock()
+        resp.read.return_value = json.dumps(sample).encode()
+        return resp
+
+    with patch("bts.data.pull.discover_games", return_value=games), \
+         patch("bts.data.pull.urlopen", side_effect=_mock) as mock_open, \
+         patch("bts.data.pull.time.sleep") as mock_sleep:
+        pull_feeds("2025-06-01", "2025-06-01", tmp_path, delay=0.3)
+    assert mock_open.call_count == 2
+    assert mock_sleep.call_count == 1          # after 111 only; 333 is the last item
