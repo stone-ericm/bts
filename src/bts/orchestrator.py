@@ -251,6 +251,7 @@ def run_and_pick(
     date: str,
     *,
     require_detailed_statuses: bool = True,
+    unavailable_game_pks: "set[int] | None" = None,
 ) -> tuple[pd.DataFrame | None, "SelectionResult | None", str | None]:
     """Run cascade and apply strategy. No posting, no DMs.
 
@@ -297,6 +298,7 @@ def run_and_pick(
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
+        unavailable_game_pks=unavailable_game_pks,
     )
     # bts_daily_decision_v2 provenance: record WHICH state stream fed this
     # selection so decision records are exact by construction (the 8/09

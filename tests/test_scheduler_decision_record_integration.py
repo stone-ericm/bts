@@ -474,7 +474,7 @@ def test_fallback_genuine_skip_recaptures_after_projected_pick_cleared(tmp_path,
     skip_sel = _sel("skip", "mdp", primary=_cand(), streak=7, saver=False)
     monkeypatch.setattr(
         sch, "_refresh_pick_at_fallback_decision",
-        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, None, selection=skip_sel),
+        lambda cfg, d, cached, gap, **k: sch.FallbackRefreshResult(cached, None, selection=skip_sel),
     )
     _drive_run_day(monkeypatch, tmp_path, _projected_single(), pick_delivery="private")
 
@@ -497,7 +497,7 @@ def test_fallback_cascade_error_still_delivers_cached_safety_net(tmp_path, monke
     monkeypatch.setattr(sch, "_maybe_alert_missed_pick", lambda *a, **k: None)
     monkeypatch.setattr(
         sch, "_refresh_pick_at_fallback_decision",
-        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, None),  # selection=None
+        lambda cfg, d, cached, gap, **k: sch.FallbackRefreshResult(cached, None),  # selection=None
     )
     _drive_run_day(monkeypatch, tmp_path, _projected_single(), pick_delivery="private")
 
@@ -562,7 +562,7 @@ def test_standing_skip_yields_to_late_pick_post_loop(tmp_path, monkeypatch):
     pick_sel = _sel("single", "mdp", primary=_cand())
     monkeypatch.setattr(
         sch, "_refresh_pick_at_fallback_decision",
-        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
+        lambda cfg, d, cached, gap, **k: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
     )
     # The day's only cycle is a genuine MDP skip → final_skip_candidate set, unlocked.
     skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=7, saver=False))
@@ -589,7 +589,7 @@ def test_standing_skip_yields_to_late_pick_in_loop(tmp_path, monkeypatch):
     pick_sel = _sel("single", "mdp", primary=_cand())
     monkeypatch.setattr(
         sch, "_refresh_pick_at_fallback_decision",
-        lambda cfg, d, cached, gap: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
+        lambda cfg, d, cached, gap, **k: sch.FallbackRefreshResult(cached, True, selection=pick_sel),
     )
     skip = _result(selection=_sel("skip", "mdp", primary=_cand(), streak=7, saver=False))
     # selection=None → candidate survives into the in-loop fallback; pick_result.daily

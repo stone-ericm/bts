@@ -893,6 +893,25 @@ def _earliest_pick_game_et(daily) -> datetime:
     return earliest_pick_game_et(daily)
 
 
+def _games_past_cutoff(state_games: list[dict], now: datetime) -> set[int]:
+    """game_pks whose submission cutoff (first pitch − SUBMISSION_CUTOFF_MIN) is ≤ now.
+
+    Fed to run_and_pick so a late cycle re-picks from enterable games only. Only
+    games that are ALREADY unenterable — no margin — so an enterable pick is never
+    filtered away (2026-08-30 Codex review #7). Malformed entries are ignored.
+    """
+    from bts.picks import SUBMISSION_CUTOFF_MIN
+    out: set[int] = set()
+    for g in state_games:
+        try:
+            start = datetime.fromisoformat(g["game_time_et"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if start - timedelta(minutes=SUBMISSION_CUTOFF_MIN) <= now:
+            out.add(int(g["game_pk"]))
+    return out
+
+
 def _compute_result_poll_start(daily) -> datetime:
     """Return the ET datetime when result polling should start: 10 minutes
     after the earliest of primary or double-down game start.
@@ -1222,6 +1241,7 @@ def run_single_check(
     confirmed_sides: set[tuple[int, str]],
     config: dict,
     early_lock_gap: float,
+    unavailable_game_pks: "set[int] | None" = None,
 ) -> dict:
     """Run a single lineup check cycle.
 
@@ -1295,6 +1315,7 @@ def run_single_check(
                 config,
                 date,
                 require_detailed_statuses=False,
+                unavailable_game_pks=unavailable_game_pks,
             )
             pick_result = sel.pick_result if sel is not None else None
     except ContestStateError as e:
@@ -1665,6 +1686,7 @@ def _refresh_pick_at_fallback_decision(
     date: str,
     cached_daily,
     early_lock_gap: float,
+    unavailable_game_pks: "set[int] | None" = None,
 ) -> FallbackRefreshResult:
     """Re-run predictions right before fallback delivery so late-arriving
     lineups can update the pick. If the refreshed pick differs from the cached
@@ -1687,6 +1709,7 @@ def _refresh_pick_at_fallback_decision(
                 config,
                 date,
                 require_detailed_statuses=False,
+                unavailable_game_pks=unavailable_game_pks,
             )
             pick_result = sel.pick_result if sel is not None else None
     except ContestStateError:
@@ -2298,6 +2321,7 @@ def run_day(
             confirmed_sides=confirmed_sides,
             config=config,
             early_lock_gap=early_lock_gap,
+            unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
         )
 
         # Track the day's finalization intent off THIS cycle's selection (Task 3).
@@ -2442,6 +2466,7 @@ def run_day(
                             date,
                             daily,
                             early_lock_gap,
+                            unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
                         )
                     except ContestStateError as e:
                         print(
@@ -2534,6 +2559,7 @@ def run_day(
                         date,
                         daily,
                         early_lock_gap,
+                        unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
                     )
                     daily = refresh.daily
                 except ContestStateError as e:

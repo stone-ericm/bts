@@ -266,6 +266,7 @@ def select_pick(
     for_shadow: bool = False,
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
     require_detailed_statuses: bool = False,
+    unavailable_game_pks: "set[int] | None" = None,
 ) -> "SelectionResult":
     """Select the best pick from available predictions.
 
@@ -302,6 +303,11 @@ def select_pick(
     current = None
     if not for_shadow:
         current = load_pick(date, picks_dir)
+        if current and unavailable_game_pks:
+            committed = {current.pick.game_pk} | (
+                {current.double_down.game_pk} if current.double_down else set())
+            if committed & set(unavailable_game_pks):
+                current = None   # a committed slot is past its cutoff: re-select
         if require_detailed_statuses and game_statuses_detailed is None and current:
             return SelectionResult(PickResult(daily=current, locked=True), None, None, None, None, None)
         if current:
@@ -333,6 +339,11 @@ def select_pick(
 
         not_started = predictions["game_pk"].map(is_available)
     available = predictions[not_started]
+    if unavailable_game_pks:
+        # Live-only (scheduler passes games whose submission cutoff has already
+        # passed — NOT a margin; 2026-08-30). Offline callers pass nothing.
+        available = available[
+            ~available["game_pk"].astype(int).isin(list(unavailable_game_pks))]
 
     if available.empty:
         if current:
