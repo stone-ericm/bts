@@ -374,6 +374,9 @@ class SchedulerState:
     # {at, label, batter, double_down, cutoff_et, late_min, archive}. The EOD
     # late_delivery health source turns any entry into a CRITICAL.
     delivery_refusals: list[dict] | None = None
+    # In-loop fallback refreshes (2026-08-30): {started, finished, duration_sec,
+    # action, reason}. Durations feed the self-calibrating cascade budget.
+    fallback_refreshes: list[dict] | None = None
 
 
 @dataclass
@@ -412,6 +415,119 @@ class LockDecision:
     should_lock_ungated: bool
     block_reason: str | None = None
     contender_game_pk: int | None = None
+
+
+@dataclass(frozen=True)
+class FallbackPlan:
+    action: str                      # "deliver" | "defer"
+    reason: str
+    window_time_et: datetime | None = None
+
+
+def _run_has_pending_side(run: dict, confirmed_sides: set[tuple[int, str]]) -> bool:
+    return any((pk, side) not in confirmed_sides
+               for pk in run["game_pks"] for side in ("away", "home"))
+
+
+def effective_cascade_budget_min(config_min: float, recent_durations_sec: list) -> float:
+    """Assumed cascade duration: the config floor or the slower of the last two
+    measured cascades plus 2 min, whichever is larger. Self-calibrates within the
+    day (the first cascade of the day includes the once-a-day season refresh)."""
+    import math
+    recent = [d for d in recent_durations_sec[-2:] if d is not None]
+    if not recent:
+        return float(config_min)
+    return float(max(config_min, math.ceil(max(recent) / 60) + 2))
+
+
+def _measured_cascade_durations(state: "SchedulerState") -> list[float]:
+    """Cascade durations measured today, in loop order (lineup checks, then
+    fallback refreshes appended as they happen)."""
+    out = [r.get("duration_sec") for r in state.runs_completed
+           if r.get("duration_sec") is not None]
+    out += [f.get("duration_sec") for f in (state.fallback_refreshes or [])
+            if f.get("duration_sec") is not None]
+    return out
+
+
+def _fallback_min_with_floor(resolved_min: int, budget_min: float,
+                             operator_reserve_min: float) -> int:
+    """fallback_deadline_min is the LATEST CASCADE START before first pitch (the
+    refresh it launches takes a full cascade), so it must leave room for the
+    submission cutoff + the operator's reaction reserve + a cascade. Raises —
+    never lowers — the configured value (2026-08-30: T−35 with 15.5-min cascades
+    left ~T−20, then a deferral spent it)."""
+    import math
+    from bts.picks import SUBMISSION_CUTOFF_MIN
+    floor = math.ceil(SUBMISSION_CUTOFF_MIN + budget_min + operator_reserve_min)
+    if floor > resolved_min:
+        print(f"  fallback deadline raised {resolved_min}→{floor} min (cutoff "
+              f"{SUBMISSION_CUTOFF_MIN} + cascade budget {budget_min:.0f} + reserve "
+              f"{operator_reserve_min:.0f}).", file=sys.stderr)
+        return floor
+    return resolved_min
+
+
+def plan_fallback_action(
+    *,
+    now: datetime,
+    cutoff: datetime,
+    should_post: bool | None,
+    should_post_ungated: bool | None,
+    block_reason: str | None,
+    contender_game_pk: int | None,
+    remaining_runs: list[dict],
+    confirmed_sides: set[tuple[int, str]],
+    budget_min: float,
+    operator_reserve_min: float,
+) -> FallbackPlan:
+    """Decide the in-loop fallback AFTER the refresh, against the live clock.
+
+    Deferral is justified only when a lineup-confirmation window that can change
+    THIS decision can also finish before this pick must be delivered
+    (cutoff − operator reserve). The 2026-08-30 incident deferred on a boolean
+    snapshotted 30 minutes earlier that counted windows after first pitch.
+
+    Rules, in order:
+      1. should_lock True                → deliver.
+      2. lock decision unknown (None)    → deliver (fail-closed, unchanged).
+      3. gate-only block (ungated True)  → deliver (Codex L1, unchanged).
+      4. "gap" block: defer only if the CONTENDER's window can finish in time,
+         else deliver — policy change approved 2026-08-30 (previously the
+         enterable pick was abandoned whenever any pending window existed).
+      5. "primary_projected": any pending window → defer (2026-07-06 product
+         choice: a projected PRIMARY is abandoned for the later slate).
+      6. anything else (status_failure / slot_unavailable): legacy rule —
+         any pending window → defer, else deliver.
+    """
+    if should_post is True:
+        return FallbackPlan("deliver", "should_lock_true")
+    if should_post is None:
+        return FallbackPlan("deliver", "lock_decision_unknown")
+    if should_post_ungated is True:
+        return FallbackPlan("deliver", "dd_gate_only")
+
+    deliver_by = cutoff - timedelta(minutes=operator_reserve_min)
+    pending = [r for r in remaining_runs if _run_has_pending_side(r, confirmed_sides)]
+
+    def feasible(run: dict) -> bool:
+        start = max(run["time_et"], now)
+        return start + timedelta(minutes=budget_min) <= deliver_by
+
+    if block_reason == "gap":
+        relevant = ([r for r in pending if contender_game_pk in r["game_pks"]]
+                    if contender_game_pk is not None else pending)
+        for r in relevant:
+            if feasible(r):
+                return FallbackPlan("defer", "gap_contender_window_feasible", r["time_et"])
+        return FallbackPlan("deliver", "gap_no_feasible_window")
+    if block_reason == "primary_projected":
+        if pending:
+            return FallbackPlan("defer", "primary_projected_pending_window", pending[0]["time_et"])
+        return FallbackPlan("deliver", "primary_projected_no_window")
+    if pending:
+        return FallbackPlan("defer", "legacy_pending_window", pending[0]["time_et"])
+    return FallbackPlan("deliver", "legacy_no_window")
 
 
 def _should_defer_at_fallback(
