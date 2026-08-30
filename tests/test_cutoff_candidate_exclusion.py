@@ -90,6 +90,62 @@ def test_run_single_check_archives_undelivered_pick_past_cutoff(tmp_path):
     assert not (tmp_path / "2026-08-30.json").exists()
 
 
+def test_run_single_check_never_archives_a_committed_pick(tmp_path):
+    """Rebase reconciliation with the 2026-08-14 'committed means immutable'
+    fix: a scoreable decision on disk (e.g. private_locked — the pick FILE
+    carries no delivery flags) must win over the past-cutoff archive."""
+    import json as _json
+    from bts.picks import DailyPick, Pick, save_pick
+    from bts.scheduler import run_single_check
+    pick = Pick(batter_name="Kwan", batter_id=1, team="CLE", lineup_position=1,
+                pitcher_name="L", pitcher_id=2, p_game_hit=0.75, flags=[],
+                projected_lineup=False, game_pk=100, game_time="2026-08-30T17:40:00Z")
+    save_pick(DailyPick(date="2026-08-30", run_time="x", pick=pick, double_down=None,
+                        runner_up=None), tmp_path)
+    (tmp_path / "2026-08-30").mkdir()
+    (tmp_path / "2026-08-30" / "decision.json").write_text(_json.dumps({
+        "schema_version": "bts_daily_decision_v2", "date": "2026-08-30",
+        "action": "single", "source": "mdp", "primary": None, "double_down": None,
+        "second_candidate": None, "streak": 0, "saver_available": False,
+        "state_source": None, "state_status": None, "allow_double": True,
+        "contest_source_date": None, "delivery_status": "private_locked",
+        "scoreable": True, "finalized_at": "2026-08-30T16:00:00Z"}))
+    config = {"orchestrator": {"picks_dir": str(tmp_path),
+                               "heartbeat_path": str(tmp_path / ".hb")}, "tiers": []}
+    with patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.orchestrator.run_and_pick") as rap:
+        result = run_single_check(date="2026-08-30", all_game_pks=[100], confirmed_sides=set(),
+                                  config=config, early_lock_gap=0.03,
+                                  unavailable_game_pks={100})
+    rap.assert_not_called()
+    assert result["pick_result"].locked is True
+    assert (tmp_path / "2026-08-30.json").exists()
+    assert not list((tmp_path / "2026-08-30").glob("stale_pick_*.json"))
+
+
+def test_run_single_check_never_archives_an_attempted_pick(tmp_path):
+    """delivery_attempted=True is the crash-gap duplicate-delivery guard
+    (2026-08-14); the past-cutoff archive must not erase it."""
+    from bts.picks import DailyPick, Pick, save_pick
+    from bts.scheduler import run_single_check
+    pick = Pick(batter_name="Kwan", batter_id=1, team="CLE", lineup_position=1,
+                pitcher_name="L", pitcher_id=2, p_game_hit=0.75, flags=[],
+                projected_lineup=False, game_pk=100, game_time="2026-08-30T17:40:00Z")
+    save_pick(DailyPick(date="2026-08-30", run_time="x", pick=pick, double_down=None,
+                        runner_up=None, delivery_attempted=True), tmp_path)
+    config = {"orchestrator": {"picks_dir": str(tmp_path),
+                               "heartbeat_path": str(tmp_path / ".hb")}, "tiers": []}
+    with patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.orchestrator.run_and_pick") as rap:
+        result = run_single_check(date="2026-08-30", all_game_pks=[100], confirmed_sides=set(),
+                                  config=config, early_lock_gap=0.03,
+                                  unavailable_game_pks={100})
+    rap.assert_not_called()
+    assert result["pick_result"].locked is True
+    assert (tmp_path / "2026-08-30.json").exists()
+    assert not list((tmp_path / "2026-08-30").glob("stale_pick_*.json"))
+
+
 def test_run_single_check_keeps_delivered_pick_past_cutoff(tmp_path):
     """A DELIVERED pick whose game started stays locked — that is the committed day."""
     from bts.picks import DailyPick, Pick, save_pick

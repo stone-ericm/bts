@@ -1474,24 +1474,15 @@ def run_single_check(
     # Short-circuit: if pick is already locked, skip the expensive cascade
     picks_dir = Path(config["orchestrator"]["picks_dir"])
     existing = load_pick(date, picks_dir)
-    if existing and unavailable_game_pks and not pick_was_delivered(existing):
-        # Codex r2 F5: an undelivered preview whose committed game is past its
-        # cutoff would classify as locked (game started) and strand the day.
-        # Archive it and re-select from the games that are still enterable.
-        past = set(_committed_pick_game_pks(existing)) & set(unavailable_game_pks)
-        if past:
-            print(f"  Existing undelivered pick's game(s) {sorted(past)} past the "
-                  f"submission cutoff — archiving and re-selecting.", file=sys.stderr)
-            _archive_and_remove_pick(
-                picks_dir, date, existing, prefix="stale_pick", key="stale_pick",
-                at_key="staled_at", reason="committed_game_past_cutoff")
-            existing = None
     if existing:
         # Committed means immutable: a scoreable decision on disk (delivered /
         # private_locked / locked_unconfirmed) locks the day regardless of game
         # status. Without this, a same-day restart during a not-started status
         # (Preview or Warmup) reselects over a private commit — its pick file
         # carries no delivery flags, so status classification alone reopens it.
+        # MUST run before the past-cutoff archive below: a committed pick whose
+        # game has since passed its cutoff is still the day's commit, not a
+        # stale preview (rebase reconciliation with the 2026-08-14 fixes).
         from bts.daily_decision import load_decision
         decision = load_decision(date, picks_dir)
         if decision is not None and decision.get("scoreable"):
@@ -1502,6 +1493,24 @@ def run_single_check(
                     "pick_name": existing.pick.batter_name,
                     "pick_p": existing.pick.p_game_hit,
                     "selection": None}
+    if (existing and unavailable_game_pks
+            and not pick_was_delivered(existing)
+            and not getattr(existing, "delivery_attempted", False)):
+        # Codex r2 F5: an undelivered, unattempted preview whose committed game
+        # is past its cutoff would classify as locked (game started) and strand
+        # the day. Archive it and re-select from games still enterable. A pick
+        # with delivery_attempted=True is deliberately NOT archived — that
+        # durable crash marker is the duplicate-delivery guard (2026-08-14) and
+        # classify_pick_lock_state locks on it.
+        past = set(_committed_pick_game_pks(existing)) & set(unavailable_game_pks)
+        if past:
+            print(f"  Existing undelivered pick's game(s) {sorted(past)} past the "
+                  f"submission cutoff — archiving and re-selecting.", file=sys.stderr)
+            _archive_and_remove_pick(
+                picks_dir, date, existing, prefix="stale_pick", key="stale_pick",
+                at_key="staled_at", reason="committed_game_past_cutoff")
+            existing = None
+    if existing:
         lock_state = classify_pick_lock_state(existing, date)
         if lock_state.stale:
             print(
