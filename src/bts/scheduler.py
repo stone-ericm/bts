@@ -2349,7 +2349,7 @@ def run_day(
     """
     from bts.contest_state import ContestStateError
     from bts.daily_decision import is_scoreable_commit
-    from bts.picks import load_pick, pick_was_delivered
+    from bts.picks import load_pick, pick_was_delivered, submission_cutoff_et
 
     sched_config = config.get("scheduler", {})
     delivery_mode = _pick_delivery_mode(config)
@@ -2368,6 +2368,12 @@ def run_day(
     fallback_deadline_min_morning = sched_config.get("fallback_deadline_min_morning", 25)
     morning_cutoff_hour = sched_config.get("morning_cutoff_hour", 11)
     missed_pick_alert_min = sched_config.get("missed_pick_alert_min", 10)
+    # Deadline model (2026-08-30): a cascade is assumed to take cascade_budget_min
+    # (self-raised from today's measured cascades); the operator gets
+    # operator_reserve_min between the DM and the cutoff. fallback_deadline_min is
+    # floored at cutoff + budget + reserve so the fallback START leaves room.
+    cascade_budget_min_cfg = float(sched_config.get("cascade_budget_min", 12))
+    operator_reserve_min = float(sched_config.get("operator_reserve_min", 10))
     poll_interval_min = sched_config.get("results_poll_interval_min", 15)
     cap_hour_et = sched_config.get("results_cap_hour_et", 5)
     picks_dir = Path(config["orchestrator"]["picks_dir"])
@@ -2447,9 +2453,20 @@ def run_day(
     save_state(state, picks_dir)
 
     # 4. Main loop — sleep until each check time, then run
-    for run_info in runs:
+    coalesced: set[int] = set()   # run indexes covered by a fallback refresh (2026-08-30)
+    for run_idx, run_info in enumerate(runs):
         target = run_info["time_et"]
         now = _now_et()
+
+        if run_idx in coalesced:
+            print(f"  [{now.strftime('%H:%M ET')}] Skipping overrun {target.strftime('%H:%M')} "
+                  f"check — covered by the fallback refresh (no new lineups since).",
+                  file=sys.stderr)
+            state.runs_completed.append({
+                "time": now.isoformat(), "new_lineups": 0, "skipped": True,
+                "reason": "coalesced_after_fallback", "pick_name": None, "pick_p": None})
+            save_state(state, picks_dir)
+            continue
 
         if now < target:
             write_heartbeat(
@@ -2470,6 +2487,7 @@ def run_day(
             continue
 
         print(f"\n[{_now_et().strftime('%H:%M ET')}] Running lineup check...", file=sys.stderr)
+        check_t0 = time.monotonic()
         result = run_single_check(
             date=date,
             all_game_pks=all_game_pks,
@@ -2514,6 +2532,8 @@ def run_day(
             "skipped": result["skipped"],
             "pick_name": result.get("pick_name"),
             "pick_p": round(result["pick_p"], 4) if result.get("pick_p") else None,
+            # Measured cascade wall-clock → self-calibrating cascade budget.
+            "duration_sec": round(time.monotonic() - check_t0, 1),
         })
         confirmed_game_pks_derived = {pk for pk, _ in confirmed_sides}
         state.confirmed_game_pks = sorted(confirmed_game_pks_derived)
@@ -2580,18 +2600,17 @@ def run_day(
                 morning_min=fallback_deadline_min_morning,
                 morning_cutoff_hour=morning_cutoff_hour,
             )
+            budget_eff = effective_cascade_budget_min(
+                cascade_budget_min_cfg, _measured_cascade_durations(state))
+            fallback_min = _fallback_min_with_floor(fallback_min, budget_eff, operator_reserve_min)
             fallback_deadline = earliest_game_et - timedelta(minutes=fallback_min)
             now = _now_et()
 
-            # Is there a later check that fires before the deadline?
-            run_idx = runs.index(run_info)
+            # Is there a later check that STARTS before the deadline? The deadline
+            # is the latest cascade start, so comparing start times is right; the
+            # deferral decision below is what accounts for completion time.
             future_runs = runs[run_idx + 1:]
-            next_checks = [r["time_et"] for r in future_runs]
-            has_earlier_check = any(t <= fallback_deadline for t in next_checks)
-            has_pending_future_window = _has_pending_future_confirmation_window(
-                future_runs,
-                confirmed_sides,
-            )
+            has_earlier_check = any(r["time_et"] <= fallback_deadline for r in future_runs)
 
             if not has_earlier_check:
                 if now < fallback_deadline:
@@ -2615,13 +2634,23 @@ def run_day(
                 # changed the top pick since the last scheduled check.
                 daily = load_pick(date, picks_dir)
                 if daily and not pick_was_delivered(daily):
+                    # Sync confirmations BEFORE the refresh so we can tell, after
+                    # it, which lineups arrived while it ran (the only reason to
+                    # still execute an overrun scheduled check).
+                    try:
+                        count_new_confirmations(all_game_pks, confirmed_sides)
+                    except Exception as e:
+                        print(f"  (pre-refresh confirmation sync failed: {e})", file=sys.stderr)
+                    before_refresh = set(confirmed_sides)
+                    refresh_started = _now_et()
+                    refresh_t0 = time.monotonic()
                     try:
                         refresh = _refresh_pick_at_fallback_decision(
                             config,
                             date,
                             daily,
                             early_lock_gap,
-                            unavailable_game_pks=_games_past_cutoff(state.games, _now_et()),
+                            unavailable_game_pks=_games_past_cutoff(state.games, refresh_started),
                         )
                     except ContestStateError as e:
                         print(
@@ -2630,6 +2659,7 @@ def run_day(
                         )
                         _alert_contest_state_failure(config, e)
                         continue
+                    refresh_duration = round(time.monotonic() - refresh_t0, 1)
                     daily = refresh.daily
                     # Honor a STANDING genuine MDP skip (C1 / GH #144): never deliver
                     # the cached preview on a skip day. "Standing" survives a later
@@ -2658,26 +2688,52 @@ def run_day(
                         print("  FALLBACK: standing MDP skip — not delivering cached pick.",
                               file=sys.stderr)
                         continue
-                    if _should_defer_at_fallback(
+                    # Re-decide against the LIVE clock and freshly synced
+                    # confirmations (2026-08-30: the old boolean was snapshotted
+                    # before a 15-min sleep + a 15-min refresh and counted windows
+                    # after first pitch).
+                    try:
+                        count_new_confirmations(all_game_pks, confirmed_sides)
+                    except Exception as e:
+                        print(f"  (post-refresh confirmation sync failed: {e})", file=sys.stderr)
+                    new_since_refresh = confirmed_sides - before_refresh
+                    now = _now_et()
+                    budget_eff = effective_cascade_budget_min(
+                        cascade_budget_min_cfg,
+                        _measured_cascade_durations(state) + [refresh_duration])
+                    cutoff = submission_cutoff_et(daily)
+                    plan = plan_fallback_action(
+                        now=now, cutoff=cutoff,
                         should_post=refresh.should_post,
                         should_post_ungated=refresh.should_post_ungated,
-                        has_pending_future_window=has_pending_future_window,
-                    ):
-                        archive = _defer_pick_at_fallback(
-                            picks_dir,
-                            date,
-                            daily,
-                            reason="should_lock_false_future_checks_remain",
-                        )
-                        print(
-                            "  FALLBACK DEFERRED — should_lock=False and "
-                            f"{len(next_checks)} future check(s) with pending "
-                            "lineup data remain; "
-                            f"archived {archive.name}.",
-                            file=sys.stderr,
-                        )
+                        block_reason=refresh.block_reason,
+                        contender_game_pk=refresh.contender_game_pk,
+                        remaining_runs=future_runs, confirmed_sides=confirmed_sides,
+                        budget_min=budget_eff, operator_reserve_min=operator_reserve_min)
+                    state.fallback_refreshes = (state.fallback_refreshes or []) + [{
+                        "started": refresh_started.isoformat(), "finished": now.isoformat(),
+                        "duration_sec": refresh_duration,
+                        "action": plan.action, "reason": plan.reason}]
+                    save_state(state, picks_dir)
+                    if plan.action == "defer":
+                        archive = _defer_pick_at_fallback(picks_dir, date, daily, reason=plan.reason)
+                        window = (plan.window_time_et.strftime('%H:%M ET')
+                                  if plan.window_time_et else "?")
+                        print(f"  FALLBACK DEFERRED — {plan.reason}; window at {window}; "
+                              f"archived {archive.name}.", file=sys.stderr)
+                        # Overrun scheduled checks the refresh already covered (no
+                        # lineups arrived for their games since it started) would
+                        # only re-run the same cascade — coalesce them.
+                        for j in range(run_idx + 1, len(runs)):
+                            r = runs[j]
+                            if r["time_et"] <= now and not any(
+                                (pk, s) in new_since_refresh or (pk, s) not in confirmed_sides
+                                for pk in r["game_pks"] for s in ("away", "home")
+                            ):
+                                coalesced.add(j)
                         continue
-                    print(f"  FALLBACK — delivering before game starts.", file=sys.stderr)
+                    print(f"  FALLBACK — delivering ({plan.reason}) before the "
+                          f"{cutoff.strftime('%H:%M ET')} cutoff.", file=sys.stderr)
                     _deliver_and_lock_pick(daily, config, picks_dir, state, date, "fallback",
                                            selection=refresh.selection)
 
@@ -2705,6 +2761,11 @@ def run_day(
                 morning_min=fallback_deadline_min_morning,
                 morning_cutoff_hour=morning_cutoff_hour,
             )
+            fallback_min = _fallback_min_with_floor(
+                fallback_min,
+                effective_cascade_budget_min(
+                    cascade_budget_min_cfg, _measured_cascade_durations(state)),
+                operator_reserve_min)
             if mins_to_game <= fallback_min:
                 # Re-run predictions first in case late-arriving lineups
                 # changed the top pick since the last scheduled check.

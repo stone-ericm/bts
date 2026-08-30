@@ -10,8 +10,10 @@ downstream of it in run_day is the real code under test.
 """
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from bts.daily_decision import load_decision
 from bts.picks import DailyPick, Pick
@@ -79,6 +81,14 @@ def _seq(items):
     def _next(*a, **k):
         return box.pop(0) if len(box) > 1 else box[0]
     return _next
+
+
+@pytest.fixture(autouse=True)
+def _no_live_mlb_api():
+    """The fallback path's confirmation sync (2026-08-30) must not reach the live
+    MLB API from tests — game_pk 100 is a real 1999 game with posted lineups."""
+    with patch("bts.scheduler.retry_urlopen", side_effect=RuntimeError("network disabled in tests")):
+        yield
 
 
 def _drive_run_day(monkeypatch, tmp_path, check_results, *, games=None,

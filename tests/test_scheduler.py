@@ -15,6 +15,18 @@ def _disable_live_detailed_status_lookup():
         yield
 
 
+@pytest.fixture(autouse=True)
+def _no_live_mlb_api():
+    """run_day's fallback path syncs lineup confirmations (2026-08-30) via
+    check_confirmed_lineups → retry_urlopen. The fake game_pks used here (100,
+    200, ...) are REAL 1999 games with posted lineups, so an unpatched call
+    would confirm them from the live API. Fail the lookup instead: nothing is
+    confirmed unless a test patches check_confirmed_lineups itself (tests that
+    exercise the HTTP path patch retry_urlopen explicitly and override this)."""
+    with patch("bts.scheduler.retry_urlopen", side_effect=RuntimeError("network disabled in tests")):
+        yield
+
+
 def _game(game_pk: int, time_et: str, team_away: str = "NYM", team_home: str = "ATL",
           date: str | None = None):
     """Build a mock MLB schedule game entry."""
@@ -1195,7 +1207,7 @@ class TestRunDay:
                         "lineup_check_offset_min": 45,
                         "cluster_min": 10,
                         "doubleheader_recheck_min": 15,
-                        "fallback_deadline_min": 15,
+                        "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                         "fallback_deadline_min_morning": 15,
                         "results_poll_interval_min": 15,
                         "results_cap_hour_et": 5,
@@ -1229,10 +1241,14 @@ class TestRunDay:
     @patch("bts.posting.post_to_bluesky")
     @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
     @patch("bts.scheduler._refresh_pick_at_fallback_decision")
-    def test_fallback_defers_when_should_lock_false_and_future_checks_remain(
+    def test_fallback_delivers_gap_block_when_window_cannot_finish_before_cutoff(
         self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
         mock_sleep, mock_now, mock_schedule, tmp_path, capsys,
     ):
+        """Policy change (approved 2026-08-30): a gap-rule block no longer abandons
+        an enterable pick when the contender's confirmation window (the 18:20
+        check for the 19:05 game) cannot finish before this pick's deliver-by
+        time (16:05 cutoff − reserve). Previously this scenario DEFERRED."""
         from bts.scheduler import FallbackRefreshResult, run_day
         from bts.picks import Pick, DailyPick, save_pick
         from bts.strategy import PickResult
@@ -1259,7 +1275,84 @@ class TestRunDay:
             "pick_result": PickResult(daily=daily, locked=False),
             "pick_name": "Hoerner", "pick_p": 0.73,
         }
-        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_refresh.return_value = FallbackRefreshResult(
+            daily=daily, should_post=False, should_post_ungated=False,
+            block_reason="gap", contender_game_pk=200,
+        )
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_post.return_value = "at://did:example/post/1"
+        mock_poll.return_value = "final"
+
+        run_day(
+            date="2026-04-06",
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [],
+                "scheduler": {
+                    "early_lock_gap": 0.03,
+                    "lineup_check_offset_min": 45,
+                    "cluster_min": 10,
+                    "doubleheader_recheck_min": 15,
+                    "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
+                    "fallback_deadline_min_morning": 15,
+                    "results_poll_interval_min": 15,
+                    "results_cap_hour_et": 5,
+                },
+            },
+        )
+
+        mock_post.assert_called_once()
+        mock_capture.assert_called_once()
+        assert (tmp_path / "2026-04-06.json").exists()
+        assert not list((tmp_path / "2026-04-06").glob("deferred_fallback_*.json"))
+        captured = capsys.readouterr()
+        assert "gap_no_feasible_window" in captured.err
+        assert "LOCKED (fallback)" in captured.err
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_defers_when_primary_projected_and_window_pending(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path, capsys,
+    ):
+        """A projected PRIMARY keeps the 2026-07-06 product choice: abandon the
+        early game for the later slate whenever a pending window exists."""
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=["PROJECTED lineup"], projected_lineup=True,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(
+            daily=daily, should_post=False, should_post_ungated=False,
+            block_reason="primary_projected",
+        )
         mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
 
         run_day(
@@ -1272,7 +1365,7 @@ class TestRunDay:
                     "lineup_check_offset_min": 45,
                     "cluster_min": 10,
                     "doubleheader_recheck_min": 15,
-                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                     "fallback_deadline_min_morning": 15,
                     "results_poll_interval_min": 15,
                     "results_cap_hour_et": 5,
@@ -1288,9 +1381,7 @@ class TestRunDay:
         assert len(archives) == 1
         archived = json.loads(archives[0].read_text())
         assert archived["pick"]["batter_name"] == "Hoerner"
-        assert archived["deferred_fallback"]["reason"] == (
-            "should_lock_false_future_checks_remain"
-        )
+        assert archived["deferred_fallback"]["reason"] == "primary_projected_pending_window"
         captured = capsys.readouterr()
         assert "FALLBACK DEFERRED" in captured.err
 
@@ -1339,7 +1430,12 @@ class TestRunDay:
             "pick_result": PickResult(daily=daily, locked=False),
             "pick_name": "Later Primary", "pick_p": 0.73,
         }
-        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        # The 2026-07-06 shape: the projected PRIMARY (19:05) blocks the lock
+        # while the confirmed DD's 14:20 game sets the deadline → still deferred.
+        mock_refresh.return_value = FallbackRefreshResult(
+            daily=daily, should_post=False, should_post_ungated=False,
+            block_reason="primary_projected",
+        )
         mock_now.return_value = datetime(2026, 5, 22, 13, 40, tzinfo=ET)
 
         run_day(
@@ -1352,7 +1448,7 @@ class TestRunDay:
                     "lineup_check_offset_min": 45,
                     "cluster_min": 10,
                     "doubleheader_recheck_min": 15,
-                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                     "fallback_deadline_min_morning": 15,
                     "results_poll_interval_min": 15,
                     "results_cap_hour_et": 5,
@@ -1369,9 +1465,7 @@ class TestRunDay:
         archived = json.loads(archives[0].read_text())
         assert archived["pick"]["batter_name"] == "Later Primary"
         assert archived["double_down"]["batter_name"] == "Early Double"
-        assert archived["deferred_fallback"]["reason"] == (
-            "should_lock_false_future_checks_remain"
-        )
+        assert archived["deferred_fallback"]["reason"] == "primary_projected_pending_window"
         captured = capsys.readouterr()
         assert "Earliest pick game at 14:20 ET" in captured.err
         assert "FALLBACK DEFERRED" in captured.err
@@ -1419,9 +1513,11 @@ class TestRunDay:
         mock_post.return_value = "at://did:example/post/1"
         mock_poll.return_value = "final"
 
+        # "No pending lineups" is now a property of the synced confirmation
+        # state (2026-08-30), not a patched predicate: every side confirmed.
         with patch(
-            "bts.scheduler._has_pending_future_confirmation_window",
-            return_value=False,
+            "bts.scheduler.check_confirmed_lineups",
+            side_effect=lambda pks: {pk: {"away", "home"} for pk in pks},
         ):
             run_day(
                 date="2026-04-06",
@@ -1433,7 +1529,7 @@ class TestRunDay:
                         "lineup_check_offset_min": 45,
                         "cluster_min": 10,
                         "doubleheader_recheck_min": 15,
-                        "fallback_deadline_min": 15,
+                        "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                         "fallback_deadline_min_morning": 15,
                         "results_poll_interval_min": 15,
                         "results_cap_hour_et": 5,
@@ -1496,7 +1592,7 @@ class TestRunDay:
                     "lineup_check_offset_min": 45,
                     "cluster_min": 10,
                     "doubleheader_recheck_min": 15,
-                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                     "fallback_deadline_min_morning": 15,
                     "results_poll_interval_min": 15,
                     "results_cap_hour_et": 5,
@@ -1574,7 +1670,7 @@ class TestRunDay:
                     "lineup_check_offset_min": 45,
                     "cluster_min": 10,
                     "doubleheader_recheck_min": 15,
-                    "fallback_deadline_min": 15,
+                    "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
                     "fallback_deadline_min_morning": 15,
                     "results_poll_interval_min": 15,
                     "results_cap_hour_et": 5,
