@@ -169,7 +169,12 @@ def check(
     latest_path, latest_payload = payloads[-1]
     deferred = _slot(latest_payload.get("pick"))
     delivered = _slot(vars(final_daily.pick))
-    same_pick = _same_pick(delivered, deferred)
+    # Both slots must match (2026-08-30 Codex review #10): a double-down that
+    # changed between the archive and the final pick is a different commit.
+    deferred_dd = _slot(latest_payload.get("double_down"))
+    delivered_dd = _slot(vars(final_daily.double_down)) if final_daily.double_down else {}
+    same_pick = _same_pick(delivered, deferred) and (
+        (not deferred_dd and not delivered_dd) or _same_pick(delivered_dd, deferred_dd))
     reason = (latest_payload.get("deferred_fallback") or {}).get("reason", "unknown")
     message = (
         f"fallback defer observed for {day.isoformat()}: "

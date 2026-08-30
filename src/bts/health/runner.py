@@ -21,6 +21,7 @@ from bts.health import (
     contest_state,
     disk_fill,
     fallback_defer,
+    late_delivery,
     leaderboard_freshness,
     park_drag_freshness,
     live_forward_resolution,
@@ -139,6 +140,11 @@ def run_all_checks(
         picks_dir, today=today,
     )))
     alerts.extend(_safe_run("fallback_defer", lambda: fallback_defer.check(
+        picks_dir, today=today,
+    )))
+    # EOD backstop for the delivery-cutoff guard (2026-08-30): a pick sent
+    # at/after first pitch − 5 or a refused late delivery is CRITICAL.
+    alerts.extend(_safe_run("late_delivery", lambda: late_delivery.check(
         picks_dir, today=today,
     )))
     alerts.extend(_safe_run("postponed_pick", lambda: postponed_pick.check(

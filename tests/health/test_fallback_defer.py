@@ -94,6 +94,27 @@ def test_deferred_archive_with_delivered_pick_returns_info(tmp_path):
     assert "never_miss=confirmed" in alert.message
 
 
+def test_same_primary_but_different_double_down_is_not_same_pick(tmp_path):
+    """2026-08-29 shape: the archived primary re-locked later with a different DD."""
+    day_dir = tmp_path / "2026-05-24"
+    day_dir.mkdir()
+    (day_dir / "deferred_fallback_20260524T120000-0400.json").write_text(json.dumps({
+        "date": "2026-05-24",
+        "pick": {"batter_id": 2, "batter_name": "Later Pick", "team": "BBB",
+                 "p_game_hit": 0.725, "game_pk": 200},
+        "double_down": {"batter_id": 7, "batter_name": "Early DD", "team": "CCC",
+                        "p_game_hit": 0.70, "game_pk": 300},
+        "deferred_fallback": {"reason": "primary_projected_pending_window",
+                              "deferred_at": "2026-05-24T12:00:00-04:00"},
+    }))
+    _write_final_pick(tmp_path)          # same primary (id 2), no double-down
+
+    alerts = check(tmp_path, today=date(2026, 5, 24), now=AFTER_DELIVERY_WINDOW)
+
+    assert len(alerts) == 1 and alerts[0].level == "INFO"
+    assert "same_pick=false" in alerts[0].message
+
+
 def test_deferred_archive_without_final_pick_is_critical(tmp_path):
     _write_archive(tmp_path)
 
