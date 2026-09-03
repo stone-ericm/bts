@@ -10,7 +10,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 # ⚠️ The full local suite GRINDS for hours (LightGBM imports locally now → simulate/model/experiment/
 # validate run real backtests/training). For NON-model changes, the fast comprehensive regression is:
 UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" \
-  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~1918 in ~30s
+  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~2043 in ~30s
+
+# ⚠️ FETCH FIRST: other sessions (cloud/phone) push to origin — `git fetch origin && git log main..origin/main --oneline`
+# before branching. The 8/30 fix was built on a 4-commit-stale base; the rebase auto-merged with ZERO textual
+# conflicts but a semantically WRONG ordering in run_single_check. Conflict-free ≠ correct in overlapping areas.
 
 # Scheduler (Hetzner production — systemd --user unit)
 UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
