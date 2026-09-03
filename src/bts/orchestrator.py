@@ -299,6 +299,9 @@ def run_and_pick(
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=require_detailed_statuses,
         unavailable_game_pks=unavailable_game_pks,
+        # Tail policy (2026-09-03): the contest season-best + its trust status.
+        best_streak=getattr(decision_state, "best_streak", None),
+        best_status=getattr(decision_state, "best_status", None),
     )
     # bts_daily_decision_v2 provenance: record WHICH state stream fed this
     # selection so decision records are exact by construction (the 8/09
@@ -407,11 +410,13 @@ def orchestrate(config_path: Path, date: str) -> bool:
     daily = result.daily
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
     models_dir = config["orchestrator"].get("models_dir", "data/models")
     attach_provenance(
         daily,
         blend_path=Path(models_dir) / f"blend_{date}.pkl",
         policy_path=DEFAULT_POLICY_PATH,
+        tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
     save_pick(daily, picks_dir)
     print(

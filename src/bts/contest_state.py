@@ -41,6 +41,7 @@ class ContestStreakState:
     path: Path
     best_streak: int | None = None
     override_expires_at: datetime | None = None
+    schema_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,51 @@ class DecisionStreakState:
     contest_saver_available: bool | None = None
     contest_source_date: date | None = None
     message: str | None = None
+    # Season-best streak as supplied by the selected observation, and whether the
+    # tail policy may TRUST it to authorise its terminal stop (2026-09-03). Only a
+    # trusted best can stop the account; "untrusted"/"missing" degrade to
+    # best = streak downstream (strategy._normalize_best), which keeps picking.
+    best_streak: int | None = None
+    best_status: str = "missing"   # "trusted" | "untrusted" | "missing"
+
+
+TARGET_STREAK = 57
+_AUTO_SCHEMA = "bts_contest_streak_auto_v1"
+_AUTO_SOURCE = "mlb_bts_profile"
+_MANUAL_SCHEMA_PREFIX = "bts_contest_streak_manual"
+
+
+def classify_best_streak(contest: "ContestStreakState | None", *, now: datetime,
+                         now_year: int) -> tuple[int | None, str]:
+    """(best_streak as supplied, trust status) for the selected observation.
+
+    Trusted iff: an integer; ``streak <= best <= 57`` (the auto fetch enforces
+    best >= active, a hand-written manual file may not; >57 is impossible without
+    having won, so it is a typo); the observation carries a source_date in the
+    CURRENT season and not in the future (ET); and its CONTENTS prove provenance —
+    the auto schema + the profile source, or a manual schema whose override is
+    unexpired (an explicit operator statement). Provenance is never inferred from
+    the filename (Codex r3: copied/symlinked files are trust-elevating boundaries
+    otherwise). (Codex r2 P0: ``max(streak, best)`` is an algebraic clamp, not a
+    trust boundary — an inflated best would otherwise stop the account for the
+    rest of the season.)
+    """
+    if contest is None or contest.best_streak is None:
+        return None, "missing"
+    best = int(contest.best_streak)
+    if best < 0 or best < contest.streak or best > TARGET_STREAK:
+        return best, "untrusted"
+    today_et = now.astimezone(ZoneInfo("America/New_York")).date()
+    if (contest.source_date is None or contest.source_date.year != now_year
+            or contest.source_date > today_et):
+        return best, "untrusted"
+    schema = contest.schema_version or ""
+    if schema == _AUTO_SCHEMA and contest.source == _AUTO_SOURCE:
+        return best, "trusted"
+    if schema.startswith(_MANUAL_SCHEMA_PREFIX) and (
+            contest.override_expires_at is not None and contest.override_expires_at > now):
+        return best, "trusted"
+    return best, "untrusted"
 
 
 def _parse_date(value: object) -> date | None:
@@ -113,6 +159,7 @@ def _parse_state_file(path: Path) -> ContestStreakState:
         path=path,
         best_streak=best,
         override_expires_at=_parse_dt(data.get("override_expires_at")),
+        schema_version=(data.get("schema_version") if isinstance(data.get("schema_version"), str) else None),
     )
 
 
@@ -245,7 +292,8 @@ def load_decision_streak_state(
     """
     model_streak = load_streak(picks_dir)
     model_saver = load_saver_available(picks_dir)
-    now_year = (now or datetime.now(timezone.utc)).astimezone(ZoneInfo("America/New_York")).year
+    now_dt = now or datetime.now(timezone.utc)
+    now_year = now_dt.astimezone(ZoneInfo("America/New_York")).year
     contest = load_contest_streak_state(picks_dir, now=now)
     if contest is None:
         if require_contest_state:
@@ -290,6 +338,7 @@ def load_decision_streak_state(
     # as the `contest_saver_available` diagnostic below).
     contest_saver = load_saver_state(
         picks_dir, season=season_for(contest.source_date, now_year=now_year)).is_available
+    best_streak, best_status = classify_best_streak(contest, now=now_dt, now_year=now_year)
 
     # The decision streak is ALWAYS the contest (real MLB) value. The model is a
     # research replay of the bot's own suggestions and can NEVER raise it (the
@@ -307,4 +356,6 @@ def load_decision_streak_state(
         contest_saver_available=contest.saver_available,
         contest_source_date=contest.source_date,
         message=message,
+        best_streak=best_streak,
+        best_status=best_status,
     )

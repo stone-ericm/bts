@@ -41,6 +41,7 @@ from bts.health import (
     scheduler_state_integrity,
     slate_auc,
     streak_validation,
+    tail_policy,
     unit_drift,
 )
 from bts.health.alert import Alert, dispatch_dm_for_health_alerts, log_alerts
@@ -215,6 +216,11 @@ def run_all_checks(
         policy_path=models_dir / "mdp_policy.npz",
         today=today,
         thresholds=overrides.get("mdp_policy_alignment"),
+    )))
+    alerts.extend(_safe_run("tail_policy", lambda: tail_policy.check(
+        base_path=models_dir / "mdp_policy.npz",
+        tail_path=models_dir / "mdp_tail_policy.npz",
+        today=today,
     )))
     alerts.extend(_safe_run("same_team_corr", lambda: same_team_corr.check(
         picks_dir, today=today, thresholds=overrides.get("same_team_corr"),

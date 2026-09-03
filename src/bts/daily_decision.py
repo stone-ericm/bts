@@ -13,10 +13,15 @@ from pathlib import Path
 
 from bts.util import atomic_write_text
 
-DECISION_SCHEMA = "bts_daily_decision_v2"
+DECISION_SCHEMA = "bts_daily_decision_v3"
 # v1 records (through 2026-08-09) persist state only on MDP skips and never
-# the second candidate; readers accept both so legacy files stay authoritative.
-ACCEPTED_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2")
+# the second candidate; v2 (through 2026-09-03) has no objective. Readers accept
+# all three so legacy files stay authoritative; a record without ``objective``
+# was decided under reach57 (the only objective before v3).
+ACCEPTED_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2", "bts_daily_decision_v3")
+OBJECTIVE_REACH57 = "reach57"
+OBJECTIVES = ("reach57", "emax_season_best")
+_LEGACY_SCHEMAS = ("bts_daily_decision_v1", "bts_daily_decision_v2")
 _RANK_FIELDS = ("batter_id", "batter_name", "team", "game_pk", "p_game_hit")
 
 
@@ -32,10 +37,33 @@ def decision_path(date: str, picks_dir) -> Path:
     return Path(picks_dir) / date / "decision.json"
 
 
+def decision_objective(rec: dict | None) -> str:
+    """The objective a record was decided under. Pre-v3 records (no objective
+    field existed) are reach57. A v3 record MUST carry a valid objective; a
+    null/invalid one is "unknown" — never silently reach57 (Codex r3), so it is
+    excluded from every reach-57 consumer (skip shadow, census, alignment)."""
+    if not rec:
+        return OBJECTIVE_REACH57   # no record at all (pre-decision.json picks): legacy reach57
+    obj = rec.get("objective")
+    if rec.get("schema_version") in _LEGACY_SCHEMAS:
+        return obj if obj in OBJECTIVES else OBJECTIVE_REACH57
+    return obj if obj in OBJECTIVES else "unknown"
+
+
+def is_reach57_mdp_skip(rec: dict | None) -> bool:
+    """The skip-policy shadow / boundary census estimand: an MDP skip decided under
+    the reach-57 objective. Tail-objective skips (season best unbeatable) come from
+    a different rule and must NOT feed those pre-registered checkpoints."""
+    return bool(rec) and rec.get("action") == "skip" and rec.get("source") == "mdp" \
+        and decision_objective(rec) == OBJECTIVE_REACH57
+
+
 def write_decision(date, picks_dir, *, action, source, primary=None, double_down=None,
                    streak=None, saver_available=None, delivery_status, scoreable,
                    second_candidate=None, state_source=None, state_status=None,
-                   allow_double=None, contest_source_date=None, now=None) -> dict | None:
+                   allow_double=None, contest_source_date=None, now=None,
+                   objective=None, best_streak=None, best_status=None, effective_best=None,
+                   tail_policy_sha256=None, degraded_reason=None) -> dict | None:
     """Best-effort atomic write of the day's decision record. Returns the record, or None on any
     failure (must never raise into the live pick path).
 
@@ -43,8 +71,17 @@ def write_decision(date, picks_dir, *, action, source, primary=None, double_down
     every record — (streak, saver_available, state_source, state_status,
     allow_double, contest_source_date) from the DecisionStreakState that fed
     the action — and second_candidate, the executable different-game runner-up
-    at skip time. All default None so legacy call paths stay valid."""
+    at skip time. All default None so legacy call paths stay valid.
+
+    v3 fields (2026-09-03, tail policy): objective ("reach57" | "emax_season_best"),
+    best_streak (as supplied) + best_status (trust), effective_best (the m the tail
+    lookup used), tail_policy_sha256 (the artifact that chose the action) and
+    degraded_reason (set when the forced fallback decided). An action is not
+    reproducible without them once the objective can switch."""
     try:
+        objective = objective or OBJECTIVE_REACH57   # legacy callers: explicit, not null
+        if objective not in OBJECTIVES:
+            raise ValueError(f"objective {objective!r} not in {OBJECTIVES}")
         record = {
             "schema_version": DECISION_SCHEMA, "date": date,
             "action": action, "source": source,
@@ -56,6 +93,9 @@ def write_decision(date, picks_dir, *, action, source, primary=None, double_down
             "allow_double": (None if allow_double is None else bool(allow_double)),
             "contest_source_date": contest_source_date,
             "delivery_status": delivery_status, "scoreable": bool(scoreable),
+            "objective": objective, "best_streak": best_streak, "best_status": best_status,
+            "effective_best": effective_best, "tail_policy_sha256": tail_policy_sha256,
+            "degraded_reason": degraded_reason,
             "finalized_at": _utc_iso(now),
         }
         path = decision_path(date, picks_dir)

@@ -130,6 +130,7 @@ def compute_provenance(
     blend_path: Path | str | None = None,
     policy_path: Path | str | None = None,
     cwd: Path | str = ".",
+    tail_path: Path | str | None = None,
 ) -> dict[str, str | dict[str, str] | None]:
     """Bundle provenance fields for a DailyPick.
 
@@ -147,6 +148,7 @@ def compute_provenance(
         "model_git_sha": _git_head_sha(cwd),
         "model_pickle_sha256": _sha256_file(blend_path),
         "policy_npz_sha256": _sha256_file(policy_path),
+        "tail_policy_sha256": _sha256_file(tail_path) if tail_path is not None else None,
         "feature_env_schema_version": feature_env["feature_env_schema_version"],
         "feature_env": feature_env["feature_env"],
         "feature_env_hash": feature_env["feature_env_hash"],
@@ -158,6 +160,7 @@ def attach_provenance(
     blend_path: Path | str | None = None,
     policy_path: Path | str | None = None,
     cwd: Path | str = ".",
+    tail_path: Path | str | None = None,
 ) -> "DailyPick":
     """Attach provenance v1 fields to a freshly-predicted DailyPick.
 
@@ -170,10 +173,12 @@ def attach_provenance(
     of an already-saved DailyPick should preserve the existing provenance
     (it round-trips through load_pick).
     """
-    prov = compute_provenance(blend_path=blend_path, policy_path=policy_path, cwd=cwd)
+    prov = compute_provenance(blend_path=blend_path, policy_path=policy_path, cwd=cwd,
+                              tail_path=tail_path)
     daily.model_git_sha = prov["model_git_sha"]
     daily.model_pickle_sha256 = prov["model_pickle_sha256"]
     daily.policy_npz_sha256 = prov["policy_npz_sha256"]
+    daily.tail_policy_sha256 = prov["tail_policy_sha256"]
     daily.feature_env_schema_version = prov["feature_env_schema_version"]
     daily.feature_env = prov["feature_env"]
     daily.feature_env_hash = prov["feature_env_hash"]
@@ -231,6 +236,13 @@ class DailyPick:
     feature_env_schema_version: str | None = None  # fingerprint schema id
     feature_env: dict[str, str] | None = None  # resolved scale-affecting config
     feature_env_hash: str | None = None  # sha256 of resolved feature_env payload
+    # 2026-09-03: sha256 of mdp_tail_policy.npz (the artifact that chooses the
+    # action once 57 is unreachable; policy_npz_sha256 alone can't identify it).
+    tail_policy_sha256: str | None = None
+    # 2026-09-03: the strategy.PolicyDecision (as a dict) that chose this pick, so a
+    # commit written from the cached pick alone (fallback safety net, restart
+    # recovery) still records objective / best / tail sha in decision.json.
+    policy_decision: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -434,6 +446,8 @@ def load_shadow_pick(date: str, picks_dir: Path) -> DailyPick | None:
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
         policy_npz_sha256=data.get("policy_npz_sha256"),
+        tail_policy_sha256=data.get("tail_policy_sha256"),
+        policy_decision=data.get("policy_decision"),
         feature_env_schema_version=data.get("feature_env_schema_version"),
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),
@@ -470,6 +484,8 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
         model_git_sha=data.get("model_git_sha"),
         model_pickle_sha256=data.get("model_pickle_sha256"),
         policy_npz_sha256=data.get("policy_npz_sha256"),
+        tail_policy_sha256=data.get("tail_policy_sha256"),
+        policy_decision=data.get("policy_decision"),
         feature_env_schema_version=data.get("feature_env_schema_version"),
         feature_env=data.get("feature_env"),
         feature_env_hash=data.get("feature_env_hash"),

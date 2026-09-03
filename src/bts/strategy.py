@@ -9,10 +9,15 @@ Extracted from cli.py so both `bts run` (local) and the Pi5 orchestrator
 share the same decision logic.
 """
 
-from dataclasses import dataclass
+import io
+import logging
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import hashlib
+
+import numpy as np
 import pandas as pd
 
 from bts.picks import (
@@ -20,6 +25,12 @@ from bts.picks import (
     get_game_statuses_detailed, load_saver_available, classify_pick_lock_state,
     pick_candidate_status_is_available,
 )
+from bts.simulate.tail_policy import (
+    OBJECTIVE_REACH57, OBJECTIVE_TAIL, effective_best, effective_days,
+    forced_tail_action, lookup_tail_action, mdp_objective,
+)
+
+log = logging.getLogger(__name__)
 
 
 # --- MDP policy (preferred) ---
@@ -32,23 +43,63 @@ SEASON_END_DATE = "2026-09-28"
 
 
 def _load_mdp():
-    """Load MDP policy table, caching on first call. Returns None if not available."""
+    """Load the reach-57 policy AND the tail policy, caching on first call.
+
+    The two artifacts are loaded independently with their errors isolated
+    (Codex r2): a tail error must not discard a valid reach-57 table, and a base
+    error (missing OR corrupt) must not bypass the tail — in the tail regime the
+    decision path never consults the base table, so a dict with
+    ``policy_table=None`` and a valid ``tail`` is a fully working state.
+    Returns None only when NEITHER artifact loaded (legacy: heuristic while 57 is
+    reachable; the forced tail rule once it is not).
+    """
     global _mdp_cache
     if _mdp_cache is not None:
-        return _mdp_cache
+        return _mdp_cache or None
+    from bts.simulate import mdp as _mdp_mod
+    from bts.simulate import tail_policy as _tail_mod
 
+    cache = {"policy_table": None, "boundaries": None, "season_length": 180,
+             "base_sha256": None, "tail": None, "tail_error": None, "base_error": None}
+    base_sha = None
     try:
-        from bts.simulate.mdp import load_policy, DEFAULT_POLICY_PATH
-        policy_table, boundaries, season_length = load_policy(DEFAULT_POLICY_PATH)
-        _mdp_cache = {
-            "policy_table": policy_table,
-            "boundaries": boundaries,
-            "season_length": season_length,
-        }
-        return _mdp_cache
-    except (FileNotFoundError, ImportError):
-        _mdp_cache = {}  # empty dict = tried but failed
+        # ONE read of the base bytes: the hash the tail is bound to is the hash
+        # of exactly the table we loaded (no second open to race a redeploy).
+        raw = Path(_mdp_mod.DEFAULT_POLICY_PATH).read_bytes()
+        if len(raw) > _tail_mod.MAX_ARTIFACT_BYTES:
+            raise ValueError(f"base policy artifact too large ({len(raw)} bytes)")
+        with np.load(io.BytesIO(raw)) as data:
+            cache.update(policy_table=data["policy_table"],
+                         boundaries=data["boundaries"].tolist(),
+                         season_length=int(data["season_length"]))
+        base_sha = hashlib.sha256(raw).hexdigest()
+        cache["base_sha256"] = base_sha
+    except Exception as exc:   # missing, corrupt, unreadable — all isolated
+        cache["base_error"] = f"{type(exc).__name__}: {exc}"
+        log.error("MDP base policy unavailable (%s)", cache["base_error"])
+    if base_sha is None:
+        # Codex r3 P1: without the base hash the tail's pairing cannot be
+        # verified, and an unverified tail is NOT actionable — the decision path
+        # takes the forced rule (skip iff the season best is unbeatable, else single).
+        cache["tail_error"] = (f"base policy unavailable ({cache['base_error']}): "
+                               f"tail pairing unverifiable")
+        log.error("MDP tail policy not usable (%s)", cache["tail_error"])
+    else:
+        try:
+            cache["tail"] = _tail_mod.load_tail_policy(
+                _tail_mod.DEFAULT_TAIL_POLICY_PATH, expected_base_sha=base_sha)
+        except _tail_mod.TailPolicyError as exc:
+            cache["tail_error"] = str(exc)
+            log.error("MDP tail policy unavailable (%s)", cache["tail_error"])
+    if (cache["policy_table"] is None and cache["tail"] is None
+            and not Path(_mdp_mod.DEFAULT_POLICY_PATH).exists()
+            and not Path(_tail_mod.DEFAULT_TAIL_POLICY_PATH).exists()):
+        _mdp_cache = {}  # nothing on disk at all (legacy: heuristic while 57 is reachable)
         return None
+    # An artifact EXISTS but failed: keep the diagnostic dict so the decision path
+    # reports WHY (base corrupt / tail unverifiable) instead of "no artifacts".
+    _mdp_cache = cache
+    return cache
 
 
 def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str, saver: bool) -> str | None:
@@ -59,14 +110,12 @@ def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str
     than loaded here, so ``decide_action`` can be evaluated repeatedly (Phase 2b)
     without re-doing IO.
     """
-    if not mdp:
+    if not mdp or mdp.get("policy_table") is None:
         return None
 
     from bts.simulate.mdp import lookup_action
 
-    end = datetime.strptime(SEASON_END_DATE, "%Y-%m-%d")
-    today = datetime.strptime(date, "%Y-%m-%d")
-    days_remaining = max(0, (end - today).days)
+    days_remaining = _days_remaining(date)
 
     return lookup_action(
         mdp["policy_table"], mdp["boundaries"],
@@ -77,25 +126,39 @@ def _mdp_action_from(mdp: dict | None, p_game_hit: float, streak: int, date: str
 _UNSET = object()
 
 
-def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET) -> float | None:
+def effective_pick_bar(streak: int, date: str, saver: bool, mdp=_UNSET,
+                       best_streak: int | None = None, best_status: str | None = None) -> float | None:
     """The smallest p_game_hit the policy will play at (streak, date, saver): the
     lower edge of the first non-skip quality bin (0.0 when even the bottom bin
-    plays). Heuristic path (no policy) -> SKIP_THRESHOLD. None when every bin
+    plays). Heuristic path (no base policy while 57 is reachable) -> SKIP_THRESHOLD.
+    In the tail regime the bins are the TAIL's (one bin in production: 0.0 while
+    the season best is beatable, None at the terminal stop). None when every bin
     skips or the policy is unreadable. Display-only (skip messages) — never
     raises and never feeds the pick path."""
     if mdp is _UNSET:
         mdp = _load_mdp()
-    if not mdp:
-        return SKIP_THRESHOLD
     try:
+        objective, d_eff = _regime(mdp, streak, date)
+        if objective == OBJECTIVE_TAIL:
+            _, best_for_lookup = _normalize_best(best_streak, best_status)
+            tail = mdp.get("tail") if mdp else None
+            boundaries = [float(b) for b in tail.boundaries] if tail is not None else []
+            reps = ([boundaries[0] - 1e-9] if boundaries else [0.0]) + boundaries
+            floors = [0.0] + boundaries
+            for rep_p, floor in zip(reps, floors):
+                if _tail_action(mdp, rep_p, streak, d_eff, saver, best_for_lookup)[0] != "skip":
+                    return floor
+            return None
+        if not mdp or mdp.get("policy_table") is None:
+            return SKIP_THRESHOLD
         boundaries = [float(b) for b in mdp["boundaries"]]
         # One representative p per bin: just under the first boundary (bin 0),
         # then each boundary (entering bins 1..n). The bar reported for bin i>0
         # is its lower edge = boundaries[i-1]; for bin 0 it is 0.0.
         reps = ([boundaries[0] - 1e-9] if boundaries else [0.0]) + boundaries
         floors = [0.0] + boundaries
-        for rep, floor in zip(reps, floors):
-            if _mdp_action_from(mdp, rep, streak, date, saver) != "skip":
+        for rep_p, floor in zip(reps, floors):
+            if _mdp_action_from(mdp, rep_p, streak, date, saver) != "skip":
                 return floor
         return None
     except Exception:
@@ -123,7 +186,8 @@ def _double_threshold(streak: int) -> float | None:
 
 @dataclass
 class DecisionContext:
-    """Impure prep for one pick decision; ``decide_action`` is pure over (streak, saver).
+    """Impure prep for one pick decision; ``resolve_policy_decision`` is pure over
+    (streak, saver).
 
     All file/cache/network IO and candidate selection happen while building this in
     ``select_pick``; the action decision itself reads only these fields plus the
@@ -135,35 +199,142 @@ class DecisionContext:
     has_diff_game: bool         # a valid different-game second pick exists
     date: str                   # YYYY-MM-DD (for MDP days_remaining)
     allow_double: bool          # global operational clamp (NOT uncertainty logic)
-    mdp: dict | None            # injected MDP policy (None -> heuristic)
+    mdp: dict | None            # injected MDP policy (None -> heuristic / forced tail rule)
+    best_streak: int | None = None   # contest season-best as supplied (None = unknown)
+    best_status: str | None = None   # "trusted" | "untrusted" | None (contest_state decides)
 
 
-def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> tuple[str, str]:
+@dataclass
+class PolicyDecision:
+    """One structured policy outcome, produced ONCE by ``resolve_policy_decision``
+    and reused by the log line, skip summary/DM/dashboard, fallback classification
+    and decision.json — never re-derived from a second state read (Codex r2)."""
+    action: str                  # executed action after the operational clamps
+    policy_action: str           # the policy's raw action before the clamps
+    source: str                  # "mdp" | "heuristic"
+    objective: str               # OBJECTIVE_REACH57 | OBJECTIVE_TAIL
+    streak: int
+    days_effective: int
+    best_supplied: int | None
+    best_status: str             # "trusted" | "untrusted" | "missing"
+    effective_best: int | None   # m the tail lookup used; None under reach57
+    tail_sha256: str | None      # sha256 of the tail artifact that chose the action
+    degraded_reason: str | None  # set when the tail resolved via the forced rule
+    reason: str | None           # human-readable skip explanation (tail stop rule)
+    pick_bar: float | None       # display-only bar when the action is a skip
+
+
+def _days_remaining(date: str) -> int:
+    end = datetime.strptime(SEASON_END_DATE, "%Y-%m-%d")
+    today = datetime.strptime(date, "%Y-%m-%d")
+    return max(0, (end - today).days)
+
+
+def _regime(mdp: dict | None, streak: int, date: str) -> tuple[str, int]:
+    """(objective, effective days) from STATE ALONE — resolved before any artifact
+    is consulted, so an artifact failure can never fall through to the 0.80
+    heuristic once 57 is unreachable (Codex r2 P0)."""
+    season_length = int((mdp or {}).get("season_length") or 180)
+    days = _days_remaining(date)
+    return mdp_objective(streak, days, season_length), effective_days(days, season_length)
+
+
+def _normalize_best(best_streak: int | None, best_status: str | None) -> tuple[str, int | None]:
+    """Trust contract: only a best the caller marked ``"trusted"`` may authorise the
+    tail's terminal stop. Missing/untrusted degrade to best = streak (keeps picking)."""
+    if best_streak is None:
+        return "missing", None
+    if best_status == "trusted":
+        return "trusted", int(best_streak)
+    return "untrusted", None
+
+
+def _tail_action(mdp: dict | None, p_game_hit: float, streak: int, days_effective: int,
+                 saver: bool, best_for_lookup: int | None) -> tuple[str, str | None]:
+    """(action, degraded_reason). EVERY failure shape — no artifacts at all, tail
+    absent/invalid, lookup exception — resolves to ``forced_tail_action`` (skip iff
+    the season best can't be beaten, else single). Never the base table, never the
+    heuristic."""
+    tail = mdp.get("tail") if mdp else None
+    if tail is not None and mdp.get("base_sha256") != getattr(tail, "base_policy_sha256", None):
+        tail, why = None, "base policy sha unavailable or mismatched: tail pairing unverifiable"
+    else:
+        why = (mdp.get("tail_error") if mdp else None) or "no MDP artifacts loaded"
+    if tail is None:
+        action = forced_tail_action(streak, best_for_lookup or 0, days_effective)
+        reason = f"tail policy unavailable ({why}); forced fallback"
+        log.error("tail policy: %s -> %s", reason, action)
+        return action, reason
+    try:
+        return lookup_tail_action(tail, streak, best_for_lookup, days_effective, saver, p_game_hit), None
+    except Exception as exc:
+        action = forced_tail_action(streak, best_for_lookup or 0, days_effective)
+        reason = f"tail lookup failed ({exc}); forced fallback"
+        log.error("tail policy: %s -> %s", reason, action)
+        return action, reason
+
+
+def resolve_policy_decision(ctx: DecisionContext, streak: int, saver: bool) -> PolicyDecision:
     """Pure skip/single/double decision given a prepared context + (streak, saver).
 
-    MDP policy (preferred) or heuristic fallback, then the ``allow_double`` clamp and
-    the "double must be executable (a different-game second pick exists)" guard. No IO.
-    Mirrors the action branch that previously lived inline in ``select_pick``.
-
-    Returns (action, source) where source is "mdp" or "heuristic".
+    Regime first: while 57 is reachable this is the shipped reach-57 table (or the
+    heuristic when no base policy loaded); once it is not, the tail policy — exact
+    E[season-best] with the account's best carried as state — or its forced rule.
+    Then the ``allow_double`` clamp and the "double must be executable (a
+    different-game second pick exists)" guard. No IO.
     """
-    mdp_action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
-    if mdp_action is not None:
-        action, source = mdp_action, "mdp"
+    objective, d_eff = _regime(ctx.mdp, streak, ctx.date)
+    best_status, best_for_lookup = _normalize_best(ctx.best_streak, ctx.best_status)
+    degraded = None
+    effective_m = None
+    tail_sha = None
+    reason = None
+    if objective == OBJECTIVE_TAIL:
+        effective_m = effective_best(streak, best_for_lookup)
+        policy_action, degraded = _tail_action(
+            ctx.mdp, ctx.primary_p, streak, d_eff, saver, best_for_lookup)
+        source = "mdp"
+        tail = ctx.mdp.get("tail") if ctx.mdp else None
+        if tail is not None and degraded is None:
+            tail_sha = getattr(tail, "sha256", None)
+        if policy_action == "skip":
+            reason = (f"season-best {effective_m} can't be beaten with {d_eff} days left "
+                      f"(max reachable {min(57, streak + 2 * d_eff)}); no pick")
     else:
-        source = "heuristic"
-        if ctx.primary_p < SKIP_THRESHOLD:
-            action = "skip"
-        elif _double_threshold(streak) is not None and ctx.has_diff_game and ctx.second_p is not None:
-            p_both = ctx.primary_p * ctx.second_p
-            action = "double" if p_both >= _double_threshold(streak) else "single"
+        mdp_action = _mdp_action_from(ctx.mdp, ctx.primary_p, streak, ctx.date, saver)
+        if mdp_action is not None:
+            policy_action, source = mdp_action, "mdp"
         else:
-            action = "single"
+            source = "heuristic"
+            if ctx.primary_p < SKIP_THRESHOLD:
+                policy_action = "skip"
+            elif _double_threshold(streak) is not None and ctx.has_diff_game and ctx.second_p is not None:
+                p_both = ctx.primary_p * ctx.second_p
+                policy_action = "double" if p_both >= _double_threshold(streak) else "single"
+            else:
+                policy_action = "single"
+    action = policy_action
     if action == "double" and not ctx.allow_double:
         action = "single"
     if action == "double" and not ctx.has_diff_game:
         action = "single"
-    return action, source
+    pick_bar = None
+    if action == "skip":
+        pick_bar = effective_pick_bar(streak, ctx.date, saver, mdp=ctx.mdp,
+                                      best_streak=ctx.best_streak, best_status=ctx.best_status)
+    return PolicyDecision(
+        action=action, policy_action=policy_action, source=source, objective=objective,
+        streak=int(streak), days_effective=d_eff, best_supplied=ctx.best_streak,
+        best_status=best_status, effective_best=effective_m, tail_sha256=tail_sha,
+        degraded_reason=degraded, reason=reason, pick_bar=pick_bar,
+    )
+
+
+def decide_action(ctx: DecisionContext, streak: int, saver: bool) -> tuple[str, str]:
+    """(action, source) — thin wrapper over ``resolve_policy_decision`` kept for the
+    existing call sites and tests; source is "mdp" or "heuristic"."""
+    dec = resolve_policy_decision(ctx, streak, saver)
+    return dec.action, dec.source
 
 
 @dataclass
@@ -199,6 +370,9 @@ class SelectionResult:
     state_status: "str | None" = None
     allow_double: "bool | None" = None
     contest_source_date: "str | None" = None
+    # The structured policy outcome that produced ``action`` (None on paths that
+    # never reached the policy: locked/current pick, no-eligible, status failure).
+    decision: "PolicyDecision | None" = None
 
 
 def _row_to_candidate(row) -> "dict | None":
@@ -267,6 +441,8 @@ def select_pick(
     game_statuses_detailed: dict[int, dict[str, str]] | None = None,
     require_detailed_statuses: bool = False,
     unavailable_game_pks: "set[int] | None" = None,
+    best_streak: int | None = None,
+    best_status: str | None = None,
 ) -> "SelectionResult":
     """Select the best pick from available predictions.
 
@@ -389,15 +565,18 @@ def select_pick(
         date=date,
         allow_double=allow_double,
         mdp=_load_mdp(),
+        best_streak=best_streak,
+        best_status=best_status,
     )
-    action, source = decide_action(ctx, streak, saver)
+    decision = resolve_policy_decision(ctx, streak, saver)
+    action, source = decision.action, decision.source
 
     primary_candidate = _row_to_candidate(best_row)
     double_candidate = _row_to_candidate(second_row) if second_row is not None else None
 
     if action == "skip":
         return SelectionResult(None, "skip", source, primary_candidate, double_candidate, None,
-                               streak=streak, saver_available=saver)
+                               streak=streak, saver_available=saver, decision=decision)
 
     new_pick = pick_from_row(best_row)
 
@@ -420,8 +599,11 @@ def select_pick(
         runner_up=runner_up,
         bluesky_posted=False,
         bluesky_uri=None,
+        # Codex r3 P1: the cached-fallback / restart-recovery commit paths see
+        # selection=None — the decision must travel WITH the pick it chose.
+        policy_decision=asdict(decision),
     )
 
     return SelectionResult(PickResult(daily=daily, locked=False), action, source,
                            primary_candidate, double_candidate, None,
-                           streak=streak, saver_available=saver)
+                           streak=streak, saver_available=saver, decision=decision)

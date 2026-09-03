@@ -87,6 +87,14 @@ def _slot_metrics(values: list[float], boundaries: list[float]) -> SlotBinMetric
     )
 
 
+def _decision_objective(picks_dir: Path, date_iso: str) -> str:
+    try:
+        from bts.daily_decision import decision_objective, load_decision
+        return decision_objective(load_decision(date_iso, picks_dir))
+    except Exception:
+        return "reach57"
+
+
 def compute_metrics(
     picks_dir: Path,
     policy_path: Path,
@@ -120,6 +128,10 @@ def compute_metrics(
         except ValueError:
             continue
         if pick_date < cutoff or pick_date > today:
+            continue
+        if _decision_objective(picks_dir, p.stem) != "reach57":
+            # Tail regime (2026-09-03): picks are chosen regardless of the reach-57
+            # bins, so their bin utilisation says nothing about alignment.
             continue
         try:
             body = json.loads(p.read_text())

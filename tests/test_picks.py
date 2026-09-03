@@ -283,10 +283,12 @@ class TestProvenance:
             "model_git_sha",
             "model_pickle_sha256",
             "policy_npz_sha256",
+            "tail_policy_sha256",   # 2026-09-03: the tail artifact (None when not supplied)
             "feature_env_schema_version",
             "feature_env",
             "feature_env_hash",
         }
+        assert prov["tail_policy_sha256"] is None
         assert prov["model_pickle_sha256"] is not None
         assert len(prov["model_pickle_sha256"]) == 64
         assert prov["policy_npz_sha256"] is not None

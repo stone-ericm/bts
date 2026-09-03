@@ -23,6 +23,7 @@ ALWAYS_ATTENTION_WARN_SOURCES = {
     "postponed_pick",
     "result_resolution",           # stranded result must not rot silently (2026-07-10 incident)
     "scheduler_state_integrity",   # quarantined day-state (audit F3)
+    "tail_policy",                 # an invalid tail artifact is a deploy defect (2026-09-03)
 }
 
 REPEATED_ATTENTION_WARN_SOURCES = {

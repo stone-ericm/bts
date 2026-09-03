@@ -49,7 +49,7 @@ from bts.util import atomic_write_text  # noqa: E402
 SCHEMA_VERSION = "bts_boundary_shadow_census_v1"
 REGISTRATION_COMMITS = {"r0": "4800f7a", "r1_amended": "6db921c"}
 QUANTS = (0.2, 0.4, 0.6, 0.8)
-ACCEPTED_DECISION_SCHEMAS = {"bts_daily_decision_v1", "bts_daily_decision_v2"}
+ACCEPTED_DECISION_SCHEMAS = {"bts_daily_decision_v1", "bts_daily_decision_v2", "bts_daily_decision_v3"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STREAK_BANDS = ((0, 2), (3, 7), (8, 9), (10, 15), (16, 999))
 
@@ -188,6 +188,14 @@ def _collect_decisions(picks_dir: Path, start: str, end: str):
     return rows, excluded
 
 
+def _boundary_sample_decisions(decisions):
+    """Only reach-57 decisions may shape the boundary samples: tail-objective
+    days (2026-09-03) pick regardless of the reach-57 bins and would shift the
+    quintiles used on reach-57 rows (Codex r3)."""
+    from bts.daily_decision import decision_objective
+    return [(p, rec) for p, rec in decisions if decision_objective(rec) == "reach57"]
+
+
 def _flat_primary_ps(picks_dir: Path, dates: set[str] | None = None):
     out = {}
     for path in sorted(Path(picks_dir).glob("*.json")):
@@ -238,7 +246,7 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
 
     # --- boundary variants -------------------------------------------------
     primary_ps, primary_dates = [], []
-    for _, rec in decisions:
+    for _, rec in _boundary_sample_decisions(decisions):
         if (rec.get("primary") or {}).get("p_game_hit") is not None:
             primary_ps.append(float(rec["primary"]["p_game_hit"]))
             primary_dates.append(rec["date"])
@@ -300,6 +308,13 @@ def run_census(*, picks_dir: Path, ledger_path: Path, policy_path: Path,
 
         if rec.get("source") != "mdp" or p is None:
             row.update(state_source="excluded_non_mdp", diffs={})
+            rows.append(row)
+            continue
+        from bts.daily_decision import decision_objective
+        if decision_objective(rec) != "reach57":
+            # 2026-09-03: tail-objective decisions (57 unreachable) are a different
+            # rule; the census measures the reach-57 table's boundary behaviour.
+            row.update(state_source="excluded_tail_objective", diffs={})
             rows.append(row)
             continue
 

@@ -127,3 +127,24 @@ def test_compute_metrics_skips_malformed_probability(tmp_path):
 
     assert metrics is not None
     assert metrics.primary.n == 14
+
+
+def test_tail_objective_days_are_excluded(tmp_path):
+    """Once 57 is unreachable picks are chosen regardless of the reach-57 bins, so
+    bin utilisation on those days is meaningless: exclude days whose decision.json
+    objective is not reach57 (2026-09-03)."""
+    from bts.daily_decision import write_decision
+    picks_dir = tmp_path / "picks"
+    picks_dir.mkdir()
+    policy_path = tmp_path / "mdp_policy.npz"
+    _write_policy(policy_path)
+    for i in range(21):
+        d = f"2026-09-{i + 1:02d}"
+        _write_pick(picks_dir, d, 0.70 + i * 0.002, 0.69)
+        write_decision(d, picks_dir, action="double", source="mdp",
+                       primary={"batter_id": 1, "batter_name": "X", "team": "NYM", "game_pk": 1,
+                                "p_game_hit": 0.70}, delivery_status="delivered", scoreable=True,
+                       objective="emax_season_best")
+    assert check(picks_dir, policy_path, today=date(2026, 9, 21)) == []
+    m = compute_metrics(picks_dir, policy_path, today=date(2026, 9, 21))
+    assert m is None or m.primary.n == 0

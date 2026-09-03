@@ -270,7 +270,11 @@ def render_skip_banner(summary: dict | None) -> str:
     p = summary.get("best_p")
     streak = summary.get("streak")
     bar = summary.get("bar")
-    if isinstance(bar, (int, float)) and math.isfinite(bar) and streak is not None:
+    if summary.get("reason"):
+        # Tail regime (2026-09-03): the stop rule, not a bar.
+        pct = f"{p:.1%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"
+        below = html_lib.escape(str(summary["reason"]))
+    elif isinstance(bar, (int, float)) and math.isfinite(bar) and streak is not None:
         # The bar is streak-dependent and can sit within 0.2pp of best_p (2026-07-01:
         # 81.0% vs 81.2%) — show both at 0.1% precision so the margin is visible.
         pct = f"{p:.1%}" if isinstance(p, (int, float)) and math.isfinite(p) else "?"

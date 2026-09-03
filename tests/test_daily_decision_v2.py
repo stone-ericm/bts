@@ -29,7 +29,7 @@ def test_writer_emits_v2_with_state_and_second_candidate(tmp_path):
         allow_double=True, contest_source_date="2026-08-09",
         delivery_status="not_applicable", scoreable=False,
     )
-    assert rec["schema_version"] == "bts_daily_decision_v2"
+    assert rec["schema_version"] == DECISION_SCHEMA   # v3 since 2026-09-03; v2 fields unchanged
     assert rec["streak"] == 7 and rec["saver_available"] is True
     assert rec["state_source"] == "contest" and rec["state_status"] == "fresh"
     assert rec["allow_double"] is True
@@ -74,7 +74,7 @@ def test_load_decision_rejects_unknown_schema(tmp_path):
     path = decision_path("2026-08-10", tmp_path)
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({
-        "schema_version": "bts_daily_decision_v3", "date": "2026-08-10",
+        "schema_version": "bts_daily_decision_v9", "date": "2026-08-10",
         "action": "single", "scoreable": True,
     }))
     assert load_decision("2026-08-10", tmp_path) is None

@@ -585,6 +585,54 @@ def _refresh_is_genuine_pick(refresh: "FallbackRefreshResult") -> bool:
     return sel is not None and sel.action in {"single", "double"}
 
 
+def _selection_decision_meta(sel, daily=None) -> dict:
+    """Objective provenance for a decision record (2026-09-03): source +
+    objective/best/effective_best/tail sha/degraded reason. Taken from the
+    SelectionResult's PolicyDecision when this cycle made one, else from the
+    decision persisted ON the DailyPick (``policy_decision``) — the cached
+    fallback and restart recovery paths have selection=None (Codex r3 P1).
+    Tolerates a legacy selection/pick without a decision and None."""
+    dec = getattr(sel, "decision", None) if sel is not None else None
+    if dec is not None:
+        return {
+            "source": getattr(sel, "source", None) or "mdp",
+            "objective": dec.objective, "best_streak": dec.best_supplied,
+            "best_status": dec.best_status, "effective_best": dec.effective_best,
+            "tail_policy_sha256": dec.tail_sha256, "degraded_reason": dec.degraded_reason,
+        }
+    saved = getattr(daily, "policy_decision", None) if daily is not None else None
+    if isinstance(saved, dict) and saved.get("objective"):
+        return {
+            "source": saved.get("source") or "mdp",
+            "objective": saved.get("objective"), "best_streak": saved.get("best_supplied"),
+            "best_status": saved.get("best_status"), "effective_best": saved.get("effective_best"),
+            "tail_policy_sha256": saved.get("tail_sha256"), "degraded_reason": saved.get("degraded_reason"),
+        }
+    if sel is None:
+        return {}
+    return {"source": getattr(sel, "source", None) or "mdp"}
+
+
+_OBJECTIVE_KEYS = ("objective", "best_streak", "best_status", "effective_best",
+                   "tail_policy_sha256", "degraded_reason")
+
+
+def _log_policy_decision(sel) -> None:
+    """One line naming the objective whenever it is not the plain reach-57 table
+    (tail regime or a degraded fallback) — the operator-visible switch."""
+    dec = getattr(sel, "decision", None) if sel is not None else None
+    if dec is None:
+        return
+    if dec.objective == "reach57" and not dec.degraded_reason:
+        return
+    sha = (dec.tail_sha256 or "")[:12] or "-"
+    print(f"  Policy: objective={dec.objective} action={dec.action} streak={dec.streak} "
+          f"best={dec.best_supplied} ({dec.best_status}) effective_best={dec.effective_best} "
+          f"days={dec.days_effective} tail={sha}"
+          + (f" DEGRADED: {dec.degraded_reason}" if dec.degraded_reason else ""),
+          file=sys.stderr)
+
+
 def _capture_fallback_skip(state: "SchedulerState", refresh: "FallbackRefreshResult") -> None:
     """Set the EOD skip candidate from a fallback-confirmed genuine skip (D4 / Codex r2).
 
@@ -604,6 +652,7 @@ def _capture_fallback_skip(state: "SchedulerState", refresh: "FallbackRefreshRes
         "allow_double": getattr(sel, "allow_double", None),
         "contest_source_date": getattr(sel, "contest_source_date", None),
     }
+    state.final_skip_candidate.update(_selection_decision_meta(sel))
 
 
 def _row_from_daily(pick) -> dict | None:
@@ -618,7 +667,9 @@ def _row_from_daily(pick) -> dict | None:
 
 def _write_commit_decision(picks_dir, date, *, action, source, primary, double_down, delivery_status, state,
                            streak=None, saver_available=None, state_source=None,
-                           state_status=None, allow_double=None, contest_source_date=None):
+                           state_status=None, allow_double=None, contest_source_date=None,
+                           objective=None, best_streak=None, best_status=None, effective_best=None,
+                           tail_policy_sha256=None, degraded_reason=None):
     """Record an authoritative, scoreable decision at a real commit/lock point.
 
     Sets ``state.committed_pick_written`` and persists state AFTER the decision
@@ -634,7 +685,10 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
                             streak=streak, saver_available=saver_available,
                             state_source=state_source, state_status=state_status,
                             allow_double=allow_double, contest_source_date=contest_source_date,
-                            delivery_status=delivery_status, scoreable=True)
+                            delivery_status=delivery_status, scoreable=True,
+                            objective=objective, best_streak=best_streak, best_status=best_status,
+                            effective_best=effective_best, tail_policy_sha256=tail_policy_sha256,
+                            degraded_reason=degraded_reason)
     if record is not None:
         # write_decision is best-effort (None on failure). The flag must track
         # the on-disk truth: a flag set with no record behind it suppresses the
@@ -643,8 +697,34 @@ def _write_commit_decision(picks_dir, date, *, action, source, primary, double_d
     save_state(state, picks_dir)
 
 
+def _commit_decision_for_pick(picks_dir, date, daily, *, selection, delivery_status, state) -> None:
+    """Write the scoreable commit record for ``daily``. Source/candidate/objective
+    metadata come from the captured SelectionResult when this cycle made one;
+    otherwise (cached-pick safety net, selection=None) from the decision persisted
+    on the DailyPick — never re-read from current contest state (Codex r3 P1)."""
+    meta = _selection_decision_meta(selection, daily)
+    source = meta.pop("source", None) or "unknown"
+    _write_commit_decision(
+        picks_dir, date,
+        action=("double" if daily.double_down else "single"),
+        source=source,
+        primary=(selection.primary_candidate if selection is not None
+                 else _row_from_daily(daily.pick)),
+        double_down=(selection.double_candidate if selection is not None
+                     else _row_from_daily(daily.double_down)),
+        streak=(selection.streak if selection is not None else None),
+        saver_available=(selection.saver_available if selection is not None else None),
+        state_source=getattr(selection, "state_source", None),
+        state_status=getattr(selection, "state_status", None),
+        allow_double=getattr(selection, "allow_double", None),
+        contest_source_date=getattr(selection, "contest_source_date", None),
+        delivery_status=delivery_status, state=state,
+        **meta,
+    )
+
+
 def _write_classification_decision(picks_dir, date, *, action, delivered, primary, double_down, state,
-                                   attempted=False):
+                                   attempted=False, daily=None):
     """Record a classification-lock only when it represents a real commit.
 
     A genuinely DELIVERED existing pick recovered via classification-lock -> scoreable.
@@ -669,10 +749,11 @@ def _write_classification_decision(picks_dir, date, *, action, delivered, primar
         state.committed_pick_written = True
         save_state(state, picks_dir)
         return
-    _write_commit_decision(picks_dir, date, action=action, source="unknown",
+    meta = _selection_decision_meta(None, daily)   # the decision persisted on the pick, if any
+    _write_commit_decision(picks_dir, date, action=action, source=(meta.pop("source", None) or "unknown"),
                            primary=primary, double_down=double_down,
                            delivery_status=("delivered" if delivered else "locked_unconfirmed"),
-                           state=state)
+                           state=state, **meta)
 
 
 def _write_endofday_skip(picks_dir, date, state):
@@ -691,13 +772,15 @@ def _write_endofday_skip(picks_dir, date, state):
     if existing is not None and existing.get("scoreable"):
         return
     c = state.final_skip_candidate
-    write_decision(date, picks_dir, action="skip", source="mdp", primary=c.get("primary"),
+    write_decision(date, picks_dir, action="skip", source=(c.get("source") or "mdp"),
+                   primary=c.get("primary"),
                    second_candidate=c.get("double"),
                    streak=c.get("streak"), saver_available=c.get("saver_available"),
                    state_source=c.get("state_source"), state_status=c.get("state_status"),
                    allow_double=c.get("allow_double"),
                    contest_source_date=c.get("contest_source_date"),
-                   delivery_status="not_applicable", scoreable=False)
+                   delivery_status="not_applicable", scoreable=False,
+                   **{k: c.get(k) for k in _OBJECTIVE_KEYS})
 
 
 def save_state(state: SchedulerState, picks_dir: Path) -> Path:
@@ -866,27 +949,12 @@ def _deliver_and_lock_pick(
 
     def _record_commit(delivery_status: str) -> None:
         # Single chokepoint for the 5 lock branches — they differ only in
-        # delivery_status. Source/candidate metadata come from the captured
-        # SelectionResult when available, else fall back to the DailyPick.
+        # delivery_status. Decision-record writes must never affect pick
+        # delivery: isolate any failure here so it cannot be caught by the
+        # delivery try/except.
         try:
-            # Decision-record writes must never affect pick delivery: isolate
-            # any failure here so it cannot be caught by the delivery try/except.
-            _write_commit_decision(
-                picks_dir, date,
-                action=("double" if daily.double_down else "single"),
-                source=(selection.source if selection is not None else "unknown"),
-                primary=(selection.primary_candidate if selection is not None
-                         else _row_from_daily(daily.pick)),
-                double_down=(selection.double_candidate if selection is not None
-                             else _row_from_daily(daily.double_down)),
-                streak=(selection.streak if selection is not None else None),
-                saver_available=(selection.saver_available if selection is not None else None),
-                state_source=getattr(selection, "state_source", None),
-                state_status=getattr(selection, "state_status", None),
-                allow_double=getattr(selection, "allow_double", None),
-                contest_source_date=getattr(selection, "contest_source_date", None),
-                delivery_status=delivery_status, state=state,
-            )
+            _commit_decision_for_pick(picks_dir, date, daily, selection=selection,
+                                      delivery_status=delivery_status, state=state)
         except Exception:
             pass
 
@@ -1333,7 +1401,8 @@ def _has_pending_future_confirmation_window(
     return False
 
 
-def build_skip_summary(predictions, streak, pick_bar: float | None = None) -> dict | None:
+def build_skip_summary(predictions, streak, pick_bar: float | None = None,
+                       decision=None) -> dict | None:
     """Summarize a skip for log/DM/dashboard: the model's best candidate today and
     the streak being protected. Returns None on unusable data — this runs in the
     daemon loop and must never raise. Emits JSON-native types only (no NaN/numpy).
@@ -1360,6 +1429,11 @@ def build_skip_summary(predictions, streak, pick_bar: float | None = None) -> di
         import math
         if isinstance(pick_bar, (int, float)) and math.isfinite(float(pick_bar)):
             summary["bar"] = float(pick_bar)
+        if decision is not None:
+            # Tail regime (2026-09-03): the skip is the stop rule, not a bar.
+            summary["objective"] = getattr(decision, "objective", None)
+            if getattr(decision, "reason", None):
+                summary["reason"] = str(decision.reason)
         return summary
     except Exception:
         return None
@@ -1371,6 +1445,12 @@ def format_skip_dm(date: str, summary: dict) -> str:
     can't be retracted, so it must not claim a finality it doesn't have."""
     bar = summary.get("bar")
     import math
+    if summary.get("reason"):
+        return (
+            f"BTS {date}: No pick — model's best is {summary['best_batter']} "
+            f"({summary['best_team']}) {summary['best_p']:.1%}; {summary['reason']}. "
+            f"Streak holds at {summary['streak']}."
+        )
     if isinstance(bar, (int, float)) and math.isfinite(bar):
         # 0.1% precision: the streak-dependent bar can sit within 0.2pp of best_p.
         return (
@@ -1547,6 +1627,7 @@ def run_single_check(
                 unavailable_game_pks=unavailable_game_pks,
             )
             pick_result = sel.pick_result if sel is not None else None
+            _log_policy_decision(sel)
     except ContestStateError as e:
         print(f"  CONTEST STATE ERROR — no pick made: {e}", file=sys.stderr)
         _alert_contest_state_failure(config, e)
@@ -1561,24 +1642,33 @@ def run_single_check(
             # Skip day: predictions ran but the policy declined to pick (best
             # candidate below the pick bar). Surface it instead of staying silent
             # — the 2026-06-18 incident, where a legit skip looked like a hang.
-            from bts.contest_state import load_decision_streak_state
-            try:
-                streak = load_decision_streak_state(
-                    picks_dir, require_contest_state=False).streak
-            except Exception:
-                streak = None
-            skip_bar = None
-            try:
-                from bts.strategy import effective_pick_bar
-                if sel is not None and streak is not None:
-                    skip_bar = effective_pick_bar(streak, date, bool(sel.saver_available))
-            except Exception:
+            dec = getattr(sel, "decision", None) if sel is not None else None
+            if dec is not None:
+                # The selection that made the decision is the display authority
+                # (Codex r2): no second state read, no second bar lookup.
+                streak, skip_bar = dec.streak, dec.pick_bar
+            else:
+                from bts.contest_state import load_decision_streak_state
+                try:
+                    streak = load_decision_streak_state(
+                        picks_dir, require_contest_state=False).streak
+                except Exception:
+                    streak = None
                 skip_bar = None
-            skip_summary = build_skip_summary(predictions, streak, pick_bar=skip_bar)
+                try:
+                    from bts.strategy import effective_pick_bar
+                    if sel is not None and streak is not None:
+                        skip_bar = effective_pick_bar(streak, date, bool(sel.saver_available))
+                except Exception:
+                    skip_bar = None
+            skip_summary = build_skip_summary(predictions, streak, pick_bar=skip_bar, decision=dec)
             if skip_summary is not None:
                 bar = skip_summary.get("bar")
-                below = (f"below the streak-{skip_summary['streak']} bar ({bar:.1%})"
-                         if bar is not None else "below the pick bar")
+                if skip_summary.get("reason"):
+                    below = skip_summary["reason"]
+                else:
+                    below = (f"below the streak-{skip_summary['streak']} bar ({bar:.1%})"
+                             if bar is not None else "below the pick bar")
                 print(f"  SKIP — best {skip_summary['best_batter']} "
                       f"({skip_summary['best_team']}) {skip_summary['best_p']:.1%} {below}; "
                       f"streak holds at {skip_summary['streak']}.", file=sys.stderr)
@@ -1602,11 +1692,13 @@ def run_single_check(
     # Save candidate pick — attach provenance v1 fields first (per Codex #168).
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
     models_dir = config["orchestrator"].get("models_dir", "data/models")
     attach_provenance(
         pick_result.daily,
         blend_path=Path(models_dir) / f"blend_{date}.pkl",
         policy_path=DEFAULT_POLICY_PATH,
+        tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
     save_pick(pick_result.daily, picks_dir)
 
@@ -1763,6 +1855,7 @@ def _run_shadow_prediction(
         # using the same models_dir as the prediction call (per Codex #172).
         from bts.picks import attach_provenance
         from bts.simulate.mdp import DEFAULT_POLICY_PATH
+        from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
         from bts.orchestrator import shadow_cache_path
         from bts.shadow_eval import stamp_shadow_version
         stamp_shadow_version(result.daily)
@@ -1770,6 +1863,7 @@ def _run_shadow_prediction(
             result.daily,
             blend_path=shadow_cache_path(models_dir, date),
             policy_path=DEFAULT_POLICY_PATH,
+            tail_path=DEFAULT_TAIL_POLICY_PATH,
         )
         save_shadow_pick(result.daily, picks_dir)
         _update_analytics_job_status(
@@ -1942,6 +2036,7 @@ def _refresh_pick_at_fallback_decision(
                 unavailable_game_pks=unavailable_game_pks,
             )
             pick_result = sel.pick_result if sel is not None else None
+            _log_policy_decision(sel)
     except ContestStateError:
         raise
     except Exception as e:
@@ -1977,11 +2072,13 @@ def _refresh_pick_at_fallback_decision(
     # Fresh pick from a re-prediction — attach provenance v1 fields per Codex #168.
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
     models_dir = config["orchestrator"].get("models_dir", "data/models")
     attach_provenance(
         fresh,
         blend_path=Path(models_dir) / f"blend_{date}.pkl",
         policy_path=DEFAULT_POLICY_PATH,
+        tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
     save_pick(fresh, picks_dir)
     if predictions is None:
@@ -2596,6 +2693,7 @@ def run_day(
                 "allow_double": sel.allow_double,
                 "contest_source_date": sel.contest_source_date,
             }
+            state.final_skip_candidate.update(_selection_decision_meta(sel))
             save_state(state, picks_dir)  # persist so a same-day restart inherits the skip (#3)
         elif sel is not None and sel.action in {"single", "double"}:
             state.final_skip_candidate = None
@@ -2653,7 +2751,7 @@ def run_day(
                 attempted=attempted,
                 primary=_row_from_daily(ld.pick),
                 double_down=_row_from_daily(ld.double_down),
-                state=state,
+                state=state, daily=ld,
             )
 
         if result["should_post"] and result["pick_result"] and not result["pick_result"].locked:

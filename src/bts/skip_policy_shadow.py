@@ -133,11 +133,11 @@ def record_skip_from_decision(date: str, picks_dir, *, now=None) -> dict | None:
     reconciled outcome); or the day's decision.json is not an MDP skip
     (action!="skip" or source!="mdp").
     """
-    from bts.daily_decision import load_decision
+    from bts.daily_decision import is_reach57_mdp_skip, load_decision
     if decision_path(date, picks_dir).exists():
         return None
     dec = load_decision(date, picks_dir)
-    if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
+    if not is_reach57_mdp_skip(dec):
         return None
     record = build_divergent_record(date, dec, now=now)
     record["regime"] = _read_regime(date, picks_dir)
@@ -155,7 +155,7 @@ def prune_superseded(picks_dir, *, now: datetime | None = None) -> list[str]:
     first-c window and un-decide a terminal verdict. An old date whose decision.json vanishes
     is an anomaly to investigate, not a supersession. Returns the removed dates.
     """
-    from bts.daily_decision import load_decision
+    from bts.daily_decision import is_reach57_mdp_skip, load_decision
     now = now or datetime.now(timezone.utc)
     removed = []
     for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
@@ -170,7 +170,7 @@ def prune_superseded(picks_dir, *, now: datetime | None = None) -> list[str]:
         if (now - rec_date).days >= CHECKPOINT_ELIGIBLE_AFTER_DAYS:
             continue  # membership of fired looks is immutable — never prune aged records
         dec = load_decision(date, picks_dir)
-        if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
+        if not is_reach57_mdp_skip(dec):
             try:
                 f.unlink()
                 removed.append(date)
@@ -210,7 +210,7 @@ def find_aged_contradictions(picks_dir, *, now: datetime | None = None) -> list[
     contradicts the authoritative source — report it loudly so the operator
     investigates instead of the divergent set silently carrying a non-skip day.
     """
-    from bts.daily_decision import load_decision
+    from bts.daily_decision import is_reach57_mdp_skip, load_decision
     now = now or datetime.now(timezone.utc)
     contradictions = []
     for f in sorted(Path(picks_dir).glob("*.policy_shadow.json")):
@@ -222,7 +222,7 @@ def find_aged_contradictions(picks_dir, *, now: datetime | None = None) -> list[
         if (now - rec_date).days < CHECKPOINT_ELIGIBLE_AFTER_DAYS:
             continue  # young records are prune_superseded's territory
         dec = load_decision(date, picks_dir)
-        if not dec or dec.get("action") != "skip" or dec.get("source") != "mdp":
+        if not is_reach57_mdp_skip(dec):
             contradictions.append(date)
     return contradictions
 

@@ -491,3 +491,20 @@ def test_aged_contradictions_excluded_from_checkpoint_eligibility(tmp_path):
     # 30 records minus the contradicted one -> below the first checkpoint
     assert s["shadow_band_hit_rate"]["verdict_basis"]["eligible_n"] == 29
     assert s["shadow_band_hit_rate"]["verdict"] == "insufficient_n"
+
+
+# ---- tail objective (2026-09-03): season-best-unbeatable skips are a different rule ----
+
+def test_tail_objective_skip_is_not_recorded(tmp_path):
+    write_decision("2026-09-19", tmp_path, action="skip", source="mdp", primary=_cand(1, 0.74),
+                   streak=0, delivery_status="not_applicable", scoreable=False,
+                   objective="emax_season_best", best_streak=18, best_status="trusted",
+                   effective_best=18)
+    assert record_skip_from_decision("2026-09-19", tmp_path) is None
+
+
+def test_reach57_objective_skip_is_still_recorded(tmp_path):
+    write_decision("2026-08-19", tmp_path, action="skip", source="mdp", primary=_cand(1, 0.74),
+                   streak=10, delivery_status="not_applicable", scoreable=False,
+                   objective="reach57")
+    assert record_skip_from_decision("2026-08-19", tmp_path) is not None

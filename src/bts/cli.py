@@ -1160,7 +1160,7 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
         game_statuses_detailed = None
-    result = select_pick(
+    sel = select_pick(
         predictions,
         date,
         picks_path,
@@ -1169,15 +1169,20 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
-    ).pick_result
+        best_streak=getattr(decision_state, "best_streak", None),
+        best_status=getattr(decision_state, "best_status", None),
+    )
+    result = sel.pick_result
+    skip_reason = getattr(getattr(sel, "decision", None), "reason", None)
 
     if result is None:
         # Skip day — post to Bluesky with top pick info
         top = predictions.iloc[0] if not predictions.empty else None
         if top is not None and pd.notna(top.get("p_game_hit")):
             from bts.posting import format_skip_post, post_to_bluesky, should_post_now
+            why = skip_reason or "below threshold"
             click.echo(f"Skipping — {top['batter_name']} ({top.get('team', '?')}) "
-                       f"at {top['p_game_hit']:.1%} below threshold. Streak holds at {decision_state.streak}.")
+                       f"at {top['p_game_hit']:.1%} {why}. Streak holds at {decision_state.streak}.")
             if not dry_run and should_post_now(top.get("game_time", ""), False):
                 text = format_skip_post(top["batter_name"], top.get("team", "?"),
                                         top["p_game_hit"], decision_state.streak)
@@ -1218,10 +1223,12 @@ def run(date: str, data_dir: str, picks_dir: str, models_dir: str, top: int, dry
     daily = result.daily
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
     attach_provenance(
         daily,
         blend_path=models_path / f"blend_{date}.pkl",
         policy_path=DEFAULT_POLICY_PATH,
+        tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
     click.echo(f"Pick: {daily.pick.batter_name} ({daily.pick.p_game_hit:.1%}) "
                f"vs {daily.pick.pitcher_name}")
@@ -1313,7 +1320,7 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         game_statuses_detailed = get_game_statuses_detailed(date)
     except Exception:
         game_statuses_detailed = None
-    result = select_pick(
+    sel = select_pick(
         predictions,
         date,
         picks_path,
@@ -1322,22 +1329,29 @@ def preview(date: str | None, data_dir: str, picks_dir: str, models_dir: str):
         allow_double=decision_state.allow_double,
         game_statuses_detailed=game_statuses_detailed,
         require_detailed_statuses=True,
-    ).pick_result
+        best_streak=getattr(decision_state, "best_streak", None),
+        best_status=getattr(decision_state, "best_status", None),
+    )
+    result = sel.pick_result
+    skip_reason = getattr(getattr(sel, "decision", None), "reason", None)
 
     if result is None:
         top = predictions.iloc[0]
-        click.echo(f"[preview] Skip day — {top['batter_name']} at {top['p_game_hit']:.1%} below threshold.")
+        click.echo(f"[preview] Skip day — {top['batter_name']} at {top['p_game_hit']:.1%} "
+                   f"{skip_reason or 'below threshold'}.")
         return
 
     daily = result.daily
     # Preview path also gets provenance v1 fields per Codex #168.
     from bts.picks import attach_provenance
     from bts.simulate.mdp import DEFAULT_POLICY_PATH
+    from bts.simulate.tail_policy import DEFAULT_TAIL_POLICY_PATH
     models_path_preview = Path(models_dir)
     attach_provenance(
         daily,
         blend_path=models_path_preview / f"blend_{date}.pkl",
         policy_path=DEFAULT_POLICY_PATH,
+        tail_path=DEFAULT_TAIL_POLICY_PATH,
     )
     save_pick(daily, picks_path)
     click.echo(f"[preview] {daily.pick.batter_name} ({daily.pick.team}) "
