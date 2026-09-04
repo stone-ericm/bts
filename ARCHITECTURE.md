@@ -74,7 +74,7 @@ different action rule). It tests whether the deployed MDP's **skip at streak≥8
 backtest cannot settle, because the calibrated breakeven (~0.744) sits inside the skipped band's
 realized hit-rate range (see `docs/audit/2026-06-20-skip-policy-shadow.md`). **Ground truth via
 `decision.json`:** the scheduler writes `data/picks/<date>/decision.json` (schema
-`bts_daily_decision_v2` since 2026-08-09; v1 accepted for legacy files) at each true finalization point — pick commit (`_deliver_and_lock_pick`,
+`bts_daily_decision_v3` since 2026-09-03 — adds objective/best/effective_best/tail sha; v1/v2 accepted for legacy files) at each true finalization point — pick commit (`_deliver_and_lock_pick`,
 delivery branches → `delivered`/`private_locked`/`locked_unconfirmed`), classification-lock (only
 when the recovered pick was genuinely delivered), crash-guard, and end-of-day MDP skip. The
 scheduler tracks `committed_pick_written` + `final_skip_candidate` across the day; all writes are
@@ -104,8 +104,9 @@ doc — 4 review rounds showed the action + executable candidate aren't otherwis
 
 ### `decision.json` — authoritative daily action record (`bts/daily_decision.py`)
 
-`data/picks/<date>/decision.json` (schema `bts_daily_decision_v2` since 2026-08-09; readers accept
-{v1, v2}) is the single source of truth for "what did production finally do on a date." Written
+`data/picks/<date>/decision.json` (schema `bts_daily_decision_v3` since 2026-09-03 — objective, best_streak,
+best_status, effective_best, tail_policy_sha256, degraded_reason; a v3 record's objective must be a valid
+enum, else it reads as `unknown` and is excluded from every reach-57 consumer; readers accept {v1, v2, v3}) is the single source of truth for "what did production finally do on a date." Written
 ONLY by the scheduler at true finalization points; never by `bts run`, preview, or the shadow
 model. **v2 adds state provenance on EVERY record** — streak, saver_available, state_source,
 state_status, allow_double, contest_source_date, stamped in `orchestrator.run_and_pick` from the
@@ -307,6 +308,7 @@ End-of-day health checks dispatched by `bts.health.runner.run_all_checks()`. Eac
 | `park_drag_freshness` | 2 | park_drag external table: failed refresh run (WARN), source data ≥3d behind (WARN) / ≥6d (CRITICAL), manifest generated_at >30h (WARN, cron liveness); silent if `data/external/park_drag/` absent or off-season (Oct-Feb) |
 | `disk_fill` | 3 | `shutil.disk_usage` thresholds |
 | `pick_entry` | 1 | (added 2026-07-09, audit F1) EOD backstop for check-pick-entered: marker still `alerted` past the submission cutoff → WARN (entry never confirmed); `dm_failed` past cutoff → CRITICAL (unentered AND the alert never reached the operator). Quiet while a late game's window is open; always-attention. |
+| `tail_policy` | 1 | (added 2026-09-03) loads the deployed `mdp_policy.npz` + `mdp_tail_policy.npz` every run: a missing/invalid/unpaired tail (or a base that can't be hashed → tail unverifiable) is CRITICAL inside the tail window (≤28 days left) and WARN before it — the deploy canary never loads artifacts, and the pick path degrades to a forced single silently otherwise. Always-attention. |
 | `scheduler_state_integrity` | 3 | (added 2026-07-09, audit F3) WARNs while a `scheduler_state.json.corrupt-*` quarantine file is recent (7-day lookback, break-proof): a torn/corrupt day-state was recovered at startup — pick_locked/skip context reset; evidence file preserved. Always-attention. |
 | `memory_growth` | 3 | scheduler RSS thresholds (1024/3072/6144 MB tuned 2026-04-28) + Tuesday-EOD weekly digest INFO with median/trend (added 2026-04-29) |
 | `streak_validation` | 3 | `streak.json` schema sanity |

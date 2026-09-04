@@ -73,6 +73,9 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **BTS hit-scoring excludes the resumed portion of suspended games** — read PA via `build.read_pa_for_bts_scoring` / `filter_out_resumed_portion` (NOT raw `pd.read_parquet`) anywhere PA feeds hit/streak/calibration/contest scoring; the production scorer grades via `picks.grade_pick_in_feed`. Model training, features, and the skill-pool prior intentionally KEEP resumed PA (real events). See ARCHITECTURE "Suspended-game scoring" (`is_resumed_portion`).
 - **The leaderboard scraper + contest fetch run on Eric's REAL BTS contest account cookies** (`~/.bts-leaderboard-cookies.json`) — a ban costs the actual streak. Deep scraping is authorized but kept low-profile: keep the browser identity (`endpoints.browser_headers`), the jittered gaps, the `profile_top_n` footprint cap, and the **403/429 → `RateLimitedError` kill-switch** (`scraper._get_json`). Don't remove the kill-switch or crank the volume/cadence without a reason. No IP/proxy tricks — this is request hygiene for one authorized account, not evasion.
 
+## Repo gotchas
+- **`data/models/` is gitignored** — the tracked policy artifacts (`mdp_policy.npz`, `mdp_tail_policy.npz`) were `git add -f`'d. A plain `git add data/models/<new>.npz` prints an "ignored" hint and stages NOTHING while the rest of the commit goes through (the 9/03 tail-policy commit shipped without its artifact until a follow-up). Always `git add -f` new artifacts and `git ls-tree origin/main data/models/` before deploying.
+
 ## Data
 - Raw JSON: `data/raw/{season}/{gamePk}.json` (gitignored, ~15GB)
 - MiLB raw: `data/raw/milb/{season}/{gamePk}.json` (6,643 games, 2023-2025. Pitch types only available 2023+)
@@ -88,6 +91,10 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 > hit **0.865**), which INFLATES streaks and can *flip* the policy ranking (MDP looks great on inflated
 > data; always-double wins on realistic). See `docs/audit/2026-07-06-strategy-model-lever-investigation.md`
 > + reproducible comparator `scripts/audit/confirm_mdp_policy_replay.py`.
+> **The shipped reach-57 policy's OWN profiles (`data/hetzner_results/pooled_bins_run`, 24 seeds) are LOST**
+> (died with the 6/05 MacBook; not on the box) — `mdp_policy.npz` (sha 66d15471…) cannot be re-solved, only
+> extended (that is why the 9/03 tail policy is a separate sha-bound artifact). Re-solving from the estpa
+> profiles gives different boundaries (0.759–0.800 vs 0.796–0.841) and P57 0.007% vs 8.17%.
 >
 > **⚠ RUN STRUCTURE (2026-07-13 gotcha):** even on the right profiles, iid day-type solvers
 > (`solve_mdp` / any DP over quality bins) get milestone probabilities policy-DEPENDENT-wrong:
