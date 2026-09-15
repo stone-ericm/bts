@@ -12,6 +12,15 @@ on the parity-guard branch:
     systemctl --user daemon-reload
     systemctl --user enable --now bts-live-forward-capture.timer
 
+D8 (2026-09-14, season wrap): the unit passes `--capture-research-on-skip`. On a day
+with NO production pick where the scheduler has persisted a current skip intent
+(`data/picks/<date>/scheduler_state.json` `final_skip_candidate`), the wrapper exports
+the ranked slates into `data/validation/decision_weighted_lgbm_v0_live_forward_research/<date>/`
+as a RESEARCH-ONLY capture (sidecar `research_capture.json` written last with file hashes;
+never eligible for the official decision-weighted read; must start before first pitch − 5 min
+and complete before first pitch). After a deploy that changes the unit file, re-copy it and
+`systemctl --user daemon-reload`.
+
 The timer runs every 15 minutes from 05:00 through 22:45 local server time.
 This is safe because the runner is idempotent:
 

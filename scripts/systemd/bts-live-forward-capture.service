@@ -7,7 +7,7 @@ Type=oneshot
 WorkingDirectory=/home/bts/projects/bts
 Environment="PYTHONUNBUFFERED=1"
 Environment="UV_CACHE_DIR=/tmp/uv-cache"
-ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/live_forward_capture_once.py --auto-recapture-on-snapshot-drift
+ExecStart=/home/bts/projects/bts/.venv/bin/python /home/bts/projects/bts/scripts/live_forward_capture_once.py --auto-recapture-on-snapshot-drift --capture-research-on-skip
 Nice=19
 StandardOutput=journal
 StandardError=journal

@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -31,6 +31,22 @@ DEFAULT_ARTIFACT_ROOT = Path(
 DEFAULT_PRODUCTION_ROOT = Path("/home/bts/projects/bts")
 DEFAULT_LIVE_FORWARD_ROOT = Path("/home/bts/projects/bts-live-forward")
 DEFAULT_PYTHON = Path("/home/bts/projects/bts/.venv/bin/python")
+
+# D8 (2026-09-14): research-only forecast capture on days with NO production pick
+# (MDP/tail skip days). Lives in a SEPARATE artifact root so the official
+# decision-weighted live-forward stream (`discover_dates` on DEFAULT_ARTIFACT_ROOT)
+# never sees it; the sidecar is the completion contract and is written LAST.
+DEFAULT_RESEARCH_ROOT = Path(
+    "data/validation/decision_weighted_lgbm_v0_live_forward_research"
+)
+RESEARCH_SIDECAR_NAME = "research_capture.json"
+# Acceptance marker written AFTER the sidecar is in place; its published_at is sampled
+# after that rename, so it is the evidence that the content was published pre-first-pitch.
+RESEARCH_ACCEPTED_NAME = "research_capture.accepted.json"
+RESEARCH_REASON = "no_production_pick_skip_day"
+# Contest entry closes 5 min before first pitch (bts.picks.SUBMISSION_CUTOFF_MIN);
+# a forecast captured later than that is not a decision-time forecast.
+RESEARCH_DEADLINE_BUFFER_MIN = 5
 
 
 @dataclass(frozen=True)
@@ -47,6 +63,11 @@ class CaptureConfig:
     overwrite: bool
     fail_on_pending: bool
     auto_recapture_on_snapshot_drift: bool
+    # D8 research stream (opt-in; behavior is byte-identical when False).
+    capture_research_on_skip: bool = False
+    research_root: Path = DEFAULT_RESEARCH_ROOT
+    # Injectable clock for the pre-first-pitch deadline (tests); None = wall clock.
+    now: datetime | None = None
 
 
 def today_et() -> str:
@@ -55,6 +76,14 @@ def today_et() -> str:
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def utc_now_dt() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def config_now(config: CaptureConfig) -> datetime:
+    return config.now if config.now is not None else utc_now_dt()
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -293,58 +322,56 @@ def verify_artifact(
     artifact_dir: Path,
     verification_path: Path,
     live_forward_head: str,
+    require_pick_snapshot: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return run_bts(
-        config,
-        [
-            "experiment",
-            "verify-candidate-artifacts",
-            "--artifact-dir",
-            str(artifact_dir),
-            "--expected-run-kind",
-            "live_forward_preoutcome",
-            "--expected-candidate",
-            config.candidate,
-            "--expected-date",
-            config.date,
-            "--expected-git-commit",
-            live_forward_head,
-            "--expected-top-n",
-            str(config.top_n),
-            "--require-live-preoutcome",
-            "--require-production-pick-snapshot",
-            "--save",
-            str(verification_path),
-        ],
-    )
+    args = [
+        "experiment",
+        "verify-candidate-artifacts",
+        "--artifact-dir",
+        str(artifact_dir),
+        "--expected-run-kind",
+        "live_forward_preoutcome",
+        "--expected-candidate",
+        config.candidate,
+        "--expected-date",
+        config.date,
+        "--expected-git-commit",
+        live_forward_head,
+        "--expected-top-n",
+        str(config.top_n),
+        "--require-live-preoutcome",
+    ]
+    if require_pick_snapshot:
+        # Official stream: parity with the production pick is mandatory.
+        args.append("--require-production-pick-snapshot")
+    args += ["--save", str(verification_path)]
+    return run_bts(config, args)
 
 
 def export_artifact(
     config: CaptureConfig,
     *,
-    pick_path: Path,
+    pick_path: Path | None,
     artifact_dir: Path,
 ) -> subprocess.CompletedProcess[str]:
-    return run_bts(
-        config,
-        [
-            "experiment",
-            "export-live-candidate-artifacts",
-            "--date",
-            config.date,
-            "--candidate",
-            config.candidate,
-            "--output-dir",
-            str(artifact_dir),
-            "--data-dir",
-            str(resolve_under(config.production_root, config.data_dir)),
-            "--top-n",
-            str(config.top_n),
-            "--no-refresh-data",
-            "--production-pick-file",
-            str(pick_path),
-        ],
-    )
+    args = [
+        "experiment",
+        "export-live-candidate-artifacts",
+        "--date",
+        config.date,
+        "--candidate",
+        config.candidate,
+        "--output-dir",
+        str(artifact_dir),
+        "--data-dir",
+        str(resolve_under(config.production_root, config.data_dir)),
+        "--top-n",
+        str(config.top_n),
+        "--no-refresh-data",
+    ]
+    if pick_path is not None:
+        args += ["--production-pick-file", str(pick_path)]
+    return run_bts(config, args)
 
 
 def refresh_stale_artifact(
@@ -653,6 +680,15 @@ def capture_once(config: CaptureConfig) -> tuple[int, dict[str, Any]]:
         return 1, payload
 
     if not pick_path.exists():
+        if config.capture_research_on_skip:
+            research = research_capture_once(
+                config,
+                pick_path=pick_path,
+                production_head=production_head,
+                live_forward_head=live_forward_head,
+            )
+            if research is not None:
+                return research
         payload = status_payload(
             config=config,
             status="pending_pick",
@@ -786,6 +822,426 @@ def capture_once(config: CaptureConfig) -> tuple[int, dict[str, Any]]:
     return (0 if verify.returncode == 0 else 1), payload
 
 
+# ---------------------------------------------------------------------------
+# D8 research-only capture (no production pick). Design + Codex review:
+# .codex-review/season-wrap/d8-design.md / d8-codex.md (2026-09-14).
+# ---------------------------------------------------------------------------
+
+
+def _read_json_readonly(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse JSON without ANY side effect (never quarantine/rename like load_state)."""
+    try:
+        obj = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+    if not isinstance(obj, dict):
+        return None, "not a JSON object"
+    return obj, None
+
+
+def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    os.replace(tmp, path)
+
+
+def earliest_first_pitch_utc(games: Any) -> datetime | None:
+    """Earliest `game_time_et` in the scheduler's persisted games list, as aware UTC.
+
+    Returns None when the list is missing/empty or any entry is unparseable —
+    callers FAIL CLOSED (no capture) in that case."""
+    if not isinstance(games, list) or not games:
+        return None
+    times: list[datetime] = []
+    for game in games:
+        raw = game.get("game_time_et") if isinstance(game, dict) else None
+        if not raw:
+            return None
+        try:
+            parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=ZoneInfo("America/New_York"))
+        times.append(parsed.astimezone(timezone.utc))
+    return min(times)
+
+
+RESEARCH_SIDECAR_SCHEMA = "live_forward_research_capture_v1"
+RESEARCH_RUN_KIND = "live_forward_preoutcome"
+
+
+def research_contract_files(date: str) -> list[str]:
+    return [
+        "manifest.json",
+        "verification.json",
+        f"profiles/production/live_{date}.parquet",
+        f"profiles/candidate/live_{date}.parquet",
+    ]
+
+
+def _parse_iso_utc(value: Any) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def research_contract_problems(research_dir: Path, *, date: str, candidate: str) -> list[str]:
+    """Identity/integrity checks on the exporter+verifier outputs (sidecar excluded)."""
+    problems: list[str] = []
+    for rel in research_contract_files(date):
+        if not (research_dir / rel).exists():
+            problems.append(f"contract file missing: {rel}")
+    if problems:
+        return problems
+    manifest, err = _read_json_readonly(research_dir / "manifest.json")
+    if manifest is None:
+        return [f"manifest unreadable: {err}"]
+    if str(manifest.get("date")) != date:
+        problems.append(f"manifest date {manifest.get('date')!r} != {date!r}")
+    if str(manifest.get("candidate_name")) != candidate:
+        problems.append(
+            f"manifest candidate {manifest.get('candidate_name')!r} != {candidate!r}"
+        )
+    if manifest.get("run_kind") != RESEARCH_RUN_KIND:
+        problems.append(f"manifest run_kind {manifest.get('run_kind')!r} != {RESEARCH_RUN_KIND!r}")
+    if not isinstance(manifest.get("git_commit"), str) or not manifest.get("git_commit"):
+        problems.append("manifest has no git_commit")
+    if isinstance(manifest.get("production_pick_snapshot"), dict):
+        problems.append("manifest carries a production_pick_snapshot (not a research capture)")
+    verification, err = _read_json_readonly(research_dir / "verification.json")
+    if verification is None:
+        problems.append(f"verification unreadable: {err}")
+    elif verification.get("ok") is not True:
+        problems.append("verification.json ok is not true")
+    return problems
+
+
+def research_sidecar_state(
+    research_dir: Path, *, date: str, candidate: str
+) -> tuple[str, str]:
+    """Classify an existing research dir: ``valid`` (complete, accepted contract),
+    ``incompatible`` (a complete capture for ANOTHER candidate — never relabel or
+    replace it), or ``invalid`` (partial/corrupt/tampered/unaccepted — recoverable
+    only pregame). Restart validation re-checks identity, provenance binding, the
+    start cutoff, completion ordering and the post-publication acceptance marker."""
+    sidecar_path = research_dir / RESEARCH_SIDECAR_NAME
+    if not sidecar_path.exists():
+        return "invalid", "sidecar missing"
+    sidecar, err = _read_json_readonly(sidecar_path)
+    if sidecar is None:
+        return "invalid", f"sidecar unreadable: {err}"
+    if sidecar.get("schema_version") != RESEARCH_SIDECAR_SCHEMA:
+        return "invalid", f"sidecar schema {sidecar.get('schema_version')!r}"
+    if sidecar.get("research_only") is not True or sidecar.get("eligible_for_official_read") is not False:
+        return "invalid", "sidecar research/eligibility labels are wrong"
+    if sidecar.get("reason") != RESEARCH_REASON or str(sidecar.get("date")) != date:
+        return "invalid", "sidecar reason/date mismatch"
+    for key in ("production_head", "live_forward_head"):
+        if not isinstance(sidecar.get(key), str) or not sidecar.get(key):
+            return "invalid", f"sidecar provenance field {key} missing"
+    hashes = sidecar.get("file_sha256")
+    if not isinstance(hashes, dict):
+        return "invalid", "sidecar has no file hashes"
+    for rel in research_contract_files(date):
+        path = research_dir / rel
+        if not path.exists():
+            return "invalid", f"contract file missing: {rel}"
+        if hashes.get(rel) != file_sha256(path):
+            return "invalid", f"hash mismatch: {rel}"
+    sidecar_candidate = str(sidecar.get("candidate"))
+    problems = research_contract_problems(research_dir, date=date, candidate=sidecar_candidate)
+    if problems:
+        return "invalid", "; ".join(problems)
+    # Provenance binding: the frozen live-forward head recorded in the sidecar must be
+    # the commit the exporter stamped and the verifier checked. (production_head is
+    # recorded, not compared: deploys legitimately move the production checkout.)
+    manifest, _ = _read_json_readonly(research_dir / "manifest.json")
+    verification, _ = _read_json_readonly(research_dir / "verification.json")
+    head = sidecar["live_forward_head"]
+    if manifest is None or manifest.get("git_commit") != head:
+        return "invalid", "sidecar live_forward_head does not match manifest git_commit"
+    ver_manifest = verification.get("manifest") if isinstance(verification, dict) else None
+    if isinstance(ver_manifest, dict) and ver_manifest.get("git_commit") not in (None, head):
+        return "invalid", "verification report was produced for a different git_commit"
+    started = _parse_iso_utc(sidecar.get("started_at"))
+    completed = _parse_iso_utc(sidecar.get("completed_at"))
+    first_pitch = _parse_iso_utc(sidecar.get("earliest_first_pitch_utc"))
+    if started is None or completed is None or first_pitch is None:
+        return "invalid", "sidecar timestamps unparseable"
+    if started >= first_pitch - timedelta(minutes=RESEARCH_DEADLINE_BUFFER_MIN):
+        return "invalid", "sidecar started_at violates the pre-first-pitch start cutoff"
+    if not (started <= completed < first_pitch):
+        return "invalid", "sidecar timestamps are not started <= completed < first pitch"
+    accepted_path = research_dir / RESEARCH_ACCEPTED_NAME
+    if not accepted_path.exists():
+        return "invalid", "acceptance marker missing (publication never confirmed)"
+    accepted, err = _read_json_readonly(accepted_path)
+    if accepted is None:
+        return "invalid", f"acceptance marker unreadable: {err}"
+    if accepted.get("sidecar_sha256") != file_sha256(sidecar_path):
+        return "invalid", "acceptance marker does not match the sidecar"
+    published = _parse_iso_utc(accepted.get("published_at"))
+    if published is None or not (completed <= published < first_pitch):
+        return "invalid", "publication was not confirmed before first pitch"
+    if sidecar_candidate != candidate:
+        return "incompatible", (
+            f"complete research capture exists for candidate {sidecar_candidate!r}, "
+            f"requested {candidate!r}"
+        )
+    return "valid", "ok"
+
+
+def _quarantine_dir(research_dir: Path, label: str) -> Path:
+    stamp = utc_now_dt().strftime("%Y%m%dT%H%M%SZ")
+    base = research_dir.with_name(f"{research_dir.name}.{label}.{stamp}")
+    target = base
+    counter = 1
+    while target.exists() or target.is_symlink():
+        target = research_dir.with_name(f"{base.name}.{counter}")
+        counter += 1
+    shutil.move(str(research_dir), str(target))
+    return target
+
+
+def _roots_overlap(a: Path, b: Path) -> bool:
+    ra, rb = a.resolve(), b.resolve()
+    return ra == rb or ra.is_relative_to(rb) or rb.is_relative_to(ra)
+
+
+def research_root_conflict(config: CaptureConfig) -> str | None:
+    """The research root must not touch anything live: the official artifact root,
+    the picks/state tree, the processed-data tree, or the production root itself."""
+    research_root = resolve_under(config.production_root, config.research_root)
+    protected = {
+        "official artifact root": resolve_under(config.production_root, config.artifact_root),
+        "picks dir": resolve_under(config.production_root, config.picks_dir),
+        "data dir": resolve_under(config.production_root, config.data_dir),
+    }
+    for label, path in protected.items():
+        if _roots_overlap(research_root, path):
+            return f"research root {research_root} overlaps {label} {path}"
+    prod = config.production_root.resolve()
+    rr = research_root.resolve()
+    if rr == prod or prod.is_relative_to(rr):
+        return f"research root {research_root} is the production root or an ancestor of it"
+    return None
+
+
+def research_dir_escapes(research_dir: Path, research_root: Path) -> str | None:
+    """Refuse a per-date dir that is a symlink or resolves outside the research root."""
+    if research_dir.is_symlink():
+        return f"{research_dir} is a symlink"
+    if research_dir.exists() and not research_dir.resolve().is_relative_to(research_root.resolve()):
+        return f"{research_dir} resolves outside {research_root}"
+    return None
+
+
+def research_capture_once(
+    config: CaptureConfig,
+    *,
+    pick_path: Path,
+    production_head: str | None,
+    live_forward_head: str | None,
+) -> tuple[int, dict[str, Any]] | None:
+    """Capture the day's ranked slates WITHOUT a production pick, into the research root.
+
+    Returns None when the day shows no skip signal (caller falls through to the
+    unchanged `pending_pick`). Trigger = the scheduler's persisted CURRENT skip intent
+    (`final_skip_candidate`; a later pick attempt clears it) with no scoreable
+    decision. Everything read here is parsed read-only. The forecast must START
+    before first pitch − 5 min and be PUBLISHED before first pitch (the clock is
+    re-sampled right before export and again after hashing, immediately before the
+    sidecar is written); anything else is refused or discarded. The sidecar (written
+    last, atomically, with hashes + identity + timestamps) is the only thing that
+    makes a capture count, and restart validation re-checks all of it."""
+    research_root = resolve_under(config.production_root, config.research_root)
+    research_dir = research_root / config.date
+    status_path = research_dir / "capture_status.json"
+
+    def payload_for(status: str, message: str, **extra: Any) -> dict[str, Any]:
+        return status_payload(
+            config=config,
+            status=status,
+            message=message,
+            production_head=production_head,
+            live_forward_head=live_forward_head,
+            artifact_dir=research_dir,
+            verification_path=research_dir / "verification.json",
+            pick_path=pick_path,
+            extra={"research_stream": True, "research_root": str(research_root), **extra},
+        )
+
+    conflict = research_root_conflict(config)
+    if conflict:
+        return 1, payload_for("failed_research_root_overlap", conflict)
+
+    picks_dir = resolve_under(config.production_root, config.picks_dir)
+    state_path = picks_dir / config.date / "scheduler_state.json"
+    if not state_path.exists():
+        return None
+    state, err = _read_json_readonly(state_path)
+    if state is None:
+        return 0, payload_for("research_pending_state_unreadable",
+                              f"scheduler_state.json unreadable: {err}")
+    if str(state.get("date")) != config.date:
+        return None
+    candidate = state.get("final_skip_candidate")
+    if not isinstance(candidate, dict) or not candidate:
+        return None  # no CURRENT skip intent (skip_notified_at alone is history)
+
+    decision_path = picks_dir / config.date / "decision.json"
+    decision: dict[str, Any] | None = None
+    decision_note: str | None = None
+    if decision_path.exists():
+        decision, err = _read_json_readonly(decision_path)
+        if decision is None:
+            return 0, payload_for("research_pending_decision_unreadable",
+                                  f"decision.json unreadable: {err}")
+        if str(decision.get("date")) != config.date:
+            decision_note = f"decision.json date {decision.get('date')!r} != {config.date!r}; ignored"
+            decision = None
+        elif decision.get("scoreable") is True:
+            return None  # a pick was committed; the official path owns this day
+
+    first_pitch = earliest_first_pitch_utc(state.get("games"))
+    if first_pitch is None:
+        return 0, payload_for("research_pending_no_game_times",
+                              "scheduler state has no parseable game times; failing closed")
+    first_pitch_iso = first_pitch.isoformat()
+    deadline = first_pitch - timedelta(minutes=RESEARCH_DEADLINE_BUFFER_MIN)
+
+    escape = research_dir_escapes(research_dir, research_root)
+    if escape:
+        return 1, payload_for("failed_research_dir_escapes_root", escape,
+                              earliest_first_pitch_utc=first_pitch_iso)
+
+    quarantined: Path | None = None
+    if research_dir.exists() and any(research_dir.iterdir()):
+        kind, why = research_sidecar_state(research_dir, date=config.date, candidate=config.candidate)
+        if kind == "valid":
+            return 0, payload_for("research_existing_verified",
+                                  "complete research capture already present",
+                                  earliest_first_pitch_utc=first_pitch_iso)
+        if kind == "incompatible":
+            return 1, payload_for("research_existing_incompatible", why,
+                                  earliest_first_pitch_utc=first_pitch_iso)
+        if config_now(config) >= deadline:
+            return 1, payload_for("research_partial_after_deadline",
+                                  f"incomplete research capture ({why}) and the capture "
+                                  "deadline has passed; left for offline reconciliation",
+                                  earliest_first_pitch_utc=first_pitch_iso)
+        quarantined = _quarantine_dir(research_dir, "partial")
+
+    started_at = config_now(config)  # re-sampled right before the export starts
+    if started_at >= deadline:
+        return 0, payload_for("research_deadline_passed",
+                              f"now {started_at.isoformat()} is at/after first pitch − "
+                              f"{RESEARCH_DEADLINE_BUFFER_MIN} min ({deadline.isoformat()})",
+                              earliest_first_pitch_utc=first_pitch_iso,
+                              quarantined_partial=str(quarantined) if quarantined else None)
+
+    export = export_artifact(config, pick_path=None, artifact_dir=research_dir)
+    if export.returncode != 0:
+        payload = payload_for("failed_research_export", (export.stdout + export.stderr).strip(),
+                              earliest_first_pitch_utc=first_pitch_iso,
+                              quarantined_partial=str(quarantined) if quarantined else None)
+        write_json(status_path, payload)
+        return 1, payload
+    verify = verify_artifact(
+        config,
+        artifact_dir=research_dir,
+        verification_path=research_dir / "verification.json",
+        live_forward_head=live_forward_head or "",
+        require_pick_snapshot=False,
+    )
+    if verify.returncode != 0:
+        payload = payload_for("failed_research_verify", (verify.stdout + verify.stderr).strip(),
+                              earliest_first_pitch_utc=first_pitch_iso)
+        write_json(status_path, payload)
+        return 1, payload
+
+    problems = research_contract_problems(research_dir, date=config.date, candidate=config.candidate)
+    if problems:
+        payload = payload_for("failed_research_contract_incomplete",
+                              "export/verify succeeded but the contract is incomplete: "
+                              + "; ".join(problems),
+                              earliest_first_pitch_utc=first_pitch_iso)
+        write_json(status_path, payload)
+        return 1, payload
+
+    hashes = {rel: file_sha256(research_dir / rel) for rel in research_contract_files(config.date)}
+    completed_at = config_now(config)  # sampled AFTER hashing, before the sidecar is written
+
+    def discard_late(stage: str, when: datetime) -> tuple[int, dict[str, Any]]:
+        late = _quarantine_dir(research_dir, "late")
+        payload = payload_for("discarded_research_after_first_pitch",
+                              f"{stage} at {when.isoformat()}, at/after first pitch "
+                              f"{first_pitch_iso}; not a decision-time forecast",
+                              earliest_first_pitch_utc=first_pitch_iso, discarded_to=str(late))
+        write_json(late / "capture_status.json", payload)
+        return 1, payload
+
+    if completed_at >= first_pitch:
+        return discard_late("capture completed", completed_at)
+
+    sidecar = {
+        "schema_version": RESEARCH_SIDECAR_SCHEMA,
+        "research_only": True,
+        "eligible_for_official_read": False,
+        "reason": RESEARCH_REASON,
+        "date": config.date,
+        "candidate": config.candidate,
+        "trigger": {
+            "kind": "provisional_scheduler_skip_state",
+            "final_classification": "reconcile_in_season_ledger",
+            "final_skip_candidate": candidate,
+            "decision_present": decision is not None,
+            "decision_action": decision.get("action") if decision else None,
+            "decision_note": decision_note,
+        },
+        "earliest_first_pitch_utc": first_pitch_iso,
+        "started_at": started_at.isoformat(),
+        "completed_at": completed_at.isoformat(),
+        "production_head": production_head,
+        "live_forward_head": live_forward_head,
+        "quarantined_partial": str(quarantined) if quarantined else None,
+        "file_sha256": hashes,
+    }
+    sidecar_path = research_dir / RESEARCH_SIDECAR_NAME
+    _atomic_write_json(sidecar_path, sidecar)
+    # Phase 2: the acceptance marker. published_at is sampled AFTER the sidecar rename,
+    # so it bounds the moment every piece of forecast content was in place. A crash
+    # before this marker leaves an UNACCEPTED capture (restart treats it as partial).
+    published_at = config_now(config)
+    if published_at >= first_pitch:
+        return discard_late("sidecar publication landed", published_at)
+    _atomic_write_json(research_dir / RESEARCH_ACCEPTED_NAME, {
+        "schema_version": RESEARCH_SIDECAR_SCHEMA,
+        "date": config.date,
+        "candidate": config.candidate,
+        "sidecar_sha256": file_sha256(sidecar_path),
+        "published_at": published_at.isoformat(),
+        "earliest_first_pitch_utc": first_pitch_iso,
+    })
+    post_publish = config_now(config)
+    if post_publish >= first_pitch:
+        # Conservative: the acceptance record itself was not durable before first pitch.
+        return discard_late("acceptance marker landed", post_publish)
+    payload = payload_for("captured_research_no_production_pick",
+                          "research-only ranked slates captured (no production pick)",
+                          earliest_first_pitch_utc=first_pitch_iso,
+                          sidecar_path=str(sidecar_path),
+                          published_at=published_at.isoformat())
+    write_json(status_path, payload)
+    return 0, payload
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", default=today_et(), help="YYYY-MM-DD ET")
@@ -812,6 +1268,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Return exit code 2 instead of 0 when the pick file is not present.",
     )
+    parser.add_argument(
+        "--capture-research-on-skip",
+        action="store_true",
+        help=(
+            "D8: on a day with NO production pick where the scheduler has persisted a "
+            "current skip intent, export the ranked slates into --research-root as a "
+            "research-only capture (never eligible for the official read)."
+        ),
+    )
+    parser.add_argument("--research-root", type=Path, default=DEFAULT_RESEARCH_ROOT)
     return parser
 
 
@@ -830,6 +1296,8 @@ def main(argv: list[str] | None = None) -> int:
         overwrite=args.overwrite,
         fail_on_pending=args.fail_on_pending,
         auto_recapture_on_snapshot_drift=args.auto_recapture_on_snapshot_drift,
+        capture_research_on_skip=args.capture_research_on_skip,
+        research_root=args.research_root,
     )
     exit_code, payload = capture_once(config)
     print(json.dumps(payload, indent=2, sort_keys=True))
