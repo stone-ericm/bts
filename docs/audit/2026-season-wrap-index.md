@@ -14,7 +14,7 @@
 | W0.7 final snapshot | staged final + tag-isolated restic + restore test | not started (after grab + grading cutoff) | |
 | W0.8 research capture (D8) | `--capture-research-on-skip` deployed `f1b07e9` | completed 9/14; verified 9/19–9/21 | plan W0.8; `bts_index` memory |
 | W1.1 ledger | parquet + builder + tests + reconciliation table | not started | |
-| W1.4a DD tripwire read (P-01) | memo | not started | |
+| W1.4a DD tripwire read (P-01) | memo | **completed 9/22** (deviation recorded: snapshot reconstructed; trigger not fired, −4.3 pp at n=80) | `docs/audit/2026-09-22-dd-tripwire-formal-read.md` + `.json`; reader `scripts/audit/dd_tripwire_formal_read.py` |
 | W1.2 bridge A–D | memo | not started | |
 | W1.3 distinguishing tests | in bridge memo | not started | |
 | W1.4b due reads (P-02…P-05) | one memo each | not started | |
