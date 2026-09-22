@@ -56,6 +56,7 @@ Every later season-wrap memo cites its row here by **ID**.
 |---|---|---|---|
 | D3 | 2026 data use | **RESERVE** — unread late-season outcomes stay with P-01…P-04; every new idea from this wrap validates prospectively in 2027 | Eric "not sure" 9/14 → methodology default adopted, reversible |
 | D5 | Final-grab profile allocation | **SPLIT 150 / 150** — 150 from the top of the final `all_season` board, 150 from users present in the 2026-05-01 first snapshot (as-of cohort) | Eric "not sure" 9/14 → methodology default adopted, reversible before the grab |
+| D-capture-timing | When to capture the field | **INITIAL capture 2026-09-22 (today) + SUPPLEMENTAL ~2026-09-28 for the last days** — Eric 9/22: "i'm mildly concerned that once the season ends the leaderboard and the picks listings will be unavailable. what if we did an initial capture today and then ran a supplemental capture around 9/28 to fill in the last days?" Adopted: availability risk outweighs the finality argument for a single 9/28 pass; each capture is its own run root/date | Eric 9/22 |
 | D8 | Research capture past the tail stop | **CONTINUE, separately labelled** — built + deployed 9/14, verified 9/19–9/21 | Eric 9/14 |
 | — | Plan as a whole | **APPROVED** | Eric 9/22 "looks good to me" |
 
