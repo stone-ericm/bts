@@ -254,3 +254,79 @@ class TestDeepScrapeRun:
             tmp_path / "leaderboard_snapshots" / "2026-07-03.parquet").to_pandas()
         assert len(snap[snap["tab"] == "active_streak"]) == 2
         assert sorted(profiled) == [1, 2, 101, 102, 201, 202]
+
+
+# ---------------------------------------------------------------------------
+# 2026-09-22 (season wrap W0.6 / Codex design review): tab-specific streak
+# semantics. MLB's rank rows carry BOTH `streak` (the tab's ranking quantity —
+# season-best on all_season, all-time best on all_time) and `activeStreak`.
+# The parser preferred `activeStreak` for every tab, so the daily corpus's
+# all_season/all_time rows recorded ACTIVE streaks (7/04 snapshot: only 9/100
+# all_season rows equal the profile's best_streak). Fixture: user 441 best 34,
+# active 2.
+# ---------------------------------------------------------------------------
+import json as _json
+from pathlib import Path as _Path
+
+from bts.leaderboard.scraper import parse_leaderboard_response as _parse
+from datetime import datetime as _dt
+
+
+def _fixture(name):
+    return _json.loads((_Path(__file__).parent / "fixtures" / name).read_text())
+
+
+def test_all_season_tab_streak_is_the_season_best_not_active():
+    rows = _parse(_fixture("leaderboard_all_season.json"), tab="all_season",
+                  captured_at=_dt(2026, 5, 1, 14, 0))
+    by_id = {r.user_id: r for r in rows}
+    r441 = by_id[441]
+    assert r441.streak == 34            # tab-semantic: season best
+    assert r441.season_best_streak == 34
+    assert r441.active_streak == 2
+    # ranking quantity must be non-increasing in rank on the season-best tab
+    ordered = sorted(rows, key=lambda r: r.rank)
+    assert all(a.streak >= b.streak for a, b in zip(ordered, ordered[1:]))
+
+
+def test_active_streak_tab_streak_is_the_active_streak():
+    rows = _parse(_fixture("leaderboard_active_streak.json"), tab="active_streak",
+                  captured_at=_dt(2026, 5, 1, 14, 0))
+    for r in rows:
+        assert r.streak == r.active_streak
+        assert r.season_best_streak is None or r.season_best_streak >= r.active_streak
+
+
+def test_all_time_tab_uses_the_streak_field():
+    body = {"success": {"ranks": [{"userId": 7, "rank": 1, "username": "u", "streak": 51, "activeStreak": 0}]}}
+    (r,) = _parse(body, tab="all_time", captured_at=_dt(2026, 5, 1))
+    assert (r.streak, r.season_best_streak, r.active_streak) == (51, 51, 0)
+
+
+def test_yesterday_tab_keeps_active_streak_semantics():
+    body = {"success": {"ranks": [{"userId": 7, "rank": 1, "username": "u", "streak": 20, "activeStreak": 20}]}}
+    (r,) = _parse(body, tab="yesterday", captured_at=_dt(2026, 5, 1))
+    assert r.streak == 20 and r.active_streak == 20
+
+
+def test_error_envelope_is_rejected_not_an_empty_board():
+    import pytest
+    from bts.leaderboard.scraper import LeaderboardEnvelopeError
+    with pytest.raises(LeaderboardEnvelopeError):
+        _parse({"errors": [{"message": "boom"}]}, tab="all_season", captured_at=_dt(2026, 5, 1))
+    with pytest.raises(LeaderboardEnvelopeError):
+        _parse({}, tab="all_season", captured_at=_dt(2026, 5, 1))
+    # a genuine empty board (success envelope, zero ranks) is still allowed
+    assert _parse({"success": {"ranks": []}}, tab="all_season", captured_at=_dt(2026, 5, 1)) == []
+
+
+def test_snapshot_parquet_roundtrips_both_streak_columns(tmp_path):
+    from bts.leaderboard.storage import write_leaderboard_snapshot
+    import pyarrow.parquet as pq
+    rows = _parse(_fixture("leaderboard_all_season.json"), tab="all_season",
+                  captured_at=_dt(2026, 5, 1, 14, 0))
+    path = tmp_path / "snap.parquet"
+    write_leaderboard_snapshot(path, rows)
+    t = pq.read_table(path).to_pandas()
+    r = t[t.user_id == 441].iloc[0]
+    assert (int(r.streak), int(r.season_best_streak), int(r.active_streak)) == (34, 34, 2)

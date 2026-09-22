@@ -1,0 +1,8 @@
+# 2026 Corrections Index (season wrap W1.6)
+
+Historical reports are **not edited**. Each superseded claim or corrupted artifact gets one row here with the correcting artifact. Cite rows as **C-nn**.
+
+| ID | Date found | What is wrong | Where it lives | Basis of the error | Correction / status |
+|---|---|---|---|---|---|
+| C-01 | 2026-09-22 (Codex design review of the final-grab wrapper; confirmed on box data) | **`leaderboard_snapshots/*.parquet` rows for tabs `all_season` and `all_time` carry the ACTIVE streak, not the tab's ranking quantity (season-best / all-time best).** `parse_leaderboard_response` preferred `activeStreak` over `streak` for every tab. On the 2026-07-04 snapshot only 9 of 100 `all_season` rows equal the profile-derived `best_streak` (e.g. rank-2 user shows 3, best 36). Affects every daily snapshot 2026-05-01 → 2026-07-04. `season_stats/*.parquet` (`best_streak`, from profiles) is unaffected and is the correct source for tracked users' season bests. | `data/leaderboard/leaderboard_snapshots/*.parquet` (`streak` column where `tab ∈ {all_season, all_time}`) | parser field precedence | Parser fixed 2026-09-22 (`streak` = tab-semantic; new columns `season_best_streak`, `active_streak`; error envelopes rejected). Historical files are NOT rewritten: readers must ignore `streak` for those two tabs in pre-fix files and use `season_stats` or the 9/28 full-depth walk instead. Any W2 memo touching season-best distributions cites C-01. |
+| C-02 | 2026-09-22 | README performance table presents the actual-PA walk-forward P@1 (86.2%) next to live numbers as if comparable | `README.md` | information-set mismatch (plan §1.3) | README rewrite scheduled in W1.6 after the W1.1 ledger produces the live denominator |

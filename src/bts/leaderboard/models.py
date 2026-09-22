@@ -24,8 +24,15 @@ class LeaderboardRow(BaseModel):
     tab: TabName
     rank: int = Field(gt=0)
     username: str = Field(min_length=1)
+    # Tab-semantic ranking quantity: season best on all_season, all-time best on
+    # all_time, active streak on active_streak / yesterday. (Before 2026-09-22 the
+    # parser put the ACTIVE streak here for every tab — see corrections index C-01.)
     streak: int | None = Field(default=None, ge=0)
     hits_today: int | None = Field(default=None, ge=0)
+    # Both raw values from the rank row, kept explicitly so the tab semantics are
+    # never ambiguous again. Optional: rows parsed before 2026-09-22 lack them.
+    season_best_streak: int | None = Field(default=None, ge=0)
+    active_streak: int | None = Field(default=None, ge=0)
     # MLB's stable account id (usernames can collide after filename
     # sanitization and could in principle change). Optional: rows parsed
     # before 2026-07-03 predate the column.

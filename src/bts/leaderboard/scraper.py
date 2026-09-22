@@ -97,22 +97,57 @@ def parse_rounds_lookup(body: dict) -> dict[int, date]:
     return out
 
 
+class LeaderboardEnvelopeError(ValueError):
+    """The leaderboard body is not a well-formed success envelope (error-only
+    object, missing `success`, or `ranks` not a list). Never interpret such a
+    body as an empty board (2026-09-22, C-01 review)."""
+
+
+def _tab_streak_fields(tab: TabName, r: dict) -> tuple[int | None, int | None, int | None]:
+    """Return (tab_semantic_streak, season_best_streak, active_streak) for one rank row.
+
+    MLB rank rows carry `streak` (the tab's ranking quantity: season best on
+    all_season, all-time best on all_time, active streak on active_streak /
+    round boards) and `activeStreak`. Before 2026-09-22 the parser preferred
+    `activeStreak` for EVERY tab, which silently turned the season-best and
+    all-time boards into active-streak boards (corrections index C-01)."""
+    raw_streak = int(r["streak"]) if r.get("streak") is not None else None
+    raw_active = int(r["activeStreak"]) if r.get("activeStreak") is not None else None
+    if tab in ("all_season", "all_time"):
+        semantic = raw_streak if raw_streak is not None else raw_active
+        best = raw_streak
+    else:
+        semantic = raw_active if raw_active is not None else raw_streak
+        best = None  # active/round boards do not expose the season best
+    return semantic, best, raw_active
+
+
 def parse_leaderboard_response(
     body: dict, tab: TabName, captured_at: datetime,
 ) -> list[LeaderboardRow]:
-    """Parse a leaderboard JSON body into typed rows."""
-    raw_rows = body.get("success", {}).get("ranks", [])
+    """Parse a leaderboard JSON body into typed rows (tab-specific streak semantics).
+
+    Raises LeaderboardEnvelopeError for anything that is not a success envelope
+    with a `ranks` list — an error-only response must never become an empty board."""
+    if not isinstance(body, dict) or not isinstance(body.get("success"), dict):
+        raise LeaderboardEnvelopeError(
+            f"leaderboard body is not a success envelope: keys={sorted(body.keys()) if isinstance(body, dict) else type(body).__name__}"
+        )
+    raw_rows = body["success"].get("ranks")
+    if not isinstance(raw_rows, list):
+        raise LeaderboardEnvelopeError("leaderboard success envelope has no `ranks` list")
     out: list[LeaderboardRow] = []
     for r in raw_rows:
+        semantic, best, active = _tab_streak_fields(tab, r)
         out.append(LeaderboardRow(
             captured_at=captured_at,
             tab=tab,
             rank=int(r["rank"]),
             username=str(r["username"]),
-            streak=int(r["activeStreak"]) if r.get("activeStreak") is not None else (
-                int(r["streak"]) if r.get("streak") is not None else None
-            ),
+            streak=semantic,
             hits_today=None,  # 'yesterday' tab doesn't expose explicit hits_today in the rank list
+            season_best_streak=best,
+            active_streak=active,
             user_id=int(r["userId"]) if r.get("userId") is not None else None,
         ))
     return out

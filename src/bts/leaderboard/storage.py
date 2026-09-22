@@ -40,6 +40,8 @@ _LEADERBOARD_SCHEMA = pa.schema([
     ("streak", pa.int32()),
     ("hits_today", pa.int32()),
     ("user_id", pa.int64()),  # added 2026-07-03; older snapshot files lack it
+    ("season_best_streak", pa.int32()),  # added 2026-09-22 (C-01); older files lack it
+    ("active_streak", pa.int32()),       # added 2026-09-22 (C-01); older files lack it
 ])
 
 _USER_PICKS_SCHEMA = pa.schema([
