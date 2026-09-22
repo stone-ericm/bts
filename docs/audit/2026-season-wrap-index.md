@@ -17,7 +17,7 @@
 | W1.4a DD tripwire read (P-01) | memo | **completed 9/22** (deviation recorded: snapshot reconstructed; trigger not fired, −4.3 pp at n=80) | `docs/audit/2026-09-22-dd-tripwire-formal-read.md` + `.json`; reader `scripts/audit/dd_tripwire_formal_read.py` |
 | W1.2 bridge A–D | memo | not started | |
 | W1.3 distinguishing tests | in bridge memo | not started | |
-| W1.4b due reads (P-02…P-05) | one memo each | not started | |
+| W1.4b due reads (P-02…P-05) | one memo each | **P-04 (#16) inventoried 9/22 → INSUFFICIENT** (113/114 eligible < 120, stream frozen at 9/18); P-02 skip shadow = `insufficient_n` (15 resolved < 30, cannot grow); P-03 context shadow + P-05 tail audit deferred to the W0.7 final snapshot (season ends 9/27) | register X-11, X-07 |
 | W1.5 incident register | memo | not started | |
 | W1.6 corrections index + README | `docs/audit/2026-09-corrections-index.md`, README | index started 9/22 (C-01 parser bug, C-02 README) | file |
 | W2.1 final-leader case series | memo | not started (needs W0.6) | |
