@@ -733,3 +733,50 @@ def test_echoed_token_is_scrubbed_from_every_archive_the_summary_and_the_marker(
     # a clean body archives verbatim: digests agree
     clean = next(r for r in status["requests"] if r["class"] == "board")
     assert clean["archived_sha256"] == clean["sha256"] and clean["raw_redacted"] is False
+
+
+# ----------------------------------------------------------------------------- Codex code-review round 3
+def test_token_in_undecodable_and_json_escaped_bodies_is_still_scrubbed(tmp_path):
+    token = "SECRET_XSID_VALUE"
+    escaped = "".join(f"\\u{ord(c):04x}" for c in token)  # JSON string with every char \u-escaped
+    rows = [_rank_row(1, 1, 9), _rank_row(2, 2, 8)]
+    t = FakeTransport(board_pages=[(200, _board_page(rows, next_page=False, participants=2))],
+                      profiles={1: (500, b"\xff\xfeerror xSid=" + token.encode() + b" tail"),
+                                2: (200, ('{"errors": [{"message": "bad token ' + escaped + '"}]}').encode())},
+                      login=(200, ('{"success": {"user": {"id": 1, "username": "s"}, "xSid": "' + token + '"}}').encode()))
+    cfg = _config(tmp_path, t, cohort_a=2, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    for gz in cfg.run_root.rglob("*.gz"):
+        raw = gzip.decompress(gz.read_bytes())
+        assert token.encode() not in raw, gz
+        try:
+            assert token not in json.dumps(json.loads(raw))  # a \u-escaped copy must not survive either
+        except ValueError:
+            pass
+    reqs = {r["name"]: r for r in status["requests"] if r["class"] == "profile"}
+    assert reqs["1"]["raw_redacted"] is True and reqs["2"]["raw_redacted"] is True
+    assert reqs["1"]["archived_sha256"] != reqs["1"]["sha256"]
+
+
+@pytest.mark.parametrize("bad", ["", False, 0, "not-a-timestamp"])
+def test_invalid_server_timestamp_is_never_a_census(tmp_path, bad):
+    p1 = [_rank_row(100 + i, i + 1, 40) for i in range(300)]
+    p2 = [_rank_row(400, 301, 10)]
+    t = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=301, updated=bad)),
+                                   (200, _board_page(p2, next_page=False, participants=301, updated=bad))],
+                      profiles={100: (200, _profile())})
+    cfg = _config(tmp_path / str(bad), t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["board"]["population_complete"] is False
+    assert status["board"]["population"]["status"] == "unknown_incomplete_participant_metadata"
+
+
+def test_valid_iso_timestamp_census_control(tmp_path):
+    p1 = [_rank_row(100 + i, i + 1, 40) for i in range(300)]
+    p2 = [_rank_row(400, 301, 10)]
+    t = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=301, updated="2026-09-28T08:03:47-04:00")),
+                                   (200, _board_page(p2, next_page=False, participants=301, updated="2026-09-28T08:03:47-04:00"))],
+                      profiles={100: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert (code, status["board"]["population"]["status"]) == (EXIT_COMPLETE, "census")

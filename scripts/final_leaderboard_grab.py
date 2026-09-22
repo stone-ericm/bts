@@ -328,6 +328,20 @@ class Scrubber:
                 s = s.replace(v, f"<redacted:sha256={_sha256(v.encode())[:16]}>")
         return s
 
+    def bytes(self, data: bytes) -> bytes:
+        """Byte-safe replacement of every known secret in utf-8, latin-1 and JSON-escaped forms."""
+        for v in self.secrets:
+            marker = f"<redacted:sha256={_sha256(v.encode())[:16]}>".encode()
+            forms = {v.encode("utf-8"), json.dumps(v)[1:-1].encode(), "".join(f"\\u{ord(c):04x}" for c in v).encode()}
+            try:
+                forms.add(v.encode("latin-1"))
+            except UnicodeEncodeError:
+                pass
+            for form in forms:
+                if form and form in data:
+                    data = data.replace(form, marker)
+        return data
+
     def obj(self, o: Any) -> Any:
         if isinstance(o, str):
             return self.text(o)
@@ -381,12 +395,19 @@ class Ledger:
             self.cfg.sleeper(next_gap(self.cfg.min_gap_s, self.cfg.jitter_s, self.cfg.rng))
 
     def scrub_bytes(self, body: bytes) -> bytes:
-        """Default archive transform: remove every known secret from a text body."""
+        """Default archive transform: remove every known secret from a body.
+        JSON bodies are parsed and scrubbed as decoded strings (so a token written as
+        \\uXXXX escapes is caught); other bodies are scrubbed byte-wise in every
+        encoding we know how to produce, decodable or not."""
         try:
-            text = body.decode()
-        except UnicodeDecodeError:
-            return body
-        return self.scrub.text(text).encode()
+            obj = json.loads(body)
+        except ValueError:
+            obj = None
+        if isinstance(obj, (dict, list)):
+            scrubbed = self.scrub.obj(obj)
+            out = json.dumps(scrubbed, ensure_ascii=False, sort_keys=True).encode()
+            return out if scrubbed != obj else self.scrub.bytes(body)
+        return self.scrub.bytes(body)
 
     def request(self, cls: str, name: str, url: str, raw_path: Path,
                 send: Callable[[], tuple[int, bytes]],
@@ -492,12 +513,25 @@ def _load_early(cfg: GrabConfig) -> tuple[list[dict[str, Any]], str]:
     return users, _file_sha256(cfg.early_cohort_path)
 
 
+def _valid_timestamp(value: Any) -> str | None:
+    """Server timestamp must be a non-empty ISO-8601 string; anything else is invalid metadata."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return value
+
+
 def _validate_page_meta(success: dict[str, Any]) -> dict[str, Any]:
     nxt = success.get("nextPage")
     next_page = nxt if isinstance(nxt, bool) else None
     cnt = success.get("allParticipantsCount")
     participants = int(cnt) if isinstance(cnt, int) and not isinstance(cnt, bool) and cnt >= 0 else None
-    return {"next_page": next_page, "all_participants_count": participants, "updated_at": success.get("updatedAt")}
+    raw_ts = success.get("updatedAt")
+    return {"next_page": next_page, "all_participants_count": participants,
+            "updated_at": _valid_timestamp(raw_ts), "updated_at_raw": None if _valid_timestamp(raw_ts) else repr(raw_ts)[:40]}
 
 
 def _validate_static(name: str, body: Any) -> dict[str, Any]:
@@ -741,7 +775,8 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
             board["per_page"].append({"page": page, "raw_rows": raw_count, "new_unique": new_rows,
                                       "rank_min": min(ranks) if ranks else None, "rank_max": max(ranks) if ranks else None,
                                       "next_page": meta["next_page"], "all_participants_count": meta["all_participants_count"],
-                                      "updated_at": meta["updated_at"], "received_at_utc": entry["received_at_utc"]})
+                                      "updated_at": meta["updated_at"], "updated_at_invalid": meta["updated_at_raw"],
+                                      "received_at_utc": entry["received_at_utc"]})
             if ranks:
                 board["last_rank_reached"] = max(board["last_rank_reached"] or 0, max(ranks))
             if prev_ids is not None and page_ids and page_ids == prev_ids:
