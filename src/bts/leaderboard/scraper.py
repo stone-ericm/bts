@@ -99,8 +99,77 @@ def parse_rounds_lookup(body: dict) -> dict[int, date]:
 
 class LeaderboardEnvelopeError(ValueError):
     """The leaderboard body is not a well-formed success envelope (error-only
-    object, missing `success`, or `ranks` not a list). Never interpret such a
-    body as an empty board (2026-09-22, C-01 review)."""
+    object, missing `success`, non-empty `errors`, or `ranks` not a list). Never
+    interpret such a body as an empty board (2026-09-22, C-01 review)."""
+
+
+class LeaderboardRowError(LeaderboardEnvelopeError):
+    """A rank row lacks a valid userId or the requested tab's ranking field."""
+
+
+class ProfileEnvelopeError(ValueError):
+    """The profile body is not a well-formed success envelope with the required
+    fields. An error-only object or a partial object must never parse as a user
+    with zero picks (2026-09-22 review)."""
+
+
+PROFILE_REQUIRED_FIELDS = ("seasonBestStreak", "activeStreak", "accuracy", "predictions")
+
+
+@dataclass
+class ProfileEnvelope:
+    """Raw-record facts about a validated profile body, computed BEFORE the parser
+    drops unknown rounds or coerces nulls."""
+    no_history: bool
+    n_predictions: int
+    n_round_predictions: int
+    round_ids: list[int]
+    null_field_counts: dict[str, int]
+
+
+def validate_profile_envelope(body: object) -> ProfileEnvelope:
+    if not isinstance(body, dict):
+        raise ProfileEnvelopeError(f"profile body is {type(body).__name__}, not an object")
+    if body.get("errors"):
+        raise ProfileEnvelopeError(f"profile body carries errors: {str(body.get('errors'))[:200]}")
+    success = body.get("success")
+    if not isinstance(success, dict):
+        raise ProfileEnvelopeError(f"profile body has no success object: keys={sorted(body.keys())}")
+    missing = [k for k in PROFILE_REQUIRED_FIELDS if k not in success]
+    if missing:
+        raise ProfileEnvelopeError(f"profile success object lacks required fields: {missing}")
+    preds = success.get("predictions")
+    if preds is None:
+        preds = []
+    if not isinstance(preds, list):
+        raise ProfileEnvelopeError("profile predictions is not a list")
+    round_ids: list[int] = []
+    n_rp = 0
+    nulls: dict[str, int] = {"streak": 0, "result": 0, "atBats": 0, "hits": 0, "unitId": 0, "playerId": 0}
+    for pred in preds:
+        if not isinstance(pred, dict) or pred.get("roundId") is None:
+            raise ProfileEnvelopeError("profile prediction without roundId")
+        round_ids.append(int(pred["roundId"]))
+        if pred.get("streak") is None:
+            nulls["streak"] += 1
+        rps = pred.get("roundPredictions")
+        if rps is None:
+            rps = []
+        if not isinstance(rps, list):
+            raise ProfileEnvelopeError("profile roundPredictions is not a list")
+        for rp in rps:
+            n_rp += 1
+            for k in ("result", "atBats", "hits", "unitId", "playerId"):
+                if not isinstance(rp, dict) or rp.get(k) is None:
+                    nulls[k] += 1
+    stats_all_null = all(success.get(k) is None for k in ("seasonBestStreak", "activeStreak", "accuracy"))
+    return ProfileEnvelope(
+        no_history=(len(preds) == 0 and stats_all_null) or (len(preds) == 0),
+        n_predictions=len(preds),
+        n_round_predictions=n_rp,
+        round_ids=round_ids,
+        null_field_counts=nulls,
+    )
 
 
 def _tab_streak_fields(tab: TabName, r: dict) -> tuple[int | None, int | None, int | None]:
@@ -114,8 +183,12 @@ def _tab_streak_fields(tab: TabName, r: dict) -> tuple[int | None, int | None, i
     raw_streak = int(r["streak"]) if r.get("streak") is not None else None
     raw_active = int(r["activeStreak"]) if r.get("activeStreak") is not None else None
     if tab in ("all_season", "all_time"):
-        semantic = raw_streak if raw_streak is not None else raw_active
-        best = raw_streak
+        if raw_streak is None:
+            raise LeaderboardRowError(
+                f"{tab} row for userId={r.get('userId')!r} lacks the `streak` ranking field; "
+                "refusing to substitute the active streak (C-01)")
+        semantic = raw_streak
+        best = raw_streak if tab == "all_season" else None  # all-time best is not a SEASON best
     else:
         semantic = raw_active if raw_active is not None else raw_streak
         best = None  # active/round boards do not expose the season best
@@ -133,11 +206,20 @@ def parse_leaderboard_response(
         raise LeaderboardEnvelopeError(
             f"leaderboard body is not a success envelope: keys={sorted(body.keys()) if isinstance(body, dict) else type(body).__name__}"
         )
+    if body.get("errors"):
+        raise LeaderboardEnvelopeError(
+            f"leaderboard body carries errors alongside success: {str(body.get('errors'))[:200]}")
     raw_rows = body["success"].get("ranks")
     if not isinstance(raw_rows, list):
         raise LeaderboardEnvelopeError("leaderboard success envelope has no `ranks` list")
     out: list[LeaderboardRow] = []
     for r in raw_rows:
+        if not isinstance(r, dict) or r.get("userId") is None:
+            raise LeaderboardRowError(f"rank row without userId: {str(r)[:120]}")
+        try:
+            user_id = int(r["userId"])
+        except (TypeError, ValueError) as exc:
+            raise LeaderboardRowError(f"rank row with non-integer userId {r.get('userId')!r}") from exc
         semantic, best, active = _tab_streak_fields(tab, r)
         out.append(LeaderboardRow(
             captured_at=captured_at,
@@ -148,7 +230,7 @@ def parse_leaderboard_response(
             hits_today=None,  # 'yesterday' tab doesn't expose explicit hits_today in the rank list
             season_best_streak=best,
             active_streak=active,
-            user_id=int(r["userId"]) if r.get("userId") is not None else None,
+            user_id=user_id,
         ))
     return out
 
@@ -173,15 +255,21 @@ def parse_user_profile_response(
     # API returns None for these fields on users with no picks (e.g. users
     # appearing on All-Time leaderboard for past streaks but inactive this season).
     # Coerce None -> 0 before pydantic validation.
+    skipped_unknown = 0
+    for pred in success.get("predictions") or []:
+        if lookups.rounds.get(int(pred["roundId"])) is None:
+            skipped_unknown += len(pred.get("roundPredictions") or [])
     stats = SeasonStats(
         captured_at=captured_at,
         username=username,
+        user_id=int(user_id_unused) if user_id_unused is not None else None,
+        skipped_unknown_round_predictions=skipped_unknown,
         best_streak=int(success.get("seasonBestStreak") or 0),
         active_streak=int(success.get("activeStreak") or 0),
         pick_accuracy_pct=float(success.get("accuracy") or 0),
     )
     picks: list[PickRow] = []
-    for pred in success.get("predictions", []):
+    for pred in success.get("predictions") or []:
         round_id = int(pred["roundId"])
         pick_date = lookups.rounds.get(round_id)
         if pick_date is None:

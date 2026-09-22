@@ -24,6 +24,8 @@ import sys
 import time
 from dataclasses import dataclass
 
+from typing import Callable
+
 import httpx
 
 from bts.leaderboard.endpoints import (
@@ -159,8 +161,14 @@ def fetch_login_session(
     timeout: float = 30.0,
     attempts: int = 3,
     retry_delay: float = 2.0,
+    post: "Callable[..., httpx.Response] | None" = None,
 ) -> AuthSession:
     """POST /api/auth/login -> mint a fresh xSid and return account identity.
+
+    ``post`` (2026-09-22): injectable transport with httpx.post's keyword signature
+    ``post(url, *, cookies, json, headers, timeout) -> httpx.Response``. A caller
+    that must archive/classify EVERY raw login response before it is parsed (the
+    season-wrap bounded grab) passes a recording transport; default = httpx.post.
 
     Response classification (kill-switch philosophy: retry ONLY shapes that
     cannot be a rejection of *us*; never hammer anything rejection-shaped):
@@ -196,7 +204,7 @@ def fetch_login_session(
             time.sleep(delay)
         delay_override = None
         try:
-            response = httpx.post(
+            response = (post or httpx.post)(
                 AUTH_LOGIN_URL,
                 cookies=cookies,
                 json={"uid": uid, "platform": AUTH_LOGIN_PLATFORM},

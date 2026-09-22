@@ -427,3 +427,57 @@ class TestIsSessionValid:
     def test_returns_false_when_oktaid_missing(self):
         # No oktaid -> can't extract uid -> not valid
         assert is_session_valid({"other": "x"}) is False
+
+
+
+# --- 2026-09-22: injectable transport so a wrapper can archive/classify every login
+# response BEFORE the helper parses it (season-wrap W0.6, Codex r2 BLOCK) ---
+import httpx as _httpx
+import pytest as _pytest
+from bts.leaderboard.auth import (AuthError as _AuthError, RateLimitedLoginError as _RLE,
+                                  TransientAuthError as _TAE, fetch_login_session as _fls)
+
+
+def _resp(status, body=b"", headers=None):
+    return _httpx.Response(status, content=body, headers=headers or {}, request=_httpx.Request("POST", "https://x/login"))
+
+
+def _recording_post(responses):
+    calls = []
+    def post(url, *, cookies, json, headers, timeout):
+        calls.append({"url": url, "json": json, "status": None})
+        r = responses.pop(0)
+        calls[-1]["status"] = r.status_code
+        calls[-1]["body"] = r.content
+        return r
+    post.calls = calls
+    return post
+
+
+def test_transport_hook_sees_successful_login_and_exactly_one_post():
+    post = _recording_post([_resp(200, b'{"success": {"user": {"id": 50311, "username": "stonehengee"}, "xSid": "x_1"}}')])
+    s = _fls("uid", {"c": "v"}, attempts=1, post=post)
+    assert s.xsid == "x_1" and len(post.calls) == 1
+    assert post.calls[0]["json"]["uid"] == "uid" and post.calls[0]["body"].startswith(b"{")
+
+
+@_pytest.mark.parametrize("status,exc", [(403, _AuthError), (429, _RLE)])
+def test_transport_hook_records_rejections_before_the_helper_raises(status, exc):
+    post = _recording_post([_resp(status, b"denied")])
+    with _pytest.raises(exc):
+        _fls("uid", {"c": "v"}, attempts=1, post=post)
+    assert len(post.calls) == 1 and post.calls[0]["body"] == b"denied"
+
+
+def test_transport_hook_malformed_200_is_transient_and_single_attempt():
+    post = _recording_post([_resp(200, b"<html>challenge</html>")])
+    with _pytest.raises(_TAE):
+        _fls("uid", {"c": "v"}, attempts=1, post=post)
+    assert len(post.calls) == 1
+
+
+def test_transport_hook_one_attempt_means_no_retry_on_5xx():
+    post = _recording_post([_resp(503, b"down"), _resp(200, b'{"success": {"user": {"id": 1}, "xSid": "x"}}')])
+    with _pytest.raises(_TAE):
+        _fls("uid", {"c": "v"}, attempts=1, post=post)
+    assert len(post.calls) == 1

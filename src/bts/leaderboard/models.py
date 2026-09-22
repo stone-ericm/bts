@@ -67,6 +67,12 @@ class SeasonStats(BaseModel):
 
     captured_at: datetime
     username: str = Field(min_length=1)
+    # MLB account id (2026-09-22): usernames are NOT unique (two distinct ids named
+    # "jordan" in the 5/01 fixtures) and filename sanitization merges more.
+    user_id: int | None = Field(default=None, ge=0)
+    # Raw roundPredictions dropped by the parser because rounds.json lacked the
+    # round (2026-09-22): W2 must see this, not silently shorter histories.
+    skipped_unknown_round_predictions: int = Field(default=0, ge=0)
     best_streak: int = Field(ge=0)
     active_streak: int = Field(ge=0)
     pick_accuracy_pct: float = Field(ge=0.0, le=100.0)

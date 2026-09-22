@@ -65,6 +65,7 @@ _USER_PICKS_SCHEMA = pa.schema([
 _SEASON_STATS_SCHEMA = pa.schema([
     ("captured_at", pa.timestamp("ms")),
     ("username", pa.string()),
+    ("user_id", pa.int64()),  # added 2026-09-22; older files lack it
     ("best_streak", pa.int32()),
     ("active_streak", pa.int32()),
     ("pick_accuracy_pct", pa.float64()),

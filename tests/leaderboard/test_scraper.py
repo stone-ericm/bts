@@ -300,7 +300,8 @@ def test_active_streak_tab_streak_is_the_active_streak():
 def test_all_time_tab_uses_the_streak_field():
     body = {"success": {"ranks": [{"userId": 7, "rank": 1, "username": "u", "streak": 51, "activeStreak": 0}]}}
     (r,) = _parse(body, tab="all_time", captured_at=_dt(2026, 5, 1))
-    assert (r.streak, r.season_best_streak, r.active_streak) == (51, 51, 0)
+    # all-time best is NOT a season best: season_best_streak stays null (Codex r2, C-01)
+    assert (r.streak, r.season_best_streak, r.active_streak) == (51, None, 0)
 
 
 def test_yesterday_tab_keeps_active_streak_semantics():
@@ -330,3 +331,72 @@ def test_snapshot_parquet_roundtrips_both_streak_columns(tmp_path):
     t = pq.read_table(path).to_pandas()
     r = t[t.user_id == 441].iloc[0]
     assert (int(r.streak), int(r.season_best_streak), int(r.active_streak)) == (34, 34, 2)
+
+
+def test_errors_alongside_success_are_rejected():
+    import pytest
+    from bts.leaderboard.scraper import LeaderboardEnvelopeError
+    body = {"success": {"ranks": []}, "errors": [{"message": "partial failure"}]}
+    with pytest.raises(LeaderboardEnvelopeError):
+        _parse(body, tab="all_season", captured_at=_dt(2026, 5, 1))
+
+
+def test_row_without_user_id_is_rejected():
+    import pytest
+    from bts.leaderboard.scraper import LeaderboardRowError
+    body = {"success": {"ranks": [{"rank": 1, "username": "u", "streak": 5, "activeStreak": 5}]}}
+    with pytest.raises(LeaderboardRowError):
+        _parse(body, tab="active_streak", captured_at=_dt(2026, 5, 1))
+
+
+def test_season_best_tab_row_without_streak_field_is_rejected_not_substituted():
+    import pytest
+    from bts.leaderboard.scraper import LeaderboardRowError
+    body = {"success": {"ranks": [{"userId": 7, "rank": 1, "username": "u", "activeStreak": 5}]}}
+    with pytest.raises(LeaderboardRowError):
+        _parse(body, tab="all_season", captured_at=_dt(2026, 5, 1))
+
+
+# --- profile envelope validation (Codex r2 BLOCK: profile parser fails open) ---
+
+def test_profile_envelope_error_only_is_rejected():
+    import pytest
+    from bts.leaderboard.scraper import ProfileEnvelopeError, validate_profile_envelope
+    with pytest.raises(ProfileEnvelopeError):
+        validate_profile_envelope({"errors": [{"message": "boom"}]})
+    with pytest.raises(ProfileEnvelopeError):
+        validate_profile_envelope({})
+    with pytest.raises(ProfileEnvelopeError):
+        validate_profile_envelope({"success": {"seasonBestStreak": 10}})  # required fields absent
+
+
+def test_profile_envelope_valid_no_history_is_allowed_and_flagged():
+    from bts.leaderboard.scraper import validate_profile_envelope
+    env = validate_profile_envelope({"success": {"seasonBestStreak": None, "activeStreak": None,
+                                                 "accuracy": None, "predictions": []}})
+    assert env.no_history is True and env.n_predictions == 0
+
+
+def test_profile_raw_counts_from_fixture():
+    from bts.leaderboard.scraper import validate_profile_envelope
+    env = validate_profile_envelope(_fixture("user_profile_595403_tombrady12.json"))
+    assert env.no_history is False
+    assert env.n_predictions == 36
+    assert env.n_round_predictions >= 36
+    assert env.round_ids and all(isinstance(r, int) for r in env.round_ids)
+    assert isinstance(env.null_field_counts, dict)
+
+
+def test_profile_parse_reports_unknown_rounds_and_user_id():
+    from bts.leaderboard.scraper import StaticLookups, parse_user_profile_response
+    body = {"success": {"seasonBestStreak": 3, "activeStreak": 1, "accuracy": 50,
+                        "predictions": [
+                            {"roundId": 900, "streak": 1, "roundPredictions": [{"number": 1, "unitId": 1, "playerId": 2, "result": "hit", "atBats": 4, "hits": 1}]},
+                            {"roundId": 999, "streak": 0, "roundPredictions": [{"number": 1, "unitId": 1, "playerId": 2, "result": "not_hit", "atBats": 4, "hits": 0}]},
+                        ]}}
+    from datetime import date
+    lookups = StaticLookups(rounds={900: date(2026, 6, 1)})
+    picks, stats = parse_user_profile_response(body, captured_at=_dt(2026, 9, 28), user_id_unused=4242, lookups=lookups, username="u")
+    assert len(picks) == 1
+    assert stats.user_id == 4242
+    assert stats.skipped_unknown_round_predictions == 1

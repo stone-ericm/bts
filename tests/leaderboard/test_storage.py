@@ -132,3 +132,20 @@ class TestWriteSeasonStats:
         table = pq.read_table(out)
         assert table.num_rows == 0
         assert "username" in table.column_names
+
+
+
+def test_season_stats_parquet_carries_user_id(tmp_path):
+    from datetime import datetime
+    import pyarrow.parquet as pq
+    from bts.leaderboard.models import SeasonStats
+    from bts.leaderboard.storage import write_season_stats
+    rows = [SeasonStats(captured_at=datetime(2026, 9, 28, 12, 0), username="jordan", best_streak=5,
+                        active_streak=0, pick_accuracy_pct=50.0, user_id=1135),
+            SeasonStats(captured_at=datetime(2026, 9, 28, 12, 0), username="jordan", best_streak=9,
+                        active_streak=2, pick_accuracy_pct=60.0, user_id=2002)]
+    path = tmp_path / "stats.parquet"
+    write_season_stats(path, rows)
+    t = pq.read_table(path).to_pandas()
+    assert sorted(t.user_id.tolist()) == [1135, 2002]
+    assert t[t.user_id == 2002].best_streak.iloc[0] == 9
