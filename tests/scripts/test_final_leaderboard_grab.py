@@ -671,24 +671,24 @@ def test_census_requires_valid_consistent_metadata_on_every_page(tmp_path):
     p1 = [_rank_row(100 + i, i + 1, 40) for i in range(300)]
     p2 = [_rank_row(400, 301, 10)]
     # page 1 lacks allParticipantsCount -> population unknown even though the walk exhausts
-    t = FakeTransport(board_pages=[(200, {"success": {"ranks": p1, "nextPage": True, "updatedAt": "u1"}}),
-                                   (200, _board_page(p2, next_page=False, participants=301, updated="u1"))],
+    t = FakeTransport(board_pages=[(200, {"success": {"ranks": p1, "nextPage": True, "updatedAt": "2026-09-28T08:00:00-04:00"}}),
+                                   (200, _board_page(p2, next_page=False, participants=301, updated="2026-09-28T08:00:00-04:00"))],
                       profiles={100: (200, _profile())})
     cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
     code, status = run_grab(cfg)
     assert code == EXIT_PARTIAL and status["board"]["population"]["status"] == "unknown_incomplete_participant_metadata"
     assert status["board"]["population_complete"] is False
     # server version drift (updatedAt differs) -> unknown
-    t2 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=301, updated="u1")),
-                                    (200, _board_page(p2, next_page=False, participants=301, updated="u2"))],
+    t2 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=301, updated="2026-09-28T08:00:00-04:00")),
+                                    (200, _board_page(p2, next_page=False, participants=301, updated="2026-09-28T08:05:00-04:00"))],
                        profiles={100: (200, _profile())})
     cfg2 = _config(tmp_path / "b", t2, cohort_a=1, cohort_b=0, early_ids=())
     code2, status2 = run_grab(cfg2)
     assert code2 == EXIT_PARTIAL and status2["board"]["population"]["status"] == "unknown_server_version_drift"
     # duplicate conflict across pages -> walk not complete, population not complete
     p2c = [_rank_row(100, 301, 39)]  # id 100 again with a different rank/streak
-    t3 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=300, updated="u1")),
-                                    (200, _board_page(p2c, next_page=False, participants=300, updated="u1"))],
+    t3 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=300, updated="2026-09-28T08:00:00-04:00")),
+                                    (200, _board_page(p2c, next_page=False, participants=300, updated="2026-09-28T08:00:00-04:00"))],
                        profiles={100: (200, _profile())})
     cfg3 = _config(tmp_path / "c", t3, cohort_a=1, cohort_b=0, early_ids=())
     code3, status3 = run_grab(cfg3)
