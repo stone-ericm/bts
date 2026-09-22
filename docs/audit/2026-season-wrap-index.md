@@ -4,13 +4,13 @@
 
 | Item | Deliverable | Status | Evidence |
 |---|---|---|---|
-| W0.1 profile backup | `mdp_estpa_run` on box + manifests + restic + restore test | in progress 9/22 | `docs/audit/2026-09-22-w0-preservation.md` |
+| W0.1 profile backup | `mdp_estpa_run` on box + manifests + restic + restore test | **completed 9/22** (146 files; restic `a2781532…`; empty-dir restore matches) | `docs/audit/2026-09-22-w0-preservation.md` |
 | W0.1b pinned diagnostic | `confirm_mdp_policy_replay.py` output hash, Mac == box | completed 9/22 | same memo (sha256 `bdbb2a09…`) |
-| W0.2a preliminary checkpoint | staged `prelim-20260922` + manifest + restic snapshot | in progress 9/22 | same memo |
+| W0.2a preliminary checkpoint | staged `prelim-20260922` + manifest + restic snapshot | **completed 9/22** (5,042 files, 125 MB; restic `a2781532…`; restore matches) | same memo |
 | W0.3 exposure register | `docs/audit/2026-09-22-exposure-register.md` §A | completed 9/22 | file |
 | W0.4 protocol inventory | same file §B (P-01…P-06 quoted) | completed 9/22 | file |
 | W0.5 D3 / D5 / D8 recorded | same file §C | completed 9/22 | file |
-| W0.6 bounded grab (~9/28) | runbook/wrapper (Codex-reviewed) + fixture rehearsal + execution | not started | |
+| W0.6 bounded grab (~9/28) | runbook/wrapper (Codex-reviewed) + fixture rehearsal + execution | design r1 → 6 BLOCK (all adopted; parser bug C-01 fixed on main `44df03f`); design v2 with Codex | early cohort E frozen `docs/audit/2026-09-22-early-cohort-2026-05-01.json` |
 | W0.7 final snapshot | staged final + tag-isolated restic + restore test | not started (after grab + grading cutoff) | |
 | W0.8 research capture (D8) | `--capture-research-on-skip` deployed `f1b07e9` | completed 9/14; verified 9/19–9/21 | plan W0.8; `bts_index` memory |
 | W1.1 ledger | parquet + builder + tests + reconciliation table | not started | |
@@ -19,7 +19,7 @@
 | W1.3 distinguishing tests | in bridge memo | not started | |
 | W1.4b due reads (P-02…P-05) | one memo each | not started | |
 | W1.5 incident register | memo | not started | |
-| W1.6 corrections index + README | `docs/audit/2026-09-corrections-index.md`, README | not started | |
+| W1.6 corrections index + README | `docs/audit/2026-09-corrections-index.md`, README | index started 9/22 (C-01 parser bug, C-02 README) | file |
 | W2.1 final-leader case series | memo | not started (needs W0.6) | |
 | W2.2 as-of cohort comparison | memo | not started | |
 | W2.3 MLB forecast benchmark | memo (gated) | not started | |
