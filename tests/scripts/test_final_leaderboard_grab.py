@@ -633,3 +633,103 @@ def test_uv_lock_and_manifest_hashes_are_in_the_plan(tmp_path):
     assert (cfg.run_root / "inputs" / "early_cohort.json").exists()
     identity = json.loads((cfg.run_root / "identity.json").read_text())
     assert identity["1"]["parsed_sha256"]
+
+
+# ----------------------------------------------------------------------------- Codex code-review round 2
+def test_gzip_login_through_the_real_transport_does_not_double_decode():
+    import gzip as _gz
+    from scripts.final_leaderboard_grab import HttpxTransport
+    from bts.leaderboard.auth import fetch_login_session
+    payload = _gz.compress(b'{"success": {"user": {"id": 50311, "username": "s"}, "xSid": "x_gz"}}')
+
+    def handler(request):
+        return httpx.Response(200, content=payload, headers={"Content-Encoding": "gzip", "Content-Type": "application/json"})
+
+    real = HttpxTransport()
+    import scripts.final_leaderboard_grab as mod
+    orig_client = httpx.Client
+    monkey = lambda **kw: orig_client(transport=httpx.MockTransport(handler), **kw)  # noqa: E731
+    mod.httpx.Client = monkey
+    try:
+        session = fetch_login_session("uid", {"c": "v"}, attempts=1, post=real.post)
+        assert session.xsid == "x_gz"
+        rej = HttpxTransport()
+
+        def handler403(request):
+            return httpx.Response(403, content=_gz.compress(b"denied"), headers={"Content-Encoding": "gzip"})
+        mod.httpx.Client = lambda **kw: orig_client(transport=httpx.MockTransport(handler403), **kw)
+        with pytest.raises(Exception) as ei:
+            fetch_login_session("uid", {"c": "v"}, attempts=1, post=rej.post)
+        assert "403" in str(ei.value)
+        status, body = HttpxTransport().get("https://x/y", cookies={})
+        assert (status, body) == (403, b"denied")
+    finally:
+        mod.httpx.Client = orig_client
+
+
+def test_census_requires_valid_consistent_metadata_on_every_page(tmp_path):
+    p1 = [_rank_row(100 + i, i + 1, 40) for i in range(300)]
+    p2 = [_rank_row(400, 301, 10)]
+    # page 1 lacks allParticipantsCount -> population unknown even though the walk exhausts
+    t = FakeTransport(board_pages=[(200, {"success": {"ranks": p1, "nextPage": True, "updatedAt": "u1"}}),
+                                   (200, _board_page(p2, next_page=False, participants=301, updated="u1"))],
+                      profiles={100: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["board"]["population"]["status"] == "unknown_incomplete_participant_metadata"
+    assert status["board"]["population_complete"] is False
+    # server version drift (updatedAt differs) -> unknown
+    t2 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=301, updated="u1")),
+                                    (200, _board_page(p2, next_page=False, participants=301, updated="u2"))],
+                       profiles={100: (200, _profile())})
+    cfg2 = _config(tmp_path / "b", t2, cohort_a=1, cohort_b=0, early_ids=())
+    code2, status2 = run_grab(cfg2)
+    assert code2 == EXIT_PARTIAL and status2["board"]["population"]["status"] == "unknown_server_version_drift"
+    # duplicate conflict across pages -> walk not complete, population not complete
+    p2c = [_rank_row(100, 301, 39)]  # id 100 again with a different rank/streak
+    t3 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=300, updated="u1")),
+                                    (200, _board_page(p2c, next_page=False, participants=300, updated="u1"))],
+                       profiles={100: (200, _profile())})
+    cfg3 = _config(tmp_path / "c", t3, cohort_a=1, cohort_b=0, early_ids=())
+    code3, status3 = run_grab(cfg3)
+    assert code3 == EXIT_PARTIAL and status3["board"]["walk_complete"] is False and status3["board"]["population_complete"] is False
+    assert status3["board"]["population"]["status"] == "unknown_duplicate_conflicts"
+
+
+@pytest.mark.parametrize("slot", [
+    {"number": 1, "unitId": 5, "playerId": 9, "result": None, "atBats": 4, "hits": 1},      # pending result
+    {"number": None, "unitId": 5, "playerId": 9, "result": "hit", "atBats": 4, "hits": 1},   # null slot number
+    {"number": 3, "unitId": 5, "playerId": 9, "result": "hit", "atBats": 4, "hits": 1},      # invalid slot number
+    {"number": 1, "unitId": 5, "playerId": 9, "result": "hit", "atBats": None, "hits": None},  # settled result, missing measurements
+])
+def test_unresolved_or_invalid_slots_never_become_settled_picks(tmp_path, slot):
+    body = _profile(preds=[{"roundId": 1000, "streak": 1, "result": slot["result"], "roundPredictions": [slot]}])
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, body)})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    rec = status["profiles"][0]
+    assert rec["status"] == "success_with_unresolved" and rec["unresolved_round_predictions"] == 1, rec
+    assert rec["unresolved_reasons"]
+    assert not (cfg.run_root / "user_picks" / "1.parquet").exists()
+    assert code == EXIT_PARTIAL
+
+
+def test_echoed_token_is_scrubbed_from_every_archive_the_summary_and_the_marker(tmp_path, monkeypatch):
+    token = b"SECRET_XSID_VALUE"
+    rows = [_rank_row(1, 1, 9), _rank_row(2, 2, 8)]
+    t = FakeTransport(board_pages=[(200, _board_page(rows, next_page=False, participants=2))],
+                      profiles={1: (500, b"server error while handling xSid=SECRET_XSID_VALUE"),
+                                2: (200, {"errors": [{"message": "bad token SECRET_XSID_VALUE"}]})},
+                      login=(200, b'{"success": {"user": {"id": 1, "username": "s"}, "xSid": "SECRET_XSID_VALUE"}}'))
+    cfg = _config(tmp_path, t, cohort_a=2, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    for gz in cfg.run_root.rglob("*.gz"):
+        assert token not in gzip.decompress(gz.read_bytes()), gz
+    for f in cfg.run_root.rglob("*.json"):
+        assert token not in f.read_bytes(), f
+    assert token.decode() not in json.dumps(status, default=str)  # returned object is safe for CLI printing
+    reqs = {r["name"]: r for r in status["requests"] if r["class"] == "profile"}
+    assert reqs["1"]["archived_sha256"] != reqs["1"]["sha256"] and reqs["1"]["raw_redacted"] is True
+    # a clean body archives verbatim: digests agree
+    clean = next(r for r in status["requests"] if r["class"] == "board")
+    assert clean["archived_sha256"] == clean["sha256"] and clean["raw_redacted"] is False

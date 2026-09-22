@@ -128,9 +128,12 @@ class ProfileEnvelope:
     n_round_predictions: int
     round_ids: list[int]
     null_field_counts: dict[str, int]
-    # slots whose unitId or playerId is null: a pick cannot be formed from them; the
-    # parser would coerce them to 0 and fabricate a pick (2026-09-22 code review)
+    # slots that cannot be presented as SETTLED picks: null unitId/playerId (no pick
+    # can be formed), slot number not in {1, 2}, null result (pending), or a settled
+    # result without atBats/hits. The parser would coerce these to 0/"" and fabricate
+    # rows (2026-09-22 code review rounds 1-2).
     unresolved_round_predictions: int = 0
+    unresolved_reasons: dict[str, int] = field(default_factory=dict)
 
 
 def validate_profile_envelope(body: object) -> ProfileEnvelope:
@@ -152,6 +155,7 @@ def validate_profile_envelope(body: object) -> ProfileEnvelope:
     round_ids: list[int] = []
     n_rp = 0
     unresolved = 0
+    unresolved_reasons: dict[str, int] = {}
     nulls: dict[str, int] = {"streak": 0, "result": 0, "atBats": 0, "hits": 0, "unitId": 0, "playerId": 0}
     for pred in preds:
         if not isinstance(pred, dict) or pred.get("roundId") is None:
@@ -176,8 +180,21 @@ def validate_profile_envelope(body: object) -> ProfileEnvelope:
             for k in ("result", "atBats", "hits", "unitId", "playerId"):
                 if rp.get(k) is None:
                     nulls[k] += 1
+            reasons_here: list[str] = []
             if rp.get("unitId") is None or rp.get("playerId") is None:
+                reasons_here.append("missing_unit_or_player")
+            number = rp.get("number")
+            if not (isinstance(number, int) and not isinstance(number, bool) and number in (1, 2)):
+                reasons_here.append("invalid_slot_number")
+            result = rp.get("result")
+            if result is None:
+                reasons_here.append("result_pending")
+            elif str(result) in ("hit", "not_hit") and (rp.get("atBats") is None or rp.get("hits") is None):
+                reasons_here.append("missing_measurements")
+            if reasons_here:
                 unresolved += 1
+                for reason in reasons_here:
+                    unresolved_reasons[reason] = unresolved_reasons.get(reason, 0) + 1
     return ProfileEnvelope(
         no_history=(len(preds) == 0),
         n_predictions=len(preds),
@@ -185,6 +202,7 @@ def validate_profile_envelope(body: object) -> ProfileEnvelope:
         round_ids=round_ids,
         null_field_counts=nulls,
         unresolved_round_predictions=unresolved,
+        unresolved_reasons=unresolved_reasons,
     )
 
 

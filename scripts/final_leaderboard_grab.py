@@ -158,10 +158,10 @@ class HttpxTransport:
             with client.stream("POST", url, json=json) as r:
                 status = r.status_code
                 try:
-                    r.read()
+                    r.read()  # decodes any Content-Encoding exactly once
                 except httpx.HTTPError as exc:
                     raise BodyReadError(status, exc) from exc
-                return httpx.Response(status, content=r.content, headers=r.headers, request=r.request)
+                return r  # already-read response; never rebuild (a rebuild re-applies Content-Encoding)
 
 
 # ----------------------------------------------------------------------------- credentials
@@ -380,6 +380,14 @@ class Ledger:
         if self.issued > 0:
             self.cfg.sleeper(next_gap(self.cfg.min_gap_s, self.cfg.jitter_s, self.cfg.rng))
 
+    def scrub_bytes(self, body: bytes) -> bytes:
+        """Default archive transform: remove every known secret from a text body."""
+        try:
+            text = body.decode()
+        except UnicodeDecodeError:
+            return body
+        return self.scrub.text(text).encode()
+
     def request(self, cls: str, name: str, url: str, raw_path: Path,
                 send: Callable[[], tuple[int, bytes]],
                 archive_transform: Callable[[bytes], bytes] | None = None) -> tuple[int, bytes, dict[str, Any]]:
@@ -390,8 +398,8 @@ class Ledger:
             "seq": self.issued + 1, "class": cls, "name": name, "url": _redact_url(url),
             "outcome": "intent", "sent_at_utc": self.cfg.now().isoformat(),
             "received_at_utc": None, "duration_s": None, "http_status": None,
-            "bytes": None, "sha256": None, "raw_path": str(raw_path.relative_to(self.cfg.run_root)),
-            "raw_redacted": archive_transform is not None,
+            "bytes": None, "sha256": None, "archived_sha256": None,
+            "raw_path": str(raw_path.relative_to(self.cfg.run_root)), "raw_redacted": None,
         }
         self.status["requests"].append(entry)
         self.issued += 1
@@ -416,7 +424,9 @@ class Ledger:
         body = bytes(body or b"")
         entry.update({"received_at_utc": self.cfg.now().isoformat(), "duration_s": round(time.monotonic() - t0, 3),
                       "http_status": int(http_status), "bytes": len(body), "sha256": _sha256(body)})
-        archived = archive_transform(body) if archive_transform else body
+        archived = (archive_transform or self.scrub_bytes)(body)
+        entry["archived_sha256"] = _sha256(archived)
+        entry["raw_redacted"] = archived != body
         try:
             _atomic_write_bytes(raw_path, gzip.compress(archived))
         except OSError as exc:
@@ -516,7 +526,11 @@ def _round_for_date(rounds: dict[int, date], target: date) -> int | None:
 
 
 def _population(board: dict[str, Any], participants_seen: list[int]) -> dict[str, Any]:
+    """Population coverage, kept separate from walk exhaustion. `census` demands: an
+    exhausted, conflict-free walk AND valid participant count + server timestamp on
+    EVERY page, all equal. Anything less is an explicit unknown, never a census."""
     listed = board["unique_user_ids"]
+    pages = board["per_page"]
     if not participants_seen:
         return {"status": "unknown_no_participant_count", "reported": None, "listed_unique": listed, "gap": None}
     if min(participants_seen) != max(participants_seen):
@@ -525,6 +539,15 @@ def _population(board: dict[str, Any], participants_seen: list[int]) -> dict[str
     reported = participants_seen[0]
     if not board["walk_exhausted"]:
         return {"status": "walk_not_exhausted", "reported": reported, "listed_unique": listed, "gap": reported - listed}
+    if board["duplicate_conflicts"]:
+        return {"status": "unknown_duplicate_conflicts", "reported": reported, "listed_unique": listed, "gap": None,
+                "conflicts": len(board["duplicate_conflicts"])}
+    if any(pg["all_participants_count"] is None or pg["updated_at"] is None for pg in pages):
+        return {"status": "unknown_incomplete_participant_metadata", "reported": reported, "listed_unique": listed, "gap": None,
+                "pages_missing_metadata": [pg["page"] for pg in pages if pg["all_participants_count"] is None or pg["updated_at"] is None]}
+    if len({pg["updated_at"] for pg in pages}) > 1:
+        return {"status": "unknown_server_version_drift", "reported": reported, "listed_unique": listed, "gap": None,
+                "updated_at_values": sorted({str(pg["updated_at"]) for pg in pages})}
     if listed == reported:
         return {"status": "census", "reported": reported, "listed_unique": listed, "gap": 0}
     if listed < reported:
@@ -860,7 +883,8 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
                 continue
             rec.update({"raw_predictions": env.n_predictions, "raw_round_predictions": env.n_round_predictions,
                         "null_field_counts": env.null_field_counts, "no_history": env.no_history,
-                        "unresolved_round_predictions": env.unresolved_round_predictions})
+                        "unresolved_round_predictions": env.unresolved_round_predictions,
+                        "unresolved_reasons": env.unresolved_reasons})
             if env.unresolved_round_predictions:
                 # A pick cannot be formed from a slot without unitId/playerId; the parser would
                 # coerce them to 0 and fabricate rows. Fail closed: raw archive retains the data.
@@ -981,12 +1005,14 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
                 status["problems"].append(f"terminal status.json write failed: {exc}")
                 marker = run_root.parent / f"{run_root.name}.STATUS_WRITE_FAILED"
                 try:
-                    marker.write_text(json.dumps({"run_root": str(run_root), "at_utc": cfg.now().isoformat(),
-                                                  "intended_terminal_state": status["terminal_state"], "problems": status["problems"]}, default=str))
+                    marker.write_text(json.dumps(scrub.obj({"run_root": str(run_root), "at_utc": cfg.now().isoformat(),
+                                                            "intended_terminal_state": status["terminal_state"],
+                                                            "problems": status["problems"]}), default=str))
                 except OSError:
                     pass
-                print(f"STATUS WRITE FAILED for {run_root}: {exc}", file=sys.stderr)
-    return exit_code, status
+                print(scrub.text(f"STATUS WRITE FAILED for {run_root}: {exc}"), file=sys.stderr)
+    # Every surface that leaves this function (CLI summary, tests, logs) is credential-safe.
+    return exit_code, scrub.obj(status)
 
 
 # ----------------------------------------------------------------------------- cli
