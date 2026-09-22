@@ -780,3 +780,32 @@ def test_valid_iso_timestamp_census_control(tmp_path):
     cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
     code, status = run_grab(cfg)
     assert (code, status["board"]["population"]["status"]) == (EXIT_COMPLETE, "census")
+
+
+# ----------------------------------------------------------------------------- Codex code-review round 4
+def test_token_used_as_a_json_object_key_is_scrubbed(tmp_path):
+    token = "SECRET_XSID_VALUE"
+    rows = [_rank_row(1, 1, 9)]
+    body = ('{"' + token + '": "denied", "message": "' + token + '", "nested": {"' + token + '": ["' + token + '"]}}').encode()
+    t = FakeTransport(board_pages=[(200, _board_page(rows, next_page=False, participants=1))],
+                      profiles={1: (500, body)},
+                      login=(200, ('{"success": {"user": {"id": 1, "username": "s"}, "xSid": "' + token + '"}}').encode()))
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    archived = gzip.decompress((cfg.run_root / "raw" / "profiles" / "1.json.gz").read_bytes())
+    assert token.encode() not in archived
+    decoded = json.loads(archived)
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                assert token not in k
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+        elif isinstance(o, str):
+            assert token not in o
+    walk(decoded)
+    rec = next(r for r in status["requests"] if r["class"] == "profile")
+    assert rec["raw_redacted"] is True and rec["archived_sha256"] != rec["sha256"]
+    assert token not in json.dumps(status, default=str)

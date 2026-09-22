@@ -346,7 +346,8 @@ class Scrubber:
         if isinstance(o, str):
             return self.text(o)
         if isinstance(o, dict):
-            return {k: self.obj(v) for k, v in o.items()}
+            # keys are scrubbed too: a credential used as an object key must not survive
+            return {(self.text(k) if isinstance(k, str) else k): self.obj(v) for k, v in o.items()}
         if isinstance(o, list):
             return [self.obj(v) for v in o]
         return o
@@ -405,8 +406,10 @@ class Ledger:
             obj = None
         if isinstance(obj, (dict, list)):
             scrubbed = self.scrub.obj(obj)
-            out = json.dumps(scrubbed, ensure_ascii=False, sort_keys=True).encode()
-            return out if scrubbed != obj else self.scrub.bytes(body)
+            if scrubbed != obj:
+                # re-serialize the scrubbed structure, then ALSO byte-scrub the output so no
+                # serialization path can bypass credential removal
+                return self.scrub.bytes(json.dumps(scrubbed, ensure_ascii=False, sort_keys=True).encode())
         return self.scrub.bytes(body)
 
     def request(self, cls: str, name: str, url: str, raw_path: Path,
