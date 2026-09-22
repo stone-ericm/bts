@@ -43,5 +43,11 @@ Sealed checkpoints: quiesce (no segment running) → SQLite backup API copy + ma
 4. `scripts/round_campaign.py` driver: lock → login → targets → segments → windows/caps → pause/halt/resume → DM.
 5. Pilot round 1003 (observed) → memo → owner reads → expansion newest→oldest → supplemental targets.v2 after 9/27.
 
+## 8b. Learned from the 9/22 season-board capture (feeds the pilot)
+- The season board lists only users with season best ≥ 4 (72,600 of a header count of 121,625): a **listing floor** exists; round boards may have their own floor (e.g. only that round's pickers, or only non-zero streaks) — the pilot must measure it.
+- The EMPTY terminal page reported a different `allParticipantsCount` (54,293) than every full page (121,625) with a constant `updatedAt`: the census predicate must evaluate metadata consistency over FULL pages and record the terminal page's metadata separately (otherwise every exhausted walk is "drift").
+- Observed pace ≈ 7 s/request end-to-end (2–4.5 s jitter + 3–4 s server latency); page bodies ≈ 67 KB gz; 300 profiles ≈ 35 min; profile histories retained the whole season (3/25→9/21) for all 300.
+- 67,548 distinct usernames for 72,600 user ids: usernames are NOT identifiers (≈5k collisions) — id-keyed everything.
+
 ## 9. Open questions for the pilot (must be answered before expansion)
 Does an old round (823) still serve its full board? Does `limit=300` hold on the round endpoint? Are zero-streak / non-picking participants listed (void rows) — what share? Do participant counts match the season board's 121,625 in recent rounds? Latency per page and archive size per round.
