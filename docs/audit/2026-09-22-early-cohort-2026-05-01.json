@@ -1,0 +1,5425 @@
+{
+ "schema_version": "bts_early_cohort_manifest_v1",
+ "frozen_at": "2026-09-22",
+ "definition": "All distinct userIds appearing in any of the four top-100 leaderboard tabs recorded on 2026-05-01 (tests/leaderboard/fixtures/leaderboard_*.json; verified 2026-09-22 to match data/leaderboard/leaderboard_snapshots/2026-05-01.parquet rank+username 100/100 per tab; server updatedAt 2026-05-01T08:03:47-04:00). Ordering rule: all_season rank, then active_streak rank, then yesterday rank, then all_time rank, then userId; missing rank = last.",
+ "purpose": "As-of analytical cohort E for season-wrap W2.2 and profile request slots B for the 2026-09-28 bounded grab (plan W0.6). Membership does NOT depend on any later outcome.",
+ "source_fixture_sha256": {
+  "leaderboard_active_streak.json": "5e5f44505be46fd2f72f4a61bf89d6819028adca6cddca73c95fafd3babaa690",
+  "leaderboard_all_season.json": "a81b0433cd254859897f273da53182c41466d7c19a2cd815d1803d335df1b946",
+  "leaderboard_all_time.json": "c0da183d07dd50869fefe51db01eadfd51f4f1878c769250490d58d0aecd5d0b",
+  "leaderboard_yesterday_round.json": "aceb394d5129a85674c4307d6af2b35e5dd6d47629998b1fe8f098dbdb0e30d1"
+ },
+ "n_users": 310,
+ "users": [
+  {
+   "order": 1,
+   "user_id": 595403,
+   "usernames_2026_05_01": [
+    "tombrady12"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 1,
+    "all_season": 1,
+    "yesterday": 1
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 35,
+     "activeStreak": 35
+    },
+    "all_season": {
+     "streak": 35,
+     "activeStreak": 35
+    },
+    "yesterday": {
+     "streak": 34,
+     "activeStreak": 34
+    }
+   }
+  },
+  {
+   "order": 2,
+   "user_id": 629886,
+   "usernames_2026_05_01": [
+    "kkraushaar2"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 2,
+    "all_season": 2,
+    "yesterday": 2
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 34,
+     "activeStreak": 34
+    },
+    "all_season": {
+     "streak": 34,
+     "activeStreak": 34
+    },
+    "yesterday": {
+     "streak": 32,
+     "activeStreak": 32
+    }
+   }
+  },
+  {
+   "order": 3,
+   "user_id": 441,
+   "usernames_2026_05_01": [
+    "OlyLifter87100"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 2
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 34,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 4,
+   "user_id": 360877,
+   "usernames_2026_05_01": [
+    "ADDMAR"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 3,
+    "all_season": 4,
+    "yesterday": 2
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 32,
+     "activeStreak": 32
+    },
+    "all_season": {
+     "streak": 32,
+     "activeStreak": 32
+    },
+    "yesterday": {
+     "streak": 32,
+     "activeStreak": 32
+    }
+   }
+  },
+  {
+   "order": 5,
+   "user_id": 208202,
+   "usernames_2026_05_01": [
+    "strofan5721"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 4
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 32,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 6,
+   "user_id": 11436,
+   "usernames_2026_05_01": [
+    "ChicksDigStreaks"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 4,
+    "all_season": 6,
+    "yesterday": 4
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 31,
+     "activeStreak": 31
+    },
+    "all_season": {
+     "streak": 31,
+     "activeStreak": 31
+    },
+    "yesterday": {
+     "streak": 30,
+     "activeStreak": 30
+    }
+   }
+  },
+  {
+   "order": 7,
+   "user_id": 27537,
+   "usernames_2026_05_01": [
+    "SJiants"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 5,
+    "all_season": 7,
+    "yesterday": 4
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 30,
+     "activeStreak": 30
+    },
+    "all_season": {
+     "streak": 30,
+     "activeStreak": 30
+    },
+    "yesterday": {
+     "streak": 30,
+     "activeStreak": 30
+    }
+   }
+  },
+  {
+   "order": 8,
+   "user_id": 231588,
+   "usernames_2026_05_01": [
+    "flemingjake"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 5,
+    "all_season": 7,
+    "yesterday": 9
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 30,
+     "activeStreak": 30
+    },
+    "all_season": {
+     "streak": 30,
+     "activeStreak": 30
+    },
+    "yesterday": {
+     "streak": 29,
+     "activeStreak": 29
+    }
+   }
+  },
+  {
+   "order": 9,
+   "user_id": 11202,
+   "usernames_2026_05_01": [
+    "simonsez"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 7,
+    "yesterday": 4
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 30,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 30,
+     "activeStreak": 30
+    }
+   }
+  },
+  {
+   "order": 10,
+   "user_id": 139315,
+   "usernames_2026_05_01": [
+    "gepstein"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 7,
+    "yesterday": 4
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 30,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 30,
+     "activeStreak": 30
+    }
+   }
+  },
+  {
+   "order": 11,
+   "user_id": 595375,
+   "usernames_2026_05_01": [
+    "MAXFRIED"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 7,
+    "yesterday": 4
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 30,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 30,
+     "activeStreak": 30
+    }
+   }
+  },
+  {
+   "order": 12,
+   "user_id": 29051,
+   "usernames_2026_05_01": [
+    "sachael"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 7,
+    "all_season": 12,
+    "yesterday": 9
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 29,
+     "activeStreak": 29
+    },
+    "all_season": {
+     "streak": 29,
+     "activeStreak": 29
+    },
+    "yesterday": {
+     "streak": 29,
+     "activeStreak": 29
+    }
+   }
+  },
+  {
+   "order": 13,
+   "user_id": 180888,
+   "usernames_2026_05_01": [
+    "Davidh27"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 7,
+    "all_season": 12,
+    "yesterday": 16
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 29,
+     "activeStreak": 29
+    },
+    "all_season": {
+     "streak": 29,
+     "activeStreak": 29
+    },
+    "yesterday": {
+     "streak": 27,
+     "activeStreak": 27
+    }
+   }
+  },
+  {
+   "order": 14,
+   "user_id": 27947,
+   "usernames_2026_05_01": [
+    "AHDadof3"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 12
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 29,
+     "activeStreak": 8
+    }
+   }
+  },
+  {
+   "order": 15,
+   "user_id": 256693,
+   "usernames_2026_05_01": [
+    "Kro815"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 12
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 29,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 16,
+   "user_id": 594421,
+   "usernames_2026_05_01": [
+    "Trumbohr"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 9,
+    "all_season": 16,
+    "yesterday": 11
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 28,
+     "activeStreak": 28
+    },
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 28
+    },
+    "yesterday": {
+     "streak": 28,
+     "activeStreak": 28
+    }
+   }
+  },
+  {
+   "order": 17,
+   "user_id": 127560,
+   "usernames_2026_05_01": [
+    "YankaBuc"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 9,
+    "all_season": 16,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 28,
+     "activeStreak": 28
+    },
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 28
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 18,
+   "user_id": 273437,
+   "usernames_2026_05_01": [
+    "GianniG"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16,
+    "yesterday": 11
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 28,
+     "activeStreak": 28
+    }
+   }
+  },
+  {
+   "order": 19,
+   "user_id": 503578,
+   "usernames_2026_05_01": [
+    "Stephen"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16,
+    "yesterday": 11
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 28,
+     "activeStreak": 28
+    }
+   }
+  },
+  {
+   "order": 20,
+   "user_id": 550469,
+   "usernames_2026_05_01": [
+    "paolofq"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16,
+    "yesterday": 11
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 28,
+     "activeStreak": 28
+    }
+   }
+  },
+  {
+   "order": 21,
+   "user_id": 618802,
+   "usernames_2026_05_01": [
+    "DanPike"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16,
+    "yesterday": 11
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 28,
+     "activeStreak": 28
+    }
+   }
+  },
+  {
+   "order": 22,
+   "user_id": 74488,
+   "usernames_2026_05_01": [
+    "Bonzo77"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 23,
+   "user_id": 145160,
+   "usernames_2026_05_01": [
+    "SeanMcD"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 1
+    }
+   }
+  },
+  {
+   "order": 24,
+   "user_id": 205982,
+   "usernames_2026_05_01": [
+    "ShipNinja"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 25,
+   "user_id": 249075,
+   "usernames_2026_05_01": [
+    "tzshaw29"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 26,
+   "user_id": 455452,
+   "usernames_2026_05_01": [
+    "orlndoperez"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 27,
+   "user_id": 613376,
+   "usernames_2026_05_01": [
+    "TurgoShow"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 28,
+   "user_id": 617878,
+   "usernames_2026_05_01": [
+    "BillyHumps"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 28,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 29,
+   "user_id": 190174,
+   "usernames_2026_05_01": [
+    "Benchjb"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 11,
+    "all_season": 29,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 27,
+     "activeStreak": 27
+    },
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 27
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 30,
+   "user_id": 3811,
+   "usernames_2026_05_01": [
+    "michael"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29,
+    "yesterday": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 27,
+     "activeStreak": 27
+    }
+   }
+  },
+  {
+   "order": 31,
+   "user_id": 22863,
+   "usernames_2026_05_01": [
+    "icegirl"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29,
+    "yesterday": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 27,
+     "activeStreak": 27
+    }
+   }
+  },
+  {
+   "order": 32,
+   "user_id": 247138,
+   "usernames_2026_05_01": [
+    "PabloSanchez"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29,
+    "yesterday": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 27,
+     "activeStreak": 27
+    }
+   }
+  },
+  {
+   "order": 33,
+   "user_id": 40918,
+   "usernames_2026_05_01": [
+    "codywalter"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 34,
+   "user_id": 120384,
+   "usernames_2026_05_01": [
+    "BoeheimBoom"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 35,
+   "user_id": 640199,
+   "usernames_2026_05_01": [
+    "andyboxwood"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 29
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 27,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 36,
+   "user_id": 115399,
+   "usernames_2026_05_01": [
+    "bc3783"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 12,
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 37,
+   "user_id": 34942,
+   "usernames_2026_05_01": [
+    "theone"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 12,
+    "all_season": 36,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 38,
+   "user_id": 150284,
+   "usernames_2026_05_01": [
+    "jefferyk"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 12,
+    "all_season": 36,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 26
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 39,
+   "user_id": 11169,
+   "usernames_2026_05_01": [
+    "Beau2408"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 40,
+   "user_id": 61889,
+   "usernames_2026_05_01": [
+    "McKinley412"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 41,
+   "user_id": 92062,
+   "usernames_2026_05_01": [
+    "LBennett"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 42,
+   "user_id": 114417,
+   "usernames_2026_05_01": [
+    "DSHJR33"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 43,
+   "user_id": 164971,
+   "usernames_2026_05_01": [
+    "DrewKo"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 44,
+   "user_id": 375202,
+   "usernames_2026_05_01": [
+    "Simon101"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 45,
+   "user_id": 572742,
+   "usernames_2026_05_01": [
+    "slick1979"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 46,
+   "user_id": 631539,
+   "usernames_2026_05_01": [
+    "WickedRunR"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 47,
+   "user_id": 637032,
+   "usernames_2026_05_01": [
+    "JGomez418"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36,
+    "yesterday": 20
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 26,
+     "activeStreak": 26
+    }
+   }
+  },
+  {
+   "order": 48,
+   "user_id": 16440,
+   "usernames_2026_05_01": [
+    "fester51"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 49,
+   "user_id": 67708,
+   "usernames_2026_05_01": [
+    "pivnasty"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 50,
+   "user_id": 83181,
+   "usernames_2026_05_01": [
+    "MrB331"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 51,
+   "user_id": 150634,
+   "usernames_2026_05_01": [
+    "uncleb11"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 52,
+   "user_id": 150901,
+   "usernames_2026_05_01": [
+    "Nabbers"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 53,
+   "user_id": 203455,
+   "usernames_2026_05_01": [
+    "KingKoenig"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 54,
+   "user_id": 255087,
+   "usernames_2026_05_01": [
+    "benjaymuhn"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 55,
+   "user_id": 500527,
+   "usernames_2026_05_01": [
+    "RGbest7396"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 56,
+   "user_id": 536731,
+   "usernames_2026_05_01": [
+    "swany1010"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 57,
+   "user_id": 614646,
+   "usernames_2026_05_01": [
+    "jbev98"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 36
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 26,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 58,
+   "user_id": 11070,
+   "usernames_2026_05_01": [
+    "mauzam"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 15,
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 59,
+   "user_id": 525352,
+   "usernames_2026_05_01": [
+    "jordan"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 15,
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 60,
+   "user_id": 568493,
+   "usernames_2026_05_01": [
+    "megsheg"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 15,
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 61,
+   "user_id": 240896,
+   "usernames_2026_05_01": [
+    "GMoney"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 15,
+    "all_season": 58,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 62,
+   "user_id": 625734,
+   "usernames_2026_05_01": [
+    "Ohbumper"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 15,
+    "all_season": 58,
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 25
+    },
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 63,
+   "user_id": 4952,
+   "usernames_2026_05_01": [
+    "Jimmy2727"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 64,
+   "user_id": 28337,
+   "usernames_2026_05_01": [
+    "MrCharlie"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 65,
+   "user_id": 31849,
+   "usernames_2026_05_01": [
+    "OzOzzie"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 66,
+   "user_id": 375216,
+   "usernames_2026_05_01": [
+    "handjiwa"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 67,
+   "user_id": 615954,
+   "usernames_2026_05_01": [
+    "Ciuk06"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58,
+    "yesterday": 32
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 25,
+     "activeStreak": 25
+    }
+   }
+  },
+  {
+   "order": 68,
+   "user_id": 7991,
+   "usernames_2026_05_01": [
+    "Zachlowe8"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 69,
+   "user_id": 22219,
+   "usernames_2026_05_01": [
+    "EchoGecko"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 70,
+   "user_id": 62999,
+   "usernames_2026_05_01": [
+    "Renson"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 71,
+   "user_id": 195300,
+   "usernames_2026_05_01": [
+    "leiter82"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 7
+    }
+   }
+  },
+  {
+   "order": 72,
+   "user_id": 199005,
+   "usernames_2026_05_01": [
+    "mmickey13"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 73,
+   "user_id": 442832,
+   "usernames_2026_05_01": [
+    "zgreiner"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 5
+    }
+   }
+  },
+  {
+   "order": 74,
+   "user_id": 502122,
+   "usernames_2026_05_01": [
+    "Falcons405"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 75,
+   "user_id": 576608,
+   "usernames_2026_05_01": [
+    "FAEDICE"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 76,
+   "user_id": 597219,
+   "usernames_2026_05_01": [
+    "stevieweevie26"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 6
+    }
+   }
+  },
+  {
+   "order": 77,
+   "user_id": 616425,
+   "usernames_2026_05_01": [
+    "kkelly0613"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 78,
+   "user_id": 617029,
+   "usernames_2026_05_01": [
+    "Dannyfern4"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 5
+    }
+   }
+  },
+  {
+   "order": 79,
+   "user_id": 623008,
+   "usernames_2026_05_01": [
+    "bobbyhill"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 80,
+   "user_id": 631654,
+   "usernames_2026_05_01": [
+    "Catpooney12"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 58
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 25,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 81,
+   "user_id": 77498,
+   "usernames_2026_05_01": [
+    "jackschwartz"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 20,
+    "all_season": 81,
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 82,
+   "user_id": 5562,
+   "usernames_2026_05_01": [
+    "ActionJackson"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 20,
+    "all_season": 81,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 83,
+   "user_id": 228113,
+   "usernames_2026_05_01": [
+    "Grumpy"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 20,
+    "all_season": 81,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 84,
+   "user_id": 633295,
+   "usernames_2026_05_01": [
+    "pgnmacd"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 20,
+    "all_season": 81,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 24
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 85,
+   "user_id": 121087,
+   "usernames_2026_05_01": [
+    "abdoman"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 86,
+   "user_id": 178523,
+   "usernames_2026_05_01": [
+    "ryanro"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 87,
+   "user_id": 190694,
+   "usernames_2026_05_01": [
+    "jomeone"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81,
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    },
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 88,
+   "user_id": 1180,
+   "usernames_2026_05_01": [
+    "CdnRedSoxFan1"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 89,
+   "user_id": 43110,
+   "usernames_2026_05_01": [
+    "BigRedMachine"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 90,
+   "user_id": 64441,
+   "usernames_2026_05_01": [
+    "chodge4529"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 91,
+   "user_id": 67088,
+   "usernames_2026_05_01": [
+    "Elyandy2008"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 92,
+   "user_id": 152915,
+   "usernames_2026_05_01": [
+    "yodog25"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 93,
+   "user_id": 171716,
+   "usernames_2026_05_01": [
+    "jobo26"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 12
+    }
+   }
+  },
+  {
+   "order": 94,
+   "user_id": 220371,
+   "usernames_2026_05_01": [
+    "SSmith24"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 95,
+   "user_id": 231780,
+   "usernames_2026_05_01": [
+    "Matthew"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 96,
+   "user_id": 252407,
+   "usernames_2026_05_01": [
+    "IMMADB"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 97,
+   "user_id": 253162,
+   "usernames_2026_05_01": [
+    "mojo58"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 98,
+   "user_id": 253986,
+   "usernames_2026_05_01": [
+    "GuttyBooty"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 99,
+   "user_id": 259604,
+   "usernames_2026_05_01": [
+    "FinnBowen8"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 100,
+   "user_id": 635870,
+   "usernames_2026_05_01": [
+    "MRdich47"
+   ],
+   "ranks_2026_05_01": {
+    "all_season": 81
+   },
+   "streak_fields_2026_05_01": {
+    "all_season": {
+     "streak": 24,
+     "activeStreak": 1
+    }
+   }
+  },
+  {
+   "order": 101,
+   "user_id": 43213,
+   "usernames_2026_05_01": [
+    "ellert"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 102,
+   "user_id": 458374,
+   "usernames_2026_05_01": [
+    "JMurph"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 103,
+   "user_id": 10728,
+   "usernames_2026_05_01": [
+    "dspurvis"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 104,
+   "user_id": 23979,
+   "usernames_2026_05_01": [
+    "JAYSAT44"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 105,
+   "user_id": 617097,
+   "usernames_2026_05_01": [
+    "Bigdog"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 106,
+   "user_id": 618395,
+   "usernames_2026_05_01": [
+    "rafimbuja"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 107,
+   "user_id": 626142,
+   "usernames_2026_05_01": [
+    "WildThing"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 108,
+   "user_id": 628675,
+   "usernames_2026_05_01": [
+    "matt2727"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 109,
+   "user_id": 368815,
+   "usernames_2026_05_01": [
+    "MFinger"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 24,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 23,
+     "activeStreak": 23
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 110,
+   "user_id": 24250,
+   "usernames_2026_05_01": [
+    "Jinb4488"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 111,
+   "user_id": 187287,
+   "usernames_2026_05_01": [
+    "emul12"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 112,
+   "user_id": 47646,
+   "usernames_2026_05_01": [
+    "ButchA"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 113,
+   "user_id": 92359,
+   "usernames_2026_05_01": [
+    "SeanDeedz"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 114,
+   "user_id": 106176,
+   "usernames_2026_05_01": [
+    "ncl044"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 115,
+   "user_id": 257373,
+   "usernames_2026_05_01": [
+    "DaddyShark"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 116,
+   "user_id": 204713,
+   "usernames_2026_05_01": [
+    "rybar65656565"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 117,
+   "user_id": 528034,
+   "usernames_2026_05_01": [
+    "SleezyT"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 118,
+   "user_id": 564967,
+   "usernames_2026_05_01": [
+    "pattycrocks"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 119,
+   "user_id": 571594,
+   "usernames_2026_05_01": [
+    "coachpinto"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 120,
+   "user_id": 611027,
+   "usernames_2026_05_01": [
+    "Klobo12"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 121,
+   "user_id": 621558,
+   "usernames_2026_05_01": [
+    "nev720"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 122,
+   "user_id": 626928,
+   "usernames_2026_05_01": [
+    "LONGERDONGER"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 33
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 123,
+   "user_id": 167049,
+   "usernames_2026_05_01": [
+    "kcroyals99"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 124,
+   "user_id": 366477,
+   "usernames_2026_05_01": [
+    "PazcoPicks"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46,
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    },
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 125,
+   "user_id": 1815,
+   "usernames_2026_05_01": [
+    "grumpy515"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 126,
+   "user_id": 8307,
+   "usernames_2026_05_01": [
+    "Coken32"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 127,
+   "user_id": 8818,
+   "usernames_2026_05_01": [
+    "Neal0517"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 128,
+   "user_id": 129824,
+   "usernames_2026_05_01": [
+    "DannyDV2"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 129,
+   "user_id": 138111,
+   "usernames_2026_05_01": [
+    "butchy08"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 130,
+   "user_id": 226444,
+   "usernames_2026_05_01": [
+    "Stock3131"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 131,
+   "user_id": 480212,
+   "usernames_2026_05_01": [
+    "jr69jr"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 132,
+   "user_id": 608830,
+   "usernames_2026_05_01": [
+    "DirtySanch3z"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 133,
+   "user_id": 641366,
+   "usernames_2026_05_01": [
+    "Shawngo09"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 134,
+   "user_id": 641531,
+   "usernames_2026_05_01": [
+    "RoccoDash"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 46
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 135,
+   "user_id": 27457,
+   "usernames_2026_05_01": [
+    "jkates29"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 136,
+   "user_id": 27591,
+   "usernames_2026_05_01": [
+    "ediddy1979"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 137,
+   "user_id": 28121,
+   "usernames_2026_05_01": [
+    "jjjjjjjhhhhh"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 138,
+   "user_id": 30016,
+   "usernames_2026_05_01": [
+    "Cardinals"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 139,
+   "user_id": 32247,
+   "usernames_2026_05_01": [
+    "Skoolya"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 140,
+   "user_id": 34794,
+   "usernames_2026_05_01": [
+    "girldad"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 141,
+   "user_id": 44603,
+   "usernames_2026_05_01": [
+    "muye1485"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 142,
+   "user_id": 78903,
+   "usernames_2026_05_01": [
+    "metsalldaway15"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 143,
+   "user_id": 86066,
+   "usernames_2026_05_01": [
+    "dolphins2986"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 144,
+   "user_id": 89895,
+   "usernames_2026_05_01": [
+    "scooperhoop"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 145,
+   "user_id": 98731,
+   "usernames_2026_05_01": [
+    "Quigger"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 146,
+   "user_id": 107051,
+   "usernames_2026_05_01": [
+    "Cubs2016"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 147,
+   "user_id": 128419,
+   "usernames_2026_05_01": [
+    "Yanks3914"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 148,
+   "user_id": 128555,
+   "usernames_2026_05_01": [
+    "egonly"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 149,
+   "user_id": 129131,
+   "usernames_2026_05_01": [
+    "Moontang"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 150,
+   "user_id": 131973,
+   "usernames_2026_05_01": [
+    "cfreds123"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 151,
+   "user_id": 139624,
+   "usernames_2026_05_01": [
+    "jmasciii"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 152,
+   "user_id": 151533,
+   "usernames_2026_05_01": [
+    "Wiseblood"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 153,
+   "user_id": 154290,
+   "usernames_2026_05_01": [
+    "JCaison13"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 154,
+   "user_id": 157499,
+   "usernames_2026_05_01": [
+    "scarecrow"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 155,
+   "user_id": 166534,
+   "usernames_2026_05_01": [
+    "Pico7000"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 156,
+   "user_id": 425872,
+   "usernames_2026_05_01": [
+    "BrianG"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 157,
+   "user_id": 534755,
+   "usernames_2026_05_01": [
+    "craignelson2310"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 158,
+   "user_id": 546465,
+   "usernames_2026_05_01": [
+    "Mbeaster"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 159,
+   "user_id": 581122,
+   "usernames_2026_05_01": [
+    "grover"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 160,
+   "user_id": 639317,
+   "usernames_2026_05_01": [
+    "speedy"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 58
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 20,
+     "activeStreak": 20
+    }
+   }
+  },
+  {
+   "order": 161,
+   "user_id": 1460,
+   "usernames_2026_05_01": [
+    "twunderlin"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 162,
+   "user_id": 3283,
+   "usernames_2026_05_01": [
+    "nwhittier19"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 163,
+   "user_id": 7512,
+   "usernames_2026_05_01": [
+    "Dodgerboy1023"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 164,
+   "user_id": 12462,
+   "usernames_2026_05_01": [
+    "BatesvilleReds"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 165,
+   "user_id": 17415,
+   "usernames_2026_05_01": [
+    "jimjoe"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 166,
+   "user_id": 20209,
+   "usernames_2026_05_01": [
+    "Justin"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 167,
+   "user_id": 21333,
+   "usernames_2026_05_01": [
+    "cookie"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 168,
+   "user_id": 22044,
+   "usernames_2026_05_01": [
+    "daveshu4"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 169,
+   "user_id": 23753,
+   "usernames_2026_05_01": [
+    "BrokeCollegeKid"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 170,
+   "user_id": 23960,
+   "usernames_2026_05_01": [
+    "Glenco"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 171,
+   "user_id": 24764,
+   "usernames_2026_05_01": [
+    "rgarrisonus"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 172,
+   "user_id": 29558,
+   "usernames_2026_05_01": [
+    "tsanders183727"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 173,
+   "user_id": 34023,
+   "usernames_2026_05_01": [
+    "rneuser"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 174,
+   "user_id": 37236,
+   "usernames_2026_05_01": [
+    "EricMLB"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 175,
+   "user_id": 38524,
+   "usernames_2026_05_01": [
+    "donmoney"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 176,
+   "user_id": 41735,
+   "usernames_2026_05_01": [
+    "Tooie116"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 177,
+   "user_id": 49321,
+   "usernames_2026_05_01": [
+    "imdyfandan"
+   ],
+   "ranks_2026_05_01": {
+    "active_streak": 84
+   },
+   "streak_fields_2026_05_01": {
+    "active_streak": {
+     "streak": 19,
+     "activeStreak": 19
+    }
+   }
+  },
+  {
+   "order": 178,
+   "user_id": 263054,
+   "usernames_2026_05_01": [
+    "stmcgee8"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 40
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 24,
+     "activeStreak": 24
+    }
+   }
+  },
+  {
+   "order": 179,
+   "user_id": 46725,
+   "usernames_2026_05_01": [
+    "Redbirds04"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 180,
+   "user_id": 49618,
+   "usernames_2026_05_01": [
+    "bucknut555"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 181,
+   "user_id": 78133,
+   "usernames_2026_05_01": [
+    "bdizzle"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 182,
+   "user_id": 400219,
+   "usernames_2026_05_01": [
+    "mikefrilegh"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 183,
+   "user_id": 541951,
+   "usernames_2026_05_01": [
+    "noahman17"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 184,
+   "user_id": 566439,
+   "usernames_2026_05_01": [
+    "Suzano"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 185,
+   "user_id": 628120,
+   "usernames_2026_05_01": [
+    "Douglas"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 47
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 23,
+     "activeStreak": 23
+    }
+   }
+  },
+  {
+   "order": 186,
+   "user_id": 5056,
+   "usernames_2026_05_01": [
+    "cherman24"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 187,
+   "user_id": 22822,
+   "usernames_2026_05_01": [
+    "SullySox"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 188,
+   "user_id": 35469,
+   "usernames_2026_05_01": [
+    "travisgb23"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 189,
+   "user_id": 49920,
+   "usernames_2026_05_01": [
+    "jordan"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 190,
+   "user_id": 53892,
+   "usernames_2026_05_01": [
+    "Murphy"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 191,
+   "user_id": 67561,
+   "usernames_2026_05_01": [
+    "Justin5982"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 192,
+   "user_id": 83582,
+   "usernames_2026_05_01": [
+    "kydodgerfan"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 193,
+   "user_id": 263284,
+   "usernames_2026_05_01": [
+    "Janitor32"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 194,
+   "user_id": 562615,
+   "usernames_2026_05_01": [
+    "maimone4"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 195,
+   "user_id": 610046,
+   "usernames_2026_05_01": [
+    "Alejandro96"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 196,
+   "user_id": 612255,
+   "usernames_2026_05_01": [
+    "94EXPOS"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 197,
+   "user_id": 629456,
+   "usernames_2026_05_01": [
+    "jerrad"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 198,
+   "user_id": 639383,
+   "usernames_2026_05_01": [
+    "WesFrost716"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 58
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 22,
+     "activeStreak": 22
+    }
+   }
+  },
+  {
+   "order": 199,
+   "user_id": 5070,
+   "usernames_2026_05_01": [
+    "torreys2012"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 200,
+   "user_id": 17703,
+   "usernames_2026_05_01": [
+    "Benzo4499"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 201,
+   "user_id": 30149,
+   "usernames_2026_05_01": [
+    "nickmlb"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 202,
+   "user_id": 48261,
+   "usernames_2026_05_01": [
+    "Kbob44"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 203,
+   "user_id": 57159,
+   "usernames_2026_05_01": [
+    "UTLEYGOD"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 204,
+   "user_id": 79625,
+   "usernames_2026_05_01": [
+    "Owen369"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 205,
+   "user_id": 125147,
+   "usernames_2026_05_01": [
+    "alexclausius1"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 206,
+   "user_id": 180219,
+   "usernames_2026_05_01": [
+    "bcas24"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 207,
+   "user_id": 282245,
+   "usernames_2026_05_01": [
+    "algy747"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 208,
+   "user_id": 382577,
+   "usernames_2026_05_01": [
+    "Masterbeater"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 209,
+   "user_id": 435795,
+   "usernames_2026_05_01": [
+    "thisisberman"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 210,
+   "user_id": 457838,
+   "usernames_2026_05_01": [
+    "Terp388"
+   ],
+   "ranks_2026_05_01": {
+    "yesterday": 82
+   },
+   "streak_fields_2026_05_01": {
+    "yesterday": {
+     "streak": 21,
+     "activeStreak": 21
+    }
+   }
+  },
+  {
+   "order": 211,
+   "user_id": 124,
+   "usernames_2026_05_01": [
+    "Robert Mosley"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 1
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 51,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 212,
+   "user_id": 158,
+   "usernames_2026_05_01": [
+    "Rmares483"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 1
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 51,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 213,
+   "user_id": 81,
+   "usernames_2026_05_01": [
+    "Ethan Yao"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 3
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 50,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 214,
+   "user_id": 533671,
+   "usernames_2026_05_01": [
+    "lotank"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 3
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 50,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 215,
+   "user_id": 70,
+   "usernames_2026_05_01": [
+    "Chris Farmer Walsh"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 5
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 49,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 216,
+   "user_id": 117,
+   "usernames_2026_05_01": [
+    "Mike Karatzia"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 5
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 49,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 217,
+   "user_id": 125,
+   "usernames_2026_05_01": [
+    "Scott Mcdowell"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 5
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 49,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 218,
+   "user_id": 130,
+   "usernames_2026_05_01": [
+    "TerrySims"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 5
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 49,
+     "activeStreak": 5
+    }
+   }
+  },
+  {
+   "order": 219,
+   "user_id": 28641,
+   "usernames_2026_05_01": [
+    "OspreyGal"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 5
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 49,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 220,
+   "user_id": 65,
+   "usernames_2026_05_01": [
+    "Bob Paradise"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 10
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 48,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 221,
+   "user_id": 73,
+   "usernames_2026_05_01": [
+    "Connor Steele"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 10
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 48,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 222,
+   "user_id": 127,
+   "usernames_2026_05_01": [
+    "Steven Summer"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 10
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 48,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 223,
+   "user_id": 102,
+   "usernames_2026_05_01": [
+    "Ken Gilman"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 13
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 47,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 224,
+   "user_id": 133,
+   "usernames_2026_05_01": [
+    "William Bryan"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 13
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 47,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 225,
+   "user_id": 398700,
+   "usernames_2026_05_01": [
+    "Hangman6049"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 13
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 47,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 226,
+   "user_id": 71,
+   "usernames_2026_05_01": [
+    "Clement Uduk"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 227,
+   "user_id": 82,
+   "usernames_2026_05_01": [
+    "Evelyn Storms"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 228,
+   "user_id": 86,
+   "usernames_2026_05_01": [
+    "Graham Manning"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 229,
+   "user_id": 97,
+   "usernames_2026_05_01": [
+    "jonathan"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 230,
+   "user_id": 111,
+   "usernames_2026_05_01": [
+    "Lucas Weaver"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 231,
+   "user_id": 126,
+   "usernames_2026_05_01": [
+    "Steven Rapp"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 232,
+   "user_id": 524328,
+   "usernames_2026_05_01": [
+    "FullCount"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 16
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 46,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 233,
+   "user_id": 59,
+   "usernames_2026_05_01": [
+    "Aaron Brown"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 234,
+   "user_id": 61,
+   "usernames_2026_05_01": [
+    "Andrew Pattock"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 235,
+   "user_id": 89,
+   "usernames_2026_05_01": [
+    "Jim Rink"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 236,
+   "user_id": 128,
+   "usernames_2026_05_01": [
+    "Tanner Nielsen"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 237,
+   "user_id": 149,
+   "usernames_2026_05_01": [
+    "jdix7"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 238,
+   "user_id": 44995,
+   "usernames_2026_05_01": [
+    "kiyoshilotus26"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 239,
+   "user_id": 272160,
+   "usernames_2026_05_01": [
+    "amazins12"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 23
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 45,
+     "activeStreak": 7
+    }
+   }
+  },
+  {
+   "order": 240,
+   "user_id": 60,
+   "usernames_2026_05_01": [
+    "Aaron Vieau"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 241,
+   "user_id": 91,
+   "usernames_2026_05_01": [
+    "Joe Grant"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 242,
+   "user_id": 94,
+   "usernames_2026_05_01": [
+    "Joey Souza"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 243,
+   "user_id": 156,
+   "usernames_2026_05_01": [
+    "priscrystal87"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 244,
+   "user_id": 160,
+   "usernames_2026_05_01": [
+    "toenail2010"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 245,
+   "user_id": 163,
+   "usernames_2026_05_01": [
+    "willmccormack14"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 246,
+   "user_id": 1193,
+   "usernames_2026_05_01": [
+    "Badco1GR"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 3
+    }
+   }
+  },
+  {
+   "order": 247,
+   "user_id": 120418,
+   "usernames_2026_05_01": [
+    "Mrintangible"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 248,
+   "user_id": 283827,
+   "usernames_2026_05_01": [
+    "MattyMc"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 30
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 44,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 249,
+   "user_id": 72,
+   "usernames_2026_05_01": [
+    "Collin Mills"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 250,
+   "user_id": 75,
+   "usernames_2026_05_01": [
+    "Curt Jacquot"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 251,
+   "user_id": 78,
+   "usernames_2026_05_01": [
+    "GiantsFan"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 4
+    }
+   }
+  },
+  {
+   "order": 252,
+   "user_id": 84,
+   "usernames_2026_05_01": [
+    "Geoff Croke"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 253,
+   "user_id": 90,
+   "usernames_2026_05_01": [
+    "Joe Catarelli"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 254,
+   "user_id": 103,
+   "usernames_2026_05_01": [
+    "phillsphan12"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 255,
+   "user_id": 112,
+   "usernames_2026_05_01": [
+    "Mark Gray"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 256,
+   "user_id": 114,
+   "usernames_2026_05_01": [
+    "Michael Ray"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 257,
+   "user_id": 116,
+   "usernames_2026_05_01": [
+    "Hammanm"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 258,
+   "user_id": 134,
+   "usernames_2026_05_01": [
+    "9hole"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 259,
+   "user_id": 139,
+   "usernames_2026_05_01": [
+    "djruzik"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 260,
+   "user_id": 142,
+   "usernames_2026_05_01": [
+    "DWinterrowd"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 261,
+   "user_id": 154,
+   "usernames_2026_05_01": [
+    "Mehtush"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 262,
+   "user_id": 23865,
+   "usernames_2026_05_01": [
+    "Bosnian"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 263,
+   "user_id": 76535,
+   "usernames_2026_05_01": [
+    "Shawn36"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 264,
+   "user_id": 102134,
+   "usernames_2026_05_01": [
+    "corndog24"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 265,
+   "user_id": 141352,
+   "usernames_2026_05_01": [
+    "collinbjohnson"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 10
+    }
+   }
+  },
+  {
+   "order": 266,
+   "user_id": 369221,
+   "usernames_2026_05_01": [
+    "Beachbum"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 267,
+   "user_id": 411154,
+   "usernames_2026_05_01": [
+    "pounchusmc"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 268,
+   "user_id": 441955,
+   "usernames_2026_05_01": [
+    "Josh23"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 269,
+   "user_id": 508514,
+   "usernames_2026_05_01": [
+    "YankeesPigeons"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 270,
+   "user_id": 513149,
+   "usernames_2026_05_01": [
+    "mitchellkelly"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 39
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 43,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 271,
+   "user_id": 77,
+   "usernames_2026_05_01": [
+    "Derek Swanson"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 272,
+   "user_id": 79,
+   "usernames_2026_05_01": [
+    "Dick Goulet"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 273,
+   "user_id": 96,
+   "usernames_2026_05_01": [
+    "John Tortorella"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 274,
+   "user_id": 105,
+   "usernames_2026_05_01": [
+    "KevinJana"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 275,
+   "user_id": 108,
+   "usernames_2026_05_01": [
+    "Cubbiesfan007"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 276,
+   "user_id": 113,
+   "usernames_2026_05_01": [
+    "holdalltix"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 277,
+   "user_id": 115,
+   "usernames_2026_05_01": [
+    "Michael Vincent Emery"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 278,
+   "user_id": 131,
+   "usernames_2026_05_01": [
+    "Tony Deceanne"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 279,
+   "user_id": 132,
+   "usernames_2026_05_01": [
+    "Vito Chiapetta"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 280,
+   "user_id": 137,
+   "usernames_2026_05_01": [
+    "brentdaily"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 281,
+   "user_id": 141,
+   "usernames_2026_05_01": [
+    "dtra1203"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 282,
+   "user_id": 152,
+   "usernames_2026_05_01": [
+    "jmd4221"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 283,
+   "user_id": 7984,
+   "usernames_2026_05_01": [
+    "piero42"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 284,
+   "user_id": 14882,
+   "usernames_2026_05_01": [
+    "Jason15"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 2
+    }
+   }
+  },
+  {
+   "order": 285,
+   "user_id": 22921,
+   "usernames_2026_05_01": [
+    "Budeny"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 286,
+   "user_id": 52437,
+   "usernames_2026_05_01": [
+    "Davemon13"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 287,
+   "user_id": 222891,
+   "usernames_2026_05_01": [
+    "frankiev"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 288,
+   "user_id": 248641,
+   "usernames_2026_05_01": [
+    "Kailyn"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 289,
+   "user_id": 506048,
+   "usernames_2026_05_01": [
+    "NCFlash"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 290,
+   "user_id": 550740,
+   "usernames_2026_05_01": [
+    "ryanB22"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 291,
+   "user_id": 572640,
+   "usernames_2026_05_01": [
+    "Schmidty"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 61
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 42,
+     "activeStreak": 7
+    }
+   }
+  },
+  {
+   "order": 292,
+   "user_id": 62,
+   "usernames_2026_05_01": [
+    "Ben Franzen"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 293,
+   "user_id": 66,
+   "usernames_2026_05_01": [
+    "Brian Anderson"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 294,
+   "user_id": 68,
+   "usernames_2026_05_01": [
+    "Camille Emily Svendson"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 295,
+   "user_id": 69,
+   "usernames_2026_05_01": [
+    "Charles Bresnahan"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 296,
+   "user_id": 74,
+   "usernames_2026_05_01": [
+    "Craig Sawicki"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 297,
+   "user_id": 80,
+   "usernames_2026_05_01": [
+    "Eric Dodson"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 298,
+   "user_id": 83,
+   "usernames_2026_05_01": [
+    "Frank Palermo"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 299,
+   "user_id": 85,
+   "usernames_2026_05_01": [
+    "Airgeordo"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 300,
+   "user_id": 21780,
+   "usernames_2026_05_01": [
+    "Matthew3116"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 301,
+   "user_id": 49727,
+   "usernames_2026_05_01": [
+    "PatrickBrazzel"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 302,
+   "user_id": 86192,
+   "usernames_2026_05_01": [
+    "JonMD58"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 1
+    }
+   }
+  },
+  {
+   "order": 303,
+   "user_id": 102742,
+   "usernames_2026_05_01": [
+    "hawkeye2"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 304,
+   "user_id": 140635,
+   "usernames_2026_05_01": [
+    "Baberuth"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 305,
+   "user_id": 148615,
+   "usernames_2026_05_01": [
+    "Paulcin702"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 306,
+   "user_id": 232927,
+   "usernames_2026_05_01": [
+    "sgartner"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 5
+    }
+   }
+  },
+  {
+   "order": 307,
+   "user_id": 354714,
+   "usernames_2026_05_01": [
+    "Bobcatt"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  },
+  {
+   "order": 308,
+   "user_id": 384096,
+   "usernames_2026_05_01": [
+    "Dorothy101"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 5
+    }
+   }
+  },
+  {
+   "order": 309,
+   "user_id": 527475,
+   "usernames_2026_05_01": [
+    "gojays"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 4
+    }
+   }
+  },
+  {
+   "order": 310,
+   "user_id": 542394,
+   "usernames_2026_05_01": [
+    "rolo1976"
+   ],
+   "ranks_2026_05_01": {
+    "all_time": 82
+   },
+   "streak_fields_2026_05_01": {
+    "all_time": {
+     "streak": 41,
+     "activeStreak": 0
+    }
+   }
+  }
+ ]
+}
