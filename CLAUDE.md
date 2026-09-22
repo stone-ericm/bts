@@ -10,7 +10,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -v
 # ⚠️ The full local suite GRINDS for hours (LightGBM imports locally now → simulate/model/experiment/
 # validate run real backtests/training). For NON-model changes, the fast comprehensive regression is:
 UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" \
-  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~2043 in ~30s
+  --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q  # ~2235 in ~30s (2026-09-22)
 
 # ⚠️ FETCH FIRST: other sessions (cloud/phone) push to origin — `git fetch origin && git log main..origin/main --oneline`
 # before branching. The 8/30 fix was built on a 4-commit-stale base; the rebase auto-merged with ZERO textual
@@ -41,6 +41,14 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - Non-interactive SSH lands as user `bts` with `uv` NOT on PATH → use `~/.local/bin/uv`. No sudo needed (or available) for the user units: `export XDG_RUNTIME_DIR=/run/user/$(id -u)` then `systemctl --user ...`.
 - The dashboard binds the **tailnet IP only** (`tailscale ip -4`:3003) — `curl localhost:3003` returns 000 by design, not an outage.
 - Data layout: `data/picks/<date>/decision.json` (per-day dirs) vs `data/picks/<date>.policy_shadow.json` (flat files) — skip-day shadow records are NOT inside the date dirs.
+- **System `python3` on the box is 3.11** → backslashes inside f-string expressions (`f"{d[\"k\"]}"`) are a SyntaxError; use `.venv/bin/python` (3.12) or write the script to a file and `scp` it (single quotes inside an `ssh '…'` heredoc also break).
+- **No `tmux`/`screen` on the box.** Detached long jobs: `systemd-run --user --unit=<name> --collect --working-directory=… -p EnvironmentFile=/home/bts/projects/bts/.env -p StandardOutput=append:~/logs/<name>.log …` (survives SSH drops; `journalctl --user -u <name>` for the exit status — `systemctl show` on a `--collect`ed unit reports defaults). Plain `nohup … &` children die ~1 min after the SSH session ends (session cleanup); `pgrep -f <script>` from inside an ssh command matches the ssh command itself.
+- **restic (`bts backup`)**: snapshots store paths with the repo prefix stripped (`/data/hetzner_results/...`, not `/home/bts/...`) — use that form in `restic ls/restore`; the backup passes `--exclude "*.lock"`, which silently drops `uv.lock` too (store copies as `uv.lock.pinned`); `data/validation/` is in NO backup set (ops = picks+health_state; archive = leaderboard+hetzner_results+external).
+
+## Season 2026 wrap (owner called the season over 2026-09-14; best streak 18)
+- **Box is SILENT since 9/14:** `~/.bts-orchestrator.toml` `pick_delivery = "private"` (snapshot `.bak-20260914-season-over`), the `check-pick-entered` cron line is commented out (snapshot `~/crontab.bak-20260914-season-over`). Picks are still computed/graded locally; the tail policy stopped producing picks 9/19; the D8 research capture (`--capture-research-on-skip` in the live-forward unit) keeps a forecast record. **Re-enable next season:** restore `pick_delivery = "dm"`, `bash scripts/cron-setup-hetzner.sh install`, restart inside a sleep window.
+- **Plan + execution:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md` (approved 9/22) · completion matrix `docs/audit/2026-season-wrap-index.md` · exposure register + protocol texts + owner decisions `docs/audit/2026-09-22-exposure-register.md` (no 2026 outcome read without a row there) · corrections `docs/audit/2026-09-corrections-index.md` (C-01: historical `all_season`/`all_time` snapshot rows hold ACTIVE streaks) · final-grab runbook `docs/audit/2026-09-22-final-grab-runbook.md` (supplemental run 9/28 after 08:00 ET) · round-board pick campaign spec `docs/superpowers/specs/2026-09-22-round-board-campaign-design.md` (NOT built; pilot one round first).
+- **Field-capture rules (owner):** one authenticated pass per capture date on Eric's real account, no request ceiling, courteous jittered pacing, 403/429 anywhere = stop and never rerun without a fresh owner decision; everything under `data/leaderboard/final_grab_<date>/` or the campaign root — never the daily corpus.
 
 ## Testing gotchas
 - **pi5 clone (`/home/stonehengee/projects/bts`) has 22 known env-only fast-suite failures** (verified identical with/without diff via stash-compare, 2026-08-14): LightGBM not installed (plain `uv sync`, by design) fails tests/test_lgb_params + predict/calibrate/blend/local_tier/preview files, and the box-ported real `.env` credentials shadow the test fixtures in tests/test_dm.py + test_posting.py. A clean run on pi5 = exactly these 22; anything else is yours.
