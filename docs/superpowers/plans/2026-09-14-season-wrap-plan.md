@@ -1,6 +1,6 @@
 # BTS 2026 Season Wrap Plan
 
-**Date:** 2026-09-14 · **Status:** DRAFT v2.1 — awaiting owner approval · Codex r3 verdict: **SIGN WITH EDITS**, both minimum edits applied verbatim · **Owner:** Eric
+**Date:** 2026-09-14 · **Status:** **APPROVED by Eric 2026-09-22 ("looks good to me")** — v2.2; Codex r3 verdict on the plan: **SIGN WITH EDITS**, both minimum edits applied verbatim · **Owner:** Eric · **Execution log:** `docs/audit/2026-season-wrap-index.md`
 **Purpose:** close the 2026 season honestly, analyze what the field did, refresh the literature review, and leave 2027 with a small set of pre-registered, killable improvement candidates.
 
 **Review provenance.** Codex (`gpt-6-astra`, xhigh), 2026-09-14, via herdr:
