@@ -193,6 +193,8 @@ Prerequisites that are *not* alpha candidates: pin the old recipe; measure `BTS_
 | 6 | **One model-class challenger** (TabM or RealMLP) | frozen input set, budget, temporal comparator, paired seeds | proper-score/ranking evidence fails; improvement needs data unavailable to baseline |
 | 7 | **Consensus-derived contexts** (from #87) | only an independently operational, pre-lock-available context; validate outside the selected window | reduces to winner identity, postgame exposure, missing-at-lock info, or an already-rejected feature |
 
+**Backburner (owner, 9/22):** "consider integrating jev or kev or similar into decision model" — parked in `docs/optimization-ideas.md` § Model Ideas; referents to be expanded with Eric before it becomes a W4 candidate (closest existing slot: rank 1, external forecast → one blend/gate).
+
 Candidate registrations (only for candidates actually **selected** for a run) must state: data/recipe hashes · exact as-of information set · temporal splits · primary metric · practical effect threshold · guardrails · MDE/power rationale · family-control rule · missingness rule · stopping rule · positive/negative/inconclusive dispositions. Ship thresholds are fixed before results are seen. Small prespecified screens reject; 24 paired seeds are reserved for surviving stochastic-model comparisons and final rebaselines.
 
 **Policy replay rules:** replay each candidate's own state through the original calendar; audit availability on unplayed days and partnerless-double fallback (never +2 for a missing partner); the July replay's known caveats (180-position clock dropping rows; partnerless-double discrepancy) are fixed or disclosed before use. P(57) reported per rule 1.5.

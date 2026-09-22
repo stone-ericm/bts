@@ -80,6 +80,9 @@ case) rather than replacing it.
 - Opposing team bullpen quality (for later PAs in game aggregation)
 
 ## Model Ideas
+
+### Backburner (owner, 2026-09-22): integrate "jev or kev or similar" into the decision model
+- Eric, mid-session 9/22: "throw this on the backburner - consider integrating jev or kev or similar into decision model". Recorded verbatim; the referents ("jev", "kev") are NOT yet expanded — ask before scoping. Candidate reading: an external expected-value / public forecast source feeding the pick-or-skip decision layer (cf. season-wrap plan W4 rank 1, MLB `probabilityStarter` benchmark → one blend/gate). Any version of this goes through the plan's W4 registration path (pre-registration, kill criteria, 2027 forward validation under D3).
 - Optuna hyperparameter search (systematic instead of manual grid)
 - CatBoost as alternative to LightGBM (handles categoricals natively)
 - Stacked ensemble: LightGBM predictions as features for a second-stage model
