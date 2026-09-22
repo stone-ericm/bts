@@ -87,7 +87,7 @@ class FakeTransport:
         self._record("login", url, status, body)
         return httpx.Response(status, content=body, request=httpx.Request("POST", url))
 
-    def get(self, url, *, cookies):
+    def get(self, url, *, cookies, timeout=None):
         for k, v in self.statics.items():
             if url.startswith(k):
                 body = _b(v)
@@ -151,6 +151,7 @@ def _config(tmp_path: Path, transport, *, max_board_pages=340, cohort_a=2, cohor
         rng=random.Random(7),
         now=now or (lambda: datetime(2026, 9, 28, 13, 0, tzinfo=timezone.utc)),
         code_sha="deadbeef",
+        final_round_date=date(2026, 9, 27),
     )
 
 
@@ -201,13 +202,14 @@ def test_full_walk_short_last_page_is_exhausted_and_archived(tmp_path):
     t = FakeTransport(board_pages=_two_page_board(), profiles=profiles)
     cfg = _config(tmp_path, t, early_ids=(11, 12, 100))
     code, status = run_grab(cfg)
-    assert code == EXIT_COMPLETE, status
+    assert code == EXIT_PARTIAL, status  # walk exhausted, but 420 listed vs 94,986 reported = population gap
+    assert status["terminal_state"] == "complete_with_population_gap"
     board = status["board"]
     assert board["walk_exhausted"] is True and board["termination_reason"] == "short_page"
     assert board["pages"] == 2 and board["unique_user_ids"] == 420 and board["raw_rows"] == 420
     assert board["all_participants_count"] == {"min": 94986, "max": 94986}
-    assert 0 < board["coverage_of_reported_participants"] < 0.01
-    assert board["board_complete"] is True
+    assert board["population"] == {"status": "gap_vs_reported_participants", "reported": 94986, "listed_unique": 420, "gap": 94566}
+    assert board["walk_complete"] is True and board["population_complete"] is False
     raw_pages = sorted((cfg.run_root / "raw" / "board").glob("*.json.gz"))
     assert len(raw_pages) == 2
     assert json.loads(gzip.decompress(raw_pages[0].read_bytes()))["success"]["nextPage"] is True
@@ -215,6 +217,7 @@ def test_full_walk_short_last_page_is_exhausted_and_archived(tmp_path):
     assert len(snap) == 420 and snap.season_best_streak.notna().all() and snap.tab.eq("all_season").all()
     for req in status["requests"]:
         assert req["outcome"] in ("success", "error", "aborted") and "sha256" in req and "sent_at_utc" in req
+    assert all(p["updated_at"] for p in board["per_page"])
 
 
 def test_short_page_with_next_page_true_is_a_contradiction_not_exhaustion(tmp_path):
@@ -225,7 +228,7 @@ def test_short_page_with_next_page_true_is_a_contradiction_not_exhaustion(tmp_pa
     assert code == EXIT_PARTIAL
     assert status["board"]["walk_exhausted"] is False
     assert status["board"]["termination_reason"] == "short_page_contradicted_by_next_page"
-    assert status["board"]["board_complete"] is False
+    assert status["board"]["walk_complete"] is False
 
 
 def test_missing_pagination_metadata_is_not_exhaustion(tmp_path):
@@ -244,7 +247,7 @@ def test_ceiling_is_truncation_with_nonzero_exit_even_when_accounted(tmp_path):
     cfg = _config(tmp_path, t, max_board_pages=2, early_ids=(1000,), cohort_a=1, cohort_b=1)
     code, status = run_grab(cfg)
     assert code == EXIT_PARTIAL
-    assert status["board"]["termination_reason"] == "ceiling" and status["board"]["board_complete"] is False
+    assert status["board"]["termination_reason"] == "ceiling" and status["board"]["walk_complete"] is False
     assert status["board"]["pages"] == 2 and status["board"]["last_rank_reached"] == 600
     assert status["requests_accounted"] is True
 
@@ -295,7 +298,7 @@ def test_envelope_error_on_a_page_terminates_with_error_and_partial_exit(tmp_pat
     cfg = _config(tmp_path, t, early_ids=(100,), cohort_a=1, cohort_b=1)
     code, status = run_grab(cfg)
     assert code == EXIT_PARTIAL and status["board"]["termination_reason"] == "error"
-    assert status["board"]["board_complete"] is False
+    assert status["board"]["walk_complete"] is False
 
 
 def test_cohort_allocation_rules():
@@ -313,7 +316,7 @@ def test_cohort_allocation_rules():
 def test_profiles_are_id_keyed_with_identity_map_and_duplicate_usernames_kept_apart(tmp_path):
     rows = [_rank_row(1135, 1, 20, username="jordan"), _rank_row(2002, 2, 19, username="jordan"),
             _rank_row(3, 3, 18, username="a/b"), _rank_row(4, 4, 17, username="a?b")]
-    pages = [(200, _board_page(rows, next_page=False))]
+    pages = [(200, _board_page(rows, next_page=False, participants=4))]
     profiles = {1135: (200, _profile(best=20)), 2002: (200, _profile(best=19)), 3: (200, _profile(best=18)), 4: (200, _profile(best=17))}
     t = FakeTransport(board_pages=pages, profiles=profiles)
     cfg = _config(tmp_path, t, cohort_a=4, cohort_b=0, early_ids=())
@@ -332,7 +335,7 @@ def test_profiles_are_id_keyed_with_identity_map_and_duplicate_usernames_kept_ap
 
 def test_profile_error_continues_but_profile_rate_limit_aborts(tmp_path):
     rows = [_rank_row(1, 1, 9), _rank_row(2, 2, 8), _rank_row(3, 3, 7)]
-    pages = [(200, _board_page(rows, next_page=False))]
+    pages = [(200, _board_page(rows, next_page=False, participants=3))]
     profiles = {1: (500, b"oops"), 2: (200, {"success": {"seasonBestStreak": 8}}), 3: (200, _profile())}
     t = FakeTransport(board_pages=pages, profiles=profiles)
     cfg = _config(tmp_path, t, cohort_a=3, cohort_b=0, early_ids=(), sleeper=lambda s: None)
@@ -424,3 +427,209 @@ def test_provenance_fields_present(tmp_path):
     assert cohort["A"] == [100] and cohort["B"] == [11] and "request_order" in cohort and "rng_seed" in cohort
     assert status["artifacts"]["leaderboard_snapshot"]["sha256"]
     assert all(a["sha256"] for a in status["artifacts"].values() if isinstance(a, dict))
+
+
+# ----------------------------------------------------------------------------- Codex code-review round 1
+from scripts.final_leaderboard_grab import BodyReadError, EXIT_ABORTED_OTHER, load_cookies_with_provenance  # noqa: E402
+
+
+def _census_board(n=3):
+    return [(200, _board_page([_rank_row(i, i, 30 - i) for i in range(1, n + 1)], next_page=False, participants=n))]
+
+
+def test_rate_limit_status_with_truncated_body_still_aborts(tmp_path):
+    class T(FakeTransport):
+        def get(self, url, *, cookies, timeout=None):
+            if "/api/rank/user/2/" in url:
+                self._record("profile", url, 403, b"")
+                raise BodyReadError(403, RuntimeError("ReadError: connection closed"))
+            return super().get(url, cookies=cookies)
+
+    t = T(board_pages=_census_board(3), profiles={1: (200, _profile()), 2: (403, b""), 3: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=3, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert code == EXIT_ABORTED_RATE_LIMITED
+    profile_calls = [c for c in t.calls if c["kind"] == "profile"]
+    assert profile_calls[-1]["status"] == 403
+    last = [r for r in status["requests"] if r["class"] == "profile"][-1]
+    assert last["http_status"] == 403 and last["outcome"] == "aborted" and "body_read_error" in last
+
+
+def test_census_walk_is_complete_and_exit_zero(tmp_path):
+    t = FakeTransport(board_pages=_census_board(3), profiles={1: (200, _profile()), 2: (200, _profile()), 3: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=3, cohort_b=0, early_ids=())
+    cfg.final_round_date = date(2026, 9, 27)
+    code, status = run_grab(cfg)
+    assert (code, status["terminal_state"]) == (EXIT_COMPLETE, "complete"), status["problems"]
+    assert status["board"]["population"]["status"] == "census" and status["board"]["population_complete"] is True
+
+
+def test_missing_or_drifting_participant_metadata_makes_population_unknown(tmp_path):
+    rows = [_rank_row(i, i, 30 - i) for i in range(1, 4)]
+    body = {"success": {"ranks": rows, "nextPage": False}}  # no allParticipantsCount
+    t = FakeTransport(board_pages=[(200, body)], profiles={1: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["board"]["population"]["status"] == "unknown_no_participant_count"
+    p1 = [_rank_row(100 + i, i + 1, 40) for i in range(300)]
+    p2 = [_rank_row(400 + i, 301 + i, 10) for i in range(10)]
+    t2 = FakeTransport(board_pages=[(200, _board_page(p1, next_page=True, participants=310)),
+                                    (200, _board_page(p2, next_page=False, participants=311))], profiles={100: (200, _profile())})
+    cfg2 = _config(tmp_path / "b", t2, cohort_a=1, cohort_b=0, early_ids=())
+    code2, status2 = run_grab(cfg2)
+    assert code2 == EXIT_PARTIAL and status2["board"]["population"]["status"] == "unknown_participant_count_drift"
+
+
+def test_error_only_rounds_json_aborts_static_stage(tmp_path):
+    statics = _statics(); statics[f"{BASE}/json/rounds.json"] = {"errors": [{"message": "nope"}]}
+    t = FakeTransport(board_pages=_census_board(), profiles={}, statics=statics)
+    cfg = _config(tmp_path, t)
+    code, status = run_grab(cfg)
+    assert status["terminal_state"] == "aborted_static_lookup" and code == EXIT_ABORTED_OTHER
+    assert not any(c["kind"] == "board" for c in t.calls)
+
+
+def test_empty_rounds_list_aborts_static_stage(tmp_path):
+    statics = _statics(); statics[f"{BASE}/json/rounds.json"] = {"rounds": []}
+    t = FakeTransport(board_pages=_census_board(), profiles={}, statics=statics)
+    cfg = _config(tmp_path, t)
+    code, status = run_grab(cfg)
+    assert status["terminal_state"] == "aborted_static_lookup"
+
+
+def test_profile_prediction_with_only_round_id_is_an_envelope_error(tmp_path):
+    body = {"success": {"seasonBestStreak": 1, "activeStreak": 0, "accuracy": 50, "predictions": [{"roundId": 1000}]}}
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, body)})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert status["profiles"][0]["status"] == "envelope_error" and code == EXIT_PARTIAL
+    assert not (cfg.run_root / "user_picks" / "1.parquet").exists()
+
+
+def test_profile_slot_missing_required_keys_is_an_envelope_error(tmp_path):
+    body = _profile(preds=[{"roundId": 1000, "streak": 1, "roundPredictions": [{}]}])
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, body)})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    assert status["profiles"][0]["status"] == "envelope_error"
+
+
+def test_profile_with_unknown_round_is_partial_not_clean(tmp_path):
+    body = _profile(preds=[{"roundId": 1000, "streak": 1, "result": "hit", "roundPredictions": [{"number": 1, "unitId": 5, "playerId": 9, "result": "hit", "atBats": 4, "hits": 2}]},
+                           {"roundId": 4242, "streak": 2, "result": "hit", "roundPredictions": [{"number": 1, "unitId": 5, "playerId": 9, "result": "hit", "atBats": 4, "hits": 1}]}])
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, body)})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    cfg.final_round_date = date(2026, 9, 27)
+    code, status = run_grab(cfg)
+    assert status["profiles"][0]["status"] == "success_partial_lookup" and status["profiles"][0]["skipped_unknown_round_predictions"] == 1
+    assert code == EXIT_PARTIAL and status["terminal_state"] == "complete_with_errors"
+
+
+def test_unresolved_slot_values_are_counted_and_not_fabricated_as_picks(tmp_path):
+    body = _profile(preds=[{"roundId": 1000, "streak": None, "result": None,
+                            "roundPredictions": [{"number": 1, "unitId": None, "playerId": None, "result": None, "atBats": None, "hits": None}]}])
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, body)})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    code, status = run_grab(cfg)
+    rec = status["profiles"][0]
+    assert rec["status"] == "success_with_unresolved" and rec["unresolved_round_predictions"] == 1
+    assert not (cfg.run_root / "user_picks" / "1.parquet").exists()
+
+
+def test_login_raw_archive_is_redacted_and_xsid_never_serialized(tmp_path):
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, _profile())},
+                      login=(200, b'{"success": {"user": {"id": 50311, "username": "stonehengee"}, "xSid": "SECRET_XSID_VALUE"}}'))
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    run_grab(cfg)
+    raw = gzip.decompress(next((cfg.run_root / "raw" / "login").glob("*.gz")).read_bytes())
+    assert b"SECRET_XSID_VALUE" not in raw and b"<redacted" in raw
+    blob = b"".join(p.read_bytes() for p in cfg.run_root.rglob("*") if p.is_file() and not p.suffix == ".parquet" and not p.name.endswith(".gz"))
+    assert b"SECRET_XSID_VALUE" not in blob
+    for gz in cfg.run_root.rglob("*.gz"):
+        assert b"SECRET_XSID_VALUE" not in gzip.decompress(gz.read_bytes())
+
+
+def test_final_status_write_failure_is_exit_4_and_reported_outside_the_file(tmp_path, monkeypatch):
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    cfg.final_round_date = date(2026, 9, 27)
+    import scripts.final_leaderboard_grab as mod
+    real = mod._atomic_write_json
+    state = {"armed": False}
+
+    def flaky(path, obj):
+        if state["armed"] and path.name == "status.json" and obj.get("terminal_state") in ("complete", "complete_with_errors", "complete_with_population_gap"):
+            raise OSError("disk full at the end")
+        return real(path, obj)
+
+    monkeypatch.setattr(mod, "_atomic_write_json", flaky)
+    state["armed"] = True
+    code, status = run_grab(cfg)
+    assert code == EXIT_ABORTED_WRITE_FAILURE and status["terminal_state"] == "aborted_write_failure"
+    assert (cfg.run_root.parent / f"{cfg.run_root.name}.STATUS_WRITE_FAILED").exists()
+
+
+def test_abort_accounting_lists_every_remaining_planned_request(tmp_path):
+    rows = [_rank_row(i, i, 30 - i) for i in range(1, 4)]
+    t = FakeTransport(board_pages=[(200, _board_page(rows, next_page=False, participants=3))],
+                      profiles={1: (429, b"rl"), 2: (200, _profile()), 3: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=3, cohort_b=0, early_ids=())
+    cfg.rng = random.Random(1)
+    code, status = run_grab(cfg)
+    assert code == EXIT_ABORTED_RATE_LIMITED
+    sent = {int(r["name"]) for r in status["requests"] if r["class"] == "profile"}
+    unattempted = {u["user_id"] for u in status["planned_unattempted"] if u["class"] == "profile"}
+    assert sent | unattempted == {1, 2, 3} and not (sent & unattempted)
+    assert status["requests_accounted"] is True
+    identity = json.loads((cfg.run_root / "identity.json").read_text())
+    assert set(identity) == {str(u) for u in sent}  # incremental identity preserved through the abort
+
+
+def test_missing_final_round_makes_the_run_partial_not_complete(tmp_path):
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    cfg.final_round_date = date(2026, 12, 25)  # not in rounds.json
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["tabs"]["yesterday"]["status"] == "skipped_no_final_round"
+    assert any(u["class"] == "tab" for u in status["planned_unattempted"])
+
+
+def test_config_validation_refuses_before_credentials_or_filesystem(tmp_path):
+    calls = {"n": 0}
+
+    def loader():
+        calls["n"] += 1
+        return {"oktaid": "abc"}, {"source": "test", "sha256": "0" * 64}
+
+    for kwargs in ({"cohort_a": 301, "cohort_b": 0}, {"cohort_a": -1, "cohort_b": 0}, {"board_limit": 301}, {"max_board_pages": 0}):
+        t = FakeTransport(board_pages=_census_board(), profiles={})
+        cfg = _config(tmp_path / str(sorted(kwargs.items())), t, early_ids=(), cookies_loader=loader, **{k: v for k, v in kwargs.items() if k in ("cohort_a", "cohort_b", "board_limit", "max_board_pages")})
+        code, status = run_grab(cfg)
+        assert status["terminal_state"] == "refused_config", kwargs
+        assert not cfg.run_root.exists() and t.calls == []
+    assert calls["n"] == 0
+
+
+def test_cookie_loader_reads_once_and_reports_the_real_branch(tmp_path, monkeypatch):
+    blob = json.dumps([{"name": "oktaid", "value": "u1"}, {"name": "other", "value": "v"}]).encode()
+    monkeypatch.setattr("scripts.final_leaderboard_grab._pass_show", lambda entry: None)  # pass unavailable
+    cookie_file = tmp_path / "cookies.json"; cookie_file.write_bytes(blob)
+    cookies, prov = load_cookies_with_provenance(cookie_file=cookie_file, platform="linux")
+    assert cookies == {"oktaid": "u1", "other": "v"}
+    assert prov["source"] == "file" and prov["sha256"] == hashlib.sha256(blob).hexdigest() and prov["bytes"] == len(blob)
+    monkeypatch.setattr("scripts.final_leaderboard_grab._pass_show", lambda entry: blob + b"\n")
+    cookies2, prov2 = load_cookies_with_provenance(cookie_file=cookie_file, platform="linux")
+    assert prov2["source"] == "pass" and prov2["sha256"] == hashlib.sha256(blob + b"\n").hexdigest()
+
+
+def test_uv_lock_and_manifest_hashes_are_in_the_plan(tmp_path):
+    t = FakeTransport(board_pages=_census_board(1), profiles={1: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=())
+    (tmp_path / "uv.lock").write_text("lock")
+    cfg.uv_lock_path = tmp_path / "uv.lock"
+    run_grab(cfg)
+    plan = json.loads((cfg.run_root / "plan.json").read_text())
+    assert plan["uv_lock_sha256"] == hashlib.sha256(b"lock").hexdigest()
+    assert (cfg.run_root / "inputs" / "early_cohort.json").exists()
+    identity = json.loads((cfg.run_root / "identity.json").read_text())
+    assert identity["1"]["parsed_sha256"]

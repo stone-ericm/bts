@@ -116,6 +116,9 @@ class ProfileEnvelopeError(ValueError):
 PROFILE_REQUIRED_FIELDS = ("seasonBestStreak", "activeStreak", "accuracy", "predictions")
 
 
+PROFILE_SLOT_REQUIRED_KEYS = ("number", "unitId", "playerId", "result")
+
+
 @dataclass
 class ProfileEnvelope:
     """Raw-record facts about a validated profile body, computed BEFORE the parser
@@ -125,6 +128,9 @@ class ProfileEnvelope:
     n_round_predictions: int
     round_ids: list[int]
     null_field_counts: dict[str, int]
+    # slots whose unitId or playerId is null: a pick cannot be formed from them; the
+    # parser would coerce them to 0 and fabricate a pick (2026-09-22 code review)
+    unresolved_round_predictions: int = 0
 
 
 def validate_profile_envelope(body: object) -> ProfileEnvelope:
@@ -145,10 +151,13 @@ def validate_profile_envelope(body: object) -> ProfileEnvelope:
         raise ProfileEnvelopeError("profile predictions is not a list")
     round_ids: list[int] = []
     n_rp = 0
+    unresolved = 0
     nulls: dict[str, int] = {"streak": 0, "result": 0, "atBats": 0, "hits": 0, "unitId": 0, "playerId": 0}
     for pred in preds:
         if not isinstance(pred, dict) or pred.get("roundId") is None:
             raise ProfileEnvelopeError("profile prediction without roundId")
+        if "roundPredictions" not in pred:
+            raise ProfileEnvelopeError(f"profile prediction {pred.get('roundId')} lacks roundPredictions")
         round_ids.append(int(pred["roundId"]))
         if pred.get("streak") is None:
             nulls["streak"] += 1
@@ -158,17 +167,24 @@ def validate_profile_envelope(body: object) -> ProfileEnvelope:
         if not isinstance(rps, list):
             raise ProfileEnvelopeError("profile roundPredictions is not a list")
         for rp in rps:
+            if not isinstance(rp, dict):
+                raise ProfileEnvelopeError("profile roundPrediction is not an object")
+            missing = [k for k in PROFILE_SLOT_REQUIRED_KEYS if k not in rp]
+            if missing:
+                raise ProfileEnvelopeError(f"profile roundPrediction lacks required keys {missing}")
             n_rp += 1
             for k in ("result", "atBats", "hits", "unitId", "playerId"):
-                if not isinstance(rp, dict) or rp.get(k) is None:
+                if rp.get(k) is None:
                     nulls[k] += 1
-    stats_all_null = all(success.get(k) is None for k in ("seasonBestStreak", "activeStreak", "accuracy"))
+            if rp.get("unitId") is None or rp.get("playerId") is None:
+                unresolved += 1
     return ProfileEnvelope(
-        no_history=(len(preds) == 0 and stats_all_null) or (len(preds) == 0),
+        no_history=(len(preds) == 0),
         n_predictions=len(preds),
         n_round_predictions=n_rp,
         round_ids=round_ids,
         null_field_counts=nulls,
+        unresolved_round_predictions=unresolved,
     )
 
 
