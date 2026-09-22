@@ -99,6 +99,10 @@ MAX_BOARD_LIMIT = 300
 KEYCHAIN_SERVICE = bts_auth.KEYCHAIN_SERVICE
 DEFAULT_COOKIE_FILE = Path(os.path.expanduser("~/.bts-leaderboard-cookies.json"))
 
+# An uncapped walk still terminates on: end of board, ANY previously seen page, or this
+# many consecutive full pages adding no new users (reporting-only, not a request ceiling).
+NO_PROGRESS_PAGES = 3
+
 EXIT_COMPLETE = 0
 EXIT_PARTIAL = 2
 EXIT_ABORTED_RATE_LIMITED = 3
@@ -672,9 +676,16 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
             "request_budget": cfg.budget(), "planned_max_requests": cfg.planned_max_requests(),
             "planned_non_board_requests": cfg.planned_non_board_requests(),
             "board_ceiling": cfg.max_board_pages,
-            "owner_ceiling_decision": ("none — Eric 2026-09-22: 'no request ceiling; carefully and courteously try to grab it all' "
-                                       "(board walk runs to exhaustion; pacing + kill-switch unchanged; profiles stay at the D5 allocation)"
-                                       if cfg.max_board_pages is None else f"capped at {cfg.max_board_pages} pages"),
+            "owner_ceiling_decision": {
+                "owner_quotes_verbatim": [
+                    "no request ceiling. when it comes time, let's carefully and curtiously try to grab it all",
+                    "i mean i want to grab all the picks all the public profiles (i assume 95000+)",
+                ],
+                "interpretation_for_this_run": ("board walk runs to exhaustion (no page ceiling); pacing + kill-switch unchanged; "
+                                                "this one-pass run fetches the D5 profile allocation only — the full-field profile "
+                                                "campaign is a separate, resumable job (W0.6b)")
+                                               if cfg.max_board_pages is None else f"capped at {cfg.max_board_pages} pages",
+            },
             "classes": {"login": 1, "static": 4, "board_pages_max": cfg.max_board_pages,
                         "tabs": len(planned_tabs), "profiles_max": cfg.cohort_a + cfg.cohort_b},
             "board_limit": cfg.board_limit, "max_board_pages": cfg.max_board_pages,
@@ -746,14 +757,15 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
         # ---- 4. full-depth season-best walk ----
         board: dict[str, Any] = {
             "tab": "all_season", "limit": cfg.board_limit, "ceiling": cfg.max_board_pages,
-            "pages": 0, "raw_rows": 0, "unique_user_ids": 0,
+            "pages": 0, "raw_rows": 0, "unique_user_ids": 0, "pages_without_new_users": 0, "warnings": [],
             "duplicate_rows": 0, "duplicate_conflicts": [], "per_page": [], "termination_reason": None,
             "walk_exhausted": False, "walk_complete": False, "population_complete": False, "population": None,
             "last_rank_reached": None, "all_participants_count": None, "updated_at_values": [],
         }
         status["board"] = board
         rows_by_id: dict[int, LeaderboardRow] = {}
-        prev_ids: set[int] | None = None
+        seen_page_signatures: set[str] = set()  # ANY previously seen page (not just the last) ends the walk
+        zero_progress_streak = 0
         participants_seen: list[int] = []
         page = 0
         while True:
@@ -805,10 +817,27 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
                                       "received_at_utc": entry["received_at_utc"]})
             if ranks:
                 board["last_rank_reached"] = max(board["last_rank_reached"] or 0, max(ranks))
-            if prev_ids is not None and page_ids and page_ids == prev_ids:
+            # live totals (visible in status.json after every request, not only at loop exit)
+            board["unique_user_ids"] = len(rows_by_id)
+            if participants_seen:
+                board["all_participants_count"] = {"min": min(participants_seen), "max": max(participants_seen)}
+                if len(rows_by_id) > 1.5 * max(participants_seen) and "listed_exceeds_1.5x_reported" not in board["warnings"]:
+                    board["warnings"].append("listed_exceeds_1.5x_reported")
+            # cycle detection: a page whose userId set was seen on ANY earlier page (A/B/A/B loops)
+            signature = _sha256(",".join(str(u) for u in sorted(page_ids)).encode()) if page_ids else f"empty-{page}"
+            if signature in seen_page_signatures:
                 board["termination_reason"] = "repeated_page"
                 break
-            prev_ids = page_ids
+            seen_page_signatures.add(signature)
+            # sustained zero progress: full pages that add no new users are not progress
+            if new_rows == 0:
+                zero_progress_streak += 1
+                board["pages_without_new_users"] += 1
+            else:
+                zero_progress_streak = 0
+            if zero_progress_streak >= NO_PROGRESS_PAGES:
+                board["termination_reason"] = "no_progress"
+                break
             if raw_count < cfg.board_limit:
                 if meta["next_page"] is False:
                     board["termination_reason"] = "short_page"

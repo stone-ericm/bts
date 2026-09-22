@@ -826,7 +826,8 @@ def test_no_ceiling_walks_until_the_board_ends(tmp_path):
     assert status["board"]["walk_exhausted"] is True and status["board"]["population"]["status"] == "census"
     assert code == EXIT_COMPLETE
     plan = json.loads((cfg.run_root / "plan.json").read_text())
-    assert plan["request_budget"] is None and plan["board_ceiling"] is None and "no request ceiling" in plan["owner_ceiling_decision"]
+    assert plan["request_budget"] is None and plan["board_ceiling"] is None
+    assert "no request ceiling" in plan["owner_ceiling_decision"]["owner_quotes_verbatim"][0]
     assert plan["planned_non_board_requests"] == 1 + 4 + 3 + 1
 
 
@@ -850,3 +851,48 @@ def test_uncapped_walk_keeps_kill_switch_pacing_and_profile_cap(tmp_path):
     bad = _config(tmp_path / "b", t, max_board_pages=None, early_ids=(), cohort_a=200, cohort_b=101)
     code_b, status_b = run_grab(bad)
     assert status_b["terminal_state"] == "refused_config"  # profile cap still 300
+
+
+# ----------------------------------------------------------------------------- Codex round 6: cycles + progress
+def test_alternating_pages_are_detected_as_a_cycle(tmp_path):
+    a = [_rank_row(100 + i, i + 1, 30) for i in range(300)]
+    b = [_rank_row(400 + i, 301 + i, 29) for i in range(300)]
+    pages = [(200, _board_page(x, next_page=True, participants=600)) for x in (a, b, a, b, a, b)]
+    t = FakeTransport(board_pages=pages, profiles={100: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["board"]["termination_reason"] == "repeated_page"
+    assert status["board"]["pages"] == 3 and status["board"]["unique_user_ids"] == 600
+
+
+def test_sustained_zero_progress_ends_the_walk_without_a_ceiling(tmp_path):
+    p1 = [_rank_row(100 + i, i + 1, 30) for i in range(300)]
+    p2 = [_rank_row(400 + i, 301 + i, 29) for i in range(300)]
+    # later pages are DIFFERENT mixes of already-seen ids: new page signature each time, zero new users
+    mixes = [p1[:k] + p2[k:] for k in (100, 150, 200, 250)]
+    pages = [(200, _board_page(p1, next_page=True, participants=600)), (200, _board_page(p2, next_page=True, participants=600))]
+    pages += [(200, _board_page(m, next_page=True, participants=600)) for m in mixes]
+    t = FakeTransport(board_pages=pages, profiles={100: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    b = status["board"]
+    assert code == EXIT_PARTIAL and b["termination_reason"] == "no_progress"
+    assert b["pages"] == 2 + 3 and b["pages_without_new_users"] == 3 and b["unique_user_ids"] == 600
+
+
+def test_plausibility_warning_and_live_counters(tmp_path):
+    seen = {}
+    def on_request(call):
+        if call["kind"] == "board":
+            st = json.loads((tmp_path / "data" / "leaderboard" / f"final_grab_{DATE.replace('-', '')}" / "status.json").read_text())
+            seen.setdefault("unique_at_requests", []).append((st.get("board") or {}).get("unique_user_ids"))
+    pages = [(200, _board_page([_rank_row(1000 * p + i, 300 * (p - 1) + i + 1, 30) for i in range(300)], next_page=(p < 4), participants=600))
+             for p in range(1, 5)]
+    t = FakeTransport(board_pages=pages, profiles={1000: (200, _profile())}, on_request=on_request)
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    assert "listed_exceeds_1.5x_reported" in status["board"]["warnings"]
+    assert status["board"]["population"]["status"] == "listed_exceeds_reported" and code == EXIT_PARTIAL
+    assert seen["unique_at_requests"][2] == 600  # counters live mid-walk (status seen when page 3's intent was logged)
+    plan = json.loads((cfg.run_root / "plan.json").read_text())
+    assert plan["owner_ceiling_decision"]["owner_quotes_verbatim"][1].startswith("i mean i want to grab all the picks")
