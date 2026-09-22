@@ -1,6 +1,6 @@
 # Final leaderboard grab — one-pass runbook (season wrap W0.6)
 
-**Owner authorization:** Eric, 2026-09-14 ("one bounded end-of-season grab") and plan approval 2026-09-22. **Ceiling acceptance (648 requests max):** _pending — record Eric's answer here before running._ **Code:** `scripts/final_leaderboard_grab.py` reviewed by Codex (2 design rounds, 5 code rounds) — **SIGN at `40e952e`**. Offline rehearsal = 50 tests in `tests/scripts/test_final_leaderboard_grab.py`; there is no live rehearsal.
+**Owner authorization:** Eric, 2026-09-14 ("one bounded end-of-season grab") and plan approval 2026-09-22. **Ceiling decision (Eric, 2026-09-22, verbatim): "no request ceiling. when it comes time, let's carefully and courteously try to grab it all."** → the board walk has NO page ceiling (runs until the board ends); pacing, kill-switch, one-attempt and the 300-profile allocation (D5) are unchanged. Implemented `fed10b6`. **Code:** `scripts/final_leaderboard_grab.py` reviewed by Codex (2 design rounds, 5 code rounds) — **SIGN at `40e952e`**. Offline rehearsal = 50 tests in `tests/scripts/test_final_leaderboard_grab.py`; there is no live rehearsal.
 
 ## When
 **2026-09-28, after 08:00 ET** (regular season ends 9/27; the ordinary result-correction window closes the next morning per the contest rules §6). Never before the last game is final. Never a second attempt without a fresh owner decision.
@@ -19,11 +19,11 @@ cd ~/projects/bts && set -a && . ./.env && set +a && \
 .venv/bin/python scripts/final_leaderboard_grab.py \
   --date 2026-09-28 --season 2026 \
   --final-round-date 2026-09-27 \
-  --max-board-pages 340 --board-limit 300 --cohort-a 150 --cohort-b 150 \
+  --board-limit 300 --cohort-a 150 --cohort-b 150 \
   --rng-seed 20260928 \
   --i-have-owner-authorization 2>&1 | tee ~/logs/final_grab_20260928.log
 ```
-Expected footprint: 1 login + 4 static + ≤340 board pages + 3 tabs + ≤300 profiles = **≤648 requests**, jittered 2.0–4.5 s → roughly 30–50 min. `status.json` is rewritten after every request; watch it with `python3 -c 'import json;j=json.load(open("data/leaderboard/final_grab_20260928/status.json"));print(j["terminal_state"],len(j["requests"]),(j.get("board") or {}).get("pages"))'`.
+Expected footprint: 1 login + 4 static + **every board page until the board ends** (≈317 at ~95k participants; no ceiling) + 3 tabs + ≤300 profiles, jittered 2.0–4.5 s per request → on the order of an hour. `plan.json` records `request_budget: null`, `board_ceiling: null` and the owner's words. `status.json` is rewritten after every request; watch it with `python3 -c 'import json;j=json.load(open("data/leaderboard/final_grab_20260928/status.json"));print(j["terminal_state"],len(j["requests"]),(j.get("board") or {}).get("pages"))'`.
 
 ## Exit codes / terminal states
 | exit | terminal_state | meaning |
