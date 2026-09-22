@@ -10,7 +10,7 @@
 | W0.3 exposure register | `docs/audit/2026-09-22-exposure-register.md` §A | completed 9/22 | file |
 | W0.4 protocol inventory | same file §B (P-01…P-06 quoted) | completed 9/22 | file |
 | W0.5 D3 / D5 / D8 recorded | same file §C | completed 9/22 | file |
-| W0.6 bounded grab (~9/28) | runbook/wrapper (Codex-reviewed) + fixture rehearsal + execution | design r1 → 6 BLOCK (all adopted; parser bug C-01 fixed on main `44df03f`); design v2 with Codex | early cohort E frozen `docs/audit/2026-09-22-early-cohort-2026-05-01.json` |
+| W0.6 bounded grab (~9/28) | runbook/wrapper (Codex-reviewed) + fixture rehearsal + execution | **built 9/22**: `scripts/final_leaderboard_grab.py` `7153a66` (+ library hardening `c45222b`, parser fix `44df03f`); 20 offline tests = the fixture rehearsal; design reviewed 2 Codex rounds (10 BLOCK adopted); code review in flight; **owner acceptance of the ceiling (340 pages / 648 requests max) pending**; execution 9/28 after 08:00 ET | early cohort E `docs/audit/2026-09-22-early-cohort-2026-05-01.json`; corrections C-01 |
 | W0.7 final snapshot | staged final + tag-isolated restic + restore test | not started (after grab + grading cutoff) | |
 | W0.8 research capture (D8) | `--capture-research-on-skip` deployed `f1b07e9` | completed 9/14; verified 9/19–9/21 | plan W0.8; `bts_index` memory |
 | W1.1 ledger | parquet + builder + tests + reconciliation table | not started | |
