@@ -19,8 +19,10 @@ What it does, in order (network only after step 1 has written plan.json + status
      every serialized surface.
   3. Four static JSON lookups (paced, archived, shape-validated).
   4. Full-depth walk of the SEASON-BEST board (limit 300) with validated terminal
-     conditions; every page body archived; dedupe by userId; walk exhaustion and
-     population coverage reported SEPARATELY; truncation exposed.
+     conditions; NO page ceiling by default (owner 2026-09-22: "no request ceiling …
+     carefully and courteously try to grab it all") — the walk ends when the board
+     does; every page body archived; dedupe by userId; walk exhaustion and population
+     coverage reported SEPARATELY; any truncation exposed.
   5. Three continuity tabs (active_streak, all_time top-100; `yesterday` bound to the
      explicit FINAL round of the season).
   6. Profiles for cohort A (top of the final board) + B (frozen early cohort not in A,
@@ -228,7 +230,10 @@ class GrabConfig:
     run_root: Path
     early_cohort_path: Path
     board_limit: int = 300
-    max_board_pages: int = 340
+    # None = NO CEILING (owner, 2026-09-22: "no request ceiling … carefully and courteously
+    # try to grab it all"): the walk runs until the board ends (short page / nextPage=false),
+    # a repeated page, or an error. Pacing and the 403/429 kill-switch are unchanged.
+    max_board_pages: int | None = None
     cohort_a: int = 150
     cohort_b: int = 150
     transport: Any = field(default_factory=HttpxTransport)
@@ -246,10 +251,17 @@ class GrabConfig:
     timeout_s: float = 30.0
     uv_lock_path: Path | None = None
 
-    def planned_max_requests(self) -> int:
+    def planned_max_requests(self) -> int | None:
+        """None when the board walk is uncapped (then only profiles/tabs/static/login are bounded)."""
+        if self.max_board_pages is None:
+            return None
         return 1 + 4 + self.max_board_pages + (3 if self.include_tabs else 0) + self.cohort_a + self.cohort_b
 
-    def budget(self) -> int:
+    def planned_non_board_requests(self) -> int:
+        return 1 + 4 + (3 if self.include_tabs else 0) + self.cohort_a + self.cohort_b
+
+    def budget(self) -> int | None:
+        """Total request cap; None = uncapped (the board class is the only unbounded one)."""
         return self.request_budget if self.request_budget is not None else self.planned_max_requests()
 
     def validation_problems(self) -> list[str]:
@@ -264,8 +276,8 @@ class GrabConfig:
             problems.append(f"cohort_a + cohort_b = {self.cohort_a + self.cohort_b} exceeds the {MAX_PROFILES_TOTAL}-profile cap")
         if not isinstance(self.board_limit, int) or not (1 <= self.board_limit <= MAX_BOARD_LIMIT):
             problems.append(f"board_limit must be 1..{MAX_BOARD_LIMIT}")
-        if not isinstance(self.max_board_pages, int) or self.max_board_pages < 1:
-            problems.append("max_board_pages must be >= 1")
+        if self.max_board_pages is not None and (not isinstance(self.max_board_pages, int) or self.max_board_pages < 1):
+            problems.append("max_board_pages must be None (no ceiling) or >= 1")
         if self.request_budget is not None and (not isinstance(self.request_budget, int) or self.request_budget < 1):
             problems.append("request_budget must be >= 1")
         if self.final_round_date is None:
@@ -415,8 +427,9 @@ class Ledger:
     def request(self, cls: str, name: str, url: str, raw_path: Path,
                 send: Callable[[], tuple[int, bytes]],
                 archive_transform: Callable[[bytes], bytes] | None = None) -> tuple[int, bytes, dict[str, Any]]:
-        if self.issued + 1 > self.cfg.budget():
-            raise BudgetAbort(f"request budget {self.cfg.budget()} reached before {cls}:{name}")
+        budget = self.cfg.budget()
+        if budget is not None and self.issued + 1 > budget:
+            raise BudgetAbort(f"request budget {budget} reached before {cls}:{name}")
         self._pace()
         entry: dict[str, Any] = {
             "seq": self.issued + 1, "class": cls, "name": name, "url": _redact_url(url),
@@ -657,6 +670,11 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
             "uv_lock_sha256": _file_sha256(uv_lock) if uv_lock.exists() else None,
             "credential_provenance": {k: v for k, v in provenance.items() if k in ("source", "location", "sha256", "bytes", "n_cookies")},
             "request_budget": cfg.budget(), "planned_max_requests": cfg.planned_max_requests(),
+            "planned_non_board_requests": cfg.planned_non_board_requests(),
+            "board_ceiling": cfg.max_board_pages,
+            "owner_ceiling_decision": ("none — Eric 2026-09-22: 'no request ceiling; carefully and courteously try to grab it all' "
+                                       "(board walk runs to exhaustion; pacing + kill-switch unchanged; profiles stay at the D5 allocation)"
+                                       if cfg.max_board_pages is None else f"capped at {cfg.max_board_pages} pages"),
             "classes": {"login": 1, "static": 4, "board_pages_max": cfg.max_board_pages,
                         "tabs": len(planned_tabs), "profiles_max": cfg.cohort_a + cfg.cohort_b},
             "board_limit": cfg.board_limit, "max_board_pages": cfg.max_board_pages,
@@ -727,7 +745,8 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
 
         # ---- 4. full-depth season-best walk ----
         board: dict[str, Any] = {
-            "tab": "all_season", "limit": cfg.board_limit, "pages": 0, "raw_rows": 0, "unique_user_ids": 0,
+            "tab": "all_season", "limit": cfg.board_limit, "ceiling": cfg.max_board_pages,
+            "pages": 0, "raw_rows": 0, "unique_user_ids": 0,
             "duplicate_rows": 0, "duplicate_conflicts": [], "per_page": [], "termination_reason": None,
             "walk_exhausted": False, "walk_complete": False, "population_complete": False, "population": None,
             "last_rank_reached": None, "all_participants_count": None, "updated_at_values": [],
@@ -736,7 +755,11 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
         rows_by_id: dict[int, LeaderboardRow] = {}
         prev_ids: set[int] | None = None
         participants_seen: list[int] = []
-        for page in range(1, cfg.max_board_pages + 1):
+        page = 0
+        while True:
+            page += 1
+            if cfg.max_board_pages is not None and page > cfg.max_board_pages:
+                break
             url = LEADERBOARD_URL_TEMPLATE.format(season=cfg.season, page=page, limit=cfg.board_limit,
                                                   ranks_type=RANKS_TYPE_BY_TAB["all_season"], xsid=xsid)
             http_status, body, entry = ledger.request("board", f"page_{page:03d}", url,
@@ -799,8 +822,9 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
                 board["termination_reason"] = "next_page_false"
                 board["walk_exhausted"] = True
                 break
-            if page == cfg.max_board_pages:
+            if cfg.max_board_pages is not None and page == cfg.max_board_pages:
                 board["termination_reason"] = "ceiling"
+                break
         board["unique_user_ids"] = len(rows_by_id)
         if participants_seen:
             board["all_participants_count"] = {"min": min(participants_seen), "max": max(participants_seen)}
@@ -1068,7 +1092,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--leaderboard-dir", type=Path, default=Path("data/leaderboard"))
     p.add_argument("--early-cohort", type=Path, default=Path("docs/audit/2026-09-22-early-cohort-2026-05-01.json"))
     p.add_argument("--board-limit", type=int, default=300)
-    p.add_argument("--max-board-pages", type=int, default=340)
+    p.add_argument("--max-board-pages", type=int, default=None,
+                   help="optional ceiling on board pages; default NONE = walk the whole board (owner decision 2026-09-22)")
     p.add_argument("--cohort-a", type=int, default=150)
     p.add_argument("--cohort-b", type=int, default=150)
     p.add_argument("--final-round-date", required=True, help="YYYY-MM-DD of the season's final round (REQUIRED; e.g. 2026-09-27)")

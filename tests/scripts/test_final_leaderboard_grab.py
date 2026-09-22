@@ -128,7 +128,7 @@ def _early_manifest(path: Path, ids: list[int]):
     return path
 
 
-def _config(tmp_path: Path, transport, *, max_board_pages=340, cohort_a=2, cohort_b=2, early_ids=(11, 12, 13),
+def _config(tmp_path: Path, transport, *, max_board_pages=None, cohort_a=2, cohort_b=2, early_ids=(11, 12, 13),
             cookies_loader=None, sleeper=None, now=None, board_limit=300):
     daily = tmp_path / "data" / "leaderboard"
     (daily / "user_picks").mkdir(parents=True)
@@ -809,3 +809,44 @@ def test_token_used_as_a_json_object_key_is_scrubbed(tmp_path):
     rec = next(r for r in status["requests"] if r["class"] == "profile")
     assert rec["raw_redacted"] is True and rec["archived_sha256"] != rec["sha256"]
     assert token not in json.dumps(status, default=str)
+
+
+# ----------------------------------------------------------------------------- owner 2026-09-22: no request ceiling
+def test_no_ceiling_walks_until_the_board_ends(tmp_path):
+    n_pages = 7
+    pages = [(200, _board_page([_rank_row(10_000 * p + i, 300 * (p - 1) + i + 1, 30) for i in range(300)], next_page=True,
+                               participants=300 * (n_pages - 1) + 5)) for p in range(1, n_pages)]
+    pages.append((200, _board_page([_rank_row(99_000 + i, 300 * (n_pages - 1) + i + 1, 1) for i in range(5)], next_page=False,
+                                   participants=300 * (n_pages - 1) + 5)))
+    t = FakeTransport(board_pages=pages, profiles={10_000: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    assert cfg.budget() is None and status["board"]["ceiling"] is None
+    assert status["board"]["pages"] == n_pages and status["board"]["termination_reason"] == "short_page"
+    assert status["board"]["walk_exhausted"] is True and status["board"]["population"]["status"] == "census"
+    assert code == EXIT_COMPLETE
+    plan = json.loads((cfg.run_root / "plan.json").read_text())
+    assert plan["request_budget"] is None and plan["board_ceiling"] is None and "no request ceiling" in plan["owner_ceiling_decision"]
+    assert plan["planned_non_board_requests"] == 1 + 4 + 3 + 1
+
+
+def test_explicit_ceiling_still_truncates_when_given(tmp_path):
+    pages = [(200, _board_page([_rank_row(1000 * p + i, 300 * (p - 1) + i + 1, 30) for i in range(300)], next_page=True))
+             for p in range(1, 4)]
+    t = FakeTransport(board_pages=pages, profiles={1000: (200, _profile())})
+    cfg = _config(tmp_path, t, max_board_pages=2, early_ids=(), cohort_a=1, cohort_b=0)
+    code, status = run_grab(cfg)
+    assert code == EXIT_PARTIAL and status["board"]["termination_reason"] == "ceiling" and status["board"]["pages"] == 2
+
+
+def test_uncapped_walk_keeps_kill_switch_pacing_and_profile_cap(tmp_path):
+    gaps = []
+    pages = [(200, _board_page([_rank_row(100 + i, i + 1, 30) for i in range(300)], next_page=True)), (429, b"rl")]
+    t = FakeTransport(board_pages=pages, profiles={})
+    cfg = _config(tmp_path, t, max_board_pages=None, early_ids=(), cohort_a=1, cohort_b=0, sleeper=lambda g: gaps.append(g))
+    code, status = run_grab(cfg)
+    assert code == EXIT_ABORTED_RATE_LIMITED
+    assert all(2.0 <= g <= 4.5 for g in gaps) and len(gaps) == len(t.calls) - 1  # a jittered pause before every request after the first
+    bad = _config(tmp_path / "b", t, max_board_pages=None, early_ids=(), cohort_a=200, cohort_b=101)
+    code_b, status_b = run_grab(bad)
+    assert status_b["terminal_state"] == "refused_config"  # profile cap still 300
