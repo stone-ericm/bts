@@ -108,6 +108,7 @@ EXIT_PARTIAL = 2
 EXIT_ABORTED_RATE_LIMITED = 3
 EXIT_ABORTED_WRITE_FAILURE = 4
 EXIT_ABORTED_OTHER = 5
+EXIT_CANCELLED = 130  # SIGINT convention: operator Ctrl-C; persisted state says so too
 
 TERMINAL_OK_STATES = ("complete", "complete_with_errors", "complete_with_population_gap")
 
@@ -829,15 +830,7 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
                 board["termination_reason"] = "repeated_page"
                 break
             seen_page_signatures.add(signature)
-            # sustained zero progress: full pages that add no new users are not progress
-            if new_rows == 0:
-                zero_progress_streak += 1
-                board["pages_without_new_users"] += 1
-            else:
-                zero_progress_streak = 0
-            if zero_progress_streak >= NO_PROGRESS_PAGES:
-                board["termination_reason"] = "no_progress"
-                break
+            # a valid terminal page is honored FIRST (even after zero-progress pages)
             if raw_count < cfg.board_limit:
                 if meta["next_page"] is False:
                     board["termination_reason"] = "short_page"
@@ -850,6 +843,15 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
             if meta["next_page"] is False:
                 board["termination_reason"] = "next_page_false"
                 board["walk_exhausted"] = True
+                break
+            # sustained zero progress: FULL CONTINUING pages that add no new users are not progress
+            if new_rows == 0:
+                zero_progress_streak += 1
+                board["pages_without_new_users"] += 1
+            else:
+                zero_progress_streak = 0
+            if zero_progress_streak >= NO_PROGRESS_PAGES:
+                board["termination_reason"] = "no_progress"
                 break
             if cfg.max_board_pages is not None and page == cfg.max_board_pages:
                 board["termination_reason"] = "ceiling"
@@ -1040,6 +1042,12 @@ def run_grab(cfg: GrabConfig) -> tuple[int, dict[str, Any]]:
         status["terminal_state"] = abort.terminal_state
         status["problems"].append(str(abort))
         exit_code = abort.exit_code
+    except KeyboardInterrupt:
+        # Operator cancellation: recorded as such (never left as "running"); the in-flight
+        # request becomes "aborted" in the accounting below; process exit 130.
+        status["terminal_state"] = "cancelled_by_operator"
+        status["problems"].append("cancelled by operator (SIGINT); evidence preserved; no rerun without a fresh owner decision")
+        exit_code = EXIT_CANCELLED
     except Exception as exc:  # noqa: BLE001 — anything unexpected is a recorded abort, never a silent success
         status["terminal_state"] = "aborted_other"
         status["problems"].append(f"unexpected {type(exc).__name__}: {exc}")

@@ -19,6 +19,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from scripts.final_leaderboard_grab import (
+    EXIT_CANCELLED,
     EXIT_ABORTED_RATE_LIMITED,
     EXIT_ABORTED_WRITE_FAILURE,
     EXIT_COMPLETE,
@@ -896,3 +897,38 @@ def test_plausibility_warning_and_live_counters(tmp_path):
     assert seen["unique_at_requests"][2] == 600  # counters live mid-walk (status seen when page 3's intent was logged)
     plan = json.loads((cfg.run_root / "plan.json").read_text())
     assert plan["owner_ceiling_decision"]["owner_quotes_verbatim"][1].startswith("i mean i want to grab all the picks")
+
+
+# ----------------------------------------------------------------------------- Codex round 7
+def test_terminal_empty_page_after_zero_progress_is_exhaustion_not_no_progress(tmp_path):
+    p1 = [_rank_row(100 + i, i + 1, 30) for i in range(300)]
+    p2 = [_rank_row(400 + i, 301 + i, 29) for i in range(300)]
+    mixes = [p1[:100] + p2[100:], p1[:200] + p2[200:]]
+    ts = "2026-09-28T08:00:00-04:00"
+    pages = [(200, _board_page(p1, next_page=True, participants=600, updated=ts)), (200, _board_page(p2, next_page=True, participants=600, updated=ts))]
+    pages += [(200, _board_page(m, next_page=True, participants=600, updated=ts)) for m in mixes]
+    pages.append((200, _board_page([], next_page=False, participants=600, updated=ts)))
+    t = FakeTransport(board_pages=pages, profiles={100: (200, _profile())})
+    cfg = _config(tmp_path, t, cohort_a=1, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    b = status["board"]
+    assert b["termination_reason"] == "short_page" and b["walk_exhausted"] is True and b["unique_user_ids"] == 600
+    assert b["pages_without_new_users"] == 2 and b["population"]["status"] == "census" and code == EXIT_COMPLETE
+
+
+def test_operator_cancellation_is_classified_and_persisted(tmp_path):
+    class T(FakeTransport):
+        def get(self, url, *, cookies, timeout=None):
+            if "page=2" in url and "SEASON_BEST_STREAK" in url:
+                self._record("board", url, None, b"")
+                raise KeyboardInterrupt()
+            return super().get(url, cookies=cookies)
+
+    t = T(board_pages=_two_page_board(), profiles={})
+    cfg = _config(tmp_path, t, cohort_a=0, cohort_b=0, early_ids=(), max_board_pages=None)
+    code, status = run_grab(cfg)
+    assert code == EXIT_CANCELLED and status["terminal_state"] == "cancelled_by_operator"
+    persisted = json.loads((cfg.run_root / "status.json").read_text())
+    assert persisted["terminal_state"] == "cancelled_by_operator" and persisted["exit_code"] == EXIT_CANCELLED
+    assert persisted["requests"][-1]["class"] == "board" and persisted["requests"][-1]["outcome"] == "aborted"
+    assert [c["kind"] for c in t.calls][-1] == "board"  # nothing sent after the interrupt
