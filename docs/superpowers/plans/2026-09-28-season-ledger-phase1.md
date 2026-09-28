@@ -1,4 +1,4 @@
-# Season 2026 Ledger — Phase 1 Implementation Plan (rev 3)
+# Season 2026 Ledger — Phase 1 Implementation Plan (rev 4)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -35,7 +35,7 @@ Everything lives under `scripts/audit/season_ledger/`; the package imports no pr
   - `saver_available_before = null`
   - `game_eligibility = unknown` unless there is timed evidence from before lock (I6)
 - **Recipe rules are hypotheses** (spec §8):
-  - Task 9's rule table and the exact source of every function that evaluates it (predicates, universe, windows, labels, and the JSON decoder they read through) are fixed now and fingerprinted as `rules_fingerprint() = eadce48f7fbce5346cf9214289f8c079f1d7ccb907a50253a4c133e97c2ffc1d`.
+  - Task 9's rule table and everything its evaluator reads are fixed now and fingerprinted as `rules_fingerprint() = 5e9d74f2f9c3093d66bc7c9ab0a7028e5fb361cdb46bbb1b368cd71e7f297b3f`. That covers the source of every repo-local function reachable from the recipe roots (predicates, universe, windows, labels, the JSON decoder) and every configuration value those functions read (regexes with their flags, the time zone, tables).
   - The fingerprint is recorded in the exposure register before the real run (Task 13 Step 1), and the build must reproduce it.
   - The rules must not be edited after the first real run.
 - **P-01 is untouched:** the completed P-01 read and `scripts/audit/build_slot_dataset.py` are not modified.
@@ -102,6 +102,8 @@ Everything lives under `scripts/audit/season_ledger/`; the package imports no pr
 | — | Incoherent fixture facts | Round 977 is now hit+void, streak 11, +1. |
 
 ## Revision 3 — how this answers Codex plan r2 (`docs/audit/2026-09-28-season-ledger-codex-plan-r2.md`, BLOCK)
+*Kept as history; the Revision 4 table below records what replaced its census, membership and fingerprint items.*
+
 | # | Finding | Change |
 |---|---|---|
 | 1 | The census accepted dropped records and did not enforce exactly-once coverage | `required_locators(kind, data)` derives every record from the raw bytes alone: files, contest lines, rounds and slots, items, dates and games, metadata records as well as leaves. An empty parse no longer exempts a file; `no_records` is allowed only where the census finds no record. `census_problems` requires each record exactly once, emitted directly or covered by exactly one quarantined ancestor. It reports foreign source paths, phantom locators, rows emitted off a record, exclusions over records, and double cover. `check_sources` runs right after accounting, before any ledger row exists. `check_invariants` runs after the outputs are built: each `*_obs_id` must name an emitted occurrence of the right kind, each canonical disposition must be referenced (a canonical selection exactly once), every recipe row must link to an occurrence, and contest-slot identities, selection links, row ids and season days are checked. Codex's four probes are acceptance tests. |
@@ -114,6 +116,18 @@ Everything lives under `scripts/audit/season_ledger/`; the package imports no pr
 | 8 | Refusal rule differed between text and code | `_eligibility` returns `unknown` without a known lock, and a refusal needs a non-empty reason and a valid time before lock. I6 now states the binding: a refusal archive binds to the (date, slot, batter, game) it names, never to an attempt. |
 | 9 | No verified-publication boundary | The compiler reserves its output directory with `mkdir`; an existing directory is refused, even an empty one. Each attempt writes `<sha>-<run-id>`, and `ACCEPTED.json` is written only after the file-set, byte and fingerprint checks pass. |
 | 10 | The restic check was not bound to this backup | Backup mode records its start time and requires exactly one archive snapshot since then. It compares that snapshot's manifest with the sealed one by sha256, and requires every manifest member to be present in it (`restic ls <id> --recursive --json`). |
+
+## Revision 4 — how this answers Codex plan r3 (`docs/audit/2026-09-28-season-ledger-codex-plan-r3.md`, BLOCK; the last planned plan round)
+| # | Finding | Change |
+|---|---|---|
+| 1 | File-record omissions and forged occurrence ids passed both checks | `required_locators` returns the true record set: `{"file"}` for a file that is itself one record (a decision, a scheduler state, a pick file without slots) or whose container cannot be read, and the empty set only for a readable empty container. `census_problems` checks every bundle path: a declared-missing input, an excluded path and an empty container each need exactly one `file` row in that state with its reason, and records may only be emitted or quarantined. `check_sources` recomputes every occurrence's id from (path, locator, content hash), and checks its hash and its kind. Codex's four probes are acceptance tests. |
+| 2 | Malformed game identities collapsed into equal nulls | A present `game_pk` that is not an integer quarantines the pick slot, the decision (for a chosen candidate) and the lineup-evolution slot. A null stays a supported unrecorded game. Codex's end-to-end false agreement now compiles to `decision_unusable`. |
+| 3 | The membership check proved existence only | `check_invariants` recomputes membership independently of the join. Every rule must list every universe slot exactly once (`membership_slots`), its included rows must add up to the reported totals, and every row must link to the occurrence that accounts for its record, with the same state, reason, disposition and canonical link. |
+| 4 | Regex flags escaped the freeze | `recipe_closure()` walks everything reachable from `evaluate_rules` and `recipe_labels`: repo-local function sources (imports included), compiled regexes with their flags, the time zone, and tables. Modules and outside callables are bound by name, and any other kind fails closed. `rules_fingerprint()` hashes the rule table plus the closure: `5e9d74f2…`. A test pins the closure's names; Codex's IGNORECASE mutant, a time-zone change and a decoder comment each change the digest. |
+| 5 | Quarantined evidence was lost in the other day branches | New I15. `day_rows` takes the date's `unusable` kinds, and `pick_file_state` keeps the file-level delivery fields. An unusable decision gives `decision_unusable`, with the pick file kept as an unresolved view. A skip is established only beside a readable, undelivered pick file (or none) and a usable scheduler state. Quarantined evidence alone is `unusable_evidence_only`, never `unobserved_day`, and `known_incomplete` is withheld while a record that might hold the version is unusable. |
+| 6 | A parsed JSON null lost its raw value | `quarantine` takes a sentinel default: a parsed null is kept as `"null"`, and only bytes that never decoded carry no raw value. |
+| 7 | Runner edge cases | The EXIT trap is installed before the run-id check. `.env` is sourced as production's cron does it (no nounset), with its status checked. Run ids carry a random suffix. The read-back uses non-interactive ssh with connect and liveness timeouts and a two-hour deadline, and `NO EXIT LINE` is checked against the unit's status before it is called a stop. |
+| 8 | `ACCEPTED.json` could be written partially | The receipt is written to a temporary file, synced, then renamed. Only a parseable receipt naming the run and its six files publishes a build. |
 
 ## Interpretations pinned by this plan (each is a reading of the spec; Codex reviews them)
 - **I1 Qualification:**
@@ -150,12 +164,17 @@ Everything lives under `scripts/audit/season_ledger/`; the package imports no pr
   - The build fails unless the source census passes before any row exists and the output checks pass after the outputs are built.
 - **I13 Typed-field policy:**
   - A field whose raw value has the wrong type becomes null in the typed column and is listed in `type_mismatch_fields`; the raw value survives in `record_raw_json`. Integers must fit int64, and a bool is never an integer.
-  - Identity fields that cannot be typed quarantine the record: pick slots, the chosen candidates of a single/double decision, lineup-evolution slots, contest lines, and static items and games. Enum fields are type-checked before any membership test.
-  - A quarantined record that parsed keeps its parsed value as `record_raw_json`. Only undecodable bytes and path-level refusals are left to the sealed bundle.
+  - Identity fields that cannot be typed quarantine the record: a pick slot's or lineup-evolution slot's batter and game, a single/double decision's chosen batters and games, a contest line's round, unit and player ids, and static item and game ids. A null `game_pk` is a supported unrecorded game (the 3/29–3/30 files); a present value that is not an integer never reads as null. Enum fields are type-checked before any membership test.
+  - A quarantined record that parsed keeps its parsed value as `record_raw_json` (a parsed null as `"null"`). Only undecodable bytes and path-level refusals are left to the sealed bundle.
   - Absent keys are listed in `absent_fields` at every depth (`pick.pitcher_id`).
 - **I14 Selection sets:** a decision and the surviving pick file agree only when the file is complete and names the identical set of (slot, batter, game). Only then are the file's facts attached.
   - Complete means every slot the file's raw structure holds parsed into a usable row (`pick_file_state`). A quarantined leg therefore blocks agreement, and every decision row stays `unresolved`.
   - With no decision, a file with no usable slot is `pick_file_unparseable`, never an absent file.
+- **I15 Unusable evidence** (Codex plan r3 #5): day evidence that is present but quarantined is never read as absent.
+  - An unusable decision makes the day `unfinalized_day` / `decision_unusable`; a surviving pick file stays an unresolved view.
+  - A skip decision is a `skip_day` only if no pick file survives, or it is readable and shows no positive delivery signal, and the scheduler state is usable (or absent). A delivered file makes it `skip_decision_with_commit_evidence`, an unreadable one `skip_decision_with_unreadable_pick_file`, and an unusable state `skip_decision_with_unusable_state`.
+  - A day whose only evidence is quarantined is `unfinalized_day` / `unusable_evidence_only`.
+  - `known_incomplete` is withheld (history `unknown`) while a record that might hold the version is unusable: a quarantined archive for the date, or an incomplete pick file.
 
 ## Review Focus
 1. AppleDouble `._*` files, runtime markers and `.before`/`.postponed` versions in the picks tree must be routed or excluded with a reason. They are never parsed as production picks, and no stray file crashes the build. *(Task 9 routing tests)*
@@ -202,7 +221,7 @@ Everything lives under `scripts/audit/season_ledger/`; the package imports no pr
   - `ids.sha256_hex(data) -> str`
   - `ids.obs_id(rel_path, locator, content_sha256) -> str`
   - `ids.Parsed(rows, quarantined)`
-  - `ids.quarantine(rel_path, locator, reason, raw=None) -> dict`, whose `record_raw_json` holds the record's parsed value
+  - `ids.quarantine(rel_path, locator, reason, raw=<omitted>) -> dict`, whose `record_raw_json` holds the record's parsed value (a parsed null is `"null"`); `raw` is omitted only for bytes that never decoded
   - `ids.is_int(v) -> bool`: an int64-range integer, never a bool
   - `ids.typed(value, kind) -> (value | None, mismatch: bool)`, where kind ∈ int/float/bool/str
   - `ids.take(record, {name: kind}, prefix="") -> (values, absent_names, mismatched_names)`
@@ -270,7 +289,8 @@ import pyarrow as pa
 import pytest
 
 from scripts.audit.season_ledger.bundle import BundleEntry, BundleError, open_bundle, write_manifest
-from scripts.audit.season_ledger.ids import load_json_bytes, obs_id, sha256_hex, stamp_to_utc, take, typed, utc_iso
+from scripts.audit.season_ledger.ids import (load_json_bytes, obs_id, quarantine, sha256_hex, stamp_to_utc, take, typed,
+                                             utc_iso)
 from scripts.audit.season_ledger.io import build_table, write_table
 from tests.scripts.season_ledger.builders import gz, seal_bundle
 
@@ -352,6 +372,12 @@ def test_typed_policy_keeps_null_absent_and_wrong_type_distinct():
 SCHEMA = pa.schema([("obs_id", pa.string()), ("n", pa.int64()), ("flag", pa.bool_())])
 
 
+def test_quarantine_keeps_a_parsed_null_distinct_from_no_value():
+    # Codex plan r3 #6: a record that parsed as JSON null keeps "null"; only undecodable bytes carry no raw value.
+    assert quarantine("picks/x.json", "file", "no_pick_object", raw=None)["record_raw_json"] == "null"
+    assert quarantine("picks/x.json", "file", "invalid_json:JSONDecodeError")["record_raw_json"] is None
+
+
 def test_write_table_is_byte_identical_for_reordered_input(tmp_path):
     rows = [{"obs_id": "b", "n": 2, "flag": None}, {"obs_id": "a", "n": None, "flag": True}]
     write_table(build_table(rows, SCHEMA, sort_keys=["obs_id"], name="t"), tmp_path / "x.parquet")
@@ -417,12 +443,15 @@ class Parsed:
     quarantined: list[dict] = field(default_factory=list)
 
 
-def quarantine(rel_path: str, locator: str, reason: str, raw=None) -> dict:
+_NO_RAW = object()     # `raw` omitted: the record never decoded (a parsed JSON null is passed as None)
+
+
+def quarantine(rel_path: str, locator: str, reason: str, raw=_NO_RAW) -> dict:
     """A quarantined occurrence. Every quarantined record that parsed passes its own parsed value as `raw`
-    (kept as JSON in the occurrence table). Only undecodable bytes (bad gzip, invalid JSON, not UTF-8) and
-    path-level refusals are left with no raw value; they stay in the sealed bundle, pinned by the manifest."""
+    (kept as JSON in the occurrence table; a parsed null is "null"). Only undecodable bytes (bad gzip, invalid
+    JSON, not UTF-8) and path-level refusals omit it; they stay in the sealed bundle, pinned by the manifest."""
     return {"source_path": rel_path, "locator": locator, "reason": reason,
-            "record_raw_json": None if raw is None else canonical_json(raw)}
+            "record_raw_json": None if raw is _NO_RAW else canonical_json(raw)}
 
 
 def is_int(value) -> bool:
@@ -622,7 +651,7 @@ def write_table(table: pa.Table, path: Path) -> Path:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger/test_bundle_io.py -q`
-Expected: `12 passed`.
+Expected: `13 passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -645,7 +674,7 @@ git commit -m "feat(ledger): sealed bundle, occurrence ids, typed-field policy, 
 - **Produces:**
   - `parse_pick_file(rel_path, data, *, kind="pick_file") -> Parsed`, where kind ∈ {pick_file, manual_archive, repair_archive}
   - `parse_archive(rel_path, data) -> Parsed`
-  - `pick_file_state(data, parsed) -> {"slots": frozenset, "complete": bool}`: the slots the raw file holds, and whether every one of them parsed (I14)
+  - `pick_file_state(data, parsed) -> {"slots": frozenset, "complete": bool, "file_fields": dict | None}`: the slots the raw file holds, whether every one of them parsed (I14), and its typed file-level fields, delivery signals included (None when the file is not a readable object; I15)
 - **Every row has:**
   - Identity: `obs_id, locator ("slot=primary"|"slot=double_down"), source_kind, source_path, content_sha256, slot, day_result_raw, slot_result_raw, has_double_down`.
   - Typed pick fields: `batter_id, batter_name, team, game_pk, game_time, lineup_position, projected_lineup, pitcher_id, pitcher_name, pitcher_team, p_game_hit`.
@@ -653,7 +682,7 @@ git commit -m "feat(ledger): sealed bundle, occurrence ids, typed-field policy, 
   - Nested JSON: `slot_results_json, policy_decision_json, feature_env_json, pick_policy_objective`.
   - Archive metadata: `archive_prefix, archive_reason, archived_at`, which are None except on scheduler archives.
   - Presence and raw: `absent_fields, type_mismatch_fields, record_raw_json`.
-- **Quarantine (I13):** a file that is not JSON or has no `pick` object is quarantined at `file`. A slot that is not an object, or whose `batter_id` is not an int64 integer, is quarantined at its own locator. Each keeps its parsed value.
+- **Quarantine (I13):** a file that is not JSON or has no `pick` object is quarantined at `file`. A slot that is not an object, whose `batter_id` is not an int64 integer, or whose present `game_pk` is not one (`slot_bad_game_pk`) is quarantined at its own locator; a null `game_pk` is an unrecorded game. Each keeps its parsed value.
 
 - [ ] **Step 1: Append the builder** to `tests/scripts/season_ledger/builders.py`:
 
@@ -678,7 +707,7 @@ def pick_json(date: str, *, primary: dict | None = None, dd: dict | None = None,
 ```python
 import json
 
-from scripts.audit.season_ledger.sources.pick_files import parse_archive, parse_pick_file
+from scripts.audit.season_ledger.sources.pick_files import parse_archive, parse_pick_file, pick_file_state
 from tests.scripts.season_ledger.builders import dumps, pick_json
 
 
@@ -732,6 +761,27 @@ def test_wrong_types_are_nulled_and_flagged_and_a_slot_needs_its_batter_id():
         "slot=double_down", "slot_missing_batter_id", "202")
 
 
+def test_a_malformed_game_pk_quarantines_the_slot_but_a_source_null_does_not():
+    # Codex plan r3 #2: a present game identity that cannot be typed must never read as an unrecorded game.
+    parsed = parse_pick_file("picks/2026-05-01.json", pick_json("2026-05-01", primary={"game_pk": "bad"}, dd={}))
+    assert [r["slot"] for r in parsed.rows] == ["double_down"]
+    (q,) = parsed.quarantined
+    assert (q["locator"], q["reason"], json.loads(q["record_raw_json"])["game_pk"]) == (
+        "slot=primary", "slot_bad_game_pk", "bad")
+    early = parse_pick_file("picks/2026-03-29.json", pick_json("2026-03-29", primary={"game_pk": None, "game_time": None}))
+    assert early.quarantined == [] and early.rows[0]["game_pk"] is None
+
+
+def test_pick_file_state_keeps_file_level_delivery_facts_when_no_slot_parses():
+    # Codex plan r3 #5: the file's own delivery fields stay readable when every slot is quarantined.
+    data = pick_json("2026-05-01", primary={"batter_id": "bad"}, notification_sent=True, notification_id="dm-1")
+    state = pick_file_state(data, parse_pick_file("picks/2026-05-01.json", data))
+    assert (state["slots"], state["complete"]) == (frozenset({"primary"}), False)
+    assert (state["file_fields"]["notification_sent"], state["file_fields"]["notification_id"]) == (True, "dm-1")
+    unreadable = b'{"date": "2026-05-01", "pick": {'
+    assert pick_file_state(unreadable, parse_pick_file("picks/2026-05-01.json", unreadable))["file_fields"] is None
+
+
 def test_non_json_and_truncated_files_are_quarantined():
     for data in (b"\x00\x05\x16\x07\x00\x02\x00\x00Mac OS X", b'{"date": "2026-05-01", "pick": {'):
         parsed = parse_pick_file("picks/2026-05-01.json", data)
@@ -742,6 +792,7 @@ def test_file_without_pick_object_is_quarantined_with_its_raw_document():
     parsed = parse_pick_file("picks/2026-05-01.json", dumps({"date": "2026-05-01"}))
     assert parsed.quarantined == [{"source_path": "picks/2026-05-01.json", "locator": "file", "reason": "no_pick_object",
                                    "record_raw_json": '{"date":"2026-05-01"}'}]
+    assert parse_pick_file("picks/2026-05-01.json", b"null").quarantined[0]["record_raw_json"] == "null"
 
 
 def test_archive_rows_carry_prefix_reason_and_time():
@@ -832,6 +883,10 @@ def parse_pick_file(rel_path: str, data: bytes, *, kind: str = "pick_file") -> P
         if not is_int(pick.get("batter_id")):
             out.quarantined.append(quarantine(rel_path, locator, "slot_missing_batter_id", raw=pick))
             continue
+        if pick.get("game_pk") is not None and not is_int(pick["game_pk"]):
+            # I13: a present game identity that cannot be typed is not an unrecorded (null) game.
+            out.quarantined.append(quarantine(rel_path, locator, "slot_bad_game_pk", raw=pick))
+            continue
         slot_values, absent, bad = take(pick, PICK_FIELDS, prefix=f"{key}.")
         slot_result, slot_bad = typed(slot_results.get(key), "str") if isinstance(slot_results, dict) else (None, False)
         out.rows.append({**base, **slot_values, "slot": slot, "locator": locator,
@@ -842,15 +897,17 @@ def parse_pick_file(rel_path: str, data: bytes, *, kind: str = "pick_file") -> P
 
 
 def pick_file_state(data: bytes, parsed: Parsed) -> dict:
-    """What a surviving pick file claims, independent of how much of it parsed (Codex plan r2 #4): the slots its
-    raw structure holds, and whether every one of them parsed into a usable row. Only a complete file can agree
-    with a decision (Interpretation I14)."""
+    """What a surviving pick file claims, independent of how much of it parsed (Codex plan r2 #4, r3 #5): the
+    slots its raw structure holds, whether every one of them parsed into a usable row, and its typed file-level
+    fields (delivery signals included), None when the file is not a readable object. Only a complete file can
+    agree with a decision (Interpretation I14)."""
     try:
         doc = load_json_bytes(data)
     except ValueError:
         doc = None
     slots = frozenset(slot for slot, key in SLOTS if isinstance(doc, dict) and doc.get(key) is not None)
-    return {"slots": slots, "complete": not parsed.quarantined and {r["slot"] for r in parsed.rows} == set(slots)}
+    return {"slots": slots, "complete": not parsed.quarantined and {r["slot"] for r in parsed.rows} == set(slots),
+            "file_fields": take(doc, FILE_FIELDS)[0] if isinstance(doc, dict) else None}
 
 
 def parse_archive(rel_path: str, data: bytes) -> Parsed:
@@ -871,7 +928,7 @@ def parse_archive(rel_path: str, data: bytes) -> Parsed:
 - [ ] **Step 5: Run to verify pass**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger/test_pick_files.py -q`
-Expected: `9 passed`.
+Expected: `11 passed`.
 
 - [ ] **Step 6: Commit**
 
@@ -898,7 +955,7 @@ git commit -m "feat(ledger): lossless pick-file, archive and repair-version pars
     - `objective_raw`, `objective`, `action_source_raw`, `action_source ∈ {mdp, heuristic, unknown}`
     - `{primary,double_down,second_candidate}_{batter_id,batter_name,team,game_pk,p_game_hit}`
     - `absent_fields`, `type_mismatch_fields`, `record_raw_json`
-    - Container types are checked before any membership test. A record failing the vendored acceptance is quarantined (`invalid_decision_record`), and so is a single/double decision whose chosen candidate lacks an int64 `batter_id` (`decision_candidate_missing_batter_id`). Both keep the raw record.
+    - Container types are checked before any membership test. A record failing the vendored acceptance is quarantined (`invalid_decision_record`), and so is a single/double decision whose chosen candidate lacks an int64 `batter_id` (`decision_candidate_missing_batter_id`) or has a present `game_pk` that is not one (`decision_candidate_bad_game_pk`). Each keeps the raw record.
   - `parse_scheduler_state(rel_path, data) -> Parsed`. One row, locator `file`:
     - typed `STATE_FIELDS`
     - `final_skip_candidate_present`, `skip_candidate_batter_id`, `skip_candidate_game_pk`
@@ -908,7 +965,7 @@ git commit -m "feat(ledger): lossless pick-file, archive and repair-version pars
     - typed line and slot fields
     - `source_kind="lineup_evolution"`
     - `record_raw_json` = the line
-- **Quarantine (lineup evolution):** invalid lines, non-object lines, lines without slots, non-object slots and slots without an int64 `batter_id` are quarantined at their own locators, each with its raw value.
+- **Quarantine (lineup evolution):** invalid lines, non-object lines, lines without slots, non-object slots, slots without an int64 `batter_id` and slots whose present `game_pk` is not one are quarantined at their own locators, each with its raw value.
 
 - [ ] **Step 1: Append builders** to `tests/scripts/season_ledger/builders.py`:
 
@@ -1003,6 +1060,12 @@ def test_invalid_decision_records_are_quarantined_not_crashed_on():
     parsed = parse_decision("picks/2026-08-10/decision.json", bad)
     assert parsed.rows == [] and parsed.quarantined[0]["reason"] == "decision_candidate_missing_batter_id"
     assert json.loads(parsed.quarantined[0]["record_raw_json"])["primary"]["batter_id"] == "101"
+    # Codex plan r3 #2: a present chosen game identity that cannot be typed quarantines too; a source null does not.
+    bad_game = decision_json("2026-08-10", action="single", primary=cand(101, "bad"))
+    assert parse_decision("picks/2026-08-10/decision.json", bad_game).quarantined[0]["reason"] == (
+        "decision_candidate_bad_game_pk")
+    unrecorded = decision_json("2026-08-10", action="single", primary=cand(101, None))
+    assert parse_decision("picks/2026-08-10/decision.json", unrecorded).quarantined == []
 
 
 def test_decision_keeps_its_raw_record_and_absent_candidate_fields():
@@ -1032,14 +1095,15 @@ def test_lineup_evolution_rows_per_slot_and_every_bad_record_quarantined():
                                            {"batter_id": 202, "game_pk": 5002, "team": "NYY"})])
     extra = (b"{not json\n" + dumps({"date": "2026-05-01", "primary": "oops", "double_down": None}) + b"\n"
              + dumps({"date": "2026-05-01", "primary": None}) + b"\n"
-             + dumps({"date": "2026-05-01", "primary": {"batter_id": None, "game_pk": 5001}}) + b"\n")
+             + dumps({"date": "2026-05-01", "primary": {"batter_id": None, "game_pk": 5001}}) + b"\n"
+             + dumps({"date": "2026-05-01", "primary": {"batter_id": 101, "game_pk": "bad"}}) + b"\n")
     parsed = parse_lineup_evolution(EVO, good + extra)
     assert [(r["locator"], r["batter_id"], r["source_kind"]) for r in parsed.rows] == [
         ("line=1/slot=primary", 101, "lineup_evolution"), ("line=2/slot=primary", 111, "lineup_evolution"),
         ("line=2/slot=double_down", 202, "lineup_evolution")]
     assert [(q["locator"], q["reason"]) for q in parsed.quarantined] == [
         ("line=3", "invalid_json_line"), ("line=4/slot=primary", "slot_not_object"), ("line=5", "line_without_slots"),
-        ("line=6/slot=primary", "slot_missing_batter_id")]
+        ("line=6/slot=primary", "slot_missing_batter_id"), ("line=7/slot=primary", "slot_bad_game_pk")]
     assert json.loads(parsed.quarantined[0]["record_raw_json"]) == "{not json"      # unparsed text kept as a string
 ```
 
@@ -1102,9 +1166,12 @@ def parse_decision(rel_path: str, data: bytes) -> Parsed:
             or not isinstance(doc.get("scoreable"), bool) or "date" not in doc):
         return Parsed([], [quarantine(rel_path, "file", "invalid_decision_record", raw=doc)])
     named = ("primary", "double_down") if doc["action"] == "double" else ("primary",) if doc["action"] == "single" else ()
-    if any(not isinstance(doc.get(n), dict) or not is_int(doc[n].get("batter_id")) for n in named):
-        # I13: a decision that names a selection must name a usable batter identity.
-        return Parsed([], [quarantine(rel_path, "file", "decision_candidate_missing_batter_id", raw=doc)])
+    for n in named:   # I13: a decision that names a selection must name a usable identity (a null game = unrecorded)
+        chosen = doc.get(n)
+        if not isinstance(chosen, dict) or not is_int(chosen.get("batter_id")):
+            return Parsed([], [quarantine(rel_path, "file", "decision_candidate_missing_batter_id", raw=doc)])
+        if chosen.get("game_pk") is not None and not is_int(chosen["game_pk"]):
+            return Parsed([], [quarantine(rel_path, "file", "decision_candidate_bad_game_pk", raw=doc)])
     values, absent, bad = take(doc, DECISION_FIELDS)
     objective_raw, source_raw = values.pop("objective"), values.pop("source")
     row = {"obs_id": obs_id(rel_path, "file", content), "locator": "file", "source_kind": "decision",
@@ -1180,6 +1247,9 @@ def parse_lineup_evolution(rel_path: str, data: bytes) -> Parsed:
             if not isinstance(s, dict) or not is_int(s.get("batter_id")):
                 reason = "slot_not_object" if not isinstance(s, dict) else "slot_missing_batter_id"
                 out.quarantined.append(quarantine(rel_path, locator, reason, raw=s))
+                continue
+            if s.get("game_pk") is not None and not is_int(s["game_pk"]):
+                out.quarantined.append(quarantine(rel_path, locator, "slot_bad_game_pk", raw=s))
                 continue
             values, absent, bad = take(s, EVOLUTION_FIELDS, prefix=f"{slot}.")
             out.rows.append({"obs_id": obs_id(rel_path, locator, content), "locator": locator,
@@ -2190,6 +2260,7 @@ git commit -m "feat(ledger): closed outcome vocabulary, slot comparison, single-
   - the production pick-file slot rows, and the file's `pick_file_state` (None when no pick file survives)
   - the scheduler-state row or None
   - `observations`: archive, manual- and repair-version rows and lineup-evolution rows
+  - `unusable`: the day-evidence kinds (decision, scheduler state, archives, lineup evolution) with a quarantined record for the date (I15)
 - **Produces:**
   - `selection_id(date, slot, batter_id, game_pk) -> "<date>|<slot>|<batter_id>|<game_pk>"`
   - `decision_names(decision, slot)`
@@ -2197,7 +2268,7 @@ git commit -m "feat(ledger): closed outcome vocabulary, slot comparison, single-
   - `delivery(*, decision_status, pick) -> (confirmed, basis, conflict)` (I4)
   - `commit_status(*, selection, slot, decision, file_pick, pick_agrees) -> (status, basis)` (I3/I14)
   - `history_status(thin, retained)` (I5)
-  - `day_rows(date, *, decision, pick_rows, pick_file, state, observations) -> list[dict]`. Rows carry `pick_view_action`, `pick_file_complete`, `scheduler_commit_flag` and `pick_policy_objective`, plus the pick, decision and timeline columns. A day with no decision whose surviving pick file has no usable slot is `unfinalized_day` / `pick_file_unparseable`. Task 10 fills the contest, outcome and eligibility columns.
+  - `day_rows(date, *, decision, pick_rows, pick_file, state, observations, unusable=frozenset()) -> list[dict]`. Rows carry `pick_view_action`, `pick_file_complete`, `scheduler_commit_flag` and `pick_policy_objective`, plus the pick, decision and timeline columns. A day with no decision whose surviving pick file has no usable slot is `unfinalized_day` / `pick_file_unparseable`. The I15 reasons are `decision_unusable`, `skip_decision_with_unreadable_pick_file`, `skip_decision_with_unusable_state` and `unusable_evidence_only`. Task 10 fills the contest, outcome and eligibility columns.
 
 - [ ] **Step 1: Write the failing tests** — `tests/scripts/season_ledger/test_rows.py`:
 
@@ -2237,9 +2308,9 @@ def archived(primary):
                                                                           "deferred_at": f"{D}T11:00:00-04:00"})).rows
 
 
-def rows(decision=None, pick=None, st=None, observations=()):
+def rows(decision=None, pick=None, st=None, observations=(), unusable=()):
     return day_rows(D, decision=decision, pick_rows=list(pick[0]) if pick else [], pick_file=pick[1] if pick else None,
-                    state=st, observations=list(observations))
+                    state=st, observations=list(observations), unusable=frozenset(unusable))
 
 
 def test_decision_double_gives_two_committed_selections():
@@ -2260,6 +2331,32 @@ def test_skip_decision_with_commit_evidence_is_not_a_skip():
     out = rows(decision=dec(action="skip", primary=cand(303, 7001)),
                pick=picks(pick_json(D, notification_sent=True, notification_id="dm-9")))
     assert [(r["row_kind"], r["reason"]) for r in out] == [("unfinalized_day", "skip_decision_with_commit_evidence")]
+
+
+def test_skip_decision_beside_an_unparseable_but_delivered_pick_file_is_not_a_skip():
+    # Codex plan r3 #5: a file-level delivery signal survives the loss of the file's only slot.
+    out = rows(decision=dec(action="skip", primary=cand(303, 7001)),
+               pick=picks(pick_json(D, primary={"batter_id": "bad"}, notification_sent=True, notification_id="dm-9")))
+    assert [(r["row_kind"], r["reason"]) for r in out] == [("unfinalized_day", "skip_decision_with_commit_evidence")]
+
+
+def test_a_skip_is_not_established_beside_unreadable_evidence():
+    skip = dec(action="skip", primary=cand(303, 7001))
+    assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, pick=picks(b'{"pick": {'))] == [
+        ("unfinalized_day", "skip_decision_with_unreadable_pick_file")]
+    assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, unusable={"scheduler_state"})] == [
+        ("unfinalized_day", "skip_decision_with_unusable_state")]
+    assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, pick=picks(pick_json(D)))] == [
+        ("skip_day", "decision_skip")]          # a readable, undelivered preview does not block a skip
+
+
+def test_unusable_evidence_is_never_absent_evidence():
+    # Codex plan r3 #5: a quarantined decision, or quarantined history alone, is not an unobserved day.
+    assert [(r["row_kind"], r["reason"]) for r in rows(pick=picks(pick_json(D)), unusable={"decision"})] == [
+        ("unfinalized_day", "decision_unusable")]
+    assert [(r["row_kind"], r["reason"]) for r in rows(unusable={"lineup_evolution"})] == [
+        ("unfinalized_day", "unusable_evidence_only")]
+    assert [(r["row_kind"], r["reason"]) for r in rows()] == [("unobserved_day", "no_evidence")]
 
 
 def test_scheduler_skip_candidate_alone_is_unfinalized_intent():
@@ -2370,6 +2467,16 @@ def test_known_incomplete_needs_a_version_whose_content_is_gone():
     assert rows(decision=d, pick=p, observations=kept)[0]["history_status"] == "unknown"
     # A failed append for an earlier selection followed by an overwrite leaves only consistent evidence.
     assert rows(decision=d, pick=p, observations=evo([(A, None)]))[0]["history_status"] == "unknown"
+
+
+def test_known_incomplete_is_withheld_while_a_record_that_might_hold_the_version_is_unusable():
+    d = dec(action="single", primary=cand(101, 5001))
+    lost = evo([({"batter_id": 111, "game_pk": 5011}, None), (A, None)])
+    assert rows(decision=d, pick=picks(pick_json(D)), observations=lost)[0]["history_status"] == "known_incomplete"
+    assert rows(decision=d, pick=picks(pick_json(D)), observations=lost,
+                unusable={"archive"})[0]["history_status"] == "unknown"
+    partial = picks(pick_json(D, dd={"batter_id": "bad"}))
+    assert rows(decision=d, pick=partial, observations=lost)[0]["history_status"] == "unknown"
 
 
 def test_discarded_double_down_preview_marks_the_single_known_incomplete():
@@ -2555,19 +2662,24 @@ def _selection_row(date, slot, selection, *, name, team, p, decision, pick, pick
 
 
 def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_file: dict | None,
-             state: dict | None, observations: list[dict]) -> list[dict]:
+             state: dict | None, observations: list[dict], unusable: frozenset = frozenset()) -> list[dict]:
     """Spec §5 table. Declined skip candidates, scheduler intent, archives and lineup-evolution entries never
     become selections. `pick_file` is None when no pick file survives, else its `pick_file_state`. A decision
     and a surviving pick file agree only when the file parsed completely and names the identical selection set
-    (Interpretation I14); only then are the file's facts attached."""
+    (Interpretation I14); only then are the file's facts attached. `unusable` names the other day-evidence kinds
+    present for the date but quarantined: unknown content never reads as absent evidence, never establishes a
+    skip, and withholds `known_incomplete` (Codex plan r3 #5)."""
     thin = [o for o in observations if o["source_kind"] == "lineup_evolution"]
     retained = [*pick_rows, *(o for o in observations if o["source_kind"] in ARCHIVE_KINDS)]
-    history = history_status(thin, retained)
+    unreadable_versions = bool(unusable & ARCHIVE_KINDS) or (pick_file is not None and not pick_file["complete"])
+    history = "unknown" if unreadable_versions else history_status(thin, retained)
     by_slot = {r["slot"]: r for r in pick_rows}
     file_pick = pick_rows[0] if pick_rows else None
     complete = None if pick_file is None else pick_file["complete"]
     pick_action = None if not pick_file or not pick_file["slots"] else (
         "double" if "double_down" in pick_file["slots"] else "single")
+    if "decision" in unusable:
+        return [_day_row(date, "unfinalized_day", "decision_unusable", state=state)]
     if decision is not None and decision["action"] in SELECTION_ACTIONS:
         slots = ("primary", "double_down") if decision["action"] == "double" else ("primary",)
         chosen = [(slot, decision_names(decision, slot)) for slot in slots]
@@ -2583,8 +2695,15 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
     if decision is not None:   # action == "skip"
         if decision["scoreable"] is not False:
             return [_day_row(date, "unfinalized_day", "skip_decision_unexpected_shape", decision=decision, state=state)]
-        if (state is not None and state["committed_pick_written"]) or any(pick_delivery(p)[0] for p in pick_rows):
+        file_fields = pick_file["file_fields"] if pick_file is not None else None
+        if ((state is not None and state["committed_pick_written"]) or any(pick_delivery(p)[0] for p in pick_rows)
+                or (file_fields is not None and pick_delivery(file_fields)[0])):
             return [_day_row(date, "unfinalized_day", "skip_decision_with_commit_evidence", decision=decision, state=state)]
+        if pick_file is not None and file_fields is None:
+            return [_day_row(date, "unfinalized_day", "skip_decision_with_unreadable_pick_file", decision=decision,
+                             state=state)]
+        if "scheduler_state" in unusable:
+            return [_day_row(date, "unfinalized_day", "skip_decision_with_unusable_state", decision=decision, state=state)]
         return [_day_row(date, "skip_day", "decision_skip", decision=decision, state=state)]
     if pick_rows:
         return [_selection_row(date, p["slot"], (p["batter_id"], p["game_pk"]), name=p["batter_name"], team=p["team"],
@@ -2603,6 +2722,8 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
         reason = "lineup_evolution_only"
     elif state is not None:
         reason = "scheduler_ran_no_record"
+    elif unusable:
+        reason = "unusable_evidence_only"
     else:
         return [_day_row(date, "unobserved_day", "no_evidence")]
     return [_day_row(date, "unfinalized_day", reason, state=state)]
@@ -2611,7 +2732,7 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
 - [ ] **Step 4: Run to verify pass**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger/test_rows.py -q`
-Expected: `23 passed`.
+Expected: `27 passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -2634,19 +2755,20 @@ git commit -m "feat(ledger): day status, row kinds, set-level commit and history
   - `route(rel_path)` and `exclusion_reason(rel_path)`
   - `PARSERS`, `KIND_DISPOSITION`, `DISPOSITIONS`
   - `account(files, routed, parsed) -> list[dict]`, with rows `{source_path, locator, obs_id, kind, state, reason, disposition, content_sha256, fields_json, record_raw_json}`; `disposition` is filled later by `assign_dispositions(accounting, dispositions)`
-  - `required_locators(kind, data) -> set[str]`: every record the raw bytes hold, derived without the parsers
-  - `census_problems(files, routed, accounting) -> list[(problem, source_path, locator)]`
+  - `required_locators(kind, data) -> set[str]`: every record the raw bytes hold, derived without the parsers. It is `{"file"}` for a file that is itself one record or whose container cannot be read, and the empty set only for a readable empty container.
+  - `census_problems(files, routed, accounting) -> list[(problem, source_path, locator)]`, over every bundle path
   - `InvariantError`
-  - `check_sources(files, routed, accounting)`: the source-phase checks, run before any ledger row exists
-  - `check_invariants(accounting, matches, ledger_rows, membership, season_dates)`: the output-phase checks
+  - `check_sources(files, routed, accounting)`: the source-phase checks, run before any ledger row exists; they include each occurrence's identity recomputed from (path, locator, content hash)
+  - `check_invariants(files, accounting, matches, ledger_rows, membership, summary, season_dates)`: the output-phase checks, including recipe membership recomputed against `membership_slots(files)`
 - **Produces (recipes):**
   - `RULES`, `RECIPE_KINDS`, `FILE_SETS`, `GRADED`
-  - `rules_fingerprint() -> str`, over the rule data and the source of every function named in `_RECIPE_CODE`
+  - `recipe_closure() -> dict` (everything the evaluator reads) and `rules_fingerprint() -> str` (the rule table plus that closure)
   - `slot_value(doc, slot, grading)`, `counts(value, grading)`, `slot_inclusion(doc, primary_grading, leg_grading)`
   - `evaluate_rules(files, rules, mtimes, *, frozen_at) -> (summary, membership)`; each membership row names its record with `recipe_slot_key` (`<path>#<slot>`)
+  - `membership_slots(files) -> set[(source_path, slot)]`: every slot of every universe record
   - `recipe_labels(summary)`
 
-**The candidate rules and their evaluator are fixed here, before any real count (spec §8). They are pinned by `rules_fingerprint() == eadce48f…`, which hashes the rule data and the exact source of every recipe function and of the JSON decoder, and by a grading truth table over every label shape.**
+**The candidate rules and their evaluator are fixed here, before any real count (spec §8). They are pinned by `rules_fingerprint() == 5e9d74f2…`, by a pinned list of the closure's names, and by a grading truth table over every label shape. The fingerprint hashes the rule table and everything the evaluator reads (`recipe_closure`): every repo-local function reachable from `evaluate_rules` and `recipe_labels`, regexes with their flags, the time zone and tables; any value of an unknown kind fails closed.**
 - **Membership universe:** every file under `picks/` whose top level has a `pick` object, any suffix, AppleDouble excluded. Every rule gets a row per universe slot, with `exclusion_reason ∈ {None, not_in_file_set, outside_window, value_not_counted}`. Task 10 links each row to the occurrence that accounts for its record: the slot, or the excluded or quarantined file that holds it.
 - **Windows:** the date in the file name, falling back to the JSON `date`.
 - **File sets:**
@@ -2679,12 +2801,36 @@ import pytest
 from scripts.audit.season_ledger.ids import Parsed
 from scripts.audit.season_ledger.reconcile import (PARSERS, RULES, InvariantError, account, assign_dispositions,
                                                    census_problems, check_invariants, check_sources, evaluate_rules,
-                                                   exclusion_reason, recipe_labels, route, rules_fingerprint,
-                                                   slot_inclusion)
-from tests.scripts.season_ledger.builders import contest_line, pick_json, rnd, slot
+                                                   exclusion_reason, recipe_closure, recipe_labels, route,
+                                                   rules_fingerprint, slot_inclusion)
+from tests.scripts.season_ledger.builders import cand, contest_line, decision_json, dumps, gz, pick_json, rnd, slot
 
 # The recipe candidates frozen by this plan (Task 9 text). Recompute only by editing the plan before the real run.
-RULES_SHA256 = "eadce48f7fbce5346cf9214289f8c079f1d7ccb907a50253a4c133e97c2ffc1d"
+RULES_SHA256 = "5e9d74f2f9c3093d66bc7c9ab0a7028e5fb361cdb46bbb1b368cd71e7f297b3f"
+# Everything the recipe evaluation reads (reconcile.recipe_closure): a new dependency must show up here.
+RECIPE_CLOSURE = [
+    "callable:datetime.datetime",
+    "module:gzip",
+    "module:json",
+    "module:re",
+    "module:zlib",
+    "scripts.audit.season_ledger.ids.load_json_bytes",
+    "scripts.audit.season_ledger.reconcile.FILE_SETS",
+    "scripts.audit.season_ledger.reconcile.GRADED",
+    "scripts.audit.season_ledger.reconcile.RECIPE_KINDS",
+    "scripts.audit.season_ledger.reconcile._APPLEDOUBLE",
+    "scripts.audit.season_ledger.reconcile._ET",
+    "scripts.audit.season_ledger.reconcile._FILE_DATE",
+    "scripts.audit.season_ledger.reconcile._doc",
+    "scripts.audit.season_ledger.reconcile._mtime_after",
+    "scripts.audit.season_ledger.reconcile._natural",
+    "scripts.audit.season_ledger.reconcile._universe",
+    "scripts.audit.season_ledger.reconcile.counts",
+    "scripts.audit.season_ledger.reconcile.evaluate_rules",
+    "scripts.audit.season_ledger.reconcile.recipe_labels",
+    "scripts.audit.season_ledger.reconcile.slot_inclusion",
+    "scripts.audit.season_ledger.reconcile.slot_value",
+]
 
 
 @pytest.mark.parametrize("path,kind", [
@@ -2787,7 +2933,8 @@ def _day(date, kind="unobserved_day", **refs):
 
 
 def test_source_checks_catch_unaccounted_and_duplicated_files():
-    files, acc = {"a": b"1", "b": b"2"}, _acc(("a", "file"), ("b", "file"))
+    files = {"a": b"1", "b": b"2"}
+    acc = account(files, {}, {})
     check_sources(files, {}, acc)
     with pytest.raises(InvariantError, match="not accounted"):
         check_sources(files, {}, acc[:1])
@@ -2800,32 +2947,111 @@ def test_source_checks_catch_unaccounted_and_duplicated_files():
         check_sources(pf, routed, [a for a in full if a["locator"] != "slot=double_down"])
 
 
+def test_source_checks_reject_the_codex_r3_census_probes():
+    # Codex plan r3 #1: an empty single-record parse, a record relabelled missing, a row beneath an excluded path and
+    # a forged occurrence id must each fail before any ledger row exists.
+    dec_rel, contest_rel = "picks/2026-08-10/decision.json", "picks/account_state/contest_ledger.jsonl"
+    shadow_rel, manual_rel = "picks/2026-08-10.shadow.json", "picks/archive/2026-08-10.json.postponed"
+    files = {dec_rel: decision_json("2026-08-10", action="single", primary=cand(101, 5001)),
+             contest_rel: (contest_line("2026-08-21T14:30:00Z", [rnd(971, "hit", 8, 2, [slot(1928, 2513, "hit")])])
+                           + "\n").encode(),
+             shadow_rel: pick_json("2026-08-10"), manual_rel: pick_json("2026-08-10", dd={})}
+    routed = {rel: route(rel) for rel in files if route(rel)}
+    parsed = _parse(files, routed)
+    good = account(files, routed, parsed)
+    check_sources(files, routed, good)
+    with pytest.raises(InvariantError, match="exclusion_over_records"):
+        check_sources(files, routed, account(files, routed, {**parsed, dec_rel: Parsed()}))
+    relabelled = [dict(a, state="declared_missing", reason="declared_missing")
+                  if (a["source_path"], a["locator"]) == (contest_rel, "line=1") else a for a in good]
+    with pytest.raises(InvariantError, match="declared_missing_over_records"):
+        check_sources(files, routed, relabelled)
+    shadow = next(a for a in good if a["source_path"] == shadow_rel)
+    with pytest.raises(InvariantError, match="file_accounting_shape"):
+        check_sources(files, routed, good + [dict(shadow, locator="slot=phantom")])
+    primary_id = next(a["obs_id"] for a in good if (a["source_path"], a["locator"]) == (manual_rel, "slot=primary"))
+    forged = [dict(a, obs_id=primary_id) if (a["source_path"], a["locator"]) == (manual_rel, "slot=double_down")
+              else a for a in good]
+    with pytest.raises(InvariantError, match="identity does not match"):
+        check_sources(files, routed, forged)
+
+
+def test_only_a_readable_empty_container_is_a_file_without_records():
+    empty, unreadable = "static/units/20260927T230002Z.json.gz", "static/units/20260926T230002Z.json"
+    files = {empty: gz(dumps({"units": []})), unreadable: dumps({"error": "x"})}
+    routed = {empty: "units", unreadable: "units"}
+    parsed = _parse(files, routed)
+    acc = account(files, routed, parsed)
+    assert {(a["source_path"], a["state"], a["reason"]) for a in acc} == {
+        (empty, "excluded", "no_records"), (unreadable, "quarantined", "missing_units_list")}
+    check_sources(files, routed, acc)
+    with pytest.raises(InvariantError, match="exclusion_over_records"):
+        check_sources(files, routed, account(files, routed, {**parsed, unreadable: Parsed()}))
+
+
+def _link(membership, accounting, ledger_rows):
+    """The join the compiler performs (Task 10), written out plainly for these tests."""
+    by_loc = {(a["source_path"], a["locator"]): a for a in accounting}
+    canonical = {r["pick_obs_id"]: r for r in ledger_rows if r.get("pick_obs_id")}
+    out = []
+    for m in membership:
+        src = by_loc.get((m["source_path"], f"slot={m['slot']}")) or by_loc[(m["source_path"], "file")]
+        link = canonical.get(src["obs_id"])
+        out.append(dict(m, source_obs_id=src["obs_id"], source_state=src["state"], source_reason=src["reason"],
+                        occurrence_disposition=src["disposition"], selection_id=link["selection_id"] if link else None,
+                        canonical_bts_outcome=link.get("bts_outcome") if link else None))
+    return out
+
+
+def test_membership_checks_prove_the_join_the_cardinality_and_the_totals():
+    # Codex plan r3 #3: a real occurrence id is not enough — it must be the right one, every rule must list every
+    # universe slot exactly once, and the included rows must add up to the reported totals.
+    prod, shadow = "picks/2026-08-20.json", "picks/2026-08-20.shadow.json"
+    files = {prod: pick_json("2026-08-20", result="hit"), shadow: pick_json("2026-08-20", result="hit")}
+    routed = {prod: "pick_file"}
+    acc = account(files, routed, _parse(files, routed))
+    assign_dispositions(acc, {a["obs_id"]: "not_selected" for a in acc if a["kind"] == "pick_file"})
+    summary, membership = evaluate_rules(files, RULES, {}, frozen_at="t")
+    linked = _link(membership, acc, [])
+    check_invariants(files, acc, [], [], linked, summary, [])
+    shadow_file = next(a for a in acc if a["source_path"] == shadow)
+    wrong = [dict(m, source_obs_id=shadow_file["obs_id"], source_state="excluded", source_reason=shadow_file["reason"],
+                  occurrence_disposition=None) if m["source_path"] == prod else m for m in linked]
+    with pytest.raises(InvariantError, match="not linked to the occurrence"):
+        check_invariants(files, acc, [], [], wrong, summary, [])
+    with pytest.raises(InvariantError, match="exactly once"):
+        check_invariants(files, acc, [], [], linked[1:], summary, [])
+    with pytest.raises(InvariantError, match="exactly once"):
+        check_invariants(files, acc, [], [], linked + linked[:1], summary, [])
+    inflated = [dict(s, primaries=s["primaries"] + 1) if s["rule_id"] == "S1" else s for s in summary]
+    with pytest.raises(InvariantError, match="add up"):
+        check_invariants(files, acc, [], [], linked, inflated, [])
+
+
 def test_output_checks_catch_bad_dispositions_references_joins_links_and_days():
     days, ok = ["2026-05-01"], [_day("2026-05-01")]
     acc = _acc(("a", "file")) + _acc(("d", "file"), kind="decision", disposition="canonical_decision")
-    check_invariants(acc, [], [_day("2026-05-01", decision_obs_id="o:d:file")], [], days)
+    check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:d:file")], [], [], days)
     with pytest.raises(InvariantError, match="without a disposition"):
-        check_invariants([dict(acc[0], disposition=None)], [], ok, [], days)
+        check_invariants({}, [dict(acc[0], disposition=None)], [], ok, [], [], days)
     with pytest.raises(InvariantError, match="unknown disposition"):
-        check_invariants([dict(acc[0], disposition="whatever")], [], ok, [], days)
+        check_invariants({}, [dict(acc[0], disposition="whatever")], [], ok, [], [], days)
     with pytest.raises(InvariantError, match="is not an emitted decision"):
-        check_invariants(acc, [], [_day("2026-05-01", decision_obs_id="o:a:file")], [], days)   # wrong kind
+        check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:a:file")], [], [], days)   # wrong kind
     with pytest.raises(InvariantError, match="referenced by no ledger row"):
-        check_invariants(acc, [], ok, [], days)
+        check_invariants({}, acc, [], ok, [], [], days)
     canonical = _acc(("p", "slot=primary"), disposition="canonical_selection")
     with pytest.raises(InvariantError, match="exactly one ledger row"):
-        check_invariants(canonical, [], ok, [], days)
-    with pytest.raises(InvariantError, match="without a source occurrence"):
-        check_invariants(_acc(("a", "file")), [], ok, [{"recipe_slot_key": "x#primary", "source_obs_id": "nope"}], days)
+        check_invariants({}, canonical, [], ok, [], [], days)
     two = [{"selection_id": "s1", "round_id": 1, "unit_id": 1, "player_id": 1, "match": "inferred"},
            {"selection_id": "s1", "round_id": 1, "unit_id": 2, "player_id": 1, "match": "inferred"}]
     with pytest.raises(InvariantError, match="more than one contest slot"):
-        check_invariants(_acc(("a", "file")), two, ok, [], days)
+        check_invariants({}, _acc(("a", "file")), two, ok, [], [], days)
     with pytest.raises(InvariantError, match="no ledger row"):
-        check_invariants(_acc(("a", "file")), [], [], [], days)
+        check_invariants({}, _acc(("a", "file")), [], [], [], [], days)
     sel = {"row_id": "2026-05-01|primary|1|2", "row_kind": "selection", "date": "2026-05-01", "slot": "primary"}
     with pytest.raises(InvariantError, match="mixes"):
-        check_invariants(_acc(("a", "file")), [], [_day("2026-05-01"), sel], [], days)
+        check_invariants({}, _acc(("a", "file")), [], [_day("2026-05-01"), sel], [], [], days)
 
 
 def _rule(files, grading, published):
@@ -2853,11 +3079,23 @@ def test_recipe_labels_follow_the_spec():
 
 
 def test_candidate_rules_and_their_evaluator_are_fingerprinted():
-    # Codex plan r2 #6: the digest binds the evaluator's exact source (the shared JSON decoder included) as well
-    # as the rule table.
+    # Codex plan r2 #6 and r3 #4: the digest binds the rule table and everything the evaluator reads — the source of
+    # every repo-local function reachable from the recipe roots and every configuration value, regex flags included.
     assert rules_fingerprint() == RULES_SHA256
+    assert sorted(recipe_closure()) == RECIPE_CLOSURE
     assert sorted(RULES, key=lambda k: (k[0], int(k[1:]))) == [f"S{i}" for i in range(1, 9)] + [
         f"T{i}" for i in range(1, 25)]
+
+
+def test_the_fingerprint_binds_regex_flags_and_fails_closed_on_unknown_configuration(monkeypatch):
+    import re
+
+    from scripts.audit.season_ledger import reconcile
+    monkeypatch.setitem(reconcile.FILE_SETS, "F1", re.compile(reconcile.FILE_SETS["F1"].pattern, re.IGNORECASE))
+    assert rules_fingerprint() != RULES_SHA256
+    monkeypatch.setattr(reconcile, "GRADED", object())
+    with pytest.raises(TypeError, match="cannot bind"):
+        rules_fingerprint()
 
 
 def test_grading_truth_table_covers_every_label_shape():
@@ -2921,6 +3159,7 @@ import inspect
 import itertools
 import json
 import re
+import types
 from collections import Counter
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -3044,11 +3283,12 @@ def _doc(data: bytes):
         return None
 
 
-def _jsonl(data: bytes) -> list[tuple[int, object]]:
+def _jsonl(data: bytes) -> list[tuple[int, object]] | None:
+    """(line number, parsed value or None) for every non-blank line; None when the bytes are not UTF-8."""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
-        return []
+        return None
     out = []
     for n, line in enumerate(text.splitlines(), 1):
         if line.strip():
@@ -3061,15 +3301,20 @@ def _jsonl(data: bytes) -> list[tuple[int, object]]:
 
 def required_locators(kind: str, data: bytes) -> set[str]:
     """An independent structural census of the records one file holds, walked from its containers without type
-    checks. Every one must be accounted for — emitted or quarantined — or covered by a quarantined ancestor;
-    only a file whose census finds no record at all may be excluded as `no_records` (spec §8)."""
-    required: set[str] = set()
+    checks (spec §8; Codex plan r3 #1). A file that is itself one record (a decision, a scheduler state, a pick
+    file without slots), or whose container cannot be read, holds exactly one record: `file`. Only a readable
+    container with no entries holds none — the one case `no_records` may describe."""
     if kind in _PICK_LIKE:
         doc = _doc(data)
-        required = {f"slot={slot}" for slot, key in (("primary", "pick"), ("double_down", "double_down"))
-                    if isinstance(doc, dict) and doc.get(key) is not None}
-    elif kind in ("lineup_evolution", "saver_transitions", "contest_ledger"):
-        for n, doc in _jsonl(data):
+        slots = {f"slot={slot}" for slot, key in (("primary", "pick"), ("double_down", "double_down"))
+                 if isinstance(doc, dict) and doc.get(key) is not None}
+        return slots or {"file"}
+    required: set[str] = set()
+    if kind in ("lineup_evolution", "saver_transitions", "contest_ledger"):
+        lines = _jsonl(data)
+        if lines is None:
+            return {"file"}
+        for n, doc in lines:
             if kind == "lineup_evolution":
                 slots = {f"line={n}/slot={s}" for s in ("primary", "double_down")
                          if isinstance(doc, dict) and doc.get(s) is not None}
@@ -3082,18 +3327,22 @@ def required_locators(kind: str, data: bytes) -> set[str]:
                     slots = rnd.get("roundPredictions") if isinstance(rnd, dict) else None
                     if isinstance(slots, list):
                         required |= {f"line={n}/round={i}/slot={j}" for j in range(len(slots))}
-    elif kind in _ITEM_KEYS:
+        return required
+    if kind in _ITEM_KEYS:
         doc = _doc(data)
         items = doc.get(_ITEM_KEYS[kind]) if isinstance(doc, dict) else None
-        required = {f"item={i}" for i in range(len(items))} if isinstance(items, list) else set()
-    elif kind == "schedule":
+        return {f"item={i}" for i in range(len(items))} if isinstance(items, list) else {"file"}
+    if kind == "schedule":
         doc = _doc(data)
         dates = doc.get("dates") if isinstance(doc, dict) else None
-        for i, day in enumerate(dates if isinstance(dates, list) else []):
+        if not isinstance(dates, list):
+            return {"file"}
+        for i, day in enumerate(dates):
             games = day.get("games") if isinstance(day, dict) else None
             required |= ({f"date={i}/game={j}" for j in range(len(games))} if isinstance(games, list) and games
                          else {f"date={i}"})
-    return required or {"file"}
+        return required
+    return {"file"}
 
 
 def _ancestors(locator: str) -> list[str]:
@@ -3103,26 +3352,37 @@ def _ancestors(locator: str) -> list[str]:
     return ["file"] + ["/".join(parts[:k]) for k in range(1, len(parts))]
 
 
+_OVER_RECORDS = {"excluded": "exclusion_over_records", "declared_missing": "declared_missing_over_records"}
+
+
 def census_problems(files: dict, routed: dict[str, str], accounting: list[dict]) -> list[tuple[str, str, str]]:
-    """(problem, source_path, locator) for every breach of exactly-once accounting (Codex plan r2 #1): an
-    occurrence for a path outside the bundle; a locator the census does not know; an emitted row that is not a
-    record; a `no_records` exclusion over a file that has records; a required record covered zero times or more
-    than once (itself plus a quarantined ancestor)."""
-    by_file: dict[str, dict[str, dict]] = {}
+    """(problem, source_path, locator) for every breach of exactly-once accounting (Codex plan r2 #1, r3 #1), over
+    EVERY bundle path. A declared-missing input, an excluded path and a readable empty container each have exactly
+    one `file` row in that state, with its reason. Every other file accounts for each census record exactly once —
+    emitted or quarantined at its locator, or under one quarantined ancestor — with no row that is not a record or
+    an ancestor, no row in any other state, and no emitted row that is not a record."""
+    by_file: dict[str, list[dict]] = {}
     for a in accounting:
-        by_file.setdefault(a["source_path"], {})[a["locator"]] = a
+        by_file.setdefault(a["source_path"], []).append(a)
     problems = [("source_not_in_bundle", rel, "file") for rel in sorted(set(by_file) - set(files))]
-    for rel, kind in sorted(routed.items()):
-        required = required_locators(kind, files[rel])
+    for rel in sorted(files):
+        rows, data, kind = by_file.get(rel, []), files[rel], routed.get(rel)
+        required = set() if data is None or kind is None else required_locators(kind, data)
+        if not required:
+            want = (("declared_missing", "declared_missing") if data is None else
+                    ("excluded", exclusion_reason(rel)) if kind is None else ("excluded", "no_records"))
+            if [(a["locator"], a["state"], a["reason"]) for a in rows] != [("file", *want)]:
+                problems.append(("file_accounting_shape", rel, "file"))
+            continue
         allowed = required | {anc for loc in required for anc in _ancestors(loc)}
-        accounted = by_file.get(rel, {})
+        accounted = {a["locator"]: a for a in rows}
         for loc, a in sorted(accounted.items()):
             if loc not in allowed:
                 problems.append(("phantom_locator", rel, loc))
+            elif a["state"] not in ("emitted", "quarantined"):
+                problems.append((_OVER_RECORDS.get(a["state"], "unknown_state"), rel, loc))
             elif a["state"] == "emitted" and loc not in required:
                 problems.append(("emitted_off_record", rel, loc))
-            elif a["state"] == "excluded" and not (loc == "file" and required == {"file"}):
-                problems.append(("exclusion_over_records", rel, loc))
         for loc in sorted(required):
             covers = (loc in accounted) + sum(accounted.get(anc, {}).get("state") == "quarantined"
                                               for anc in _ancestors(loc))
@@ -3137,7 +3397,9 @@ class InvariantError(Exception):
 
 def check_sources(files: dict, routed: dict[str, str], accounting: list[dict]) -> None:
     """Source-phase build failures, run before any canonical row exists: an unaccounted file, a duplicated
-    occurrence, or any census problem."""
+    occurrence, any census problem, or an occurrence whose identity does not match its source — its obs_id
+    recomputed from (path, locator, content hash), its content hash or its kind (Codex plan r3 #1). Recomputed ids
+    are also unique, because (path, locator) pairs are."""
     missing = sorted(set(files) - {a["source_path"] for a in accounting})
     if missing:
         raise InvariantError(f"files not accounted: {missing[:5]}")
@@ -3147,18 +3409,26 @@ def check_sources(files: dict, routed: dict[str, str], accounting: list[dict]) -
     problems = census_problems(files, routed, accounting)
     if problems:
         raise InvariantError(f"census: {problems[:5]}")
+    for a in accounting:
+        data = files[a["source_path"]]
+        sha = None if data is None else sha256_hex(data)
+        want = (obs_id(a["source_path"], a["locator"], "missing" if sha is None else sha), sha, routed.get(a["source_path"]))
+        if (a["obs_id"], a["content_sha256"], a["kind"]) != want:
+            raise InvariantError(f"occurrence identity does not match its source: {a['source_path']} {a['locator']}")
 
 
 _REF_KINDS = {"pick_obs_id": "pick_file", "pick_view_obs_id": "pick_file", "decision_obs_id": "decision",
               "state_obs_id": "scheduler_state", "contest_obs_id": "contest_ledger"}
 
 
-def check_invariants(accounting: list[dict], matches: list[dict], ledger_rows: list[dict], membership: list[dict],
-                     season_dates: list[str]) -> None:
+def check_invariants(files: dict, accounting: list[dict], matches: list[dict], ledger_rows: list[dict],
+                     membership: list[dict], summary: list[dict], season_dates: list[str]) -> None:
     """Output-phase build failures (spec §8): an undisposed or unknown disposition; a ledger reference to an
     occurrence that was not emitted or is of the wrong kind; a canonical disposition no ledger row references;
-    a recipe row whose source occurrence does not exist; a contest slot identity twice; a selection linked to
-    two contest slots; duplicate row ids; a malformed season day."""
+    recipe membership that does not list every rule × universe slot exactly once, does not add up to the reported
+    totals, or links a row to anything but the occurrence that accounts for its record (Codex plan r3 #3); a
+    contest slot identity twice; a selection linked to two contest slots; duplicate row ids; a malformed season
+    day."""
     undisposed = [(a["source_path"], a["locator"]) for a in accounting
                   if a["state"] == "emitted" and not a["disposition"]]
     if undisposed:
@@ -3181,10 +3451,24 @@ def check_invariants(accounting: list[dict], matches: list[dict], ledger_rows: l
             raise InvariantError(f"canonical selection {a['obs_id']} is not referenced by exactly one ledger row")
         if a["disposition"] == "canonical_decision" and not referenced[("decision_obs_id", a["obs_id"])]:
             raise InvariantError(f"canonical decision {a['obs_id']} is referenced by no ledger row")
-    known = {a["obs_id"] for a in accounting}
-    dangling = [m["recipe_slot_key"] for m in membership if m.get("source_obs_id") not in known]
-    if dangling:
-        raise InvariantError(f"recipe rows without a source occurrence: {dangling[:5]}")
+    keys = Counter((m["rule_id"], m["source_path"], m["slot"]) for m in membership)
+    if set(keys) != {(s["rule_id"], rel, slot) for s in summary for rel, slot in membership_slots(files)} \
+            or any(n > 1 for n in keys.values()):
+        raise InvariantError("recipe membership does not list every rule and universe slot exactly once")
+    for s in summary:
+        included = [m["slot"] for m in membership if m["rule_id"] == s["rule_id"] and m["included"]]
+        if (included.count("primary"), included.count("double_down")) != (s["primaries"], s["legs"]):
+            raise InvariantError(f"recipe {s['rule_id']} membership does not add up to its totals")
+    by_locator = {(a["source_path"], a["locator"]): a for a in accounting}
+    canonical = {r["pick_obs_id"]: r for r in ledger_rows if r.get("pick_obs_id")}
+    for m in membership:
+        source = by_locator.get((m["source_path"], f"slot={m['slot']}")) or by_locator.get((m["source_path"], "file"))
+        link = canonical.get(source["obs_id"]) if source else None
+        got = (m["source_obs_id"], m["source_state"], m["source_reason"], m["occurrence_disposition"],
+               m["selection_id"], m["canonical_bts_outcome"])
+        if source is None or got != (source["obs_id"], source["state"], source["reason"], source["disposition"],
+                                     link["selection_id"] if link else None, link.get("bts_outcome") if link else None):
+            raise InvariantError(f"recipe row {m['recipe_slot_key']} is not linked to the occurrence that accounts for it")
     if any(n > 1 for n in Counter((m["round_id"], m["unit_id"], m["player_id"]) for m in matches).values()):
         raise InvariantError("a contest slot identity appears twice")
     if any(n > 1 for n in Counter(m["selection_id"] for m in matches if m["selection_id"]).values()):
@@ -3288,6 +3572,12 @@ def _universe(files: dict[str, bytes | None]) -> dict[str, tuple[dict, str]]:
     return universe
 
 
+def membership_slots(files: dict[str, bytes | None]) -> set[tuple[str, str]]:
+    """(source_path, slot) for every slot of every universe record — what each rule must list exactly once."""
+    return {(rel, slot) for rel, (doc, _day) in _universe(files).items()
+            for slot in ("primary", "double_down") if slot == "primary" or doc.get("double_down") is not None}
+
+
 def evaluate_rules(files: dict[str, bytes | None], rules: dict, mtimes: dict[str, str | None], *,
                    frozen_at: str) -> tuple[list[dict], list[dict]]:
     """Spec §8 table 3. Every rule gets a row per universe slot, included or excluded with a reason, so no candidate
@@ -3341,25 +3631,76 @@ def recipe_labels(summary: list[dict]) -> dict[str, str]:
     return out
 
 
-_RECIPE_CODE = ("load_json_bytes", "_doc", "_natural", "_universe", "slot_value", "counts", "slot_inclusion",
-                "_mtime_after", "evaluate_rules", "recipe_labels")     # incl. the decoder every recipe reads through
+_RECIPE_ROOTS = ("evaluate_rules", "recipe_labels")
+_PACKAGE = __name__.rsplit(".", 1)[0]
+
+
+def _bound(value):
+    """A JSON description of one configuration value the recipe code reads; any other kind fails closed."""
+    if isinstance(value, re.Pattern):
+        return {"pattern": value.pattern, "flags": int(value.flags)}
+    if isinstance(value, ZoneInfo):
+        return {"zone": value.key}
+    if isinstance(value, dict):
+        return {"dict": {canonical_json(_bound(k)): _bound(v) for k, v in value.items()}}
+    if isinstance(value, (list, tuple)):
+        return {"seq": [_bound(v) for v in value]}
+    if isinstance(value, (set, frozenset)):
+        return {"set": sorted(canonical_json(_bound(v)) for v in value)}
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    raise TypeError(f"rules_fingerprint cannot bind {type(value).__name__}")
+
+
+def _global_names(code: types.CodeType) -> set[str]:
+    names = set(code.co_names)
+    for const in code.co_consts:
+        if isinstance(const, types.CodeType):
+            names |= _global_names(const)
+    return names
+
+
+def recipe_closure() -> dict[str, object]:
+    """Everything the recipe evaluation reads (Codex plan r2 #6, r3 #4), by qualified name: the source of every
+    repo-local function reachable from `evaluate_rules` and `recipe_labels` (imported ones included), and every
+    configuration value those functions read — compiled regexes with their flags, the time zone, tables. Modules
+    and outside callables are bound by name; their behaviour is pinned by the versions `build.json` records.
+    Anything else fails closed."""
+    bound: dict[str, object] = {}
+    todo = [globals()[name] for name in _RECIPE_ROOTS]
+    while todo:
+        fn = todo.pop()
+        key = f"{fn.__module__}.{fn.__qualname__}"
+        if key in bound:
+            continue
+        bound[key] = inspect.getsource(fn)
+        for name in sorted(_global_names(fn.__code__)):
+            if name not in fn.__globals__ or (name.startswith("__") and name.endswith("__")):
+                continue          # an attribute, a local, a builtin, or interpreter bookkeeping (e.g. __file__)
+            value = fn.__globals__[name]
+            module = getattr(value, "__module__", None) or ""
+            if isinstance(value, types.FunctionType) and module.startswith(_PACKAGE):
+                todo.append(value)
+            elif isinstance(value, types.ModuleType):
+                bound[f"module:{value.__name__}"] = value.__name__
+            elif callable(value) and not module.startswith(_PACKAGE):
+                bound[f"callable:{module}.{getattr(value, '__qualname__', name)}"] = name
+            else:
+                bound[f"{fn.__module__}.{name}"] = _bound(value)
+    return bound
 
 
 def rules_fingerprint() -> str:
-    """One digest over the rule table AND the exact source of every function that evaluates it, the shared JSON
-    decoder included (Codex plan r2 #6): any edit to a predicate — even a comment — changes the digest
-    predeclared in the exposure register."""
-    body = {"rules": RULES, "recipe_kinds": RECIPE_KINDS, "graded": sorted(GRADED),
-            "file_sets": {k: v.pattern for k, v in FILE_SETS.items()},
-            "patterns": [_FILE_DATE.pattern, _APPLEDOUBLE.pattern],
-            "code": {name: inspect.getsource(globals()[name]) for name in _RECIPE_CODE}}
-    return sha256_hex(json.dumps(body, sort_keys=True).encode())
+    """One digest over the rule table and everything the recipe evaluation reads (`recipe_closure`): any edit that
+    can move a recipe total or label — a predicate, the JSON decoder, a regex or its flags, a table, even a
+    comment in a reachable function — changes the digest predeclared in the exposure register."""
+    return sha256_hex(json.dumps({"rules": _bound(RULES), "closure": recipe_closure()}, sort_keys=True).encode())
 ```
 
 - [ ] **Step 4: Run to verify pass**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger/test_reconcile.py -q`
-Expected: `38 passed`. If `test_candidate_rules_and_their_evaluator_are_fingerprinted` fails, the rule table or a recipe function differs from this plan. The fingerprint hashes source text, so whitespace and comments count. Fix the code to match this plan; never change `RULES_SHA256`.
+Expected: `42 passed`. If `test_candidate_rules_and_their_evaluator_are_fingerprinted` fails, the rule table, a function reachable from the recipe roots, or a value those functions read differs from this plan. The fingerprint hashes source text, so whitespace and comments count. Fix the code to match this plan; never change `RULES_SHA256`.
 
 - [ ] **Step 5: Commit**
 
@@ -3383,6 +3724,7 @@ git commit -m "feat(ledger): routing, accounting, structural census, invariants,
   - `compile_bundle(bundle_root, out_dir, *, uv_lock_sha256, code_sha=None) -> dict`
   - `_eligibility(row, match, unit_status, refusals)` (I6)
   - `_outcome_status(slot_result, slot_result_state)` (I11)
+- **Unusable evidence (I15):** a routed decision, scheduler-state, archive or lineup-evolution file with any quarantined record adds its kind to that date's `unusable` set for `day_rows`. The pick-file occurrences of a `decision_unusable` day are `unresolved_pick_file_view`.
 - **Output directory:** `out_dir` must not exist. Every table is built and the output checks pass before the compiler reserves the directory with `mkdir`, which fails if it exists (even empty), so neither a repeated nor a concurrent build can share it.
 - **Outputs:**
   - `season_2026_ledger.parquet`
@@ -3632,6 +3974,29 @@ def test_a_conflicting_pick_file_is_kept_whole_as_an_unresolved_view(tmp_path):
     assert (r["finalization"], r["pick_view_action"], r["pick_obs_id"]) == ("unresolved", "double", None)
 
 
+def test_unusable_evidence_never_finalizes_a_day_or_reads_as_absent(tmp_path):
+    # Codex plan r3 #2 and #5: malformed game identities never agree, and quarantined evidence is never absence.
+    files = {"picks/2026-08-20.json": pick_json("2026-08-20", primary={"game_pk": "bad_file_game"},
+                                                notification_sent=True, notification_id="dm-1"),
+             "picks/2026-08-20/decision.json": decision_json("2026-08-20", action="single",
+                                                             primary=cand(101, "different_bad_game")),
+             "picks/2026-08-21.json": pick_json("2026-08-21"),
+             "picks/2026-08-21/decision.json": decision_json("2026-08-21", action="single",
+                                                             primary=dict(cand(101, 5001), batter_id="101")),
+             "picks/lineup_evolution_2026-08-22.jsonl": b"{not json\n"}
+    seal_bundle(tmp_path / "b", files)
+    compile_bundle(tmp_path / "b", tmp_path / "o", uv_lock_sha256="test-lock")
+    days = {r["date"]: (r["row_kind"], r["reason"]) for r in _ledger(tmp_path / "o").values()
+            if r["date"] in ("2026-08-20", "2026-08-21", "2026-08-22")}
+    assert days == {"2026-08-20": ("unfinalized_day", "decision_unusable"),
+                    "2026-08-21": ("unfinalized_day", "decision_unusable"),
+                    "2026-08-22": ("unfinalized_day", "unusable_evidence_only")}
+    occ = {(o["source_path"], o["locator"]): (o["state"], o["reason"] or o["disposition"]) for o in
+           pq.read_table(tmp_path / "o" / "season_2026_ledger_occurrences.parquet").to_pylist()}
+    assert occ[("picks/2026-08-20.json", "slot=primary")] == ("quarantined", "slot_bad_game_pk")
+    assert occ[("picks/2026-08-21.json", "slot=primary")] == ("emitted", "unresolved_pick_file_view")
+
+
 def test_a_refusal_counts_only_with_a_reason_and_a_time_before_a_known_lock():
     from scripts.audit.season_ledger.compile import _eligibility
     row = {"locked_at": "2026-08-28T22:00:00.000000Z", "date": "2026-08-28", "slot": "primary", "batter_id": 1,
@@ -3792,11 +4157,15 @@ def compile_bundle(bundle_root, out_dir, *, uv_lock_sha256: str | None, code_sha
     pick_state_by_date = {_DATE.search(rel).group(0): pick_file_state(files[rel], parsed[rel])
                           for rel, k in routed.items() if k == "pick_file"}
     obs_by_date = _group(rows_of(*OBSERVATION_KINDS), "file_date")
+    unusable_by_date: dict[str, set[str]] = {}       # day evidence present but quarantined (Codex plan r3 #5)
+    for rel, kind in routed.items():
+        if kind in DAY_KINDS and kind != "pick_file" and parsed[rel].quarantined and (m := _DATE.search(rel)):
+            unusable_by_date.setdefault(m.group(0), set()).add(kind)
     ledger: list[dict] = []
     for d in SEASON_DATES:
         ledger += day_rows(d, decision=decisions.get(d), pick_rows=picks_by_date.get(d, []),
                            pick_file=pick_state_by_date.get(d), state=states.get(d),
-                           observations=obs_by_date.get(d, []))
+                           observations=obs_by_date.get(d, []), unusable=frozenset(unusable_by_date.get(d, ())))
     selections = [r for r in ledger if r["row_kind"] == "selection"]
 
     # §6 contest evidence and matching
@@ -3893,7 +4262,8 @@ def compile_bundle(bundle_root, out_dir, *, uv_lock_sha256: str | None, code_sha
         dispositions[r["obs_id"]] = "not_selected" if r["file_date"] in _SEASON else "outside_season_window"
     for r in rows_of("decision"):
         dispositions[r["obs_id"]] = "outside_season_window"
-    unresolved_dates = {r["date"] for r in ledger if r.get("finalization") == "unresolved"}
+    unresolved_dates = {r["date"] for r in ledger if r.get("finalization") == "unresolved"
+                        or r.get("reason") == "decision_unusable"}
     for r in rows_of("pick_file"):
         if r["file_date"] in unresolved_dates:
             dispositions[r["obs_id"]] = "unresolved_pick_file_view"
@@ -3914,7 +4284,7 @@ def compile_bundle(bundle_root, out_dir, *, uv_lock_sha256: str | None, code_sha
                  occurrence_disposition=source["disposition"] if source else None,
                  selection_id=link["selection_id"] if link else None,
                  canonical_bts_outcome=link.get("bts_outcome") if link else None)
-    check_invariants(accounting, matches, ledger, membership, SEASON_DATES)
+    check_invariants(files, accounting, matches, ledger, membership, summary, SEASON_DATES)
 
     tables = {
         "season_2026_ledger.parquet": build_table(ledger, LEDGER_SCHEMA, sort_keys=["row_id"], name="ledger"),
@@ -3988,12 +4358,12 @@ def _summary_md(build: dict) -> str:
 - [ ] **Step 4: Run to verify pass**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger/test_compile.py -q`
-Expected: `11 passed`. If the determinism test fails, find the unordered value (a set iteration or dict order reaching an output) and sort it; do not weaken the test.
+Expected: `12 passed`. If the determinism test fails, find the unordered value (a set iteration or dict order reaching an output) and sort it; do not weaken the test.
 
 - [ ] **Step 5: Run the whole ledger suite**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger -q`
-Expected: `134 passed`.
+Expected: `146 passed`.
 
 - [ ] **Step 6: Commit**
 
@@ -4241,10 +4611,10 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run to verify pass, then the suites**
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest tests/scripts/season_ledger -q`
-Expected: `135 passed`.
+Expected: `147 passed`.
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run pytest -m "not slow" --ignore=tests/simulate --ignore=tests/model --ignore=tests/experiment --ignore=tests/validate -q`
-Expected: the previous fast-suite count + 135, all passing. Report any failure by name.
+Expected: the previous fast-suite count + 147, all passing. Report any failure by name.
 
 Run: `cd /Users/eric/projects/bts && UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit/build_season_ledger.py compile --help`
 Expected: usage text listing `--bundle`, `--out`, `--code-sha`, `--uv-lock`.
@@ -4286,7 +4656,7 @@ git commit -m "feat(ledger): acquisition into a sealed bundle and the build CLI 
 ### Task 13: Real run on the box, records
 
 Every box job goes through one runner, `run.sh <run-id> <mode>`, with modes `acquire`, `compile2` and `backup`. The runner:
-- prints `RUN=<id> START <mode>` first and `RUN=<id> EXIT=<status>` last, and exits with that status (an EXIT trap covers setup failures too)
+- prints `RUN=<id> START <mode>` first and `RUN=<id> EXIT=<status>` last, and exits with that status (the EXIT trap is installed before anything else can fail, including a missing run id)
 - never touches production code, config or services
 - is waited on by a read-back of the finished run from its log, never by a live tail
 
@@ -4296,7 +4666,7 @@ Every box job goes through one runner, `run.sh <run-id> <mode>`, with modes `acq
 >
 > **What is read:** the frozen W0.7 snapshot (production picks, decisions, scheduler state, lineup evolution, contest ledger, BTS static captures) through `scripts/audit/season_ledger` at the reviewed commit, compiled offline from the sealed bundle `season_2026_ledger_evidence/v1`.
 >
-> **What the build computes and prints:** occurrence, row-kind, commit, history, entry, match and outcome-status counts; the count of local-vs-contest slot disagreements (the C-03 check); and the per-rule recipe totals for the frozen rules and evaluator `eadce48f7fbce5346cf9214289f8c079f1d7ccb907a50253a4c133e97c2ffc1d`.
+> **What the build computes and prints:** occurrence, row-kind, commit, history, entry, match and outcome-status counts; the count of local-vs-contest slot disagreements (the C-03 check); and the per-rule recipe totals for the frozen rules and evaluator `5e9d74f2f9c3093d66bc7c9ab0a7028e5fb361cdb46bbb1b368cd71e7f297b3f`.
 >
 > **Not computed:** no rates, hit percentages or model comparisons.
 >
@@ -4321,9 +4691,10 @@ cd /Users/eric/projects/bts && SHA=$(git rev-parse HEAD) && ssh bts-hetzner "cat
 # usage: run.sh <run-id> acquire|compile2|backup — runs from the production checkout (read-only for the ledger).
 # Prints "RUN=<id> START <mode>" first and "RUN=<id> EXIT=<status>" last, and exits with that status.
 set -uo pipefail
-run="${1:?run id}"; mode="${2:-}"
-echo "RUN=$run START $mode"
-trap 'status=$?; echo "RUN=$run EXIT=$status"; exit $status' EXIT
+run="${1:-}"; mode="${2:-}"
+echo "RUN=${run:-unnamed} START $mode"
+trap 'status=$?; echo "RUN=${run:-unnamed} EXIT=$status"; exit $status' EXIT
+[ -n "$run" ] || { echo "usage: run.sh <run-id> acquire|compile2|backup"; exit 2; }
 here=$(cd "$(dirname "$0")" && pwd) || exit 3
 sha=$(cat "$here/CODE_SHA") || exit 3
 py=/home/bts/projects/bts/.venv/bin/python
@@ -4339,7 +4710,7 @@ case "$mode" in
     "$py" "$cli" compile --bundle "$bundle" --out "$a" --code-sha "$sha" || exit $?
     "$py" "$cli" compile --bundle "$bundle" --out "$b" --code-sha "$sha" || exit $?
     "$py" - "$a" "$b" "$run" <<'PY'
-import json, sys
+import json, os, sys
 from datetime import datetime, timezone
 from pathlib import Path
 a, b, run = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
@@ -4350,17 +4721,24 @@ diff = [n for n in na if (a / n).read_bytes() != (b / n).read_bytes()]
 if diff:
     sys.exit(f"bytes differ: {diff}")
 fp = json.loads((a / "season_2026_ledger_build.json").read_text())["rules_fingerprint"]
-if fp != "eadce48f7fbce5346cf9214289f8c079f1d7ccb907a50253a4c133e97c2ffc1d":
+if fp != "5e9d74f2f9c3093d66bc7c9ab0a7028e5fb361cdb46bbb1b368cd71e7f297b3f":
     sys.exit(f"rules fingerprint {fp} is not the predeclared one")
-(a / "ACCEPTED.json").write_text(json.dumps({"run": run, "accepted_at_utc": datetime.now(timezone.utc).isoformat(),
-                                             "files": na, "compared_with": str(b), "rules_fingerprint": fp},
-                                            indent=1, sort_keys=True) + "\n")
+receipt = {"run": run, "accepted_at_utc": datetime.now(timezone.utc).isoformat(), "files": na,
+           "compared_with": str(b), "rules_fingerprint": fp}
+tmp = a / "ACCEPTED.json.tmp"                    # written and synced first, then renamed: never a partial receipt
+with open(tmp, "w") as fh:
+    fh.write(json.dumps(receipt, indent=1, sort_keys=True) + "\n")
+    fh.flush()
+    os.fsync(fh.fileno())
+os.replace(tmp, a / "ACCEPTED.json")
 print(f"accepted {a}: {len(na)} identical files; rules fingerprint as predeclared")
 PY
     ;;
   backup)
     start=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)
-    set -a; . ./.env; set +a
+    set +u; set -a                               # as production's cron does: no nounset, and the status is checked
+    . ./.env || { echo "cannot source .env"; exit 3; }
+    set +a; set -u
     UV_CACHE_DIR=/tmp/uv-cache /home/bts/.local/bin/uv run bts backup run --set archive || exit $?
     "$py" - "$start" "$bundle" <<'PY'
 import hashlib, json, os, re, subprocess, sys
@@ -4401,18 +4779,19 @@ ssh bts-hetzner "bash -n /tmp/ledger_code_$SHA/run.sh && echo syntax-ok"
 - [ ] **Step 3: Acquire** as a transient unit. Start it, wait for the run's `EXIT` line, and read the whole run back:
 
 ```bash
-cd /Users/eric/projects/bts && SHA=$(git rev-parse HEAD) && RUN=$(date -u +%Y%m%dT%H%M%SZ)-acquire && echo "$RUN" && \
+cd /Users/eric/projects/bts && SHA=$(git rev-parse HEAD) && RUN=$(date -u +%Y%m%dT%H%M%SZ)-acquire-$(uuidgen | cut -c1-8 | tr 'A-Z' 'a-z') && echo "$RUN" && \
 ssh bts-hetzner "export XDG_RUNTIME_DIR=/run/user/\$(id -u); systemd-run --user --unit=bts-ledger-$RUN --collect \
   -p StandardOutput=append:/home/bts/logs/ledger.log -p StandardError=append:/home/bts/logs/ledger.log \
   /bin/bash /tmp/ledger_code_$SHA/run.sh $RUN acquire"
 ```
 
 ```bash
-RUN=<the id printed above>; for i in $(seq 360); do ssh bts-hetzner "grep -q 'RUN=$RUN EXIT=' ~/logs/ledger.log" && break; sleep 20; done; \
-ssh bts-hetzner "awk '/RUN=$RUN START/,/RUN=$RUN EXIT=/' ~/logs/ledger.log; grep -q 'RUN=$RUN EXIT=' ~/logs/ledger.log || echo 'NO EXIT LINE after 2 hours'"
+RUN=<the id printed above>; box() { ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 bts-hetzner "$@"; }; \
+deadline=$((SECONDS + 7200)); until box "grep -q 'RUN=$RUN EXIT=' ~/logs/ledger.log" || [ $SECONDS -ge $deadline ]; do sleep 20; done; \
+box "awk '/RUN=$RUN START/,/RUN=$RUN EXIT=/' ~/logs/ledger.log; grep -q 'RUN=$RUN EXIT=' ~/logs/ledger.log || echo 'NO EXIT LINE within 2 hours'"
 ```
 
-Run the wait with Bash `run_in_background`. Require `RUN=<id> EXIT=0`, preceded by `sealed …/manifest.json`. `NO EXIT LINE` means the unit never started or was killed before its trap ran: read `journalctl --user -u bts-ledger-<id>` and treat it as a stop. Then check the manifest; this exits non-zero on any missing entry outside `schedules/`:
+Run the wait with Bash `run_in_background`. Require `RUN=<id> EXIT=0`, preceded by `sealed …/manifest.json`. Every ssh call is non-interactive and times out on a stalled connection, and the wait gives up after two hours. `NO EXIT LINE` means the run has not finished, never started, or was killed before its trap ran. Check `systemctl --user status bts-ledger-<id>` on the box: if the unit is still running, run the wait again; otherwise read `journalctl --user -u bts-ledger-<id>` and treat the run as a stop. Then check the manifest; this exits non-zero on any missing entry outside `schedules/`:
 
 ```bash
 ssh bts-hetzner 'cd ~/projects/bts && .venv/bin/python -c "
@@ -4426,11 +4805,11 @@ sys.exit(1 if any(not p.startswith(\"schedules/\") for p, _ in miss) else 0)"'
 
 Expected: about 3,600 entries (picks tree, 173 rounds, 2,335 units, 2 players, 4 grab files, 2 logs, 187 schedules), with missing entries at most among schedules.
 
-- [ ] **Step 4: Compile twice, compare and accept.** Same pattern, with `RUN=$(date -u +%Y%m%dT%H%M%SZ)-compile2` and mode `compile2`. Require `RUN=<id> EXIT=0`, preceded by `accepted data/validation/season_2026_ledger/<sha>-<run>: 6 identical files; rules fingerprint as predeclared`. Only a directory containing `ACCEPTED.json` is a published build.
+- [ ] **Step 4: Compile twice, compare and accept.** Same pattern, with `-compile2-` in place of `-acquire-` in the run id and mode `compile2`. Require `RUN=<id> EXIT=0`, preceded by `accepted data/validation/season_2026_ledger/<sha>-<run>: 6 identical files; rules fingerprint as predeclared`. Only a directory whose `ACCEPTED.json` parses and names this run and its six files is a published build; the receipt is renamed into place only after it is fully written.
 - **An `InvariantError` or any other `EXIT` is a stop.** Diagnose with the systematic-debugging skill, fix test-first on the Mac, commit, then re-run Steps 2 and 4 under the new SHA. Skip Step 3: the sealed v1 bundle is reused and re-verified by `open_bundle`, and each attempt writes its own `<sha>-<run>` directories.
 - **Keep failed attempt directories**; the memo names them. A new acquisition is only ever an intentional `v2`.
 
-- [ ] **Step 5: Back up and verify the exact snapshot.** Same pattern, with `RUN=$(date -u +%Y%m%dT%H%M%SZ)-backup` and mode `backup`. Require `RUN=<id> EXIT=0`, preceded by `snapshot <id>: manifest identical; all <n> bundle members present`, and record the snapshot id.
+- [ ] **Step 5: Back up and verify the exact snapshot.** Same pattern, with `-backup-` in place of `-acquire-` in the run id and mode `backup`. Require `RUN=<id> EXIT=0`, preceded by `snapshot <id>: manifest identical; all <n> bundle members present`, and record the snapshot id.
 
 - [ ] **Step 6: Record.** Copy `season_2026_ledger_build.json`, `season_2026_ledger_summary.md` and `ACCEPTED.json` from the accepted directory to the Mac. Then:
 - Write `docs/audit/<date>-season-ledger.md`, covering:
@@ -4466,8 +4845,11 @@ Expected: about 3,600 entries (picks tree, 173 rounds, 2,335 units, 2 players, 4
   - §12 → not built.
   - Determinism → Tasks 1, 10, 13.
 - **Placeholders:** none; every code step carries its code.
-- **Code identity:** every code block in this plan is generated from the tested scratch tree. The replay of this document's fences passed 135 tests.
-- **Mutants:** 62 planted defects were killed at their intended tests (the ledger is in the commit message). They include a probe for each Codex r2 finding, a comment-only edit to the shared JSON decoder (caught only by the fingerprint), and Codex's own surviving mutant (G1 counting `suspended`), which now fails both the fingerprint test and the truth table. Rev 2's no-op mutant (a `pick_locked` probe planted after `commit_status` lost its state argument) and its crash-only kill were replaced by real probes.
+- **Code identity:** every code block in this plan is generated from the tested scratch tree. The replay of this document's fences passed 147 tests.
+- **Mutants:** 83 planted defects were killed at their intended tests (the ledger is in the commit message). They include:
+  - a probe for each Codex r2 and r3 finding
+  - a comment-only edit to the shared JSON decoder, and a time-zone change, each caught only by the fingerprint
+  - Codex's surviving mutants: G1 counting `suspended` (now fails the fingerprint test and the truth table) and F1 compiled with IGNORECASE (now fails the fingerprint test) Rev 2's no-op mutant (a `pick_locked` probe planted after `commit_status` lost its state argument) and its crash-only kill were replaced by real probes.
 - **Type consistency:**
   - `selection_id` is built only by `rows.selection_id`.
   - Parsed-row keys used downstream match their producers.
