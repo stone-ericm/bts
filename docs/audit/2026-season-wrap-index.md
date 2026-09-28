@@ -18,8 +18,8 @@
 | W1.4a DD tripwire read (P-01) | memo | **completed 9/22** (deviation recorded: snapshot reconstructed; trigger not fired, −4.3 pp at n=80) | `docs/audit/2026-09-22-dd-tripwire-formal-read.md` + `.json`; reader `scripts/audit/dd_tripwire_formal_read.py` |
 | W1.2 bridge A–D | memo | not started | |
 | W1.3 distinguishing tests | in bridge memo | not started | |
-| W1.4b due reads (P-02…P-05) | one memo each | **P-04 (#16) inventoried 9/22 → INSUFFICIENT** (113/114 eligible < 120, stream frozen at 9/18); P-02 skip shadow = `insufficient_n` (15 resolved < 30, cannot grow); P-03 context shadow + P-05 tail audit deferred to the W0.7 final snapshot (season ends 9/27) → **W0.7 done 9/28; both unblocked** (read from `final-20260928/`) | register X-11, X-07 |
-| W1.5 incident register | memo | not started | |
+| W1.4b due reads (P-02…P-05) | one memo each | **P-04 (#16) inventoried 9/22 → INSUFFICIENT** (113/114 eligible < 120, stream frozen at 9/18); P-02 skip shadow = `insufficient_n` (15 resolved < 30, cannot grow); P-03 context shadow + P-05 tail audit deferred to the W0.7 final snapshot (season ends 9/27) → **W0.7 done 9/28; both read 9/28 from `final-20260928/`: P-03 = no-promote stands** (recorded 32/59 vs 32/59, gap 0.0 pp, paired 95 % ±10.2 pp; discordant 4–4, sign p = 1.00; primary agreement 43/60; recompute cross-check found C-03); **P-05 = mechanism validated** (0 violations, 25 dates × 191 checks; stop on 9/19 exactly as the rule requires; delivered+entered 9/03–9/13, private 9/14–9/18, stopped 9/19–9/27) | register X-11, X-07, X-06, X-16; `docs/audit/2026-09-28-p03-context-shadow-closeout.md`, `docs/audit/2026-09-28-p05-tail-policy-audit.md` |
+| W1.5 incident register | memo | not started — **new candidate 9/28: `bts reconcile` flipped two true Simpson hits to misses (5/10, 8/20) → C-03** | |
 | W1.6 corrections index + README | `docs/audit/2026-09-corrections-index.md`, README | index started 9/22 (C-01 parser bug, C-02 README) | file |
 | W2.1 final-leader case series | memo | not started (needs W0.6) | |
 | W2.2 as-of cohort comparison | memo | not started | |

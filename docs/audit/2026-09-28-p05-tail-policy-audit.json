@@ -1,0 +1,1107 @@
+{
+ "read": "P-05 tail-policy audit (plan W1.4b)",
+ "snapshot": "data/hetzner_results/season_2026_snapshot/final-20260928",
+ "snapshot_manifest_sha256": "e3dce02475d4f17dbb46619da44139732c8a42882cf8d6336c72627c4f6af2f3",
+ "window": [
+  "2026-09-03",
+  "2026-09-27"
+ ],
+ "artifact": {
+  "tail_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+  "base_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+  "tail_declares_base_sha256": "66d154717ae51afb3343ee4bec8138c60bd1056e46a3de449043f4e9f76b93b4",
+  "tail_objective": "emax_season_best",
+  "tail_schema": "bts_tail_policy_v1",
+  "binding_ok": true
+ },
+ "violations": [],
+ "rows": [
+  {
+   "date": "2026-09-03",
+   "round": 985,
+   "days_calendar": 25,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-02"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-03T18:18:04.463380-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 4,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 25, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "void",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-04",
+   "round": 986,
+   "days_calendar": 24,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-03"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-04T18:08:24.081712-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 4,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 24, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-05",
+   "round": 987,
+   "days_calendar": 23,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 2,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-04"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-05T18:38:08.945313-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 5,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 23, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 2, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-06",
+   "round": 988,
+   "days_calendar": 22,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 4,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-05"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-06T12:41:46.787429-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 4,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 22, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 4, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "not_hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-07",
+   "round": 989,
+   "days_calendar": 21,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-06"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-07T12:33:30.720692-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 2,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 21, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "void",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-08",
+   "round": 990,
+   "days_calendar": 20,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-07"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-08T20:43:13.703300-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 7,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 20, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-09",
+   "round": 991,
+   "days_calendar": 19,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 2,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-08"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-09T14:34:00.201519-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 3,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 19, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 2, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-10",
+   "round": 992,
+   "days_calendar": 18,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 4,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-09"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-10T11:18:11.251918-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 1,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 18, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 4, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-11",
+   "round": 993,
+   "days_calendar": 17,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 6,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-10"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-11T18:08:22.555395-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 3,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 17, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 6, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-12",
+   "round": 994,
+   "days_calendar": 16,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 8,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-11"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-12T17:13:15.071541-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 8,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 16, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 8, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "not_hit",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-13",
+   "round": 995,
+   "days_calendar": 15,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "delivered",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-12"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": "2026-09-13T13:03:25.347887-04:00",
+    "notification_sent": true,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 3,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 15, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": true,
+   "contest_result": "void",
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "delivered+entered"
+  },
+  {
+   "date": "2026-09-14",
+   "round": 996,
+   "days_calendar": 14,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "fresh",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": null,
+    "notification_sent": false,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 1,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 14, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "private (computed, not delivered/entered)"
+  },
+  {
+   "date": "2026-09-15",
+   "round": 997,
+   "days_calendar": 13,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "lagged",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": null,
+    "notification_sent": false,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 2,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 13, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "private (computed, not delivered/entered)"
+  },
+  {
+   "date": "2026-09-16",
+   "round": 998,
+   "days_calendar": 12,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": null,
+    "notification_sent": false,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 8,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 12, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "private (computed, not delivered/entered)"
+  },
+  {
+   "date": "2026-09-17",
+   "round": 999,
+   "days_calendar": 11,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": null,
+    "notification_sent": false,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 2,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 11, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "private (computed, not delivered/entered)"
+  },
+  {
+   "date": "2026-09-18",
+   "round": 1000,
+   "days_calendar": 10,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "double",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "private_locked",
+    "scoreable": true,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": {
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "policy_decision_objective": "emax_season_best",
+    "delivered_at": null,
+    "notification_sent": false,
+    "bluesky_posted": false
+   },
+   "journal_policy_lines": 1,
+   "journal_distinct": [
+    "{\"action\": \"double\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 10, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true,
+    "pick_file_tail_sha_is_artifact": true
+   },
+   "class": "private (computed, not delivered/entered)"
+  },
+  {
+   "date": "2026-09-19",
+   "round": 1001,
+   "days_calendar": 9,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 9,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 9, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-20",
+   "round": 1002,
+   "days_calendar": 8,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 7,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 8, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-21",
+   "round": 1003,
+   "days_calendar": 7,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 2,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 7, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-22",
+   "round": 1004,
+   "days_calendar": 6,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 9,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 6, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-23",
+   "round": 1005,
+   "days_calendar": 5,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 10,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 5, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-24",
+   "round": 1006,
+   "days_calendar": 4,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 9,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 4, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-25",
+   "round": 1007,
+   "days_calendar": 3,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 9,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 3, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-26",
+   "round": 1008,
+   "days_calendar": 2,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 7,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 2, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  },
+  {
+   "date": "2026-09-27",
+   "round": 1009,
+   "days_calendar": 1,
+   "decision": {
+    "schema_version": "bts_daily_decision_v3",
+    "action": "skip",
+    "source": "mdp",
+    "streak": 0,
+    "objective": "emax_season_best",
+    "best_streak": 18,
+    "best_status": "trusted",
+    "effective_best": 18,
+    "tail_policy_sha256": "dc5d0c9924431c11c43e720bf9e02903b709a157c0ebb699fdea43e7aaf949f4",
+    "degraded_reason": null,
+    "delivery_status": "not_applicable",
+    "scoreable": false,
+    "state_source": "contest",
+    "state_status": "stale",
+    "contest_source_date": "2026-09-13"
+   },
+   "pick_file": null,
+   "journal_policy_lines": 2,
+   "journal_distinct": [
+    "{\"action\": \"skip\", \"best\": 18, \"best_status\": \"trusted\", \"days\": 1, \"effective_best\": 18, \"objective\": \"emax_season_best\", \"streak\": 0, \"tail\": \"dc5d0c992443\"}"
+   ],
+   "contest_entered": false,
+   "contest_result": null,
+   "checks": {
+    "days_journal_equals_calendar": true,
+    "objective_matches_rule": true,
+    "stop_rule_matches_action": true,
+    "best_trusted_18": true,
+    "tail_sha_is_artifact": true,
+    "not_degraded": true,
+    "journal_agrees_with_decision": true
+   },
+   "class": "stopped (tail skip)"
+  }
+ ]
+}
