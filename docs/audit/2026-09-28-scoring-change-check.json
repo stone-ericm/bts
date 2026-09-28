@@ -1,0 +1,190 @@
+{
+ "game_date": "2026-09-27",
+ "tabulated_at": "2026-09-27T18:51:54-04:00",
+ "cutoff": "2026-09-28T08:00:00-04:00",
+ "generated_at": "2026-09-28T13:46:08+00:00",
+ "source": "statsapi GUMBO feed revisions (public MLB data only; no BTS contest requests)",
+ "games": [
+  {
+   "game_pk": 822679,
+   "matchup": "New York Mets @ Washington Nationals",
+   "status": "Final",
+   "baseline_timecode": "20260927_204814",
+   "revised_timecode": "20260927_204814",
+   "last_revision": "20260927_204814",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823408,
+   "matchup": "Tampa Bay Rays @ Philadelphia Phillies",
+   "status": "Final",
+   "baseline_timecode": "20260927_211946",
+   "revised_timecode": "20260927_211946",
+   "last_revision": "20260927_211946",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 824705,
+   "matchup": "Chicago Cubs @ Boston Red Sox",
+   "status": "Final",
+   "baseline_timecode": "20260927_214919",
+   "revised_timecode": "20260927_214919",
+   "last_revision": "20260927_214919",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 824948,
+   "matchup": "Houston Astros @ Athletics",
+   "status": "Final",
+   "baseline_timecode": "20260927_220913",
+   "revised_timecode": "20260927_220913",
+   "last_revision": "20260927_220913",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823164,
+   "matchup": "Los Angeles Dodgers @ San Francisco Giants",
+   "status": "Final",
+   "baseline_timecode": "20260927_215525",
+   "revised_timecode": "20260927_215525",
+   "last_revision": "20260927_215525",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 822761,
+   "matchup": "Cincinnati Reds @ Toronto Blue Jays",
+   "status": "Final",
+   "baseline_timecode": "20260927_213752",
+   "revised_timecode": "20260927_213752",
+   "last_revision": "20260927_213752",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 824055,
+   "matchup": "Cleveland Guardians @ Kansas City Royals",
+   "status": "Final",
+   "baseline_timecode": "20260927_211842",
+   "revised_timecode": "20260927_211842",
+   "last_revision": "20260927_211842",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 824217,
+   "matchup": "Pittsburgh Pirates @ Detroit Tigers",
+   "status": "Final",
+   "baseline_timecode": "20260927_213841",
+   "revised_timecode": "20260927_213841",
+   "last_revision": "20260927_213841",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823246,
+   "matchup": "Arizona Diamondbacks @ San Diego Padres",
+   "status": "Final",
+   "baseline_timecode": "20260927_215842",
+   "revised_timecode": "20260927_215842",
+   "last_revision": "20260927_215842",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823084,
+   "matchup": "Los Angeles Angels @ Seattle Mariners",
+   "status": "Final",
+   "baseline_timecode": "20260927_220822",
+   "revised_timecode": "20260927_220822",
+   "last_revision": "20260927_220822",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823650,
+   "matchup": "Texas Rangers @ Minnesota Twins",
+   "status": "Final",
+   "baseline_timecode": "20260927_213815",
+   "revised_timecode": "20260927_213815",
+   "last_revision": "20260927_213815",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 824542,
+   "matchup": "Colorado Rockies @ Chicago White Sox",
+   "status": "Final",
+   "baseline_timecode": "20260927_213117",
+   "revised_timecode": "20260927_213117",
+   "last_revision": "20260927_213117",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823814,
+   "matchup": "Atlanta Braves @ Miami Marlins",
+   "status": "Final",
+   "baseline_timecode": "20260927_213518",
+   "revised_timecode": "20260927_213518",
+   "last_revision": "20260927_213518",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823731,
+   "matchup": "St. Louis Cardinals @ Milwaukee Brewers",
+   "status": "Final",
+   "baseline_timecode": "20260927_213607",
+   "revised_timecode": "20260927_213607",
+   "last_revision": "20260927_213607",
+   "revisions_in_window": [],
+   "revisions_after_cutoff": 0,
+   "boxscore_crosscheck": [],
+   "changes": []
+  },
+  {
+   "game_pk": 823490,
+   "matchup": "Baltimore Orioles @ New York Yankees",
+   "status": "Cancelled",
+   "note": "not a completed game: every batter is a pass; nothing to diff"
+  }
+ ],
+ "summary": {
+  "games": 15,
+  "games_with_revisions_in_window": 0,
+  "outcome_changes": 0,
+  "bts_streak_relevant_changes": 0,
+  "boxscore_crosscheck_discrepancies": 0
+ }
+}
