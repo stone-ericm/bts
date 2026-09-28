@@ -9,6 +9,16 @@ from bts.picks import pick_candidate_status_is_available
 from bts.picks import active_streak_results, effective_daily_result, streak_increment_for_resolved_hit
 
 
+def _cron_clock(day_iso):
+    """Clock for the 02:00 ET reconcile run the morning after ``day_iso`` — inside that day's
+    BTS correction window (cutoff 08:00 ET)."""
+    from datetime import date, datetime, time, timedelta
+    from zoneinfo import ZoneInfo
+    run = datetime.combine(date.fromisoformat(day_iso) + timedelta(days=1), time(2, 0),
+                           ZoneInfo("America/New_York"))
+    return lambda: run
+
+
 def _sample_pick(**overrides):
     defaults = dict(
         batter_name="Jacob Wilson",
@@ -656,7 +666,7 @@ class TestReconcileResults:
         from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_pick, save_streak, DailyPick, Pick
 
-        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+        yesterday = "2026-08-20"
         pick = Pick(
             batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
             pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
@@ -672,7 +682,7 @@ class TestReconcileResults:
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):
-            corrections = reconcile_results(tmp_path, lookback_days=8)
+            corrections = reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday))
         assert corrections == []
 
     def test_corrects_hit_to_miss(self, tmp_path):
@@ -680,7 +690,7 @@ class TestReconcileResults:
         from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
 
         # Use yesterday's date so it's always within the 8-day lookback window
-        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+        yesterday = "2026-08-20"
         pick = Pick(
             batter_name="Test", batter_id=123, team="NYM", lineup_position=1,
             pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
@@ -696,7 +706,7 @@ class TestReconcileResults:
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=False):
-            corrections = reconcile_results(tmp_path, lookback_days=8)
+            corrections = reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday))
         assert len(corrections) == 1
         assert corrections[0]["old_result"] == "hit"
         assert corrections[0]["new_result"] == "miss"
@@ -715,8 +725,8 @@ class TestReconcileResults:
         from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
 
-        today_iso = date_cls.today().isoformat()
-        yesterday_iso = (date_cls.today() - timedelta(days=1)).isoformat()
+        today_iso = "2026-08-21"
+        yesterday_iso = "2026-08-20"
 
         # Yesterday: a hit + double-down (streak should become +2)
         yest_pick = Pick(
@@ -749,7 +759,7 @@ class TestReconcileResults:
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):
-            corrections = reconcile_results(tmp_path, lookback_days=8)
+            corrections = reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday_iso))
 
         # The today preview file must not reset the streak; the walk should
         # skip it and pick up yesterday's hit + dd for +2.
@@ -762,7 +772,7 @@ class TestReconcileResults:
         from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_pick, save_streak, load_streak, DailyPick, Pick
 
-        yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+        yesterday = "2026-08-20"
         primary = Pick(
             batter_name="Voided", batter_id=123, team="TB", lineup_position=1,
             pitcher_name="P", pitcher_id=456, p_game_hit=0.82, flags=[],
@@ -785,7 +795,7 @@ class TestReconcileResults:
             100: {"abstract": "F", "detailed": "Postponed"},
             200: {"abstract": "F", "detailed": "Final"},
         }), patch("bts.picks.check_hit", return_value=True):
-            corrections = reconcile_results(tmp_path, lookback_days=8)
+            corrections = reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday))
 
         assert corrections == []
         assert load_streak(tmp_path) == 1
@@ -797,7 +807,7 @@ class TestReconcileResults:
         from datetime import date as date_cls, timedelta
         from bts.picks import reconcile_results, save_streak, load_streak
 
-        yesterday_iso = (date_cls.today() - timedelta(days=1)).isoformat()
+        yesterday_iso = "2026-08-20"
 
         # Main pick file — hit
         main = {
@@ -818,7 +828,7 @@ class TestReconcileResults:
 
         with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
              patch("bts.picks.check_hit", return_value=True):
-            reconcile_results(tmp_path, lookback_days=8)
+            reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday_iso))
 
         assert load_streak(tmp_path) == 1, (
             f"Shadow file broke the walk. Expected 1, got {load_streak(tmp_path)}."

@@ -2385,7 +2385,9 @@ def check_results(
 def reconcile(picks_dir: str, lookback: int):
     """Re-check recent picks for scoring changes (hit overturned to error).
 
-    Looks back 8 days by default. If a result changed, updates the pick file,
+    Looks back 8 days by default, but a date past the BTS correction cutoff
+    (08:00 ET the next day) is final and never changed, so the 02:00 and
+    07:40 runs re-check yesterday only. If a result changed, updates the pick file,
     recalculates the streak, and reports corrections.
     """
     from bts.picks import reconcile_results, load_streak

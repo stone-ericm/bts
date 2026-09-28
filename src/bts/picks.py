@@ -11,7 +11,7 @@ import subprocess
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -1090,27 +1090,55 @@ def save_pick_shadow(pick_data, shadow_dir, source: str) -> Path:
 def reconcile_results(
     picks_dir: Path,
     lookback_days: int = 8,
+    clock: Callable[[], datetime] | None = None,
 ) -> list[dict]:
     """Re-check recent picks against current boxscore data.
 
     Catches scoring changes (hit -> error) that happened after the original
     check-results. Returns list of corrections made.
+
+    BTS Official Rules freeze a game day's Streak scores at 08:00 ET the next day:
+    official stat changes after that are never applied. So a date is only changed
+    while its cutoff is still ahead — checked at the start, again when its feed
+    answer arrives (that answer may already carry a post-cutoff change), and again
+    at the locked write. MLB re-scored two settled hits as errors days later in 2026
+    and the old 8-day re-check flipped both (C-03). From the 02:00 and 07:40 runs this
+    leaves yesterday only. ``clock`` must return timezone-aware datetimes.
     """
-    from datetime import date as date_cls, timedelta as td
-    today = date_cls.today()
+    from datetime import time as time_cls, timedelta as td
+    from zoneinfo import ZoneInfo
+    et = ZoneInfo("America/New_York")
+    clock = clock or (lambda: datetime.now(et))
+
+    def now_et() -> datetime:
+        t = clock()
+        if t.tzinfo is None or t.utcoffset() is None:
+            raise ValueError("reconcile_results needs a timezone-aware clock")
+        return t.astimezone(et)
+
+    def cutoff(day) -> datetime:
+        return datetime.combine(day + td(days=1), time_cls(8, 0), et)
+
+    start = now_et()
+    today = start.date()
     corrections = []
 
     # Phase 1 (unlocked): resolve boxscore data — network, potentially slow.
     proposals = []
     for i in range(1, lookback_days + 1):
-        d = (today - td(days=i)).isoformat()
+        day = today - td(days=i)
+        if start >= cutoff(day):
+            continue  # past the BTS correction cutoff: final
+        d = day.isoformat()
         daily = load_pick(d, picks_dir)
         if not daily or daily.result not in ("hit", "miss", "void"):
             continue
         slot_results = resolve_daily_slot_results(daily, d)
         if slot_results is None:
             continue
-        proposals.append((d, slot_results))
+        if now_et() >= cutoff(day):
+            continue  # the answer arrived after the cutoff; it may carry a late change
+        proposals.append((day, slot_results))
 
     # Phase 2 (locked): reconcile is a writer of BOTH pick files and
     # streak.json, racing the daemon's result polling until 05:00 (review
@@ -1118,7 +1146,10 @@ def reconcile_results(
     # its CURRENT contents; the season replay + streak save stay inside too
     # (file I/O only — sub-second).
     with scoring_lock(picks_dir):
-        for d, slot_results in proposals:
+        for day, slot_results in proposals:
+            if now_et() >= cutoff(day):
+                continue  # the write would land after the cutoff
+            d = day.isoformat()
             daily = load_pick(d, picks_dir)
             if not daily or daily.result not in ("hit", "miss", "void"):
                 continue
@@ -1144,8 +1175,10 @@ def reconcile_results(
     # can't reconstruct (see _replay_season_streak / audit D4). On incomplete or
     # unreadable history the replay returns None and we keep the live-tracked
     # streak.json rather than risk a mis-count (fail closed).
-        today_iso = date_cls.today().isoformat()
-        replay = _replay_season_streak(picks_dir, today.year, today_iso)
+        # Replay boundary from a fresh reading under the lock (a run that waits past
+        # midnight must include the day that just ended), not the start-time `today`.
+        replay_day = now_et().date()
+        replay = _replay_season_streak(picks_dir, replay_day.year, replay_day.isoformat())
         if replay is not None:
             streak, saver = replay
             save_streak(streak, picks_dir, saver_available=saver)

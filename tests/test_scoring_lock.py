@@ -189,11 +189,12 @@ def test_reconcile_results_saves_under_scoring_lock(tmp_path, monkeypatch):
     hold the shared lock during its mutation phase."""
     import fcntl
     import bts.picks as picks_mod
-    from datetime import date as date_cls, timedelta
+    from datetime import date as date_cls, datetime, time as dt_time, timedelta
+    from zoneinfo import ZoneInfo
 
     picks_dir = tmp_path / "picks"
     picks_dir.mkdir()
-    yesterday = (date_cls.today() - timedelta(days=1)).isoformat()
+    yesterday = "2026-08-20"
     _plant_scoreable_pick(picks_dir, yesterday)
     scored = picks_mod.load_pick(yesterday, picks_dir)
     scored.result = "hit"
@@ -220,7 +221,10 @@ def test_reconcile_results_saves_under_scoring_lock(tmp_path, monkeypatch):
                         lambda daily, d: {"pick": "miss"})
     monkeypatch.setattr(picks_mod, "save_pick", probing_save)
 
-    corrections = picks_mod.reconcile_results(picks_dir, lookback_days=2)
+    corrections = picks_mod.reconcile_results(
+        picks_dir, lookback_days=2,
+        clock=lambda: datetime(2026, 8, 21, 2, 0, tzinfo=ZoneInfo("America/New_York")),  # the 02:00 cron, inside the cutoff
+    )
 
     assert corrections and corrections[0]["new_result"] == "miss"
     assert lock_held_during_save and all(lock_held_during_save), (
