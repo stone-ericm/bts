@@ -7,6 +7,12 @@ This check reads ONLY public MLB game data (statsapi GUMBO feeds; nothing from t
 BTS contest) and reports every batter whose BTS outcome — hit / no_hit / pass —
 differs between the feed as of the tabulation and the feed as of the cutoff.
 
+BLIND SPOT (found 2026-09-28, C-04): MLB applies late official re-scorings IN PLACE — no
+new feed revision, and `?timecode=` then serves the corrected play even at old timecodes
+(C-03). This check therefore cannot see such a change, and a "0 changes" result is not
+proof. Compare against a copy saved before the cutoff instead:
+scripts/audit/bts_scoring_snapshot_check.py.
+
 Mechanism: /feed/live/timestamps lists every feed revision (UTC "YYYYMMDD_HHMMSS");
 /feed/live?timecode=T returns the feed as of revision T. For each game: baseline =
 latest revision <= tabulated_at, revised = latest revision <= cutoff. Identical
