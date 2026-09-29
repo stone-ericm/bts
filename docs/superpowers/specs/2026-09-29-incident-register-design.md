@@ -1,217 +1,335 @@
-# 2026 incident register (W1.5): design v1
+# 2026 incident register (W1.5): design v2
 
-**Date:** 2026-09-29 · **Plan item:** W1.5 in `docs/superpowers/plans/2026-09-14-season-wrap-plan.md` (approved 9/22): "7/16 singleton-slate gap · 8/11 MLB auth flap · 8/13 silent pass (Warmup) · 8/30 late pick (Kwan) · 9/03 idle (all-skip table) · any private-mode/tail anomalies through 9/27. Each → mechanism, fix status, **failure-path fixture** that reproduces it, residual gap. Feeds W4 rank 2." · **Status:** draft for Codex design review (no data access in the review).
+**Date:** 2026-09-29.
+
+**Plan item:** W1.5 in `docs/superpowers/plans/2026-09-14-season-wrap-plan.md` (approved 9/22): "7/16 singleton-slate gap · 8/11 MLB auth flap · 8/13 silent pass (Warmup) · 8/30 late pick (Kwan) · 9/03 idle (all-skip table) · any private-mode/tail anomalies through 9/27. Each → mechanism, fix status, **failure-path fixture** that reproduces it, residual gap. Feeds W4 rank 2."
+
+**History:**
+- v1 (`88a4bc7`) → Codex design r1: **BLOCK**, 4 blockers + 5 should-fixes (`docs/audit/2026-09-29-incident-register-codex-design-r1.md`).
+- v2 applies all nine (§14 maps each finding to a section).
+
+**Status:** draft for Codex design r2. The review gets no data access.
 
 ## 1. Purpose and success
-The register is the evidence base for W4 rank 2, the watchdog and restore checks. It answers four questions:
-1. What went wrong in production in 2026?
-2. How was each problem detected, and how late?
-3. Is each fix held in place by a test that fails without it?
-4. What is still open?
+The register is the evidence base for W4 rank 2, the watchdog and restore checks. It answers five questions:
+1. What went wrong in the 2026 deployment?
+2. How and when was each failure detected, notified, mitigated and recovered?
+3. Does a test reproduce each historical failure?
+4. Does a test still guard today's code against it?
+5. What remains open?
 
-It is an operations record. It measures no model quality, calibration or policy value.
+It measures no model quality, calibration or policy value.
 
 **Success:**
-- (a) Every incident found by the sweep in §3 gets a record (§4) or a written exclusion reason.
-- (b) Every fixed Tier-A incident has a fixture shown to fail when the fix is removed (§6). Where no such fixture exists, the gap is stated.
-- (c) Every unfixed incident states its residual gap. Where its contract is already fixed (§6.3), it also gets a strict-xfail fixture that reproduces it on HEAD.
-- (d) The memo passes a Codex result review.
+- (a) Every candidate raised by any discovery route (§6) ends with one disposition (§2), with evidence, or with an explicit `unresolved_candidate` reason. The claim is "all candidates within the evidenced coverage", with coverage stated per source (§4). It is never "every live incident": retention does not support that claim.
+- (b) Every fixed Tier-A observed incident records two things separately:
+  - *historical reproduction*: a fixture fails on the pre-fix code with the incident's observable symptom (§9.2);
+  - *current defence*: a single-mechanism mutant at the pinned baseline is killed on the production path (§9.3).
+  A surviving mutant gets a named classification (§9.5), never "verified".
+- (c) Every plan-named incident gets an executable fixture: reproduction, characterization or invariant. Otherwise it gets an explicit `deferred`/`unavailable` disposition with a reason.
+- (d) Unfixed defects whose contract is fixed (§10) get strict expected-failure fixtures that pass the §9.7 validation.
+- (e) The memo passes a Codex result review. A published fixture gap is an honest deliverable, not a W4 repair acceptance.
 
-## 2. What counts as an incident
-An **incident** is a live deviation from the system's intended contract, observed on the production box or on something it drives: the scheduler, cron, the deploy workflow, DMs, the dashboard, or the research streams. The window is 2026-03-25 (first round) through 2026-09-28 08:00 ET (the W0.7 freeze). The deviation must fall into one of these classes:
+## 2. Scope, dispositions, classes
+**Scope:**
+- the deployed BTS service: box, cron, systemd units, deploy workflow, DMs, dashboard;
+- its research streams: shadow v1/v2, skip-policy shadow, live-forward #16, D8 research capture, leaderboard captures;
+- the preservation and restore dependencies they rely on, on any host (e.g. the 6/05 MacBook loss of `pooled_bins_run`).
+
+Window: 2026-03-25 (first round) through the W0.7 freeze, 2026-09-28 08:00 ET.
+
+**Dispositions** (exactly one per candidate):
+
+| Disposition | Meaning |
+|---|---|
+| `observed_incident` | A live deviation from the intended contract, evidenced by a machine observation or a contemporaneous operator report (§3) |
+| `deployed_latent_defect` | A defect in deployed code or config with no evidenced firing; fixed or unfixed. Kept when it matters to watchdog or restore coverage |
+| `near_miss_control_held` | A hazard was present but an existing control held (e.g. the 7/28 stale preview on a skip day that the scoreable gate ignored). Listed as a control, not counted as an incident |
+| `pre_ship_exclusion` | Introduced and fixed inside an unshipped change, or a test-only defect. Listed, not counted. Tests that exposed a deployed flaw, and tooling that really runs production or restore jobs, are **not** excluded |
+| `unresolved_candidate` | Evidence is insufficient to decide. Kept, with the missing evidence named |
+
+**Effect classes.** One episode can carry a primary class plus linked secondary ones.
 
 | Class | Meaning |
 |---|---|
 | **D** Delivery | Missed, late, wrong, duplicate or refused pick delivery |
-| **E** Entry | Entry-check false or missed alarms; a partial or absent entry that the system should have caught |
+| **E** Entry | Entry-check false or missed alarms; partial or absent entry the system should have caught |
 | **G** Grading and state | Local grade, streak or saver wrong; local and contest state diverging |
-| **A** Alerting | False alarm, alert storm, wrong advice, or a missing alert |
-| **L** Liveness | Idle, restart loop or thrash, crash, OOM, hang |
-| **P** Decision contract | The policy layer violates its own contract (e.g. the 9/03 all-skip idle) |
-| **R** Research streams | Shadow, skip-shadow, live-forward or D8 capture integrity |
-| **X** External data | MLB/Savant API shapes, flaps, lags, in-place re-scoring |
-| **S** Preservation and deploy | Data loss, backups, failed or rolled-back deploys, config drift |
+| **A** Alerting | False alarm, storm, wrong advice, missing alert, attempted-but-failed notification |
+| **L** Liveness | Idle, restart loop or thrash, crash, OOM, hang, latency |
+| **P** Decision contract | The policy layer violates its own contract |
+| **R** Research integrity | Research-stream data lost, corrupted or stranded |
+| **X** External dependency | MLB statsapi and the contest API, Savant, Open-Meteo, Bluesky, GitHub Actions, R2/restic, Healthchecks: shapes, flaps, lags, in-place re-scoring |
+| **S** Preservation and deploy | Data loss, backup or restore failure, failed or rolled-back deploys, config drift, unrecoverable artifacts |
 | **U** Display | Dashboard or report showing a false state |
 
-A **latent defect** is a defect that has not been seen to fire, or whose firing is unknown. It is included only if one of these holds:
-- live evidence established it (e.g. C-03 found in data);
-- it is unfixed and can reach production decisions, state, delivery or alerting.
+**Tiers.**
+- **Tier A:** delivery, entry, contest or state impact; an alert storm; a liveness failure; **loss of recoverability**; or a **material research-integrity failure** (data lost, or a protocol read affected).
+- **Tier B:** display and wording issues, research issues without data loss, and near misses.
+- **Impact unknown:** `tier_pending`, listed in its own section until evidence settles it.
+- "Residual reaches production" (Tier B → A promotion) means the unfixed residual can change delivery, entry, local or contest state, alerting, or recoverability on the deployed service.
 
-Defects that reviews found and fixed before they shipped are **excluded**. So are test-only defects and development tooling. The exclusion list names them with a reason whenever the sweep surfaces them.
+## 3. Evidence kinds and strength
+Every evidence item carries a `kind` and a `locator`:
+- **kind:** `machine_observation` (log line, state-file field, deploy run, contest-ledger line), `contemporaneous_operator_report` (commit body or memo written within 48 h of the event describing what was seen), or `inference` (derived from code or later analysis);
+- **locator:** path or commit or run id, plus line, byte offset or JSON path; plus the pointer trail to the underlying artifact.
 
-**Evidence requirement.** Each incident cites at least one primary artifact:
-- a commit body stating a live observation;
-- an audit memo;
-- a journal or cron.log line;
-- a health-state record;
-- a pick, decision or scheduler-state field;
-- a contest-ledger line;
-- a deploy run.
+A memo or memory note that repeats a claim with no locatable artifact behind it is `reported`. It cannot on its own make a candidate `observed_incident`.
 
-Memory notes are pointers, not evidence.
+## 4. Source inventory (availability before enumeration)
+Before any sweep, one inventory table lists for every source:
+- host and path, or unit;
+- retained interval (first and last record);
+- rotation, overwrite or archive semantics (an overwritten status file is a latest-state object, not a history);
+- content hash;
+- record count;
+- **unavailable intervals with reasons**.
 
-## 3. Enumeration: every authoritative source, searched in reverse
-The preliminary inventory (Appendix B) comes from docs, commit messages and memory. It is a starting list, not the population. The population is whatever the following sweeps surface. Each sweep's output is kept in the evidence directory (§8), whether or not it adds anything.
+Missing evidence stays `unknown`/`unavailable`. It never counts as "no incident". Sources:
 
-| # | Source | Sweep | Reads outcomes? |
-|---|---|---|---|
-| S1 | `docs/audit/*.md`, `INCIDENT.md`, `ARCHITECTURE.md`, `docs/optimization-ideas.md` | Read each; tag incident content | no (already committed) |
-| S2 | Git history since 2026-03-01: every commit touching `src/`, `scripts/`, `.github/`, cron or systemd files (subject **and** body) | Classify each commit with the rubric below: incident fix / latent-defect fix / pre-ship review fix / feature / other | no |
-| S3 | GitHub issues and PRs (all states) | Tag incident-bearing ones (e.g. #144, #74, #119) | no |
-| S4 | Deploy workflow run history (`gh run list`) | Every failed, cancelled or rolled-back run | no |
-| S5 | Scheduler journal 2026-05-11 → freeze (frozen snapshot `final-20260928/`) | Signature grep (Appendix A): counts per date per signature. Each date-cluster is mapped to a known incident or opened as a new candidate | no — signatures exclude result lines |
-| S6 | `cron.log` (in the snapshot) | Same signature grep | no |
-| S7 | `data/health_state/**` (snapshot) | Alert records: source, level, date, `incident_key` only. Metric values are not read | no |
-| S8 | W1.1 accepted build (`data/validation/season_2026_ledger/…dd430abe/`) | Dates and statuses of the anomaly rows: `unfinalized_day` (3), `unobserved_day` (7), `commit_status = unconfirmed` (12), quarantines (3). Dates of the `local_vs_contest_disagreement = true` rows (2). The disagreement reason category (e.g. local NO_HIT vs contest HOLD). No outcome columns beyond that flag | **partially** — see §7 |
-| S9 | Scheduler state and decision files for incident dates only | Delivery, lock and timestamp fields only | no |
-| S10 | systemd unit history in the journal | Start, stop, exit and restart lines per day; unplanned restarts counted | no |
-
-**Commit rubric (S2).** A commit is an **incident fix** when its message or linked doc states a live observation: a date, "observed", "live", "box", "prod", "incident", "Eric caught", a symptom seen in production, or a GH issue about production. It is a **latent-defect fix** when the defect was found by an audit or review of code that was already deployed. It is a **pre-ship review fix** when the defect was introduced and fixed inside the same unshipped change. A subagent classifies the commits. I verify every commit classified as incident or latent, plus a random 10 % of the rest, against the diff.
-
-## 4. Per-incident record (`I-nn`)
-Each record carries these fields:
-- `id`, `dates` (first and last live occurrence), `class` (§2), `tier` (§5)
-- `symptom` — what was seen, quoted from the primary artifact
-- `impact` — delivery / entry / contest / state / alerting / research / none. Contest impact is quoted from existing records only (§7); nothing is re-derived.
-- `detection` — who or what detected it (monitor, alert, Eric, audit, data review) and the detection latency. This is the key input for the watchdog.
-- `mechanism` — root cause with code citations at the fix's parent commit
-- `fix` — commit(s); deployed SHA and date (from the deploy runs), or `unfixed`, or `config/ops only`
-- `fixture` — test id(s), the §6 verification result, the mutant patch path
-- `residual` — what can still happen; review deferrals attached to it
-- `watchdog_relevance` — which W4 rank-2 check would have caught it, and at what boundary: delivery / entry / restart / singleton-slate / private-vs-contest / grading
-- `sources` — primary artifacts, with paths or ids
-
-Incidents that share a mechanism across dates are one record listing every date. Recurrences of a class after a fix are linked (e.g. the 6/09 no-games restart thrash and the 7/12 eve-of-break loop).
-
-## 5. Depth tiers
-- **Tier A** (full treatment: journal timeline where available, mechanism, fix, mutation-verified fixture, residual). Any incident with delivery, entry, contest or state impact, an alert storm, or a liveness failure. **All incidents named in the plan are Tier A.**
-- **Tier B** (catalogued: symptom, fix commit, fixture test ids identified but not mutation-verified, residual). Display, research-stream and alert-wording incidents with no delivery or state impact.
-
-A Tier-B incident is promoted to Tier A if its residual still reaches production.
-
-## 6. Fixture verification: prove the test fails without the fix
-### 6.1 Fixed incidents (Tier A)
-1. Identify the fix commit(s) and the tests aimed at the mechanism.
-2. In a scratch worktree at the current main HEAD, build a **mutant** that restores the pre-fix behaviour at the mechanism point:
-   - first try the reverse of the fix's `src/` hunks (`git show <fix> -- src/ | git apply -R`);
-   - on conflict, hand-write the smallest mutant that restores the pre-fix decision, with its rationale.
-3. Run the fixture tests on the mutant. At least one must fail with an assertion about the incident's symptom. An import error or an unrelated failure does not count.
-4. Run the same tests on HEAD. They must pass.
-5. Record the fix ids, the mutant patch (`…-evidence/mutants/I-nn.patch`), the failing test ids with their assertion lines, and the green run.
-
-If no test fails on the mutant, the record reads `fixture_does_not_reproduce`, a residual gap. W1.5 may then add a fixture test-first: red on the mutant, green on HEAD.
-
-### 6.2 Config or ops fixes
-Examples are the 9/14 silence and the 7/04 scrape stop. There is nothing to mutate. The record gives the procedure and the observed verification from the primary artifact, and states the gap: no automated check.
-
-### 6.3 Unfixed incidents and latent defects
-A **strict-xfail fixture** is written only when the contract is already fixed, either by an external rule or by an existing documented invariant:
-- `@pytest.mark.xfail(strict=True, raises=AssertionError, reason="I-nn …")` in `tests/test_incident_register_2026.py`, following the `tests/test_incident_2026_08_30.py` precedent;
-- it must fail on HEAD with the asserted symptom, and a setup error must not count as an expected failure (hence `raises=AssertionError`).
-
-Candidates where the contract is fixed:
-- **grading Pass rules.** The official rules say walks-only / did-not-play / suspended-before-a-hit is a Pass. Production's `grade_pick_in_feed` returns `miss`.
-- **same-day replay rollback.** A reconcile run that proposes no corrections must leave today's applied streak and saver unchanged (Codex reconcile-cutoff r1 #3).
-
-Where the contract is still a design choice (e.g. the 7/16 singleton-slate gap, and 7/10 F1 cached-fallback delivery of a postponed-game pick), the record gives an exact **reproduction scenario** (inputs, clock, expected-vs-actual) and leaves the executable fixture to the W4 rank-2 build. A strict-xfail test there would fix the design early.
-
-No production code changes in W1.5.
-
-## 7. Exposure (register row X-20, predeclared before any box read)
-**Draft row:**
-- **What is read:**
-  - S5–S7 and S10 lines and records by signature: dates, sources, levels, counts;
-  - S8 anomaly-row dates and statuses, plus the `local_vs_contest_disagreement = true` rows (date, slot, the two normalized values, the comparison's reason). This checks whether the grading-Pass defect (local NO_HIT vs contest HOLD) or C-03 produced them;
-  - S9 delivery, lock and timestamp fields for incident dates.
-- **What is not computed:** no hit rates, calibration values, model or policy comparisons, and no streak or outcome tallies. Incident impacts are quoted from existing records (e.g. the 8/13 legs "would have hit", recorded 8/14).
-- **Allowed next look:** none from these reads. Any candidate a register finding motivates is an ops candidate (W4 rank 2), validated by failure-path fixtures and not by 2026 outcomes, so D3 is unaffected.
-
-## 8. Outputs
-- `docs/audit/2026-09-29-incident-register.md`, the memo:
-  - a summary table;
-  - one record per incident;
-  - an exclusions list;
-  - a sweep coverage table (per source: items read, candidates raised, mapped, new);
-  - a rulings list.
-- `docs/audit/2026-09-29-incident-register.json`, machine-readable records.
-- `docs/audit/2026-09-29-incident-register-evidence/`: sweep outputs (S2 classification table, S4 run list, S5/S6/S10 signature counts, S7 alert index, S8 anomaly list), `mutants/*.patch`, and test run logs.
-- `tests/test_incident_register_2026.py`, strict-xfail fixtures for §6.3 only, plus any added fixtures for §6.1 gaps.
-- Wrap index row W1.5, exposure register row X-20, and corrections-index cross-references (C-03).
-
-## 9. Gates
-1. Codex design review of this document (repo access, **no data directories, no box access**).
-2. X-20 committed and pushed before S5–S9 are read.
-3. Execution: sweeps (subagents allowed for S2 and per-incident mutation checks; I verify every incident-class claim and re-run a sample of mutants myself).
-4. Codex result review of the memo, with evidence access allowed.
-5. Wrap index and memory updated.
-
-Nothing is deployed. The box is read-only throughout (the snapshot and the accepted ledger build).
-
----
-
-## Appendix A — S5/S6 signature list (frozen with X-20)
-Case-sensitive substrings drawn from the scheduler's own messages (`src/bts/scheduler.py`) plus generic failure tokens:
-- **Delivery and lock:** `MISSED-PICK ALERT` · `DELIVERY REFUSED` · `DELIVERY OUTCOME UNKNOWN` · `Pick DM failed` · `Bluesky post failed` · `Skip DM failed` · `CONTEST STATE ERROR` · `FALLBACK REFRESH` · `FALLBACK DEFERRED` · `past the` (cutoff messages) · `game_started_or_final`
-- **Liveness and idling:** `Failed to fetch/compute` · `Idle until` · `already ` (past-wake handoff) · `quarantine` · `Traceback` · `Error` · `ERROR` · `Exception` · `Killed` · `MemoryError`
-- **Results and polling:** `Result polling capped` · `unresolved` · `vanished`
-- **Shadow model:** `[SHADOW MODEL] Failed` · `Trigger failed` · `Trigger returned`
-- **Health:** `CRITICAL` · `WARN`
-- **systemd lifecycle:** `Main process exited` · `Failed with result` · `Scheduled restart job` · `Started ` · `Stopped `
-
-Result-bearing lines (`All picks have hits`, `Result already scored`, `Streak:`) are **excluded** by a negative filter. The same list is used for `cron.log`, plus `CORRECTIONS FOUND` (reconcile) and the auth categories (`TransientAuthError`, `RateLimited`).
-
-## Appendix B — preliminary inventory (repo-derived; the sweep decides the population)
-Occurred live, with dates and fix commits from commit bodies, audit memos and memory pointers:
-
-| Date(s) | Incident | Fix |
+| id | Source | Notes |
 |---|---|---|
-| 4/15 | 02:00 reconcile reset the streak to 0 nightly (walk hit today's preview) | `1d61908` |
-| 4/29 | bpm cumsum prediction-cycle latency | PR #5 |
-| 5/06 | Stale picks on postponed games | `7b701c9`, PR #24/#25 |
-| 5/09 | Postponed locked picks graded as void | PR #74 |
-| 5/08–5/09 | Shadow result reconciliation | PR #56 |
-| 5/10, 5/12 | Dashboard pick-state / scorecard display | PR #80/#93 |
-| 5/13 → 5/26 | Live-forward snapshot drift / null provenance | PR #97/#99/#132 |
-| 5/15 | Preview NaN pitcher ids | PR #98 |
-| 5/22–5/23 | Inline shadow OOM loop | PR #102/#105 |
-| 5/23 | Memory-growth false alerts | PR #114 |
-| 5/24–5/26 | Postponed-game candidate filtering / lock-status fallback | PR #119/#131 |
-| 5/27 | Restart-spike wording; dashboard health responsiveness | PR #136/#137 |
-| 6/05 | MacBook loss: `pooled_bins_run` profiles lost, so the shipped policy cannot be re-solved | preservation |
-| 6/07 | Nightly false-CRITICAL on contest-state staleness | `58c9adc` |
-| 6/09 | No-games days restart-thrash | `736ea8f` |
-| 6/10 | fetch-contest-streak daily false "failed" DM | `8cd7207` |
-| 6/10 | Reconcile under-counted saver-preserved streaks | `3a6e48b` |
-| 6/11–6/12 | Pick-entry check: settled-only endpoint → daily false alarm → cron disabled | `4f13eb3` → `2d68102` |
-| 6/17 | Local streak 10 vs contest 8 inflation → contest anchoring | PR #143 |
-| 6/21 | GH #144: check-results scored undelivered previews on skip days | PR #145 |
-| 6/29–6/30 | Resumed-portion PA counted in scoring | `a364b11` and siblings |
-| 7/01–7/02 | Skip-day dashboard visibility | `258aaa4`, `2c62d72` |
-| 7/06 | check-pick-entered premature DM on a deferred double-down | `af6329f`, `540b1ab` |
-| 7/08 | Partial entry (Harris un-entered) after a single DM | F1 v3 `8bceda1` |
-| 7/12 | Eve-of-break restart loop + ~47 duplicate CRITICAL DMs; confounded drift metric | `9551818`, `ec242da`, `230f65c` |
-| 7/16 | Singleton-slate gap | **unfixed** (backlog `7b70da7`) |
-| 7/10 → 8/09 | Shadow result stranded a month | `4f0257a..64f0ffb`, `41b2bb1` |
-| 7/28 | Stale preview on a skip day (gate held) | — |
-| 8/11 | Auth/login flap → wrong DM advice; park_drag table stale | `404358d` |
-| 8/13 | Silent pass (Warmup) | `1b50b78`, `224ddce` |
-| 8/30 | Late pick (Kwan) | `ac0ce8d`, `67338cd`, `c0c0a97`, `3697512`, `2ff2db9` |
-| 9/03 | All-skip idle | tail policy `0abf503`, `eb010fd` |
-| 9/14 | `pick_delivery = private` does not silence the entry-check cron | config only |
-| 9/16 | `stale_pick_snapshot` recaptures in the official live-forward root | pre-existing, unfixed |
-| season | C-01 leaderboard parser (active streak in `all_season` rows) | `44df03f` |
-| 5/10, 8/20 | C-03 reconcile post-cutoff flips | `ce6676d` (main only; deploys 2027) |
+| R1 | Repo documents: `docs/audit/**`, `INCIDENT.md`, `ARCHITECTURE.md`, `docs/optimization-ideas.md`, plans and specs | Read for incident evidence only. A quoted outcome statement cites its existing exposure row (X-05, X-09, …); unrelated analyses are not consumed |
+| R2 | All git commits from the first commit (2026-03-29) to the freeze, **including docs/config/artifact-only commits** | Identity + changed paths inventoried before any exclusion |
+| R3 | GitHub issues and PRs, all states, paginated to the first | — |
+| R4 | GitHub Actions deploy runs, **all outcomes**, paginated | Job and step conclusions: test gate, SSH deploy, canary, auto-rollback step executed or not |
+| B1 | W0.7 frozen snapshot `final-20260928/` on the box | Journals (`bts-scheduler`, `bts-live-forward-capture`, `-resolve`, `bts-leaderboard`); `cron.log`; `config/` (TOML + 9/14 snapshot, crontab + snapshot, installed units/timers); `deploy_history.txt`; `data/picks/**`; `data/health_state/**`; `data/validation/**` (live-forward official + D8 research roots, shadow statuses) |
+| B2 | Box sources **not** in the snapshot, copied read-only into a new evidence bundle (§8) with a manifest before extraction | `~/logs/heartbeat.log`, `backup.log`, `park_drag.log`, `static_capture.log` (and rotations); user-unit journals not exported by W0.7: `bts-dashboard`, `bts-shadow-prediction`, `bts-lineup-collect`, transient units; restic snapshot list for the `ops`/`archive`/`season2026` sets (ids, times, tags only); systemd unit and drop-in files as installed |
+| B3 | W1.1 accepted ledger build `…-compile2-dd430abe/` | Bound by build directory + bundle manifest sha `6ebb0953…` |
+| O1 | External, owner-gated, **not in default scope**: Bluesky DM history of the bot account (would give send times before 5/11); healthchecks.io notification history | Each needs Eric's OK. Without it, those intervals are `unavailable` |
 
-Latent or unfixed:
+**Known coverage limits:**
+- Journals start 2026-05-11. For 3/25–5/10, evidence is R1–R4 plus pick files, archives and `cron.log` if retained. The inventory states the exact retained interval of each.
+- `decision.json` starts 6/23.
+- Health state files are overwritten latest-state objects.
 
-| Defect | Source |
+## 5. Exposure contract (register row X-20, predeclared and pushed before any B-source read)
+**5.1 Field-limited extraction.** Box and external sources are read only through `scripts/audit/incident_register/` extractors, built test-first (§12).
+- Each extractor parses one source kind and writes `events.jsonl` with **only**: `source_id`, `locator`, `ts_utc`, `date_et`, `event_kind` (closed enum), `severity`, `unit_or_job`, `count`, `template_id`, plus whitelisted booleans (e.g. `has_msg_id`).
+- `event_kind` comes from a fixed template table built from the code's own message statements: scheduler prints, health source names, CLI outputs, systemd lifecycle lines. Capture groups are discarded except whitelisted non-outcome fields: unit names, NRestarts, minutes-to-cutoff.
+- **No message body, exception payload, probability, player result, streak value or calibration number is ever written**, and none goes into any agent prompt.
+
+**5.2 Unknown shapes.** A line that matches a generic failure token (`Traceback`, `Error`, `Exception`, `Killed`, `failed`, `CRITICAL`, `WARN`) but no template becomes `event_kind = unclassified` with its locator only.
+- It is reviewed once through a redacting viewer. The viewer masks every digit run, percentage, the tokens `hit|hits|miss|missed|void|HIT|MISS|VOID|No Hit|Pass`, and `\d+-for-\d+`.
+- The reviewer then either adds a template (with a test) or records the line as `unclassified_reviewed`. Raw lines are never copied into evidence.
+
+**5.3 JSON state readers.** Field whitelists per file type:
+
+| File type | Whitelisted fields |
 |---|---|
-| Grading Pass rules in `grade_pick_in_feed` | ledger spec §12 |
-| Same-day replay rollback | reconcile-cutoff Codex r1 #3 |
-| Cached fallback can deliver a postponed-game pick | 7/10 F1 deferral |
-| Streak + pick two-file crash atomicity | 7/09 deferral |
-| `delivery_unknown` non-scoreable redesign; feed-file validation / atomic downloads; in-transport deadline enforcement | 8/30 F2/F10/F1 |
-| Independent day-outcome watchdog; no-games-day early return bypasses EOD health | 8/14 backlog |
-| C-03 best-effort residuals | — |
-| Unretried Open-Meteo fetch | — |
-| `private_locked` / `locked_unconfirmed` with a failed `decision.json` write → no alert | 7/06 known limitation |
+| Pick files | Delivery and lock fields (`notification_sent`, `notification_id` presence, `delivered_at`, `delivery_attempted`, `bluesky_posted`), slot presence, game times, `projected_lineup`, run timestamps. **Not** `result`, `slot_results`, `p_game_hit`, streak |
+| `decision.json` | `schema_version`, `action`, `source`, `scoreable`, `delivery_status`, `objective`, `degraded_reason`, timestamps. **Not** streak/state values |
+| `scheduler_state.json` | Lock, commit, skip-candidate presence, refusal counts, refresh durations, `result_status` presence |
+| Archives | Prefix, reason, timestamps |
+| Health state | Keys and statuses (`status`, `updated_at`, `sent_sources`, `ok`/error category, per-set timestamps). **Not** metric values |
+| Account state | Presence and timestamps only. A needed streak/saver value requires an **amendment** to X-20 first |
+| Live-forward / D8 roots | Presence, schema, date, status and acceptance fields, timestamps. **Not** forecasts, labels or result payloads |
+
+**5.4 Ledger reads (B3).**
+- (i) Per-selection `date, slot, row_kind, finalization, commit_status, entry_status, delivery_confirmed, delivery_basis` and the anomaly rows (unfinalized 3, unobserved 7, unconfirmed 12, quarantined 3).
+- (ii) The `local_vs_contest_disagreement = true` rows, projected to exactly `(date, slot, local_normalized, contest_normalized, comparison_basis)`.
+- If the row count ≠ 2: **stop** and amend. A NO_HIT/HOLD pair names a symptom; it does not prove a mechanism.
+
+**5.5 Repo documents.** Restricted to incident evidence; quoted outcome statements cite their exposure rows.
+
+**5.6 Tests.** The extractor tests feed synthetic inputs through every parser:
+- calibration WARN/CRITICAL alerts carrying rates;
+- result lines (`All picks have hits! Streak: 5`, `Result already scored elsewhere (miss)`);
+- multi-line tracebacks, malformed JSON, unknown lines.
+
+A property test asserts that no output field outside the whitelist exists, and that no banned token or out-of-whitelist number appears anywhere in the outputs.
+
+**5.7 X-20 disposition text.** "A limited, registered outcome exposure for operations diagnosis (the two disagreement rows); everything else is operational metadata. Any model or policy idea motivated by a register finding still validates prospectively in 2027 (D3). Ops candidates (W4 rank 2) are validated by failure-path fixtures, not 2026 outcomes."
+
+## 6. Discovery: three routes, then reconciled
+**Route H — history** (R1–R3):
+- Every commit is inventoried (hash, date, paths, subject/body) and classified as `observed_incident_fix`, `deployed_latent_fix`, `pre_ship`, `ops_config`, `feature`, `docs`, `experiment`, or `unknown`.
+- Keywords are only search hints. `observed_incident_fix` needs an explicit observation citation, plus a deployment interval from R4/`deploy_history.txt` showing the defective code was live.
+- A subagent does the first pass. I then review:
+  - every positive;
+  - every mixed-purpose commit;
+  - **every negative that touches the deployed services' runtime closure**:
+    - `src/bts/**`, except `experiment/`, `validate/`, `evaluate/` and the `simulate/` files not loaded at runtime (runtime ones: `mdp.py`, `tail_policy.py`, `pooled_policy.py`, `quality_bins.py`, `strategies.py`);
+    - scripts run by cron or units (`scripts/cron*`, `scripts/*_once.py`, `scripts/check_heartbeat.py`) and `scripts/systemd/**`;
+    - `.github/workflows/**`, `pyproject.toml`, `uv.lock`, `data/models/*.npz`.
+- A seeded 10 % QC sample covers the remaining non-production-path negatives. It is quality control only, not a completeness proof.
+
+**Route R — runtime invariants** over **every season date in coverage**. Each is computed from §5 metadata only, and each violation is a candidate:
+
+| # | Invariant |
+|---|---|
+| V1 | Finalization: every date has a decision, a pick file or a skip record (ledger row kinds; `unfinalized`/`unobserved` rows are candidates) |
+| V2 | Delivery timeliness: in dm/public mode, the first confirmed delivery of a committed pick falls before the earliest slot's first pitch − 5 min. Sources: journal `Pick DM sent` / `Posted to Bluesky` timestamps from 5/11, `delivered_at` from 8/30, game times from pick files |
+| V3 | Delivery uniqueness: at most one pick delivery per date per slot set (a resend after a recorded failure is allowed and labelled) |
+| V4 | Entry completeness: a delivered slot without an entry-confirmed contest match, while the other slot of the same delivered double is confirmed (partial entry), or a delivered pick with no entry and a scoreable commit. Source: ledger `entry_status` |
+| V5 | Scheduler liveness: unplanned restarts per date (planned = the daily idle → exit → restart), restart bursts, days with scheduled games and no lineup check before first pitch − 5 |
+| V6 | EOD health ran on every game date |
+| V7 | Cron coverage: each scheduled job ran as expected (`check-results` 01:00, `reconcile` 02:00 [+07:40 later], `fetch-contest-streak` ×4, the 03:00 chain, `park-drag-refresh`, `capture-static`, `check-pick-entered` window, backups, heartbeat), from each log's own run markers. A gap is a candidate unless a recorded config change explains it (e.g. the 9/14 entry-check disable) |
+| V8 | Research streams: official live-forward capture per decision day, resolve status, D8 research sidecar + acceptance marker per skip day from 9/19, shadow file + reconciliation status per production day, skip-shadow record per MDP skip |
+| V9 | Deploy timeline: every run's outcome, the active SHA per interval (runs + `deploy_history.txt`), failed/rolled-back transitions, and deploys landing inside game-time windows (restart during live polling) |
+| V10 | Alert delivery: per-date health DM status and entry-check markers; attempted vs failed vs confirmed sends. An `alerted` marker is not proof of a sent DM |
+| V11 | Private/tail period 9/14–9/27: private-mode commits carry `private_locked`, no pick DMs, the nag cron stays silent after its disable, the tail stop holds (the P-05 mechanism audit is reused with its scope stated), D8 captures only on skip days |
+
+**Route X — external reports:**
+- R3/R4 and INCIDENT/ARCHITECTURE notes;
+- memory notes, as pointers only; each must be traced to an artifact or stays `reported`.
+
+**Reconciliation:** a table of candidate × route.
+- Runtime-only candidates are silent incidents and get priority review.
+- History-only candidates need runtime corroboration or stay `reported`.
+- Every candidate ends in a §2 disposition.
+
+## 7. Record schema (`I-nn`)
+**Header fields:**
+- `id`, `title`, `disposition`, `classes` (primary + linked), `tier`, `operating_mode`, `authority`
+  - `operating_mode`: dm / public / private / tail / research-only;
+  - `authority`: what was authoritative for the delivery, entry or grade concerned — e.g. contest vs local.
+- `contract` — what should have happened, citing its source.
+- `mechanism` — the causal chain as numbered links, with code citations at the defective ref.
+- `fix` — for each link: `implemented` (commit), `deployed` (SHA + time), `mitigated` (operator action + time), `verified_recovered` (evidence + time), or `unfixed`.
+- `fixtures` — historical reproduction and current defence, each with node ids, patch id and verdict (§9).
+- `residual` — including review deferrals.
+- `watchdog` — the proposed W4 rank-2 trigger, the boundary it sits on (delivery / entry / restart / singleton-slate / private-vs-contest / grading / preservation), and the required recovery or restore assertion.
+- `evidence[]` — per §3.
+
+**`occurrences[]`** — one entry per occurrence, each with:
+- onset (time, or an interval when not observed exactly);
+- first detectable time;
+- first machine detection (which detector, which time);
+- alert: attempted / confirmed / failed, with times;
+- operator awareness and action;
+- mitigation time;
+- restored-service verification;
+- whether it recurred before or after the fix.
+
+**Latencies** (each with bounds, or `unknown`):
+- *detection* = first detection − onset;
+- *notification* = confirmed alert − first detection;
+- *recovery* = verified recovery − onset.
+
+## 8. Evidence bundle
+B2 sources are copied read-only (the same acquisition discipline as the ledger) into `data/hetzner_results/season_2026_incident_evidence/v1/`, which sits inside the archive backup set.
+- The bundle carries a manifest (path, sha256, size, source mtime, acquisition time) and records declared-missing sources as `missing`.
+- Extraction and the invariants run offline over B1 + the bundle + B3, and write `…/v1-extract/<code-sha>-<run>/` (metadata only).
+- The outputs are copied into the repo evidence directory (§11).
+- One restic `archive` backup of the bundle, with the snapshot id recorded and a read-back check.
+
+## 9. Fixture protocol
+**9.1 Before any mutation, per incident**, write down:
+- the contract (§7);
+- the historical entry point and config (which function, CLI or cron path, which mode);
+- the timing or fault trigger;
+- the externally visible symptom;
+- the declared allowed mocks: external boundaries only (MLB/contest HTTP, DM transport, clock, filesystem roots).
+
+Then **pin** the baseline SHA, the historical refs (fix `F`, `F^`, deployed interval), the test-file sha256s, the config/inputs and the environment (`uv.lock` sha, Python version). All runs happen in isolated worktrees with their own venv. Every run logs which `bts` package was imported, the collected node ids and count, the exit code and any skips.
+
+**9.2 Historical reproduction.** Worktree at `F` with `src/` from `F^`, so tests, conftest and lock stay at `F`.
+- The pinned fixture must fail **in the call phase** at an **observable-contract assertion**: delivery happened or not and when, grade value, persisted state, or alert sent.
+- The actual and expected values are recorded.
+- Collection errors, `ImportError`/`AttributeError`/`TypeError` from new API, setup failures and skips do not count.
+- The same fixture passes on `F`'s `src/`.
+- A fixture whose failure lies only in a diagnostic assertion (reason string, call count, helper return) is reported as `diagnostic_only`, not a reproduction.
+
+**9.3 Current defence** (pinned baseline, i.e. the commit where W1.5's tests land):
+1. Unmarked green baseline run first.
+2. The **smallest semantic mutant** restoring the pre-fix decision at one mechanism point. This applies even when a full reverse patch applies cleanly: every hunk is inspected, and tests or expected values are never touched. The patch is saved with its sha256.
+3. A **path witness.** A coverage run (`coverage` restricted to the mutated module) shows that the mutated lines executed, and that the production entry point named in 9.1 was on the path (entry function executed), during the killing node.
+4. The identical fixture and oracle run on the mutant (red) and on the restored baseline (green), with identical test content hashes.
+
+**9.4 Multi-cause incidents** (e.g. 7/12, 8/30):
+- enumerate the causal chain;
+- one mutant per link;
+- plus the combined historical replay where one exists.
+
+The August replay (`tests/test_incident_2026_08_30.py`) certifies only what its mocks leave real (`run_single_check`, refresh, polling and DM send are patched, lines 73–98), and it states which assertion killed which mutant.
+
+**9.5 Survivors** are classified as `not_reached`, `masked_by_independent_guard` (the guard is named), `equivalent`, `invalid`, or `coverage_gap`. More guards are **never** disabled to force a failure. Historical reproduction and current defence are reported separately.
+
+**9.6 Symptom kinds.** For each incident, declare whether the historical symptom is a *late send*, *missed send*, *wrong state*, *duplicate alert*, and so on. A present-day guard that **refuses** delivery (e.g. the cutoff refusal) is reported as containment, not as a reproduction of the late send.
+
+**9.7 Strict expected-failure fixtures** (unfixed defects with a fixed contract, §10).
+- **Dedicated exception.** Each incident gets its own exception class (not an `AssertionError` subclass), raised only by a final oracle helper once setup, real execution and path-witness checks have passed. The marker is `xfail(strict=True, raises=<that class>)`. Setup, fixture validation and unrelated invariants raise ordinary errors.
+- **Validation before marking.** A run with `--runxfail` shows the exact traceback, the phase (`call`), and the actual and required values. After that, a marked run shows XFAIL for those nodes.
+- **Controls:**
+  - an ordinary passing control per harness path;
+  - an in-suite meta-test (`pytester`) proving that a marked test failing with an unrelated `AssertionError`, or failing during setup, is reported **FAILED**, not XFAIL.
+- **Parameters.** Each genuinely failing parameter is marked separately; passing parameters stay ordinary tests.
+- **Not evidence of reproduction:** SKIP, collection or setup failure, an unexpected XFAIL, or a missing node.
+
+**9.8 Characterization fixtures** (the contract is known, the repair design is open — e.g. the 7/16 singleton slate). These reproduce the observed failure sequence through the real planner path with an advancing clock. The oracle is the observable contract (e.g. "an enterable pick existed and nothing was delivered before cutoff"). If they still fail at the baseline, they carry a dedicated-exception strict xfail (9.7). They must not presuppose the repair (no T−120 vs T−90 choice).
+
+**9.9 Config/ops fixtures.** Config and ops fixes have no production-code mutant. Representative old/new config fixtures check the configured behaviour without touching the box. Example: `check-pick-entered` under `pick_delivery = private` with a `private_locked` commit still nags, which is why 9/14 needed the cron edit. Observed operational verification is recorded separately.
+
+## 10. Contracts fixed before fixtures
+**10.1 BTS Pass grading.** Pinned text: `https://www.mlb.com/apps/beat-the-streak/official-rules`, fetched 2026-09-29T03:29:29Z (page sha256 `50e8c1e3…`; extracted text `deaa8622…`; section 6 archived in the evidence directory).
+- A **Hit** needs a hit "so long as your Pick had at least one (1) official at-bat or one (1) sacrifice fly".
+- A **Pass** is any of: "A. … does not make an official at-bat appearance, does not make a sacrifice fly, or does not play …; B. all of your Pick's at-bat appearances resulted in a base on balls, hit batsman, defensive interference or obstruction, a sacrifice bunt, or a walk …; C. the game … is suspended and, at the time of suspension, the player has not yet recorded a hit".
+- The same page also says: "if your Pick is involved in a suspended game, your Pick will be deemed a Hit, Pass, or No Hit based on game activity only up until the time of suspension".
+- Double Down table: Hit+Pass = +1; Pass+Pass = preserved; any No Hit = reset unless the saver applies.
+
+| Complete synthetic feed case | HEAD (`grade_pick_in_feed`) | Required | Fixture |
+|---|---|---|---|
+| Normal final, present, H=0, AB=0, SF=0 (BB/HBP/sac bunt/interference only) | `miss` | `void` | strict xfail |
+| Normal final, in boxscore, no PA at all (evidenced DNP) | `miss` | `void` | strict xfail |
+| Normal final, H=0, AB=0, SF=1 | `miss` | `miss` | control |
+| Absent from both rosters | `None` | `None` (unlocated; pending) | control |
+| Suspended, pre-suspension PA all BB/HBP/sac bunt (0 AB/SF) | `miss` | `void` (clauses A/B) | strict xfail |
+| Suspended, pre-suspension AB without a hit | `miss` | clause C literal: Pass; but "Hit, Pass, or No Hit" leaves doubt | **`contract_ambiguous`**: characterization only, no marker. The existing `tests/test_check_hit_suspension.py::test_grade_resumed_hit_does_not_count` (asserts `miss`) is flagged as conflicting with clause C's literal text, not changed |
+| Resumed-only PA | `void` | `void` | control |
+| Pre-suspension hit, later resumed events | `hit` | `hit` | control |
+
+Every case runs through `grade_pick_in_feed` **and** the real slot-resolution + `update_streak` path, mocking only HTTP. Downstream assertions:
+- all-Pass preserves streak and saver;
+- Hit+Pass adds exactly one;
+- Pass is `void`, never merely "not `miss`" (`None` is pending, not a Pass).
+
+Incomplete evidence (missing stats, plays or timestamps) must not be read as zero. The production contract for that case is not fixed today, so it is recorded as a characterization only.
+
+**10.2 Same-day replay rollback.** The invariant, verbatim from Codex r1 #7: *with consistent, reconstructible local history and no admissible outcome or slot changes, reconciliation preserves all already-applied terminal results through the locked replay instant, including today's streak increment and saver consumption; it excludes unplayed previews and future dates.*
+- Cases: today's terminal hit (streak 2 must stay 2); today's saver-consuming miss (`(10, False)` must not become `(10, True)`); today's unplayed preview (control: excluded).
+- Assert after a repeated 23:00 ET run: persisted streak **and** saver; unchanged pick and slot results; empty corrections; no fetch for an expired date.
+- The fixed midnight-lock case stays an ordinary regression test (pre-ship).
+
+**10.3 Characterization candidates** (from code; not asserted as observed). Each must first fail unmarked. If it passes, it becomes a control or a superseded disposition.
+- **7/16 singleton slate:** morning plan with a 19:10 start; the game moves to 18:10; the only check fires at first pitch; the day ends classification-locked and undelivered.
+- **Postponed cached fallback:** the selected game is evidenced postponed before send; refresh fails; the cached pick is delivered. Oracle: no delivery naming a postponed game. Replacement, wait and alert policy stay open, and this is distinct from the unknown-status case.
+- **Scoring crash/restart:** a fault between the streak update and the terminal pick persist, then a restart. Oracle: one result affects streak and saver at most once, including the saver case.
+
+## 11. Outputs
+| Path | Contents |
+|---|---|
+| `docs/audit/2026-09-29-incident-register.md` | The memo: summary; coverage inventory; records by disposition; near misses; exclusions; `tier_pending`; reconciliation table; fixture results; rulings |
+| `docs/audit/2026-09-29-incident-register.json` | The records |
+| `docs/audit/2026-09-29-incident-register-evidence/` | Inventory, commit table, runtime-invariant outputs (metadata only), deploy timeline, pinned rules text, fixture logs, mutant patches, coverage witnesses |
+| `scripts/audit/incident_register/` | Extractors, invariants, redacting viewer |
+| `tests/scripts/incident_register/` | Tests for the above |
+| `tests/test_incident_register_2026.py` | Expected-failure and characterization fixtures with their controls, plus the `pytester` meta-test |
+| Wrap index / register / corrections | Row W1.5, row X-20, C-03 cross-reference |
+
+## 12. Gates and order
+1. Codex design r2 (repo only, no data).
+2. Implementation plan with full code, replayed from its fences (the ledger discipline).
+3. Build test-first: extractors, invariants, viewer, fixtures. Fresh reviewer → Codex code review (no data).
+4. X-20 committed and pushed; then **Eric's go-ahead for the box run** (acquire B2 → bundle + restic; extract; invariants). Nothing is deployed; the box is read-only apart from the new bundle and output directories.
+5. Fixture work (repo-only) can run from step 3.
+6. Memo → Codex result review (evidence access allowed) → wrap index, register, memory.
+
+## 13. Rulings in this design (each with its cost if wrong)
+1. **Claim wording.** Coverage is claimed "within evidenced coverage". *Cost if wrong:* none; the stronger claim is unsupportable.
+2. **Pass grading scope.** Clause C beyond zero-AB/SF is left `contract_ambiguous`. *Cost if wrong:* one real defect class is under-fixtured until 2027 evidence (a real suspended-game pick) settles it.
+3. **Owner-gated sources.** O1 sources stay out of default scope. *Cost if wrong:* March–May delivery times remain `unavailable`.
+4. **Negative review.** I review production-path negatives myself rather than running a second classifier. *Cost if wrong:* a misclassification my review misses. Route R is the independent check.
+
+## 14. Codex r1 findings → v2
+| r1 finding | Addressed in |
+|---|---|
+| #1 exposure | §5 (field-limited extraction, redaction, tests, projection, X-20 text) |
+| #2 sources | §4, §6 Route R, §8 |
+| #3 commit rubric | §6 Route H |
+| #4 xfail specificity | §9.7 |
+| #5 mechanism mutants | §9.1–9.6 |
+| #6 Pass contract | §10.1 |
+| #7 replay invariant | §10.2 |
+| #8 fixtures for named/design-open incidents | §1(c), §9.8–9.9, §10.3 |
+| #9 scope, dispositions, occurrences, evidence | §§2, 3, 7 |
