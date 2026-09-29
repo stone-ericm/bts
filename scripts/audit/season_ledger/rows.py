@@ -5,6 +5,8 @@ from .ids import utc_iso
 
 SELECTION_ACTIONS = frozenset({"single", "double"})
 ARCHIVE_KINDS = frozenset({"archive", "manual_archive", "repair_archive"})
+# Delivery signals that are neither a confirmation nor its absence: the pick may have gone out (§9).
+UNCONFIRMED_DELIVERY = frozenset({"notification_sent_without_id", "bluesky_posted_without_uri", "attempt_only"})
 
 
 def selection_id(date: str, slot: str, batter_id, game_pk) -> str:
@@ -30,6 +32,8 @@ def pick_delivery(pick: dict | None) -> tuple[bool | None, str]:
         return True, "dm_notification"
     if pick["bluesky_posted"] and pick["bluesky_uri"]:
         return True, "public_post"
+    if pick["notification_sent"]:
+        return None, "notification_sent_without_id"
     if pick["bluesky_posted"]:
         return None, "bluesky_posted_without_uri"
     if pick["delivery_attempted"]:
@@ -174,9 +178,12 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
         if decision["scoreable"] is not False:
             return [_day_row(date, "unfinalized_day", "skip_decision_unexpected_shape", decision=decision, state=state)]
         file_fields = pick_file["file_fields"] if pick_file is not None else None
-        if ((state is not None and state["committed_pick_written"]) or any(pick_delivery(p)[0] for p in pick_rows)
-                or (file_fields is not None and pick_delivery(file_fields)[0])):
+        signals = [pick_delivery(p) for p in pick_rows] + ([] if file_fields is None else [pick_delivery(file_fields)])
+        if (state is not None and state["committed_pick_written"]) or any(ok for ok, _basis in signals):
             return [_day_row(date, "unfinalized_day", "skip_decision_with_commit_evidence", decision=decision, state=state)]
+        if any(basis in UNCONFIRMED_DELIVERY for _ok, basis in signals):   # final review #4/#5: maybe delivered
+            return [_day_row(date, "unfinalized_day", "skip_decision_with_unconfirmed_delivery", decision=decision,
+                             state=state)]
         if pick_file is not None and file_fields is None:
             return [_day_row(date, "unfinalized_day", "skip_decision_with_unreadable_pick_file", decision=decision,
                              state=state)]

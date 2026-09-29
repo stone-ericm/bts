@@ -1,4 +1,4 @@
-from scripts.audit.season_ledger.rows import day_rows
+from scripts.audit.season_ledger.rows import day_rows, pick_delivery
 from scripts.audit.season_ledger.sources.day_records import (parse_decision, parse_lineup_evolution,
                                                              parse_scheduler_state)
 from scripts.audit.season_ledger.sources.pick_files import parse_archive, parse_pick_file, pick_file_state
@@ -73,6 +73,19 @@ def test_a_skip_is_not_established_beside_unreadable_evidence():
         ("unfinalized_day", "skip_decision_with_unusable_state")]
     assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, pick=picks(pick_json(D)))] == [
         ("skip_day", "decision_skip")]          # a readable, undelivered preview does not block a skip
+
+
+def test_a_skip_is_not_established_beside_an_unconfirmed_delivery():
+    # Final review #4 and #5: an attempted or unconfirmed delivery leaves "no committed pick" unknown (§9: an
+    # attempt is not delivery, and not its absence either), so the day is no clean skip; a DM flagged sent without
+    # an id is its own basis, like a public post without a URI.
+    skip = dec(action="skip", primary=cand(303, 7001))
+    for fields in ({"delivery_attempted": True}, {"notification_sent": True}, {"bluesky_posted": True}):
+        out = rows(decision=skip, pick=picks(pick_json(D, **fields)))
+        assert [(r["row_kind"], r["reason"]) for r in out] == [
+            ("unfinalized_day", "skip_decision_with_unconfirmed_delivery")], fields
+    (flagged,), _state = picks(pick_json(D, notification_sent=True))
+    assert pick_delivery(flagged) == (None, "notification_sent_without_id")
 
 
 def test_unusable_evidence_is_never_absent_evidence():
