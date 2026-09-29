@@ -2,18 +2,21 @@
 
 Design: docs/superpowers/specs/2026-09-29-incident-register-design.md §9.7, §10.
 
-Every strict expected failure raises its OWN exception class (never an AssertionError), and
-only from ``_oracle`` for the declared bad value. Any other mismatch is an ordinary assertion
-failure, so a defect that changes shape (e.g. ``None`` instead of ``miss``) fails loudly
-instead of inheriting the expected failure. HTTP is the only thing mocked: grading runs
-through ``grade_pick_in_feed`` and the ``bts check-results`` command; the replay cases run
-``reconcile_results`` itself.
+Every strict expected failure raises its OWN exception class (never an AssertionError), and only
+from the module's ``_oracle`` — and only when the WHOLE observed outcome equals the declared bad
+outcome. Any other outcome is an ordinary assertion failure, so a defect that changes shape (e.g.
+``None`` instead of ``miss``) fails loudly instead of inheriting the expected failure. Ordinary
+assertions before the oracle prove the fixture actually executed the declared path (HTTP calls
+made, the scheduler's check ran at the declared time, the classifier returned the declared
+state). HTTP is the only thing mocked for L01 (``grade_pick_in_feed`` and the real
+``bts check-results`` command) and L02 (``reconcile_results`` itself); E77 is component-level and
+lists its mocks.
 """
 from __future__ import annotations
 
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -47,11 +50,15 @@ class PassGradedAsMiss(IncidentExpectedFailure):
 
 
 class PassScoredAsNoHit(IncidentExpectedFailure):
-    """L01 downstream: a Pass leg reset (or failed to advance) the persisted streak."""
+    """L01 downstream: a Pass leg reset the streak or consumed the saver."""
 
 
 class SameDayReplayRollback(IncidentExpectedFailure):
     """L02: reconcile's season replay drops today's already-applied terminal result."""
+
+
+class SingletonSlateUndelivered(IncidentExpectedFailure):
+    """E77: a one-game slate whose start moved up after the morning fetch ends with an enterable pick never delivered."""
 
 
 def _oracle(actual, required, bad, exc: type[IncidentExpectedFailure], what: str) -> None:
@@ -66,14 +73,15 @@ def _oracle(actual, required, bad, exc: type[IncidentExpectedFailure], what: str
 
 
 # ---------------------------------------------------------------------------
-# Synthetic MLB responses (complete inputs: final game, stats present, timed plays)
+# Synthetic MLB responses — complete inputs: final game, explicit stats, timed plays
 # ---------------------------------------------------------------------------
 DATE = "2026-06-10"
-NEXT_DAY_0100 = datetime(2026, 6, 11, 1, 0, tzinfo=ET)
+AFTER_NORMAL_GAMES = datetime(2026, 6, 11, 1, 0, tzinfo=ET)       # 01:00 ET the next day
+AFTER_RESUMPTION = datetime(2026, 6, 11, 20, 0, tzinfo=ET)        # after the resumed portion ended
 GAME_A, GAME_B = 824001, 824002
 BATTER_A, BATTER_B = 660001, 660002
 PRE = "2026-06-10T23:30:00Z"      # before the suspension
-RESUME = "2026-06-11T17:00:00Z"   # resumeDateTime of a suspended game
+RESUME = "2026-06-11T17:00:00Z"   # resumeDateTime of a suspended game (13:00 ET)
 POST = "2026-06-11T17:30:00Z"     # resumed portion — never evaluated for BTS
 
 
@@ -89,13 +97,18 @@ def _play(batter: int, event: str, start: str) -> dict:
             "about": {"startTime": start}}
 
 
-def _feed(batter: int, *, batting: dict | None, plays=(), resume: str | None = None,
-          on_roster: bool = True) -> dict:
-    """A final game feed. ``batting=None`` with ``on_roster`` = on the roster, no plate appearance."""
-    players = {}
-    if on_roster:
-        players[f"ID{batter}"] = {"person": {"id": batter, "fullName": f"Batter {batter}"},
-                                  "stats": {"batting": batting or {}}}
+def _player(batter: int, batting: dict, *, bench: bool = False) -> dict:
+    entry = {"person": {"id": batter, "fullName": f"Batter {batter}"},
+             "stats": {"batting": batting},
+             "gameStatus": {"isCurrentBatter": False, "isOnBench": bench, "isSubstitute": False}}
+    if not bench:
+        entry["battingOrder"] = "100"
+    return entry
+
+
+def _feed(batter: int, *, batting: dict, plays=(), resume: str | None = None,
+          bench: bool = False, on_roster: bool = True) -> dict:
+    players = {f"ID{batter}": _player(batter, batting, bench=bench)} if on_roster else {}
     return {
         "gameData": {"status": {"abstractGameCode": "F", "detailedState": "Final"},
                      "datetime": {"resumeDateTime": resume} if resume else {}},
@@ -105,39 +118,45 @@ def _feed(batter: int, *, batting: dict | None, plays=(), resume: str | None = N
     }
 
 
-# Each case: (feed for BATTER_A in GAME_A, required grade, declared bad grade or None for a control)
+# name: (feed builder, required grade, declared bad grade or None for a control, as-of clock)
 CASES = {
     "walks_only": (lambda: _feed(BATTER_A, batting=_batting(walks=2, hbp=1),
                                  plays=[_play(BATTER_A, "walk", PRE),
                                         _play(BATTER_A, "hit_by_pitch", PRE),
-                                        _play(BATTER_A, "walk", PRE)]), "void", "miss"),
-    "did_not_play": (lambda: _feed(BATTER_A, batting=None), "void", "miss"),
+                                        _play(BATTER_A, "walk", PRE)]), "void", "miss", AFTER_NORMAL_GAMES),
+    # did not play: on the roster, explicit zero stats, on the bench, no batting order, no plays
+    "did_not_play": (lambda: _feed(BATTER_A, batting=_batting(), bench=True), "void", "miss",
+                     AFTER_NORMAL_GAMES),
     "sac_bunt_only": (lambda: _feed(BATTER_A, batting=_batting(sac_bunts=1, walks=1),
                                     plays=[_play(BATTER_A, "sac_bunt", PRE),
-                                           _play(BATTER_A, "walk", PRE)]), "void", "miss"),
+                                           _play(BATTER_A, "walk", PRE)]), "void", "miss",
+                      AFTER_NORMAL_GAMES),
     "suspended_walks_only": (lambda: _feed(BATTER_A, batting=_batting(walks=1, hits=1, at_bats=1),
                                            plays=[_play(BATTER_A, "walk", PRE),
                                                   _play(BATTER_A, "single", POST)],
-                                           resume=RESUME), "void", "miss"),
+                                           resume=RESUME), "void", "miss", AFTER_RESUMPTION),
     "suspended_ab_no_hit": (lambda: _feed(BATTER_A, batting=_batting(hits=1, at_bats=2),
                                           plays=[_play(BATTER_A, "field_out", PRE),
                                                  _play(BATTER_A, "home_run", POST)],
-                                          resume=RESUME), "void", "miss"),
+                                          resume=RESUME), "void", "miss", AFTER_RESUMPTION),
     # controls — the required value is what HEAD already returns
     "sac_fly_no_hit": (lambda: _feed(BATTER_A, batting=_batting(sac_flies=1),
-                                     plays=[_play(BATTER_A, "sac_fly", PRE)]), "miss", None),
+                                     plays=[_play(BATTER_A, "sac_fly", PRE)]), "miss", None,
+                       AFTER_NORMAL_GAMES),
     "official_ab_no_hit": (lambda: _feed(BATTER_A, batting=_batting(at_bats=4),
-                                         plays=[_play(BATTER_A, "field_out", PRE)] * 4), "miss", None),
+                                         plays=[_play(BATTER_A, "field_out", PRE)] * 4), "miss", None,
+                           AFTER_NORMAL_GAMES),
     "resumed_only": (lambda: _feed(BATTER_A, batting=_batting(hits=1, at_bats=1),
-                                   plays=[_play(BATTER_A, "single", POST)], resume=RESUME), "void", None),
+                                   plays=[_play(BATTER_A, "single", POST)], resume=RESUME), "void", None,
+                     AFTER_RESUMPTION),
     "pre_suspension_hit": (lambda: _feed(BATTER_A, batting=_batting(hits=1, at_bats=2),
                                          plays=[_play(BATTER_A, "single", PRE),
                                                 _play(BATTER_A, "field_out", POST)],
-                                         resume=RESUME), "hit", None),
-    "absent_from_rosters": (lambda: _feed(BATTER_A, batting=None, on_roster=False), None, None),
+                                         resume=RESUME), "hit", None, AFTER_RESUMPTION),
+    "absent_from_rosters": (lambda: _feed(BATTER_A, batting=_batting(), on_roster=False), None, None,
+                            AFTER_NORMAL_GAMES),
 }
-XFAIL_CASES = [k for k, (_, _, bad) in CASES.items() if bad is not None]
-CONTROL_CASES = [k for k, (_, _, bad) in CASES.items() if bad is None]
+XFAIL_CASES = [k for k, (_f, _r, bad, _c) in CASES.items() if bad is not None]
 
 
 def _params(names, exc):
@@ -165,23 +184,34 @@ def _route_http(monkeypatch, feeds: dict[int, dict]) -> list[str]:
     return calls
 
 
-def _pick(batter: int, game_pk: int) -> Pick:
-    return Pick(batter_name=f"Batter {batter}", batter_id=batter, team="NYM", lineup_position=1,
-                pitcher_name="P", pitcher_id=1, p_game_hit=0.75, flags=[], projected_lineup=False,
-                game_pk=game_pk, game_time="2026-06-10T23:10:00Z")
+def _feed_calls(calls: list[str], game_pk: int) -> int:
+    return sum(1 for u in calls if f"/game/{game_pk}/feed/live" in u)
 
 
-def _delivered_daily(pick: Pick, double_down: Pick | None = None) -> DailyPick:
-    return DailyPick(date=DATE, run_time="2026-06-10T21:00:00+00:00", pick=pick,
+def _pick(batter: int, game_pk: int, **over) -> Pick:
+    fields = dict(batter_name=f"Batter {batter}", batter_id=batter, team="NYM", lineup_position=1,
+                  pitcher_name="P", pitcher_id=1, p_game_hit=0.75, flags=[], projected_lineup=False,
+                  game_pk=game_pk, game_time="2026-06-10T23:10:00Z")
+    fields.update(over)
+    return Pick(**fields)
+
+
+def _delivered_daily(pick: Pick, double_down: Pick | None = None, date: str = DATE) -> DailyPick:
+    return DailyPick(date=date, run_time="2026-06-10T21:00:00+00:00", pick=pick,
                      double_down=double_down, runner_up=None, notification_sent=True,
-                     notification_channel="dm", notification_id="dm-1", delivery_attempted=True,
+                     notification_channel="bluesky_dm", notification_id="dm-1", delivery_attempted=True,
                      delivered_at="2026-06-10T21:01:00+00:00")
 
 
-def _check_results(monkeypatch, picks_dir: Path, tmp_path: Path):
-    monkeypatch.setattr(cli_mod, "_now_et", lambda: NEXT_DAY_0100)
+def _check_results(monkeypatch, picks_dir: Path, tmp_path: Path, as_of: datetime):
+    monkeypatch.setattr(cli_mod, "_now_et", lambda: as_of)
     return CliRunner().invoke(cli, ["check-results", "--date", DATE, "--picks-dir", str(picks_dir),
                                     "--shadow-status-output", str(tmp_path / "shadow_status.json")])
+
+
+def _outcome(picks_dir: Path) -> tuple:
+    daily = load_pick(DATE, picks_dir)
+    return (daily.slot_results, daily.result, load_streak(picks_dir), load_saver_available(picks_dir))
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +219,7 @@ def _check_results(monkeypatch, picks_dir: Path, tmp_path: Path):
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize("case", _params(list(CASES), PassGradedAsMiss))
 def test_l01_grade_pick_in_feed(case):
-    feed, required, bad = CASES[case]
+    feed, required, bad, _as_of = CASES[case]
     grade = grade_pick_in_feed(feed(), BATTER_A, f"Batter {BATTER_A}")
     if bad is None:
         assert grade == required
@@ -197,63 +227,101 @@ def test_l01_grade_pick_in_feed(case):
     _oracle(grade, required, bad, PassGradedAsMiss, f"grade_pick_in_feed[{case}]")
 
 
-@pytest.mark.parametrize("case", _params(XFAIL_CASES + ["sac_fly_no_hit", "resumed_only"], PassScoredAsNoHit))
-def test_l01_check_results_single_pick_streak(case, monkeypatch, tmp_path):
-    """A single-pick Pass must hold the streak at 5 (production cron entry, HTTP mocked)."""
-    feed, required_grade, bad = CASES[case]
+SINGLE_CASES = XFAIL_CASES + ["sac_fly_no_hit", "official_ab_no_hit", "resumed_only", "pre_suspension_hit"]
+
+
+@pytest.mark.parametrize("case", _params(SINGLE_CASES, PassScoredAsNoHit))
+def test_l01_check_results_single_pick(case, monkeypatch, tmp_path):
+    """Single pick through the real `bts check-results` (HTTP stubbed): a Pass holds (5, saver)."""
+    feed, required_grade, bad, as_of = CASES[case]
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
     save_streak(5, picks_dir, saver_available=True)
-    _route_http(monkeypatch, {GAME_A: feed()})
+    calls = _route_http(monkeypatch, {GAME_A: feed()})
 
-    result = _check_results(monkeypatch, picks_dir, tmp_path)
+    result = _check_results(monkeypatch, picks_dir, tmp_path, as_of)
     assert result.exit_code == 0, result.output
-    required_streak = {"void": 5, "miss": 0, "hit": 6}[required_grade]
+    assert _feed_calls(calls, GAME_A) >= 1, "the grader never fetched the pick's game feed"
+    after = {"void": 5, "miss": 0, "hit": 6}
+    required = ({"pick": required_grade}, required_grade, after[required_grade], True)
     if bad is None:
-        assert load_pick(DATE, picks_dir).result == required_grade
-        assert load_streak(picks_dir) == required_streak
+        assert _outcome(picks_dir) == required
         return
-    _oracle(load_streak(picks_dir), required_streak, 0, PassScoredAsNoHit,
-            f"check-results streak[{case}]")
+    _oracle(_outcome(picks_dir), required, ({"pick": bad}, bad, after[bad], True),
+            PassScoredAsNoHit, f"check-results single[{case}]")
 
 
 @pytest.mark.parametrize("case", _params(["walks_only", "did_not_play", "suspended_ab_no_hit"],
                                          PassScoredAsNoHit))
-def test_l01_check_results_hit_plus_pass_adds_one(case, monkeypatch, tmp_path):
-    """Double down: primary Hit + a Pass leg = streak +1 (5 -> 6), never a reset."""
-    feed, _required, _bad = CASES[case]
+def test_l01_check_results_hit_plus_pass(case, monkeypatch, tmp_path):
+    """Double down: primary Hit + a Pass leg = +1 (5 -> 6), never a reset."""
+    feed, _required, _bad, as_of = CASES[case]
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_B, GAME_B), double_down=_pick(BATTER_A, GAME_A)), picks_dir)
     save_streak(5, picks_dir, saver_available=True)
-    hit_feed = _feed(BATTER_B, batting=_batting(hits=1, at_bats=4),
-                     plays=[_play(BATTER_B, "single", PRE)])
-    _route_http(monkeypatch, {GAME_B: hit_feed, GAME_A: feed()})
+    hit_feed = _feed(BATTER_B, batting=_batting(hits=1, at_bats=4), plays=[_play(BATTER_B, "single", PRE)])
+    calls = _route_http(monkeypatch, {GAME_B: hit_feed, GAME_A: feed()})
 
-    result = _check_results(monkeypatch, picks_dir, tmp_path)
+    result = _check_results(monkeypatch, picks_dir, tmp_path, as_of)
     assert result.exit_code == 0, result.output
-    _oracle(load_streak(picks_dir), 6, 0, PassScoredAsNoHit, f"hit+pass streak[{case}]")
+    assert _feed_calls(calls, GAME_A) >= 1 and _feed_calls(calls, GAME_B) >= 1
+    required = ({"pick": "hit", "double_down": "void"}, "hit", 6, True)
+    bad = ({"pick": "hit", "double_down": "miss"}, "miss", 0, True)
+    _oracle(_outcome(picks_dir), required, bad, PassScoredAsNoHit, f"hit+pass[{case}]")
+
+
+@pytest.mark.xfail(strict=True, raises=PassScoredAsNoHit, reason="L01 unfixed: Pass+Pass reset the streak")
+def test_l01_check_results_pass_plus_pass_preserves(monkeypatch, tmp_path):
+    """Double down: Pass + Pass = streak preserved (5 stays 5)."""
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_B, GAME_B), double_down=_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(5, picks_dir, saver_available=True)
+    walks_b = _feed(BATTER_B, batting=_batting(walks=3), plays=[_play(BATTER_B, "walk", PRE)] * 3)
+    calls = _route_http(monkeypatch, {GAME_B: walks_b, GAME_A: CASES["did_not_play"][0]()})
+
+    result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
+    assert result.exit_code == 0, result.output
+    assert _feed_calls(calls, GAME_A) >= 1 and _feed_calls(calls, GAME_B) >= 1
+    required = ({"pick": "void", "double_down": "void"}, "void", 5, True)
+    bad = ({"pick": "miss", "double_down": "miss"}, "miss", 0, True)
+    _oracle(_outcome(picks_dir), required, bad, PassScoredAsNoHit, "pass+pass")
+
+
+@pytest.mark.xfail(strict=True, raises=PassScoredAsNoHit,
+                   reason="L01 unfixed: a Pass at streak 12 consumes the saver")
+def test_l01_pass_at_saver_streak_keeps_the_saver(monkeypatch, tmp_path):
+    """At streak 12 with the saver available, a Pass must leave (12, saver available)."""
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(12, picks_dir, saver_available=True)
+    calls = _route_http(monkeypatch, {GAME_A: CASES["walks_only"][0]()})
+
+    result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
+    assert result.exit_code == 0, result.output
+    assert _feed_calls(calls, GAME_A) >= 1
+    required = ({"pick": "void"}, "void", 12, True)
+    bad = ({"pick": "miss"}, "miss", 12, False)          # the saver absorbed a "miss" that was a Pass
+    _oracle(_outcome(picks_dir), required, bad, PassScoredAsNoHit, "pass at saver streak")
 
 
 def test_l01_absent_player_stays_pending(monkeypatch, tmp_path):
     """Control: a batter on neither roster (and no other final game) is pending, never a Pass or a miss."""
-    feed, _required, _bad = CASES["absent_from_rosters"]
     picks_dir = tmp_path / "picks"
     save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
     save_streak(5, picks_dir, saver_available=True)
-    _route_http(monkeypatch, {GAME_A: feed()})
+    calls = _route_http(monkeypatch, {GAME_A: CASES["absent_from_rosters"][0]()})
 
-    result = _check_results(monkeypatch, picks_dir, tmp_path)
+    result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
     assert result.exit_code == 0, result.output
-    assert load_pick(DATE, picks_dir).result is None
-    assert load_streak(picks_dir) == 5
+    assert _feed_calls(calls, GAME_A) >= 1, "the resolver was never reached"
+    assert _outcome(picks_dir) == (None, None, 5, True)
 
 
 # ---------------------------------------------------------------------------
 # L02 — same-day replay rollback in reconcile_results (Codex reconcile-cutoff r1 #3)
 # ---------------------------------------------------------------------------
 def _resolved(date: str, result: str, batter: int, game_pk: int) -> DailyPick:
-    daily = _delivered_daily(_pick(batter, game_pk))
-    daily.date = date
+    daily = _delivered_daily(_pick(batter, game_pk), date=date)
     daily.result = result
     daily.slot_results = {"pick": result}
     return daily
@@ -274,61 +342,67 @@ def _snapshot(picks_dir: Path) -> dict[str, str]:
     return {p.name: p.read_text() for p in sorted(picks_dir.glob("2026-*.json"))}
 
 
-def _reconcile_twice(picks_dir: Path, now: datetime, required: tuple[int, bool],
-                     bad: tuple[int, bool], monkeypatch) -> None:
+def _two_late_reconciles(picks_dir: Path, now: datetime, monkeypatch) -> list[tuple[int, bool]]:
+    """Run reconcile twice at ``now``; ordinary assertions pin everything except (streak, saver)."""
     calls = _no_http(monkeypatch)
     before = _snapshot(picks_dir)
+    states = []
     for run in (1, 2):
         corrections = reconcile_results(picks_dir, clock=lambda: now)
         assert corrections == [], f"run {run}: unexpected corrections {corrections}"
         assert _snapshot(picks_dir) == before, f"run {run}: a pick file changed"
         assert calls == [], f"run {run}: fetched {len(calls)} feed(s)"
-        state = (load_streak(picks_dir), load_saver_available(picks_dir))
-        _oracle(state, required, bad, SameDayReplayRollback, f"reconcile run {run} (streak, saver)")
+        states.append((load_streak(picks_dir), load_saver_available(picks_dir)))
+    return states
 
 
 @pytest.mark.xfail(strict=True, raises=SameDayReplayRollback,
                    reason="L02 unfixed: replay excludes today's already-applied hit")
-def test_l02_same_day_hit_survives_a_late_reconcile(tmp_path, monkeypatch):
+def test_l02_same_day_hit_survives_two_late_reconciles(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     save_pick(_resolved("2026-06-10", "hit", BATTER_A, GAME_A), picks_dir)
     save_pick(_resolved("2026-06-11", "hit", BATTER_B, GAME_B), picks_dir)
     save_streak(2, picks_dir, saver_available=True)
-    _reconcile_twice(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET),
-                     required=(2, True), bad=(1, True), monkeypatch=monkeypatch)
+    states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
+    _oracle(states, [(2, True), (2, True)], [(1, True), (1, True)], SameDayReplayRollback,
+            "two 23:00 reconciles (streak, saver)")
 
 
 @pytest.mark.xfail(strict=True, raises=SameDayReplayRollback,
                    reason="L02 unfixed: replay restores a saver today's miss consumed")
-def test_l02_same_day_saver_consumption_survives_a_late_reconcile(tmp_path, monkeypatch):
+def test_l02_same_day_saver_consumption_survives_two_late_reconciles(tmp_path, monkeypatch):
     picks_dir = tmp_path / "picks"
     for day in range(1, 11):                       # 06-01 .. 06-10: ten single hits -> streak 10
         save_pick(_resolved(f"2026-06-{day:02d}", "hit", BATTER_A, GAME_A + day), picks_dir)
     save_pick(_resolved("2026-06-11", "miss", BATTER_B, GAME_B), picks_dir)
     save_streak(10, picks_dir, saver_available=False)   # today's miss at 10 consumed the saver
-    _reconcile_twice(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET),
-                     required=(10, False), bad=(10, True), monkeypatch=monkeypatch)
+    states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
+    _oracle(states, [(10, False), (10, False)], [(10, True), (10, True)], SameDayReplayRollback,
+            "two 23:00 reconciles (streak, saver)")
 
 
-def test_l02_unplayed_preview_is_excluded(tmp_path, monkeypatch):
-    """Control: today's unplayed preview is not replayed; yesterday's hit stands."""
+def test_l02_unplayed_undelivered_preview_is_excluded(tmp_path, monkeypatch):
+    """Control: today's unplayed, undelivered preview is not replayed; yesterday's hit stands."""
     picks_dir = tmp_path / "picks"
     save_pick(_resolved("2026-06-10", "hit", BATTER_A, GAME_A), picks_dir)
-    preview = _delivered_daily(_pick(BATTER_B, GAME_B))
-    preview.date = "2026-06-11"
-    save_pick(preview, picks_dir)
+    save_pick(DailyPick(date="2026-06-11", run_time="2026-06-11T07:00:00+00:00",
+                        pick=_pick(BATTER_B, GAME_B), double_down=None, runner_up=None), picks_dir)
     save_streak(1, picks_dir, saver_available=True)
-    _reconcile_twice(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET),
-                     required=(1, True), bad=(0, True), monkeypatch=monkeypatch)
+    states = _two_late_reconciles(picks_dir, datetime(2026, 6, 11, 23, 0, tzinfo=ET), monkeypatch)
+    assert states == [(1, True), (1, True)]
 
 
 # ---------------------------------------------------------------------------
 # E77 — 7/16 singleton slate (characterization; the repair design is open, the contract is not)
+#
+# Component level. Mocked: fetch_schedule (MLB schedule; its STALE morning answer is the trigger),
+# bts.picks.get_game_statuses_detailed (MLB status), count_new_confirmations (boxscore lineups),
+# bts.orchestrator.run_and_pick (the model cascade), run_result_polling, the live-forward capture
+# trigger, bts.dm.send_dm (transport), load_decision_streak_state (contest state),
+# _idle_until_next_wakeup (post-observation idle; it reads the real wall clock), and the clock
+# (_now_et + time.sleep). run_day, run_single_check, the lock classifier and the delivery
+# chokepoint run for real; the two spies below only observe them.
 # ---------------------------------------------------------------------------
-class SingletonSlateUndelivered(IncidentExpectedFailure):
-    """E77: a one-game slate whose start moved up after the morning fetch ends with an enterable pick never delivered."""
-
-
 class _Clock:
     def __init__(self, start: datetime):
         self.now = start
@@ -353,21 +427,26 @@ def _singleton_config(picks_dir: Path) -> dict:
     }
 
 
-def _run_singleton_day(picks_dir: Path, preview: DailyPick):
-    """Run 2026-07-16 through run_day: the 10:00 fetch saw a 19:10 start; MLB moved the game to
-    18:10. Only boundaries are mocked (schedule, game status, boxscore confirmations, DM transport,
-    contest state, clock, result polling); run_day, run_single_check and the lock classifier are
-    real. Returns (final pick, every DM sent with its time)."""
-    from datetime import timedelta
+def _dm_kind(text: str) -> str:
+    if text.startswith("BTS health"):
+        return "alert"
+    if "pick" in text.lower():
+        return "pick"
+    return "other"
+
+
+def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, morning_start: str,
+                       true_first_pitch: datetime, cascade=None) -> dict:
+    """Run ``preview.date`` through run_day with the mocks listed above; return observations."""
     from unittest.mock import patch
 
-    from bts.scheduler import run_day
+    from bts import scheduler as sch
     from tests.test_scheduler import _game
 
     save_pick(preview, picks_dir)
     game = preview.pick.game_pk
-    true_first_pitch = datetime(2026, 7, 16, 18, 10, tzinfo=ET)
-    clock = _Clock(datetime(2026, 7, 16, 10, 0, tzinfo=ET))
+    clock = _Clock(datetime.combine(true_first_pitch.date(), datetime.min.time(), ET) + timedelta(hours=10))
+    obs = {"checks": [], "classified": [], "dms": [], "idle_at": [], "completed": False}
 
     def statuses(_date):
         started = clock() >= true_first_pitch
@@ -375,65 +454,131 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick):
                        "detailed": "In Progress" if started else "Scheduled",
                        "code": "I" if started else "S"}}
 
-    def not_expected(*_a, **_k):
-        raise AssertionError("the prediction cascade is not part of this characterization")
+    real_check, real_classify = sch.run_single_check, picks_mod.classify_pick_lock_state
 
-    dm_sends: list[tuple[datetime, str]] = []      # every DM (pick deliveries AND alerts)
+    def spy_check(**kw):
+        at = clock()
+        res = real_check(**kw)
+        pr = res.get("pick_result")
+        obs["checks"].append({"at": at, "locked": bool(pr and pr.locked)})
+        return res
 
-    def send_dm(*args, **kwargs):
-        text = " ".join(str(a) for a in args[1:]) + " " + " ".join(str(v) for v in kwargs.values())
-        dm_sends.append((clock(), text))
+    def spy_classify(daily, date):
+        state = real_classify(daily, date)
+        obs["classified"].append({"at": clock(), "game_pk": state.game_pk, "locked": state.locked,
+                                  "reason": state.reason})
+        return state
+
+    def send_dm(recipient, text):
+        obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text})
         return "dm-1"
 
+    def no_cascade(*_a, **_k):
+        raise AssertionError("the prediction cascade is not part of this characterization")
+
     with patch("bts.scheduler.fetch_schedule",
-               side_effect=[[_game(game, "19:10", "NYM", "PHI", date=preview.date)], []]), \
+               side_effect=[[_game(game, morning_start, "NYM", "PHI", date=preview.date)], []]), \
          patch("bts.scheduler._now_et", side_effect=clock), \
          patch("bts.scheduler.time.sleep", side_effect=lambda s: clock.advance(timedelta(seconds=s))), \
+         patch("bts.scheduler.run_single_check", side_effect=spy_check), \
+         patch("bts.picks.classify_pick_lock_state", side_effect=spy_classify), \
          patch("bts.picks.get_game_statuses_detailed", side_effect=statuses), \
          patch("bts.scheduler.count_new_confirmations", return_value=0), \
-         patch("bts.orchestrator.run_and_pick", side_effect=not_expected), \
+         patch("bts.orchestrator.run_and_pick", side_effect=cascade or no_cascade), \
          patch("bts.scheduler.run_result_polling", return_value="final"), \
          patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.scheduler._idle_until_next_wakeup",
+               side_effect=lambda *a, **k: obs["idle_at"].append(clock())), \
          patch("bts.dm.send_dm", side_effect=send_dm), \
          patch("bts.contest_state.load_decision_streak_state") as dss:
         dss.return_value.streak = 0
-        run_day(date=preview.date, config=_singleton_config(picks_dir))
-    return load_pick(preview.date, picks_dir), dm_sends
+        sch.run_day(date=preview.date, config=_singleton_config(picks_dir))
+        obs["completed"] = True
+    obs["end"] = clock()
+    obs["daily"] = load_pick(preview.date, picks_dir)
+    return obs
 
 
-def _turner_preview(**delivery) -> DailyPick:
-    turner = Pick(batter_name="Trea Turner", batter_id=607208, team="PHI", lineup_position=1,
+E77_TRUE_FIRST_PITCH = datetime(2026, 7, 16, 18, 10, tzinfo=ET)
+E77_TRUE_CUTOFF = E77_TRUE_FIRST_PITCH - timedelta(minutes=5)
+
+
+def _turner(**over) -> Pick:
+    fields = dict(batter_name="Trea Turner", batter_id=607208, team="PHI", lineup_position=1,
                   pitcher_name="P", pitcher_id=1, p_game_hit=0.675, flags=[], projected_lineup=True,
-                  game_pk=824716, game_time="2026-07-16T23:10:00Z")   # the stale 19:10 ET start
-    return DailyPick(date="2026-07-16", run_time="2026-07-16T07:00:00+00:00", pick=turner,
+                  game_pk=824716, game_time="2026-07-16T23:10:00Z")          # the stale 19:10 ET start
+    fields.update(over)
+    return Pick(**fields)
+
+
+def _preview(pick: Pick, **delivery) -> DailyPick:
+    return DailyPick(date="2026-07-16", run_time="2026-07-16T07:00:00+00:00", pick=pick,
                      double_down=None, runner_up=None, **delivery)
 
 
-E77_TRUE_CUTOFF = datetime(2026, 7, 16, 18, 5, tzinfo=ET)
-
-
-def _e77_oracle(daily: DailyPick | None, dm_sends) -> None:
-    assert daily is not None, "the pick file vanished"
-    if not daily.notification_sent and daily.delivered_at is None:
-        # Containment evidence for the record: any DM here is the missed-pick ALERT, not a delivery.
-        raise SingletonSlateUndelivered(
-            f"enterable pick {daily.pick.batter_name} never delivered (true cutoff "
-            f"{E77_TRUE_CUTOFF:%H:%M}); DMs sent: {[(t.strftime('%H:%M'), txt[:40]) for t, txt in dm_sends]}")
-    assert daily.delivered_at is not None, f"notification_sent without delivered_at: {daily!r}"
-    assert datetime.fromisoformat(daily.delivered_at).astimezone(ET) < E77_TRUE_CUTOFF, daily.delivered_at
+def _delivery_outcome(obs: dict) -> tuple:
+    """Delivery outcome from the pick file AND the identified pick DM (alerts never count)."""
+    daily = obs["daily"]
+    pick_dms = [d for d in obs["dms"] if d["kind"] == "pick"]
+    before = [d for d in pick_dms if d["at"] < E77_TRUE_CUTOFF]
+    delivered_at = (datetime.fromisoformat(daily.delivered_at).astimezone(ET)
+                    if daily and daily.delivered_at else None)
+    if daily and daily.notification_sent and before and delivered_at and delivered_at < E77_TRUE_CUTOFF:
+        return ("delivered_before_cutoff",)
+    if daily and not daily.notification_sent and not pick_dms and daily.delivered_at is None:
+        return ("never_delivered",)
+    return ("other", bool(daily and daily.notification_sent), len(pick_dms), str(delivered_at))
 
 
 @pytest.mark.xfail(strict=True, raises=SingletonSlateUndelivered,
                    reason="E77 unfixed: a moved-up singleton slate gets its only check at first pitch")
 def test_e77_singleton_slate_moved_up_is_delivered_before_cutoff(tmp_path):
-    daily, dm_sends = _run_singleton_day(tmp_path / "picks", _turner_preview())
-    _e77_oracle(daily, dm_sends)
+    obs = _run_singleton_day(tmp_path / "picks", _preview(_turner()), morning_start="19:10",
+                             true_first_pitch=E77_TRUE_FIRST_PITCH)
+    # the declared mechanism must actually have executed (ordinary assertions)
+    assert obs["completed"] and obs["end"] >= E77_TRUE_CUTOFF, obs["end"]
+    assert [c["at"].strftime("%H:%M") for c in obs["checks"]] == ["18:10"], obs["checks"]
+    assert any(c["game_pk"] == 824716 and c["locked"] and c["reason"] == "game_started_or_final"
+               and c["at"] >= E77_TRUE_FIRST_PITCH for c in obs["classified"]), obs["classified"]
+    assert all(d["kind"] == "alert" for d in obs["dms"]), obs["dms"]   # containment only
+    _oracle(_delivery_outcome(obs), ("delivered_before_cutoff",), ("never_delivered",),
+            SingletonSlateUndelivered, "7/16 singleton slate")
 
 
-def test_e77_oracle_control_delivered_before_cutoff(tmp_path):
-    """Oracle control: the same day with the pick already delivered at 17:30 satisfies the contract."""
-    daily, dm_sends = _run_singleton_day(
+def test_e77_oracle_only_control_already_delivered(tmp_path):
+    """Oracle-only control: a pick delivered at 17:30 (before any scheduler action) satisfies the
+    delivery oracle. This proves the oracle's pass branch, not the scheduler."""
+    obs = _run_singleton_day(
         tmp_path / "picks",
-        _turner_preview(notification_sent=True, notification_channel="dm", notification_id="dm-0",
-                        delivery_attempted=True, delivered_at="2026-07-16T21:30:00+00:00"))
-    _e77_oracle(daily, dm_sends)
+        _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
+                 notification_id="dm-0", delivery_attempted=True,
+                 delivered_at="2026-07-16T21:30:00+00:00"),
+        morning_start="19:10", true_first_pitch=E77_TRUE_FIRST_PITCH)
+    obs["dms"].append({"at": datetime(2026, 7, 16, 17, 30, tzinfo=ET), "kind": "pick", "text": "prior"})
+    assert _delivery_outcome(obs) == ("delivered_before_cutoff",)
+
+
+def test_e77_positive_execution_control_correct_schedule_delivers(tmp_path):
+    """Positive execution control (component level; `run_and_pick` returns a canned confirmed
+    selection): with the CORRECT 18:10 start in the morning schedule, the same machinery runs its
+    17:10 check and DMs the pick before the 18:05 cutoff."""
+    import pandas as pd
+
+    from bts.strategy import PickResult, SelectionResult
+
+    confirmed = _preview(_turner(projected_lineup=False, game_time="2026-07-16T22:10:00Z"))
+
+    def cascade(*_a, **_k):
+        predictions = pd.DataFrame([{"batter_name": "Trea Turner", "batter_id": 607208, "team": "PHI",
+                                     "game_pk": 824716, "p_game_hit": 0.675, "flags": ""}])
+        sel = SelectionResult(pick_result=PickResult(daily=confirmed, locked=False), action="single",
+                              source="mdp", primary_candidate=None, double_candidate=None,
+                              no_pick_reason=None, streak=0)
+        return predictions, sel, "local"
+
+    obs = _run_singleton_day(tmp_path / "picks", _preview(_turner(game_time="2026-07-16T22:10:00Z")),
+                             morning_start="18:10", true_first_pitch=E77_TRUE_FIRST_PITCH,
+                             cascade=cascade)
+    assert obs["completed"]
+    assert [c["at"].strftime("%H:%M") for c in obs["checks"]][:1] == ["17:10"], obs["checks"]
+    assert _delivery_outcome(obs) == ("delivered_before_cutoff",), (obs["dms"], obs["daily"])

@@ -143,3 +143,62 @@ def test_current_defence_refuses_a_patch_touching_tests(repo, worktree, tmp_path
     patch = _mutant_patch(repo, tmp_path, touch_tests=True)
     with pytest.raises(RuntimeError, match="may not touch tests"):
         current_defence(worktree, "HEAD", "demo", patch, ["tests/test_mod.py"], tmp_path / "d", PY)
+
+
+def test_exc_type_prefers_the_message_head_over_continuation_lines(tmp_path):
+    """A multi-line assertion message ('...\\nCalls: [...]') must not be read as exception 'Calls'."""
+    from scripts.audit.incident_register.evidence import parse_junit
+    junit = tmp_path / "j.xml"
+    junit.write_text(
+        '<testsuites><testsuite><testcase classname="t" name="a">'
+        '<failure message="AssertionError: Expected \'send_dm\' to not have been called.&#10;Calls: [call()]">'
+        'E   AssertionError: Expected...\nE   Calls: [call()]</failure></testcase>'
+        '<testcase classname="t" name="b"><failure message="TypeError: f() got an unexpected keyword argument">'
+        'E   TypeError: f() got...</failure></testcase></testsuite></testsuites>')
+    res = parse_junit(junit)
+    assert res["t::a"].exc_type == "AssertionError"
+    assert res["t::b"].exc_type == "TypeError"
+
+
+# --- v2 replay (Codex phase-1 r1 #6) -------------------------------------------------------------
+from scripts.audit.incident_register.evidence import (  # noqa: E402
+    harness_changes_v2,
+    historical_replay_v2,
+    replay_label,
+)
+
+
+def test_v2_replay_classifies_nodes_and_checks_imports(repo, worktree, tmp_path):
+    fix = git(repo, "rev-parse", "HEAD")
+    res = historical_replay_v2(repo, worktree, "demo", fix, ["tests/test_mod.py"], tmp_path / "o2", PY)
+    assert res["classes"] == {"tests/test_mod.py::test_symptom": "symptom_candidate",
+                              "tests/test_mod.py::test_new_api": "new_api",
+                              "tests/test_mod.py::test_unchanged": "passes_at_parent"}
+    assert res["imports_ok"] == {"red": True, "green": True}
+    # the fix changed the selected test file itself: that alone keeps the label unaudited
+    assert res["label_kind"] == "semantic_regression_replay_unaudited"
+    assert res["unaudited"] == ["tests/test_mod.py"]
+
+
+def test_v2_label_requires_a_decision_for_every_change(repo):
+    parent = git(repo, "rev-parse", "HEAD")
+    write(repo, "scripts/entry.py", "x = 1\n")
+    write(repo, "tests/test_mod.py", TEST_AT_FIX + "\n# helper change\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "script + selected-test change")
+    changes = harness_changes_v2(repo, parent, "HEAD")
+    assert sorted(c["path"] for c in changes) == ["scripts/entry.py", "tests/test_mod.py"]
+    assert replay_label(changes, None)[0] == "semantic_regression_replay_unaudited"
+    partial = {"tests/test_mod.py": {"decision": "neutral", "reason": "comment only"}}
+    assert replay_label(changes, partial) == ("semantic_regression_replay_unaudited", ["scripts/entry.py"])
+    full = {**partial, "scripts/entry.py": {"decision": "irrelevant", "reason": "not executed"}}
+    assert replay_label(changes, full) == ("semantic_regression_replay", [])
+
+
+def test_v2_rename_keeps_both_paths(repo):
+    parent = git(repo, "rev-parse", "HEAD")
+    git(repo, "mv", "tests/test_mod.py", "tests/test_renamed.py")
+    git(repo, "commit", "-q", "-m", "rename")
+    changes = harness_changes_v2(repo, parent, "HEAD")
+    assert changes == [{"status": changes[0]["status"], "path": "tests/test_renamed.py",
+                        "from": "tests/test_mod.py"}] and changes[0]["status"].startswith("R")

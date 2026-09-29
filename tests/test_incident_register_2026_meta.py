@@ -1,9 +1,11 @@
 """Meta-tests for the W1.5 expected-failure scheme (design §9.7) under the installed pytest.
 
-pytest converts a matching ``raises=`` exception to XFAIL in ANY phase (setup included), so the
-register accepts an expected failure only from the call phase at the oracle. These tests pin
-how pytest reports each shape, and ``accepted_as_reproduction`` is the rule the evidence
-runner applies to reports.
+These pin how pytest 9.0.2 itself REPORTS each shape (in-process ``inline_run`` reports). They
+are documentation of pytest's behaviour, not the acceptance rule: pytest converts a matching
+``raises=`` exception to XFAIL in ANY phase, setup included. The register's acceptance rule is
+``scripts/audit/incident_register/acceptance.accept_expected_failure`` (call phase only, raised
+inside the oracle, strict marker, clean setup and teardown, no imperative xfail), tested against
+real plugin reports in ``tests/scripts/incident_register/test_acceptance.py``.
 """
 from __future__ import annotations
 
@@ -63,11 +65,6 @@ def test_dedicated_raised_in_setup(dedicated_in_setup):
 '''
 
 
-def accepted_as_reproduction(report) -> bool:
-    """The register's rule: an expected failure counts only as a call-phase XFAIL."""
-    return report.when == "call" and report.outcome == "skipped" and bool(getattr(report, "wasxfail", ""))
-
-
 def _reports(pytester, *args):
     pytester.makepyfile(test_meta=HARNESS)
     rec = pytester.inline_run(*args)
@@ -89,7 +86,6 @@ def test_meta_outcomes_under_the_marker(pytester):
     _rec, by_node = _reports(pytester)
     intended = _final(by_node["test_intended"])
     assert (intended.when, intended.outcome) == ("call", "skipped") and intended.wasxfail
-    assert accepted_as_reproduction(intended)
 
     fixed = _final(by_node["test_fixed_behaviour"])          # XPASS(strict) -> failed
     assert (fixed.when, fixed.outcome) == ("call", "failed")
@@ -108,10 +104,9 @@ def test_meta_outcomes_under_the_marker(pytester):
     assert not getattr(setup_err, "wasxfail", "")
 
     # pytest DOES convert a dedicated exception raised in setup into XFAIL (no phase check in
-    # _pytest/skipping.py) — which is exactly why the register rejects non-call XFAILs.
+    # _pytest/skipping.py) — which is exactly why the register's rule rejects non-call XFAILs.
     in_setup = _final(by_node["test_dedicated_raised_in_setup"])
     assert (in_setup.when, in_setup.outcome) == ("setup", "skipped") and in_setup.wasxfail
-    assert not accepted_as_reproduction(in_setup)
 
 
 def test_meta_summary_counts(pytester):
