@@ -128,8 +128,10 @@ def test_a_quarantined_ancestor_covers_its_records_and_double_cover_fails():
 
 
 def _acc(*pairs, kind="pick_file", disposition="not_selected", fields=None):
+    """Synthetic accounting rows; like compiled ones, their facts carry the source date (the compiler adds file_date)."""
     return [{"source_path": p, "locator": loc, "obs_id": f"o:{p}:{loc}", "state": "emitted", "kind": kind,
-             "disposition": disposition, "fields_json": json.dumps(fields or {})} for p, loc in pairs]
+             "disposition": disposition, "fields_json": json.dumps(fields or {"file_date": "2026-05-01"})}
+            for p, loc in pairs]
 
 
 # The recipe summary over an empty universe: every frozen rule, zero counts (the output checks require all of them).
@@ -232,8 +234,11 @@ def test_membership_checks_prove_the_join_the_cardinality_and_the_totals():
     prod, shadow = "picks/2026-08-20.json", "picks/2026-08-20.shadow.json"
     files = {prod: pick_json("2026-08-20", result="hit"), shadow: pick_json("2026-08-20", result="hit")}
     routed = {prod: "pick_file"}
-    acc = account(files, routed, _parse(files, routed))
-    assign_dispositions(acc, {a["obs_id"]: "not_selected" for a in acc if a["kind"] == "pick_file"})
+    parsed = _parse(files, routed)
+    for row in parsed[prod].rows:
+        row["file_date"] = "2026-08-20"              # as the compiler adds it; no season dates here, so out of window
+    acc = account(files, routed, parsed)
+    assign_dispositions(acc, {a["obs_id"]: "outside_season_window" for a in acc if a["kind"] == "pick_file"})
     summary, membership = evaluate_rules(files, RULES, {}, frozen_at="t")
     linked = _link(membership, acc, [])
     check_invariants(files, acc, [], [], linked, summary, [])

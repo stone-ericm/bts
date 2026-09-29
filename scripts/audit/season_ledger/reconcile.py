@@ -318,8 +318,16 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
             raise InvariantError(f"ledger row {r['row_id']} attaches a pick of another selection")
         if r["row_kind"] == "selection" and r.get("decision_obs_id") is not None:
             named_rows.setdefault(r["decision_obs_id"], []).append((r["slot"], r["batter_id"], r["game_pk"]))
+    # The obligations come from the source date, never from an assigned disposition (Codex code r2 #1): a decision or
+    # pick is outside the season window exactly when its source date is, and every in-season decision yields exactly
+    # what it names (a skip, exactly one day row).
+    in_season = set(season_dates)
     for obs, a in emitted.items():
-        if a["disposition"] != "canonical_decision":
+        if a["kind"] in ("decision", "pick_file") and (
+                (a["disposition"] == "outside_season_window") != (facts[obs]["file_date"] not in in_season)):
+            raise InvariantError(f"{a['kind']} {obs} is marked {a['disposition']} for source date "
+                                 f"{facts[obs]['file_date']}")
+        if a["kind"] != "decision" or facts[obs]["file_date"] not in in_season:
             continue
         d = facts[obs]
         slots = {"single": ("primary",), "double": ("primary", "double_down")}.get(d["action"], ())
@@ -337,6 +345,12 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
                                                                     rule["legs"], list(rule["window"]),
                                                                     list(rule["published"])):
             raise InvariantError(f"recipe {s['rule_id']} does not carry its frozen definition")
+        fit = {(True, True): "both", (True, False): "primaries_only", (False, True): "legs_only",   # Codex code r2 #2
+               (False, False): "none"}[(s["primaries"] == s["published_primaries"], s["legs"] == s["published_legs"])]
+        label = ("matches published totals; historical membership unverified" if fit == "both"
+                 else f"does not reproduce both totals ({fit})")
+        if (s["fit"], s["label"]) != (fit, label):
+            raise InvariantError(f"recipe {s['rule_id']} reports a fit its totals do not support")
     keys = Counter((m["rule_id"], m["source_path"], m["slot"]) for m in membership)
     if set(keys) != {(rule_id, rel, slot) for rule_id in RULES for rel, slot in membership_slots(files)} \
             or any(n > 1 for n in keys.values()):
@@ -362,10 +376,21 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
     # Every qualified contest slot reaches the ledger exactly once — on its linked selection or as a contest-only row —
     # with its own occurrence, identity, grade and round label (Codex code r1 #1).
     by_identity = {(m["round_id"], m["unit_id"], m["player_id"]): m for m in matches}
-    observed = {(f["round_id"], f["unit_id"], f["player_id"]) for a in emitted.values()
-                if a["kind"] == "contest_ledger" and (f := json.loads(a["fields_json"])).get("row_level") == "slot"}
-    if observed != set(by_identity):
+    census: dict[tuple, list[tuple]] = {}      # identity → [((recorded_at, line_no), obs_id, facts)], from the source
+    for obs, a in emitted.items():
+        if a["kind"] == "contest_ledger" and (f := json.loads(a["fields_json"])).get("row_level") == "slot":
+            census.setdefault((f["round_id"], f["unit_id"], f["player_id"]), []).append(
+                ((f["recorded_at"], f["line_no"]), obs, f))
+    if set(census) != set(by_identity):
         raise InvariantError("the contest slot matches are not exactly the qualified slot identities")
+    for identity, seen in census.items():     # Codex code r2 #3: each match carries its latest observation
+        latest = max(key for key, _obs, _f in seen)
+        last = {obs: f for key, obs, f in seen if key == latest}
+        m = by_identity[identity]
+        if (m["last_obs_id"] not in last or (m["first_seen"], m["last_seen"], m["last_line_no"], m["n_observations"])
+                != (min(key for key, _o, _f in seen)[0], latest[0], latest[1], len(seen))
+                or any(m[k] != last[m["last_obs_id"]][k] for k in ("slot_result", "slot_result_state", "round_result"))):
+            raise InvariantError(f"contest slot {identity} does not carry its latest observation")
     placed = Counter()
     for r in ledger_rows:
         if r.get("contest_obs_id") is None:

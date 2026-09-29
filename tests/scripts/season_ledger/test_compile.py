@@ -220,15 +220,95 @@ def test_raw_values_round_trip_through_the_occurrence_table(tmp_path):
     assert json.loads(round_occ["record_raw_json"])["streak"] == "RAW_STREAK"
 
 
-def _output_check_args(tmp_path, monkeypatch):
-    """Compile the fixture season, capturing the real arguments of the output-phase check, so a test can corrupt one
-    output and prove that the real check rejects it."""
+def _output_check_args(tmp_path, monkeypatch, files=None):
+    """Compile the fixture season (or `files`), capturing the real arguments of the output-phase check, so a test can
+    corrupt one output and prove that the real check rejects it."""
     from scripts.audit.season_ledger import compile as compile_module
     captured, real = [], compile_module.check_invariants
     monkeypatch.setattr(compile_module, "check_invariants", lambda *args: captured.append(args) or real(*args))
-    _compile(tmp_path, "checked")
+    _compile(tmp_path, "checked", files)
     (args,) = captured
     return args
+
+
+def test_output_checks_reject_a_hidden_decision_and_a_fabricated_fit(tmp_path, monkeypatch):
+    # Codex code r2 #1 and #2: the obligations of an in-season decision do not depend on its assigned disposition, and a
+    # recipe's fit and label must follow its verified totals.
+    files, accounting, matches, ledger, membership, summary, dates = _output_check_args(tmp_path, monkeypatch)
+    decision = next(a for a in accounting if a["source_path"] == "picks/2026-08-28/decision.json")   # no contest link
+    hidden_acc = [dict(a, disposition="outside_season_window") if a is decision else a for a in accounting]
+    hidden = [{"row_id": "day|2026-08-28|unobserved_day", "row_kind": "unobserved_day", "date": "2026-08-28",
+               "slot": None, "reason": "no_evidence"} if r["row_id"] == "2026-08-28|primary|909|6909" else r
+              for r in ledger]
+    with pytest.raises(InvariantError, match="decision"):
+        check_invariants(files, hidden_acc, matches, hidden, membership, summary, dates)
+    # Each guard alone: an in-season decision relabelled with any non-window disposition still owes its selections,
+    # and an in-season occurrence can never be marked outside the window.
+    relabelled = [dict(a, disposition="not_selected") if a is decision else a for a in accounting]
+    with pytest.raises(InvariantError, match="named selections"):
+        check_invariants(files, relabelled, matches, hidden, membership, summary, dates)
+    view = next(a for a in accounting if (a["source_path"], a["locator"]) == ("picks/2026-08-28.json", "slot=primary"))
+    with pytest.raises(InvariantError, match="marked outside_season_window"):
+        check_invariants(files, [dict(a, disposition="outside_season_window") if a is view else a for a in accounting],
+                         matches, ledger, membership, summary, dates)
+    fabricated = [dict(s, fit="both", label="matches published totals; historical membership unverified")
+                  if s["rule_id"] == "T24" else s for s in summary]
+    with pytest.raises(InvariantError, match="fit"):
+        check_invariants(files, accounting, matches, ledger, membership, fabricated, dates)
+
+
+def test_compiled_recipe_fits_and_labels_follow_the_counts(tmp_path):
+    # Codex code r2 #2: on a season that reproduces neither published total, the tally is unrecoverable.
+    build = json.loads((_compile(tmp_path, "a")[1] / "season_2026_ledger_build.json").read_text())
+    assert build["recipe_labels"] == {"scorecard_0911": "hypothesis", "tally_0914": "unrecoverable"}
+    fits = {(True, True): "both", (True, False): "primaries_only", (False, True): "legs_only", (False, False): "none"}
+    assert all(s["fit"] == fits[(s["primaries"] == s["published_primaries"], s["legs"] == s["published_legs"])]
+               for s in build["recipes"])
+
+
+def _reobserved_contest_files():
+    """One slot observed as a hit, then twice (at equal times) as not_hit, then dropped from a later line."""
+    return {"picks/account_state/contest_ledger.jsonl": ("\n".join([
+                contest_line("2026-08-10T20:00:00Z", [rnd(980, "hit", 5, 1, [slot(3001, 4001, "hit")])]),
+                contest_line("2026-08-11T14:30:00Z", [rnd(980, "not_hit", 0, -5, [slot(3001, 4001, "not_hit", hits=0)])]),
+                contest_line("2026-08-11T14:30:00Z", [rnd(980, "not_hit", 0, -5, [slot(3001, 4001, "not_hit", hits=0)])]),
+                contest_line("2026-08-12T14:30:00Z", [rnd(981, "hit", 1, 1, [slot(3002, 4002, "hit")])])]) + "\n").encode(),
+            "static/rounds/20260812T120000Z.json.gz": gz(dumps({"rounds": [
+                {"id": 980, "date": "2026-08-10T08:00:00-04:00"}, {"id": 981, "date": "2026-08-11T08:00:00-04:00"}]})),
+            "static/players/20260812T120000Z.json.gz": gz(dumps({"players": [
+                {"id": 4001, "feedId": 777}, {"id": 4002, "feedId": 778}]})),
+            "static/units/20260812T150000Z.json.gz": _units((3001, 9001, 980, "complete"), (3002, 9002, 981, "complete"))}
+
+
+def test_the_latest_contest_observation_carries_the_grade(tmp_path, monkeypatch):
+    # Codex code r2 #3: the grade is the last qualified observation's, proven independently of the slot history.
+    files, accounting, matches, ledger, membership, summary, dates = _output_check_args(
+        tmp_path, monkeypatch, _reobserved_contest_files())
+    rel = "picks/account_state/contest_ledger.jsonl"
+    obs = {o["locator"]: o["obs_id"] for o in accounting if o["source_path"] == rel}
+    (m,) = [m for m in matches if (m["round_id"], m["unit_id"], m["player_id"]) == (980, 3001, 4001)]
+    assert (m["last_obs_id"], m["slot_result"], m["n_observations"], m["changed"], m["dropped_later"]) == (
+        obs["line=3/round=0/slot=0"], "not_hit", 3, True, True)
+    row = next(r for r in ledger if r["row_id"] == "contest|980|3001|4001")
+    assert (row["bts_outcome"], row["contest_round_result"]) == ("not_hit", "not_hit")
+    stale = obs["line=1/round=0/slot=0"]
+    stale_matches = [dict(x, last_obs_id=stale, slot_result="hit", round_result="hit") if x is m else x for x in matches]
+    stale_ledger = [dict(r, contest_obs_id=stale, bts_outcome="hit", contest_round_result="hit") if r is row else r
+                    for r in ledger]
+    with pytest.raises(InvariantError, match="latest observation"):
+        check_invariants(files, accounting, stale_matches, stale_ledger, membership, summary, dates)
+    stale_values = [dict(x, slot_result="hit") if x is m else x for x in matches]    # latest id, stale grade
+    with pytest.raises(InvariantError, match="latest observation"):
+        check_invariants(files, accounting, stale_values, ledger, membership, summary, dates)
+
+
+def test_a_decision_only_selection_with_an_unrecorded_game_is_kept(tmp_path):
+    # Codex code r2 #1: a usable decision whose primary game was never recorded still yields its selection.
+    seal_bundle(tmp_path / "b", {"picks/2026-08-10/decision.json": decision_json("2026-08-10", action="single",
+                                                                                  primary=cand(101, None))})
+    compile_bundle(tmp_path / "b", tmp_path / "o", uv_lock_sha256="test-lock")
+    row = _ledger(tmp_path / "o")["2026-08-10|primary|101|None"]
+    assert (row["row_kind"], row["finalization"], row["game_pk"]) == ("selection", "decision", None)
 
 
 def test_output_checks_reject_lost_legs_wrong_references_and_misplaced_contest_evidence(tmp_path, monkeypatch):
