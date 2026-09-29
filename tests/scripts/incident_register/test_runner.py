@@ -273,6 +273,12 @@ def test_rebound_helper(monkeypatch):
     scen.plain()
 
 
+def test_rebound_helper_twice(monkeypatch):
+    monkeypatch.setattr(transport, "send", helper)
+    scen.plain()
+    scen.plain()
+
+
 def test_c_boundary(monkeypatch):
     monkeypatch.setattr(transport, "send", print)
     scen.plain()
@@ -394,3 +400,28 @@ def test_a_source_change_before_the_session_starts_is_rejected(project, tmp_path
     r = runner.run(wt, ["tests/test_mod.py", "-q"], tmp_path / "out", "green")
     assert "the production src tree at session start differs from the tree the runner prepared" in \
         runner.gate(r, worktree=wt, mode="green")
+
+
+def test_a_real_boundary_called_twice_is_recorded_twice(project, tmp_path):
+    """A real (unmocked) boundary function in production code, called twice, is recorded twice."""
+    repo, wt = project
+    write(wt, "tests/test_twice.py", "from bts import mod\n\n\ndef test_twice():\n"
+          "    assert mod.deliver(True, late=True) == 'done'\n")
+    node = "tests/test_twice.py::test_twice"
+    r = runner.run(wt, ["tests/test_twice.py", "-q"], tmp_path / "out", "green", observe=observe(wt, [node]))
+    assert runner.gate(r, worktree=wt, mode="green") == []
+    inside, why = certify.interval(r.events, node)
+    assert why == []
+    calls = [(e["identity"]["category"], e["identity"]["value"]) for e in inside if e["kind"] == "boundary"]
+    assert calls == [("alert", "BTS health CRITICAL: late"), ("pick", "pick: Turner")]
+
+
+def test_a_boundary_outside_production_stays_enabled_after_its_first_call(scen, tmp_path):
+    """Sweep O2: a boundary whose code lives OUTSIDE the production tree (here a test helper the binding
+    was rebound to) must not have its start event disabled after its first recorded call, or every
+    later call would be invisible to an absence claim."""
+    repo, wt = scen
+    r = runner.run(wt, ["tests/test_scen.py::test_rebound_helper_twice", "-q"], tmp_path / "o", "g",
+                   observe=_obs(wt, "test_rebound_helper_twice", "plain"))
+    calls = [e for e in _inside(r, "test_rebound_helper_twice") if e["kind"] == "boundary"]
+    assert [(c["identity"]["value"], c["identity"]["category"]) for c in calls] == [("pick: plain", "pick")] * 2

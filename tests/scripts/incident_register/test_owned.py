@@ -169,3 +169,36 @@ def test_manifest_sees_a_retargeted_symlink(tmp_path):
     (repo / "link").unlink()
     (repo / "link").symlink_to("b.txt")          # identical bytes, different target
     assert owned.manifest(repo)["files"]["link"] != m0["files"]["link"]
+
+
+def _fake_venv(root: Path, outside: Path) -> Path:
+    """A worktree-like dir whose .venv holds one installed module, a .pyc, and a .pth to ``outside``."""
+    site = root / ".venv" / "lib" / "python3.12" / "site-packages"
+    site.mkdir(parents=True)
+    (site / "pkg.py").write_text("VALUE = 1\n")
+    (site / "pkg.cpython-312.pyc").write_bytes(b"\x00bytecode")
+    outside.mkdir()
+    (outside / "helper.py").write_text("X = 1\n")
+    (site / "extra.pth").write_text(f"{outside}\n")
+    return site
+
+
+def test_venv_fingerprint_hashes_file_contents_not_just_names(tmp_path):
+    """Sweep W3: an installed file whose bytes change under the same name (same size here) must change
+    the fingerprint; bytecode caches must not."""
+    root = tmp_path / "wt"
+    site = _fake_venv(root, tmp_path / "outside")
+    f0 = owned.venv_fingerprint(root)
+    (site / "pkg.cpython-312.pyc").write_bytes(b"\x01bytecode")
+    assert owned.venv_fingerprint(root) == f0
+    (site / "pkg.py").write_text("VALUE = 2\n")
+    assert owned.venv_fingerprint(root) != f0
+
+
+def test_venv_fingerprint_hashes_pth_trees_outside_the_worktree(tmp_path):
+    """Sweep W4: a directory a .pth file adds from OUTSIDE the worktree is part of the environment."""
+    root = tmp_path / "wt"
+    _fake_venv(root, tmp_path / "outside")
+    f0 = owned.venv_fingerprint(root)
+    (tmp_path / "outside" / "helper.py").write_text("X = 2\n")
+    assert owned.venv_fingerprint(root) != f0

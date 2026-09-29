@@ -3,11 +3,14 @@
     python mutation_sweep.py <build-worktree> [LABEL,LABEL,...]
 
 1. BASELINE: the tooling tests must pass cleanly (exit 0, no FAILED/ERROR lines); otherwise stop.
-2. For each mutant (one check disabled), rerun the tests with ``-rfE`` and classify from pytest's own
-   summary lines: KILLED only when at least one node FAILED with an ``AssertionError`` (the intended
-   failure shape) and NO node ERRORED; ERRORED when any ERROR line appears (collection/setup/teardown —
-   not evidence the check matters); SURVIVED when everything passed. The failing node ids are printed.
-The source file is restored after every mutant (verified by byte comparison). No bytecode is written
+2. For each mutant (one check disabled), rerun the WHOLE suite (no ``-x``) with ``-rfE`` and classify
+   from pytest's own summary lines: KILLED only when at least one node FAILED with an ``AssertionError``
+   or pytest.raises' "DID NOT RAISE" (the intended failure shapes) and NO node ERRORED anywhere in the run; ERRORED when any ERROR line
+   appears (collection/setup/teardown — not evidence the check matters); SURVIVED when everything
+   passed. EVERY killing node id is printed, so a kill for the wrong reason is visible.
+Known equivalent guard (not listed): the ``completed and`` condition on the defence/replay verdict is
+redundant while every exception path records a reason (D11/P7 pin that reason); removing it cannot be
+observed today. The source file is restored after every mutant (verified by byte comparison). No bytecode is written
 during the sweep and none compiled before it is left to be read (a same-size mutant or restore written
 within the same second as the previous compile would otherwise run the stale .pyc).
 """
@@ -27,7 +30,8 @@ TESTS = ["tests/scripts/incident_register/"]
 # within the same second as the previous compile would otherwise run the stale .pyc (seen 2026-09-29).
 ENV = {**os.environ, "UV_CACHE_DIR": "/tmp/uv-cache", "TZ": "America/New_York", "COLUMNS": "1000",
        "PYTHONDONTWRITEBYTECODE": "1"}
-CMD = ["uv", "run", "--with", "jsonschema==4.23.0", "pytest", *TESTS, "-q", "-p", "no:cacheprovider", "-rfE", "--tb=line", "-x"]
+# no -x: every mutant runs the WHOLE suite, so "no node errored" and the killer list cover every node
+CMD = ["uv", "run", "--with", "jsonschema==4.23.0", "pytest", *TESTS, "-q", "-p", "no:cacheprovider", "-rfE", "--tb=line"]
 M = [
  ("runner.py", 'if s["observer_file"] != run.trusted["file"] or s["observer_sha256"] != run.trusted["sha256"]:', 'if False:', "R1 observer identity"),
  ("runner.py", 'if s["prefix"] != os.path.join(wt, ".venv"):', 'if False:', "R2 own-venv prefix"),
@@ -74,14 +78,14 @@ M = [
  ("defence.py", 'if spec["branch"]["path"] not in {e[0] for e in spec["mutation_edits"]}:', 'if False:', "D8 branch in mutated file"),
  ("defence.py", '            why.append(f"{stage}: {n} is {a} observed but {b} unobserved")', '            pass', "D9 observer-off conformance"),
  ("defence.py", '    inside = [f for f in frames if f[0].startswith(root) and not f[0].startswith(venv)]', '    inside = [f for f in frames if f[0].startswith(root)]', "D10 venv frames excluded"),
- ("defence.py", 'res["verdict"] = "accepted" if completed and not why else "rejected"', 'res["verdict"] = "accepted" if not why else "rejected"', "D11 verdict needs completion"),
+ ("defence.py", '        why.append(f"aborted: {type(e).__name__}: {e}")     # recorded, then surfaced to the caller', '        pass', "D11 unexpected exception recorded"),
  ("replay.py", '            why += problems', '            pass', "P1 audit problems"),
  ("replay.py", 'if not last or last[0] != s["_path"] or last[1] != s["_line"]:', 'if False:', "P2 replay assertion location"),
  ("replay.py", 'why += [f"red: {r}" for r in runner.gate(red, worktree=worktree, mode="mutant", expected=inventory)]', 'pass', "P3 red gate"),
  ("replay.py", 'if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):', 'if False:', "P4 replay exception type"),
  ("replay.py", '            elif not str(entry.get("reason", "")).strip():', '            elif False:', "P5 reason required"),
  ("replay.py", '        why += _drift(worktree, m0, v0, "after green", src_too=True)       # before any swap or reset', '        pass', "P6 drift after green"),
- ("replay.py", 'res["verdict"] = "accepted" if completed and not why else "rejected"', 'res["verdict"] = "accepted" if not why else "rejected"', "P7 verdict needs completion"),
+ ("replay.py", '        why.append(f"aborted: {type(e).__name__}: {e}")     # recorded, then surfaced to the caller', '        pass', "P7 unexpected exception recorded"),
  ("acceptance.py", 'if c.get("imperative_xfail"):', 'if False:', "A1 imperative"),
  ("acceptance.py", 'if marker.get("raises") != [r["exception"]]:', 'if False:', "A2 marker raises"),
  ("acceptance.py", 'if not (strict is True or (strict is None and _ini_strict(marked))):', 'if False:', "A3 strict"),
@@ -103,6 +107,7 @@ M = [
  ("owned.py", 'if os.path.realpath(gitdir) == os.path.realpath(common):', 'if False:', "W1 primary checkout"),
  ("owned.py", '        if cur.is_symlink():', '        if False:', "W2 symlinked component"),
  ("owned.py", '            if name.endswith(".pyc"):\n                continue\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")\n            if os.path.islink(p):\n                h.update(b"link:" + os.readlink(p).encode())\n            elif os.path.isfile(p):\n                with open(p, "rb") as fh:\n                    for chunk in iter(lambda: fh.read(1 << 20), b""):\n                        h.update(chunk)', '            if name.endswith(".pyc"):\n                continue\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")', "W3 venv content hashed"),
+ ("owned.py", '                _tree_hash(h, Path(target))', '                pass', "W4 pth trees hashed"),
 ]
 
 
@@ -143,7 +148,9 @@ for fname, old, new, label in M:
     try:
         f.write_text(text.replace(old, new, 1))
         rc, failed, errored, tail = run()
-        assertion_kills = [l for l in failed if "AssertionError" in l or " - assert " in l]
+        # an AssertionError, or pytest.raises' own failure ("Failed: DID NOT RAISE"): the assertion
+        # idiom for "the expected refusal did not happen"
+        assertion_kills = [l for l in failed if "AssertionError" in l or " - assert " in l or "DID NOT RAISE" in l]
         if errored:
             verdict = "ERRORED"
         elif assertion_kills:
@@ -152,7 +159,7 @@ for fname, old, new, label in M:
             verdict = "FAILED-OTHER"
         else:
             verdict = "SURVIVED"
-        nodes = [l.split(" - ")[0][len("FAILED "):] for l in (assertion_kills or failed)][:3]
+        nodes = [l.split(" - ")[0][len("FAILED "):] for l in (assertion_kills or failed)]
         print(f"{label}: {verdict} | {tail[:80]} | {nodes}", flush=True)
     finally:
         f.write_bytes(src)

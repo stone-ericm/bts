@@ -311,3 +311,20 @@ def test_an_unexpected_exception_never_writes_an_accepted_artifact(project, tmp_
     assert saved["verdict"] == "rejected"
     assert any(r.startswith("aborted: RuntimeError") for r in saved["reasons"]), saved["reasons"]
     assert git(wt, "status", "--porcelain") == ""
+
+
+def test_observer_dependence_visible_only_under_the_mutant_is_rejected(tmp_path):
+    """Sweep D9: a killing node that fails under the mutant only while observed passes every gate (the
+    green stages agree; a mutant-mode gate allows both states); only the per-node observed/unobserved
+    comparison rejects it."""
+    extra = {"tests/test_mutant_aware.py": (
+        "import sys\nfrom unittest.mock import patch\nfrom bts import mod\n\n\ndef test_mutant_aware():\n"
+        "    with patch('bts.transport.send') as send:\n        mod.run(True)\n"
+        "    assert send.call_args_list or sys.monitoring.get_tool(4) is None  # ASSERT-OBS\n")}
+    project = defended_project(tmp_path, extra=extra)
+    res = run(project, tmp_path, tests=["tests/test_mod.py", "tests/test_mutant_aware.py", "-q"],
+              killing=[{"node": "tests/test_mutant_aware.py::test_mutant_aware",
+                        "assertion": {"path": "tests/test_mutant_aware.py", "text": "# ASSERT-OBS"}}])
+    assert res["verdict"] == "rejected"
+    assert ("mutant_unobserved: tests/test_mutant_aware.py::test_mutant_aware is failed observed but passed unobserved"
+            in res["reasons"]), res["reasons"]
