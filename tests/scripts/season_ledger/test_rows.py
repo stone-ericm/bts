@@ -106,6 +106,10 @@ def test_unreadable_delivery_or_commit_fields_never_prove_a_clean_skip():
             ("unfinalized_day", "skip_decision_with_unconfirmed_delivery")], fields
     (unreadable,), _state = picks(pick_json(D, delivery_attempted="true"))
     assert pick_delivery(unreadable) == (None, "delivery_fields_unreadable")
+    # With every slot quarantined, only the file's own fields carry the unreadable delivery.
+    no_usable_slot = picks(pick_json(D, primary={"batter_id": "bad"}, notification_sent="true", notification_id="dm-9"))
+    assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, pick=no_usable_slot)] == [
+        ("unfinalized_day", "skip_decision_with_unconfirmed_delivery")]
     assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, st=state(committed_pick_written="yes"))] == [
         ("unfinalized_day", "skip_decision_with_unusable_state")]
 
