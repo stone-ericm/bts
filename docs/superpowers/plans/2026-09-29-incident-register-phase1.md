@@ -1,206 +1,103 @@
-# W1.5 Incident Register — Phase 1 Plan (repo-only) — rev 2
+# W1.5 Incident Register — Phase 1 Plan (repo-only) — rev 3
 
-**Design:** `docs/superpowers/specs/2026-09-29-incident-register-design.md` v3.1. Codex design r3 signed it with edits, and all seven edits are applied (`04267b6`).
+**Design:** `docs/superpowers/specs/2026-09-29-incident-register-design.md` v3.1 (Codex design r3 SIGN WITH EDITS, all seven applied, `04267b6`).
+**History:** rev 1 `04edfac` → Codex phase-1 r1 BLOCK → rev 2 `d8563a7` → Codex phase-1 r2 BLOCK (`docs/audit/2026-09-29-incident-register-codex-phase1-r2.md`: six tooling blockers, E77 success branch, plan consolidation) → **rev 3 (this document): the tasks below are rewritten in place; nothing in an appendix overrides them.**
 
-**Goal:** Publish the register's history-derived part, with fixture certificates, without reading any box data:
-- Route H candidates
-- records
-- historical replay and current defence for fixed Tier-A incidents
-- strict expected-failure fixtures for unfixed defects with fixed contracts
-- a Phase 1 memo
+**Goal:** publish the register's history-derived part with fixture certificates, without reading box data:
+- Route H candidates and records (design §2, §3, §6.1, §7);
+- historical replay and current defence for fixed Tier-A incidents (design §9.2–§9.5);
+- strict expected-failure fixtures for unfixed defects with fixed contracts (design §9.7, §10);
+- a Phase 1 memo (design §11).
 
-**Phase 2** is Route R: the box extractors, the V1–V11 invariants, and the §5.6 and §6.5 gates. It gets its own plan. It needs register row X-20 and Eric's go-ahead before any box read.
+**Phase 2** (Route R: box extractors, V1–V11, the §5.6 and §6.5 gates) gets its own plan and needs register row X-20 plus Eric's go-ahead before any box read. Box-held deployment evidence (`deploy_history.txt`, B1) is Phase 2.
 
-**Branch:** `w15-incident-register-phase1` at `3f6fd63`. The build worktree is under the session scratchpad, and the fast suite passes there: **2457 passed, 16 xfailed**.
+**Branch:** `w15-incident-register-phase1` at `638a982` (v3 tooling `c5cf6bc`). Build worktree under the session scratchpad; evidence runs use separate OWNED worktrees (Task 3). Measured at `c5cf6bc`: review suite (`tests/scripts/incident_register` + the two fixture files) **121 passed, 18 xfailed, 1 skipped** (`test_records.py` needs `jsonschema`; with `uv run --with jsonschema==4.23.0` its 22 pass); fast suite **2551 passed, 18 xfailed**.
 
-## Deviation from design §12.2 (ruling)
-Phase 1's code was built test-first in a scratch worktree *before* this plan was written. Codex therefore reviews this plan and the branch's code **together** (plan + code r1), not plan-then-code.
-- **Why:** the Phase 1 artifacts are test fixtures and evidence tooling, not production code. Writing the fixtures was the fastest way to establish that each contract is executable.
-- **Cost if wrong:** a plan-level defect surfaces in code review instead of plan review. Nothing is merged or deployed before that review.
+## Rulings (each with its cost if wrong)
+1. **Build before plan for Phase 1.** The fixtures and tooling are test code, not production code; Codex reviews plan + code together. *Cost if wrong:* a plan defect surfaces in code review; nothing merges or deploys first.
+2. **The causal witness is an external `sys.monitoring` observer, not hooks compiled into the mutant** (design §9.3 describes compiled hooks). Hooks edited into the code under test needed a witness-only stage to prove they were harmless and could only certify absence under one frame (Codex r2 #2, #5, #6). The observer records the same facts — entry invocation, the mutated line, every production→boundary call with its identity — from outside, edits nothing and records calls from ALL production code, not only under the entry. *Cost if wrong:* if Codex judges this a design deviation that needs a design amendment, the certificate claims stay the same but the design text must be amended before the memo.
+3. **E77 stays `component` level** (mocks listed in the fixture). *Cost if wrong:* the certificate overstates path fidelity if a mock hides the mechanism; labelled accordingly.
+4. **Missed-pick alert DMs are containment, not delivery** (E77 oracle). *Cost if wrong:* none; the pick file + identified pick DM are the delivery record.
+5. **Deployment intervals are log-bound** (Task 4); ancestry alone is a labelled `candidate`. *Cost if wrong:* records before 7/02 carry `unknown`/`candidate` deploy states until Phase 2 reads `deploy_history.txt`.
 
 ## Global constraints
-- **No production code changes.** New files only:
-  - `tests/test_incident_register_2026.py`
-  - `tests/test_incident_register_2026_meta.py`
-  - `scripts/audit/incident_register/`
-  - `tests/scripts/incident_register/`
-  - evidence under `docs/audit/2026-09-29-incident-register-evidence/`
-- **No `data/` reads and no box access in Phase 1.** Repo documents are read for incident evidence only; quoted outcome statements cite their existing exposure rows (design §5.5).
-- **Isolation:** every evidence run uses an isolated worktree with its own venv. Every run records:
-  - the imported `bts` path;
-  - collected node ids, phases and exit codes;
-  - sha256 of the pinned test files;
-  - the exact `src/` tree id.
-- **A mutant never touches `tests/`.** The harness refuses such a patch.
+- **No production code changes.** New files only under `tests/test_incident_register_2026*.py`, `scripts/audit/incident_register/`, `tests/scripts/incident_register/`, `docs/audit/2026-09-29-incident-register*`.
+- **No `data/` reads and no box access.** Repo documents are incident evidence only; quoted outcome statements cite their exposure row (X-01 for operational commit text).
+- **Every evidence run** happens in an owned worktree (Task 3) with its own `.venv`, under the trusted observer; every stage passes the session gate; `acceptance.json` is written on every path.
+- **Mutations** only touch existing tracked `src/bts/**.py` files (hard rule); tests, conftest, config, lock files, scripts and the observer are frozen whatever a spec allows.
+- **A certificate** = runner verdict `accepted` AND my recorded reviewer decision `accept` (after reading the patch, the killing call's frames and the certificate's linked events).
 
-## Task 1 — Expected-failure fixtures (DONE on the branch)
-`tests/test_incident_register_2026.py` gives each incident its own exception class. The class is raised only by `_oracle`, and only for the declared bad value.
+## Task 1 — Expected-failure fixtures (DONE)
+`tests/test_incident_register_2026.py`: **35 nodes = 17 pass, 18 strict XFAIL** (L01 ×15, L02 ×2, E77 ×1). Each incident has its own exception class (not an `AssertionError` subclass) raised only by `_oracle` for the declared bad value; other mismatches are ordinary failures.
 
-| id | Contract (design §10) | Nodes | Status at `3f6fd63` |
+| id | Contract (design §10) | XFAIL nodes | Controls |
 |---|---|---|---|
-| L01 | BTS Pass: no official AB and no SF, did not play, or suspended with no hit before suspension (clause C) is `void`. Double Down: Hit+Pass = +1 | `grade_pick_in_feed` ×5 strict xfail + 5 controls; `check-results` single ×5 strict xfail + 2 controls; `check-results` hit+pass ×3 strict xfail; absent-player control | 13 XFAIL, 8 pass |
-| L02 | reconcile preserves today's applied hit and saver consumption | 2 strict xfail + preview control | 2 XFAIL, 1 pass |
-| E77 | 7/16: a moved-up singleton slate's enterable pick is delivered before the true cutoff | 1 strict xfail (`run_day`, component level) + oracle control | 1 XFAIL, 1 pass |
+| L01 | BTS Pass (§6 A/B/C; clause C → `void`); DD Hit+Pass = +1, Pass+Pass preserved | `grade_pick_in_feed` ×5; real `bts check-results` single ×5, hit+pass ×3, pass+pass, saver-streak Pass | SF-only, official AB no hit, resumed-only, pre-suspension hit (direct + CLI); absent player pending |
+| L02 | reconcile preserves today's applied hit and saver consumption | two 23:00 reconciles ×2 | unplayed undelivered preview |
+| E77 | a moved-up singleton slate's enterable pick is delivered before the true cutoff | 1 (component) | positive execution control; verdict unit tests (fixed direction passes, bad direction raises, late delivery / no check / other mechanism fail ordinarily) |
 
-**Validation performed** (design §9.7):
-- **`--runxfail`:** all 15 L01/L02 nodes fail in the call phase with their dedicated class and the declared value. E77 fails the same way: `SingletonSlateUndelivered: … never delivered (true cutoff 18:05); DMs sent: [('19:00', 'BTS health CRITICAL alert(s): - [missed_')]`. The only DM that day is the missed-pick alert, 50 min after the true first pitch; it is recorded as containment.
-- **Positive direction:** a throwaway fix sketch flips all 15 L01/L02 nodes to XPASS(strict), and the 8 controls stay green. The sketch covers:
-  - no AB and no SF → `void`;
-  - clause C → `void`;
-  - replay including today's terminal file.
-- **`test_check_hit_suspension.py::test_grade_resumed_hit_does_not_count`** asserts `miss` for pre-suspension AB-without-hit. It is kept unchanged and recorded as **conflicting coverage**, since the pinned clause C requires `void`.
+**E77 (Codex r2 #7):** the schedule mock is truthful at every instant (19:10 before the declared 12:00 move, 18:10 after); the cascade returns a canned confirmed selection; `_e77_verdict` proves the day ran, applies the stale-plan / check-at-first-pitch / containment-only assertions **only on the bad outcome**, and lets a verified pre-cutoff delivery reach the required branch (so a repair XPASSes). Measured: a `return None` at the top of `run_day` fails the marked node and the positive control ordinarily (no XFAIL).
 
-**Candidates not yet built:**
-- **L03** postponed cached-fallback delivery;
-- **L04** scoring crash/restart double application.
+**Registry + acceptance:** `docs/audit/2026-09-29-incident-register-evidence/expected_failures.json` binds each node to its exception (`module.qualname`), oracle (`file::_oracle`), production entry, bad and required values. `acceptance.accept` takes a marked run and a `--runxfail` run of the same worktree state (Task 3) and requires, per node: marked XFAIL in the call phase, strict, `raises` = the registered class, not imperative; `--runxfail` failure with exactly that class raised in the registered oracle (exact realpath), the message carrying the declared bad and required values; the production entry invoked in the observed call phase; identical inventory, test-file bytes and `bts` modules across the pair. **Measured:** `python -m scripts.audit.incident_register.run_expected_failures` in an owned evidence worktree accepts **18/18** at `c5cf6bc` and again at `638a982`, no session-level reasons (`…-evidence/expected_failures_runs/acceptance-c5cf6bc.json`). **Positive direction:** a throwaway fix sketch flips all 17 L01/L02 nodes to XPASS(strict) with every control green (measured on the unchanged L01/L02 fixtures by Codex r2); E77's fixed direction is pinned by `test_e77_verdict_fixed_direction_passes`.
 
-Per design §10.3, each must first fail unmarked. If a Phase 1 attempt cannot build a faithful scenario, the candidate is recorded as `deferred` with the reason; neither is plan-named.
+`tests/test_check_hit_suspension.py::test_grade_resumed_hit_does_not_count` (asserts `miss` for a pre-suspension AB without a hit) is kept unchanged and recorded as **conflicting coverage** (clause C requires `void`).
+
+**Candidates not built:** L03 (postponed cached-fallback delivery) and L04 (scoring crash/restart double application) must first fail unmarked (design §10.3); if no faithful scenario can be built without box data they are recorded `deferred` with the reason.
 
 ## Task 2 — Meta-tests (DONE)
-`tests/test_incident_register_2026_meta.py` uses pytester to pin the following:
+`tests/test_incident_register_2026_meta.py` pins how pytest 9.0.2 reports each shape (intended oracle → XFAIL; fixed → XPASS(strict) failed; other mismatch / unrelated assertion → failed; setup error → ERROR; a dedicated exception raised in setup IS converted to XFAIL by pytest — which is why acceptance requires the call phase). It documents pytest; the acceptance rule is `acceptance.accept`.
 
-| Case | Reported outcome |
-|---|---|
-| Intended oracle | call-phase XFAIL (accepted) |
-| Fixed behaviour | `XPASS(strict)` → failed |
-| A different mismatch | failed (never absorbed) |
-| Unrelated call assertion | failed |
-| Unrelated setup exception | ERROR |
-| Dedicated exception raised in **setup** | pytest converts it to XFAIL (confirmed in 9.0.2), and `accepted_as_reproduction` rejects it (non-call phase) |
-
-It also pins the summary counts, `xfailed=2, failed=3, errors=1`, and `--runxfail` showing the dedicated exception in the call phase.
-
-## Task 3 — Witness module (DONE)
-`scripts/audit/incident_register/witness.py`:
-- **`hook(tag)`:** appends the caller stack `[qualname, file, line, frame_id]` and the pytest node to `$W15_WITNESS_PATH`. It is a no-op when the variable is unset.
-- **`connected(...)`:** certifies, inside one killing node's call phase, that **exactly one** entry invocation (the `entry` hook sits at the top of the entry function, so a reused frame id cannot fake a link) contains both the mutated-branch record and either:
-  - the boundary record (wrong or extra event), or
-  - its completion record (missing event — the bounded absence witness).
-
-**Tests:** 8, including r2's disconnected direct-call counterexample and a double-invocation case, both rejected.
-
-## Task 4 — Evidence harness (DONE)
-`scripts/audit/incident_register/evidence.py`:
-- **`use_src`:** replaces `src/` wholesale and verifies it equals the ref, with no extra files. Mutation-checked: without it, the throwaway repo's new-API node reads `passes_at_parent`, which is the pilot's false green.
-- **`parse_junit` / `classify`:** per-node, per-phase results — `symptom_candidate`, `new_api`, `setup_error`, `collection_error`, `passes_at_parent`, `absent_at_parent`, `green_not_passing`.
-- **`harness_changes`:** the F^→F change audit outside `src/`. An unaudited change to conftest, test data, lock or config labels the run `semantic_regression_replay_unaudited`.
-- **`current_defence`:**
-  1. green;
-  2. mutant plus witness, with test sha256 checked before and after;
-  3. restored green.
-
-**Tests:** 6, against a throwaway git repo.
-
-## Task 5 — Historical replay evidence (TO DO)
-**Scope:** every fixed Tier-A candidate with a fix commit (list below). Runs go through `historical_replay` with `python = ["uv", "run", "python"]`, after `uv sync --extra model`. Each node is then classified by hand:
-
-| Label | Meaning |
-|---|---|
-| `symptom` | An observable-contract assertion: delivery happened or not and when, grade value, persisted state, alert sent |
-| `diagnostic_only` | A reason string, call count or helper return |
-| `new_api` | The test uses an API the fix introduced |
-| `unrelated` | Anything else |
-
-Only `symptom` nodes whose run label is `semantic_regression_replay` (harness audit clean, or reviewed) count as historical replay. Otherwise the record reads `historical_replay: unavailable (<reason>)`.
-
-The pilot (30 fixes, `docs/audit/2026-09-29-incident-register-evidence/` once copied) already shows new-API-only red for:
-- 3a6e48b, a364b11, 8bceda1, 4f0257a, 41b2bb1, 0abf503;
-- all of ce6676d's red except `test_post_cutoff_rescoring_does_not_flip_a_settled_hit` (the one genuine symptom node);
-- 2ff2db9 (return shape);
-- 736ea8f (import inside the test).
-
-## Task 6 — Current defence mutants (TO DO)
-For each causal link of each fixed Tier-A incident:
-1. A contract sheet (design §9.1): contract; entry invocation and mode; trigger; symptom kind; allowed mocks.
-2. The smallest semantic mutant, as a patch under `…-evidence/mutants/<id>-<link>.patch`. It includes `from bts._w15_witness import hook` with `hook("entry")` at the top of the declared entry function, `hook("branch")` at the mutated decision, and either `hook("boundary")` at the production call site of the checked boundary or `hook("done")` at the entry's return.
-3. `current_defence` with the killing nodes.
-4. `connected(...)` over the witness records.
-5. A verdict. The certificate is `production_path` when only external boundaries are mocked, otherwise `component`. A survivor carries a §9.5 class.
-
-**Priority order:**
-1. **Plan-named:**
-   - 8/11 — `404358d`: retry classification; DM category advice.
-   - 8/13 — `1b50b78` Warmup lock; `224ddce` E3 gate and commit durability.
-   - 8/30:
-     - `ac0ce8d` cutoff guard;
-     - `67338cd` / `3697512` planner (missing-event symptom at 13:20);
-     - `c0c0a97` cached-feed sleep (latency symptom);
-     - `314154d` health read of the late DM.
-   - 9/03 — `0abf503` regime switch.
-2. **Other Tier-A with fixes:**
-   - 7/12: `9551818`, `ec242da`, `230f65c`;
-   - C-03 `ce6676d`;
-   - 4/15 `1d61908`;
-   - GH #144 set;
-   - 6/11 and 7/08 entry checks: `4f13eb3` → `a6ec548`, `8bceda1`;
-   - 7/06 `af6329f`, `540b1ab`;
-   - 6/17 `2b4ff1d`;
-   - 5/05 `7b701c9`;
-   - 4/04 `7638af7`;
-   - 4/12 `6fd61f9`, `dd25664`;
-   - 6/07 `58c9adc`, 6/10 `8cd7207`;
-   - 8/09 `4f0257a`, `41b2bb1`;
-   - 4/22–4/23 `684c160`, `ddee3db`, 5/09 `864d3aa`, 6/09 `736ea8f`;
-   - 4/30 `ee4190f`;
-   - 5/21 `43ddf0c`;
-   - C-01 `44df03f`.
-
-Subagents may run batches in their own worktrees. I review every patch, and re-run a sample of at least 20 % myself.
-
-## Task 7 — Route H finalization (TO DO)
-**Inputs:** the classification of all 1,172 commits since 3/29:
-- 806 code/config commits, first-pass subagent classification;
-- 366 docs-only commits, separate sweep;
-- my review of the 372 runtime-closure negatives: every subject plus cue scan; full body for each of the 101 cue-bearing ones.
-
-**Outputs:**
-- Every positive (52 `incident_fix`, 83 `incident_fix?`, 40 `latent_fix`, 82 records) is verified against its commit/doc text and folded into episodes.
-- Deployment intervals come from the deploy runs (192, 14 failed) and git ancestry. The deploy branch's history is authoritative from 4/21; before that, main was deployed.
-- A seeded 10 % QC of the remaining feature-only negatives.
-- The result is `…-evidence/route_h_candidates.json`: each candidate with its disposition, classes, evidence items (§3 kinds and strength) and occurrences, bounded where unknown.
-
-## Task 8 — Records and Phase 1 memo (TO DO)
-- `docs/audit/2026-09-29-incident-register.md` and `.json`, per design §7 and §11, marked **Phase 1: history + fixtures; Route R pending (Phase 2)**. The Phase 1 memo sections:
-  - coverage inventory (repo sources);
-  - records by disposition;
-  - near misses;
-  - exclusions;
-  - `tier_pending`;
-  - fixture certificates;
-  - rulings.
-- The watchdog field of each record feeds W4 rank 2.
-
-## Task 9 — Reviews and merge (TO DO)
-1. Codex plan + code r1 (this document and the branch), repo only.
-2. After Tasks 5–8, a Codex result review of the memo and evidence (repo evidence access).
-3. Fast-forward merge to main, then update the wrap index W1.5 row, the corrections index (C-03 cross-reference) and memory.
-
-Nothing is deployed. The two new test files add 16 XFAIL nodes and 27 passing nodes to the suite.
-
-## Rulings recorded so far (each with its cost if wrong)
-1. **Build-before-plan for Phase 1** (above). *Cost if wrong:* a plan-level defect is caught in code review.
-2. **E77 is certified at `component` level.** The fixture mocks `fetch_schedule` (the stale morning schedule is the trigger) and status and boxscore lookups, while `run_day`, `run_single_check` and the classifier run for real. *Cost if wrong:* the certificate overstates path fidelity if a mocked function hides the real mechanism. It is labelled accordingly.
-3. **Missed-pick alert DMs are containment, not delivery**, in E77's oracle. *Cost if wrong:* none; the pick file is the delivery record.
-4. **Exactly-one-entry-invocation rule** in `connected`. *Cost if wrong:* a legitimate fixture that calls the entry twice cannot be certified at `production_path` and must be restructured.
-
-## Rev 2 — how this answers Codex phase-1 r1
-| r1 | Fix (branch `39072e3`) | Regression test |
+## Task 3 — Evidence tooling v3 (DONE on the branch; Codex phase-1 r2 blockers)
+| Module | Role | Answers |
 |---|---|---|
-| #1 E77 accepted a no-op scheduler | E77 now proves, with ordinary assertions BEFORE the oracle, one check at 18:10, a `game_started_or_final` classification after the true first pitch, the clock past the 18:05 cutoff, and only alert-identified DMs; the oracle compares the whole delivery outcome (pick file flags + identified pick DM + `delivered_at`). The idle helper that read the real wall clock is a declared mock. The 17:30 control is labelled oracle-only; a **positive execution control** (correct 18:10 schedule, canned confirmed selection) runs the same machinery and DMs at 17:10 | measured: a `return None` at the top of `run_day` now fails E77 and its positive control with ordinary assertions (not XFAIL) |
-| #2 harness-only mutants; partial restore | `current_defence_v2`: mutations limited to `allowed_paths`; a **witness-only** stage (hooks, no mutation) must leave every node outcome unchanged; `reset_worktree` (reset --hard + clean -fdx except .venv, verified clean) in `finally`; tracked-manifest hash before/after; restored outcomes must equal the first baseline | `test_conftest_only_mutation_is_refused`, `test_edit_to_a_production_file_outside_the_allowlist_is_refused`, `test_hooks_that_change_behaviour_are_rejected`, `test_stray_files_present_before_a_run_do_not_survive_it` |
-| #3 `connected` = co-membership | `witness.certify`: exactly one entry record, entry frame in the declared production FILE, ordered entry → branch → boundary (event) or entry → branch → done with **no** boundary under the invocation (absence), plus `positive_control` from the witness-only run; per-run id, pid/thread; synchronous-only (async/process paths `unavailable`) | `test_boundary_before_branch_is_rejected`, `test_absence_with_an_event_is_rejected`, `test_same_name_entry_from_another_file_is_rejected`, `test_absence_certificate_with_positive_control`, `test_absence_without_positive_control_is_rejected` |
-| #4 import/JUnit identity | `evidence_plugin` (loaded as a standalone module, never via the worktree's `scripts` package) records collected node ids, every phase's report with the exception class and traceback frames, and the `bts` modules actually imported (path + sha256) from inside the pytest process; `imports_under` rejects foreign modules | `test_import_identity_is_observed_inside_pytest` |
-| #5 acceptance incomplete / not wired | `acceptance.accept_expected_failure`: collected once, setup and teardown passed, call-phase XFAIL, exact exception class, raised inside the oracle function of the test file, strict marker with `raises=[class]`, not imperative; used by the runner | `test_codex_counterexamples_are_rejected` (wrong location, imperative, teardown failure, setup, non-strict) |
-| #6 audit labels | `historical_replay_v2` + `replay_label`: every outside-`src/` change — including inside the selected test file — needs a recorded audit decision (neutral / irrelevant / adapter) for the clean label; renames keep both paths | `test_v2_label_requires_a_decision_for_every_change`, `test_v2_rename_keeps_both_paths`, `test_v2_replay_classifies_nodes_and_checks_imports` |
-| #7 L01/L02 gaps | L01: bench DNP with explicit zero stats; suspended cases graded with an after-resumption clock; whole-state oracles `(slot_results, day result, streak, saver)`; `official_ab_no_hit` and `pre_suspension_hit` added to the CLI path; Pass+Pass double; saver-streak Pass; feed-fetched path proofs. L02: two reconciles, one oracle over both states; a genuinely undelivered preview control. The CLI fixture is described as real CLI grading (not the cron wrapper / flock / wait loop) | acceptance accepts all 18 XFAIL nodes; a throwaway fix sketch flips all 17 L01/L02 nodes to `XPASS(strict)` with every control green |
-| #8 procedure | Tasks 5–8 amended below | — |
+| `owned.py` | `create` (detached linked worktree + ownership record in its private git dir), `assert_owned` (exact canonical root, linked not primary, detached, matching record) BEFORE `reset` / `swap_src` / `apply_edits` / `destroy`; hard mutation rule (normalized relative path, `src/bts/**.py`, existing + tracked, no symlinked component, contained); edits validated before any write; working-bytes manifest + untracked list; venv fingerprint | r2 #1, #2 |
+| `observer.py` | pytest plugin: session identity (own file + sha256 as loaded, prefix, executable, rootdir, inifile, pytest file), collection errors, inventory + test-file hashes, every phase report (exception module + qualname, frames, message, marker), and during the killing nodes' call phase a `sys.monitoring` witness: entry starts, the mutated line, every production→boundary call (dynamic binding, so mid-test mocks count; identity from the callee frame), declared returns, coroutine flag, thread, sequence | r2 #5, #6, r1 #3, #4 |
+| `runner.py` | copies the observer to a temp dir outside the worktree under a random name; `<wt>/.venv/bin/python bootstrap.py` loads that file by path and passes the module object to `pytest.main(plugins=…)`; explicit `--rootdir` + `-c`; scrubbed env. `gate`: observer identity, own venv, rootdir, pytest not from the worktree, finished session with exit status = return code, no collection/observer errors, exact inventory, one setup/call/teardown per node with the per-mode rules, return code explained by the nodes, every `bts` module under `<wt>/src` with unchanged bytes | r2 #3, #6, #9 |
+| `certify.py` | `event` / `absence` / `return` certificates over a complete observed interval (no async, no unresolved identity, no observer error): entry matched by file + qualname; the mutated line linked to a live entry invocation (frame on the stack, latest record for that frame id); event/return after the branch in the same invocation; absence = zero qualifying calls from ANY production code in the interval + no unidentified calls + a positive control in the baseline | r2 #5 |
+| `defence.py` | `current_defence(worktree, spec, out)`: GREEN → MUTANT → RESTORE in an owned worktree; manifest + venv checked after every subprocess; killing nodes must fail with a builtin `AssertionError` at the declared assertion line of a frozen file; certificates per killing node; `acceptance.json` on every path | r2 #1–#3, #5 |
+| `replay.py` | `historical_replay(repo, worktree, spec, out)`: complete fix set (P = parent of the first fix, F = last); F's tests on F's `src` (green) and P's `src` (red); declared symptom nodes must fail with a builtin `AssertionError` at their declared assertion line; every P→F outside-`src` change needs an audit decision with a reason (adapter: + evidence), retained verbatim; `acceptance.json` with verdict on every path; closure = `src_swap` (never a deployed-closure replay) | r2 #8, r1 #6 |
+| `acceptance.py` | expected-failure pair acceptance (Task 1) | r2 #3, #4 |
+| `deploy_runs.py` | typed deploy-run extraction (Task 4) | plan rev 2 Task 7 |
+| `records.py` + `record_schema.json` | record validation (Task 8) | plan rev 2 Task 8 |
 
-### Task 5/6 amendment — acceptance objects
-Every certificate is an `acceptance.json` from `current_defence_v2` / `historical_replay_v2` plus a **contract sheet** (contract, production entry and mode, trigger, symptom kind, allowed mocks, certificate-level justification) and a **reviewer decision** (accept / reject + reason) that I record after reading the patch and the killing call's frames. A certificate exists only when the runner verdict is `accepted` AND the reviewer decision is `accept`. The v1 runs made overnight (45 mutant runs under the legacy harness, `$SCR/evidence/defence/`) are **preliminary**: their mutation designs and killing-node choices are reused, but every certificate is re-run under v2 (specs split into `witness_edits` + `mutation_edits`, with `allowed_paths`, `entry_file`, `branch_file`, `kind`).
+Tests: `tests/scripts/incident_register/` — one regression test per Codex r1/r2 counterexample (primary checkout, subdirectory, symlinked root, unowned/attached worktree, traversal/absolute/symlink/tracked-symlink edits, test-expectation mutant listed as allowed, frozen-file write during a run, baseline collection error, mutant teardown error, imperative-XFAIL baseline, killing node not killed, failure at an undeclared assertion, absence with a real send elsewhere, absence without positive control, async entry, same-name entry in another file, branch outside the invocation, event before the branch, reused frame ids, foreign oracle module, same-named exception from another module, oracle fed a literal, message without values, changed bytes between the pair, planted `pytest.py`, foreign `bts` package, tampered observer identity, unfinished session, observer error, unexplained return code, audit without reason, rename, new-API and collection-error replays). A mutation sweep disables each check in turn; every mutant is killed (sweep output in the evidence directory).
 
-### Task 7 amendment — negative review and deployment intervals
-- **Every runtime-closure negative (372 commits) gets a diff-level review**: a first pass records, per commit, the functions/paths its diff changes and an explicit exclusion reason (feature / pre-ship fix within the same change / refactor / research / docs) from the DIFF, not the message; I adjudicate every commit whose diff touches a delivery, grading, state, alerting, liveness, deploy or backup code path, and a seeded 10 % of the rest.
-- **Deployment intervals** come only from retained deploy-run logs (SHA installed, canary outcome, rollback) or a qualified operator report; git ancestry alone gives a *candidate* interval, labelled `unknown` for the certificate. Runs whose logs expired (e.g. 5/09, 6/12) stay `unknown`; the 4/21–4/28 window is flagged (runs "succeeded" while installing nothing, a5af424).
+The v1/v2 tooling (`evidence.py`, `witness.py`, `evidence_plugin.py`) is removed; the overnight v1 runs are preliminary design inputs only.
 
-### Task 8 amendment — record schema
-`docs/audit/2026-09-29-incident-register.json` is validated against a JSON schema implementing design §7 (occurrences with bounds, deployed/mitigated/verified as separate fix states, residuals, evidence kind + strength, explicit `unavailable` certificates) before the memo is published; a record failing validation is not published.
+## Task 4 — Deployment intervals (DONE)
+`deploy_runs.py` reads each deploy run's log through fixed output templates only (pre-deploy SHA, deployed SHA, canary passed/failed, rollback, test-gate counts); the echoed script source never matches; no other log text is stored. **192 runs; 164 logs expired (HTTP 410), 28 retained (6/07 onward).** From 7/02 15:23Z to 9/22 the logged chain is continuous: every run's pre-deploy SHA equals the previous run's deployed SHA (no out-of-band box change). `installed_timeline` gives `log` / `unknown` / `drift` segments; `first_live(fix)` returns `(not_live_before, live_by]`. Every plan-named incident (7/12 → 9/03) has an exact log-bound interval; fixes deployed before 7/02 are `live_by` bounds with the earlier side `unknown` pending Phase 2's `deploy_history.txt`.
+
+## Task 5 — Historical replay (TO DO, after the tooling review)
+Scope: every fixed Tier-A candidate with a fix commit. One spec per fix set (label, `fix_set`, tests, symptom nodes with assertion anchors, audit entries with reasons, deployed ref + basis). The pilot's lessons stand (new-API-only red: 3a6e48b, a364b11, 8bceda1, 4f0257a, 41b2bb1, 0abf503; ce6676d's only symptom node is `test_post_cutoff_rescoring_does_not_flip_a_settled_hit`; 2ff2db9 return shape; 736ea8f import inside the test). A record reads `historical_replay: unavailable (<reason>)` unless the runner verdict is `accepted` and my reviewer decision is `accept`.
+
+## Task 6 — Current defence (TO DO, after the tooling review)
+Per causal link: a spec that IS the contract sheet (contract, production entry + mode, trigger, symptom kind, boundary bindings and identity classification, allowed mocks, certificate level + justification), the smallest semantic mutant restoring the pre-fix decision, the branch anchor in the mutated file, killing nodes with assertion anchors. Run `current_defence`; I read the patch, the killing frames and the linked events and record `accept`/`reject` with a reason. Survivors carry a §9.5 class. Priority: plan-named (8/11 `404358d` ×2; 8/13 `1b50b78`, `224ddce`; 8/30 `ac0ce8d`, `67338cd`/`3697512`, `c0c0a97`, `314154d`; 9/03 `0abf503`), then the other fixed Tier-A links (7/12 `9551818` `ec242da` `230f65c`; C-03 `ce6676d`; 4/15 `1d61908`; GH #144; 6/11–7/08 entry checks; 7/06; 6/17; 5/05; 4/04; 4/12; 6/07; 6/10; 8/09; 4/22–4/23, 5/09, 6/09 restart class; 4/30; 5/21; C-01). The 45 preliminary v1 designs are reused as inputs, never as results. Batches run sequentially (no CPU contention); I re-run ≥ 20 % myself.
+
+## Task 7 — Route H finalization (IN PROGRESS)
+- **Commits since 3/29:** 1,172 classified (806 code/config, 366 docs-only).
+- **Negatives:** all 372 runtime-closure negatives diff-reviewed (two readers × 186; per commit: changed functions/paths + exclusion reason from the DIFF; `…-evidence/negatives/N{1,2}_review.tsv`). I adjudicated all 169 sensitive-path rows and all 28 `possible_fix_of_live_behaviour` rows: no new incident among the sensitive-path features/pre-ship fixes; new candidates E103–E111 (below). A seeded 10 % QC sample of the remaining non-sensitive negatives follows.
+- **Positives:** every `incident_fix` / `incident_fix?` / `latent_fix` commit is verified against its commit text and folded into episodes (`…-evidence/route_h_candidates.json`).
+- New candidates from the negative review: E103 `2be445e` local grading lacked the saver rule 3/29–4/01 · E104 `5207a09` worker tiers ran unpulled code · E105 display defects (`b430e45`, `d3e9337`, `c30138b`, `2ee1763`) · E106 `947fce8` O(n²) dead code slowed worker predictions (with E16) · E107 `681eb8c` Healthchecks ping URL committed to the public repo · E108 `18efce1` heartbeat watchdog wrote RUNNING unconditionally · E109 `30452eb` deploy race (in-flight run could ship a later untested commit) · E110 `e5ef7ca` entry check treated `present_unverified` as confirmed and masked a missing DD slot (7/04–7/09; with E72) · E111 `810d7e0`/`815cf50` MDP saver input from an unsound proxy (6/10–6/18).
+
+## Task 8 — Records and Phase 1 memo (schema DONE; records TO DO)
+`record_schema.json` implements design §7 (dispositions, classes, tiers, axes, contract, numbered mechanism links with code refs + ref basis, per-link fix states implemented/deployed/mitigated/verified as separate fields, fixtures with explicit `unavailable` reasons and reviewer decisions, residuals, watchdog, evidence kind + strength + locator + exposure row, bounded occurrences and latencies). `records.validate` adds the cross-field rules (observed incidents need a primary machine observation or a contemporaneous operator report written ≤ 48 h after the onset; unresolved candidates name their missing evidence; `counted` false exactly for pre-ship exclusions; fixed Tier-A incidents need a replay entry and a defence entry per fixed link; plan-named records need a fixture or a deferral; unfixed §10 contracts need an expected failure; B → A when a residual reaches production; tier_pending needs a reason; ordered bounds; numeric latencies need bounded endpoints). It runs under `uv run --with jsonschema==4.23.0` (jsonschema is deliberately not added to the lock the box syncs). A record failing validation is not published. The memo sections follow design §11; each record's watchdog field feeds W4 rank 2.
+
+## Task 9 — Reviews and merge
+1. Codex phase-1 r3: this plan + the branch (tooling only; repo only).
+2. After Tasks 5–8: Codex result review of the memo and evidence.
+3. Fast-forward merge to main; wrap index W1.5 row, corrections C-03 cross-reference, memory.
+
+Nothing is deployed.
+
+## How rev 3 answers Codex phase-1 r2
+| r2 | Answer | Regression tests |
+|---|---|---|
+| #1 destructive ops not confined | `owned`: ownership record + exact-root/linked/detached checks before any reset/clean/swap/edit/removal; edit paths validated (normalized, contained, no symlink component, tracked `src/bts/**.py`) before the first write; evidence output refused inside the worktree | `test_owned.py` (primary checkout, subdirectory, symlinked root, unowned, attached, traversal, absolute, symlinked component, tracked symlink into tests, validate-before-write), `test_defence.py::test_traversal_edit_is_refused_before_writing`, `::test_primary_checkout_is_never_used`, `test_runner.py::test_output_inside_the_worktree_is_refused` |
+| #2 allowlist authorizes oracle mutants | hard rule independent of the spec; working-bytes manifest of every other tracked file + untracked list + venv fingerprint after every subprocess; no source instrumentation at all (external observer) | `test_owned.py::test_mutation_paths_outside_the_hard_rule_are_refused`, `test_defence.py::test_expected_value_mutation_is_refused_even_when_allowed`, `::test_a_test_that_writes_a_tracked_file_is_rejected` |
+| #3 run-wide errors ignored | one `gate` for every stage (session identity, finish + exit status, collection/observer errors, exact inventory, all phases, return code, imports); killing node must be a clean baseline pass and a member of the kills; no XFAIL allowed in defence runs; rejected acceptance objects written | `test_runner.py` (collection error, teardown error, imperative XFAIL, inventory, unfinished session, observer error, unexplained return code), `test_defence.py::test_declared_killing_node_that_survives_is_rejected`, `::test_collection_error_in_the_baseline_is_rejected`, `::test_malformed_spec_still_writes_a_rejected_acceptance` |
+| #4 oracle frame suffix / no production call | exact realpath + function; exception `module.qualname`; registry-bound bad/required values in the message; production entry invoked in the observed call phase; marked/`--runxfail` pair with identical bytes | `test_expected_failure.py` (foreign oracle module, same-named exception elsewhere, literal oracle input, message without values, imperative, non-strict, teardown, changed bytes) |
+| #5 absence not bounded; async | recorder of every production→boundary call over the complete observed call phase; zero qualifying calls anywhere + no unidentified calls + baseline positive control; killing failure at the declared assertion; async detected and rejected | `test_defence.py::test_absence_with_a_real_send_elsewhere_is_rejected`, `::test_absence_without_a_positive_control_is_rejected`, `::test_killing_failure_at_an_undeclared_assertion_is_rejected`, `test_runner.py::test_async_path_is_unavailable`, `test_certify.py` |
+| #6 observer shadowing / own venv | observer loaded by absolute path under a random module name and passed as a module object; its own file + hash verified; prefix + executable = the worktree's venv; pytest file not from the worktree; `bts` modules under `<wt>/src` with unchanged bytes | `test_runner.py` (identity tampering ×3, planted `pytest.py`, foreign `bts` package, pytest-from-worktree record) |
+| #7 E77 success branch impossible | `_e77_verdict` applies the bad-path assertions only on the bad outcome; truthful schedule; canned cascade | `test_e77_verdict_*` (fixed direction passes; bad raises; late / no-check / other-mechanism fail ordinarily); no-op probe fails ordinarily |
+| #8 replay acceptance object | `replay.historical_replay` writes `acceptance.json` with verdict, retained audit entries + reasons, symptom checks at declared assertions, session gates, closure + deployed ref | `test_replay.py` |
+| #9 plan + nested roots | this rewrite; synthetic repos carry their own `pytest.ini`; the runner passes `--rootdir` and `-c`; the gate checks rootdir | `test_runner.py::test_clean_run_passes_the_gate_and_records_identity` |
