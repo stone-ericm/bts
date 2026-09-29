@@ -95,3 +95,72 @@ def team_games(schedule_rows: list[dict]) -> dict[tuple[str, str], set[int]]:
         for abbr in (g["away_abbr"], g["home_abbr"]):
             out.setdefault((g["query_date"], abbr), set()).add(g["game_pk"])
     return out
+
+
+def _result(slot: dict, *, date=None, batter_id=None, game_pk=None, selection_id=None, match: str, reason: str) -> dict:
+    return {"round_id": slot["round_id"], "unit_id": slot["unit_id"], "player_id": slot["player_id"],
+            "date": date, "batter_id": batter_id, "game_pk": game_pk, "selection_id": selection_id,
+            "match": match, "match_reason": reason}
+
+
+def match_slot(slot: dict, *, rounds: dict, players: dict, units: dict, team_games: dict,
+               schedule_status: dict[str, str], local_selections: list[dict]) -> dict:
+    """Spec §6. Never matches on the slot `number`. Only a unit with no capture at all may use the
+    pick-time-team inference, and only on a date whose schedule is complete; unit evidence that is not one
+    round-consistent feedId is ambiguous and transfers nothing. Only `evidenced` / `inferred` links carry a
+    selection_id."""
+    dates = rounds.get(slot["round_id"], set())
+    if len(dates) != 1:
+        return _result(slot, match="unmapped", reason="round_date_unknown" if not dates else "round_date_conflict")
+    date = next(iter(dates))
+    feeds = players.get(slot["player_id"], set())
+    if len(feeds) != 1:
+        return _result(slot, date=date, match="unmapped", reason="player_unknown" if not feeds else "player_conflict")
+    batter = next(iter(feeds))
+    candidates = [s for s in local_selections if s["date"] == date and s["batter_id"] == batter]
+    unit = units.get(slot["unit_id"])
+    if unit is not None:
+        if len(unit["feed_ids"]) != 1:
+            reason = "unit_capture_without_feed_id" if not unit["feed_ids"] else "conflicting_unit_evidence"
+            return _result(slot, date=date, batter_id=batter, match="ambiguous", reason=reason)
+        if unit["round_ids"] and unit["round_ids"] != {slot["round_id"]}:
+            return _result(slot, date=date, batter_id=batter, match="ambiguous", reason="unit_round_contradiction")
+        game = next(iter(unit["feed_ids"]))
+        same = [s for s in candidates if s["game_pk"] == game]
+        if len(same) == 1:
+            reason = "unit_capture"
+        elif same:
+            reason = "unit_capture_multiple_local"
+        else:
+            reason = "unit_capture_other_game" if candidates else "unit_capture_no_local_selection"
+        return _result(slot, date=date, batter_id=batter, game_pk=game,
+                       selection_id=same[0]["selection_id"] if len(same) == 1 else None,
+                       match="evidenced", reason=reason)
+    if not candidates:
+        return _result(slot, date=date, batter_id=batter, match="unmapped", reason="no_unit_capture_contest_only")
+    if len(candidates) > 1:
+        return _result(slot, date=date, batter_id=batter, match="ambiguous", reason="multiple_local_selections")
+    sel = candidates[0]
+    if sel["game_pk"] is None:
+        return _result(slot, date=date, batter_id=batter, match="ambiguous", reason="selection_game_pk_unrecorded")
+    status = schedule_status.get(date)
+    if status != "complete":
+        reason = "team_schedule_missing" if status is None else "team_schedule_incomplete"
+        return _result(slot, date=date, batter_id=batter, match="ambiguous", reason=reason)
+    games = team_games.get((date, sel["team_at_pick"]), set())
+    if games == {sel["game_pk"]}:
+        return _result(slot, date=date, batter_id=batter, game_pk=sel["game_pk"], selection_id=sel["selection_id"],
+                       match="inferred", reason="pick_time_team_single_scheduled_game")
+    if not games:
+        reason = "team_not_on_schedule"
+    else:
+        reason = "team_schedule_not_unique" if len(games) > 1 else "team_schedule_other_game"
+    return _result(slot, date=date, batter_id=batter, match="ambiguous", reason=reason)
+
+
+def resolve_duplicate_links(matches: list[dict]) -> list[dict]:
+    """Interpretation I8: two contest slot identities linking one selection (an entry changed within a
+    round) are both demoted to ambiguous; neither transfers a grade."""
+    counts = Counter(m["selection_id"] for m in matches if m["selection_id"])
+    return [dict(m, match="ambiguous", match_reason="multiple_contest_slots_for_selection", selection_id=None)
+            if m["selection_id"] and counts[m["selection_id"]] > 1 else m for m in matches]
