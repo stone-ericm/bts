@@ -82,3 +82,23 @@ def evolution_jsonl(date: str, entries: list[tuple[dict, dict | None]]) -> bytes
     lines = [json.dumps({"captured_at": f"{date}T1{i}:00:00+00:00", "date": date, "run_time": f"{date}T1{i}:00:00+00:00",
                          "primary": p, "double_down": d}) for i, (p, d) in enumerate(entries)]
     return ("\n".join(lines) + "\n").encode()
+
+
+def contest_line(recorded_at: str, rounds: list[dict], **fields) -> str:
+    """One contest_ledger.jsonl line as the CLI appends it."""
+    doc = {"recorded_at": recorded_at, "active_streak": 0, "best_streak": 18, "source_date": "2026-08-20",
+           "predictions": rounds}
+    doc.update(fields)
+    return json.dumps(doc)
+
+
+def rnd(round_id: int, result, streak, increase, slots: list[dict]) -> dict:
+    return {"roundId": round_id, "result": result, "streak": streak, "streakIncrease": increase,
+            "roundPredictions": slots}
+
+
+def slot(unit_id: int, player_id, result, *, number: int = 1, hits=1, at_bats=4, drop: tuple = ()) -> dict:
+    s = {"number": number, "unitId": unit_id, "playerId": player_id, "result": result, "hits": hits, "atBats": at_bats}
+    for key in drop:
+        s.pop(key)
+    return s
