@@ -6,7 +6,10 @@ from .ids import utc_iso
 SELECTION_ACTIONS = frozenset({"single", "double"})
 ARCHIVE_KINDS = frozenset({"archive", "manual_archive", "repair_archive"})
 # Delivery signals that are neither a confirmation nor its absence: the pick may have gone out (§9).
-UNCONFIRMED_DELIVERY = frozenset({"notification_sent_without_id", "bluesky_posted_without_uri", "attempt_only"})
+UNCONFIRMED_DELIVERY = frozenset({"delivery_fields_unreadable", "notification_sent_without_id",
+                                  "bluesky_posted_without_uri", "attempt_only"})
+DELIVERY_FIELDS = frozenset({"delivered_at", "notification_sent", "notification_id", "bluesky_posted", "bluesky_uri",
+                             "delivery_attempted"})
 
 
 def selection_id(date: str, slot: str, batter_id, game_pk) -> str:
@@ -32,6 +35,8 @@ def pick_delivery(pick: dict | None) -> tuple[bool | None, str]:
         return True, "dm_notification"
     if pick["bluesky_posted"] and pick["bluesky_uri"]:
         return True, "public_post"
+    if DELIVERY_FIELDS & set((pick.get("type_mismatch_fields") or "").split(",")):
+        return None, "delivery_fields_unreadable"      # Codex code r1 #4: unknown, never "no delivery"
     if pick["notification_sent"]:
         return None, "notification_sent_without_id"
     if pick["bluesky_posted"]:
@@ -156,7 +161,8 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
     unreadable_versions = bool(unusable & ARCHIVE_KINDS) or (pick_file is not None and not pick_file["complete"])
     history = "unknown" if unreadable_versions else history_status(thin, retained)
     by_slot = {r["slot"]: r for r in pick_rows}
-    file_pick = pick_rows[0] if pick_rows else None
+    # The file's delivery evidence, even when no slot is usable (Codex code r1 #3): its typed file-level fields.
+    file_pick = pick_rows[0] if pick_rows else (pick_file["file_fields"] if pick_file is not None else None)
     complete = None if pick_file is None else pick_file["complete"]
     pick_action = None if not pick_file or not pick_file["slots"] else (
         "double" if "double_down" in pick_file["slots"] else "single")
@@ -187,7 +193,8 @@ def day_rows(date: str, *, decision: dict | None, pick_rows: list[dict], pick_fi
         if pick_file is not None and file_fields is None:
             return [_day_row(date, "unfinalized_day", "skip_decision_with_unreadable_pick_file", decision=decision,
                              state=state)]
-        if "scheduler_state" in unusable:
+        if "scheduler_state" in unusable or (       # Codex code r1 #4: an unreadable commit flag is unknown
+                state is not None and "committed_pick_written" in (state["type_mismatch_fields"] or "").split(",")):
             return [_day_row(date, "unfinalized_day", "skip_decision_with_unusable_state", decision=decision, state=state)]
         return [_day_row(date, "skip_day", "decision_skip", decision=decision, state=state)]
     if pick_rows:

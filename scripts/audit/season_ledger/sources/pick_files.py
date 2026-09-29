@@ -80,8 +80,12 @@ def pick_file_state(data: bytes, parsed: Parsed) -> dict:
     except ValueError:
         doc = None
     slots = frozenset(slot for slot, key in SLOTS if isinstance(doc, dict) and doc.get(key) is not None)
+    file_fields = None
+    if isinstance(doc, dict):   # typed file-level fields, with the wrong-typed names kept (Codex code r1 #4)
+        values, _absent, mismatched = take(doc, FILE_FIELDS)
+        file_fields = {**values, "type_mismatch_fields": joined(mismatched)}
     return {"slots": slots, "complete": not parsed.quarantined and {r["slot"] for r in parsed.rows} == set(slots),
-            "file_fields": take(doc, FILE_FIELDS)[0] if isinstance(doc, dict) else None}
+            "file_fields": file_fields}
 
 
 def parse_archive(rel_path: str, data: bytes) -> Parsed:

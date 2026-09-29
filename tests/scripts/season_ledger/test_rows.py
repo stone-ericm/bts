@@ -88,6 +88,28 @@ def test_a_skip_is_not_established_beside_an_unconfirmed_delivery():
     assert pick_delivery(flagged) == (None, "notification_sent_without_id")
 
 
+def test_a_delivered_pick_file_with_no_usable_slot_still_conflicts_with_the_decision():
+    # Codex code r1 #3: quarantining every slot must not discard the file's delivery, which names another selection.
+    (r,) = rows(decision=dec(action="single", primary=cand(101, 5001)),
+                pick=picks(pick_json(D, primary={"batter_id": 202, "game_pk": "bad"}, notification_sent=True,
+                                     notification_id="dm-other")))
+    assert (r["finalization"], r["commit_status"], r["pick_obs_id"]) == ("unresolved", "conflicted", None)
+    assert r["commit_basis"] == "decision:delivered;other:delivery:dm_notification"
+
+
+def test_unreadable_delivery_or_commit_fields_never_prove_a_clean_skip():
+    # Codex code r1 #4: a wrong-typed delivery or commit field is unknown evidence, not evidence of no delivery.
+    skip = dec(action="skip", primary=cand(303, 7001))
+    for fields in ({"notification_sent": "true", "notification_id": "dm-9"}, {"delivery_attempted": "true"}):
+        out = rows(decision=skip, pick=picks(pick_json(D, **fields)))
+        assert [(r["row_kind"], r["reason"]) for r in out] == [
+            ("unfinalized_day", "skip_decision_with_unconfirmed_delivery")], fields
+    (unreadable,), _state = picks(pick_json(D, delivery_attempted="true"))
+    assert pick_delivery(unreadable) == (None, "delivery_fields_unreadable")
+    assert [(r["row_kind"], r["reason"]) for r in rows(decision=skip, st=state(committed_pick_written="yes"))] == [
+        ("unfinalized_day", "skip_decision_with_unusable_state")]
+
+
 def test_unusable_evidence_is_never_absent_evidence():
     # Codex plan r3 #5: a quarantined decision, or quarantined history alone, is not an unobserved day.
     assert [(r["row_kind"], r["reason"]) for r in rows(pick=picks(pick_json(D)), unusable={"decision"})] == [
