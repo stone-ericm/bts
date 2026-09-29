@@ -271,11 +271,14 @@ _REF_KINDS = {"pick_obs_id": "pick_file", "pick_view_obs_id": "pick_file", "deci
 def check_invariants(files: dict, accounting: list[dict], matches: list[dict], ledger_rows: list[dict],
                      membership: list[dict], summary: list[dict], season_dates: list[str]) -> None:
     """Output-phase build failures (spec §8): an undisposed or unknown disposition; a ledger reference to an
-    occurrence that was not emitted or is of the wrong kind; a canonical disposition no ledger row references;
-    recipe membership that does not list every rule × universe slot exactly once, does not add up to the reported
-    totals, or links a row to anything but the occurrence that accounts for its record (Codex plan r3 #3); a
-    contest slot identity twice; a selection linked to two contest slots; duplicate row ids; a malformed season
-    day."""
+    occurrence that was not emitted or is of the wrong kind; a canonical disposition no ledger row references; a
+    reference to another date's occurrence, a pick of another slot or selection, or a usable decision whose named
+    selections are not exactly its ledger rows (Codex code r1 #1); a recipe summary that is not every frozen rule
+    exactly as frozen (Codex code r1 #2); recipe membership that does not list every rule × universe slot exactly
+    once, does not add up to the reported totals, or links a row to anything but the occurrence that accounts for its
+    record (Codex plan r3 #3); a contest slot identity twice; a selection linked to two contest slots; a qualified
+    contest slot missing from the ledger, placed twice, or carrying evidence or a grade that is not its own
+    occurrence's (Codex code r1 #1); duplicate row ids; a malformed season day."""
     undisposed = [(a["source_path"], a["locator"]) for a in accounting
                   if a["state"] == "emitted" and not a["disposition"]]
     if undisposed:
@@ -298,8 +301,44 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
             raise InvariantError(f"canonical selection {a['obs_id']} is not referenced by exactly one ledger row")
         if a["disposition"] == "canonical_decision" and not referenced[("decision_obs_id", a["obs_id"])]:
             raise InvariantError(f"canonical decision {a['obs_id']} is referenced by no ledger row")
+    # References name the right occurrence (Codex code r1 #1): a decision, state or pick of the row's own date — a pick
+    # also of its slot, and an attached pick of its selection — and a usable decision yields exactly what it names.
+    facts = {obs: json.loads(a["fields_json"]) for obs, a in emitted.items()
+             if a["kind"] in ("decision", "scheduler_state", "pick_file")}
+    named_rows: dict[str, list[tuple]] = {}
+    for r in ledger_rows:
+        for column in ("decision_obs_id", "state_obs_id", "pick_obs_id", "pick_view_obs_id"):
+            if r.get(column) is not None and facts[r[column]]["file_date"] != r["date"]:
+                raise InvariantError(f"ledger row {r['row_id']} {column} names another date's occurrence")
+        for column in ("pick_obs_id", "pick_view_obs_id"):
+            if r.get(column) is not None and facts[r[column]]["slot"] != r["slot"]:
+                raise InvariantError(f"ledger row {r['row_id']} {column} names another slot's pick")
+        pick = facts.get(r.get("pick_obs_id"))
+        if pick is not None and (pick["batter_id"], pick["game_pk"]) != (r["batter_id"], r["game_pk"]):
+            raise InvariantError(f"ledger row {r['row_id']} attaches a pick of another selection")
+        if r["row_kind"] == "selection" and r.get("decision_obs_id") is not None:
+            named_rows.setdefault(r["decision_obs_id"], []).append((r["slot"], r["batter_id"], r["game_pk"]))
+    for obs, a in emitted.items():
+        if a["disposition"] != "canonical_decision":
+            continue
+        d = facts[obs]
+        slots = {"single": ("primary",), "double": ("primary", "double_down")}.get(d["action"], ())
+        want = sorted((s, d[f"{s}_batter_id"], d[f"{s}_game_pk"]) for s in slots)
+        if sorted(named_rows.get(obs, [])) != want or (not slots and referenced[("decision_obs_id", obs)] != 1):
+            raise InvariantError(f"decision {obs} does not yield exactly its named selections")
+    # Every frozen rule, exactly as frozen (Codex code r1 #2): the expected rules come from RULES, never from the
+    # summary the evaluation produced.
+    if sorted(s["rule_id"] for s in summary) != sorted(RULES):
+        raise InvariantError("the recipe summary does not hold every frozen rule exactly once")
+    for s in summary:
+        rule = RULES[s["rule_id"]]
+        if (s["recipe"], s["files"], s["primary_grading"], s["leg_grading"], list(s["window"]),
+                [s["published_primaries"], s["published_legs"]]) != (rule["recipe"], rule["files"], rule["primary"],
+                                                                    rule["legs"], list(rule["window"]),
+                                                                    list(rule["published"])):
+            raise InvariantError(f"recipe {s['rule_id']} does not carry its frozen definition")
     keys = Counter((m["rule_id"], m["source_path"], m["slot"]) for m in membership)
-    if set(keys) != {(s["rule_id"], rel, slot) for s in summary for rel, slot in membership_slots(files)} \
+    if set(keys) != {(rule_id, rel, slot) for rule_id in RULES for rel, slot in membership_slots(files)} \
             or any(n > 1 for n in keys.values()):
         raise InvariantError("recipe membership does not list every rule and universe slot exactly once")
     for s in summary:
@@ -320,6 +359,32 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
         raise InvariantError("a contest slot identity appears twice")
     if any(n > 1 for n in Counter(m["selection_id"] for m in matches if m["selection_id"]).values()):
         raise InvariantError("a selection is linked to more than one contest slot")
+    # Every qualified contest slot reaches the ledger exactly once — on its linked selection or as a contest-only row —
+    # with its own occurrence, identity, grade and round label (Codex code r1 #1).
+    by_identity = {(m["round_id"], m["unit_id"], m["player_id"]): m for m in matches}
+    observed = {(f["round_id"], f["unit_id"], f["player_id"]) for a in emitted.values()
+                if a["kind"] == "contest_ledger" and (f := json.loads(a["fields_json"])).get("row_level") == "slot"}
+    if observed != set(by_identity):
+        raise InvariantError("the contest slot matches are not exactly the qualified slot identities")
+    placed = Counter()
+    for r in ledger_rows:
+        if r.get("contest_obs_id") is None:
+            if r["row_kind"] == "contest_only":
+                raise InvariantError(f"contest-only row {r['row_id']} carries no contest occurrence")
+            continue
+        identity = (r["round_id"], r["unit_id"], r["player_id"])
+        m, occ = by_identity.get(identity), json.loads(emitted[r["contest_obs_id"]]["fields_json"])
+        if (m is None or r["contest_obs_id"] != m["last_obs_id"]
+                or (occ.get("row_level"), occ["round_id"], occ["unit_id"], occ["player_id"]) != ("slot", *identity)
+                or (r["row_kind"] == "selection") != bool(m["selection_id"])
+                or (r["row_kind"] == "selection" and r["selection_id"] != m["selection_id"])):
+            raise InvariantError(f"ledger row {r['row_id']} carries contest evidence that is not its own slot's")
+        if (r["bts_outcome"] not in (None, occ["slot_result"]) or r.get("contest_round_result") != occ["round_result"]
+                or (r.get("bts_outcome_status") == "graded" and r["bts_outcome"] != occ["slot_result"])):
+            raise InvariantError(f"ledger row {r['row_id']} carries a grade that is not its slot's")
+        placed[identity] += 1
+    if set(placed) != set(by_identity) or any(n != 1 for n in placed.values()):
+        raise InvariantError("a qualified contest slot is missing from the ledger or placed twice")
     if any(n > 1 for n in Counter(r["row_id"] for r in ledger_rows).values()):
         raise InvariantError("duplicate ledger row ids")
     by_date: dict[str, list[dict]] = {}

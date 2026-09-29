@@ -127,9 +127,13 @@ def test_a_quarantined_ancestor_covers_its_records_and_double_cover_fails():
     assert [p for p, _r, loc in census_problems(files, routed, leaked)] == ["covered_twice"]
 
 
-def _acc(*pairs, kind="pick_file", disposition="not_selected"):
+def _acc(*pairs, kind="pick_file", disposition="not_selected", fields=None):
     return [{"source_path": p, "locator": loc, "obs_id": f"o:{p}:{loc}", "state": "emitted", "kind": kind,
-             "disposition": disposition} for p, loc in pairs]
+             "disposition": disposition, "fields_json": json.dumps(fields or {})} for p, loc in pairs]
+
+
+# The recipe summary over an empty universe: every frozen rule, zero counts (the output checks require all of them).
+EMPTY_SUMMARY = evaluate_rules({}, RULES, {}, frozen_at="t")[0]
 
 
 def _day(date, kind="unobserved_day", **refs):
@@ -248,29 +252,30 @@ def test_membership_checks_prove_the_join_the_cardinality_and_the_totals():
 
 
 def test_output_checks_catch_bad_dispositions_references_joins_links_and_days():
-    days, ok = ["2026-05-01"], [_day("2026-05-01")]
-    acc = _acc(("a", "file")) + _acc(("d", "file"), kind="decision", disposition="canonical_decision")
-    check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:d:file")], [], [], days)
+    days, ok, summary = ["2026-05-01"], [_day("2026-05-01")], EMPTY_SUMMARY
+    acc = _acc(("a", "file")) + _acc(("d", "file"), kind="decision", disposition="canonical_decision",
+                                     fields={"file_date": "2026-05-01", "action": "skip"})
+    check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:d:file")], [], summary, days)
     with pytest.raises(InvariantError, match="without a disposition"):
-        check_invariants({}, [dict(acc[0], disposition=None)], [], ok, [], [], days)
+        check_invariants({}, [dict(acc[0], disposition=None)], [], ok, [], summary, days)
     with pytest.raises(InvariantError, match="unknown disposition"):
-        check_invariants({}, [dict(acc[0], disposition="whatever")], [], ok, [], [], days)
+        check_invariants({}, [dict(acc[0], disposition="whatever")], [], ok, [], summary, days)
     with pytest.raises(InvariantError, match="is not an emitted decision"):
-        check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:a:file")], [], [], days)   # wrong kind
+        check_invariants({}, acc, [], [_day("2026-05-01", decision_obs_id="o:a:file")], [], summary, days)   # wrong kind
     with pytest.raises(InvariantError, match="referenced by no ledger row"):
-        check_invariants({}, acc, [], ok, [], [], days)
+        check_invariants({}, acc, [], ok, [], summary, days)
     canonical = _acc(("p", "slot=primary"), disposition="canonical_selection")
     with pytest.raises(InvariantError, match="exactly one ledger row"):
-        check_invariants({}, canonical, [], ok, [], [], days)
+        check_invariants({}, canonical, [], ok, [], summary, days)
     two = [{"selection_id": "s1", "round_id": 1, "unit_id": 1, "player_id": 1, "match": "inferred"},
            {"selection_id": "s1", "round_id": 1, "unit_id": 2, "player_id": 1, "match": "inferred"}]
     with pytest.raises(InvariantError, match="more than one contest slot"):
-        check_invariants({}, _acc(("a", "file")), two, ok, [], [], days)
+        check_invariants({}, _acc(("a", "file")), two, ok, [], summary, days)
     with pytest.raises(InvariantError, match="no ledger row"):
-        check_invariants({}, _acc(("a", "file")), [], [], [], [], days)
+        check_invariants({}, _acc(("a", "file")), [], [], [], summary, days)
     sel = {"row_id": "2026-05-01|primary|1|2", "row_kind": "selection", "date": "2026-05-01", "slot": "primary"}
     with pytest.raises(InvariantError, match="mixes"):
-        check_invariants({}, _acc(("a", "file")), [], [_day("2026-05-01"), sel], [], [], days)
+        check_invariants({}, _acc(("a", "file")), [], [_day("2026-05-01"), sel], [], summary, days)
 
 
 def _rule(files, grading, published):

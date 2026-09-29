@@ -6,6 +6,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from scripts.audit.season_ledger.compile import compile_bundle
+from scripts.audit.season_ledger.reconcile import RULES, InvariantError, check_invariants
 from tests.scripts.season_ledger.builders import (cand, contest_line, decision_json, dumps, gz, pick_json, rnd,
                                                   seal_bundle, slot, state_json)
 
@@ -217,6 +218,85 @@ def test_raw_values_round_trip_through_the_occurrence_table(tmp_path):
     assert json.loads(unit["record_raw_json"])["feedId"] == "RAW_GAME" and json.loads(unit["fields_json"])["feed_id"] is None
     round_occ = occ[("picks/account_state/contest_ledger.jsonl", "line=1/round=0")]
     assert json.loads(round_occ["record_raw_json"])["streak"] == "RAW_STREAK"
+
+
+def _output_check_args(tmp_path, monkeypatch):
+    """Compile the fixture season, capturing the real arguments of the output-phase check, so a test can corrupt one
+    output and prove that the real check rejects it."""
+    from scripts.audit.season_ledger import compile as compile_module
+    captured, real = [], compile_module.check_invariants
+    monkeypatch.setattr(compile_module, "check_invariants", lambda *args: captured.append(args) or real(*args))
+    _compile(tmp_path, "checked")
+    (args,) = captured
+    return args
+
+
+def test_output_checks_reject_lost_legs_wrong_references_and_misplaced_contest_evidence(tmp_path, monkeypatch):
+    # Codex code r1 #1: every usable decision yields exactly its named selections; every reference names an
+    # occurrence of the row's own date, slot and selection; every qualified contest slot reaches the ledger exactly
+    # once, with its own grade.
+    files, accounting, matches, ledger, membership, summary, dates = _output_check_args(tmp_path, monkeypatch)
+    rows = {r["row_id"]: r for r in ledger}
+
+    def check(changed):
+        check_invariants(files, accounting, matches, changed, membership, summary, dates)
+
+    check(ledger)                                                       # the real outputs pass
+    decision_only_leg, p20 = rows["2026-08-26|double_down|808|6008"], rows["2026-08-20|primary|802415|822934"]
+    with pytest.raises(InvariantError, match="named selections"):          # 8/26 is a double with no pick file
+        check([r for r in ledger if r is not decision_only_leg])
+    a, b = rows["2026-08-23|primary|404|6004"], rows["2026-08-24|primary|505|6005"]
+    swap = {id(a): dict(a, decision_obs_id=b["decision_obs_id"]), id(b): dict(b, decision_obs_id=a["decision_obs_id"])}
+    with pytest.raises(InvariantError, match="another date"):
+        check([swap.get(id(r), r) for r in ledger])
+    with pytest.raises(InvariantError, match="another selection"):
+        check([dict(r, batter_id=1) if r is p20 else r for r in ledger])
+    view = rows["2026-08-28|primary|909|6909"]
+    dd_view = next(o["obs_id"] for o in accounting if (o["source_path"], o["locator"]) == (
+        "picks/2026-08-28.json", "slot=double_down"))
+    with pytest.raises(InvariantError, match="another slot"):
+        check([dict(r, pick_view_obs_id=dd_view) if r is view else r for r in ledger])
+    with pytest.raises(InvariantError, match="missing from the ledger"):
+        check([r for r in ledger if r["row_id"] != "contest|973|1930|1777"])
+    saver = rows["2026-08-25|primary|606|6006"]
+    with pytest.raises(InvariantError, match="grade"):
+        check([dict(r, bts_outcome=r["contest_round_result"]) if r is saver else r for r in ledger])
+
+
+def test_output_checks_require_every_frozen_rule_as_frozen(tmp_path, monkeypatch):
+    # Codex code r1 #2: the expected rules come from the frozen table, never from the produced summary.
+    files, accounting, matches, ledger, membership, summary, dates = _output_check_args(tmp_path, monkeypatch)
+    with pytest.raises(InvariantError, match="every frozen rule"):
+        check_invariants(files, accounting, matches, ledger, [m for m in membership if m["rule_id"] != "T24"],
+                         [s for s in summary if s["rule_id"] != "T24"], dates)
+    moved = [dict(s, window=["2026-03-29", "2026-09-30"]) if s["rule_id"] == "S1" else s for s in summary]
+    with pytest.raises(InvariantError, match="frozen definition"):
+        check_invariants(files, accounting, matches, ledger, membership, moved, dates)
+
+
+def test_every_frozen_rule_reaches_the_outputs(tmp_path):
+    # Codex code r1 #2: all of S1–S8 and T1–T24 appear in the build summary and in the reconciliation table.
+    out = _compile(tmp_path, "a")[1]
+    recon = pq.read_table(out / "season_2026_ledger_reconciliation.parquet").to_pylist()
+    build = json.loads((out / "season_2026_ledger_build.json").read_text())
+    assert sorted({m["rule_id"] for m in recon}) == sorted(RULES) == sorted(s["rule_id"] for s in build["recipes"])
+
+
+def test_an_evidenced_contest_only_slot_keeps_its_own_grade(tmp_path):
+    # Codex code r1 #1: a slot whose unit capture names a game, with no local selection, is a contest-only row that
+    # carries the slot's own grade, never the round's label.
+    files = {"picks/account_state/contest_ledger.jsonl": (contest_line("2026-08-11T14:30:00Z", [
+                 rnd(980, "used_mulligan", 10, 0, [slot(3001, 4001, "not_hit", hits=0)])]) + "\n").encode(),
+             "static/rounds/20260811T120000Z.json.gz": gz(dumps({"rounds": [
+                 {"id": 980, "date": "2026-08-10T08:00:00-04:00"}]})),
+             "static/players/20260811T120000Z.json.gz": gz(dumps({"players": [{"id": 4001, "feedId": 777}]})),
+             "static/units/20260810T150000Z.json.gz": _units((3001, 9001, 980, "scheduled"))}
+    seal_bundle(tmp_path / "b", files)
+    compile_bundle(tmp_path / "b", tmp_path / "o", uv_lock_sha256="test-lock")
+    row = _ledger(tmp_path / "o")["contest|980|3001|4001"]
+    assert (row["row_kind"], row["match"], row["match_reason"], row["bts_outcome"], row["bts_outcome_status"],
+            row["contest_round_result"]) == ("contest_only", "evidenced", "unit_capture_no_local_selection", "not_hit",
+                                             "graded", "used_mulligan")
 
 
 def test_a_naive_manifest_mtime_is_unknown_not_read_in_the_host_zone(tmp_path):
