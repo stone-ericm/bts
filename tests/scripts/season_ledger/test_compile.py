@@ -258,9 +258,15 @@ def test_output_checks_reject_lost_legs_wrong_references_and_misplaced_contest_e
         check([dict(r, pick_view_obs_id=dd_view) if r is view else r for r in ledger])
     with pytest.raises(InvariantError, match="missing from the ledger"):
         check([r for r in ledger if r["row_id"] != "contest|973|1930|1777"])
+    lost = [m for m in matches if (m["round_id"], m["unit_id"], m["player_id"]) != (973, 1930, 1777)]
+    with pytest.raises(InvariantError, match="qualified slot identities"):     # a match lost before the ledger
+        check_invariants(files, accounting, lost, [r for r in ledger if r["row_id"] != "contest|973|1930|1777"],
+                         membership, summary, dates)
     saver = rows["2026-08-25|primary|606|6006"]
     with pytest.raises(InvariantError, match="grade"):
         check([dict(r, bts_outcome=r["contest_round_result"]) if r is saver else r for r in ledger])
+    with pytest.raises(InvariantError, match="not its own slot's"):
+        check([dict(r, contest_obs_id=a["contest_obs_id"]) if r is saver else r for r in ledger])
 
 
 def test_output_checks_require_every_frozen_rule_as_frozen(tmp_path, monkeypatch):
