@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -61,8 +62,29 @@ class SingletonSlateUndelivered(IncidentExpectedFailure):
     """E77: a one-game slate whose start moved up after the morning fetch ends with an enterable pick never delivered."""
 
 
+class ResultAppliedTwice(IncidentExpectedFailure):
+    """L04: a death between the streak write and the terminal pick save lets the restarted scorer apply the result again."""
+
+
+class PostponedPickDelivered(IncidentExpectedFailure):
+    """L03: the fallback delivered a cached pick whose game was evidenced postponed before the send."""
+
+
+def _emit_oracle_record(what: str, actual, required, bad) -> None:
+    """With ``$W15_ORACLE_OUT`` set (evidence runs only), append the oracle's structured inputs so the
+    acceptance check can compare the declared bad value with what production returned or persisted
+    (Codex phase-1 r3 #4). Values here are this fixture's own primitives/tuples/dicts."""
+    path = os.environ.get("W15_ORACLE_OUT")
+    if path:
+        node = os.environ.get("PYTEST_CURRENT_TEST", "").rsplit(" (", 1)[0]
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"node": node, "what": what, "actual": actual, "required": required,
+                                 "bad": bad}) + "\n")
+
+
 def _oracle(actual, required, bad, exc: type[IncidentExpectedFailure], what: str) -> None:
     """Pass on ``required``; raise ``exc`` ONLY for the declared bad value; else AssertionError."""
+    _emit_oracle_record(what, actual, required, bad)
     if actual == required:
         return
     if actual == bad:
@@ -393,6 +415,120 @@ def test_l02_unplayed_undelivered_preview_is_excluded(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# L04 — scoring crash window (design §10.3; fable5 audit P3, deferred in 49f2538)
+#
+# `bts check-results` writes streak.json (update_streak) BEFORE the terminal pick save, so a death
+# between the two leaves an applied result on a pick that still reads unresolved, and the restarted
+# scorer applies it again. HTTP is stubbed as for L01. The death is the pick save raising a
+# BaseException, which nothing in check-results catches (as nothing catches SIGKILL, OOM or a
+# restart); it fires before that save writes anything, i.e. strictly between the two writes.
+# ---------------------------------------------------------------------------
+class _ProcessDeath(BaseException):
+    """Stands in for the process dying between two writes."""
+
+
+def _crash_then_restart(monkeypatch, picks_dir: Path, tmp_path: Path, feed: dict) -> tuple:
+    """Score once with the terminal pick save dying, then again as the restarted process; return the
+    outcome after the restart. Only the fault point is asserted here (the save was reached and had
+    not persisted the result): the streak at the death is what the defect is about, and a repair
+    (a journal, a reordering, one atomic file) may leave it different, so it is never presupposed."""
+    calls = _route_http(monkeypatch, {GAME_A: feed})
+    real_save = picks_mod.save_pick
+    deaths: list[str] = []
+
+    def dies_before_persisting(daily, picks_dir_arg):
+        deaths.append(daily.date)
+        raise _ProcessDeath("killed between the streak write and the terminal pick save")
+
+    monkeypatch.setattr(picks_mod, "save_pick", dies_before_persisting)
+    with pytest.raises(_ProcessDeath):
+        _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
+    assert deaths == [DATE], "the fault never reached the terminal pick save"
+    assert load_pick(DATE, picks_dir).result is None, "the result was persisted before the death"
+    monkeypatch.setattr(picks_mod, "save_pick", real_save)              # the restarted process
+    result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
+    assert result.exit_code == 0, result.output
+    assert _feed_calls(calls, GAME_A) >= 2, "the restarted scorer never re-resolved the pick"
+    return _outcome(picks_dir)
+
+
+HIT_FEED = lambda: _feed(BATTER_A, batting=_batting(hits=1, at_bats=4),  # noqa: E731
+                         plays=[_play(BATTER_A, "single", PRE)] + [_play(BATTER_A, "field_out", PRE)] * 3)
+MISS_FEED = lambda: _feed(BATTER_A, batting=_batting(at_bats=4),  # noqa: E731
+                          plays=[_play(BATTER_A, "field_out", PRE)] * 4)
+
+
+@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
+                   reason="L04 unfixed: a death between the streak write and the pick save double-applies a hit")
+def test_l04_hit_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
+    """Streak 5, a hit, death between the writes, restart: the hit counts once (6), never twice (7)."""
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(5, picks_dir, saver_available=True)
+    after = _crash_then_restart(monkeypatch, picks_dir, tmp_path, HIT_FEED())
+    _oracle(after, ({"pick": "hit"}, "hit", 6, True), ({"pick": "hit"}, "hit", 7, True),
+            ResultAppliedTwice, "hit across a crash and restart")
+
+
+@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
+                   reason="L04 unfixed: the re-applied saver-absorbed miss resets the streak")
+def test_l04_saver_miss_applied_once_across_a_crash_and_restart(monkeypatch, tmp_path):
+    """Streak 12 with the saver, a miss (the saver absorbs it), death, restart: (12, saver used),
+    never a second application that finds the saver gone and resets to 0."""
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(12, picks_dir, saver_available=True)
+    after = _crash_then_restart(monkeypatch, picks_dir, tmp_path, MISS_FEED())
+    _oracle(after, ({"pick": "miss"}, "miss", 12, False), ({"pick": "miss"}, "miss", 0, False),
+            ResultAppliedTwice, "saver miss across a crash and restart")
+
+
+@pytest.mark.xfail(strict=True, raises=ResultAppliedTwice,
+                   reason="L04 unfixed: the daemon's polling dies between the writes; the 01:00 scorer re-applies")
+def test_l04_polling_death_then_the_cron_scorer_applies_once(monkeypatch, tmp_path):
+    """The two production scorers in sequence: the daemon's result polling dies between its writes
+    (e.g. a deploy restart at midnight), then the 01:00 `bts check-results` scores the same date."""
+    from bts import scheduler as sched_mod
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(5, picks_dir, saver_available=True)
+    calls = _route_http(monkeypatch, {GAME_A: HIT_FEED()})
+    monkeypatch.setattr(sched_mod, "retry_urlopen", picks_mod.retry_urlopen)     # the same HTTP stub
+    monkeypatch.setattr(sched_mod, "_now_et", lambda: datetime(2026, 6, 11, 0, 0, tzinfo=ET))
+    real_save = picks_mod.save_pick
+    deaths: list[str] = []
+
+    def dies_before_persisting(daily, picks_dir_arg):
+        deaths.append(daily.date)
+        raise _ProcessDeath("daemon killed between the streak write and the terminal pick save")
+
+    monkeypatch.setattr(picks_mod, "save_pick", dies_before_persisting)
+    with pytest.raises(_ProcessDeath):
+        sched_mod.run_result_polling(GAME_A, DATE, picks_dir)
+    assert deaths == [DATE], "the fault never reached the polling path's terminal pick save"
+    assert load_pick(DATE, picks_dir).result is None, "the result was persisted before the death"
+    monkeypatch.setattr(picks_mod, "save_pick", real_save)
+    result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)     # the 01:00 cron
+    assert result.exit_code == 0, result.output
+    assert _feed_calls(calls, GAME_A) >= 2, "the cron scorer never re-resolved the pick"
+    _oracle(_outcome(picks_dir), ({"pick": "hit"}, "hit", 6, True), ({"pick": "hit"}, "hit", 7, True),
+            ResultAppliedTwice, "hit across a polling death and the cron scorer")
+
+
+def test_l04_control_without_the_fault_a_rerun_is_a_no_op(monkeypatch, tmp_path):
+    """Control: with the pick save completing, the same two runs apply the hit exactly once."""
+    picks_dir = tmp_path / "picks"
+    save_pick(_delivered_daily(_pick(BATTER_A, GAME_A)), picks_dir)
+    save_streak(5, picks_dir, saver_available=True)
+    calls = _route_http(monkeypatch, {GAME_A: HIT_FEED()})
+    for _ in range(2):
+        result = _check_results(monkeypatch, picks_dir, tmp_path, AFTER_NORMAL_GAMES)
+        assert result.exit_code == 0, result.output
+    assert _feed_calls(calls, GAME_A) >= 1
+    assert _outcome(picks_dir) == ({"pick": "hit"}, "hit", 6, True)
+
+
+# ---------------------------------------------------------------------------
 # E77 — 7/16 singleton slate (characterization; the repair design is open, the contract is not)
 #
 # Component level. Mocked: fetch_schedule (MLB schedule), bts.picks.get_game_statuses_detailed (MLB
@@ -634,3 +770,141 @@ def test_e77_verdict_other_observations_fail_ordinarily(case):
         obs = _obs(checks=[_at(17, 10)], daily=undelivered)
     with pytest.raises(AssertionError):
         _e77_verdict(obs)
+
+
+# ---------------------------------------------------------------------------
+# L03 — postponed cached fallback (design §10.3; deferred as F1 in the 7/09 sol audit, 30452eb)
+#
+# Component level, on the E77 harness. Mocked: fetch_schedule, bts.picks.get_game_statuses_detailed,
+# count_new_confirmations, the cascade (bts.orchestrator.run_and_pick, which run_single_check imports at
+# call time, AND bts.scheduler.run_and_pick, the fallback refresh's import-time binding), run_result_polling, the
+# live-forward trigger, bts.dm.send_dm, contest state, _idle_until_next_wakeup and the clock. run_day,
+# run_single_check, the lock decision, the fallback refresh + planner and the delivery chokepoint run
+# for real. The status mock is TRUTHFUL at every instant: Scheduled until ``postponed_at``, then
+# Postponed (declared: rain at 18:20 ET, after the 18:10 check and before the 18:35 fallback). The
+# cascade's first call (the 18:10 check) selects a projected-lineup pick in the game (so the lock waits
+# for the fallback); every later call returns what production's run_and_pick returns when every tier
+# fails, (None, None, tier): the refresh fails and the fallback falls back to the cached pick.
+# ---------------------------------------------------------------------------
+L03_DATE = "2026-07-20"
+L03_GAME = 824801
+L03_BATTER = "Batter 660101"
+L03_FIRST_PITCH = datetime(2026, 7, 20, 19, 10, tzinfo=ET)
+L03_CUTOFF = L03_FIRST_PITCH - timedelta(minutes=5)
+L03_CHECK = datetime(2026, 7, 20, 18, 10, tzinfo=ET)          # first pitch - 60 (box TOML offset)
+L03_FALLBACK = datetime(2026, 7, 20, 18, 35, tzinfo=ET)       # first pitch - 35 (fallback deadline)
+L03_POSTPONED_AT = datetime(2026, 7, 20, 18, 20, tzinfo=ET)
+
+
+def _l03_selection():
+    import pandas as pd
+
+    from bts.strategy import PickResult, SelectionResult
+
+    pick = Pick(batter_name=L03_BATTER, batter_id=660101, team="NYM", lineup_position=2, pitcher_name="P",
+                pitcher_id=1, p_game_hit=0.74, flags=["PROJECTED"], projected_lineup=True, game_pk=L03_GAME,
+                game_time="2026-07-20T23:10:00Z")
+    daily = DailyPick(date=L03_DATE, run_time="2026-07-20T22:10:00+00:00", pick=pick, double_down=None,
+                      runner_up=None)
+    predictions = pd.DataFrame([{"batter_name": L03_BATTER, "batter_id": 660101, "team": "NYM",
+                                 "game_pk": L03_GAME, "p_game_hit": 0.74, "flags": "PROJECTED"}])
+    sel = SelectionResult(pick_result=PickResult(daily=daily, locked=False), action="single",
+                          source="mdp", primary_candidate=None, double_candidate=None,
+                          no_pick_reason=None, streak=0)
+    return predictions, sel, "local"
+
+
+def _run_l03_day(picks_dir: Path, *, postponed_at: datetime | None) -> dict:
+    """Run L03_DATE through run_day with the mocks listed above; return observations."""
+    from unittest.mock import patch
+
+    from bts import scheduler as sch
+    from tests.test_scheduler import _game
+
+    clock = _Clock(datetime(2026, 7, 20, 10, 0, tzinfo=ET))
+    obs = {"cascade": [], "dms": [], "status_answers": [], "completed": False}
+
+    def schedule(date):
+        return [_game(L03_GAME, "19:10", "NYM", "PHI", date=date)] if date == L03_DATE else []
+
+    def statuses(_date):
+        now = clock()
+        if postponed_at is not None and now >= postponed_at:
+            st = {"abstract": "F", "detailed": "Postponed", "code": "D"}
+        elif now >= L03_FIRST_PITCH:
+            st = {"abstract": "L", "detailed": "In Progress", "code": "I"}
+        else:
+            st = {"abstract": "P", "detailed": "Scheduled", "code": "S"}
+        obs["status_answers"].append((now, st["detailed"]))
+        return {L03_GAME: st}
+
+    def cascade(*_a, **_k):
+        obs["cascade"].append(clock())
+        return _l03_selection() if len(obs["cascade"]) == 1 else (None, None, "local")
+
+    def send_dm(recipient, text):
+        obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text})
+        return "dm-1"
+
+    with patch("bts.scheduler.fetch_schedule", side_effect=schedule), \
+         patch("bts.scheduler._now_et", side_effect=clock), \
+         patch("bts.scheduler.time.sleep", side_effect=lambda s: clock.advance(timedelta(seconds=s))), \
+         patch("bts.picks.get_game_statuses_detailed", side_effect=statuses), \
+         patch("bts.scheduler.count_new_confirmations", return_value=0), \
+         patch("bts.orchestrator.run_and_pick", side_effect=cascade), \
+         patch("bts.scheduler.run_and_pick", side_effect=cascade), \
+         patch("bts.scheduler.run_result_polling", return_value="final"), \
+         patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
+         patch("bts.scheduler._idle_until_next_wakeup"), \
+         patch("bts.dm.send_dm", side_effect=send_dm), \
+         patch("bts.contest_state.load_decision_streak_state") as dss:
+        dss.return_value.streak = 0
+        sch.run_day(date=L03_DATE, config=_singleton_config(picks_dir))
+        obs["completed"] = True
+    obs["end"] = clock()
+    obs["daily"] = load_pick(L03_DATE, picks_dir)
+    return obs
+
+
+def _l03_outcome(obs: dict, postponed_at: datetime) -> tuple:
+    """Did a delivery name the game after it was postponed (the pick file AND an identified pick DM)?"""
+    daily = obs["daily"]
+    after = [d for d in obs["dms"] if d["kind"] == "pick" and L03_BATTER in d["text"] and d["at"] >= postponed_at]
+    if daily and daily.notification_sent and daily.pick.game_pk == L03_GAME and after:
+        return ("postponed_pick_delivered",)
+    if not after and not (daily and daily.notification_sent and daily.pick.game_pk == L03_GAME):
+        return ("no_postponed_delivery",)
+    return ("other", bool(daily and daily.notification_sent), len(after))
+
+
+def _l03_verdict(obs: dict) -> None:
+    """Both branches prove the day ran through the check and the fallback deadline; the bad branch
+    also proves the cached-fallback mechanism (the check at 18:10 selected the pick, the refresh at the
+    deadline got no predictions, the send came after the postponement and before the cutoff)."""
+    assert obs["completed"] and obs["end"] >= L03_FALLBACK, obs["end"]
+    assert obs["cascade"] and obs["cascade"][0] == L03_CHECK, obs["cascade"]
+    outcome = _l03_outcome(obs, L03_POSTPONED_AT)
+    if outcome == ("postponed_pick_delivered",):
+        assert any(t >= L03_FALLBACK for t in obs["cascade"][1:]), obs["cascade"]   # the failed refresh
+        sent = [d["at"] for d in obs["dms"] if d["kind"] == "pick"]
+        assert sent and all(L03_POSTPONED_AT <= t < L03_CUTOFF for t in sent), sent
+        assert obs["daily"].pick.batter_name == L03_BATTER                            # the cached pick
+    _oracle(outcome, ("no_postponed_delivery",), ("postponed_pick_delivered",),
+            PostponedPickDelivered, "postponed cached fallback")
+
+
+@pytest.mark.xfail(strict=True, raises=PostponedPickDelivered,
+                   reason="L03 unfixed: the fallback delivers the cached pick of a postponed game when the refresh fails")
+def test_l03_postponed_game_is_never_delivered_by_the_cached_fallback(tmp_path):
+    _l03_verdict(_run_l03_day(tmp_path / "picks", postponed_at=L03_POSTPONED_AT))
+
+
+def test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game(tmp_path):
+    """Positive execution control: the SAME machinery with the game never postponed — the failed refresh
+    falls back to the cached pick and the fallback delivers it at the deadline (correct: the game is
+    playable), so the incident node differs only in the postponement."""
+    obs = _run_l03_day(tmp_path / "picks", postponed_at=None)
+    assert obs["cascade"][0] == L03_CHECK and any(t >= L03_FALLBACK for t in obs["cascade"][1:]), obs["cascade"]
+    sent = [d["at"] for d in obs["dms"] if d["kind"] == "pick" and L03_BATTER in d["text"]]
+    assert sent and all(L03_FALLBACK <= t < L03_CUTOFF for t in sent), obs["dms"]
+    assert obs["daily"].notification_sent

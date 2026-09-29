@@ -30,8 +30,12 @@ def call(seq, cat, *frames):
               identity={"category": cat, "value": "'x'", "sha256": "0"})
 
 
-def window(*events):
-    return [ev("obs_start", 0), *events, ev("obs_end", 1000, pending_identity=[])]
+def exit_(seq, frame, how="return"):
+    return ev("entry_exit", seq, file=F, qualname="deliver", frame=frame, how=how)
+
+
+def window(*events, outstanding=0):
+    return [ev("obs_start", 0), *events, ev("obs_end", 1000, outstanding_threads=outstanding)]
 
 
 IN = ("deliver", F, 10)
@@ -78,10 +82,11 @@ def test_incomplete_window_is_rejected():
     assert not got["ok"] and any("observation" in r for r in got["reasons"])
 
 
-def test_unresolved_identity_is_rejected():
-    events = [ev("obs_start", 0), entry(1, 10), branch(2, IN), call(3, "alert", IN), ev("obs_end", 9, pending_identity=[3])]
-    got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
-    assert not got["ok"] and any("unresolved" in r for r in got["reasons"])
+def test_unidentified_boundary_call_is_never_the_event():
+    unidentified = call(3, "alert", IN)
+    unidentified["identity"] = {"value": None, "category": "unavailable"}
+    got = certify(window(entry(1, 10), branch(2, IN), unidentified), node=N, kind="event", entry=ENTRY, bad=BAD)
+    assert not got["ok"]
 
 
 def test_return_kind_links_the_returning_invocation():
@@ -95,11 +100,63 @@ def test_return_kind_links_the_returning_invocation():
 def test_absence_needs_zero_qualifying_calls_and_a_positive_control():
     q = {"boundary": "dm", "category": "pick"}
     base = window(entry(1, 10), call(2, "pick", IN))
-    ok = certify(window(entry(1, 10), branch(2, IN), call(3, "alert", IN)), node=N, kind="absence", entry=ENTRY,
-                 bad=q, positive_events=base)
+    ok = certify(window(entry(1, 10), branch(2, IN), call(3, "alert", IN), exit_(4, 10)), node=N, kind="absence",
+                 entry=ENTRY, bad=q, positive_events=base)
     assert ok["ok"], ok
     unidentified = call(3, "pick", IN)
     unidentified["identity"] = None
-    got = certify(window(entry(1, 10), branch(2, IN), unidentified), node=N, kind="absence", entry=ENTRY,
-                  bad=q, positive_events=base)
+    got = certify(window(entry(1, 10), branch(2, IN), unidentified, exit_(4, 10)), node=N, kind="absence",
+                  entry=ENTRY, bad=q, positive_events=base)
     assert not got["ok"] and any("without identity" in r for r in got["reasons"])
+
+
+def test_return_kind_by_category():
+    ret = ev("return", 3, file=F, qualname="deliver", frame=10, value="PickLockState(locked=True, reason='x')",
+             category="locked", type="PickLockState", stack=stack(IN))
+    bad = {"file": F, "qualname": "deliver", "category": "locked"}
+    assert certify(window(entry(1, 10), branch(2, IN), ret), node=N, kind="return", entry=ENTRY, bad=bad)["ok"]
+    assert not certify(window(entry(1, 10), branch(2, IN), dict(ret, category="other")), node=N, kind="return",
+                       entry=ENTRY, bad=bad)["ok"]
+
+
+Q = {"boundary": "dm", "category": "pick"}
+BASE = window(entry(1, 10), call(2, "pick", IN))
+
+
+def test_absence_requires_the_invocation_to_complete():
+    got = certify(window(entry(1, 10), branch(2, IN)), node=N, kind="absence", entry=ENTRY, bad=Q, positive_events=BASE)
+    assert not got["ok"] and any("did not complete" in r for r in got["reasons"])
+
+
+def test_absence_with_outstanding_workers_is_unavailable():
+    """r3 #1 measured: a worker started at the branch sent after obs_end; absence was accepted."""
+    got = certify(window(entry(1, 10), branch(2, IN), exit_(3, 10), outstanding=1), node=N, kind="absence",
+                  entry=ENTRY, bad=Q, positive_events=BASE)
+    assert not got["ok"] and any("still alive" in r for r in got["reasons"])
+
+
+def test_absence_over_a_coverage_gap_is_unavailable():
+    gap = ev("boundary_gap", 3, name="dm", reason="not a Python-observable callable")
+    got = certify(window(entry(1, 10), branch(2, IN), gap, exit_(4, 10)), node=N, kind="absence", entry=ENTRY,
+                  bad=Q, positive_events=BASE)
+    assert not got["ok"] and any("coverage gap" in r for r in got["reasons"])
+
+
+def test_a_qualifying_call_from_any_caller_defeats_absence():
+    from_test = ev("boundary", 3, name="dm", caller=["test_y", "/wt/tests/test_x.py", 3], stack=stack(),
+                   identity={"category": "pick", "value": "x", "sha256": "0"})
+    got = certify(window(entry(1, 10), branch(2, IN), exit_(3, 10), from_test), node=N, kind="absence",
+                  entry=ENTRY, bad=Q, positive_events=BASE)
+    assert not got["ok"] and any("qualifying" in r for r in got["reasons"])
+
+
+def test_recursion_links_through_the_common_outer_invocation():
+    """r3 #7: the outer invocation executes the branch; a nested invocation sends."""
+    INNER = ("deliver", F, 11)
+    events = window(entry(1, 10), branch(2, IN), entry(3, 11), call(4, "alert", INNER, IN))
+    assert certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)["ok"]
+
+
+def test_exit_then_frame_reuse_splits_invocations():
+    events = window(entry(1, 10), branch(2, IN), exit_(3, 10), entry(4, 10), call(5, "alert", IN))
+    assert not certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)["ok"]

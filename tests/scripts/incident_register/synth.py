@@ -51,12 +51,35 @@ def commit(root: Path, files: dict[str, str], message: str) -> str:
     return git(root, "rev-parse", "HEAD")
 
 
+_PYTEST_SITE: Path | None = None
+_PYTEST_DISTS = ("_pytest", "pytest", "pluggy", "iniconfig", "packaging", "pygments", "py.py")
+
+
+def pytest_site() -> Path:
+    """A small site directory holding only pytest and its runtime dependencies, copied once per
+    process from this interpreter's site-packages (Codex phase-1 r3: the synthetic venvs used to
+    expose the whole outer site-packages, which the environment fingerprint then had to hash)."""
+    global _PYTEST_SITE
+    if _PYTEST_SITE is None:
+        import shutil
+        import tempfile
+        import pytest
+        src = Path(pytest.__file__).resolve().parents[1]      # the site dir pytest was imported from
+        dst = Path(tempfile.mkdtemp(prefix="w15-pytest-site-"))
+        for entry in src.iterdir():
+            stem = entry.name.split("-")[0]
+            if entry.name in _PYTEST_DISTS or (entry.name.endswith(".dist-info") and stem in _PYTEST_DISTS):
+                (shutil.copytree if entry.is_dir() else shutil.copy2)(entry, dst / entry.name)
+        _PYTEST_SITE = dst
+    return _PYTEST_SITE
+
+
 def make_venv(worktree: Path) -> Path:
     env_dir = Path(worktree) / ".venv"
     venv.EnvBuilder(with_pip=False, symlinks=True).create(env_dir)
     # stdlib venv site-packages path for this interpreter version
     site = next((env_dir / "lib").glob("python3*/site-packages"))
-    (site / "w15_test.pth").write_text(f"{sysconfig.get_paths()['purelib']}\n{Path(worktree) / 'src'}\n")
+    (site / "w15_test.pth").write_text(f"{pytest_site()}\n{Path(worktree) / 'src'}\n")
     return env_dir / "bin" / "python"
 
 

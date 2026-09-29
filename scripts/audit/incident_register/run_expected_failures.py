@@ -1,21 +1,23 @@
-"""Expected-failure pair acceptance for the registered W1.5 nodes (plan rev 3 Task 1).
+"""Expected-failure pair acceptance for the registered W1.5 nodes (plan Task 1; Codex phase-1 r3 #8).
 
     python -m scripts.audit.incident_register.run_expected_failures <owned-worktree> <ref> <out-dir>
 
-Resets the OWNED evidence worktree to ``ref``, runs ``tests/test_incident_register_2026.py`` marked
-and with ``--runxfail`` under the trusted observer, applies ``acceptance.accept`` with the registry
-in the evidence directory, restores the worktree and writes ``expected_failures_acceptance.json``
-(summary, per-node reasons, raw event sha256s) to ``out-dir``.
+Builds a REJECTED result first; after proving ownership it resets the evidence worktree to ``ref``,
+runs ``acceptance.run_pair`` (marked + ``--runxfail`` over one frozen closure) with the registry in the
+evidence directory, restores the worktree in ``finally``, and ALWAYS writes
+``expected_failures_acceptance.json``: resolved ref, registry sha256, overall verdict, per-node reasons
+and connection status. A session-level reason rejects the whole pair; no node is then reported as an
+accepted reproduction.
 """
 from __future__ import annotations
 
-import hashlib
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
 
-from scripts.audit.incident_register import acceptance, owned, runner
+from scripts.audit.incident_register import acceptance, owned
 
 REGISTRY = "docs/audit/2026-09-29-incident-register-evidence/expected_failures.json"
 FIXTURES = "tests/test_incident_register_2026.py"
@@ -23,26 +25,39 @@ FIXTURES = "tests/test_incident_register_2026.py"
 
 def main(worktree: str, ref: str, out: str) -> dict:
     wt, out_dir = Path(worktree), Path(out)
-    owned.reset(wt, ref)
-    reg = json.loads((wt / REGISTRY).read_text())["entries"]
-    cfg = acceptance.observe_config(wt, reg)
-    env = {"TZ": "America/New_York"}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    result = {"ref": ref, "verdict": "rejected", "reasons": [], "accepted_nodes": []}
+    owned_ok = False
     t0 = time.time()
-    marked = runner.run(wt, [FIXTURES, "-q"], out_dir, "marked", observe=cfg, env_extra=env)
-    unmarked = runner.run(wt, [FIXTURES, "-q", "--runxfail"], out_dir, "unmarked", observe=cfg, env_extra=env)
-    got = acceptance.accept(marked, unmarked, worktree=wt, registry=reg)
-    owned.reset(wt, ref)
-    summary = {"ref": ref, "seconds": round(time.time() - t0, 1), "session_reasons": got["_session"],
-               "accepted": sum(1 for n, why in got.items() if n != "_session" and not why),
-               "registered": len(reg),
-               "rejected": {n: why for n, why in got.items() if n != "_session" and why},
-               "returncodes": {"marked": marked.returncode, "unmarked": unmarked.returncode},
-               "raw_events_sha256": {r.stage: hashlib.sha256(r.events_path.read_bytes()).hexdigest()
-                                     for r in (marked, unmarked)}}
-    (out_dir / "expected_failures_acceptance.json").write_text(
-        json.dumps({"summary": summary, "per_node": got}, indent=1) + "\n")
-    return summary
+    try:
+        owned.assert_owned(wt)
+        owned_ok = True
+        owned.reset(wt, ref)
+        result["resolved_ref"] = subprocess.run(["git", "rev-parse", "HEAD"], cwd=wt, check=True,
+                                                capture_output=True, text=True).stdout.strip()
+        registry = json.loads((wt / REGISTRY).read_text())["entries"]
+        pair = acceptance.run_pair(wt, registry, [FIXTURES, "-q"], out_dir, env={"TZ": "America/New_York"})
+        result.update(pair)
+        result["registered"] = len(registry)
+        result["accepted_nodes"] = (sorted(n for n, w in pair["per_node"].items() if not w)
+                                    if pair["verdict"] == "accepted" else [])
+    except Exception as e:  # noqa: BLE001 - every handled failure still produces a rejected artifact
+        result["reasons"] = result.get("reasons", []) + [f"refused: {type(e).__name__}: {e}"]
+        result["verdict"] = "rejected"
+    finally:
+        if owned_ok:
+            try:
+                owned.reset(wt, ref)
+            except Exception as e:  # noqa: BLE001
+                result["reasons"].append(f"final reset failed: {type(e).__name__}: {e}")
+                result["verdict"] = "rejected"
+        result["seconds"] = round(time.time() - t0, 1)
+        (out_dir / "expected_failures_acceptance.json").write_text(json.dumps(result, indent=1) + "\n")
+    return result
 
 
 if __name__ == "__main__":
-    print(json.dumps(main(*sys.argv[1:4]), indent=1))
+    summary = main(*sys.argv[1:4])
+    print(json.dumps({k: summary.get(k) for k in ("ref", "resolved_ref", "verdict", "registered", "connections")},
+                     indent=1))
+    print("accepted:", len(summary.get("accepted_nodes", [])), "| reasons:", summary.get("reasons", [])[:5])

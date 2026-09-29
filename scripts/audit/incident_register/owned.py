@@ -178,17 +178,43 @@ def manifest_digest(m: dict) -> str:
     return _sha(json.dumps(m, sort_keys=True).encode())
 
 
+def _tree_hash(h, base: Path, skip_under: str | None = None) -> None:
+    for dirpath, dirnames, filenames in os.walk(base):
+        dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
+        if skip_under and os.path.realpath(dirpath).startswith(skip_under):
+            dirnames[:] = []
+            continue
+        for name in sorted(filenames):
+            if name.endswith(".pyc"):
+                continue
+            p = os.path.join(dirpath, name)
+            h.update(os.path.relpath(p, base).encode() + b"\0")
+            if os.path.islink(p):
+                h.update(b"link:" + os.readlink(p).encode())
+            elif os.path.isfile(p):
+                with open(p, "rb") as fh:
+                    for chunk in iter(lambda: fh.read(1 << 20), b""):
+                        h.update(chunk)
+
+
 def venv_fingerprint(root) -> str:
-    """pyvenv.cfg + every .pth + every installed distribution's RECORD in ``root/.venv``."""
-    env = Path(root) / ".venv"
+    """Content hash of the worktree's execution environment (Codex phase-1 r3 #4): every file of
+    ``root/.venv`` (bytecode caches excluded) and every directory a ``.pth`` file adds from OUTSIDE
+    the worktree. Directories inside the worktree (the editable ``src``) are the manifest's job."""
+    root = Path(root)
+    env = root / ".venv"
     if not env.is_dir():
         return "absent"
-    parts = [("cfg", _sha((env / "pyvenv.cfg").read_bytes()) if (env / "pyvenv.cfg").exists() else "none")]
-    for site in sorted(env.glob("lib/python3*/site-packages")):
-        for p in sorted(site.iterdir()):
-            if p.suffix == ".pth":
-                parts.append(("pth", p.name, _sha(p.read_bytes())))
-            elif p.name.endswith(".dist-info"):
-                rec = p / "RECORD"
-                parts.append(("dist", p.name, _sha(rec.read_bytes()) if rec.exists() else "none"))
-    return _sha(json.dumps(parts).encode())
+    wt = os.path.realpath(root) + os.sep
+    h = hashlib.sha256()
+    _tree_hash(h, env)
+    for pth in sorted(env.glob("lib/python3*/site-packages/*.pth")):
+        for line in pth.read_text(errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith(("#", "import ")):
+                continue
+            target = os.path.realpath(line)
+            if os.path.isdir(target) and not target.startswith(wt):
+                h.update(b"pth:" + target.encode())
+                _tree_hash(h, Path(target))
+    return h.hexdigest()

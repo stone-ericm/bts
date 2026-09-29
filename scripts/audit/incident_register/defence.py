@@ -39,8 +39,15 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def anchor_line(path: Path, text: str) -> int:
-    hits = [i for i, line in enumerate(Path(path).read_text().splitlines(), 1) if text in line]
+def anchor_line(path: Path, text: str, line: int | None = None) -> int:
+    """The anchor's 1-based line: ``text`` must be unique in the file, or — for repeated assertion
+    text — ``line`` names the line (in a frozen file) and must contain ``text``."""
+    lines = Path(path).read_text().splitlines()
+    if line is not None:
+        if not (1 <= line <= len(lines)) or text not in lines[line - 1]:
+            raise SpecError(f"{path}: line {line} does not contain the anchor {text!r}")
+        return line
+    hits = [i for i, ln in enumerate(lines, 1) if text in ln]
     if len(hits) != 1:
         raise SpecError(f"{path}: anchor {text!r} matches {len(hits)} lines (need exactly 1)")
     return hits[0]
@@ -71,7 +78,28 @@ def _drift(worktree, frozen: dict, untracked: list, venv: str, exclude, where: s
     return why
 
 
-def _assertion_ok(run: runner.Run, node: str, path: str, line: int) -> list[str]:
+def innermost_repo_frame(frames: list, worktree: str) -> list | None:
+    """The innermost traceback frame inside the worktree (its own venv excluded): the test line that
+    raised, even when the AssertionError itself comes from a stdlib helper such as unittest.mock."""
+    root, venv = worktree.rstrip(os.sep) + os.sep, os.path.join(worktree, ".venv") + os.sep
+    inside = [f for f in frames if f[0].startswith(root) and not f[0].startswith(venv)]
+    return inside[-1] if inside else None
+
+
+def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str, mode: str,
+                 inventory: list[str]) -> tuple[runner.Run, list[str]]:
+    """Re-run ``tests`` with NO observation and require identical per-node states (design §9.3 as
+    amended: observer-on behaviour is validated against an observer-off control)."""
+    plain = runner.run(worktree, tests, out_dir, stage, observe=None, env_extra=env)
+    why = [f"{stage}: {r}" for r in runner.gate(plain, worktree=worktree, mode=mode, expected=inventory)]
+    for n in inventory:
+        a, b = runner.node_state(observed.events, n), runner.node_state(plain.events, n)
+        if a != b:
+            why.append(f"{stage}: {n} is {a} observed but {b} unobserved")
+    return plain, why
+
+
+def _assertion_ok(run: runner.Run, node: str, path: str, line: int, worktree: str) -> list[str]:
     calls = runner.phases(run.events, node).get("call", [])
     if len(calls) != 1:
         return [f"{node}: {len(calls)} call reports"]
@@ -79,7 +107,7 @@ def _assertion_ok(run: runner.Run, node: str, path: str, line: int) -> list[str]
     why = []
     if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):
         why.append(f"{node}: killed by {call.get('exc_module')}.{call.get('exc_qualname')}, not AssertionError")
-    last = call["frames"][-1] if call.get("frames") else None
+    last = innermost_repo_frame(call.get("frames") or [], worktree)
     if not last or last[0] != path or last[1] != line:
         why.append(f"{node}: failure raised at {last[:2] if last else None}, not the declared assertion {path}:{line}")
     return why
@@ -93,7 +121,7 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
     res = {"label": spec.get("label"), "verdict": "rejected", "reasons": [],
            "spec_sha256": _sha(json.dumps(spec, sort_keys=True).encode()), "spec": spec, "stages": {}}
     why = res["reasons"]
-    owned_ok = False
+    owned_ok = completed = False
     try:
         _check_spec(spec)
         owned.assert_owned(worktree)
@@ -108,11 +136,12 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
             rel = k["assertion"]["path"]
             if rel.startswith("src/"):
                 raise SpecError(f"{rel}: the killing assertion must be in a frozen (non-src) file")
-            k["_line"] = anchor_line(worktree / rel, k["assertion"]["text"])
+            k["_line"] = anchor_line(worktree / rel, k["assertion"]["text"], k["assertion"].get("line"))
             k["_path"] = os.path.join(wt, rel)
         knodes = [k["node"] for k in spec["killing"]]
         entry = {"file": os.path.join(wt, spec["entry"]["path"]), "qualname": spec["entry"]["qualname"]}
-        returns = [{"file": os.path.join(wt, r["path"]), "qualname": r["qualname"]} for r in spec.get("returns", [])]
+        returns = [{"file": os.path.join(wt, r["path"]), "qualname": r["qualname"], "classify": r.get("classify", [])}
+                   for r in spec.get("returns", [])]
         observe = {"nodes": knodes, "entries": [entry], "boundaries": spec.get("boundaries", []), "returns": returns}
         env = spec.get("env", {})
         m0 = owned.manifest(worktree)
@@ -126,6 +155,9 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         why += [f"green: {r}" for r in g]
         why += _drift(worktree, m0["files"], m0["untracked"], v0, (), "after green")
         why += [f"killing node {n} not in the green inventory" for n in knodes if n not in inventory]
+        green_plain, cw = _conformance(worktree, green, out_dir, spec["tests"], env, "green_unobserved", "green", inventory)
+        why += cw
+        why += _drift(worktree, m0["files"], m0["untracked"], v0, (), "after green_unobserved")
         if why:
             return res
 
@@ -144,11 +176,14 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         mg = runner.gate(mutant, worktree=worktree, mode="mutant", expected=inventory)
         kills = [n for n in inventory if runner.node_state(mutant.events, n) == "failed"]
         res["stages"]["mutant"] = {"returncode": mutant.returncode, "kills": kills, "gate": mg}
+        mutant_plain, cw = _conformance(worktree, mutant, out_dir, spec["tests"], env, "mutant_unobserved", "mutant", inventory)
+        why += cw
         why += [f"mutant: {r}" for r in mg]
         why += _drift(worktree, frozen, m0["untracked"], v0, touched, "after mutant")
         sym = spec["symptom"]
         if sym["kind"] == "return":
-            bad = {"file": os.path.join(wt, sym["path"]), "qualname": sym["qualname"], "value": sym["value"]}
+            bad = {"file": os.path.join(wt, sym["path"]), "qualname": sym["qualname"]}
+            bad.update({k: sym[k] for k in ("category", "value") if k in sym})
         else:
             bad = {"boundary": sym["boundary"], "category": sym["category"]}
         res["certificates"] = {}
@@ -157,7 +192,7 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
             if n not in kills:
                 why.append(f"declared killing node {n} was not killed")
                 continue
-            why += _assertion_ok(mutant, n, k["_path"], k["_line"])
+            why += _assertion_ok(mutant, n, k["_path"], k["_line"], wt)
             cert = certify.certify(mutant.events, node=n, kind=sym["kind"], entry=entry, bad=bad,
                                    positive_events=green.events)
             res["certificates"][n] = cert
@@ -170,17 +205,23 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         res["stages"]["restored"] = {"returncode": restored.returncode, "gate": rg}
         why += [f"restored: {r}" for r in rg]
         why += _drift(worktree, m0["files"], m0["untracked"], v0, (), "after restored run")
-        res["events_sha256"] = {r.stage: _sha(r.events_path.read_bytes()) for r in (green, mutant, restored)
-                                if r.events_path.exists()}
+        res["events_sha256"] = {r.stage: _sha(r.events_path.read_bytes())
+                                for r in (green, green_plain, mutant, mutant_plain, restored) if r.events_path.exists()}
+        completed = True
     except (SpecError, owned.OwnershipError, owned.PathRefused, FileNotFoundError, ValueError, KeyError,
             subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         why.append(f"refused: {type(e).__name__}: {e}")
+    except BaseException as e:
+        why.append(f"aborted: {type(e).__name__}: {e}")     # recorded, then surfaced to the caller
+        raise
     finally:
         if owned_ok:
             try:
                 owned.reset(worktree, spec["baseline"])
             except Exception as e:  # noqa: BLE001 - recorded; never widens what was reset
                 why.append(f"final reset failed: {type(e).__name__}: {e}")
-        res["verdict"] = "accepted" if not why else "rejected"
+        # accepted only when every stage ran to the end with no reason recorded (self-review 2026-09-29:
+        # an unhandled exception before the first reason used to leave an 'accepted' artifact)
+        res["verdict"] = "accepted" if completed and not why else "rejected"
         (out_dir / "acceptance.json").write_text(json.dumps(res, indent=2, sort_keys=True, default=str) + "\n")
     return res

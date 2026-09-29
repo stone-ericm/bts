@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scripts.audit.incident_register import owned
+from scripts.audit.incident_register.observer import src_digest
 
 OBSERVER_SRC = Path(__file__).with_name("observer.py")
 BOOTSTRAP = """import importlib.util, sys
@@ -39,7 +40,7 @@ sys.exit(pytest.main(sys.argv[3:], plugins=[module]))
 """
 _SCRUB = ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP", "VIRTUAL_ENV", "PYTEST_ADDOPTS", "PYTEST_PLUGINS",
           "W15_OBS_CONFIG")
-MODES = ("green", "mutant", "replay_red", "expected_failure")
+MODES = ("green", "mutant", "expected_failure")
 
 
 def _sha(path) -> str:
@@ -53,6 +54,7 @@ class Run:
     events: list
     trusted: dict
     events_path: Path
+    src_digest: str | None = None      # production src tree digest taken just before the run
 
 
 def load(path) -> list[dict]:
@@ -99,11 +101,12 @@ def run(worktree, args: list[str], out_dir, stage: str, *, observe: dict | None 
         env.update(env_extra or {})
         cmd = [str(python), str(boot), str(obs), name, "-p", "no:cacheprovider",
                "--rootdir", wt, "-c", str(_inifile(worktree)), *args]
+        before = src_digest(os.path.join(wt, "src"))
         proc = subprocess.run(cmd, cwd=worktree, env=env, capture_output=True, text=True, timeout=timeout)
         (out_dir / f"{stage}.stdout.txt").write_text(proc.stdout)
         (out_dir / f"{stage}.stderr.txt").write_text(proc.stderr)
         events = load(events_path) if events_path.exists() else []
-        return Run(stage, proc.returncode, events, trusted, events_path)
+        return Run(stage, proc.returncode, events, trusted, events_path, before)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -145,7 +148,7 @@ def node_state(events: list[dict], nodeid: str) -> str:
 def gate(run: Run, *, worktree, mode: str, expected: list[str] | None = None,
          expected_failures: frozenset = frozenset()) -> list[str]:
     """Reasons to reject the run (empty = acceptable). ``mode``: ``green`` (every node passes),
-    ``mutant`` (clean setup/teardown, calls pass or fail), ``replay_red`` (session soundness only),
+    ``mutant`` (clean setup/teardown, calls pass or fail — also the historical red stage),
     ``expected_failure`` (``green`` except the registered nodes, which must be XFAIL)."""
     if mode not in MODES:
         raise ValueError(mode)
@@ -172,6 +175,10 @@ def gate(run: Run, *, worktree, mode: str, expected: list[str] | None = None,
         why.append("the session did not finish")
     elif finished[0]["exitstatus"] != run.returncode:
         why.append(f"exit status {finished[0]['exitstatus']} != process return code {run.returncode}")
+    if run.src_digest is None or s.get("src_digest") != run.src_digest:
+        why.append("the production src tree at session start differs from the tree the runner prepared")
+    if finished and finished[0].get("src_digest") != run.src_digest:
+        why.append("the production src tree changed during the session")
     if any(e["kind"] == "collect_error" for e in ev):
         why.append("collection errors")
     if any(e["kind"] == "observer_error" for e in ev):
@@ -196,20 +203,19 @@ def gate(run: Run, *, worktree, mode: str, expected: list[str] | None = None,
             why.append(f"module {name} imported from outside the worktree src: {m['file']}")
         elif not os.path.exists(m["file"]) or m["sha256"] != _sha(m["file"]):
             why.append(f"module {name} changed after import")
-    if mode != "replay_red":
-        any_failed = False
-        for n in nodes:
-            state = node_state(ev, n)
-            if mode == "expected_failure" and n in expected_failures:
-                if state != "xfail":
-                    why.append(f"{n}: registered expected failure is {state}, not xfail")
-                continue
-            if state == "failed" and mode == "mutant":
-                any_failed = True
-                continue
-            if state != "passed":
-                why.append(f"{n}: {state}")
-        want = 1 if any_failed else 0
-        if run.returncode != want:
-            why.append(f"return code {run.returncode}, expected {want}")
+    any_failed = False
+    for n in nodes:
+        state = node_state(ev, n)
+        if mode == "expected_failure" and n in expected_failures:
+            if state != "xfail":
+                why.append(f"{n}: registered expected failure is {state}, not xfail")
+            continue
+        if state == "failed" and mode == "mutant":
+            any_failed = True
+            continue
+        if state != "passed":
+            why.append(f"{n}: {state}")
+    want = 1 if any_failed else 0
+    if run.returncode != want:
+        why.append(f"return code {run.returncode}, expected {want}")
     return why

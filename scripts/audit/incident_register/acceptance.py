@@ -1,44 +1,143 @@
-"""Strict expected-failure acceptance (design §9.7; Codex phase-1 r2 #3, #4).
+"""Strict expected-failure acceptance (design §9.7; Codex phase-1 r2 #3, #4; r3 #4, #8).
 
 A registered node is accepted as a reproduction only from a PAIR of observed runs of the same
-worktree state — the marked run and a ``--runxfail`` run — each passing the session gate:
+worktree state — the marked run and a ``--runxfail`` run — each passing the session gate (the pair's
+execution closure is frozen and re-checked by the driver around both runs):
 
 * marked: the node is XFAIL in its CALL phase (setup and teardown passed), not imperative, under a
   strict marker whose ``raises`` is exactly the registered exception (``module.qualname``); every
   other selected node passes;
 * ``--runxfail``: the node fails in its CALL phase with exactly the registered exception class
   (module AND qualname), raised in the registered oracle function of the registered file (exact
-  realpath, not a suffix), and the message carries the declared bad value and the required value;
-  the declared production entry was invoked inside the node's observed call phase;
-* both runs collected the same inventory, the same test-file bytes and the same ``bts`` modules.
+  realpath), the message carries the declared bad and required values, and the declared production
+  entry was invoked inside the node's observed call phase;
+* the oracle's structured record (``$W15_ORACLE_OUT``) shows actual == declared bad == the registry's
+  ``bad_json`` and required == ``required_json``;
+* CONNECTION: the declared bad value is what production produced — ``return``: the last return of the
+  declared production function in the call phase equals the oracle's actual; ``reads``: the values the
+  fixture read back through production loaders, outside any live entry invocation and after the entry
+  ran, equal it component by component; ``derived``: no machine connection (the outcome is a derived
+  label) — the node's status is then ``exception_shape`` and needs the fixture review recorded in the
+  registry;
+* both runs collected the same inventory, test-file bytes and ``bts`` modules.
 
-The registry (``expected_failures.json``) binds each node to its exception, oracle, entry, bad and
-required values; it is reviewed data, hashed into the acceptance output.
+The registry (``expected_failures.json``) is reviewed data; the driver hashes it into its output.
 """
 from __future__ import annotations
 
+import json
 import os
 
 from scripts.audit.incident_register import certify, runner
 
+UNAVAILABLE = object()
+
 
 def observe_config(worktree, registry: list[dict]) -> dict:
     wt = os.path.realpath(worktree)
+    returns, seen = [], set()
+    for r in registry:
+        conn = r.get("connection", {})
+        fns = [conn] if conn.get("kind") == "return" else conn.get("components", [])
+        for c in fns:
+            key = (c["path"], c["qualname"])
+            if key not in seen:
+                seen.add(key)
+                returns.append({"file": os.path.join(wt, c["path"]), "qualname": c["qualname"]})
     return {"nodes": [r["node"] for r in registry],
             "entries": [{"file": os.path.join(wt, r["entry"]["path"]), "qualname": r["entry"]["qualname"]}
-                        for r in registry], "boundaries": [], "returns": []}
+                        for r in registry], "boundaries": [], "returns": returns}
 
 
-def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list[dict]) -> dict:
-    """{node: [reasons]} (empty list = accepted) plus a "_session" key for run-level reasons."""
+def unwrap(safe):
+    """The plain JSON value behind an observer ``_safe`` form (unavailable parts never compare equal)."""
+    t = type(safe)
+    if safe is None or t in (bool, int, float, str):
+        return safe
+    if t is dict:
+        if "seq" in safe:
+            return [unwrap(v) for v in safe["seq"]]
+        if "map" in safe:
+            return {k: unwrap(v) for k, v in safe["map"].items()}
+        if "fields" in safe:
+            return {k: unwrap(v) for k, v in safe["fields"].items()}
+    return UNAVAILABLE
+
+
+def _returns(inside: list[dict], wt: str, comp: dict) -> list[dict]:
+    path = os.path.join(wt, comp["path"])
+    return [e for e in inside if e["kind"] == "return" and e["file"] == path and e["qualname"] == comp["qualname"]]
+
+
+def connection(unmarked: runner.Run, node: str, reg: dict, actual, wt: str) -> tuple[str, list[str]]:
+    """(status, reasons): ``connected`` | ``exception_shape`` (derived) | ``unconnected``."""
+    conn = reg.get("connection") or {}
+    kind = conn.get("kind")
+    if kind == "derived":
+        if not str(conn.get("review", "")).strip():
+            return "unconnected", ["derived connection without a recorded fixture review"]
+        return "exception_shape", []
+    inside, why = certify.interval(unmarked.events, node)
+    if why:
+        return "unconnected", [f"connection: {w}" for w in why]
+    body = inside[:-1]
+    entry_file = os.path.join(wt, reg["entry"]["path"])
+    entries = [e for e in body if e["kind"] == "entry" and e["file"] == entry_file
+               and e["qualname"] == reg["entry"]["qualname"]]
+    if kind == "return":
+        rets = _returns(body, wt, conn)
+        if not rets:
+            return "unconnected", [f"connection: no return of {conn['qualname']} observed"]
+        got = unwrap(rets[-1]["value"])
+        return ("connected", []) if got == actual else \
+            ("unconnected", [f"connection: {conn['qualname']} returned {got!r}, the oracle saw {actual!r}"])
+    if kind == "reads":
+        if not entries:
+            return "unconnected", ["connection: the production entry never ran"]
+        first = entries[0]["seq"]
+        values = []
+        for comp in conn["components"]:
+            outside = [r for r in _returns(body, wt, comp) if r["seq"] > first
+                       and not any(certify._live(en, r, body) for en in entries)]
+            if not outside:
+                return "unconnected", [f"connection: the fixture never read {comp['qualname']} after the entry ran"]
+            vals = []
+            for r in outside:
+                v = unwrap(r["value"])
+                for key in ([comp["field"]] if comp.get("field") else []):
+                    v = v.get(key, UNAVAILABLE) if type(v) is dict else UNAVAILABLE
+                vals.append(v)
+            values.append(vals if comp.get("all") else vals[-1])
+        got = [list(t) for t in zip(*values)] if conn.get("shape") == "zip" else values
+        return ("connected", []) if got == actual else \
+            ("unconnected", [f"connection: production read-back {got!r} != the oracle's actual {actual!r}"])
+    return "unconnected", [f"unknown connection kind {kind!r}"]
+
+
+def load_oracle_records(path) -> dict[str, dict]:
+    """Last oracle record per node from a ``$W15_ORACLE_OUT`` file."""
+    out: dict[str, dict] = {}
+    if path and os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip():
+                    rec = json.loads(line)
+                    out[rec["node"]] = rec
+    return out
+
+
+def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list[dict],
+           oracle_records: dict | None = None) -> dict:
+    """{node: [reasons]} (empty = accepted), plus "_session" (run-level reasons) and
+    "_connections" ({node: connected | exception_shape | unconnected})."""
     wt = os.path.realpath(worktree)
     nodes = {r["node"] for r in registry}
-    out: dict[str, list[str]] = {"_session": []}
+    out: dict = {"_session": [], "_connections": {}}
     inventory = runner.collected(marked.events)
     out["_session"] += [f"marked: {r}" for r in runner.gate(marked, worktree=worktree, mode="expected_failure",
                                                             expected_failures=frozenset(nodes))]
-    un_gate = runner.gate(unmarked, worktree=worktree, mode="mutant", expected=inventory)
-    out["_session"] += [f"--runxfail: {r}" for r in un_gate]
+    out["_session"] += [f"--runxfail: {r}" for r in runner.gate(unmarked, worktree=worktree, mode="mutant",
+                                                                expected=inventory)]
     killed = {n for n in inventory if runner.node_state(unmarked.events, n) == "failed"}
     if killed != nodes:
         out["_session"].append(f"--runxfail failures {sorted(killed ^ nodes)[:5]} differ from the registry")
@@ -50,6 +149,7 @@ def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list
     imp_u = [e["modules"] for e in unmarked.events if e["kind"] == "imports"]
     if not imp or imp != imp_u:
         out["_session"].append("the two runs imported different bts modules")
+    records = oracle_records or {}
     for r in registry:
         n, why = r["node"], []
         call = runner.phases(marked.events, n).get("call", [])
@@ -86,6 +186,20 @@ def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list
         if not any(e["kind"] == "entry" and e["file"] == entry_file and e["qualname"] == r["entry"]["qualname"]
                    for e in inside):
             why.append(f"--runxfail: production entry {r['entry']['qualname']} was never invoked")
+        rec = records.get(n)
+        if rec is None:
+            why.append("--runxfail: no structured oracle record")
+            out["_connections"][n] = "unconnected"
+        else:
+            if "bad_json" in r and rec["bad"] != r["bad_json"]:
+                why.append("oracle record: bad value differs from the registry")
+            if "required_json" in r and rec["required"] != r["required_json"]:
+                why.append("oracle record: required value differs from the registry")
+            if rec["actual"] != rec["bad"]:
+                why.append("oracle record: actual is not the declared bad value")
+            status, cwhy = connection(unmarked, n, r, rec["actual"], wt)
+            out["_connections"][n] = status
+            why += cwhy
         out[n] = why
     return out
 
@@ -93,3 +207,48 @@ def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list
 def _ini_strict(run: runner.Run) -> bool:
     starts = [e for e in run.events if e["kind"] == "session_start"]
     return bool(starts and starts[0].get("xfail_strict_ini"))
+
+
+def run_pair(worktree, registry: list[dict], tests: list[str], out_dir, *, env: dict | None = None) -> dict:
+    """Marked + ``--runxfail`` runs of ONE frozen execution closure, then ``accept``.
+
+    Every tracked file's working bytes, the untracked list and the environment's content fingerprint
+    are taken before the pair and re-checked after EACH run (Codex phase-1 r3 #4: a helper changed
+    between the runs was accepted). A node counts as a reproduction only when the pair verdict is
+    ``accepted``; ``connections`` says which nodes are machine-connected to production."""
+    import hashlib
+    from pathlib import Path
+
+    from scripts.audit.incident_register import owned
+    from scripts.audit.incident_register.defence import _drift
+
+    wt, out_dir = Path(worktree), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    env = dict(env or {})
+    reg_text = json.dumps(registry, sort_keys=True)
+    res = {"verdict": "rejected", "reasons": [], "registry_sha256": hashlib.sha256(reg_text.encode()).hexdigest()}
+    m0 = owned.manifest(wt)
+    v0 = owned.venv_fingerprint(wt)
+    cfg = observe_config(wt, registry)
+    res["observe_sha256"] = hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()
+    oracle_path = out_dir / "oracle.jsonl"
+    if oracle_path.exists():
+        oracle_path.unlink()
+    marked = runner.run(wt, tests, out_dir, "marked", observe=cfg, env_extra=env)
+    res["reasons"] += _drift(wt, m0["files"], m0["untracked"], v0, (), "after marked")
+    unmarked = runner.run(wt, tests + ["--runxfail"], out_dir, "unmarked", observe=cfg,
+                          env_extra={**env, "W15_ORACLE_OUT": str(oracle_path)})
+    res["reasons"] += _drift(wt, m0["files"], m0["untracked"], v0, (), "after unmarked")
+    got = accept(marked, unmarked, worktree=wt, registry=registry, oracle_records=load_oracle_records(oracle_path))
+    res["session"] = got["_session"]
+    res["connections"] = got["_connections"]
+    res["per_node"] = {n: w for n, w in got.items() if not n.startswith("_")}
+    res["reasons"] += got["_session"]
+    rejected = sorted(n for n, w in res["per_node"].items() if w)
+    if rejected:
+        res["reasons"].append(f"{len(rejected)} registered node(s) rejected: {rejected[:3]}")
+    res["returncodes"] = {"marked": marked.returncode, "unmarked": unmarked.returncode}
+    res["raw_events_sha256"] = {r.stage: hashlib.sha256(r.events_path.read_bytes()).hexdigest()
+                                for r in (marked, unmarked) if r.events_path.exists()}
+    res["verdict"] = "accepted" if not res["reasons"] else "rejected"
+    return res

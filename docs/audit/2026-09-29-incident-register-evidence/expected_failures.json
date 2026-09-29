@@ -1,6 +1,6 @@
 {
- "schema": "w15-expected-failures-v1",
- "note": "Reviewed registry (design \u00a79.7): each strict-XFAIL node, its dedicated exception, the oracle that alone raises it, the production entry that must run in the call phase, and the declared bad/required values (reprs as the oracle prints them).",
+ "schema": "w15-expected-failures-v2",
+ "note": "Reviewed registry (design \u00a79.7): each strict-XFAIL node, its dedicated exception, the oracle that alone raises it, the production entry that must run in the call phase, and the declared bad/required values (reprs as the oracle prints them). v2: bad_json/required_json are the JSON forms of bad/required; connection binds the declared bad value to production (return | reads | derived).",
  "entries": [
   {
    "incident": "L01",
@@ -15,7 +15,14 @@
     "qualname": "grade_pick_in_feed"
    },
    "bad": "'miss'",
-   "required": "'void'"
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   }
   },
   {
    "incident": "L01",
@@ -30,7 +37,14 @@
     "qualname": "grade_pick_in_feed"
    },
    "bad": "'miss'",
-   "required": "'void'"
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   }
   },
   {
    "incident": "L01",
@@ -45,7 +59,14 @@
     "qualname": "grade_pick_in_feed"
    },
    "bad": "'miss'",
-   "required": "'void'"
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   }
   },
   {
    "incident": "L01",
@@ -60,7 +81,14 @@
     "qualname": "grade_pick_in_feed"
    },
    "bad": "'miss'",
-   "required": "'void'"
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   }
   },
   {
    "incident": "L01",
@@ -75,7 +103,14 @@
     "qualname": "grade_pick_in_feed"
    },
    "bad": "'miss'",
-   "required": "'void'"
+   "required": "'void'",
+   "bad_json": "miss",
+   "required_json": "void",
+   "connection": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   }
   },
   {
    "incident": "L01",
@@ -90,7 +125,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -105,7 +180,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -120,7 +235,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -135,7 +290,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -150,7 +345,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -165,7 +400,49 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -180,7 +457,49 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -195,7 +514,49 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit",
+     "double_down": "void"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -210,7 +571,49 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss', 'double_down': 'miss'}, 'miss', 0, True)",
-   "required": "({'pick': 'void', 'double_down': 'void'}, 'void', 5, True)"
+   "required": "({'pick': 'void', 'double_down': 'void'}, 'void', 5, True)",
+   "bad_json": [
+    {
+     "pick": "miss",
+     "double_down": "miss"
+    },
+    "miss",
+    0,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "void",
+     "double_down": "void"
+    },
+    "void",
+    5,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L01",
@@ -225,7 +628,47 @@
     "qualname": "check_results"
    },
    "bad": "({'pick': 'miss'}, 'miss', 12, False)",
-   "required": "({'pick': 'void'}, 'void', 12, True)"
+   "required": "({'pick': 'void'}, 'void', 12, True)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    12,
+    false
+   ],
+   "required_json": [
+    {
+     "pick": "void"
+    },
+    "void",
+    12,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
   },
   {
    "incident": "L02",
@@ -240,7 +683,43 @@
     "qualname": "reconcile_results"
    },
    "bad": "[(1, True), (1, True)]",
-   "required": "[(2, True), (2, True)]"
+   "required": "[(2, True), (2, True)]",
+   "bad_json": [
+    [
+     1,
+     true
+    ],
+    [
+     1,
+     true
+    ]
+   ],
+   "required_json": [
+    [
+     2,
+     true
+    ],
+    [
+     2,
+     true
+    ]
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "zip",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak",
+      "all": true
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available",
+      "all": true
+     }
+    ]
+   }
   },
   {
    "incident": "L02",
@@ -255,7 +734,43 @@
     "qualname": "reconcile_results"
    },
    "bad": "[(10, True), (10, True)]",
-   "required": "[(10, False), (10, False)]"
+   "required": "[(10, False), (10, False)]",
+   "bad_json": [
+    [
+     10,
+     true
+    ],
+    [
+     10,
+     true
+    ]
+   ],
+   "required_json": [
+    [
+     10,
+     false
+    ],
+    [
+     10,
+     false
+    ]
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "zip",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak",
+      "all": true
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available",
+      "all": true
+     }
+    ]
+   }
   },
   {
    "incident": "E77",
@@ -270,7 +785,207 @@
     "qualname": "run_day"
    },
    "bad": "('never_delivered',)",
-   "required": "('delivered_before_cutoff',)"
+   "required": "('delivered_before_cutoff',)",
+   "bad_json": [
+    "never_delivered"
+   ],
+   "required_json": [
+    "delivered_before_cutoff"
+   ],
+   "connection": {
+    "kind": "derived",
+    "review": "E77's outcome is a label computed by _delivery_outcome from the pick file's delivery flags (notification_sent, delivered_at) and the identified pick DMs; the derivation and its bad-path assertions were reviewed in Codex phase-1 r3 (answer 4)"
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_hit_applied_once_across_a_crash_and_restart",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit'}, 'hit', 7, True)",
+   "required": "({'pick': 'hit'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    7,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_saver_miss_applied_once_across_a_crash_and_restart",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, False)",
+   "required": "({'pick': 'miss'}, 'miss', 12, False)",
+   "bad_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    0,
+    false
+   ],
+   "required_json": [
+    {
+     "pick": "miss"
+    },
+    "miss",
+    12,
+    false
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
+  },
+  {
+   "incident": "L04",
+   "node": "tests/test_incident_register_2026.py::test_l04_polling_death_then_the_cron_scorer_applies_once",
+   "exception": "tests.test_incident_register_2026.ResultAppliedTwice",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit'}, 'hit', 7, True)",
+   "required": "({'pick': 'hit'}, 'hit', 6, True)",
+   "bad_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    7,
+    true
+   ],
+   "required_json": [
+    {
+     "pick": "hit"
+    },
+    "hit",
+    6,
+    true
+   ],
+   "connection": {
+    "kind": "reads",
+    "shape": "tuple",
+    "components": [
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "slot_results"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_pick",
+      "field": "result"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_streak"
+     },
+     {
+      "path": "src/bts/picks.py",
+      "qualname": "load_saver_available"
+     }
+    ]
+   }
+  },
+  {
+   "incident": "L03",
+   "node": "tests/test_incident_register_2026.py::test_l03_postponed_game_is_never_delivered_by_the_cached_fallback",
+   "exception": "tests.test_incident_register_2026.PostponedPickDelivered",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_day"
+   },
+   "bad": "('postponed_pick_delivered',)",
+   "required": "('no_postponed_delivery',)",
+   "bad_json": [
+    "postponed_pick_delivered"
+   ],
+   "required_json": [
+    "no_postponed_delivery"
+   ],
+   "connection": {
+    "kind": "derived",
+    "review": "L03's outcome is a label computed by _l03_outcome from the pick file's delivery flags and the identified pick DMs sent at or after the declared postponement; _l03_verdict applies the mechanism assertions (the 18:10 check selected the pick, the refresh at the 18:35 deadline got no predictions, the send came after the postponement and before the cutoff) only on the bad outcome. Reviewed by the lead 2026-09-29: fails unmarked with the declared values; a simulated status-checking repair turns it XPASS(strict); the positive control delivers a playable game's cached pick. Codex review pending (phase-1 r4)."
+   }
   }
  ]
 }

@@ -1,11 +1,16 @@
-"""Expected-failure acceptance from a marked + --runxfail pair (Codex phase-1 r2 #3, #4; r1 #5)."""
+"""Expected-failure acceptance from a marked + --runxfail pair (Codex phase-1 r1 #5; r2 #3, #4; r3 #4, #8)."""
+import json
+
 import pytest
 
-from scripts.audit.incident_register import acceptance, owned, runner
-from tests.scripts.incident_register.synth import MOD, commit, defended_project, write
+from scripts.audit.incident_register import acceptance, runner
+from tests.scripts.incident_register.synth import MOD, defended_project, write
 
 NODE = "tests/test_incident.py::test_pass_is_void"
-HEADER = '''import pytest
+HEADER = '''import json
+import os
+
+import pytest
 from bts import mod
 
 
@@ -18,6 +23,11 @@ class GradedAsMiss(IncidentExpectedFailure):
 
 
 def _oracle(actual, required, bad, exc, what):
+    path = os.environ.get("W15_ORACLE_OUT")
+    if path:
+        node = os.environ.get("PYTEST_CURRENT_TEST", "").rsplit(" (", 1)[0]
+        with open(path, "a") as fh:
+            fh.write(json.dumps({"node": node, "what": what, "actual": actual, "required": required, "bad": bad}) + "\\n")
     if actual == required:
         return
     if actual == bad:
@@ -36,29 +46,85 @@ def test_control():
 '''
 REGISTRY = [{"node": NODE, "exception": "tests.test_incident.GradedAsMiss",
              "oracle": {"path": "tests/test_incident.py", "qualname": "_oracle"},
-             "entry": {"path": "src/bts/mod.py", "qualname": "grade"}, "bad": "'miss'", "required": "'void'"}]
+             "entry": {"path": "src/bts/mod.py", "qualname": "grade"}, "bad": "'miss'", "required": "'void'",
+             "bad_json": "miss", "required_json": "void",
+             "connection": {"kind": "return", "path": "src/bts/mod.py", "qualname": "grade"}}]
+MISS = MOD.replace('def grade():\n    return "void"', 'def grade():\n    return "miss"')
 
 
-def setup_project(tmp_path, test_text, extra=None):
-    files = {"src/bts/mod.py": MOD.replace('def grade():\n    return "void"', 'def grade():\n    return "miss"'),
-             "tests/test_incident.py": test_text}
+def setup_project(tmp_path, test_text, extra=None, mod=MISS):
+    files = {"src/bts/mod.py": mod, "tests/test_incident.py": test_text}
     files.update(extra or {})
     return defended_project(tmp_path, extra=files)
 
 
 def pair(wt, tmp_path, registry=REGISTRY, between=None):
+    """accept() over a marked + --runxfail pair (the closure freeze is run_pair's job, tested below)."""
     cfg = acceptance.observe_config(wt, registry)
-    marked = runner.run(wt, ["tests/test_incident.py", "-q"], tmp_path / "out", "marked", observe=cfg)
+    out = tmp_path / "out"
+    marked = runner.run(wt, ["tests/test_incident.py", "-q"], out, "marked", observe=cfg)
     if between:
         between()
-    unmarked = runner.run(wt, ["tests/test_incident.py", "-q", "--runxfail"], tmp_path / "out", "unmarked", observe=cfg)
-    return acceptance.accept(marked, unmarked, worktree=wt, registry=registry)
+    oracle = out / "oracle.jsonl"
+    unmarked = runner.run(wt, ["tests/test_incident.py", "-q", "--runxfail"], out, "unmarked", observe=cfg,
+                          env_extra={"W15_ORACLE_OUT": str(oracle)})
+    return acceptance.accept(marked, unmarked, worktree=wt, registry=registry,
+                             oracle_records=acceptance.load_oracle_records(oracle))
 
 
-def test_genuine_reproduction_is_accepted(tmp_path):
+def test_genuine_reproduction_is_accepted_and_connected(tmp_path):
     repo, wt = setup_project(tmp_path, GOOD)
     got = pair(wt, tmp_path)
-    assert got == {"_session": [], NODE: []}
+    assert got["_session"] == [] and got[NODE] == []
+    assert got["_connections"] == {NODE: "connected"}
+
+
+def test_run_pair_accepts_one_frozen_closure(tmp_path):
+    repo, wt = setup_project(tmp_path, GOOD)
+    res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
+    assert res["verdict"] == "accepted", res["reasons"]
+    assert res["connections"] == {NODE: "connected"} and len(res["registry_sha256"]) == 64
+
+
+def test_a_literal_oracle_value_disconnected_from_production_is_rejected(tmp_path):
+    """r3 #4 measured: production returned the REQUIRED value; the oracle was fed a literal bad value."""
+    text = GOOD.replace('_oracle(mod.grade(), "void"', 'mod.grade()\n    _oracle("miss", "void"')
+    repo, wt = setup_project(tmp_path, text, mod=MOD)          # production correct: grade() == "void"
+    got = pair(wt, tmp_path)
+    assert got["_connections"][NODE] == "unconnected"
+    assert any("returned 'void', the oracle saw 'miss'" in r for r in got[NODE]), got[NODE]
+
+
+def test_a_helper_changed_inside_the_pair_is_rejected(tmp_path):
+    """r3 #4 measured: a tracked helper changed between the runs; the pair was accepted."""
+    helper = "def choose(x):\n    return x\n"
+    text = GOOD.replace("from bts import mod\n", "from bts import mod\nfrom tests import inputs\n").replace(
+        '_oracle(mod.grade(), "void"', '_oracle(inputs.choose(mod.grade()), "void"').replace(
+        "def test_control():\n", "def test_control():\n    import pathlib\n"
+        "    p = pathlib.Path(inputs.__file__)\n    p.write_text(\"def choose(x):\\n    return 'miss'\\n\")\n")
+    repo, wt = setup_project(tmp_path, text, extra={"tests/inputs.py": helper})
+    res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
+    assert res["verdict"] == "rejected"
+    assert any("after marked: frozen files changed" in r for r in res["reasons"]), res["reasons"]
+
+
+def test_derived_connection_needs_a_recorded_review(tmp_path):
+    repo, wt = setup_project(tmp_path, GOOD)
+    reg = [dict(REGISTRY[0], connection={"kind": "derived", "review": ""})]
+    got = pair(wt, tmp_path, registry=reg)
+    assert got["_connections"][NODE] == "unconnected"
+    reg = [dict(REGISTRY[0], connection={"kind": "derived", "review": "fixture reviewed (r3 answer 4)"})]
+    assert pair(wt, tmp_path, registry=reg)["_connections"][NODE] == "exception_shape"
+
+
+def test_missing_oracle_record_is_rejected(tmp_path):
+    repo, wt = setup_project(tmp_path, GOOD)
+    cfg = acceptance.observe_config(wt, REGISTRY)
+    out = tmp_path / "out"
+    marked = runner.run(wt, ["tests/test_incident.py", "-q"], out, "marked", observe=cfg)
+    unmarked = runner.run(wt, ["tests/test_incident.py", "-q", "--runxfail"], out, "unmarked", observe=cfg)
+    got = acceptance.accept(marked, unmarked, worktree=wt, registry=REGISTRY, oracle_records={})
+    assert "--runxfail: no structured oracle record" in got[NODE]
 
 
 def test_foreign_oracle_module_is_rejected(tmp_path):
@@ -69,8 +135,7 @@ def test_foreign_oracle_module_is_rejected(tmp_path):
             '@pytest.mark.xfail(strict=True, raises=GradedAsMiss, reason="wrong module")\n'
             'def test_pass_is_void():\n    _oracle()\n')
     repo, wt = setup_project(tmp_path, text, extra={"tests/foreign_test_incident.py": foreign})
-    got = pair(wt, tmp_path)
-    reasons = " | ".join(got[NODE])
+    reasons = " | ".join(pair(wt, tmp_path)[NODE])
     assert "raised tests.foreign_test_incident.GradedAsMiss" in reasons
     assert "raised in" in reasons and "never invoked" in reasons and "bad/required" in reasons
 
@@ -79,8 +144,7 @@ def test_imperative_xfail_is_rejected(tmp_path):
     text = HEADER + ('\n@pytest.mark.xfail(strict=True, raises=GradedAsMiss, reason="x")\n'
                      'def test_pass_is_void():\n    mod.grade()\n    pytest.xfail("imperative")\n')
     repo, wt = setup_project(tmp_path, text)
-    got = pair(wt, tmp_path)
-    assert "marked run: imperative pytest.xfail()" in got[NODE], got
+    assert "marked run: imperative pytest.xfail()" in pair(wt, tmp_path)[NODE]
 
 
 def test_non_strict_marker_is_rejected(tmp_path):
@@ -116,3 +180,12 @@ def test_changed_test_bytes_between_the_runs_are_rejected(tmp_path):
     repo, wt = setup_project(tmp_path, GOOD)
     got = pair(wt, tmp_path, between=lambda: write(wt, "tests/test_incident.py", GOOD + "\n# edited\n"))
     assert "the two runs collected different test-file bytes" in got["_session"]
+
+
+def test_driver_writes_a_rejected_artifact_on_failure(tmp_path):
+    from scripts.audit.incident_register import run_expected_failures as drv
+    repo, wt = setup_project(tmp_path, GOOD)
+    res = drv.main(str(wt), "HEAD", str(tmp_path / "drv"))          # the synthetic repo has no registry file
+    saved = json.loads((tmp_path / "drv" / "expected_failures_acceptance.json").read_text())
+    assert res["verdict"] == saved["verdict"] == "rejected" and saved["accepted_nodes"] == []
+    assert any("refused" in r for r in saved["reasons"])

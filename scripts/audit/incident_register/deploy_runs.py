@@ -142,42 +142,73 @@ def _same(a: str | None, b: str | None) -> bool:
     return bool(a and b) and (a.startswith(b) or b.startswith(a))
 
 
-def installed_timeline(runs: list[dict]) -> list[dict]:
-    """Segments ``{"from", "sha", "basis", "candidate"}`` in time order (each runs until the next)."""
-    segs: list[dict] = []
-
-    def open_(t, sha, basis, candidate=None):
-        segs.append({"from": t, "sha": sha, "basis": basis, "candidate": candidate})
-
+def observations(runs: list[dict]) -> list[dict]:
+    """Every installed SHA a retained log observed, as time points (Codex phase-1 r3 #5):
+    ``pre_deploy`` (before checkout), ``deployed`` (after checkout + service restart) and
+    ``rolled_back``. A canary pass is a separate health observation, not an installation time."""
+    obs = []
     for r in sorted(runs, key=lambda r: r["created_at"]):
         if r["log"] != "retained":
-            open_(r["created_at"], None, "unknown")
             continue
         if r.get("pre_sha"):
-            prev = segs[-1] if segs else None
-            if prev is not None and prev["basis"] == "log" and not _same(prev["sha"], r["pre_sha"]):
-                prev.update(sha=None, basis="drift")
-            elif prev is not None and prev["basis"] == "unknown" and prev["candidate"] is None:
-                prev["candidate"] = r["pre_sha"]
-            open_(r["pre_at"], r["pre_sha"], "log")
+            obs.append({"at": r["pre_at"], "sha": r["pre_sha"], "kind": "pre_deploy", "run_id": r["run_id"]})
         if r.get("deployed_sha"):
-            open_(r["deployed_at"], r["deployed_sha"], "log")
-            if r.get("canary") == "failed" and r.get("rollback") == "clean":
-                open_(r["rolled_back_at"], r["pre_sha"], "log")
-            elif r.get("canary") == "failed":
-                open_(r["canary_at"] or r["deployed_at"], None, "unknown")
+            obs.append({"at": r["deployed_at"], "sha": r["deployed_sha"], "kind": "deployed", "run_id": r["run_id"]})
+            if r.get("rollback") == "clean" and r.get("rolled_back_at") and r.get("pre_sha"):
+                obs.append({"at": r["rolled_back_at"], "sha": r["pre_sha"], "kind": "rolled_back", "run_id": r["run_id"]})
+    return obs
+
+
+def installed_timeline(runs: list[dict]) -> list[dict]:
+    """Segments ``{"from", "to", "sha", "basis", "candidate"}`` between consecutive observation points.
+
+    ``transition`` — inside one run (pre-deploy -> deployed, deployed -> rolled back): the box moved
+    between the two SHAs at an unobserved instant; ``assumed_continuous`` — between runs whose endpoints
+    agree (endpoint agreement is evidence; continuity in between is an explicit assumption, never proof
+    that no out-of-band change occurred); ``drift`` — endpoints disagree with no retained run between;
+    ``unknown`` — from the start of a run whose log expired (or a failed canary without a clean
+    rollback) until the next observation, whose SHA is kept only as a ``candidate``."""
+    points = observations(runs)
+    breaks = sorted(r["created_at"] for r in runs if r["log"] != "retained")
+    breaks += sorted(r["canary_at"] or r["deployed_at"] for r in runs if r["log"] == "retained"
+                     and r.get("canary") == "failed" and r.get("rollback") != "clean" and r.get("deployed_at"))
+    breaks = sorted(breaks)
+    segs: list[dict] = []
+    for a, b in zip(points, points[1:] + [None]):
+        to = b["at"] if b else None
+        brk = [t for t in breaks if a["at"] < t and (to is None or t < to)]
+        if b is not None and a["run_id"] == b["run_id"]:
+            segs.append({"from": a["at"], "to": to, "sha": None, "basis": "transition", "candidate": None,
+                         "between": [a["sha"], b["sha"]]})
+            continue
+        end = brk[0] if brk else to
+        if b is None and not brk:
+            segs.append({"from": a["at"], "to": None, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None})
+            continue
+        if b is not None and not brk and not _same(a["sha"], b["sha"]):
+            segs.append({"from": a["at"], "to": to, "sha": None, "basis": "drift", "candidate": None})
+            continue
+        segs.append({"from": a["at"], "to": end, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None})
+        if brk:
+            segs.append({"from": brk[0], "to": to, "sha": None, "basis": "unknown",
+                         "candidate": b["sha"] if b else None})
     return segs
 
 
 def live_at(timeline: list[dict], t: str) -> dict:
-    before = [s for s in timeline if s["from"] <= t]
-    if not before:
-        first = next((s["sha"] for s in timeline if s["basis"] == "log"), None)
+    """What the box ran at ``t``: ``observed`` exactly at an observation point, else the segment's basis."""
+    for seg in timeline:
+        if seg["from"] == t and seg["basis"] in ("assumed_continuous", "transition"):
+            sha = seg["sha"] if seg["basis"] == "assumed_continuous" else seg["between"][0]
+            return {"sha": sha, "basis": "observed", "candidate": None}
+    inside = [s for s in timeline if s["from"] <= t and (s["to"] is None or t < s["to"])]
+    if not inside:
+        first = next((s["sha"] or (s.get("between") or [None])[0] for s in timeline), None)
         return {"sha": None, "basis": "unknown", "candidate": first}
-    seg = before[-1]
-    if seg["basis"] == "log":
-        return {"sha": seg["sha"], "basis": "log", "candidate": None}
-    return {"sha": None, "basis": seg["basis"], "candidate": seg["candidate"]}
+    seg = inside[-1]
+    if seg["basis"] == "assumed_continuous":
+        return {"sha": seg["sha"], "basis": "assumed_continuous", "candidate": None}
+    return {"sha": None, "basis": seg["basis"], "candidate": seg.get("candidate")}
 
 
 def _is_ancestor(fix: str, sha: str, repo) -> bool:
@@ -185,21 +216,18 @@ def _is_ancestor(fix: str, sha: str, repo) -> bool:
                           capture_output=True).returncode == 0
 
 
-def first_live(timeline: list[dict], fix: str, *, repo) -> dict | None:
-    """Earliest logged install containing ``fix`` and the latest instant it was logged absent.
-
-    ``live_by`` is the first log-observed instant with the fix installed; ``not_live_before`` is
-    the end of the last log segment whose install lacks it. The true first-live time lies in
-    ``(not_live_before, live_by]``; equal values mean the deploy is pinned exactly.
-    """
+def first_live(runs_or_points, fix: str, *, repo) -> dict | None:
+    """Earliest log OBSERVATION of an install containing ``fix`` and the latest observation before it
+    of an install without it: the first-live time lies in ``(not_live_before, live_by]``. Both ends are
+    observation points (e.g. a run's pre-deploy line and its deployed line), never a segment boundary,
+    so a deploy is bounded by its own log lines, not collapsed to one instant (Codex phase-1 r3 #5).
+    ``live_by`` is the earliest OBSERVED containing install, not proof of the first-ever install when
+    earlier logs expired (``not_live_before`` is then older or None)."""
+    points = runs_or_points if runs_or_points and "kind" in runs_or_points[0] else observations(runs_or_points)
     repo = Path(repo)
-    for i, seg in enumerate(timeline):
-        if seg["basis"] == "log" and _is_ancestor(fix, seg["sha"], repo):
-            not_live = None
-            for j in range(i - 1, -1, -1):
-                prev = timeline[j]
-                if prev["basis"] == "log" and not _is_ancestor(fix, prev["sha"], repo):
-                    not_live = timeline[j + 1]["from"]
-                    break
-            return {"sha": seg["sha"], "live_by": seg["from"], "not_live_before": not_live, "basis": "log"}
+    for i, p in enumerate(points):
+        if _is_ancestor(fix, p["sha"], repo):
+            prior = [q for q in points[:i] if not _is_ancestor(fix, q["sha"], repo)]
+            return {"sha": p["sha"], "live_by": p["at"], "live_by_kind": p["kind"], "run_id": p["run_id"],
+                    "not_live_before": prior[-1]["at"] if prior else None, "basis": "log"}
     return None

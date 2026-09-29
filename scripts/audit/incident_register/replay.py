@@ -28,7 +28,7 @@ import subprocess
 from pathlib import Path
 
 from scripts.audit.incident_register import owned, runner
-from scripts.audit.incident_register.defence import SpecError, anchor_line
+from scripts.audit.incident_register.defence import SpecError, anchor_line, innermost_repo_frame
 
 NEW_API = {"ImportError", "ModuleNotFoundError", "AttributeError", "TypeError", "NameError"}
 DECISIONS = {"neutral", "irrelevant", "adapter"}
@@ -70,6 +70,22 @@ def audit_problems(changes: list[dict], audit: dict) -> list[str]:
     return sorted(set(why))
 
 
+def _drift(worktree, m0: dict, v0: str, where: str, *, src_too: bool) -> list[str]:
+    """Frozen working bytes, untracked files and the environment, compared right after a run."""
+    m = owned.manifest(worktree)
+    files = m["files"] if src_too else {k: v for k, v in m["files"].items() if not k.startswith("src/")}
+    why = []
+    changed = sorted(k for k in set(files) | set(m0["files"]) if files.get(k) != m0["files"].get(k))
+    if changed:
+        why.append(f"{where}: frozen files changed: {changed[:5]}")
+    extra = sorted(set(m["untracked"]) ^ set(m0["untracked"]))
+    if extra and (src_too or any(not u.startswith("src/") for u in extra)):
+        why.append(f"{where}: untracked files changed: {extra[:5]}")
+    if owned.venv_fingerprint(worktree) != v0:
+        why.append(f"{where}: the environment changed")
+    return why
+
+
 def classify(red: runner.Run, green: runner.Run, node: str) -> str:
     g = runner.node_state(green.events, node)
     if g != "passed":
@@ -96,7 +112,7 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
            "label_kind": "semantic_regression_replay", "spec": spec,
            "spec_sha256": hashlib.sha256(json.dumps(spec, sort_keys=True).encode()).hexdigest()}
     why = res["reasons"]
-    owned_ok, fix = False, None
+    owned_ok, fix, completed = False, None, False
     try:
         for key in ("label", "fix_set", "tests", "symptom_nodes", "audit", "deployed_ref"):
             if key not in spec:
@@ -117,9 +133,11 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
             rel = s["assertion"]["path"]
             if rel.startswith("src/"):
                 raise SpecError(f"{rel}: symptom assertions live in frozen (non-src) files")
-            s["_line"] = anchor_line(worktree / rel, s["assertion"]["text"])
+            s["_line"] = anchor_line(worktree / rel, s["assertion"]["text"], s["assertion"].get("line"))
             s["_path"] = os.path.join(wt, rel)
         m0 = owned.manifest(worktree)
+        v0 = owned.venv_fingerprint(worktree)
+        frozen0 = {k: v for k, v in m0["files"].items() if not k.startswith("src/")}
         changes = harness_changes(repo, parent, fix)
         res["harness_changes"] = changes
         problems = audit_problems(changes, spec["audit"])
@@ -133,9 +151,15 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
         green = runner.run(worktree, spec["tests"], out_dir, "green", env_extra=env)
         inventory = runner.collected(green.events)
         why += [f"green: {r}" for r in runner.gate(green, worktree=worktree, mode="green")]
+        why += _drift(worktree, m0, v0, "after green", src_too=True)       # before any swap or reset
         owned.swap_src(worktree, parent)
         red = runner.run(worktree, spec["tests"], out_dir, "red", env_extra=env)
-        why += [f"red: {r}" for r in runner.gate(red, worktree=worktree, mode="replay_red", expected=inventory)]
+        # the red run may fail CALLS (that is the replay); setup/teardown/collection errors, missing
+        # or duplicate phases and an unexplained return code still reject (Codex phase-1 r3 #3)
+        why += [f"red: {r}" for r in runner.gate(red, worktree=worktree, mode="mutant", expected=inventory)]
+        why += _drift(worktree, {"files": frozen0, "untracked": m0["untracked"]}, v0, "after red", src_too=False)
+        if subprocess.run(["git", "diff", "--quiet", parent, "--", "src"], cwd=worktree).returncode != 0:
+            why.append("after red: src is no longer exactly the parent's src")
         res["classes"] = {n: classify(red, green, n) for n in inventory}
         res["symptoms"] = {}
         for s in spec["symptom_nodes"]:
@@ -146,7 +170,7 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
                 call = runner.phases(red.events, n)["call"][0]
                 if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):
                     bad.append(f"raised {call.get('exc_module')}.{call.get('exc_qualname')}")
-                last = call["frames"][-1] if call.get("frames") else None
+                last = innermost_repo_frame(call.get("frames") or [], wt)
                 if not last or last[0] != s["_path"] or last[1] != s["_line"]:
                     bad.append(f"raised at {last[:2] if last else None}, not {s['_path']}:{s['_line']}")
             res["symptoms"][n] = bad
@@ -157,15 +181,19 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
             why.append("the restored worktree differs from the pre-run manifest")
         res["events_sha256"] = {r.stage: hashlib.sha256(r.events_path.read_bytes()).hexdigest()
                                 for r in (green, red) if r.events_path.exists()}
+        completed = True
     except (SpecError, owned.OwnershipError, FileNotFoundError, ValueError, KeyError,
             subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         why.append(f"refused: {type(e).__name__}: {e}")
+    except BaseException as e:
+        why.append(f"aborted: {type(e).__name__}: {e}")     # recorded, then surfaced to the caller
+        raise
     finally:
         if owned_ok and fix:
             try:
                 owned.reset(worktree, fix)
             except Exception as e:  # noqa: BLE001
                 why.append(f"final reset failed: {type(e).__name__}: {e}")
-        res["verdict"] = "accepted" if not why else "rejected"
+        res["verdict"] = "accepted" if completed and not why else "rejected"     # see current_defence
         (out_dir / "acceptance.json").write_text(json.dumps(res, indent=2, sort_keys=True, default=str) + "\n")
     return res

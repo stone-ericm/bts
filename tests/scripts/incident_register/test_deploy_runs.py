@@ -119,43 +119,41 @@ def test_fetch_classifies_expired_and_errors_without_echoing_stderr():
     assert ok == ("retained", PASSED)
 
 
-def rec(created, *, log="retained", pre=None, dep=None, canary="passed", rollback="none", conclusion="success"):
-    return {"run_id": created, "created_at": created, "conclusion": conclusion, "log": log,
-            "pre_sha": pre, "pre_at": created if pre else None,
-            "deployed_sha": dep, "deployed_at": created if dep else None,
-            "canary": canary, "rollback": rollback,
-            "rolled_back_at": created if rollback == "clean" else None, "anomalies": []}
+def rec(day, *, log="retained", pre=None, dep=None, canary="passed", rollback="none", conclusion="success"):
+    """A typed run on 2026-07-<day>: pre-deploy line at :00, deployed line at :02, rollback at :30."""
+    t = lambda sec: f"2026-07-{day:02d}T00:00:{sec:02d}Z"   # noqa: E731
+    return {"run_id": day, "created_at": t(0), "conclusion": conclusion, "log": log,
+            "pre_sha": pre, "pre_at": t(0) if pre else None, "deployed_sha": dep, "deployed_at": t(2) if dep else None,
+            "canary": canary, "canary_at": t(10) if dep else None, "rollback": rollback,
+            "rolled_back_at": t(30) if rollback == "clean" else None, "anomalies": []}
 
 
-def at(sha, basis="log", candidate=None):
+def at(sha, basis="assumed_continuous", candidate=None):
     return {"sha": sha, "basis": basis, "candidate": candidate}
 
 
-def test_timeline_links_runs_and_marks_unknown_gaps():
-    runs = [
-        rec("2026-07-01T00:00:00Z", pre="aaaaaaa", dep="bbbbbbb"),
-        rec("2026-07-02T00:00:00Z", log="unavailable_expired", canary="absent"),
-        rec("2026-07-03T00:00:00Z", pre="ccccccc", dep="ddddddd"),
-        rec("2026-07-04T00:00:00Z", pre="ddddddd", dep="eeeeeee", canary="failed", rollback="clean"),
-    ]
+def test_timeline_separates_observations_transitions_and_assumptions():
+    runs = [rec(1, pre="aaaaaaa", dep="bbbbbbb"), rec(2, log="unavailable_expired", canary="absent"),
+            rec(3, pre="ccccccc", dep="ddddddd"),
+            rec(4, pre="ddddddd", dep="eeeeeee", canary="failed", rollback="clean")]
     tl = installed_timeline(runs)
-    assert live_at(tl, "2026-07-01T12:00:00Z") == at("bbbbbbb")
-    # an expired run hides what it installed; the next retained run's pre-deploy SHA is only a candidate
-    assert live_at(tl, "2026-07-02T12:00:00Z") == at(None, "unknown", "ccccccc")
+    assert live_at(tl, "2026-07-01T00:00:00Z") == at("aaaaaaa", "observed")        # the pre-deploy line
+    assert live_at(tl, "2026-07-01T00:00:01Z") == at(None, "transition")          # checkout/restart in flight
+    assert live_at(tl, "2026-07-01T12:00:00Z") == at("bbbbbbb")                     # assumed until the next run
+    assert live_at(tl, "2026-07-02T12:00:00Z") == at(None, "unknown", "ccccccc")    # expired log in between
     assert live_at(tl, "2026-07-03T12:00:00Z") == at("ddddddd")
-    assert live_at(tl, "2026-07-04T12:00:00Z") == at("ddddddd")               # rolled back
-    assert live_at(tl, "2026-06-30T12:00:00Z") == at(None, "unknown", "aaaaaaa")  # before any observation
+    assert live_at(tl, "2026-07-04T00:00:10Z") == at(None, "transition")          # deployed e, then rolled back
+    assert live_at(tl, "2026-07-04T12:00:00Z") == at("ddddddd")
+    assert live_at(tl, "2026-06-30T12:00:00Z") == at(None, "unknown", "aaaaaaa")
 
 
-def test_a_run_without_a_deploy_line_leaves_the_install_unchanged():
-    runs = [rec("2026-07-01T00:00:00Z", pre="aaaaaaa", dep="bbbbbbb"),
-            rec("2026-07-02T00:00:00Z", canary="absent", conclusion="failure")]   # test gate failed
+def test_a_run_without_a_deploy_line_leaves_the_assumption_standing():
+    runs = [rec(1, pre="aaaaaaa", dep="bbbbbbb"), rec(2, canary="absent", conclusion="failure")]
     assert live_at(installed_timeline(runs), "2026-07-02T12:00:00Z") == at("bbbbbbb")
 
 
-def test_pre_sha_that_disagrees_with_the_previous_install_is_box_drift():
-    runs = [rec("2026-07-01T00:00:00Z", pre="aaaaaaa", dep="bbbbbbb"),
-            rec("2026-07-02T00:00:00Z", pre="fffffff", dep="ccccccc")]
+def test_disagreeing_endpoints_are_drift_not_continuity():
+    runs = [rec(1, pre="aaaaaaa", dep="bbbbbbb"), rec(2, pre="fffffff", dep="ccccccc")]
     tl = installed_timeline(runs)
     assert live_at(tl, "2026-07-01T12:00:00Z") == at(None, "drift")
     assert live_at(tl, "2026-07-02T12:00:00Z") == at("ccccccc")
@@ -181,19 +179,18 @@ def chain(tmp_path):
     return repo, shas
 
 
-def test_first_live_is_exact_when_consecutive_runs_are_logged(chain):
+def test_first_live_is_bounded_by_the_runs_own_log_lines(chain):
+    """r3 #5 measured: (t, t] was reported as an exact install time."""
     repo, (c0, c1, c2) = chain
-    tl = installed_timeline([rec("2026-07-01T00:00:00Z", pre=c0, dep=c0),
-                             rec("2026-07-03T00:00:00Z", pre=c0, dep=c2)])
-    assert first_live(tl, c1, repo=repo) == {"sha": c2, "live_by": "2026-07-03T00:00:00Z",
-                                            "not_live_before": "2026-07-03T00:00:00Z", "basis": "log"}
-    assert first_live(tl, "0000000", repo=repo) is None
+    got = first_live([rec(1, pre=c0, dep=c0), rec(3, pre=c0, dep=c2)], c1, repo=repo)
+    assert (got["not_live_before"], got["live_by"]) == ("2026-07-03T00:00:00Z", "2026-07-03T00:00:02Z")
+    assert got["live_by_kind"] == "deployed" and got["sha"] == c2
+    assert first_live([rec(1, pre=c0, dep=c0)], "0000000", repo=repo) is None
 
 
 def test_first_live_is_bounded_across_an_expired_run(chain):
     repo, (c0, c1, c2) = chain
-    tl = installed_timeline([rec("2026-07-01T00:00:00Z", pre=c0, dep=c0),
-                             rec("2026-07-02T00:00:00Z", log="unavailable_expired", canary="absent"),
-                             rec("2026-07-03T00:00:00Z", pre=c2, dep=c2)])
-    assert first_live(tl, c1, repo=repo) == {"sha": c2, "live_by": "2026-07-03T00:00:00Z",
-                                            "not_live_before": "2026-07-02T00:00:00Z", "basis": "log"}
+    got = first_live([rec(1, pre=c0, dep=c0), rec(2, log="unavailable_expired", canary="absent"),
+                      rec(3, pre=c2, dep=c2)], c1, repo=repo)
+    assert (got["not_live_before"], got["live_by"], got["live_by_kind"]) == (
+        "2026-07-01T00:00:02Z", "2026-07-03T00:00:00Z", "pre_deploy")
