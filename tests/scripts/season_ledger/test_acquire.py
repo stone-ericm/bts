@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.audit.season_ledger.acquire import acquire
+from scripts.audit.season_ledger.acquire import acquire, fetch_schedule
 from scripts.audit.season_ledger.bundle import open_bundle
 from tests.scripts.season_ledger.builders import gz
 
@@ -45,3 +45,22 @@ def test_acquire_copies_sources_declares_missing_inputs_and_seals(tmp_path):
     assert entries["picks/2026-05-01.json"]["source_mtime_utc"].endswith("Z")
     with pytest.raises(FileExistsError):
         acquire(snapshot_root=snap, out_root=out, dates=[], fetch=fetch, now_utc=lambda: "x")
+
+
+def test_schedule_fetch_retries_with_backoff_and_seals_only_a_schedule():
+    # Final review #3: a transient error or a non-schedule body is retried; only the last failure becomes a declared
+    # `missing` entry, and nothing but a JSON object with a `dates` list is ever returned for sealing.
+    sleeps, answers = [], [OSError("timeout"), b"<html>challenge</html>", b'{"dates": []}']
+
+    def get(day):
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    assert fetch_schedule("2026-05-01", get, sleep=sleeps.append) == b'{"dates": []}'
+    assert sleeps == [2, 4]
+    with pytest.raises(ValueError):
+        fetch_schedule("2026-05-01", lambda day: b"<html>", sleep=lambda seconds: None)
+    with pytest.raises(ValueError, match="dates"):
+        fetch_schedule("2026-05-01", lambda day: b'{"copyright": "x"}', sleep=lambda seconds: None)

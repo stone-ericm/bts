@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.audit.season_ledger.acquire import SCHEDULE_URL, acquire  # noqa: E402
+from scripts.audit.season_ledger.acquire import SCHEDULE_URL, acquire, fetch_schedule  # noqa: E402
 from scripts.audit.season_ledger.compile import SEASON_DATES, compile_bundle  # noqa: E402
 from scripts.audit.season_ledger.ids import UTC_FORMAT  # noqa: E402
 
@@ -47,7 +47,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--uv-lock", type=Path, default=Path("uv.lock"))
     args = ap.parse_args(argv)
     if args.cmd == "acquire":
-        path = acquire(snapshot_root=args.snapshot, out_root=args.out, dates=SEASON_DATES, fetch=_fetch,
+        path = acquire(snapshot_root=args.snapshot, out_root=args.out, dates=SEASON_DATES,
+                       fetch=lambda day: fetch_schedule(day, _fetch),
                        now_utc=lambda: datetime.now(timezone.utc).strftime(UTC_FORMAT))
         print(f"sealed {path}")
         return 0

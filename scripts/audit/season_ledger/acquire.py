@@ -2,7 +2,9 @@
 network call is the MLB schedule fetch, whose failures become declared `missing` entries."""
 from __future__ import annotations
 
+import json
 import shutil
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -15,6 +17,27 @@ SCHEDULE_URL = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={date}&g
 STATIC = Path("data/leaderboard/static_snapshots")
 GRAB_STATIC = Path("data/leaderboard/final_grab_20260927/raw/static")
 LOGS = ("cron.log", "journal_bts-scheduler_retained.txt")
+
+
+def fetch_schedule(day: str, get: Callable[[str], bytes], *, attempts: int = 3,
+                   sleep: Callable[[float], None] = time.sleep) -> bytes:
+    """One MLB schedule response (final review #3). A failed request, or a body that is not a JSON object with a
+    `dates` list, is retried with backoff (2 s, then 4 s); the last failure is raised, and `acquire` declares that
+    date `missing` with the failure's class as its note. Only a schedule-shaped body is ever returned for sealing."""
+    failure: Exception = ValueError("no fetch attempted")
+    for attempt in range(attempts):
+        if attempt:
+            sleep(2 ** attempt)
+        try:
+            data = get(day)
+            doc = json.loads(data)
+        except Exception as exc:   # network and decode errors vary by stack; every one is retried
+            failure = exc
+            continue
+        if isinstance(doc, dict) and isinstance(doc.get("dates"), list):
+            return data
+        failure = ValueError("schedule response without a dates list")
+    raise failure
 
 
 def _mtime_utc(path: Path) -> str:
