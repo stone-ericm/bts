@@ -50,3 +50,48 @@ def streak_before(line_streaks: dict[int, int | None], round_id: int, entered: l
     qualified line reports; its streak counts only when that round is present in this same line."""
     earlier = [r for r in entered if r < round_id]
     return line_streaks.get(earlier[-1]) if earlier else None
+
+
+def rounds_lookup(round_rows: list[dict]) -> dict[int, set[str]]:
+    out: dict[int, set[str]] = {}
+    for r in round_rows:
+        out.setdefault(r["round_id"], set()).add(r["round_date"])
+    return out
+
+
+def players_lookup(player_rows: list[dict]) -> dict[int, set[int]]:
+    out: dict[int, set[int]] = {}
+    for p in player_rows:
+        if p["feed_id"] is not None:
+            out.setdefault(p["player_id"], set()).add(p["feed_id"])
+    return out
+
+
+def units_lookup(unit_rows: list[dict]) -> dict[int, dict]:
+    """unit_id → every feedId / roundId any capture recorded; conflicts are kept, never collapsed."""
+    out: dict[int, dict] = {}
+    for u in unit_rows:
+        entry = out.setdefault(u["unit_id"], {"feed_ids": set(), "round_ids": set()})
+        if u["feed_id"] is not None:
+            entry["feed_ids"].add(u["feed_id"])
+        if u["round_id"] is not None:
+            entry["round_ids"].add(u["round_id"])
+    return out
+
+
+def unit_status_history(unit_rows: list[dict]) -> dict[int, list[tuple]]:
+    """unit_id → [(capture time, status)] across captures, oldest first (Interpretation I6)."""
+    out: dict[int, list[tuple]] = {}
+    for u in unit_rows:
+        out.setdefault(u["unit_id"], []).append((u["captured_at"], u["status"]))
+    return {k: sorted(v, key=lambda x: (x[0] or "", str(x[1]))) for k, v in out.items()}
+
+
+def team_games(schedule_rows: list[dict]) -> dict[tuple[str, str], set[int]]:
+    """(query date, team abbreviation) → every listed gamePk, whatever its status (postponed, cancelled and
+    suspended entries included), so 'exactly one game' is never produced by filtering."""
+    out: dict[tuple[str, str], set[int]] = {}
+    for g in schedule_rows:
+        for abbr in (g["away_abbr"], g["home_abbr"]):
+            out.setdefault((g["query_date"], abbr), set()).add(g["game_pk"])
+    return out
