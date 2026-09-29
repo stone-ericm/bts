@@ -45,3 +45,40 @@ def pick_json(date: str, *, primary: dict | None = None, dd: dict | None = None,
            "double_down": None if dd is None else {**_DD, **dd}, "runner_up": None}
     doc.update(file_fields)
     return dumps(doc)
+
+
+def cand(batter_id: int, game_pk: int | None, *, team: str = "TB", name: str | None = None, p: float = 0.77) -> dict:
+    return {"batter_id": batter_id, "batter_name": name or f"B{batter_id}", "team": team, "game_pk": game_pk,
+            "p_game_hit": p}
+
+
+def decision_json(date: str, *, action: str, primary: dict | None, double_down: dict | None = None,
+                  schema: str = "bts_daily_decision_v3", **fields) -> bytes:
+    """A decision record as bts.daily_decision.write_decision writes it (v1/v2 carry no objective)."""
+    rec = {"schema_version": schema, "date": date, "action": action, "source": "mdp", "primary": primary,
+           "double_down": double_down, "second_candidate": None, "streak": 0, "saver_available": None,
+           "state_source": "contest", "state_status": "fresh", "allow_double": True, "contest_source_date": None,
+           "delivery_status": "not_applicable" if action == "skip" else "delivered", "scoreable": action != "skip",
+           "best_streak": None, "best_status": None, "effective_best": None, "tail_policy_sha256": None,
+           "degraded_reason": None, "finalized_at": f"{date}T22:00:00.000000Z"}
+    if schema == "bts_daily_decision_v3":
+        rec["objective"] = "reach57"
+    rec.update(fields)
+    return dumps(rec)
+
+
+def state_json(date: str, **fields) -> bytes:
+    """A scheduler_state.json as scheduler.save_state writes asdict(SchedulerState)."""
+    rec = {"date": date, "schedule_fetched_at": f"{date}T14:00:00-04:00", "games": [], "confirmed_game_pks": [],
+           "runs_completed": [], "pick_locked": False, "pick_locked_at": None, "result_status": None,
+           "next_wakeup": None, "final_skip_candidate": None, "committed_pick_written": False,
+           "delivery_refusals": None, "fallback_refreshes": None}
+    rec.update(fields)
+    return dumps(rec)
+
+
+def evolution_jsonl(date: str, entries: list[tuple[dict, dict | None]]) -> bytes:
+    """entries: [(primary_slot, double_down_slot_or_None)] as append_lineup_evolution writes them."""
+    lines = [json.dumps({"captured_at": f"{date}T1{i}:00:00+00:00", "date": date, "run_time": f"{date}T1{i}:00:00+00:00",
+                         "primary": p, "double_down": d}) for i, (p, d) in enumerate(entries)]
+    return ("\n".join(lines) + "\n").encode()
