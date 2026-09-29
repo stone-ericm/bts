@@ -115,6 +115,10 @@ def parse_schedule(rel_path: str, data: bytes) -> Parsed:
             out.quarantined.append(quarantine(rel_path, f"date={i}", "date_without_games_list",
                                               raw=_raw(day, ("date", "games"))))
             continue
+        if day.get("date") != m.group(1):   # Codex code r1 #5: only the requested date's games are evidence for it
+            out.quarantined.append(quarantine(rel_path, f"date={i}", "date_entry_not_query_date",
+                                              raw=_raw(day, ("date",))))
+            continue
         for j, g in enumerate(games):
             loc = f"date={i}/game={j}"
             if not isinstance(g, dict) or not is_int(g.get("gamePk")):

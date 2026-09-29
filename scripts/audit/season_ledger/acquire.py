@@ -34,9 +34,10 @@ def fetch_schedule(day: str, get: Callable[[str], bytes], *, attempts: int = 3,
         except Exception as exc:   # network and decode errors vary by stack; every one is retried
             failure = exc
             continue
-        if isinstance(doc, dict) and isinstance(doc.get("dates"), list):
+        if isinstance(doc, dict) and isinstance(doc.get("dates"), list) and all(
+                isinstance(entry, dict) and entry.get("date") == day for entry in doc["dates"]):
             return data
-        failure = ValueError("schedule response without a dates list")
+        failure = ValueError("schedule response without a dates list for the requested date")
     raise failure
 
 

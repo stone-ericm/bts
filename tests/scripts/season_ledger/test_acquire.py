@@ -64,3 +64,7 @@ def test_schedule_fetch_retries_with_backoff_and_seals_only_a_schedule():
         fetch_schedule("2026-05-01", lambda day: b"<html>", sleep=lambda seconds: None)
     with pytest.raises(ValueError, match="dates"):
         fetch_schedule("2026-05-01", lambda day: b'{"copyright": "x"}', sleep=lambda seconds: None)
+    # Codex code r1 #5: a response for another date is no schedule for this one.
+    with pytest.raises(ValueError, match="requested date"):
+        fetch_schedule("2026-05-01", lambda day: b'{"dates": [{"date": "2026-04-30", "games": []}]}',
+                       sleep=lambda seconds: None)

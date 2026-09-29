@@ -75,6 +75,16 @@ def test_schedule_lists_every_game_including_postponed():
     assert {r["detailed_state"] for r in rows} == {"Final", "Postponed"}
 
 
+def test_a_schedule_date_entry_for_another_day_is_quarantined():
+    # Codex code r1 #5: a response must describe the requested date before its games can support inference.
+    other_day = dumps({"dates": [{"date": "2026-05-09", "games": [_game(824765, "TB", "BOS")]}]})
+    parsed = parse_schedule("schedules/2026-05-10.json", other_day)
+    assert parsed.rows == [] and [(q["locator"], q["reason"]) for q in parsed.quarantined] == [
+        ("date=0", "date_entry_not_query_date")]
+    undated = dumps({"dates": [{"games": [_game(824765, "TB", "BOS")]}]})
+    assert parse_schedule("schedules/2026-05-10.json", undated).quarantined[0]["reason"] == "date_entry_not_query_date"
+
+
 def test_incomplete_schedule_entries_are_quarantined_not_dropped():
     # Codex plan r1 #7: a game without team metadata must never leave the other game looking unique.
     body = dumps({"dates": [{"date": "2026-05-10", "games": [
