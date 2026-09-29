@@ -1,0 +1,301 @@
+{
+ "id": "I-067",
+ "working_id": "E67",
+ "title": "Suspended-game grading counted the resumed portion (production scorer, mid-game check, shadow graders, live-forward resolver, calibration monitors)",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "R",
+   "X"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "the production streak scorer could grade a pick from resumed-portion activity (local state impact class; no firing evidenced), and the fix's clause-C grading — pre-suspension at-bats without a hit graded miss where the pinned rules give a Pass — is unfixed and reaches production grading (I-201)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A pick in a suspended game is graded on game activity up to the suspension only; the resumed or re-scheduled portion of a suspended MLB game is never evaluated for BTS.",
+  "source": "official rules §6 'Regarding Suspended Games' (docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt); ARCHITECTURE.md 'Suspended-game scoring'; CLAUDE.md safety rule (read_pa_for_bts_scoring)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "MLB files all of a suspended-then-resumed game's PA (pre-suspension and resumed) under the original officialDate and its final boxscore is cumulative; the processed PA carried no marker for the resumed portion, so no consumer could exclude it",
+   "code": [
+    {
+     "path": "src/bts/data/build.py",
+     "ref": "02abfcc",
+     "symbol": "parse_game_feed",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "feed-based graders graded from the cumulative final boxscore — the production streak scorer (check_hit / _check_hit_in_game), the scheduler's mid-game hit check, and the shadow graders that call the same checker (skip_policy_shadow, the shadow-backfill cached-feed path) — so a resumed-portion hit could advance the streak and a batter present only in the resumed portion was graded instead of void",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "5801002",
+     "symbol": "check_hit / _check_hit_in_game",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "a364b11",
+     "symbol": "_check_hits_midgame",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "parquet-based consumers took max(is_hit) over a suspended game's full PA — the live-forward resolver and the (batter_id, date) day-hit lookups in model/calibrate, health/realized_calibration, health/slate_auc and scripts/canonicalize_realized_picks — crediting resumed-portion hits to original-gameday rows and calibration labels",
+   "code": [
+    {
+     "path": "src/bts/experiment/artifacts.py",
+     "ref": "793a093",
+     "symbol": "_load_outcomes_from_pa",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/slate_auc.py",
+     "ref": "a364b11",
+     "symbol": "_compute",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "793a093",
+     "6e3f626"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "the 7/01 production-state audit read the production pa_2026.parquet: is_resumed_portion present, with game 824912 split into scoreable and resumed rows",
+    "at": {
+     "not_after": "2026-07-01T18:57:28-04:00",
+     "evidence": [
+      "ev12"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "a364b11",
+     "6e3f626",
+     "63fd1d0",
+     "83a5cad"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "5801002",
+     "6e3f626"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev11"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Clause C: a pick with pre-suspension at-bats but no hit is graded miss, while the pinned rules make it a Pass (design §10.1: HEAD 'miss', required 'void'); tests/test_check_hit_suspension.py::test_grade_resumed_hit_does_not_count is recorded there as conflicting coverage.",
+   "reaches_production": true,
+   "source": "docs/superpowers/specs/2026-09-29-incident-register-design.md §10.1; rules section6.txt clause C; ARCHITECTURE.md 'Suspended-game scoring' (I-201)"
+  },
+  {
+   "text": "Offline research paths still read raw PA including the resumed portion (falsification-harness CLI diagnostics, ~0.06% of 2026 rows; research/audit scripts) — not production scoring.",
+   "reaches_production": false,
+   "source": "docs/audit/2026-07-01-production-state-audit.md F7; 6e3f626 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "at the 01:00 grading run and on any regrade, for each graded slot whose game feed has gameData.datetime.resumeDateTime: the stored grade differs from a pre-suspension-only regrade of the same feed (plays with startTime < resumeDateTime; no pre-suspension PA → void)",
+  "recovery_assertion": "stored slot results and their streak effect equal the pre-suspension-only grade for every suspended-game pick; a mismatch is corrected and alerted"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a364b11 message body",
+   "what": "the production scorer read the cumulative final boxscore hit total, which includes the resumed portion, so a resumed-portion hit could falsely continue a streak"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 5801002 message body",
+   "what": "the live-forward resolver and the day-hit lookups in calibrate, realized_calibration and canonicalize_realized_picks took max(is_hit) over a suspended game's full PA"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 6e3f626 message body",
+   "what": "Codex review round 1: scheduler._check_hits_midgame read cumulative boxscore hits, health/slate_auc built labels from raw max(is_hit), and build marked a missing-startTime PA pre-suspension"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 793a093 message body",
+   "what": "a suspended-then-resumed game keeps its original officialDate so all its PA file under the earlier date, and nothing in the processed PA distinguished the resumed portion"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commits 63fd1d0 and 83a5cad message bodies",
+   "what": "the skip-policy shadow checker and the shadow-backfill cached-feed path collapsed a suspended-game void to miss via the bool checker; both switched to the three-valued grade"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt ('Regarding Suspended Games'; Pass clause C)",
+   "what": "resumed or re-scheduled activity is never evaluated; a suspended game where the player has no hit at the time of suspension is a Pass"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-09-29-incident-register-design.md §10.1 grading table",
+   "what": "suspended, pre-suspension AB without a hit (clause C): HEAD grades miss, the required grade is void — strict expected-failure fixture"
+  },
+  {
+   "id": "ev8",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: 2b752be deployed 2026-06-07T00:11:21Z, canary passed; the cumulative-boxscore grader (_check_hit_in_game since 50d4ee5, 4/01) and the resolver (since bcc0447, 5/09) predate it"
+  },
+  {
+   "id": "ev9",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28466759515 (deploy_runs.json)",
+   "what": "success at 2026-06-30T18:24:09Z with head 63fd1d0 (log expired): the first successful deploy containing 793a093, a364b11, 5801002, 6e3f626 and 63fd1d0 (candidate ancestry)"
+  },
+  {
+   "id": "ev10",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28520680537 (deploy_runs.json)",
+   "what": "success at 2026-07-01T13:21:23Z with head 83a5cad (log expired): the first successful deploy containing 83a5cad (candidate ancestry)"
+  },
+  {
+   "id": "ev11",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); every fix commit is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev12",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'Production ops', 'The week's one CRITICAL — closed', 'Suspended-game scoring — integration verified', F7 (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "verified live on 7/01: box HEAD 83a5cad == deploy ref; pa_2026.parquet carries is_resumed_portion with game 824912 split into scoreable and resumed rows; parquet- and feed-based scoring consumers read pre-suspension only; F7 notes the falsification-harness raw-PA read"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "793a093",
+   "a364b11",
+   "5801002",
+   "6e3f626",
+   "63fd1d0",
+   "83a5cad",
+   "680a63a",
+   "7636c11",
+   "50d4ee5",
+   "bcc0447"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md 'Suspended-game scoring'",
+   "docs/audit/2026-07-01-production-state-audit.md",
+   "docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt",
+   "docs/superpowers/specs/2026-09-29-incident-register-design.md §10.1"
+  ]
+ },
+ "related": [
+  "I-064",
+  "I-201"
+ ],
+ "notes": [
+  "no evidenced firing: no repo artifact shows a production or shadow pick graded from resumed-portion activity; game 824912 (suspended 6/16, resumed 6/17) is the only suspended game the repo names. Route R: pick files whose game feed carries resumeDateTime (at least 6/16–6/17) and their stored grades would upgrade this to observed_incident",
+  "exposure: cumulative-boxscore grading since the automated grader (check-results 1e6970b 3/31; _check_hit_in_game 50d4ee5 4/01); resolver since bcc0447 (5/09); fix set live by 7/02 15:28Z (log)",
+  "the pack omitted 793a093 (is_resumed_portion column) and 63fd1d0 (skip-policy-shadow void) from the same series; both added to the fix sets and routes.H",
+  "within the series: the all-resumed resolver re-stall (introduced by 5801002, fixed by 6e3f626) and the skip-policy-shadow void→miss collapse (a364b11 → 63fd1d0) shipped fixed in the same deploy (run 28466759515) — pre-ship; the shadow-backfill cached-path void→miss collapse (a364b11 → 83a5cad) was live ~19 h by candidate ancestry (runs 28466759515 / 28468207448, 6/30 18:24Z → run 28520680537, 7/01 13:21Z; logs expired) on a manual reviewed command, no evidenced use",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: 793a093 / a364b11 / 5801002 / 6e3f626 / 63fd1d0 → run 28466759515 at 2026-06-30T18:24:09Z (head 63fd1d0, log expired); 83a5cad → run 28520680537 at 2026-07-01T13:21:23Z (head 83a5cad, log expired). The 7/01 audit reports box HEAD 83a5cad and .last_deploy_iso 2026-07-01T13:26:19Z (operator report)",
+  "run_id 28601525167 = the run whose retained log observed 83a5cad as the pre-deploy SHA; no run has a logged deployed SHA 83a5cad",
+  "split? production grading (links 1–2, G) vs research / monitor labels (link 3, R) — kept together: one data-layer root (link 1) and one fix series",
+  "reproducing tests: tests/test_check_hit_suspension.py::test_check_hit_suspended_overrides_cumulative_boxscore and ::test_grade_resumed_only_is_void (a364b11); tests/experiment/test_artifacts.py::test_resolve_excludes_resumed_portion_hit_for_original_day (5801002); tests/data/test_build.py::test_parse_game_feed_flags_resumed_portion (793a093); tests/test_skip_policy_shadow.py::test_make_hit_checker_passes_through_void (63fd1d0); tests/test_shadow_eval.py::test_shadow_backfill_cached_suspended_resumed_only_is_void (83a5cad)",
+  "design §10.1 records test_grade_resumed_hit_does_not_count (a364b11) as conflicting coverage for clause C — see I-201",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

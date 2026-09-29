@@ -1,0 +1,168 @@
+{
+ "id": "I-206",
+ "working_id": "L06",
+ "title": "No independent day-outcome watchdog: the missed-pick alert (E3) and EOD health run once inside the scheduler, and the no-games-day early return skips both",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "L",
+   "D"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "an undelivered candidate on a no-games-day return, or any day whose scheduler dies or hangs before step 5b, ends with no alert; unfixed (backlogged 8/14); B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Every game day ends with a delivered pick, a scoreable commit or a recorded deliberate skip, and any other end state alerts the operator independently of the scheduler process (a durable-state check with alert retry).",
+  "source": "docs/optimization-ideas.md 'Independent day-outcome watchdog' (3e1791c); design §6.2 V1/V1b"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day returns after 'No games scheduled' (idling until tomorrow) before step 5b (_maybe_alert_missed_pick) and the EOD health block, so a leftover candidate pick on such a day gets no alert",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "run_day (no-games early return)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "E3 (step 5b) and EOD health each run once inside run_day; if the scheduler crashes, hangs or is stopped before reaching them nothing else checks the day's outcome from durable state (check-pick-entered keys on scoreable commits and ignores this case)",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "run_day (step 5b, EOD health) / _maybe_alert_missed_pick",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4490aee",
+     "symbol": "check_pick_entered",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 2
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Backlogged since 8/14 as a cron-side audit keyed on durable disk state with alert-delivery retry; not built by the season's end",
+   "reaches_production": true,
+   "source": "docs/optimization-ideas.md 'Independent day-outcome watchdog'"
+  },
+  {
+   "text": "Without it, a hung scheduler on a skip day is indistinguishable from a deliberate skip (I-065)",
+   "reaches_production": true,
+   "source": "I-065 note"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "from cron, independent of the scheduler: at the earliest candidate game's cutoff (first pitch - 5) and again at 23:59 ET, a candidate pick file exists for the date with no delivery record, no scoreable commit and no recorded deliberate skip",
+  "recovery_assertion": "an alert is delivered (retried until confirmed) and the date ends with a scoreable commit or an explicit operator pass"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/optimization-ideas.md 'Independent day-outcome watchdog' (3e1791c)",
+   "written_at": "2026-08-14T12:57:21-04:00",
+   "what": "every in-process protection shares the scheduler's fate; the no-games-day early return bypasses step 5b and EOD health; a leftover candidate on a day the schedule fetch returns empty gets no protection"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_day at 4490aee",
+   "what": "the 'No games scheduled' branch idles until the next wakeup and returns before step 5b and the health block"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the in-process-only protections; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-14T12:57:21-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "3e1791c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/optimization-ideas.md 'Independent day-outcome watchdog'"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-065",
+  "I-077",
+  "I-083",
+  "I-108"
+ ],
+ "notes": [
+  "fetch_schedule raises on HTTP failure, so the early return fires only on a genuinely empty regular-season schedule",
+  "the 7/16 singleton-slate gap (I-077) and the 8/13 silent pass (I-083) are the observed cases this watchdog would have caught",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

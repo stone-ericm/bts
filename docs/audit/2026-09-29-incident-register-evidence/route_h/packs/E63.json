@@ -1,0 +1,130 @@
+{
+ "id": "E63",
+ "episode_row": [
+  "E63",
+  "6/11\u20136/17",
+  "decision/dashboard streak 10 vs real 8; contest fetch discarded current activeStreak / not_hit rows; false noon WARN",
+  "G",
+  "OI",
+  "A",
+  "2b4ff1d 709e68b 9a3e8ed 4bdfdb8 56f9726 (PR #143)"
+ ],
+ "commits": [
+  {
+   "sha": "2b4ff1d",
+   "authored": "2026-06-17T16:17:23-04:00",
+   "subject": "fix(streak): decision streak = real MLB streak, never the model; status fresh/lagged/stale; no staleness DD-freeze",
+   "body": "Reproduces + fixes the 2026-06-17 incident (dashboard showed 10 vs real MLB 8 after a missed 6/11 entry): load_decision_streak_state no longer returns max(model, contest) nor freezes doubles on staleness. The decision streak is always the contest (real MLB) value; the model replay can never raise it. Adds status fresh/lagged/stale + _has_unconfirmed_miss to flag stale-high. Keystone regression test + rewrites the 3 tests that encoded the old freeze behavior.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_state.py",
+    "tests/test_contest_state.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27719946982,
+    "created_at": "2026-06-17T21:09:18Z",
+    "head_sha": "9958874",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "709e68b",
+   "authored": "2026-06-17T16:40:19-04:00",
+   "subject": "fix(fetch): count not_hit as a settled profile result in derive_source_date",
+   "body": "MLB profiles settle rounds as hit/not_hit/void; RESOLVED omitted not_hit, biasing freshness against reset days. Added not_hit (kept miss for legacy/local safety).\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_fetch.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27719946982,
+    "created_at": "2026-06-17T21:09:18Z",
+    "head_sha": "9958874",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "9a3e8ed",
+   "authored": "2026-06-17T16:45:44-04:00",
+   "subject": "fix(fetch): persist activeStreak snapshot even when source_date is None",
+   "body": "Snapshot/coverage split: the predictions array lags MLB's counter, so a current activeStreak was being discarded. build_observation now writes the snapshot with source_date=null when coverage is unknown; contest_state treats null source_date as stale.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_fetch.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27719946982,
+    "created_at": "2026-06-17T21:09:18Z",
+    "head_sha": "9958874",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "4bdfdb8",
+   "authored": "2026-06-17T16:51:54-04:00",
+   "subject": "fix(fetch-cli): always persist a current activeStreak; staleness labeled downstream",
+   "body": "Removed the source_date-None failure and the currentness gate (and the now-dead latest_resolved_pick_date import) from fetch-contest-streak. A current activeStreak is written even when the per-round predictions array lags; contest_state labels lagged/stale and the level-aware health check still alerts on gap>=2. Kept the auth/identity/shape fail-safes. Added lag + source_date=None CLI regression tests; updated the 2 integration tests that encoded the old refuse-to-write gate.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_integration.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27719946982,
+    "created_at": "2026-06-17T21:09:18Z",
+    "head_sha": "9958874",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "56f9726",
+   "authored": "2026-06-17T18:29:44-04:00",
+   "subject": "fix(health): align contest-state staleness to the Phase-1 coverage split",
+   "body": "source_date is now derived from the per-round predictions array, which trails the live activeStreak counter by ~one round BY DESIGN -- so a source_date gap is no longer a reliable staleness signal. gap==1 (the normal coverage lag) -> INFO at any time (was a daily false WARN past noon). gap>=2 downgraded CRITICAL -> WARN: a transient ledger lag must not fire a false CRITICAL DM, and the never-entered-pick detection it approximated isn't wanted (the operator is always aware of their own entries; a genuinely broken fetch still DMs via the auth-failure path). Data corruption (no/future source_date, malformed file) stays CRITICAL. De-'frozen' all messages. Codex pre-merge reviewed.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/contest_state.py",
+    "tests/health/test_contest_state.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27724604648,
+    "created_at": "2026-06-17T22:46:32Z",
+    "head_sha": "56f9726",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

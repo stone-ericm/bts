@@ -1,0 +1,198 @@
+{
+ "id": "E50",
+ "episode_row": [
+  "E50",
+  "5/11\u20135/26",
+  "live-forward stream integrity: stale snapshots, post-game writes, resolver failed state, provenance drift, pending rows",
+  "R",
+  "OI",
+  "A?",
+  "09ee616 429a998 9340218 2efd40a c511a03 3710227 f03a98b"
+ ],
+ "commits": [
+  {
+   "sha": "09ee616",
+   "authored": "2026-05-11T20:33:19-07:00",
+   "subject": "Handle terminal voids in live-forward resolver",
+   "body": "",
+   "files": [
+    "docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md",
+    "docs/sota_audit/2026-05-11-void-aware-resolver-prereg.md",
+    "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md",
+    "scripts/live_forward_resolve_once.py",
+    "scripts/systemd/README.md",
+    "src/bts/experiment/artifacts.py",
+    "src/bts/experiment/cli.py",
+    "tests/experiment/test_artifacts.py",
+    "tests/experiment/test_cli_candidate_artifacts.py",
+    "tests/scripts/test_live_forward_resolve_once.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25712181954,
+    "created_at": "2026-05-12T03:49:52Z",
+    "head_sha": "11a379c",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "429a998",
+   "authored": "2026-05-12T23:57:08-04:00",
+   "subject": "Guard live-forward capture against stale pick snapshots",
+   "body": "",
+   "files": [
+    "docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md",
+    "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md",
+    "scripts/live_forward_capture_once.py",
+    "scripts/live_forward_provenance_inventory.py",
+    "scripts/live_forward_surface_export.py",
+    "scripts/systemd/README.md",
+    "scripts/systemd/bts-live-forward-capture.service",
+    "tests/scripts/test_live_forward_capture_once.py",
+    "tests/scripts/test_live_forward_provenance_inventory.py",
+    "tests/scripts/test_live_forward_surface_export.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25807897233,
+    "created_at": "2026-05-13T15:08:58Z",
+    "head_sha": "0b73154",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "9340218",
+   "authored": "2026-05-18T14:23:20-04:00",
+   "subject": "Fix live-forward pick snapshot drift",
+   "body": "Treat post-game result updates as mutable metadata instead of stale locked-pick drift, and trigger live-forward capture when scheduler locks a production pick.",
+   "files": [
+    "config/orchestrator.example.toml",
+    "scripts/live_forward_capture_once.py",
+    "scripts/live_forward_provenance_inventory.py",
+    "scripts/systemd/README.md",
+    "src/bts/scheduler.py",
+    "tests/scripts/test_live_forward_capture_once.py",
+    "tests/scripts/test_live_forward_provenance_inventory.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26054315318,
+    "created_at": "2026-05-18T19:03:15Z",
+    "head_sha": "9340218",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "2efd40a",
+   "authored": "2026-05-23T23:08:37+03:00",
+   "subject": "Skip stale live-forward archives in resolver scan",
+   "body": "",
+   "files": [
+    "scripts/live_forward_resolve_once.py",
+    "tests/scripts/test_live_forward_resolve_once.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26342410049,
+    "created_at": "2026-05-23T20:11:45Z",
+    "head_sha": "67b21df",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "c511a03",
+   "authored": "2026-05-23T17:45:35-04:00",
+   "subject": "Handle final no-PA live-forward voids (#116)",
+   "body": "",
+   "files": [
+    "src/bts/experiment/artifacts.py",
+    "tests/experiment/test_artifacts.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26348939570,
+    "created_at": "2026-05-24T01:49:13Z",
+    "head_sha": "c511a03",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "3710227",
+   "authored": "2026-05-24T08:12:30-04:00",
+   "subject": "Fix live-forward outcome count backcompat",
+   "body": "Normalize outcome_status_counts verification for old manifests missing newly-added zero-count statuses. Preserve nonzero mismatch detection with regression coverage.",
+   "files": [
+    "src/bts/experiment/artifacts.py",
+    "tests/experiment/test_artifacts.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26360931425,
+    "created_at": "2026-05-24T12:13:37Z",
+    "head_sha": "3710227",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "f03a98b",
+   "authored": "2026-05-26T21:33:32+03:00",
+   "subject": "Fix live-forward snapshot null provenance drift",
+   "body": "",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-23-alert-disposition.md",
+    "scripts/live_forward_capture_once.py",
+    "tests/scripts/test_live_forward_capture_once.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26467825993,
+    "created_at": "2026-05-26T18:39:23Z",
+    "head_sha": "fac6bdb",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

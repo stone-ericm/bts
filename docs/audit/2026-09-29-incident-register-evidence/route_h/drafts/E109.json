@@ -1,0 +1,159 @@
+{
+ "id": "I-109",
+ "working_id": "E109",
+ "title": "4/28-7/13 deploy race: the deploy step reset the box to mutable origin/deploy, so an in-flight run could install a later queued commit its own gate never tested",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "latent deploy-integrity defect; run metadata shows no gate-window overlap after the test gate existed and no cancelled runs; fixed 7/13; no residual",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A deploy installs exactly the commit its own test gate passed (github.sha).",
+  "source": ".github/workflows/deploy.yml TARGET_SHA comment (30452eb); 1ac0b0c (deploys gated on the test suite)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the deploy script ran `git fetch origin && git reset --hard origin/deploy` when the SSH step executed, reading the mutable ref: a push landing between a run's gate and its reset would be installed by the earlier run (from 7/10 the queue-not-cancel concurrency widened this window)",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "6d74d39",
+     "symbol": "deploy step (reset --hard origin/deploy)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "30452eb"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:47Z",
+    "not_live_before": "2026-07-13T01:12:45Z",
+    "run_id": 29216777239,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a deploy run's installed SHA ('Deployed <sha>') differs from its head SHA, or a later push to deploy lands between a run's creation and its reset",
+  "recovery_assertion": "every successful run's deployed SHA equals its head SHA (deploy_runs.json)"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 30452eb message body (F2) + deploy.yml diff",
+   "written_at": "2026-07-10T18:12:04-04:00",
+   "what": "deploy resets to the run's tested SHA, not mutable origin/deploy: 'an in-flight run could ship a later queued commit whose own test/environment gate never ran'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md 'round 3' F2 and 'round 2' R6",
+   "what": "review finding (no incident cited); R6 (6d74d39) changed concurrency from cancel-in-progress to queueing"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy_runs.json, runs 2026-04-28T15:15Z -> 2026-07-13T01:12Z",
+   "what": "99 runs (93 successful), no cancelled conclusion; after the gate (6/10) the shortest gap from a successful run to the next run is 13.35 min (27435517686 -> 27436209932, 6/12), longer than the created-to-reset interval of every gated retained-log run (2.9-9.6 min, 23 runs); after the queueing change (run 29119047694, 7/10 19:44:57Z) no other run started before the fix run (7/13 01:08:13Z)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 29216777239 (deploy_runs.json, log retained)",
+   "what": "pre-deploy 6d74d39 -> deployed 230f65c (contains 30452eb) at 2026-07-13T01:12:47Z"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy_runs.json, all retained-log successful runs 2026-06-07 -> 2026-09-22",
+   "what": "each run's deployed SHA equals its head SHA"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-10T18:12:04-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "a5af424",
+   "1ac0b0c",
+   "6d74d39",
+   "30452eb"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md round 3 F2"
+  ]
+ },
+ "related": [
+  "I-037",
+  "I-060",
+  "I-073"
+ ],
+ "notes": [
+  "exposure: reset to origin/deploy since a5af424 (4/28, the fix for the silent no-op deploys, I-037); 'untested' applies only once the gate existed (1ac0b0c, first candidate install 6/10); before the gate a racing run could only change which already-ungated commit was installed",
+  "with cancel-in-progress true (4/28-7/10) a completed race would normally leave a cancelled run; none exists",
+  "ref 6d74d39: deploy.yml runs from each run's pushed head; run 29119047694 (head 6d74d39, retained log) executed the defective step",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

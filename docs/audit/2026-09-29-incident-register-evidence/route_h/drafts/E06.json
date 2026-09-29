@@ -1,0 +1,140 @@
+{
+ "id": "I-006",
+ "working_id": "E06",
+ "title": "Projected-lineup fallback counted pinch-hit substitutes as projected batters (3/30\u20134/03)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "prediction output or pick files for 3/30\u20134/03 (B1 picks; Mac/Pi5 logs, retention unknown) showing whether a projected substitute (battingOrder 101, 201, \u2026 in the prior game) was ranked first, picked, or kept the early-lock gap open \u2014 Phase 2"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "projected teams contributed 11+ batters instead of 9, adding non-starters to the ranking and to the lock-gap comparison; whether any delivered pick or lock decision changed is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "unknown",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "When a team's lineup is not posted, its projected lineup is the nine starters of its most recent game.",
+  "source": "ab3db97 'fallback to prior game lineup when lineups not posted'; 515cfa3 body (keep only the original starter per lineup slot)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "_fetch_prior_lineup kept every boxscore player with a battingOrder up to 900, including substitutes (101, 201, \u2026), so a projected team contributed 11+ batters instead of its 9 starters",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "f5ce1ed",
+     "symbol": "_fetch_prior_lineup",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "515cfa3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a committed pick's candidate slate has more than nine projected batters for one team, or the pick itself is a projected batter who did not start that team's previous game",
+  "recovery_assertion": "projected slates carry at most the nine prior-game starters per team"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 515cfa3 message body (authored 2026-04-03T15:58:41-04:00)",
+   "what": "prior-game boxscores list substitutes (101, 201, \u2026) with the starters; the fallback returned all of them, 'inflating the batter count from 9 to 11+ and shifting prediction rankings'; no date or pick is named"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/model/predict.py _fetch_prior_lineup at f5ce1ed; ab3db97 (3/29 23:34 ET) introduced the fallback",
+   "what": "the defect was present from the first projected-lineup prediction until 515cfa3"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 515cfa3; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate window: projected-lineup predictions 3/29 23:34 \u2192 4/03 15:58",
+   "onset": {
+    "not_before": "2026-03-29T23:34:02-04:00",
+    "not_after": "2026-04-03T15:58:41-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-03T15:58:41-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "515cfa3"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-009"
+ ],
+ "notes": [
+  "alternative reading: '11+' and 'shifting prediction rankings' may describe a live slate; if the lead reads the body as a live report this becomes observed_incident with tier pending",
+  "same hazard class as I-009: an extra projected row can hold the early-lock gap open",
+  "delivery_mode and policy_objective unknown: the window spans operator-run days, public posting from 3/31, and the MDP from 4/01 17:15",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; worker-tier install time is not evidenced (workers auto-pulled only from 5207a09, 4/04)",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

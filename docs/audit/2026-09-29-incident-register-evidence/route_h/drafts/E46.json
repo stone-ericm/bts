@@ -1,0 +1,161 @@
+{
+ "id": "I-046",
+ "working_id": "E46",
+ "title": "realized_calibration crashed on AppleDouble (._*) or non-UTF-8 pick files and the health runner silently swallowed the crash",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "a model-quality health check could go silently blind; no delivery, state or liveness effect, and both links are fixed",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Health checks skip non-pick files in the picks directory, and a check that raises is surfaced to the operator rather than silently returning no alerts.",
+  "source": "commit 52db4d7 body; commit 0f2bc3c body ('a crashing check is itself surfaced as a CRITICAL'); docs/audit/2026-06-09-fable5-full-audit.md P1 'Crashed health check returns [] - dead smoke detector'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "realized_calibration read every *.json in the picks directory and caught only JSONDecodeError/OSError, so a macOS AppleDouble sidecar (._<date>.json, binary) or any non-UTF-8 file raised UnicodeDecodeError out of the check",
+   "code": [
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "293ce51",
+     "symbol": "check (picks_dir.glob('*.json') scan)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the health runner's _safe_run logged any check exception and returned [], so a crashing check produced no alert and no DM",
+   "code": [
+    {
+     "path": "src/bts/health/runner.py",
+     "ref": "293ce51",
+     "symbol": "_safe_run",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/runner.py",
+     "ref": "aa6b7b1",
+     "symbol": "_safe_run (returns [] on exception)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "52db4d7"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "52db4d7",
+    "live_by": "2026-05-09T03:46:03Z",
+    "run_id": 25590839160,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "0f2bc3c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "279d423",
+    "live_by": "2026-06-10T14:35:51Z",
+    "run_id": 27283866776,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "monitor-internal failure (a health check that raises); no service boundary - covered since 0f2bc3c by the runner surfacing a crashed check as CRITICAL",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 52db4d7 diff (realized_calibration.py, tests/health/test_realized_calibration.py)",
+   "what": "adds `if f.name.startswith('._'): continue` and UnicodeDecodeError to the caught exceptions; the new test writes a binary ._2026-04-28.json and a non-UTF-8 file"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25590839160 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 52db4d7 created 2026-05-09T03:46:03Z (5/08 23:46 ET), conclusion success; the backfill memo calls it 'a later narrow health hotfix'"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27283866776 (deploy_runs.json)",
+   "what": "first successful deploy whose head (279d423) contains 0f2bc3c, created 2026-06-10T14:35:51Z; log bound live by 2026-07-02T15:28:10Z (run 28601525167)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-season-ledger.md (file routing table)",
+   "what": "the frozen W0.7 picks tree held 14 AppleDouble ._* files (appledouble_resource_fork), so such files did reach the production picks directory at some point; their creation dates are not stated"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "52db4d7",
+   "0f2bc3c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md P1 dead smoke detector",
+   "docs/audit/2026-09-28-season-ledger.md"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-042"
+ ],
+ "notes": [
+  "prelim OI?/B; no located artifact says the crash happened live (52db4d7's body describes the fix only), so drafted deployed_latent_defect; if B1 file metadata dates any of the 14 ._* files before 5/09, the check was silently blind from then - upgrade to observed/unresolved",
+  "the 52db4d7 timing (13 min after the 5/08 23:32 ET shadow backfill apply, which used a picks snapshot copied to a Mac) suggests the ._ files arrived with that work - I'm guessing",
+  "matters to watchdog coverage only through link 2 (a silently dead monitor), which the Fable-5 audit fixed as H3 (0f2bc3c, part of E59 / I-059)",
+  "log bounds: link 1 live by 2026-06-07T00:11:19Z (run 27077693688); link 2 live by 2026-07-02T15:28:10Z (run 28601525167)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,199 @@
+{
+ "id": "I-058",
+ "working_id": "E58",
+ "title": "6/07–6/10 fetch-contest-streak sent a daily false 'failed' DM on the expected morning settlement lag",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "X"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "recurring false failure DM (alert noise; throttled to at most one per 6 h); the gate still refused to overwrite, so contest state and picks were unaffected",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "fetch-contest-streak refuses to overwrite with a non-advancing observation but alerts only on genuine staleness (two or more settled picks behind); the normal one-settled-pick morning lag exits quietly with no DM.",
+  "source": "8cd7207 (src/bts/cli.py fetch_contest_streak step 4, 'mirrors the level-aware health check'); tests/test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_no_write_no_alert"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the currentness gate in fetch_contest_streak called _fail (throttled 'BTS fetch-contest-streak failed' DM + exit 2) whenever the profile's source_date was earlier than the latest resolved local pick, which is the normal morning state because the contest settles day D the next day; the 01:10/02:10/10:30/13:30 ET cron (with --dm-recipient) ran it into that state daily",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "279d423",
+     "symbol": "fetch_contest_streak (step 4 currentness gate -> _fail -> _contest_fetch_alert)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "279d423",
+     "symbol": "fetch-contest-streak cron lines (68a35d3)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "8cd7207"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "a fetch-contest-streak failure DM (or nonzero exit in cron.log) whose reason is 'not current' while the profile trails local settlement by exactly one settled pick — the expected morning state reported as a failure",
+  "recovery_assertion": "by the 13:30 ET fetch the observation advances to the latest settled pick and is written; a one-step lag produces exit 0 and no DM, while a lag of two or more settled picks still alerts"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 8cd7207 message body",
+   "written_at": "2026-06-10T10:54:26-04:00",
+   "what": "the currentness gate DM'd on every fetch where the profile lagged the latest pick — the normal morning state — 'so it fired a \"failed\" DM daily'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 8cd7207^ (279d423) src/bts/cli.py fetch_contest_streak and _contest_fetch_alert; commit 68a35d3 diff (scripts/cron-setup-hetzner.sh)",
+   "what": "the lag branch called _fail, which sends 'BTS fetch-contest-streak failed: …' (6 h cooldown) and exits 2; the cron runs it at 01:10, 02:10, 10:30 and 13:30 ET with --dm-recipient, logging to cron.log"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: deployed 2b752be at 2026-06-07T00:11:21Z, canary passed; 2b752be contains fa30ecb (the command) and 68a35d3 (its cron lines) and lacks 8cd7207"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688; 8cd7207 is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 8cd7207 diff (tests/test_cli_integration.py test_expected_settlement_lag_no_write_no_alert comment)",
+   "what": "the new test names the case as 'the noise that was firing every morning'"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-08→06-10 (daily false 'failed' DM; the firings within 48 h of the report)",
+   "onset": {
+    "not_before": "2026-06-08T10:54:26-04:00",
+    "not_after": "2026-06-10T10:54:26-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-06-08T10:54:26-04:00",
+    "not_after": "2026-06-10T10:54:26-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-10T10:54:26-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-10T10:54:26-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "recurrence": {
+    "before_fix": [
+     {
+      "not_before": "2026-06-07T00:11:21Z",
+      "not_after": "2026-06-08T10:54:26-04:00",
+      "evidence": [
+       "ev1",
+       "ev3"
+      ]
+     }
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "8cd7207",
+   "fa30ecb",
+   "68a35d3"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md step 8 'Currentness gate'"
+  ]
+ },
+ "related": [
+  "I-056",
+  "I-057",
+  "I-059"
+ ],
+ "notes": [
+  "the body reports a DAILY false DM; only firings within 48 h of it (6/08 10:54 → 6/10 10:54 ET) are treated as contemporaneous occurrences; earlier days since the command and cron shipped (not before the 6/07 00:11Z deploy of 2b752be; the crontab install date itself is not evidenced — deploys never touch crontab) are a recurrence bound only. Exact firing times: Route R (cron.log 'not current, refusing to overwrite' lines; data/health_state/contest_streak_fetch_status.json is latest-state only)",
+  "specification defect: the contest-streak spec (d383db5) step 8 required 'emit WARN/CRITICAL status + DM (throttled)' on any source_date < latest resolved pick; same false-alarm class as I-057",
+  "alert fields are not_applicable: the symptom IS the false failure DM",
+  "the fable5 audit (6/09) called fetch-contest-streak 'properly fail-safe' and did not flag the noise",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing 8cd7207 = run 27286303593 at 2026-06-10T15:15:17Z (head 3a6e48b, log expired)",
+  "run_id 28601525167 is the run whose retained log first observed 83a5cad (as pre-deploy SHA); the run that deployed head 83a5cad (28520680537) has an expired log",
+  "delivery_mode unknown (5/20–7/05 window); stream cron_job (fetch-contest-streak cron)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 8cd7207 adds tests/test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_no_write_no_alert, which reproduces the incident condition (one-step lag must exit 0 with no DM)"
+ ]
+}

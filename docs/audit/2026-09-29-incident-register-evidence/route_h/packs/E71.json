@@ -1,0 +1,61 @@
+{
+ "id": "E71",
+ "episode_row": [
+  "E71",
+  "7/06",
+  "premature \"not entered\" DM on a deferred, undelivered DD",
+  "E/A",
+  "OI",
+  "A",
+  "af6329f 540b1ab"
+ ],
+ "commits": [
+  {
+   "sha": "af6329f",
+   "authored": "2026-07-06T15:25:27-04:00",
+   "subject": "fix(cli): gate check-pick-entered on commit/lock state; report submission cutoff",
+   "body": "check-pick-entered treated the mere existence of {date}.json as \"a pick Eric was\ntold to enter,\" but the scheduler rewrites that file all day with previews/\nprojections, and an undelivered pick can be deferred (and its file deleted)\nminutes later. On 2026-07-06 this fired a premature \"not entered\" DM for a\ndeferred double-down 16 min before the scheduler deleted the pick.\n\nGate on the same commit signal check-results uses \u2014 is_scoreable_commit\n(decision.json scoreable, with a pick_was_delivered fallback) \u2014 placed before\nthe window check and any contest-account fetch. This covers the delivered /\nprivate_locked / locked_unconfirmed commit states (all write scoreable=True) and\nstays silent for previews/deferred picks. Using pick_was_delivered alone would\nhave suppressed legitimate alerts for private_locked and locked_unconfirmed\n(Codex review).\n\nAlso fix the DM countdown to report time to the real submission deadline (first\npitch \u2212 5 min), not to first pitch.\n\nTests: undelivered-preview-in-window \u2192 no DM/marker; countdown shows minutes to\ncutoff. _save_pick gains a `delivered` flag (defaults committed).\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01Pw4ygummxsqPaqMBiXkcKp",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "39b02bd",
+    "live_by": "2026-07-06T20:39:41Z",
+    "not_live_before": "2026-07-06T20:39:41Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28821478951,
+    "created_at": "2026-07-06T20:35:08Z",
+    "head_sha": "39b02bd",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "540b1ab",
+   "authored": "2026-07-06T15:37:18-04:00",
+   "subject": "fix(cli): exclude un-submittable final 5 min from entry-check window (Codex review)",
+   "body": "Pre-merge Codex review found the DM used the first-pitch \u2212 5 cutoff for its\ncountdown while the firing window still ran to first pitch \u2014 so a run inside the\nfinal 5 minutes would nag \"Fix it now!\" with a negative countdown for a pick that\ncan no longer be submitted. Raise the window's lower bound to the 5-min cutoff.\n\nAlso close the review's test gap: the positive tests only exercised the\npick_was_delivered fallback, not the decision.json gate. Add coverage for a\nscoreable decision-record commit (no delivery flags \u2192 still alerts) and a\nskip-day decision (scoreable=false \u2192 silent), plus the inside-cutoff case.\n\nDeferred findings (documented in the audit doc): is_scoreable_commit is only\nfallback-robust for private_locked/locked_unconfirmed if the best-effort\ndecision.json write failed; load_decision date/action laxity; and the checker\nreading {date}.json rather than the decision payload. All narrow / shared-code;\ntracked as follow-ups.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01Pw4ygummxsqPaqMBiXkcKp",
+   "files": [
+    "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md",
+    "src/bts/cli.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "39b02bd",
+    "live_by": "2026-07-06T20:39:41Z",
+    "not_live_before": "2026-07-06T20:39:41Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28821478951,
+    "created_at": "2026-07-06T20:35:08Z",
+    "head_sha": "39b02bd",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

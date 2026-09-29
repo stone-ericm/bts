@@ -1,0 +1,193 @@
+{
+ "id": "I-207",
+ "working_id": "L07",
+ "title": "C-03 fix residuals: changes after the last pre-cutoff run go unseen; empty corrections hide unobserved dates; unresolved picks not first-graded; fix undeployed",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "local grading can miss a pre-cutoff scoring change or silently skip an unobserved date; the box still runs the pre-fix reconcile (I-089) until the 2027 deploy; B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "Reconcile applies every scoring change made before a date's BTS cutoff (date + 1, 08:00 ET) and none after it, and an unobserved check is distinguishable from 'unchanged'.",
+  "source": "docs/audit/2026-09-corrections-index.md C-03 (fix, residuals, 2027 follow-ups); docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt (changes after 08:00 ET the next day are ignored)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "with the fix, a date is regraded only while its cutoff is ahead, by the 02:00 and 07:40 runs; a scoring change after the last successful run and before 08:00 (or after a failed 07:40 run) is never applied",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "ce6676d",
+     "symbol": "reconcile_results"
+    },
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "ce6676d",
+     "symbol": "40 7 * * * reconcile"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "reconcile skips a date silently when its feed cannot be resolved (resolve_daily_slot_results returns None) and reports only corrections, so an empty correction list cannot tell 'unchanged' from 'not observed'",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "reconcile_results",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "reconcile re-checks only dates whose pick already holds hit/miss/void; picks still None, unresolved or suspended are left to check-results",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "4490aee",
+     "symbol": "reconcile_results",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 2
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 3
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Until the 2027 deploy plus a crontab install on the box (for the 07:40 run), production keeps the pre-fix reconcile that applies post-cutoff re-scorings (I-089)",
+   "reaches_production": true,
+   "source": "docs/audit/2026-09-corrections-index.md C-03 ('deploys with 2027'; 'cron-setup-hetzner.sh install on the box')"
+  },
+  {
+   "text": "2027 follow-ups not built: observation receipts and missed-check visibility; authoritative entered-day finalization from the contest ledger",
+   "reaches_production": true,
+   "source": "docs/audit/2026-09-corrections-index.md C-03 '2027 follow-ups'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "for each graded date, by 08:00 ET the next day there is no successful reconcile observation (receipt) after the game's final, or the local result differs from the contest ledger's settled result",
+  "recovery_assertion": "every entered date's local result equals the contest ledger's settlement, with an observation receipt before the cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-corrections-index.md row C-03 (95d062d)",
+   "written_at": "2026-09-28T11:14:43-04:00",
+   "what": "'Residuals (best-effort contract): a change between the last run and 08:00, or after a failed 07:40 run, is never picked up; an empty correction list does not distinguish unchanged from unobserved; picks still None/unresolved/suspended are not first-graded by reconcile'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit ce6676d message body + diff",
+   "written_at": "2026-09-28T11:14:43-04:00",
+   "what": "reconcile changes a date only while its cutoff is ahead (checked at start, on each feed answer and under the lock); a second cron run at 07:40 ET narrows the unobserved window"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/picks.py reconcile_results at 4490aee",
+   "what": "skips dates whose result is not hit/miss/void and dates whose slot results resolve to None, with no record of the skip"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "the last install (4490aee, 2026-09-22T16:28:40Z, run 35753849145) predates ce6676d; no later deploy run exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-09-28T11:14:43-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "ce6676d",
+   "95d062d"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-corrections-index.md C-03",
+   "docs/audit/2026-09-28-reconcile-cutoff-codex-r2.md"
+  ]
+ },
+ "related": [
+  "I-089",
+  "I-201",
+  "I-202"
+ ],
+ "notes": [
+  "link 1 exists only in the unshipped fix (reaches production with the 2027 deploy); links 2-3 are in the deployed reconcile; ref_basis omitted on the ce6676d refs (never installed)",
+  "the C-03 defect itself (post-cutoff regrades, still in the deployed code) is I-089, not this record",
+  "the C-03 row also names the affected picks and contest streak steps; not repeated",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

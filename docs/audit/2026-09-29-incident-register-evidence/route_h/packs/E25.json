@@ -1,0 +1,37 @@
+{
+ "id": "E25",
+ "episode_row": [
+  "E25",
+  "4/12",
+  "fallback posted a stale cached pick (Donovan) over a fresher Turner",
+  "D",
+  "OI",
+  "A",
+  "dd25664"
+ ],
+ "commits": [
+  {
+   "sha": "dd25664",
+   "authored": "2026-04-12T15:25:42-04:00",
+   "subject": "feat(scheduler): re-predict at fallback before posting",
+   "body": "Audit of 2026-04-12 picks revealed that the fallback deadline path was\nposting stale predictions. On today's Sunday slate, Donovan + Anthony\nwere locked from the 13:19 ET cached cascade \u2014 but by the 13:40 ET\nfallback fire, PHI's lineup had confirmed and Trea Turner (0.7426)\nwould have been a better primary than Donovan (0.7169). The fallback\nnever re-ran predictions, so Turner stayed invisible to the lock.\n\nFix: new _refresh_pick_at_fallback helper that calls run_and_pick\nright before the fallback post. If the fresh top pick differs from\nthe cached one, log \"FALLBACK REFRESH: pick CHANGED OLD \u2192 NEW\" and\npersist the fresh daily to disk. If the refresh fails or returns no\nresult, fall back to the cached pick so the lock is always robust.\n\nBoth fallback call sites (per-game loop fallback ~line 755 and final\nfallback ~line 790) now call the helper.\n\nTests: 5 new TestRefreshPickAtFallback cases \u2014 happy path (pick\nchanges), log verification (CHANGED in stderr), unchanged pick\n(logs \"unchanged\"), exception fallback, None result fallback. All\nuse mocked run_and_pick so the test doesn't hit the MLB API.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24314523130,
+    "created_at": "2026-04-12T19:25:45Z",
+    "head_sha": "dd25664",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

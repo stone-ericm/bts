@@ -1,0 +1,127 @@
+{
+ "id": "I-101",
+ "working_id": "E101",
+ "title": "8/30 late-pick fix rebased onto the post-8/14 base auto-merged a wrong order in run_single_check (past-cutoff archive before the committed-decision check); fixed before deploy",
+ "disposition": "pre_ship_exclusion",
+ "counted": false,
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "S"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "introduced and fixed inside the unshipped 8/30 branch (3697512 at 15:21, 2ff2db9 at 15:25); never installed: run 33335535999 moved the box 3e1791c -> 2ff2db9 directly",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Committed means immutable: a scoreable decision on disk locks the day before any past-cutoff archive runs, and a pick carrying the delivery_attempted marker is never archived.",
+  "source": "224ddce body (2026-08-14, 'committed means immutable'); 2ff2db9 body and tests test_run_single_check_never_archives_a_committed_pick / _an_attempted_pick"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the 8/30 branch was built on a base predating the 8/14 fixes; rebasing auto-merged without textual conflict but put the Codex r2 F5 past-cutoff archive ahead of the scoreable-decision check in run_single_check, so a same-day restart could archive a private_locked commit or erase the delivery_attempted crash marker",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "3697512",
+     "symbol": "run_single_check (pre-cascade short-circuit order)"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "2ff2db9"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:20Z",
+    "run_id": 33335535999,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Process only: a branch built on a stale base can auto-merge a semantically wrong ordering; the guard is the CLAUDE.md 'fetch first' note, not a check (no code path left open)",
+   "reaches_production": false,
+   "source": "CLAUDE.md (3ec2fc5)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "pre-ship item (never deployed); pinned by the two 2ff2db9 tests, not a W4 rank-2 boundary",
+  "recovery_assertion": "n/a"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 2ff2db9 message body + diff",
+   "written_at": "2026-08-30T15:25:12-04:00",
+   "what": "the rebase auto-merged the wrong order: the past-cutoff archive ran before the scoreable-decision check, so a same-day restart could archive a private_locked commit or erase the delivery_attempted marker; reordered and pinned with tests"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "CLAUDE.md 'FETCH FIRST' note (3ec2fc5)",
+   "written_at": "2026-09-03T13:32:49-04:00",
+   "what": "the 8/30 fix was built on a 4-commit-stale base; the rebase auto-merged with zero textual conflicts but a semantically wrong ordering in run_single_check"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 33335535999 (deploy_runs.json, log retained)",
+   "what": "pre-deploy 3e1791c -> deployed 2ff2db9 at 2026-08-30T21:10:22Z, canary passed: the misordered 3697512 was never installed without the fix"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "3697512",
+   "2ff2db9",
+   "3ec2fc5",
+   "224ddce"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md 'FETCH FIRST'"
+  ]
+ },
+ "related": [
+  "I-083",
+  "I-084"
+ ],
+ "notes": [
+  "disposition changed from the row's near_miss_control_held: no existing control is named in the sources (2ff2db9 calls it 'rebase reconciliation'); it is an unshipped-change defect",
+  "ref_basis omitted on the mechanism: 3697512 was never an install (ev3)",
+  "the two 2ff2db9 tests (tests/test_cutoff_candidate_exclusion.py) pin the corrected order",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

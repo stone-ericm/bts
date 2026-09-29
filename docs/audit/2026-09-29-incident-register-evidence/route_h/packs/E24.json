@@ -1,0 +1,60 @@
+{
+ "id": "E24",
+ "episode_row": [
+  "E24",
+  "4/12",
+  "no live scorecard for a cross-game double; header never rendered",
+  "U",
+  "OI",
+  "B",
+  "6168e1d 1e4859d"
+ ],
+ "commits": [
+  {
+   "sha": "6168e1d",
+   "authored": "2026-04-12T14:55:33-04:00",
+   "subject": "fix(scorecard): merge picks Live over Preview for cross-game doubles",
+   "body": "merge_scorecards had an inverted priority map: {\"F\": 0, \"L\": 1, \"P\": 2}\nwith the swap picking the HIGHER number. That made Preview beat Live,\nso when primary (Donovan SEA 16:10 ET, still P) was merged with\ndouble-down (Anthony BOS 14:15 ET, already L), the merged game_status\nwas P and render_scorecard_section silently returned \"\" because its\nguard requires game_status in (L, F). Result: empty /api/live-html\nresponse, no scorecard on the dashboard all afternoon even though\nAnthony's game had live PAs.\n\nFix: swap to {\"P\": 0, \"F\": 1, \"L\": 2} so Live wins over Final wins over\nPreview. The scorecard now renders as long as ANY game in the slate is\nlive, which is what users actually want. Final badge only when BOTH\ngames are done (unchanged semantics).\n\nThe bug surfaced today because the fallback-deadline fix (6fd61f9) put\nthe earlier-start game as the double-down (Anthony 14:15) while keeping\nthe later game as primary (Donovan 16:10). Prior to that fix, primary\nwas always the earliest game, so primary's status was never Preview\nwhile dd was already Live.\n\nExisting L+F / F+L / F+F tests still pass unchanged. 3 new tests cover\nthe P+L, L+P, and P+P cases.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scorecard.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24313941874,
+    "created_at": "2026-04-12T18:55:36Z",
+    "head_sha": "6168e1d",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "1e4859d",
+   "authored": "2026-04-12T15:04:34-04:00",
+   "subject": "fix(dashboard): render scorecard header with LIVE badge and score",
+   "body": "render_scorecard_section built live_badge, score_str, and inning_display\nbut never inserted them into the returned HTML \u2014 standing dead code\nsince before today. The dashboard home page shows per-game badges via\n_render_game_tags above the scorecard, but those tags live outside the\npolled #scorecard div so they go stale after page load. Adding the\nheader inside #scorecard means the badge + combined score update every\n30s along with the PA table.\n\nTests: 5 new TestRenderScorecardHeader cases cover L/F badges, score\nlabel rendering, single-game fallback, and preview still returning\nempty.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24314112513,
+    "created_at": "2026-04-12T19:04:36Z",
+    "head_sha": "1e4859d",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,197 @@
+{
+ "id": "I-099",
+ "working_id": "E99",
+ "title": "6/29-7/01: deploy-workflow SIGTERM stops logged as unit failures ('Failed with result exit-code'), diluting crash signal; SuccessExitStatus=143 applied box-side 7/01",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "S"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "diagnostic signal dilution (four deploy stops read as crashes in one week); no alert storm or missed alert evidenced; fixed by config the same day it was reported",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A 'Failed with result' record for bts-scheduler or bts-dashboard means a genuine crash; a planned deploy stop (SIGTERM, exit 143) logs as a clean deactivation.",
+  "source": "ARCHITECTURE.md 'SuccessExitStatus=143' (48e8485, updated by cca6761); docs/audit/2026-07-01-production-state-audit.md F3"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the deploy workflow stops both units with SIGTERM (Python exits 143) and the box units lacked SuccessExitStatus=143, so systemd logged every deploy stop as 'Failed with result exit-code'; the units were not repo-tracked (the tracked scripts/bts-scheduler.service was the stale Pi5 unit)",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "83a5cad",
+     "symbol": "deploy step (restart bts-scheduler, bts-dashboard)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/bts-scheduler.service",
+     "ref": "83a5cad",
+     "symbol": "tracked unit (stale Pi5 unit, not the box unit)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "config_only",
+   "deployed": {
+    "basis": "operator_report",
+    "live_by": "2026-07-01T20:20:10-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "a unit 'Failed with result' journal record whose time falls inside a deploy run's stop interval (deploy_runs.json pre-deploy -> deployed), or any failure record not explained by a deploy",
+  "recovery_assertion": "deploy stops log as clean deactivations and every remaining failure record is a genuine crash"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'The week's one CRITICAL' + finding F3 (7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "the unit exits logged 'Failed with result exit-code' on Jun 29 22:36, Jun 30 14:28 and 14:53, and Jul 01 09:25 were all SIGTERM (143) from deploy-workflow restarts (journal read live that session); 'real crash signal is being diluted'"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 48e8485 message body + ARCHITECTURE.md diff",
+   "written_at": "2026-07-01T20:20:10-04:00",
+   "what": "SuccessExitStatus=143 applied to both units box-side on 2026-07-01 via daemon-reload (no restart); 'all four unit failures in the audit week were deploys masquerading as crashes'"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy runs 28416280226, 28466759515, 28468207448, 28520680537 (deploy_runs.json)",
+   "what": "successful deploy runs created 2026-06-30T02:31:47Z, 18:24:09Z, 18:49:07Z and 2026-07-01T13:21:23Z, i.e. 4-5 min before each of the four logged exits (ET)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit cca6761 message body",
+   "written_at": "2026-07-10T12:41:37-04:00",
+   "what": "the tracked scheduler unit was the stale Pi5 one; the live units were captured byte-identical (with SuccessExitStatus=143) into scripts/systemd/ with a read-only unit_drift check"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-29 -> 2026-07-01 (four deploy stops)",
+   "onset": {
+    "at": "2026-06-29T22:36:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-06-29T22:36:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-01T18:57:28-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-01T20:20:10-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-07-01T20:20:10-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "restored_verification": "unknown",
+   "recurrence": {
+    "before_fix": [
+     {
+      "at": "2026-06-30T14:28:00-04:00",
+      "evidence": [
+       "ev1"
+      ]
+     },
+     {
+      "at": "2026-06-30T14:53:00-04:00",
+      "evidence": [
+       "ev1"
+      ]
+     },
+     {
+      "at": "2026-07-01T09:25:00-04:00",
+      "evidence": [
+       "ev1"
+      ]
+     }
+    ]
+   },
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "7636c11",
+   "48e8485",
+   "cca6761"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-01-production-state-audit.md F3",
+   "ARCHITECTURE.md 'SuccessExitStatus=143'"
+  ]
+ },
+ "related": [
+  "I-073"
+ ],
+ "notes": [
+  "earlier deploy stops presumably logged the same way (the box unit never had the setting), not evidenced; Route R (journals from 5/11) can enumerate them as before-fix recurrences",
+  "verified recovery candidate: the 7/02 deploy (run 28601525167, stop ~15:28Z) is the first deploy stop after the change; its journal line would show a clean deactivation (Phase 2)",
+  "the audit's times are read as ET (they match the deploy runs 4-5 min earlier in UTC)",
+  "unit drift between 7/01 and 7/10 (box unit edited, repo untracked) belongs to I-073 F12",
+  "the 7/01 audit also states streak and skip-shadow outcome figures; not repeated",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "id": "I-021",
+ "working_id": "E21",
+ "title": "4/12 fallback deadline computed from the primary's game landed 3 minutes after the double-down's first pitch",
+ "disposition": "near_miss_control_held",
+ "counted": true,
+ "classes": {"primary": "D", "secondary": []},
+ "tier": "B",
+ "tier_reason": "near miss: the live scheduler planned its fallback post for 13:40, after the double-down's 13:37 first pitch (the submission cutoff), but the operator's hotfix deployed at about 13:10 and the day's pick was delivered at 13:40 with 14:15 as its earliest game",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "An unlocked pick is fallback-posted before the earliest first pitch among its legs (the BTS submission cutoff).",
+  "source": "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md step 6; 6fd61f9 body"
+ },
+ "mechanism": [
+  {"n": 1, "text": "both fallback-deadline sites computed primary_pick.game_time − fallback_deadline_min and ignored a double-down in an earlier game; after the noon lineups swapped primary and double-down, the deadline became 14:15 − 35 min = 13:40, after the double-down's 13:37 game",
+   "code": [{"path": "src/bts/scheduler.py", "ref": "0cc7f23", "symbol": "run_day (in-loop fallback and post-loop final fallback)", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["6fd61f9"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "6fd61f9", "live_by": "2026-04-12T17:10:03Z", "run_id": 24311942484, "evidence": ["ev3"]},
+   "mitigated": {"action": "operator hotfix 6fd61f9 pushed and deployed (run 24311942484) before the 13:37 cutoff", "at": {"not_before": "2026-04-12T17:10:03Z", "evidence": ["ev3"]}},
+   "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at any check, the planned fallback/delivery time for the current candidate is later than the earliest first pitch minus 5 minutes among its legs",
+  "recovery_assertion": "the planned delivery time precedes the earliest leg's cutoff and the pick is delivered by then"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 6fd61f9 message body", "written_at": "2026-04-12T13:09:55-04:00",
+   "what": "'Reproduced live on 2026-04-12': after the noon lineups flipped primary (14:15 game) and double-down (13:37 game), the scheduler computed the fallback as 14:15 − 35 min = 13:40 ET, three minutes after the 13:37 first pitch and the BTS submission cutoff"},
+  {"id": "ev2", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit dd25664 message body", "written_at": "2026-04-12T15:25:42-04:00",
+   "what": "the pick delivered that day (a 16:10 primary with the 14:15 double-down) was locked from the 13:19 ET cascade and posted by the 13:40 ET fallback"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24311942484 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head 6fd61f9, created 2026-04-12T17:10:03Z (13:10 ET), concluded success; log expired"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "src/bts/scheduler.py run_day at 0cc7f23",
+   "what": "both fallback sites derive the deadline from daily.pick.game_time only"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-12",
+  "onset": {"not_before": "2026-04-12", "not_after": "2026-04-12T13:09:55-04:00", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T13:09:55-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-12T13:09:55-04:00", "evidence": ["ev1"]},
+  "mitigation": {"not_before": "2026-04-12T17:10:03Z", "evidence": ["ev3"]},
+  "restored_verification": {"not_after": "2026-04-12T15:25:42-04:00", "evidence": ["ev2"]},
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["6fd61f9"], "R": "pending_phase2", "X": ["docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md step 6"]},
+ "related": ["I-013", "I-024", "I-025", "I-020"],
+ "notes": [
+  "disposition changed from the lead row (OI, A): no pick was delivered after its cutoff; the control that held was the operator's live review plus a hotfix deploy, not an automated control — if the lead counts the live post-cutoff deadline itself as the contract deviation, this becomes observed_incident (tier B)",
+  "the 13:19 check picked a different primary (16:10) with the 14:15 double-down, so the 13:40 deadline was correct for the pick actually delivered (ev2, I-025)",
+  "pick names in the bodies are identities, not outcomes; no 4/12 result is restated",
+  "the two-scheduler condition (I-020) was cleared by the 12:37 self-heal deploy shortly before this fix",
+  "later deadline defects (7/16 singleton slate, 8/30 late pick) are separate records",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 6fd61f9 added TestEarliestPickGameEt (test_returns_double_down_when_double_is_earlier); scratchpad defence input I-0412-a-primary-only-deadline exists"
+ ]
+}

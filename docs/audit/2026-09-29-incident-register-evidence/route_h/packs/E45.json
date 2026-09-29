@@ -1,0 +1,86 @@
+{
+ "id": "E45",
+ "episode_row": [
+  "E45",
+  "5/08\u20135/11",
+  "dashboard pill/banner/DD scorecard showing a wrong state",
+  "U",
+  "UC",
+  "B",
+  "96b6e4f 5a1beb7 425f62f"
+ ],
+ "commits": [
+  {
+   "sha": "96b6e4f",
+   "authored": "2026-05-08T22:54:34-04:00",
+   "subject": "Update dashboard live progress refresh",
+   "body": "",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_scorecard.py",
+    "tests/test_web_render.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25590588217,
+    "created_at": "2026-05-09T03:34:05Z",
+    "head_sha": "293ce51",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "5a1beb7",
+   "authored": "2026-05-09T20:06:47-04:00",
+   "subject": "Fix resolved scorecard banner state (#80)",
+   "body": "",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_scorecard.py",
+    "tests/test_web_render.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25615172718,
+    "created_at": "2026-05-10T00:07:14Z",
+    "head_sha": "5a1beb7",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "425f62f",
+   "authored": "2026-05-11T17:20:59-07:00",
+   "subject": "Fix dashboard scorecard unresolved results",
+   "body": "",
+   "files": [
+    "src/bts/scorecard.py",
+    "src/bts/web.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25705717558,
+    "created_at": "2026-05-12T00:32:46Z",
+    "head_sha": "1d438f5",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,210 @@
+{
+ "id": "I-015",
+ "working_id": "E15",
+ "title": "Cross-game double graded from one leg (+1 instead of +2, or a result before the second leg finished); the fix left a NameError in live result polling (4/06\u20134/08)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "the 2026-04-06..04-08 pick files (result, double_down, game_pks) and streak.json history (B1) against the contest ledger (W1.1 comparable rows), showing whether a cross-game double was graded from one leg \u2014 Phase 2",
+  "Pi5 scheduler output for 4/07\u20134/08 (retention unknown; Pi5 decommissioned 4/14) showing NameError tracebacks from run_result_polling and systemd restarts during live games \u2014 Phase 2 Route R"
+ ],
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "L"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "link 1 could write a wrong local grade or streak increment and link 3 could crash result polling on every poll while a game was live; neither firing is evidenced for a specific date",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A double-down day is graded only when both legs' games are final: hit only if both batters hit, and a hit advances the streak by two.",
+  "source": "1d9c199 body; src/bts/picks.py reconcile_results streak walk (+2 for a double-down hit) at 0ba01e1"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_result_polling watched only the primary's game; when it went final first, check_hit on the still-running double-down game returned None and was dropped, so the day was graded from the primary alone (+1 on a primary hit, and a 'hit' before the second leg was known)",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "0ba01e1",
+     "symbol": "run_result_polling",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "reconcile_results recomputed the streak only when it found a result correction, so a wrong increment on an unchanged result was never repaired",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "0ba01e1",
+     "symbol": "reconcile_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "1d9c199 renamed status to statuses but the suspended check still read status, so every poll with a game not yet final raised NameError in run_result_polling",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "3e0f11b",
+     "symbol": "run_result_polling",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "1d9c199",
+     "c7c2f73"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "1d9c199"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "c7c2f73"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a date's result is recorded while any leg's game is not final, or streak.json differs from the forward replay of graded pick files (+2 for a double-down hit)",
+  "recovery_assertion": "each double-down date is graded from both legs after both games are final, and streak.json equals the replay"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 1d9c199 message body (authored 2026-04-07T10:22:38-04:00)",
+   "what": "polling watched only the primary's game; if check_hit on the second game returned None the result list had one element, 'so streak incremented by 1 instead of 2'; reconciliation now always recalculates from scratch \u2014 no date is named"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit c7c2f73 message body (authored 2026-04-08T16:08:54-04:00)",
+   "what": "the variable was renamed from status to statuses, but the suspended check still used the old name"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 0ba01e1 message body",
+   "written_at": "2026-04-06T19:32:31-04:00",
+   "what": "on 4/06 the dashboard showed a double pick with one game Final and one Live (a cross-game double with staggered finishes)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_result_polling at 0ba01e1 and at 3e0f11b",
+   "what": "at 0ba01e1 a None second leg was skipped (if double_result is not None); at 3e0f11b 'if status == \"suspended\"' is reached on every iteration where not all games are final, and status is undefined there"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 1d9c199 and c7c2f73; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate: 4/06 cross-game double (links 1\u20132) and 4/07\u20134/08 live polling (link 3)",
+   "onset": {
+    "not_before": "2026-04-06",
+    "not_after": "2026-04-08T16:08:54-04:00",
+    "evidence": [
+     "ev1",
+     "ev2",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-07T10:22:38-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "1d9c199",
+   "c7c2f73"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-014",
+  "I-011"
+ ],
+ "notes": [
+  "split? (a) one-leg grading of cross-game doubles (links 1\u20132, 1d9c199) and (b) the NameError regression that 1d9c199 introduced (link 3, c7c2f73): under the scheduler's Restart=always (ARCHITECTURE.md 2e0dfb7) it would crash polling and restart the daemon every ~5 min while any leg was live, from 1d9c199's install until c7c2f73's",
+  "alternative reading: 'so streak incremented by 1 instead of 2' may report the 4/06 grading; if the lead reads it as a live report, part (a) becomes observed_incident (tier A, local state)",
+  "link 1 can also record 'hit' before the second leg is known; the body mentions only the +1 case",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install times of 1d9c199 and c7c2f73 are not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; neither 1d9c199 nor c7c2f73 added a test",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

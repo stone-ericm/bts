@@ -1,0 +1,47 @@
+{
+ "id": "E91",
+ "episode_row": [
+  "E91",
+  "4/11\u20137/10",
+  "ops state (data/picks markers, health_state) existed only on the box \u2014 no backup until restic (7/10)",
+  "S",
+  "DL",
+  "A",
+  "78c424a (body)"
+ ],
+ "commits": [
+  {
+   "sha": "78c424a",
+   "authored": "2026-07-10T12:32:29-04:00",
+   "subject": "feat(backup): restic encrypted versioned backup of operational state (audit F5)",
+   "body": "data/picks (decisions, contest ledger, manual saver flag, skip-shadow\nmarkers) and data/health_state existed ONLY on the box: gitignored,\nexcluded from the R2 artifact sync, no provider snapshot. Box loss =\nirrecoverable operational state; the saver flag is deliberately not\ninferable, so it cannot be reconstructed.\n\n- bts.data.backup: restic wrapper (encrypted/versioned/deduped) against\n  the existing R2 bucket under restic/. Two sets: ops (picks+health,\n  cron 3h) and archive (leaderboard/hetzner_results/external research\n  data, daily). Secrets flow via subprocess env only, never argv;\n  status file preserves last_success_at across failures so freshness\n  measures real data-loss exposure.\n- bts backup run/status/prune/restore-drill CLI; restore-drill proves\n  the two claims F5 demands (saver + decision provenance come back).\n- backup_freshness health source (Tier 3, always-attention): stale ops\n  7h WARN / 26h CRITICAL, archive 30h/78h; absent status file = silent\n  (not armed, e.g. local dev).\n- scripts/install-restic-hetzner.sh: pinned 0.19.1, SHA256SUMS-verified,\n  no root (~/.local/bin).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "scripts/cron-setup-hetzner.sh",
+    "scripts/install-restic-hetzner.sh",
+    "src/bts/cli.py",
+    "src/bts/data/backup.py",
+    "src/bts/data/backup_cli.py",
+    "src/bts/health/attention.py",
+    "src/bts/health/backup_freshness.py",
+    "src/bts/health/runner.py",
+    "tests/health/test_backup_freshness.py",
+    "tests/health/test_runner.py",
+    "tests/test_backup.py",
+    "tests/test_backup_cli.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

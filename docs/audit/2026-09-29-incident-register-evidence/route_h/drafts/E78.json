@@ -1,0 +1,325 @@
+{
+ "id": "I-078",
+ "working_id": "E78",
+ "title": "Stale provisional pick file on a final-skip day (7/01 first live flip; 7/28): the #144 delivery and scoring gates held",
+ "disposition": "near_miss_control_held",
+ "counted": true,
+ "missing_evidence": [
+  "7/28 control-held confirmation: data/picks/2026-07-28.json (no result; no notification_sent / delivered_at) and data/picks/2026-07-28/decision.json (action skip, scoreable false) — Phase 2 Route R (B1)",
+  "cron.log check-results line for 2026-07-28 ('decision was not a committed pick (skip / undelivered) — not scoring') — Phase 2 Route R (B1)"
+ ],
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "D"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "near miss: the hazard (a provisional pick file left on a genuine MDP-skip day) was present and the #144 / #145 controls held — nothing delivered, nothing scored; the controls' own remaining gaps are carried on I-066",
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A genuine MDP skip day delivers nothing, is never locked for result polling and changes no streak state; a provisional <date>.json (3am preview or pre-lock candidate save) is never delivered, polled or scored on a skip day.",
+  "source": "docs/superpowers/plans/2026-06-22-decision-record-daemon-paths.md 'Global Constraints'; ARCHITECTURE.md 'Daemon-path completion'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "hazard: a provisional pick was saved to <date>.json (the 3am preview or a projected-lineup check's candidate save), then confirmed lineups turned the day into a genuine MDP skip, leaving the file on disk — the I-066 precondition",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "83a5cad",
+     "symbol": "run_single_check (candidate save_pick)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/cli.py",
+     "ref": "afbea38",
+     "symbol": "preview",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "control: the fallback honoured the standing skip (no delivery of the cached file), check-results and result polling score only a scoreable commit (is_scoreable_commit), and the end-of-day skip record was written",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "83a5cad",
+     "symbol": "_refresh_is_genuine_skip / skip_standing fallback gate / _write_endofday_skip",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "afbea38",
+     "symbol": "_refresh_is_genuine_skip / skip_standing fallback gate / _write_endofday_skip",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/daily_decision.py",
+     "ref": "afbea38",
+     "symbol": "is_scoreable_commit",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/cli.py",
+     "ref": "afbea38",
+     "symbol": "check_results",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "not_applicable",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "d929479",
+     "d6ae318",
+     "25aeaee",
+     "add1b3f",
+     "62cfe4e",
+     "7bd2934",
+     "5fa36c3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev8"
+    ]
+   },
+   "mitigated": "not_applicable",
+   "verified_recovered": {
+    "how": "7/01: the stale provisional file was never delivered and was still result-less on 7/02 after the 01:00 scoring run",
+    "at": {
+     "not_after": "2026-07-02T12:01:29-04:00",
+     "evidence": [
+      "ev2",
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after the 01:00 check-results run and after any result-polling write: a date whose pick file gained a result, or whose streak.json changed, while its decision.json is absent or scoreable=false and the pick file has no delivery record; separately, any delivery record on a date whose decision.json action is skip",
+  "recovery_assertion": "the final-skip date's pick file stays result-less, streak.json is unchanged by that date and no delivery exists"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'Live event during audit' + 'Production ops' scheduler row (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "at 18:26 ET on 7/01 the MDP flipped from a provisional pick (the 14:07 projected-lineup save) to a genuine skip while the stale provisional file existed with delivery_attempted=false and notification_sent=false — the flip the #145 daemon-path work was built for, not seen live before"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 258aaa4 message body",
+   "written_at": "2026-07-01T20:17:44-04:00",
+   "what": "7/01 was 'the first live projected-pick->real-skip flip'; the stale file stayed undelivered while the dashboard showed 'a pick production had declined'"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2c62d72 message body",
+   "written_at": "2026-07-02T12:01:29-04:00",
+   "what": "on 7/02 the flip day's history row was 'a result-less pick file whose day finalized as an MDP skip (decision.json action=skip)' — 'no scorer will ever fill it (correctly)'"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md 'Artifact', sensitivity S1 (commit 6db921c)",
+   "written_at": "2026-08-09T21:27:16-04:00",
+   "what": "34 dates carry both a flat pick file and a decision record; the flat-file rank-1 p differs from the decision record on 7/01, 7/04 and 7/28 — 'flat files are provisional'"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-08-09-boundary-shadow-census-mechanism.md 'One-step intent diffs' (commit 4e8f69f)",
+   "written_at": "2026-08-09T21:51:18-04:00",
+   "what": "lists 2026-07-28 among the recorded MDP skip days (decision records)"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "reported",
+   "locator": "claude-shared memory bts_index.md, '2026-08-03 session' bullet (Route X pointer)",
+   "what": "'Known stale-preview artifact: 2026-07-28.json exists though 7/28 was a skip day — scoreable gate handles it'; the pick file, decision record and cron line it rests on are not located"
+  },
+  {
+   "id": "ev7",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 29223211407 and 30833938616 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained logs: afbea38 deployed 2026-07-13T04:12:55Z (canary passed) and still the pre-deploy SHA at the next deploy on 2026-08-03; afbea38 contains the whole #144 fix set, so the controls were installed on 7/28"
+  },
+  {
+   "id": "ev8",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z (every control commit is an ancestor); the 7/01 audit reports box HEAD 83a5cad during the 7/01 flip"
+  },
+  {
+   "id": "ev9",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md 'Daemon-path completion (the full #144 fix, shipped 2026-06-22 — PR #145)' (commit 5d2bf39)",
+   "what": "names the controls: standing-skip fallback gate (C1), is_scoreable_commit polling gate (C2), check-results scoreable gate, persisted finalization state and EOD overwrite-guard"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-01 (first live projected-pick→real-skip flip)",
+   "onset": {
+    "not_before": "2026-07-01T14:07:00-04:00",
+    "not_after": "2026-07-01T18:26:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "not_after": "2026-07-01T18:26:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-01T18:57:28-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "operator_action": "not_applicable",
+   "mitigation": "not_applicable",
+   "restored_verification": {
+    "not_after": "2026-07-02T12:01:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  },
+  {
+   "label": "2026-07-28 (hazard from the 8/09 analysis; control-held reported only)",
+   "onset": {
+    "at": "2026-07-28",
+    "evidence": [
+     "ev4",
+     "ev5"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-28",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-09T21:27:16-04:00",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "operator_action": "not_applicable",
+   "mitigation": "not_applicable",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "7636c11",
+   "258aaa4",
+   "2c62d72",
+   "6db921c",
+   "4e8f69f",
+   "5d2bf39",
+   "d929479",
+   "d6ae318",
+   "25aeaee",
+   "add1b3f",
+   "62cfe4e",
+   "7bd2934",
+   "5fa36c3",
+   "83a5cad",
+   "afbea38"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-01-production-state-audit.md 'Live event during audit'",
+   "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md 'Artifact'",
+   "docs/audit/2026-08-09-boundary-shadow-census-mechanism.md",
+   "claude-shared memory bts_index.md '2026-08-03 session' (pointer)"
+  ]
+ },
+ "related": [
+  "I-066",
+  "I-069"
+ ],
+ "notes": [
+  "prelim NM/B for 7/28 only ('verify in data'). The repo holds only later-analysis evidence for 7/28 (8/09 spec + census: a provisional flat file differing from the skip decision record) and a memory pointer (reported) that the gate held, so I added the 7/01 flip (first live projected-pick→real-skip flip; contemporaneous 7636c11 / 258aaa4 / 2c62d72) as the occurrence that establishes the near miss. If the lead wants E78 strictly 7/28, it becomes unresolved_candidate with the missing_evidence already listed",
+  "7/01 flip time: 7636c11 says 18:26 ET, a later memory note says 17:51 ET — onset bounded 14:07 (provisional save) → 18:26",
+  "delivery_mode dm: 7/28 is in the guide's dm range; 7/01 is in its unknown range, but 7636c11 names the skip DM as that day's authoritative channel",
+  "residual left empty on purpose: the controls' remaining gaps (accepted private-mode edges; cascade-error safety net) are carried on I-066 (tier A), not repeated here",
+  "installed code: 7/01 = 83a5cad per the 7/01 audit (operator report) but the log segment 7/01 13:21Z → 7/02 15:28Z is unknown (run 28520680537 log expired), hence ref_basis candidate; 7/28 = afbea38, log-observed 7/13 04:12Z → 8/03 (runs 29223211407 / 30833938616)",
+  "the 7/01 event is also I-066's verified_recovered — one event, two roles; not a firing of the I-066 defect",
+  "no outcome of the declined candidates is restated (the memory and census notes carry them)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

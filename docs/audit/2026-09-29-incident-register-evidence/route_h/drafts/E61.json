@@ -1,0 +1,261 @@
+{
+ "id": "I-061",
+ "working_id": "E61",
+ "title": "6/11 delivered pick never entered in the MLB app; nothing alerted until the operator noticed the frozen streak on 6/12",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "E",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "entry/contest impact: the day's delivered pick was not entered in the contest, and no alert fired before or after the cutoff",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "A delivered pick is entered in the BTS contest account before its cutoff; a delivered pick with no entry is surfaced to the operator before the cutoff.",
+  "source": "ARCHITECTURE.md 'bts check-pick-entered' ('Original incident: 2026-06-11, a delivered pick never entered — this closes that class'; 'Eric always intends the entered pick to equal the recommendation'); 4f13eb3 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the operator did not enter the delivered 6/11 pick in the MLB app (a manual step outside the system)",
+   "code": []
+  },
+  {
+   "n": 2,
+   "text": "no job verified before the cutoff that the delivered pick was present in the contest account, so the missing entry was not flagged while it could still be fixed",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "1ba01c4",
+     "symbol": "installed cron jobs (no entry check; fetch-contest-streak only reads settled results)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "afterwards the contest fetch correctly refused the non-advancing observation, and contest_state health treated the resulting one-settled-pick gap as the expected overnight lag (INFO at any time of day), so nothing alerted until the operator noticed the frozen streak",
+   "code": [
+    {
+     "path": "src/bts/health/contest_state.py",
+     "ref": "1ba01c4",
+     "symbol": "check (gap == EXPECTED_OVERNIGHT_LAG_DAYS -> INFO regardless of time of day)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "4f13eb3",
+     "a6ec548",
+     "720651a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:44Z",
+    "run_id": 28692943534,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "4f13eb3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The noon-ET contest_state WARN (the only part of the 6/12 fix that stayed live until v2) is not an attention WARN source, so it is logged but not DM'd, and it fires only after the cutoff.",
+   "reaches_production": false,
+   "source": "4f13eb3 src/bts/health/attention.py + health/alert.py dispatch (CRITICAL + attention WARNs only); superseded for detection by check-pick-entered v2 (720651a)"
+  },
+  {
+   "text": "check-pick-entered skips quietly on any contest fetch/auth failure; if the contest API is unreachable through the whole pre-pitch window, a non-entry is surfaced only by the EOD pick_entry backstop, after the cutoff.",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md 'bts check-pick-entered' (v2/v3 marker discipline, 'Transient auth outages keep the quiet-skip')"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "from T−30 minutes before the earliest selected game's cutoff (first pitch − 5 min), a scoreable delivered selection has no matching pending row in the contest account (api/predictions), re-checked every 15 minutes until the cutoff",
+  "recovery_assertion": "the contest account shows every delivered slot entered before the cutoff, or the operator records a deliberate non-entry; the day's contest result is then consistent with the local commit"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 4f13eb3 message body",
+   "written_at": "2026-06-12T19:22:20-04:00",
+   "what": "a delivered pick was never entered in the MLB app; nothing alerted until Eric noticed the frozen streak a day later; the fetch path behaved correctly — no check existed for 'pick in the app at all'"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit a1b7e75 (ARCHITECTURE.md check-pick-entered note)",
+   "written_at": "2026-06-12T23:40:39-04:00",
+   "what": "the 2026-06-11 root cause: Eric didn't enter a delivered pick; everything else behaved correctly; the only surviving fix is the noon-ET WARN escalation"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2d68102 message body",
+   "written_at": "2026-06-12T20:51:46-04:00",
+   "what": "v1 check-pick-entered cron removed the same night (settled-only endpoint); the noon-ET WARN stands, which 'was correct for the 06-11 incident'"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 4f13eb3^ (1ba01c4) src/bts/health/contest_state.py check; health/attention.py + health/alert.py at 4f13eb3",
+   "what": "before the fix a persisting one-day gap stayed INFO all day; the added noon WARN is not in the attention WARN sets, so the health DM (CRITICALs + attention WARNs) does not carry it"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28692943534 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 2c62d72 -> deployed 720651a at 2026-07-04T03:07:46Z, canary passed: check-pick-entered v2 code and its cron line first installed in the repo tree on the box"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after 6/07; 4f13eb3 is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 720651a message body",
+   "what": "the v2 cron line rides the marker install: 're-run bash scripts/cron-setup-hetzner.sh install on the box post-deploy' (the install itself is not dated)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-11",
+   "onset": {
+    "at": "2026-06-11",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-06-11",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_before": "2026-06-12",
+    "not_after": "2026-06-12T19:22:20-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-12T19:22:20-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "4f13eb3",
+   "2d68102",
+   "a1b7e75",
+   "a6ec548",
+   "720651a"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md 'bts check-pick-entered'",
+   "docs/superpowers/specs/2026-06-17-real-streak-anchoring-phase2-design.md (the 6/11 incident)"
+  ]
+ },
+ "related": [
+  "I-062",
+  "I-063",
+  "I-071",
+  "I-072",
+  "I-110"
+ ],
+ "notes": [
+  "the 4f13eb3 subject says '2026-06-12 incident' (the day it was noticed); a1b7e75, 2d68102 and ARCHITECTURE date the missed entry 2026-06-11. The pick's game time and cutoff are not in the repo, so onset is date-only",
+  "link 1 is a human step (no code); links 2–3 are the detection gaps the fix addressed",
+  "link 2 fix: v1 (4f13eb3) was installed on the box on 6/12 and removed the same night for false alarms (I-062); v2 (a6ec548 + cron 720651a) is the effective fix. deployed = the code install 7/04 03:07Z; cron activation needs a box-side install that is not dated — the 7/06 premature DM (I-071) shows the v2 cron running by then (Route R: crontab snapshot / cron.log first check-pick-entered line)",
+  "link 3 deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing 4f13eb3 = run 27448741736 at 2026-06-12T23:22:24Z (head 4f13eb3, log expired); 56f9726 (I-063) later reworked this check",
+  "run_id 28601525167 is the run whose retained log first observed 83a5cad (as pre-deploy SHA); the run that deployed head 83a5cad (28520680537) has an expired log",
+  "later hardening of the same entry check belongs to I-071 (deferred-DD premature DM), I-072 (alerted-terminal, F1) and I-110 (present_unverified)",
+  "delivery_mode unknown (5/20–7/05 window); authority contest (entry)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 4f13eb3 adds tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn (link 3) and the check-pick-entered class in tests/test_cli_integration.py incl. test_missing_entry_in_window_dms_and_exits_nonzero (link 2, v1 semantics — the v1 settled-only source was later replaced) — none replays the 6/11 day end-to-end"
+ ]
+}

@@ -1,0 +1,196 @@
+{
+ "id": "I-039",
+ "working_id": "E39",
+ "title": "4/29 promoted bpm feature (per-group lambda) slowed the prediction cycle past the 5-min heartbeat threshold; Healthchecks failure DM",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "a latency regression that tripped the heartbeat monitor once and was fixed and redeployed 16 minutes after the deploy that caused it; no delivery impact attributable to the slowdown (the same deploy's inference crash is I-040)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A scheduler prediction cycle keeps the RUNNING heartbeat under 5 minutes old; feature computation on the production frame finishes well inside that threshold.",
+  "source": "scripts/check_heartbeat.py RUNNING_MAX_AGE = 5 min; commit a512851 message body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "7afee63 (PR #4) computed batter_pitcher_shrunk_hr in compute_all_features with groupby().transform(lambda s: s.cumsum().shift(1).fillna(0)); on the ~1.5M-PA production frame the per-group Python lambda made feature computation about 3x slower, pushing a cycle past the 5-min threshold",
+   "code": [
+    {
+     "path": "src/bts/features/compute.py",
+     "ref": "053aae4",
+     "symbol": "compute_all_features (bpm block)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a512851"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "6a21c78",
+    "live_by": "2026-04-29T21:40:53Z",
+    "run_id": 25135350202,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "BatterPitcherMatchupExperiment.modify_features keeps the slow lambda; per the body it early-returns when the column exists and runs only in batch audits.",
+   "reaches_production": false,
+   "source": "commit a512851 message body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "a RUNNING heartbeat older than 5 min, or a lineup-check prediction cycle whose journal start-to-finish exceeds its budget, reported with the cycle's stage timings",
+  "recovery_assertion": "the next prediction cycles complete inside the budget with a fresh heartbeat throughout"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit a512851 message body",
+   "written_at": "2026-04-29T17:40:28-04:00",
+   "what": "PR #4, deployed 17:24 ET, pushed compute_all_features past the 5-min heartbeat threshold: stale=True at 17:30:01 ET (330 s old), which fired a Healthchecks failure DM; the vectorised replacement is bit-exact and about 3x faster"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25134669843 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 053aae4 (merge of PR #4 = 7afee63) created 2026-04-29T21:24:24Z (17:24:24 ET), conclusion success"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25135350202 (deploy_runs.json)",
+   "what": "deploy of head 6a21c78 (merge of PR #5 = a512851) created 2026-04-29T21:40:53Z (17:40:53 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py at 053aae4 (run_single_check, _refresh_pick_at_fallback, _run_shadow_prediction)",
+   "what": "run_and_pick was wrapped in heartbeat_watchdog but _run_shadow_prediction (which also computes features) was not, so a slow feature computation there leaves the heartbeat to age"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-29",
+   "onset": {
+    "not_before": "2026-04-29T17:24:24-04:00",
+    "not_after": "2026-04-29T17:30:01-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-04-29T17:30:01-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "scripts/check_heartbeat.py (cron */5) -> Healthchecks /fail",
+    "at": {
+     "at": "2026-04-29T17:30:01-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "at": "2026-04-29T17:30:01-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    },
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-29T17:40:28-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-29T17:40:53-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": {
+     "min_minutes": 0.0,
+     "max_minutes": 5.62
+    },
+    "notification": "unknown",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "a512851",
+   "7afee63"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #4",
+   "PR #5"
+  ]
+ },
+ "related": [
+  "I-040",
+  "I-032",
+  "I-047"
+ ],
+ "notes": [
+  "tier: prelim A; drafted B because the slowdown itself had no evidenced delivery or liveness effect and was fixed in 16 min - flip to A if the lead counts a tripped liveness monitor as a liveness failure",
+  "why the heartbeat aged despite 0830ef4's wrap is not stated in the body; ev4 (unwrapped shadow prediction, wrapped only by 150ed4c on 5/09) is a plausible path - my inference, not evidenced",
+  "this alert was genuine (the heartbeat really was 330 s old), so alert.attempted records it; receipt of the Healthchecks DM is not retained (O1)",
+  "E39 and I-040 share the root commit 7afee63 (same rollout) but are distinct mechanisms",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "no regression test in the fix (timing change only); the body cites a bit-exact check on 65k rows",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

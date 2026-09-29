@@ -1,0 +1,160 @@
+{
+ "id": "I-092",
+ "working_id": "E92",
+ "title": "Live-forward capture recorded nothing on no-pick skip days (idled at pending_pick) until the D8 research capture (5/09–9/14)",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "R",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "research coverage only: the frozen candidate's pre-outcome slate was never exported on no-pick days, so no captured data was lost and the official stream (P-04 production-pick parity) excludes those days by construction; no delivery/entry/state/alerting impact and no residual reaches production",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "unknown",
+ "stream": "live_forward",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Before 2026-09-14 the capture's documented contract was to wait for the production pick file and export candidate-vs-production slates only when one exists (no-pick days are outside the official stream, matching P-04 production-pick parity); from 2026-09-14 (owner decision D8) a no-pick day with a current skip intent gets a separately labelled research capture before first pitch.",
+  "source": "scripts/live_forward_capture_once.py module docstring at db7289f; docs/audit/2026-09-22-exposure-register.md §B P-04 and §C D8; commit 155f1e7 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "capture_once returned status pending_pick (exit 0, no capture_status.json written) whenever the date's production pick file did not exist; the 15-minute timer (05:00–22:45 ET) repeated this all day, so on every no-pick skip day the candidate's pre-outcome slate was never exported and the official root holds no record of the day",
+   "code": [
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "db7289f",
+     "symbol": "capture_once (pending_pick branch)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "eb010fd",
+     "symbol": "capture_once (pending_pick branch)",
+     "ref_basis": "log"
+    },
+    {
+     "path": "scripts/systemd/bts-live-forward-capture.timer",
+     "ref": "db7289f",
+     "symbol": "OnCalendar=*-*-* 05..22:00/15:00",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "155f1e7"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "f1b07e9",
+    "live_by": "2026-09-15T01:38:39Z",
+    "not_live_before": "2026-09-15T01:38:37Z",
+    "run_id": 34917776860,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "operator record that the D8 research captures were verified 9/19–9/21 (artifacts on the box, not read here)",
+    "at": {
+     "not_after": "2026-09-22",
+     "evidence": [
+      "ev5"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The skip days 5/09–9/14 have no pre-outcome slate and cannot be recaptured (pre-outcome requirement); D8 research captures are ineligible for P-04 by construction",
+   "reaches_production": false,
+   "source": "155f1e7 body; docs/audit/2026-09-22-exposure-register.md X-11, X-12"
+  },
+  {
+   "text": "Without a research capture the pending_pick branch still writes no status file, so an absent official-root date directory cannot by itself distinguish an ineligible no-pick day from a capture that never ran; completeness checks must join decision.json",
+   "reaches_production": false,
+   "source": "scripts/live_forward_capture_once.py pending_pick branch at 9907cb9"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "by first pitch − 5 min of the day's earliest game: a day with a production pick lacks an official capture directory with a passing verification, or (research flag enabled) a no-pick day with a current skip intent lacks research_capture.accepted.json published before first pitch",
+  "recovery_assertion": "every eligible day ends with an accepted official or research capture published pregame, or an explicit ineligibility record joined from decision.json"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "commit 155f1e7 message body (count taken over the official root on the box — not read)",
+   "what": "the live-forward capture idled at pending_pick on every skip day: 11 of 79 decision days since 5/09 have no ranked slate for exactly this reason"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "scripts/live_forward_capture_once.py (module docstring, capture_once) and scripts/systemd/bts-live-forward-capture.{service,timer} at db7289f",
+   "what": "the runner waits for the production pick JSON; with no pick file it returns pending_pick with exit 0 and writes no status; the timer polls every 15 min 05:00–22:45 ET and the unit passes no --fail-on-pending"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 33795430396 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "eb010fd (pending_pick branch, lacks 155f1e7) deployed 2026-09-03T19:20:50Z, canary passed, and stayed installed until run 34917776860"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 34917776860 (deploy_runs.json)",
+   "what": "pre-deploy eb010fd -> deployed f1b07e9 at 2026-09-15T01:38:39Z, canary passed: the D8 code was first installed"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-09-22-exposure-register.md §C D8, X-11, X-12 (artifacts on the box — not read)",
+   "what": "D8 'built + deployed 9/14, verified 9/19–9/21'; the official stream captured pre-outcome slates on 68 of 79 decision days with 11 skip days missing; research-only captures exist for 9/19–9/21 and forward"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "155f1e7"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-22-exposure-register.md X-11, X-12, §C D8",
+   "docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md (P-04)"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "arguably by design, not a defect: the capture's documented contract waits for the production pick and P-04 requires production-pick parity, so no contract was violated before the 9/14 D8 decision; drafted as deployed_latent_defect only because it bounds watchdog coverage (a no-pick day leaves no record in the official root) — lead may drop it or treat it as a documented coverage limit",
+  "exposure interval 2026-05-09 (stream start) → 2026-09-15T01:38:39Z (D8 code live); occurrences left empty: the 11 skip-day gaps are reported only (ev1, ev5) and are by-design ineligible days — Route R V8 can confirm them from official-root date dirs vs decision.json",
+  "D8 needs the unit ExecStart flag --capture-research-on-skip, which a repo deploy does not install; activation is recorded only as 'built + deployed 9/14, verified 9/19–9/21' (ev5, reported), so verified_recovered rests on reported evidence",
+  "policy_objective unknown: the skip days span the reach-57 regime and, from 9/03, the tail regime",
+  "neighbouring live-forward records not linked: I-050 (stream integrity, batch2), I-087 (stale_pick_snapshot recaptures, lead)",
+  "no test reproduces the pre-D8 gap; 155f1e7 adds research-capture tests in tests/scripts/test_live_forward_capture_once.py (flag off is byte-identical)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

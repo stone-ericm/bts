@@ -1,0 +1,71 @@
+{
+ "id": "I-020",
+ "working_id": "E20",
+ "title": "4/11–4/12 two scheduler units ran concurrently; every killed orphan was respawned by the other unit",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "S", "secondary": ["L"]},
+ "tier": "A",
+ "tier_reason": "two production schedulers ran on one box with one picks directory and one posting account (duplicate-delivery and state-race hazard), and deploys restarted only one of them, so an old-code scheduler kept running after each deploy; no duplicate post is evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Exactly one scheduler runs on the box, as the bts user's systemd unit that each deploy restarts.",
+  "source": "8193909 body ('~/.config/systemd/user/bts-scheduler.service … the canonical version'); .github/workflows/deploy.yml user-level restart (cda8c1c)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the 4/11 01:08 cutover setup installed system-level units (/etc/systemd/system/bts-scheduler.service, Restart=always, RestartSec=300); the canonical user-level units created at 22:04 ran alongside them",
+   "code": []},
+  {"n": 2, "text": "the deploy restarted only the user-level units and nothing removed the legacy ones, so each deploy left a second (older-code) scheduler running, and every manual kill was undone by the other unit's restart policy within 5 minutes",
+   "code": [{"path": ".github/workflows/deploy.yml", "ref": "e997155", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["8193909"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "8193909", "live_by": "2026-04-12T16:37:36Z", "run_id": 24311344697, "evidence": ["ev2"]},
+   "mitigated": "none", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["8193909"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "8193909", "live_by": "2026-04-12T16:37:36Z", "run_id": 24311344697, "evidence": ["ev2"]},
+   "mitigated": "none", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "a second scheduler started any other way is not detected: the deploy self-heal still removes only /etc/systemd/system/bts-{scheduler,dashboard}.service, unit_drift (2026-07-10, audit F12) compares only the installed user units with the repo templates, and no health check counting scheduler processes was found (grep of src/bts/health)", "reaches_production": true, "source": ".github/workflows/deploy.yml self-heal block (HEAD); src/bts/health/unit_drift.py docstring"}
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "more than one `bts schedule` process (or active scheduler units in both the system and user managers) at any time, or a scheduler process started before the latest successful deploy run",
+  "recovery_assertion": "exactly one scheduler process, from the user-level unit, started after the latest deploy"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 8193909 message body", "written_at": "2026-04-12T12:37:30-04:00",
+   "what": "root cause of the orphan-scheduler-after-every-deploy issue: system-level units (01:08 on 4/11) and user-level units (22:04 on 4/11) ran concurrently, both Restart=always RestartSec=300; 'every \"kill orphan\" was followed by a fresh orphan from the OTHER unit's restart policy 5 minutes later'"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24311344697 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first run with the self-heal step (head 8193909), 2026-04-12T16:37:36Z, concluded success; log expired, so whether the self-heal branch executed is not visible"},
+  {"id": "ev3", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit cda8c1c message body", "written_at": "2026-04-11T22:11:56-04:00",
+   "what": "the deploy restart switched to the bts user's manager, seven minutes after the user-level units were created"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-11 22:04 → 2026-04-12 12:37 ET",
+  "onset": {"not_before": "2026-04-11T22:04:00-04:00", "not_after": "2026-04-12T12:37:30-04:00", "evidence": ["ev1", "ev3"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T12:37:30-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-12T12:37:30-04:00", "evidence": ["ev1"]},
+  "mitigation": "none",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["8193909", "cda8c1c"], "R": "pending_phase2", "X": ["ARCHITECTURE.md health table 'unit_drift'"]},
+ "related": ["I-018", "I-021"],
+ "notes": [
+  "link 1 code is empty: the legacy system-level units were box-local (the repo template scripts/bts-scheduler.service had Pi5 paths and Restart=on-failure)",
+  "the two-scheduler window overlapped the 4/12 noon lineup checks (I-021, I-022, I-025); no duplicate post is evidenced — the bot's public feed is not an inventoried source",
+  "mitigation none: the manual kills were undone by the other unit",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; workflow-only fix, no test"
+ ]
+}

@@ -1,0 +1,58 @@
+{
+ "id": "E18",
+ "episode_row": [
+  "E18",
+  "4/11",
+  "Hetzner cutover deploy pull / restart silently failing",
+  "S",
+  "UC",
+  "P",
+  "870cede cda8c1c"
+ ],
+ "commits": [
+  {
+   "sha": "870cede",
+   "authored": "2026-04-11T02:18:18-04:00",
+   "subject": "fix(deploy): add safe.directory for git pull (was silently failing)",
+   "body": "",
+   "files": [
+    ".github/workflows/deploy.yml"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24310493193,
+    "created_at": "2026-04-12T15:52:42Z",
+    "head_sha": "d5c466c",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "cda8c1c",
+   "authored": "2026-04-11T22:11:56-04:00",
+   "subject": "fix(deploy): use user-level systemctl for bts service restart",
+   "body": "Root can't see user-level systemd units without XDG_RUNTIME_DIR.\nPrevious `systemctl restart` silently failed since the units only\nexist under the bts user's service manager.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24310493193,
+    "created_at": "2026-04-12T15:52:42Z",
+    "head_sha": "d5c466c",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

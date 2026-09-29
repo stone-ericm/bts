@@ -1,0 +1,195 @@
+{
+ "id": "I-097",
+ "working_id": "E97",
+ "title": "5/10: no official #16 live-forward pre-outcome artifact was captured (manual daily capture; frozen worktree lacked the production-pick guard); the day is lost to the stream",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "R",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "one missing day in a research stream; the integrity guard held (no post-outcome artifact was backfilled); no production effect",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "live_forward",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every live-forward decision day gets an official pre-outcome artifact: exported before outcomes are known, carrying the locked production-pick snapshot, and passing verify-candidate-artifacts --require-live-preoutcome --require-production-pick-snapshot.",
+  "source": "docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md (production-pick-file requirement after the 5/10 parity-guard amendment; verifier gate); docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md 'Daily Live-Forward Export'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the daily export was a manual runbook step with no scheduler or timer, so no pre-outcome export ran on 5/10 before outcomes were known",
+   "code": [
+    {
+     "path": "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md",
+     "ref": "d0141db",
+     "symbol": "Daily Live-Forward Export (manual procedure)"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the frozen live-forward worktree (5004b1c) had no --production-pick-file option, so it could not produce a parity-guarded official artifact even when run",
+   "code": [
+    {
+     "path": "src/bts/experiment/cli.py",
+     "ref": "5004b1c",
+     "symbol": "export_live_candidate_artifacts",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "d4684a7",
+     "66e192b",
+     "cb0e74c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "da9b5df",
+    "live_by": "2026-05-11T04:01:50Z",
+    "run_id": 25649607994
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "a8632ce"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "research-stream capture: by the earliest production pick game's first pitch - 5 the official live-forward root lacks a verified pre-outcome artifact for the date (Route R V8), not a W4 rank-2 boundary",
+  "recovery_assertion": "the next decision day has a verified pre-outcome artifact captured before outcomes"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/sota_audit/2026-05-10-live-forward-surface-export.md 'Operational Check' (9510f9c)",
+   "written_at": "2026-05-10T18:52:32-04:00",
+   "what": "a read-only check found that a valid 5/10 official fresh-target artifact could not be generated after the fact: the frozen worktree lacks --production-pick-file and the 5/10 pick was already resolved; no pre-outcome artifact was backfilled"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/sota_audit/2026-05-10-live-forward-surface-export.md 'Next Step'",
+   "what": "'the operational gap is daily capture, not the exporter'"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d4684a7 (scripts/live_forward_capture_once.py, bts-live-forward-capture.service/.timer, runbook update)",
+   "written_at": "2026-05-10T21:24:29-04:00",
+   "what": "capture automation added the same evening; the runbook names a8632ce (frozen 5004b1c + verifier + production-pick guard) as the expected live-forward worktree commit"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 25649607994 (deploy_runs.json)",
+   "what": "successful run for head da9b5df (contains d4684a7, 66e192b, cb0e74c) created 2026-05-11T04:01:50Z (log expired)"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md at d01839f, '2026-05-09 Day 1 Baseline'",
+   "what": "Day 1 (5/09) was exported by hand from the frozen worktree before outcomes; no automation existed"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-10",
+   "onset": {
+    "at": "2026-05-10",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-10T18:52:32-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-10T21:24:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "9510f9c",
+   "d0141db",
+   "d4684a7",
+   "66e192b",
+   "cb0e74c",
+   "a8632ce"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/sota_audit/2026-05-10-live-forward-surface-export.md",
+   "docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md"
+  ]
+ },
+ "related": [
+  "I-050",
+  "I-092"
+ ],
+ "notes": [
+  "the capture timer is an operator-installed user unit (scripts/systemd/bts-live-forward-capture.timer); its install time is not in the repo (the 7/01 audit saw it running). deployed = the candidate run that shipped the code; log bound: live by 2026-06-07T00:11:19Z",
+  "a8632ce sits on origin/codex/live-forward-frozen-parity-backport; moving the /home/bts/projects/bts-live-forward worktree to it is an operator step with no dated record here",
+  "the memo states the 5/10 pick's result; not repeated",
+  "onset date-only: the capture window (before outcomes) closed at an unrecorded time on 5/10",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,248 @@
+{
+ "id": "I-095",
+ "working_id": "E95",
+ "title": "4/10-5/08 context-stack shadow results unresolved or legacy-graded on the box; repaired by an operator backfill on 5/08 (27 rows filled, 1 legacy result changed)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "R",
+  "secondary": [
+   "G"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "research-stream results only (no production decision reads shadow results) and nothing was lost: rows were recomputed from raw feeds, 28 backups kept, result-only diff and idempotency verified; I-044's row carries tier A for the same deviation",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "shadow_v1",
+ "authority": "local",
+ "contract": {
+  "text": "Every context-stack shadow pick is reconciled to a result with the same double-down-aware semantics production uses (both legs must hit).",
+  "source": "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md 'Inputs' (PR #56: 'corrected shadow result reconciliation to score DD-aware shadow candidates rather than the legacy primary-only row'); 8671709"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_results reconciled the shadow pick only after scoring an unresolved production pick; on the usual path (the daemon had already scored production) it returned at 'Already resolved' before the shadow check, so shadow rows stayed unresolved",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "e8f8479",
+     "symbol": "check_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the shadow check graded only the shadow primary (legacy primary-only semantics), so a double-down shadow pick could be recorded as a hit with a missed leg",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "e8f8479",
+     "symbol": "check_results (shadow block)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "8671709"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "293ce51",
+    "live_by": "2026-05-09T03:34:05Z",
+    "run_id": 25590588217
+   },
+   "mitigated": {
+    "action": "operator backfill (`bts shadow-backfill-results --apply`) from a separate box worktree pinned to 96b6e4f: 28 shadow files rewritten (27 new results, 1 changed), 28 backups, no non-result differences",
+    "at": {
+     "at": "2026-05-08T23:32:00-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "post-apply idempotency dry run on the box: 29 resolved, 0 would change, 29 unchanged",
+    "at": {
+     "not_after": "2026-05-09T00:02:20-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "8671709"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "293ce51",
+    "live_by": "2026-05-09T03:34:05Z",
+    "run_id": 25590588217
+   },
+   "mitigated": {
+    "action": "operator backfill (`bts shadow-backfill-results --apply`) from a separate box worktree pinned to 96b6e4f: 28 shadow files rewritten (27 new results, 1 changed), 28 backups, no non-result differences",
+    "at": {
+     "at": "2026-05-08T23:32:00-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "post-apply idempotency dry run on the box: 29 resolved, 0 would change, 29 unchanged",
+    "at": {
+     "not_after": "2026-05-09T00:02:20-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Shadow reconciliation stranded rows again later (7/10-8/09, I-074) until the every-exit reconcile and the result_resolution health source (8/09)",
+   "reaches_production": false,
+   "source": "I-074 (4f0257a, 9ebad52)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "research-stream resolution (Route R V8: a shadow row still unresolved past its age threshold; result_resolution health since 8/09), not a W4 rank-2 boundary",
+  "recovery_assertion": "every shadow row in the epoch resolved with DD-aware semantics; backups retained for any rewrite"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md 'Production Apply Addendum' (0141a63)",
+   "written_at": "2026-05-09T00:02:20-04:00",
+   "what": "production apply addendum written 30 min after the repair: the 5/08 dry run on the live picks directory matched the pre-apply counts (29 shadow files, 28 would change: 27 new, 1 changed); the 23:32 ET apply wrote 28 files with 28 backups and no non-result differences; post-apply idempotency 29/29 unchanged; PRs #56-#59 deployed at 293ce51 at 23:34 ET"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "box files data/validation/shadow_backfill_{dryrun,apply,post_apply_idempotency}_2026-05-09.json (quoted by the memo; not read here: data/ is out of bounds; B1, Phase 2)",
+   "what": "the machine record of the counts in ev1"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md 'Inputs' + 'Backfill Result' (293ce51)",
+   "written_at": "2026-05-08T23:20:48-04:00",
+   "what": "dry run over a production snapshot: 29 shadow files 2026-04-10..05-08; 27 new results, one existing legacy result (2026-04-11) changes under DD-aware recomputation, one unchanged"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 8671709 diff (check_results)",
+   "written_at": "2026-05-08T21:00:04-04:00",
+   "what": "the old shadow check sat after the 'Already resolved' early return and graded the primary only; the fix reconciles the shadow on every path and grades both legs"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 25590588217 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "successful run for head 293ce51 created 2026-05-09T03:34:05Z (log expired)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-11 -> 2026-05-08 (shadow rows 4/10-5/07 unresolved or legacy-graded until the repair)",
+   "onset": {
+    "not_before": "2026-04-11",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-08T23:20:48-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-05-08T23:32:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-05-08T23:32:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": {
+    "not_after": "2026-05-09T00:02:20-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "8671709",
+   "293ce51",
+   "0141a63"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md"
+  ]
+ },
+ "related": [
+  "I-074"
+ ],
+ "notes": [
+  "merge? this is E44's deviation seen from its repair; I-044's draft reads the same memo as later analysis (unresolved_candidate, B) while this record applies the 2026-09-29 contemporaneity ruling in records.py (a report written while the condition persisted, or within 48 h of its end, qualifies): the addendum was written 30 min after the repair ended the stranded state. The lead should align both and fold one into the other",
+  "observed_incident rests on the memo's production addendum as an operator report written while the condition persisted (repair 23:32, written 00:02), per the 2026-09-29 contemporaneity ruling; the box manifests (ev2) are the machine record, Phase 2",
+  "the memo also names the 4/11 and 5/08 shadow players and paired production/shadow hit rates; not repeated",
+  "deployed: log bound live by 2026-06-07T00:11:19Z; the memo itself says the fix bundle deployed at 293ce51 at 23:34 ET, matching run 25590588217",
+  "tests added by the fix that reproduce links 1-2: tests/test_cli_integration.py::TestBtsCheckResults::test_check_results_resolves_shadow_when_production_already_resolved and ::test_check_results_shadow_double_down_is_dd_aware",
+  "onset not_before 4/11: the first shadow file is dated 4/10, so the first result could be reconciled no earlier than 4/11 (same bound as I-044)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "merged I-044 (E44): the same deviation was drafted twice; this record carries it"
+ ]
+}

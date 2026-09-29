@@ -1,0 +1,37 @@
+{
+ "id": "E31",
+ "episode_row": [
+  "E31",
+  "4/22",
+  "first deploy-branch push fired no workflow (paths filter)",
+  "S",
+  "OI",
+  "B",
+  "f6fcc16"
+ ],
+ "commits": [
+  {
+   "sha": "f6fcc16",
+   "authored": "2026-04-22T11:46:55-04:00",
+   "subject": "fix(ci): drop paths filter from deploy-branch trigger",
+   "body": "First main:deploy push today silently skipped the canary workflow:\nGitHub Actions evaluates the paths filter against a baseline it\ncan't meaningfully compare to a freshly-created branch, so no run\nfired and canary had to be kicked via workflow_dispatch as fallback.\n\nThe deploy branch is a dedicated deploy ref \u2014 any push to it is an\nintentional deploy \u2014 so path filtering there has no value and only\nintroduces this failure mode. Drop the filter; subsequent pushes to\ndeploy fire canary unconditionally.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    "CLAUDE.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24788031177,
+    "created_at": "2026-04-22T15:47:07Z",
+    "head_sha": "f6fcc16",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

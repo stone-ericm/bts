@@ -1,0 +1,1138 @@
+{
+ "id": "I-059",
+ "working_id": "E59",
+ "title": "Fable-5 audit batch (6/09-6/11): deployed latent defects in day selection, watchdog sleeps, health alerting, persistence, delivery idempotency and decision inputs",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "L",
+   "D",
+   "G",
+   "P",
+   "R",
+   "S"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "no firing is evidenced, but several links could stop or duplicate delivery, corrupt local state or silence alerts, and unfixed residuals (post_failure's 22:00 ET guard on early-finish EOD runs, the no-games-day bypass of E3/EOD health, the same-day reconcile rollback, the two-file streak+pick atomicity gap, the deferred delivery_unknown state, WARN-only failed DMs not resurfaced) still reach production (B -> A)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "unknown",
+ "contract": {
+  "text": "The deployed service behaves as its code, config and docs state: the scheduler works the ET contest day and feeds the systemd watchdog through every wait; each EOD health check evaluates the processed date, alerts on its documented condition and never goes silent on a crash; a missed delivery is alerted before first pitch (missed_pick_alert_min); pick/streak writes cannot tear and a pick is delivered at most once; live decision inputs match what training/backtest used, shadow features are leak-free, and neither the dashboard nor the deploy path exposes picks or the root key.",
+  "source": "docs/audit/2026-06-09-fable5-full-audit.md (per-finding contracts); config/orchestrator.example.toml missed_pick_alert_min ('Alert threshold (minutes before first pitch) if no pick posted'); WatchdogSec=1800 (ce5f51d body); src/bts/cli.py _today_et docstring (ET = the contest's timezone); CLAUDE.md Safety Rules (shift(1) temporal guard)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day's EOD run_all_checks call passed no today=, so the day-keyed Tier-1 checks (post_failure, postponed_pick, fallback_defer, analytics_artifacts_missing) evaluated date.today(): an EOD run after midnight checked D+1, found no pick and returned no alert for D",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "5e435db",
+     "symbol": "run_day (EOD run_all_checks call)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "bts schedule without --date took datetime.now(timezone.utc) and the scheduler unit passes no --date, so a scheduler restart between ~20:00 and 24:00 ET (deploy, OOM, watchdog) began run_day for the next date and abandoned that night's result polling, late-slate delivery, DH game 2 and EOD health",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "88234ae",
+     "symbol": "schedule",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "the doubleheader game-2 recheck looped a bare time.sleep(dh_recheck_min*60) (15 min default, up to 10x) without watchdog pings, so two sleeps exceeded WatchdogSec=1800 and systemd SIGABRTed the daemon into a crash-restart loop on an unlocked-pick DH day",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "925db1d",
+     "symbol": "run_day (step 6 DH game-2 recheck)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "text": "on a no-games day run_day returned at the 'No games scheduled' guard with no idle sleep, so Restart=always relaunched it every ~30 s all day, spiking NRestarts into a false restart_spike",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "63fcb67",
+     "symbol": "run_day (no-games guard)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "text": "health contest_state.check measured the lag as calendar days, gap_days = (latest resolved pick - source_date).days (the 58c9adc form), so a multi-day no-pick stretch (off-days, All-Star break) would inflate the gap into a false 'STALE' CRITICAL on the first day back",
+   "code": [
+    {
+     "path": "src/bts/health/contest_state.py",
+     "ref": "02b85e1",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "text": "the health runner's _safe_run caught any check exception, logged it and returned [], so a check that raised every run produced no alert and no DM",
+   "code": [
+    {
+     "path": "src/bts/health/runner.py",
+     "ref": "aa6b7b1",
+     "symbol": "_safe_run",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "text": "predicted_vs_realized.evaluate counted n14 over the whole lookback and never enforced min_days_28d, so early-season drift could go CRITICAL on near-identical overlapping 14d/28d windows",
+   "code": [
+    {
+     "path": "src/bts/health/predicted_vs_realized.py",
+     "ref": "0f2bc3c",
+     "symbol": "evaluate",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "text": "streak_validation.check accepted a corrupt \"streak\": true as a valid streak (bool subclasses int)",
+   "code": [
+    {
+     "path": "src/bts/health/streak_validation.py",
+     "ref": "b302935",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "text": "save_pick, save_shadow_pick, save_streak and save_pick_shadow used bare write_text, so a crash or restart mid-write could leave truncated JSON that crashes every loader (check-results, reconcile, scheduler polling, load_decision_streak_state)",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "af08426",
+     "symbol": "save_pick / save_shadow_pick / save_streak / save_pick_shadow",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "text": "retry_urlopen retried the non-idempotent create requests (post, reply, DM send) after a lost response, and _deliver_and_lock_pick sent before persisting any delivery marker, so a committed-but-unacknowledged send or a crash between send and record could deliver the pick twice",
+   "code": [
+    {
+     "path": "src/bts/util.py",
+     "ref": "03c06cf",
+     "symbol": "retry_urlopen",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/posting.py",
+     "ref": "03c06cf",
+     "symbol": "post_to_bluesky / reply_to_bluesky",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/dm.py",
+     "ref": "03c06cf",
+     "symbol": "send_dm",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "03c06cf",
+     "symbol": "_deliver_and_lock_pick",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "text": "missed_pick_alert_min was read into a local in run_day and never used, so no in-window missed-pick alert existed; the only delivery-failure signal was the EOD post_failure DM, hours after the window closed",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "8e867fc",
+     "symbol": "run_day",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "text": "dispatch_dm_for_health_alerts recorded status 'failed' after its in-call attempts and nothing resurfaced it, so a day-keyed one-shot CRITICAL was lost when that EOD's DM failed",
+   "code": [
+    {
+     "path": "src/bts/health/alert.py",
+     "ref": "bb7ccc1",
+     "symbol": "dispatch_dm_for_health_alerts",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "text": "realized_calibration's since-deploy filter compared ISO strings with different UTC offsets lexicographically, took git commit time (%cI) as deploy time and moved backward after a canary rollback, so the calibration pool admitted or dropped the wrong picks",
+   "code": [
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "40a091c",
+     "symbol": "check (since_deploy_iso filter)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "df01882",
+     "symbol": "_current_deploy_iso",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "text": "load_decision_streak_state mapped contest.saver_available=None (the profile API cannot observe the saver) to False on the normal fresh-contest path, so the MDP decision never saw an available saver at streak 10-15",
+   "code": [
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "6d929f8",
+     "symbol": "load_decision_streak_state",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "text": "load_contest_streak_state parsed both contest files before the precedence check, so a corrupt auto file raised and blocked a valid unexpired manual override (fail-closed: no decision state, no pick)",
+   "code": [
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "0794116",
+     "symbol": "load_contest_streak_state",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "text": "reconcile_results recomputed the streak with a backward walk that stopped at the first miss without replaying the 10-15 saver, so the nightly reconcile under-counted a saver-preserved streak in streak.json",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "8cd7207",
+     "symbol": "reconcile_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "text": "the blend averaged each model's game probability per batter_id, so a batter in both games of a doubleheader got one probability mixing both matchups, mapped back to both rows",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "86ff4f1",
+     "symbol": "predict (blend_game_scores)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "text": "_fetch_prior_lineup hardcoded startDate=2026-03-20&endDate=2026-12-31, so from 2027 the projected-lineup fallback would return 2026 lineups (no effect inside the 2026 season)",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "dfcf655",
+     "symbol": "_fetch_prior_lineup",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "text": "compute_all_features rolled the shadow CONTEXT column batter_hard_contact_30g over PA rows (window 120) with one shift(1) across the batter-sorted series, so each batter's first row inherited the previous batter's value and the window kept same-date PAs: leakage in the context-stack shadow model and its promotion eval",
+   "code": [
+    {
+     "path": "src/bts/features/compute.py",
+     "ref": "c27480e",
+     "symbol": "compute_all_features (batter_hard_contact_30g)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 22,
+   "text": "the dashboard's main() bound 0.0.0.0:3003 with no app-layer auth, so only an out-of-band firewall kept pre-publication picks and the /api/audit-progress SSH fan-out off the public internet",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "1ac0b0c",
+     "symbol": "main",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "text": "/api/audit-progress accepted unsanitized dir and seeds_file (a directory-existence oracle; a found boxes.json triggered root-SSH fan-out with the prod key), and deploy.yml ran the floating appleboy/ssh-action@v1 tag while holding the root SSH key",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "e1594e3",
+     "symbol": "audit_progress_response",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "e1594e3",
+     "symbol": "deploy job (ssh-action step)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "text": "the leaderboard scraper parsed responses outside its try, so one schema-drift error aborted the whole scrape; public usernames were used unsanitized as parquet filenames (path-traversal write); the outbound User-Agent carried a real email in the public repo",
+   "code": [
+    {
+     "path": "src/bts/leaderboard/scraper.py",
+     "ref": "736ea8f",
+     "symbol": "run",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/leaderboard/storage.py",
+     "ref": "736ea8f",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/leaderboard/endpoints.py",
+     "ref": "736ea8f",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "88234ae"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "925db1d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "ce5f51d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 5,
+   "implemented": {
+    "commits": [
+     "736ea8f"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 6,
+   "implemented": {
+    "commits": [
+     "aa6b7b1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 7,
+   "implemented": {
+    "commits": [
+     "0f2bc3c"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 8,
+   "implemented": {
+    "commits": [
+     "b302935"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 9,
+   "implemented": {
+    "commits": [
+     "af08426"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 10,
+   "implemented": {
+    "commits": [
+     "082e5b0"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 11,
+   "implemented": {
+    "commits": [
+     "40a091c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 12,
+   "implemented": {
+    "commits": [
+     "bb7ccc1"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 13,
+   "implemented": {
+    "commits": [
+     "6471f40"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 14,
+   "implemented": {
+    "commits": [
+     "8e867fc",
+     "d94a51f"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 15,
+   "implemented": {
+    "commits": [
+     "0794116"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 16,
+   "implemented": {
+    "commits": [
+     "e1594e3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 17,
+   "implemented": {
+    "commits": [
+     "3a6e48b"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 19,
+   "implemented": {
+    "commits": [
+     "c27480e"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 20,
+   "implemented": {
+    "commits": [
+     "86ff4f1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 21,
+   "implemented": {
+    "commits": [
+     "8550b80"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 22,
+   "implemented": {
+    "commits": [
+     "63fcb67"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": {
+    "action": "an external network firewall blocked :3003 from the public IPv4 (the audit's external probe timed out)",
+    "at": {
+     "not_after": "2026-06-09T21:57:05-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 23,
+   "implemented": {
+    "commits": [
+     "a7663ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 24,
+   "implemented": {
+    "commits": [
+     "6d929f8"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "post_failure's 22:00 ET time guard still returns no alert while the processed date is the current ET date, so the single EOD run of an early-finishing day never raises it; passing today= (88234ae) closed only the post-midnight half. The in-window E3 alert (bb7ccc1, corrected by 224ddce) is the compensating control.",
+   "reaches_production": true,
+   "source": "fable5 memo 'Day-keyed Tier-1 checks no-op on post-midnight / early-finish nights'; src/bts/health/post_failure.py check (EARLIEST_HOUR_ET = 22, unchanged at 9907cb9) -- my reading"
+  },
+  {
+   "text": "The no-games-day early return still bypasses step 5b (E3) and EOD health, and there is no independent cron-side day-outcome watchdog.",
+   "reaches_production": true,
+   "source": "docs/optimization-ideas.md 'Independent day-outcome watchdog' (I-206); ec242da body ('no-games days never run health')"
+  },
+  {
+   "text": "736ea8f wired _next_day_wakeup only into the no-games-today path; step 7 kept the raw compute_wakeup_time, which on the eve of an empty day produced the 7/12 restart loop (I-075), fixed by 9551818.",
+   "reaches_production": false,
+   "source": "9551818 body; docs/audit/2026-07-12-eve-of-break-restart-loop.md 'Root cause chain' 1"
+  },
+  {
+   "text": "calibration, projected_lineup, post_failure and disk_fill swallowed their own exceptions and returned [], defeating the _safe_run CRITICAL (link 7) until a349ac5 (7/09, I-073 F4).",
+   "reaches_production": false,
+   "source": "a349ac5 body; fable5 memo H3 ('Four checks additionally self-swallow')"
+  },
+  {
+   "text": "bb7ccc1 gated the E3 alert on not state.pick_locked; a non-delivered classification lock set it and the alert stayed silent on 8/13 (I-083), fixed by 224ddce.",
+   "reaches_production": false,
+   "source": "224ddce body"
+  },
+  {
+   "text": "The deploy-time stamp adopted in d94a51f reset the realized_calibration sample on every deploy, so the check was effectively dead until the regime-fingerprint pool (40c0094, 7/09, I-073 F6).",
+   "reaches_production": false,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md F6; 40c0094 body"
+  },
+  {
+   "text": "The model-saver proxy introduced by 0794116 was judged unsound and retired 6/17-6/18 (810d7e0 ledger/best_streak inference, then 815cf50 saver_state.json as sole authority; I-111).",
+   "reaches_production": false,
+   "source": "810d7e0 body; 815cf50 subject"
+  },
+  {
+   "text": "Reconcile's replay (like the backward walk it replaced) skips today's pick file, so a daytime, 23:00 or cross-midnight manual reconcile rolls back today's already-applied increment and can restore a consumed saver; deferred.",
+   "reaches_production": true,
+   "source": "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md #3 ('Pre-existing defect'); r2 ('#3 remains deferred'); design section 10.2 (I-202)"
+  },
+  {
+   "text": "Atomic single-file writes do not make the two-file streak+pick update atomic; a crash between update_streak and the pick save can double-apply a day (audit P3); the atomicity journal was deferred.",
+   "reaches_production": true,
+   "source": "fable5 memo 'Strategy & contest-decision path' [P3]; 49f2538 body ('Deferred: two-file streak+pick atomicity journal'); I-204"
+  },
+  {
+   "text": "An uncaught crash between send and record leaves delivery_attempted set and locks the day unconfirmed without re-send (manual verification); the non-scoreable delivery_unknown terminal state was deferred.",
+   "reaches_production": true,
+   "source": "40a091c body; docs/audit/2026-08-30-late-pick-delivery.md 'Deferred, recorded here' (F2; I-205)"
+  },
+  {
+   "text": "A failed health DM is resurfaced only when it carried CRITICALs (WARN-only failures are not), and only on the next dispatch.",
+   "reaches_production": true,
+   "source": "6471f40 body"
+  },
+  {
+   "text": "The experiment copy BatterHardnessExperiment.modify_features still rolls PA rows (window 120) with a whole-series shift(1); whether any deployed research stream runs it is unknown.",
+   "reaches_production": false,
+   "source": "src/bts/experiment/features.py at c27480e and 9907cb9 -- my reading"
+  },
+  {
+   "text": "The dashboard still has no app-layer auth; exposure depends on the tailnet bind (overridable via BTS_DASHBOARD_HOST) plus the external firewall.",
+   "reaches_production": false,
+   "source": "63fcb67 body; fable5 memo 'Security & supply chain'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at the earliest pick game's first pitch minus 5 minutes of the ET contest day, a candidate pick exists on disk with no delivery record, no scoreable commit and no recorded deliberate skip (covers the evening-restart abandonment, link 3; crash loops, links 4 and 10; the blocked override, link 16; the missing in-window alert, link 12); companion restart check (V5): >= 3 unplanned scheduler restarts within 60 minutes (links 4, 5)",
+  "recovery_assertion": "an alert is delivered (retried on failure), the ET date ends with a scoreable commit or an explicit operator pass, and the EOD health run for the processed date completes with any crashed check surfaced as CRITICAL"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md (commit f5de8ee)",
+   "what": "read-only code audit of 6/09 naming every defect in this record (O1, O2, H2-H6, P3, D1-D4, M1, M4-M6, E1-E3, S2, G, since_deploy_iso, stat-power gates), each tagged orchestrator-verified or auditor-reported"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md 'Live state at audit time' (commit f5de8ee)",
+   "written_at": "2026-06-09T21:57:05-04:00",
+   "what": "at audit time the box ran deployed SHA a436827 with scheduler and dashboard active, and port 3003 timed out from the public IPv4 (external probe)"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27100280736 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head a436827 created 2026-06-07T17:55:03Z concluded success (log expired); the next successful run is 27283866776 on 2026-06-10T14:35:51Z (the two runs between failed before printing a pre-deploy SHA)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git show a436827:<path> for the defective line of links 3-24 (spot-check of 19 links)",
+   "what": "every checked defective line (UTC default, bare DH sleep, _safe_run 'return []', calendar gap_days, saver pinned False, eager auto parse, unused missed_pick_alert_min, 0.0.0.0 bind, floating ssh-action tag, among others) is present in the audited deployed build a436827"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "its retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); every fix commit in this record is an ancestor of 83a5cad (no run has a logged deployed SHA 83a5cad: run 28520680537 deployed head 83a5cad but its log expired)"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy eaccaf8 -> deployed 2b752be at 2026-06-07T00:11:21Z (6/06 20:11 ET), canary passed; the workflow restarts bts-scheduler, so this is a restart inside the window where the UTC default selected the next date (link 3)"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "scripts/bts-scheduler.service at cca6761^ (Pi5 unit) and scripts/systemd/bts-scheduler.service at cca6761 (7/10 canonical box unit)",
+   "what": "both run `bts schedule --config ...` with no --date, so a restarted scheduler took the CLI default date (the box's own unit before 7/10 is not in the repo)"
+  },
+  {
+   "id": "ev10",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "message bodies of the 24 fix commits (trail)",
+   "trail": [
+    "88234ae",
+    "925db1d",
+    "ce5f51d",
+    "aa6b7b1",
+    "0f2bc3c",
+    "b302935",
+    "af08426",
+    "082e5b0",
+    "dfcf655",
+    "86ff4f1",
+    "c27480e",
+    "8550b80",
+    "63fcb67",
+    "736ea8f",
+    "6d929f8",
+    "0794116",
+    "e1594e3",
+    "a7663ca",
+    "3a6e48b",
+    "40a091c",
+    "8e867fc",
+    "bb7ccc1",
+    "6471f40",
+    "d94a51f"
+   ],
+   "what": "each body states the defective behaviour and the audit finding it fixes"
+  },
+  {
+   "id": "ev11",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-12-eve-of-break-restart-loop.md 'Root cause chain' 1; commit 9551818 body",
+   "what": "the E1 helper _next_day_wakeup was wired only into the no-games-today path; the games-day-then-empty-day failure first occurred on 7/12 ('first occurrence this season')"
+  },
+  {
+   "id": "ev12",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 224ddce message body",
+   "what": "the E3 alert added by bb7ccc1 was gated on state.pick_locked, which a non-delivered classification lock sets"
+  },
+  {
+   "id": "ev13",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a349ac5 message body",
+   "what": "four checks returned [] on internal exceptions, structurally defeating the H3 _safe_run CRITICAL until 7/09"
+  },
+  {
+   "id": "ev14",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md F6; commit 40c0094 body",
+   "what": "the deploy-time stamp reset the realized_calibration sample on every deploy, so min_bucket_n was never reached during active development"
+  },
+  {
+   "id": "ev15",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 810d7e0 message body; commit 815cf50 subject",
+   "what": "the Phase-1 model-saver proxy (0794116) was retired as unsound on 6/17, and saver_state.json became the sole saver authority on 6/18"
+  },
+  {
+   "id": "ev16",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md #3; docs/audit/2026-09-28-reconcile-cutoff-codex-r2.md",
+   "what": "reconcile's unconditional replay excludes today's file and rolls back today's applied result (pre-existing); r2 records #3 as still deferred"
+  },
+  {
+   "id": "ev17",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-08-30-late-pick-delivery.md 'Deferred, recorded here'",
+   "what": "the non-scoreable delivery_unknown terminal state for unconfirmed attempts on the pre-existing crash path (F2) was deferred"
+  },
+  {
+   "id": "ev18",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/optimization-ideas.md 'Independent day-outcome watchdog'",
+   "what": "the no-games-day early return bypasses step 5b and EOD health entirely; no cron-side day-outcome check exists"
+  },
+  {
+   "id": "ev19",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/health/post_failure.py check at 88234ae and at 9907cb9",
+   "what": "the 22:00 ET time guard suppresses the alert whenever now is before 22:00 ET on the processed date, which passing today= does not change"
+  },
+  {
+   "id": "ev20",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/experiment/features.py BatterHardnessExperiment.modify_features at c27480e and 9907cb9",
+   "what": "the experiment copy keeps the PA-row rolling(120) with a whole-series shift(1) that 8550b80 removed from compute.py"
+  },
+  {
+   "id": "ev21",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 49f2538 message body",
+   "what": "the two-file streak+pick atomicity journal was deferred as pre-existing (healed by reconcile and contest anchoring)"
+  },
+  {
+   "id": "ev22",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "config/orchestrator.example.toml line 17 (at 8e867fc)",
+   "what": "missed_pick_alert_min is documented as the alert threshold in minutes before first pitch if no pick is posted"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "88234ae",
+   "925db1d",
+   "ce5f51d",
+   "aa6b7b1",
+   "0f2bc3c",
+   "b302935",
+   "af08426",
+   "082e5b0",
+   "dfcf655",
+   "86ff4f1",
+   "c27480e",
+   "8550b80",
+   "63fcb67",
+   "736ea8f",
+   "6d929f8",
+   "0794116",
+   "e1594e3",
+   "a7663ca",
+   "3a6e48b",
+   "40a091c",
+   "8e867fc",
+   "bb7ccc1",
+   "6471f40",
+   "d94a51f",
+   "f5de8ee",
+   "9551818",
+   "224ddce",
+   "a349ac5",
+   "40c0094",
+   "810d7e0",
+   "815cf50",
+   "49f2538",
+   "cca6761"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md",
+   "docs/audit/2026-07-12-eve-of-break-restart-loop.md",
+   "docs/audit/2026-07-09-gpt56-sol-audit.md F6",
+   "docs/audit/2026-09-28-reconcile-cutoff-codex-r1.md #3",
+   "docs/audit/2026-08-30-late-pick-delivery.md 'Deferred'",
+   "docs/optimization-ideas.md 'Independent day-outcome watchdog'"
+  ]
+ },
+ "related": [
+  "I-056",
+  "I-057",
+  "I-060",
+  "I-073",
+  "I-075",
+  "I-083",
+  "I-100",
+  "I-108",
+  "I-111",
+  "I-114",
+  "I-115",
+  "I-202",
+  "I-204",
+  "I-205",
+  "I-206"
+ ],
+ "notes": [
+  "split? 24 links from one audit. Proposed parts: (a) alerting, links 1, 2, 6, 7, 8, 9, 12, 13, 14 (DL; link 2 is an observed_incident candidate: ev8 reports daily realized_calibration CRITICAL DMs computed on the biased path, but that they were false is only 'plausibly' -- Route R: EOD health DMs 5/01-6/10); (b) liveness/day selection, links 3, 4, 5, 10 (link 3's trigger is machine-observed: evening-ET deploy restarts such as run 27077693688 at 6/06 20:11 ET plus ~24 expired-log evening runs 4/14-6/05; the journals (5/11+) would show run_day starting for the next date -> observed_incident candidate via Route R); (c) delivery/state/decision inputs, links 11, 15, 16, 17 (DL); (d) model/serving parity, links 18, 19, 20 (deterministic exposure on every pick / DH days; possibly out of scope under design section 1 'no model quality'; link 20 could not fire in 2026); (e) research integrity, link 21 (shadow_v1 CONTEXT column, deterministic in the shadow model); (f) security hardening, links 22, 23, 24 (no effect class fits; link 22's external firewall held -> near_miss_control_held candidate)",
+  "deployed: log bound only (6/07 00:11Z -> 7/02 15:28Z); candidate ancestry: first successful deploy containing each fix = run 27283866776 at 2026-06-10T14:35:51Z (head 279d423, log expired) for 88234ae, 925db1d, ce5f51d, aa6b7b1, 0f2bc3c, b302935, af08426, 082e5b0, dfcf655, 86ff4f1, c27480e, 8550b80, 63fcb67, 736ea8f, 6d929f8, 0794116, e1594e3, a7663ca; run 27286303593 at 2026-06-10T15:15:17Z (head 3a6e48b, log expired) for 3a6e48b; run 27354604212 at 2026-06-11T14:36:14Z (head df01882, log expired) for 40a091c, 8e867fc, bb7ccc1, 6471f40; run 27357156686 at 2026-06-11T15:14:31Z (head d94a51f, log expired) for d94a51f",
+  "run_id 28601525167 is the run whose retained log observed 83a5cad as the pre-deploy SHA at live_by; no run has a logged deployed SHA 83a5cad (run 28520680537 deployed head 83a5cad, log expired)",
+  "deploy delays: runs 27283276093 (cb7d00b) and 27283568101 (8c93799) on 6/10 failed before printing a pre-deploy SHA (I-060, lockfile/TZ); run 27321348039 (6/11 03:14Z, head 6471f40) failed the new test gate (1 failed; I-100), so links 11-14 waited for run 27354604212/27357156686",
+  "exposure intervals (pickaxe hit on the defective line -> fix live <= 7/02, candidate 6/10-6/11): link 1 e74c485 (4/27); link 2 b08769d (5/01, PA-frame path added, never passed by the scheduler); links 3, 4, 5 d3b7606 (4/03); link 5 could not fire before its fix: per ev11 no games-day-then-empty-day occurred before 7/12 (inference); link 6 58c9adc (6/07, I-057); links 7-9 e74c485 (4/27); link 10 6798410 (3/31); link 11 7b16afc (3/31) or earlier; link 12 357a166 (4/10); link 13 2eff8f9 (5/23, failed-status persistence); link 14 c5256e6 (5/01); link 15 2890b2c (5/29); link 16 f5b60af (6/06); link 17 3724bcb (4/03); link 18 c96d4b0 (3/29); link 19 0941373 (3/29); link 20 ab3db97 (3/29; cannot fire before 2027); link 21 30ed4fa (4/10); link 22 7101025 (3/31); link 23 4e222b4 (4/24, endpoint) and 51ef987 (4/11, action tag); link 24 e6931e1 (5/01)",
+  "policy_objective reach57 applies only to the decision-input links (15, 16, 19); the other links involve no decision",
+  "authority unknown = mixed: links 6, 15, 16 concern the contest-authoritative decision streak; links 9, 10, 17 the local streak.json; the rest not_applicable",
+  "stream production for the bundle; link 21 is shadow_v1 (CONTEXT_COLS at c27480e), link 24 leaderboard, links 22-23 dashboard/deploy",
+  "delivery_mode unknown: the exposure spans public (to 5/19) and unknown (5/20-7/05) eras; no single date",
+  "tests added by the fix commits (not verified to fail on the parent): tests/test_scheduler.py (1, 2), tests/test_cli_schedule_date.py (3), tests/test_scheduler_watchdog_discipline.py (4, AST guard on any bare time.sleep), tests/test_scheduler_no_games.py (5), tests/health/test_contest_state.py (6), tests/health/test_runner.py (7), tests/health/test_predicted_vs_realized.py (8), tests/health/test_streak_validation.py (9), tests/test_atomic_write.py (10), tests/test_e2_delivery_idempotency.py + tests/test_util.py (11), tests/test_e3_missed_pick_alert.py (12), tests/health/test_h6_resurface.py (13), tests/health/test_since_deploy_iso_compare.py + tests/health/test_deploy_iso_stamp.py (14), tests/test_decision_saver_fallback.py (15), tests/test_contest_state_corrupt_precedence.py (16), tests/test_streak_replay.py (17), tests/model/test_pitcher_hand_resolution.py (18), tests/model/test_blend_scoring.py (19), tests/model/test_prior_lineup_fallback.py (20), tests/test_context_features.py (21), tests/test_dashboard_bind.py (22), tests/test_audit_progress_traversal.py (23), tests/leaderboard/test_safe_filename.py (24)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "fable5 findings NOT in this record: H5 wedged-but-pinging heartbeat (I-108, 18efce1); .env/data dirs gitignore (b903178); CI tests + deploy gate (12bb0b2, 1ac0b0c; I-060/I-100); leakage_audit.py dead import (4dded87); M2 bin collapse (EX2, W1.4b, out of scope); M3 serving staleness (HOLD, docs/audit/2026-06-11-m3-serving-staleness.md, model quality); P2/P3 items whose fix status I did not trace: transient MLB error at game-final crashing the daemon, orchestrate() ignoring pick_delivery, heartbeat _pulse skipping the systemd ping on a failed write, mid-game reply never retried, bts run bypassing contest_state_required, regenerated picks with game_pk=0, CWD-relative probable-pitcher cache, Tuesday digest voiding alerts",
+  "the audit memo (ev1) is code analysis (inference); only its 'Live state at audit time' paragraph (ev2) is a contemporaneous report here (ev8/ev9 moved with links 2 and 18)",
+  "residuals 1 (post_failure 22:00 guard) and 12 (experiment copy of the hard-contact feature) are my readings of the code, not stated in any commit body -- lead to confirm",
+  "the L02 same-day exclusion predates 3a6e48b (the old backward walk also skipped today's file); r1 calls it pre-existing",
+  "no 2026 pick outcome is restated; the 7/12 memo and 3a09b2c body cited for context carry outcome/test values that are not repeated",
+  "links 2 and 18 moved out (link numbers kept stable): link 2's reported daily CRITICAL DMs are I-115 (unresolved_candidate), link 18's reported every-pick NaN input is I-114 (observed_incident)"
+ ]
+}

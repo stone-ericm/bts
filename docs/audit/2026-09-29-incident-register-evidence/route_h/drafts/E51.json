@@ -1,0 +1,67 @@
+{
+ "id": "I-051",
+ "working_id": "E51",
+ "title": "pick_from_row crashed with int(NaN) when a candidate's pitcher_id was missing (preview pick), fixed 5/15",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "cron.log (B1) for the 03:00 chain on and before 2026-05-15 showing `bts preview` failing with 'cannot convert float NaN to integer' in pick_from_row",
+  "bts-scheduler journal 2026-05-11..05-15 (B1 journal_*_retained.txt) for any lineup check that failed in pick_from_row, and the matching pick files (B1 data/picks) - to tell a preview-only failure from a scheduler selection failure"
+ ],
+ "classes": {"primary": "L", "secondary": ["D"]},
+ "tier": "tier_pending",
+ "tier_reason": "if only the 3 AM preview failed, the effect was a missing morning preview (display, B); if a scheduler selection hit a NaN pitcher_id, a lineup check produced no pick (delivery risk, A) - which occurred is unknown",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "A candidate row with an unknown (NaN/NA) probable pitcher still yields a pick with pitcher_id None instead of an exception.",
+  "source": "commit 285f3a5 (tests test_nan_pitcher_id, test_pandas_missing_pitcher_id)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "pick_from_row used `int(row['pitcher_id']) if row.get('pitcher_id') else None`; NaN is truthy, so a missing pitcher_id reached int(NaN) and raised ValueError, aborting pick creation for that run",
+   "code": [{"path": "src/bts/picks.py", "ref": "0b73154", "symbol": "pick_from_row", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["285f3a5"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "b8e5785", "live_by": "2026-05-15T17:01:56Z", "run_id": 25930613603, "evidence": ["ev2"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a preview or lineup-check run exits with an exception before writing the day's pick while games remain (cron.log / journal traceback), or the earliest pick game's cutoff approaches with no pick file",
+  "recovery_assertion": "the next run writes a pick for the day"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "inference", "strength": "primary", "locator": "commit 285f3a5 diff (src/bts/picks.py, tests/test_picks.py; PR #98, merge b8e5785)",
+   "what": "subject 'Fix preview pick NaN pitcher IDs'; replaces the truthiness test with _optional_int handling NaN, pd.NA, NaT and 'nan' strings; body empty"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25930613603 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head b8e5785 created 2026-05-15T17:01:56Z (13:01:56 ET), 77 s after the fix commit; log unavailable_expired"}
+ ],
+ "occurrences": [{
+  "label": "on or before 2026-05-15 (indicated by the fix subject)",
+  "onset": "unknown",
+  "first_detectable": "unknown",
+  "first_machine_detection": "unknown",
+  "alert": {"attempted": "unknown", "confirmed": "unknown", "failed": "unknown"},
+  "operator_awareness": {"not_after": "2026-05-15T13:00:39-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-05-15T13:01:56-04:00", "evidence": ["ev1", "ev2"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "unknown", "notification": "unknown", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["285f3a5", "b8e5785"], "R": "pending_phase2", "X": ["PR #98"]},
+ "related": [],
+ "notes": [
+  "prelim OI?/P: the subject says 'preview pick' and the deploy followed the commit within 77 s, which reads like a reaction to a live failure, but nothing located records one",
+  "stream cron_job: the subject points at the 03:00 `bts preview`; pick_from_row is shared with the scheduler, so the production path was exposed too",
+  "the 5/11+ journal (B1) covers the scheduler side for this window; cron.log covers the preview",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/test_picks.py TestPickFromRow::test_nan_pitcher_id, test_pandas_missing_pitcher_id",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

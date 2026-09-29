@@ -1,0 +1,100 @@
+{
+ "id": "EX2",
+ "episode_row": [
+  "EX2",
+  "5/23 \u2192",
+  "MDP policy maps live picks to Q0 (bin collapse)",
+  "P",
+  "EX",
+  "\u2014",
+  "d54bfad f23e9a8 510ae4e f23010f \u2014 belongs to W1.4b's owed bin-collapse read"
+ ],
+ "commits": [
+  {
+   "sha": "d54bfad",
+   "authored": "2026-05-23T14:57:14-04:00",
+   "subject": "Merge pull request #110 from stone-ericm/codex/calibration-resolve-design",
+   "body": "[codex] Add calibration re-solve validation gate",
+   "files": [],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26340897507,
+    "created_at": "2026-05-23T18:57:59Z",
+    "head_sha": "d54bfad",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "f23e9a8",
+   "authored": "2026-05-25T00:59:23+03:00",
+   "subject": "Document health warn disposition",
+   "body": "",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26413290949,
+    "created_at": "2026-05-25T17:54:48Z",
+    "head_sha": "1eb29c5",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "510ae4e",
+   "authored": "2026-05-27T15:30:57+03:00",
+   "subject": "docs: refresh alert disposition inventory",
+   "body": "",
+   "files": [
+    "docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26514183945,
+    "created_at": "2026-05-27T13:29:34Z",
+    "head_sha": "8872109",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "f23010f",
+   "authored": "2026-08-09T20:47:09-04:00",
+   "subject": "docs(audit): DD-band tripwire recompute (early look, n=57) \u2014 gap collapsed, no escalation",
+   "body": "Pre-registered 7/13 rule: at n~80-90, >=10pp shortfall -> rerun value\nsensitivity + take re-solve seriously. Early look prompted by the 8/09\nmdp_policy_alignment quality-bin-collapse WARN. Neither condition holds:\nn=57, season gap -5.6pp (was -13.9pp at 7/12), and the post-measurement\nfresh sample ran 14/15 \u2014 the doc's own 'if luck, it regresses' branch.\nReproduction anchor matched 7/12 exactly (25/42, -13.9pp, tail .0349).\nFormal n~80-90 look still stands (~early-mid Sept). Bin-collapse re-solve\ndisposition: wait for ball-regime stabilization per the park_drag table;\nre-solving mid-churn fits boundaries to a moving distribution.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012aRt7JMhNGc33Wy1RdjK7q",
+   "files": [
+    "docs/audit/2026-08-09-dd-tripwire-recompute.md"
+   ],
+   "first_live_log": {
+    "sha": "0e4aaa8",
+    "live_by": "2026-08-10T02:00:22Z",
+    "not_live_before": "2026-08-10T02:00:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31348388174,
+    "created_at": "2026-08-10T01:55:45Z",
+    "head_sha": "0e4aaa8",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

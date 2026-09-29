@@ -1,0 +1,158 @@
+{
+ "id": "I-010",
+ "working_id": "E10",
+ "title": "Restarted scheduler did not treat an already-posted pick as locked: replayed the day's checks and would skip result polling (4/04)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "Pi5 scheduler output for the 2026-04-04 evening restarts (retention unknown; Pi5 decommissioned 4/14) showing a restarted instance replaying check times with the pick already posted and ending without result polling \u2014 Phase 2 Route R",
+  "the 2026-04-04 scheduler state (pick_locked, result_status) and which writer recorded the 4/04 result (scheduler polling vs the 1am cron) in B1"
+ ],
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "G"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if it fired, the restarted instance re-ran the SSH cascade at every past check time and skipped result polling, leaving grading and the reply to the 1am cron; no firing is evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "After a restart the scheduler resumes the day's state: a pick already posted counts as locked, lineup checks stop, and result polling runs.",
+  "source": "src/bts/scheduler.py run_day docstring steps 4\u20138 (7638af7); ARCHITECTURE.md at 4d12beb ('Short-circuit: if existing pick is already locked (game started or posted to Bluesky), skips the expensive SSH cascade entirely')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day set state.pick_locked only when it posted the pick itself; a pick posted by an earlier instance or by hand came back from run_single_check as locked but left pick_locked False, so the loop kept running every check through the cascade and step 8 (result polling, gated on pick_locked) was skipped",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "7638af7",
+     "symbol": "run_day",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "823ccb3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "823ccb3 still ran one full cascade before noticing the lock; 6d36adb (19:35 the same evening) short-circuited before the cascade",
+   "reaches_production": false,
+   "source": "6d36adb body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "after a scheduler (re)start on a day whose pick file shows a delivered pick, the state still has pick_locked False, or no result polling has started by the pick's first pitch + 30 min",
+  "recovery_assertion": "the restarted instance reports the pick locked, runs no new cascade for it, and records a result for the date"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 823ccb3 message body (authored 2026-04-04T19:26:27-04:00)",
+   "what": "when a pick was posted by a previous instance (or manually), the restarted scheduler didn't set pick_locked, 'causing it to replay all check times and skip result polling'; no date or run is named"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 6d36adb message body",
+   "written_at": "2026-04-04T19:35:02-04:00",
+   "what": "'today's debugging session' involved scheduler restarts ('saves ~3 min on every restart')"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_day at 7638af7",
+   "what": "pick_locked is set only after the scheduler's own post; step 8 polls results only when pick_locked"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 823ccb3; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate: 2026-04-04 evening restarts",
+   "onset": {
+    "not_before": "2026-04-04",
+    "not_after": "2026-04-04T19:26:27-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-04T19:26:27-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "823ccb3",
+   "6d36adb"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-009",
+  "I-011"
+ ],
+ "notes": [
+  "alternative reading: 'didn't set \u2026 causing it to replay' may describe the evening's restart after the I-009 fix; if the lead reads it as a live report this becomes observed_incident (tier pending or B)",
+  "5e02676's body (I-011) says the scheduler updated the streak mid-game on 4/04, so result polling did run on 4/04 at some point; the skipped-polling consequence may never have materialized",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 823ccb3 added no test (6d36adb added test_short_circuits_when_pick_locked)",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

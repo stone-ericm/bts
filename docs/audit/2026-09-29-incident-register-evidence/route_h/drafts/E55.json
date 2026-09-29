@@ -1,0 +1,189 @@
+{
+ "id": "I-055",
+ "working_id": "E55",
+ "title": "5/27 dashboard /health timed out while the service was active (single-threaded HTTPServer); dashboard restart needed",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": [
+   "L",
+   "S"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "dashboard surface hung (it is display, not the delivery path) and would have failed a deploy canary; restored by a dashboard-only restart with the scheduler untouched",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The dashboard answers /health promptly whenever its service is active, so the deploy canary and the operator can rely on it.",
+  "source": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md '2026-05-27 Dashboard Health Canary Follow-up' (c127673); CLAUDE.md Deployment (canary checks dashboard HTTP)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "web.py served with Python's single-threaded HTTPServer, so one slow or stuck request blocked every other request, including /health, although the process stayed alive and TCP-accepting",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "cf97035",
+     "symbol": "main (HTTPServer((\"0.0.0.0\", PORT), Handler))",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "c127673"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "8872109",
+    "live_by": "2026-05-27T13:29:34Z",
+    "run_id": 26514183945,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": {
+    "action": "dashboard-only restart (bts-dashboard.service) restoring /health=ok, scheduler left running",
+    "at": {
+     "not_after": "2026-05-27T16:24:05+03:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "after the restart /health returned ok while bts-scheduler stayed active with NRestarts=0 (operator report)",
+    "at": {
+     "not_after": "2026-05-27T16:24:05+03:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "the dashboard unit is active but /health on its bind address does not answer within a few seconds on two consecutive probes",
+  "recovery_assertion": "/health returns ok on the next probes after the restart, with the scheduler untouched"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md '2026-05-27 Dashboard Health Canary Follow-up' (added by c127673)",
+   "written_at": "2026-05-27T16:24:05+03:00",
+   "what": "during the PR #136 deploy-safety checks bts-dashboard.service was active and TCP-accepting but /health timed out; a dashboard-only restart restored /health=ok while bts-scheduler stayed active with NRestarts=0; cause: single-threaded HTTPServer"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 26514183945 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 8872109 (contains c127673 and ac09137) created 2026-05-27T13:29:34Z (09:29 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 26467825993 (deploy_runs.json)",
+   "what": "the previous deploy, 2026-05-26T18:39:23Z (14:39 ET), restarted bts-dashboard; the hung process started no earlier than this (unless restarted by hand later)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-27 morning",
+   "onset": {
+    "not_before": "2026-05-26T14:39:23-04:00",
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-05-26T14:39:23-04:00",
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": {
+    "not_after": "2026-05-27T16:24:05+03:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "c127673"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #136",
+   "docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "prelim OI?/B: the runbook entry is explicit and same-day, so observed",
+  "what request wedged the server is not recorded; bts-dashboard's own journal (B2, not exported by W0.7) could show it",
+  "alert none: no monitor watched dashboard /health outside deploys; the operator found it in pre-deploy checks",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression test named in the fix: tests/test_health_endpoint.py test_dashboard_server_is_threaded",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

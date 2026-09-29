@@ -1,0 +1,211 @@
+{
+ "id": "I-062",
+ "working_id": "E62",
+ "title": "6/12 entry check v1 reported the entered pick as 'not entered' (settled-only profile endpoint); cron disabled the same night",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "E"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "a false 'not entered' result for a pick that had been entered; the check was removed from cron within hours and no entry or state was affected",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "contest",
+ "contract": {
+  "text": "check-pick-entered reports 'not entered' only when the delivered pick is absent from the contest account, pending same-day entries included.",
+  "source": "4f13eb3 check_pick_entered docstring ('DM if today's delivered pick was never entered in the MLB app'); ARCHITECTURE.md 'bts check-pick-entered' (v1 disabled: profile source is SETTLED-only)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_pick_entered v1 decided entry from contest_fetch.has_prediction_for over the user-profile predictions array, which holds only settled rows (hit/not_hit/void); a pending same-day entry is invisible there, so inside the pre-pitch window an entered pick read as not entered",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "4f13eb3",
+     "symbol": "check_pick_entered",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/contest_fetch.py",
+     "ref": "4f13eb3",
+     "symbol": "has_prediction_for",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a6ec548",
+     "720651a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:44Z",
+    "run_id": 28692943534,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": {
+    "action": "check-pick-entered cron line removed on the box and from scripts/cron-setup-hetzner.sh (2d68102); command kept but marked disabled",
+    "at": {
+     "not_after": "2026-06-12T20:51:46-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "With v1 disabled (6/12 → v2 on 7/04), a missed entry had only the noon-ET contest_state WARN, which is logged but not DM'd (see I-061).",
+   "reaches_production": false,
+   "source": "2d68102 body; a1b7e75 ARCHITECTURE note; closed by a6ec548/720651a"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "a 'not entered' result or DM for a date on which the contest account's pending predictions (api/predictions) show the delivered selection entered; equivalently, an entry source that returns no pending row on a day with a known entry",
+  "recovery_assertion": "on the next pre-pitch run the check reports 'confirmed' for an entered delivered selection (a live positive control) and no 'not entered' DM is sent"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2d68102 message body",
+   "written_at": "2026-06-12T20:51:46-04:00",
+   "what": "Eric HAD entered the 06-12 pick, but the profile predictions list contains only hit/not_hit/void rows, so the check would false-alarm daily; cron line removed (box + setup script)"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2d68102 diff (src/bts/cli.py check_pick_entered docstring)",
+   "written_at": "2026-06-12T20:51:46-04:00",
+   "what": "'caught by Eric within hours: he HAD entered the 06-12 pick and the check still said no'"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a6ec548 message body",
+   "what": "v2 sources entry from the union of the profile and GET api/predictions, which exposes the own pending same-day row (verified live 7/03); fetch failures skip without consuming the marker"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28692943534 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 2c62d72 -> deployed 720651a at 2026-07-04T03:07:46Z, canary passed: v2 code and its cron line first installed"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27448741736 (deploy_runs.json)",
+   "what": "first successful deploy run whose head (4f13eb3) contains the v1 check, created 2026-06-12T23:22:24Z; log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-12",
+   "onset": {
+    "not_before": "2026-06-12",
+    "not_after": "2026-06-12T20:51:46-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-06-12",
+    "not_after": "2026-06-12T20:51:46-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-12T20:51:46-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-12T20:51:46-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-06-12T20:51:46-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "2d68102",
+   "4f13eb3",
+   "a6ec548",
+   "720651a",
+   "a1b7e75"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md 'bts check-pick-entered'"
+  ]
+ },
+ "related": [
+  "I-061",
+  "I-071",
+  "I-072",
+  "I-110"
+ ],
+ "notes": [
+  "whether the false result reached Eric as a cron DM or from a manual run is not stated ('the check still said no'); the v1 cron was installed on the box (2d68102 removed it there) after the 19:22 ET deploy candidate (ev5) — Route R: journal/cron.log + data/health_state/pick_entry_check.json (latest-state only) for 6/12",
+  "onset is bounded to 6/12 before the disable commit; the likely window is after the 4f13eb3 deploy (run 27448741736 created 23:22Z = 19:22 ET) — kept date-only because a pre-commit manual run cannot be excluded",
+  "alert fields are not_applicable: the symptom IS the false 'not entered' result",
+  "defective ref = 4f13eb3 (v1 as shipped); 2d68102 only disabled it — the fix is v2 (a6ec548 + cron 720651a). v2 cron activation needs a box-side install (720651a body) that is not dated; the 7/06 premature DM (I-071) shows it running by then",
+  "classes: primary A (false alarm), secondary E (entry verification); the row had E/A",
+  "delivery_mode unknown (5/20–7/05 window)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; a6ec548 adds pending-row tests (tests/test_contest_fetch.py, tests/test_cli_integration.py) that encode the corrected source"
+ ]
+}

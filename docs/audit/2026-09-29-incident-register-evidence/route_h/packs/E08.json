@@ -1,0 +1,37 @@
+{
+ "id": "E08",
+ "episode_row": [
+  "E08",
+  "3/29\u20133/30",
+  "null game_pk pick files \u2192 reconcile HTTP 400",
+  "G",
+  "UC",
+  "P",
+  "a6cae41 (ledger: 3/29\u20133/30 null game_pk)"
+ ],
+ "commits": [
+  {
+   "sha": "a6cae41",
+   "authored": "2026-04-04T17:33:11-04:00",
+   "subject": "fix(reconcile): handle picks with null game_pk",
+   "body": "Pre-scheduler picks (Mar 29-30) have game_pk: null, which caused\ncheck_hit to request .../game/None/feed/live \u2014 an HTTP 400. Now\nskips the direct lookup when game_pk is None and falls through to\nthe date-based schedule search.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

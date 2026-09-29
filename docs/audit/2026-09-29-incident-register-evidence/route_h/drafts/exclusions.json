@@ -1,0 +1,56 @@
+[
+ {
+  "working_id": "E26",
+  "former_id": "I-026",
+  "title": "In-place sort in the hard-contact feature reordered the training frame and changed LightGBM's bagging sample (4/10\u20134/13)",
+  "reason": "model-behaviour change (training-frame order) evidenced only by a single-seed backtest delta: model quality, out of scope (design \u00a71)"
+ },
+ {
+  "working_id": "E76",
+  "former_id": "I-076",
+  "title": "Calibration monitors could not see a chronic double-down-leg shortfall: no absolute-level check covered the DD band, and realized_calibration WARNs never reached the DM digest",
+  "reason": "calibration-monitor coverage of a model-quality signal (DD-leg shortfall): model quality, out of scope (design \u00a71)"
+ },
+ {
+  "working_id": "L08",
+  "former_id": "I-208",
+  "title": "Open-Meteo weather enrichment uses a bare urlopen with no retry and swallows every error (silent skip); the command is in no cron or unit",
+  "reason": "unretried Open-Meteo fetch on a path no cron, unit or production job runs; the cited 8/03 note is not in the repo: not a deployed path"
+ },
+ {
+  "working_id": "E103",
+  "former_id": "I-103",
+  "title": "3/29-4/01: local grading had no streak-saver rule (any miss reset the local streak to 0)",
+  "reason": "local grading lacked the saver rule 3/29-4/01; it could not fire (streak < 10 throughout) and was fixed 4/01; no watchdog or restore relevance"
+ },
+ {
+  "working_id": "E104",
+  "former_id": "I-104",
+  "title": "4/01-4/04: orchestrator SSH worker tiers (Mac, Alienware) ran whatever code was checked out; no pull before predict-json",
+  "reason": "worker tiers ran unpulled code 4/01-4/04 on retired infrastructure (Mac/Alienware tiers); no watchdog or restore relevance today"
+ },
+ {
+  "working_id": "E70",
+  "former_id": null,
+  "title": null,
+  "reason": "7/04 deep authenticated scrape disabled: an owner decision on terms of use, not a service failure"
+ },
+ {
+  "working_id": "E81",
+  "former_id": null,
+  "title": null,
+  "reason": "mdp_policy_alignment bin-collapse WARN: model/policy quality, belongs to the W1.4b bin-collapse read"
+ },
+ {
+  "working_id": "EX2",
+  "former_id": null,
+  "title": null,
+  "reason": "MDP policy maps live picks to Q0 (bin collapse): belongs to the W1.4b bin-collapse read"
+ },
+ {
+  "working_id": "EX3",
+  "former_id": null,
+  "title": null,
+  "reason": "4/14 research-audit cloud fleet (silent retrieve failure, zombie boxes): not the production service"
+ }
+]

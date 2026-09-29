@@ -1,0 +1,230 @@
+{
+ "id": "I-083",
+ "working_id": "E83",
+ "title": "8/13 silent pass: MLB Warmup status classification-locked the undelivered pick; no missed-pick alert",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "no pick was delivered for the day (delivery impact) and the missed-pick alert did not fire",
+ "plan_named": true,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "An enterable pick is delivered before the entry cutoff (first pitch minus 5 minutes of its earliest game); a day that ends with an undelivered candidate and no deliberate skip alerts the operator (E3 missed-pick alert).",
+  "source": "picks.SUBMISSION_CUTOFF_MIN; ARCHITECTURE.md 'Warmup / silent-pass hardening' (f0f859e); E3 missed-pick alert, scheduler step 5b"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "classify_pick_lock_state read MLB's Warmup state (statusCode PW: abstract Live but before first pitch) as game_started_or_final and classification-locked the undelivered candidate, so delivery was skipped",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "404358d",
+     "symbol": "classify_pick_lock_state / _classify_unposted_game_status",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the E3 missed-pick alert was gated on state.pick_locked, which the same non-delivered classification lock had set, so the alert never fired; check-pick-entered keys on scoreable commits and had nothing to check",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "404358d",
+     "symbol": "_maybe_alert_missed_pick (step 5b gate)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "1b50b78"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "3e1791c",
+    "live_by": "2026-08-14T19:04:35Z",
+    "not_live_before": "2026-08-14T19:04:33Z",
+    "run_id": 31831299733,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "224ddce"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "3e1791c",
+    "live_by": "2026-08-14T19:04:35Z",
+    "not_live_before": "2026-08-14T19:04:33Z",
+    "run_id": 31831299733,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "All in-process protections share the scheduler's fate: there is no independent cron-side day-outcome watchdog, and the no-games-day early return bypasses step 5b and EOD health.",
+   "reaches_production": true,
+   "source": "3e1791c; docs/optimization-ideas.md 'Independent day-outcome watchdog' (I-206)"
+  },
+  {
+   "text": "When the detailed status lookup fails, the abstract-only fallback still treats Warmup as locked (fail-closed by design); the corrected E3 gate now alerts on that day.",
+   "reaches_production": true,
+   "source": "1b50b78 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at the earliest pick game's first pitch minus 5 minutes, a candidate pick exists on disk with no delivery record (notification_sent / delivered_at), no scoreable commit and no recorded deliberate skip",
+  "recovery_assertion": "an alert is delivered (retried on failure) and the date ends with a scoreable commit or an explicit operator pass"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 1b50b78 message body",
+   "written_at": "2026-08-14T12:57:05-04:00",
+   "exposure_row": "X-01",
+   "what": "8/13: the 12:35 lineup check finished at 12:49 with the double-down game (13:10 start) in Warmup; the undelivered candidate was marked game_started_or_final, delivery was skipped and the day passed silently"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 224ddce message body",
+   "written_at": "2026-08-14T12:57:21-04:00",
+   "what": "E3 was gated on state.pick_locked, set by the non-delivered classification lock, so the alert never fired; check-pick-entered said 'nothing to check' all day"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31831299733 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 404358d -> deployed 3e1791c, canary passed; the fix commits were first installed 2026-08-14T19:04:35Z"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31532428453 (deploy_runs.json)",
+   "what": "404358d installed 2026-08-11T20:30:11Z and not replaced until run 31831299733: the defective code was live on 8/13"
+  },
+  {
+   "id": "ev5",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 3e1791c body; docs/optimization-ideas.md 'Independent day-outcome watchdog'",
+   "written_at": "2026-08-14T12:57:21-04:00",
+   "what": "incident review: in-process protections share the scheduler's fate; the no-games-day early return bypasses step 5b and EOD health"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md at f0f859e, 'Warmup / silent-pass hardening'",
+   "what": "Warmup (statusCode PW) is the only abstract-Live state before first pitch"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-08-13",
+   "onset": {
+    "at": "2026-08-13T12:49:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-08-13T13:05:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-14T12:57:05-04:00",
+    "evidence": [
+     "ev1",
+     "ev5"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-08-14T12:57:21-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "1b50b78",
+   "224ddce",
+   "3e1791c",
+   "f0f859e"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md 'Warmup / silent-pass hardening'",
+   "docs/optimization-ideas.md 'Independent day-outcome watchdog'"
+  ]
+ },
+ "related": [
+  "I-206"
+ ],
+ "notes": [
+  "delivery_mode dm: docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md records prod pick_delivery = dm on 7/06; private from 9/14",
+  "the 1b50b78 body also records the would-be legs' outcomes; not repeated here",
+  "first_detectable = the 13:10 game's cutoff (13:05); recovery and recurrence are unknown until Route R reads the box record",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,187 @@
+{
+ "id": "I-111",
+ "working_id": "E111",
+ "title": "6/10-6/18: MDP saver input taken from the local model saver whenever model and contest streaks agreed (unsound proxy, else False); replaced by the operator saver_state.json",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "P",
+  "secondary": [
+   "G"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "decision-input defect on the live path (the saver dimension of the MDP lookup) with no evidenced wrong action; B -> A: the saver input is still an operator-maintained flag (accepted risk with an audit trail)",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "The decision's saver input reflects the contest account's actual one-time 10-15 saver; without evidence it must not report the saver available.",
+  "source": "810d7e0 body (Codex adjustment #1: 'no ledger / no signal -> unknown -> unavailable ... model saver=True never makes the contest saver True without evidence'); ARCHITECTURE.md contest-account section (saver_state.json, 815cf50)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "load_decision_streak_state (0794116, audit D3) used the locally tracked model saver as the contest saver when the contest state was fresh and contest.streak == model streak (the profile API cannot observe the mulligan), and False otherwise; equal streak values do not imply equal saver history",
+   "code": [
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "56f9726",
+     "symbol": "load_decision_streak_state",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "815cf50",
+     "bf6ccae"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev7"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The saver input is now the operator-maintained saver_state.json (manual transitions via the dashboard); a wrong manual transition feeds the MDP. Accepted risk (tailnet-only binding + expected_prior guard) with an append-only transition audit trail",
+   "reaches_production": true,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md F7 'ACCEPTED RISK + detective control'; 950fb80"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "on each decision, the saver value used differs from saver_state.json, or contradicts contest-ledger evidence (saver used as available after a ledger-visible consumption)",
+  "recovery_assertion": "decision.json saver_available equals saver_state.json and no ledger contradiction"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 0794116 message body + diff",
+   "written_at": "2026-06-09T23:42:57-04:00",
+   "what": "fresh contest state no longer pins saver=False: the model saver is used when the model streak agrees with the contest streak, else False (audit D3)"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 810d7e0 message body",
+   "written_at": "2026-06-17T21:03:42-04:00",
+   "what": "retires the Phase-1 model-saver proxy; three review rounds found the replacement inference unsound until visible ledger consumption was checked first"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "commit 810d7e0 message body ('Verified on the live box: best_streak=...'; box contest state, not read)",
+   "exposure_row": "X-01",
+   "what": "the box's contest season-best at 6/17 was below the 10-15 band, so the true contest saver was still available (value in the body)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commits 815cf50 and bf6ccae (subjects)",
+   "written_at": "2026-06-18T13:09:25-04:00",
+   "what": "saver_state.json becomes the sole saver authority for the decision; infer_saver retired before it deployed"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27283866776 (deploy_runs.json)",
+   "what": "first success run containing 0794116 (head 279d423) created 2026-06-10T14:35:51Z (log expired)"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27778563477 (deploy_runs.json)",
+   "what": "success for head 889eeed (contains 815cf50, bf6ccae) created 2026-06-18T17:48:16Z (log expired)"
+  },
+  {
+   "id": "ev7",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 28601525167 (deploy_runs.json, log retained)",
+   "what": "its log first shows 83a5cad (contains the fix) installed, as the pre-deploy SHA at 2026-07-02T15:28:10Z; runs from 6/07 17:55Z to 7/02 have expired logs"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-17T21:03:42-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0794116",
+   "810d7e0",
+   "815cf50",
+   "bf6ccae"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md F7"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-063"
+ ],
+ "notes": [
+  "inferred, not observed: during I-063's model/contest divergence (6/11-6/17) the proxy fell back to False while the contest saver was available (ev3), a conservative wrong input; whether it changed any MDP action needs per-day saver inputs (decision.json starts 6/23; Route R)",
+  "pre-ship part: 810d7e0's infer_saver never deployed (superseded by 815cf50/bf6ccae in the same 6/18 deploy)",
+  "0794116 itself is audit D3 in I-059 (which fixed the earlier always-False pin); this record covers the proxy it introduced",
+  "deployed: log bound only (6/07 00:11Z -> 7/02 15:28Z); run_id 28601525167 is the run whose retained log first observed 83a5cad; candidate ancestry: run 27778563477 at 2026-06-18T17:48:16Z (head 889eeed)",
+  "ref 56f9726 = the last install candidate before the fix (run 27724604648, log expired); the fix parent 645b90f carries the never-deployed infer_saver",
+  "tests added by 815cf50: tests/test_decision_saver_fallback.py::test_active_flag_makes_saver_available, ::test_used_or_uninitialized_flag_means_unavailable, ::test_model_only_fallback_reads_saver_state_not_streak_json",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "id": "E106",
+ "episode_row": [
+  "E106",
+  "4/08\u20134/10",
+  "O(n^2) dead code in the bullpen block slowed worker predictions (with E16)",
+  "L",
+  "UC",
+  "P",
+  "947fce8"
+ ],
+ "commits": [
+  {
+   "sha": "947fce8",
+   "authored": "2026-04-10T18:18:03-04:00",
+   "subject": "fix(fly): remove O(n\u00b2) dead code + vectorize barrel for 10x faster predictions",
+   "body": "The probable_pitcher_lookup code had an O(n\u00b2) df.loc scan inside\na .map() lambda (scanning 1.5M rows per game_pk). This was dead code \u2014\nthe vectorized replacement on the next lines overwrote the result \u2014\nbut it still ran, causing 30+ minute predictions on the Fly 2-vCPU VM.\n\nAlso vectorizes barrel classification (numpy instead of apply(axis=1))\nand total_break computation (list comprehension instead of apply(axis=1)).\n\nAdditional fixes:\n- fly.toml: increase health check grace period 2m \u2192 15m (model training\n  saturates CPU, making dashboard temporarily unresponsive)\n- sync.py: include mdp_policy.npz in R2 sync (was missing, causing\n  strategy to fall back to heuristic on Fly)\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "fly.toml",
+    "src/bts/data/sync.py",
+    "src/bts/features/compute.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24266755555,
+    "created_at": "2026-04-10T22:18:26Z",
+    "head_sha": "947fce8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+ "id": "I-001",
+ "working_id": "E01",
+ "title": "3/30 live predictions paired batters in games already under way with their own team's pitcher",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "the inverted half-inning lookup only altered rows for games that already had play data (games under way), whose batters are past the entry cutoff (the project's cutoff is first pitch \u2212 5 min, picks.SUBMISSION_CUTOFF_MIN; rules \u00a76 require a pick before its Lock Time); slots are scored independently, so the ranking of pickable batters was unchanged (inference from _fetch_game_slots at 9ca4346); fixed, no residual",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Each batter's prediction row uses the opposing team's pitcher: the pitcher of the half-inning in which the batter's team bats, else the schedule's probable pitcher.",
+  "source": "src/bts/model/predict.py _fetch_game_slots comment '# Find opposing pitcher \u2014 from plays if available, else from schedule' (9ca4346); 245a971 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "for games with play data, target_half was 'bottom' for away batters and 'top' for home batters, so the first play of that half gave the batter's own team's pitcher as the opponent; games without plays fell through to the probable pitcher and were unaffected",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "9ca4346",
+     "symbol": "_fetch_game_slots",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "245a971"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only in effect: the defect reached only rows of games already under way, which BTS will not accept as picks; a pre-pick input check (opposing pitcher's team differs from the batter's team) belongs to prediction validation, not to a W4 boundary",
+  "recovery_assertion": "every prediction row's opposing pitcher belongs to the other team"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 245a971 message body",
+   "written_at": "2026-03-30T12:28:12-04:00",
+   "what": "the half-inning logic was backwards, assigning each team's own pitcher as the opponent; the pre-existing bug surfaced when games had partial play data (just started)"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/model/predict.py at 9ca4346, _fetch_game_slots",
+   "what": "the play-based opponent lookup runs only when the feed has plays; slots are built for every scheduled game with no status filter and scored per batter"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py at 9ca4346, predict command; git history 85b61f1 (3/31 10:21 ET, first Bluesky posting command) and 68a87a7 (4/01 17:15 ET, MDP policy deployed)",
+   "what": "on 3/30 picks came from the operator running bts predict, which printed a ranked table of all games' batters with a 'vs Pitcher' column; no automated delivery and no MDP existed yet"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 245a971; a Fly.io deploy ('Deploy BTS to Fly'), log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-03-30",
+   "onset": {
+    "not_after": "2026-03-30T12:28:12-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-03-30T12:28:12-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-03-30T12:28:12-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "245a971"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [],
+ "notes": [
+  "disposition changed from the lead row (UC, P) to observed_incident / B: the same-day body reports the bug surfacing on live data, and the code shows only rows of games under way were affected",
+  "class changed from the lead row (D) to U: the only realized effect was on displayed rows of games under way; no pickable row was affected",
+  "delivery_mode unknown: the guide's public epoch starts 3/29, but no posting code existed until 85b61f1 (3/31); on 3/30 the operator ran bts predict and entered picks himself",
+  "policy_objective none: pre-MDP, and the mechanism touches no decision logic",
+  "deployed: on 3/30 the prediction path was the operator's own checkout, so the fix was live when committed; candidate run 24253126060 is a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "the body's 'surfaced' is thin: it does not say which run or time; onset is bounded only by the fix commit",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

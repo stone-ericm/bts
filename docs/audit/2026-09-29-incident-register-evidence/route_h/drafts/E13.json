@@ -1,0 +1,182 @@
+{
+ "id": "I-013",
+ "working_id": "E13",
+ "title": "Scheduler could sleep past the pick's first pitch while should_lock stayed False; a restart after the deadline skipped the fallback (4/03\u20134/06)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "Pi5 scheduler output and scheduler_state.json runs_completed (pick_name/pick_p, since 6d36adb) for 2026-04-03..04-06 (retention unknown; Pi5 decommissioned 4/14) showing a should_lock=False check followed by a sleep past the pick's first pitch, or a restart after the deadline \u2014 Phase 2 Route R",
+  "the 2026-04-06 pick file's post time (bluesky_uri) versus its game time, and the contest ledger's 4/06 entry (B1/B3)"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if it fired, the pick was posted after its first pitch (not enterable) or not at all; no affected date is evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "If the picked game is 15 minutes from first pitch and the pick is still unlocked, post it anyway ('Don't miss the game').",
+  "source": "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md 'Daily lifecycle' step 6"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day had no in-loop fallback: after a should_lock=False check it slept until the next scheduled check, which could fall after the pick's first pitch; the only fallback (step 5) ran after the day's last check",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "75d91f4",
+     "symbol": "run_day",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the in-loop fallback added by 0632976 gated both the wait and the post on now < deadline, so a restart or check after the deadline (still pre-game) skipped the post and slept on to the next check",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "0632976",
+     "symbol": "run_day",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "0632976"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "a002b04"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "the fallback deadline was keyed to the primary pick's game only, so a double-down in an earlier game could still be posted after its first pitch; fixed 4/12 by 6fd61f9 (I-021)",
+   "reaches_production": false,
+   "source": "6fd61f9 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "while the candidate is undelivered, the scheduler's next wake-up (sleep target or next_wakeup) is later than the earliest pick game's first pitch minus 5 minutes",
+  "recovery_assertion": "the pick is delivered before that cutoff, or an alert fires at the cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 0632976 message body (authored 2026-04-06T15:55:46-04:00)",
+   "what": "the scheduler 'would sleep past the picked player's game start when should_lock returned False (0% gap) and the next cluster check was hours later'; now wakes at game_time \u2212 15 min to force-post"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a002b04 message body (authored 2026-04-06T15:58:28-04:00)",
+   "what": "if the scheduler restarts or checks after the deadline it should post immediately; the previous code (0632976) gated both the sleep and the post on now < deadline"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py run_day at 75d91f4 and at 0632976",
+   "what": "no in-loop fallback before 0632976; its new branch skipped the post once now \u2265 deadline"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains both fixes; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate window: scheduler days 4/03\u20134/06",
+   "onset": {
+    "not_before": "2026-04-03",
+    "not_after": "2026-04-06T15:55:46-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-06T15:55:46-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0632976",
+   "a002b04"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md step 6"
+  ]
+ },
+ "related": [
+  "I-009",
+  "I-021"
+ ],
+ "notes": [
+  "the timing (0632976 at 15:55:46 and a002b04 2.7 min later on a game day) and '(0% gap)' suggest a live case, e.g. a 16:10 game whose 15-minute deadline was 15:55, but neither body says the day's pick was late \u2014 hence unresolved",
+  "link 2 was introduced by 0632976 and fixed 2.7 minutes later; if 0632976 never ran live before a002b04 it is a pre-ship defect inside this fix (split? link 2 as pre_ship_exclusion)",
+  "I-009 (4/04) shows the same exposure: an unlocked pick with no in-loop fallback",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 0632976 added tests/test_scheduler.py test_fallback_fires_when_pick_game_before_next_check; a002b04 added no test",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

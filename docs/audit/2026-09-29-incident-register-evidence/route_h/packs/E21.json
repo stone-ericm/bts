@@ -1,0 +1,37 @@
+{
+ "id": "E21",
+ "episode_row": [
+  "E21",
+  "4/12",
+  "fallback deadline landed 3 min after the DD's first pitch",
+  "D",
+  "OI",
+  "A",
+  "6fd61f9"
+ ],
+ "commits": [
+  {
+   "sha": "6fd61f9",
+   "authored": "2026-04-12T13:09:55-04:00",
+   "subject": "fix(scheduler): use earliest of primary+double-down for fallback deadline",
+   "body": "Bug: the scheduler computed its fallback-post deadline as\n`primary_pick.game_time - fallback_deadline_min`. When the double-down's\ngame starts BEFORE the primary's game, that deadline arrived after the\nBTS app had already stopped accepting submissions for the day.\n\nReproduced live on 2026-04-12: morning preview had Luke Keaschall\n(MIN, 13:37 game) as primary + Roman Anthony (BOS, 14:15 game) as\ndouble-down. After 12 noon-cluster lineups confirmed, the model\nflipped them \u2014 Roman became primary, Luke the double-down. The\nscheduler then computed fallback as 14:15 - 35min = 13:40 ET, three\nminutes AFTER Luke's 13:37 first pitch and the BTS submission cutoff.\n\nFix: extracted _earliest_pick_game_et helper and used it in both\nfallback-deadline call sites (the in-loop wakeup at scheduler.py:707\nand the post-loop final fallback at scheduler.py:774). When there's\nno double-down the helper returns the primary's game time, so the\nsingle-pick path is unchanged.\n\nTests:\n  - test_returns_primary_when_no_double_down (single-pick base case)\n  - test_returns_primary_when_primary_is_earlier (no behavior change)\n  - test_returns_double_down_when_double_is_earlier (the bug)\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24311942484,
+    "created_at": "2026-04-12T17:10:03Z",
+    "head_sha": "6fd61f9",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

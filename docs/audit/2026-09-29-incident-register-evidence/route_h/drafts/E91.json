@@ -1,0 +1,188 @@
+{
+ "id": "I-091",
+ "working_id": "E91",
+ "title": "Operational state (data/picks, data/health_state) had no off-box copy: box disk only, no backup until restic (4/11–7/10)",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "loss of recoverability had it fired: the box disk held the only copy of decisions, contest ledger, delivery ids, skip-shadow markers, the non-inferable manual saver flag and health state; unfixed residuals (data/validation/ in no backup set; backup_freshness silent when backups are not armed) can still change recoverability (B → A)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "backup",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Operational state the service cannot re-derive (data/picks incl. decision records and the manual saver flag, data/health_state) has an encrypted, versioned off-box backup with a verified restore path.",
+  "source": "docs/audit/2026-07-09-gpt56-sol-audit.md F5 (smallest safe fix); commit 78c424a body; ARCHITECTURE.md 'Operational-state backup (audit F5, 2026-07-10)' (74d0d20)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "data/picks and data/health_state are gitignored, the 3am R2 artifact sync uploads only the processed PA parquets, the probable-pitcher lookup and the policy npz, and no cron job backed up either directory, so the box disk held the only copy (provider snapshots unverified)",
+   "code": [
+    {
+     "path": "src/bts/data/sync.py",
+     "ref": "29e2d68",
+     "symbol": "sync_to_r2",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "29e2d68",
+     "symbol": "installed cron lines (no backup job)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": ".gitignore",
+     "ref": "29e2d68",
+     "symbol": "data/picks/, data/health_state/",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/data/sync.py",
+     "ref": "2b752be",
+     "symbol": "sync_to_r2",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "78c424a",
+     "16ff24d"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:00Z",
+    "run_id": 29114882915,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "data/validation/ is in no backup set (live-forward official and research roots, shadow status, the W1.1 ledger build directory); the 9/28 W0.7 snapshot froze it once, but nothing backs it up going forward",
+   "reaches_production": true,
+   "source": "CLAUDE.md 'restic (bts backup)' (d7c64b1); src/bts/data/backup.py BACKUP_SETS at 9907cb9"
+  },
+  {
+   "text": "backup_freshness returns no finding when backup_status.json is absent ('not armed — silent by design'), so a box whose backups were never armed, or whose status file was lost, reports healthy",
+   "reaches_production": true,
+   "source": "src/bts/health/backup_freshness.py at 9907cb9; 78c424a body"
+  },
+  {
+   "text": "The backup passes --exclude '*.lock', which also drops uv.lock files inside backed-up trees (operators store copies as uv.lock.pinned)",
+   "reaches_production": false,
+   "source": "CLAUDE.md 'restic (bts backup)'; src/bts/data/backup.py"
+  },
+  {
+   "text": "Hetzner provider snapshots/backups were flagged unverified (console check) and no later verification is on record in the repo",
+   "reaches_production": false,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md F5"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "an external cron check (independent of the scheduler) finds a directory the service writes and cannot re-derive (data/picks, data/health_state, research roots under data/validation) outside every backup set, or no successful snapshot of its set within the freshness window (ops 7 h), or no backup_status.json on the production box",
+  "recovery_assertion": "a restore-drill of the last successful ops snapshot into an empty directory brings back the saver flag and decision provenance (the 78c424a restore-drill claims), with the snapshot id recorded"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md F5 (read-only box inspection on 2026-07-09; command output not in the repo)",
+   "what": "the R2 sync excludes data/picks entirely and no box-level backup exists (`find` for backup/restic/borg/snapshot = 0); box loss = irrecoverable operational state; Hetzner provider snapshots unverified"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 78c424a message body",
+   "what": "data/picks (decisions, contest ledger, manual saver flag, skip-shadow markers) and data/health_state existed only on the box: gitignored, excluded from the R2 artifact sync, no provider snapshot; the saver flag is deliberately not inferable; adds restic ops/archive sets, restore-drill and backup_freshness (silent when the status file is absent)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/data/sync.py sync_to_r2, scripts/cron-setup-hetzner.sh and .gitignore at 29e2d68",
+   "what": "sync_to_r2 uploads data/processed/pa_*.parquet, probable_pitcher_lookup.json and mdp_policy.npz only; the cron script has no backup job; data/picks/ and data/health_state/ are gitignored"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "2b752be (same sync scope, no backup job) deployed 2026-06-07T00:11:21Z, canary passed: the pre-fix configuration was installed inside the window"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29114882915 (deploy_runs.json)",
+   "what": "pre-deploy 49f2538 -> deployed 6919e19 at 2026-07-10T18:41:02Z, canary passed: the restic backup code (78c424a, 16ff24d) was first installed"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 74d0d20 (ARCHITECTURE.md, INCIDENT.md, docs/audit/2026-07-09-gpt56-sol-audit.md dispositions)",
+   "what": "backup cron lines ops `20 */3`, archive `50 4`, prune `35 5 Sun`; restore runbook in INCIDENT.md; 'first live drill at deploy time' — no activation time recorded"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "CLAUDE.md 'restic (bts backup)' (d7c64b1); src/bts/data/backup.py BACKUP_SETS and src/bts/health/backup_freshness.py at 9907cb9",
+   "what": "ops = data/picks + data/health_state, archive = data/leaderboard + data/hetzner_results + data/external: data/validation/ is in no set; --exclude '*.lock'; an absent status file is silent"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "78c424a",
+   "16ff24d",
+   "74d0d20",
+   "51ef987"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md F5",
+   "ARCHITECTURE.md 'Operational-state backup (audit F5, 2026-07-10)'",
+   "INCIDENT.md box/filesystem-loss restore"
+  ]
+ },
+ "related": [
+  "I-090",
+  "I-073"
+ ],
+ "notes": [
+  "no evidenced firing (no box loss); exposure interval 2026-04-11 (Hetzner cutover, 51ef987) → the first successful ops snapshot, whose time is not in the repo (code live 2026-07-10T18:41:02Z; activation needs restic install, RESTIC_PASSWORD and a crontab install that no deploy performs) — B2 restic snapshot list (ids/times/tags, Phase 2) would bound it",
+  "fix set: 78c424a + 16ff24d are the backup-only commits (both first live in 6919e19); review rounds ea73b78, 6d74d39 (live 2026-07-10T19:49:38Z) and 30452eb (live 2026-07-13T01:12:47Z via 230f65c) also touched the backup code — hence complete_fix_set false",
+  "kept for restore coverage (W4 rank 2 restore checks); data/health_state exists from the health subpackage (e74c485, 4/27); the Fly/Pi5 era before 4/11 is not assessed",
+  "related: I-090 (the laptop-side single-copy loss, same class); I-073 (the same gpt-5.6-sol audit's other findings)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; restore-drill tests in tests/test_backup.py and tests/test_backup_cli.py (78c424a) are defences, not reproductions"
+ ]
+}

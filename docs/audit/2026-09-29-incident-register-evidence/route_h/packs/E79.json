@@ -1,0 +1,37 @@
+{
+ "id": "E79",
+ "episode_row": [
+  "E79",
+  "8/03",
+  "unretried schedule discovery (3am data pull path)",
+  "X",
+  "DL",
+  "P",
+  "950c081"
+ ],
+ "commits": [
+  {
+   "sha": "950c081",
+   "authored": "2026-08-03T12:39:49-04:00",
+   "subject": "fix(data): route schedule discovery through retry_urlopen",
+   "body": "discover_games walked the date range with a bare urlopen, so a single\ntransient MLB blip on day 40 of a 180-day backfill threw away every day\nalready fetched. Every other HTTP caller in the codebase (picks,\nscorecard, posting, dm) already goes through the shared retry_urlopen;\ndownload_game_feed had its own inline backoff. This was the last\nunprotected fetch on the pull path.\n\nGET is idempotent, so the default policy (3 attempts, linear backoff, no\nretry on 4xx) applies unchanged \u2014 no idempotent=False needed.\n\nBackfill-only path; the live pick pipeline was never affected.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01T2PnjAhep2KmHSncZhUJE9",
+   "files": [
+    "src/bts/data/pull.py",
+    "tests/data/test_pull.py"
+   ],
+   "first_live_log": {
+    "sha": "5bde492",
+    "live_by": "2026-08-03T16:53:22Z",
+    "not_live_before": "2026-08-03T16:53:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 30833938616,
+    "created_at": "2026-08-03T16:49:46Z",
+    "head_sha": "5bde492",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

@@ -1,0 +1,184 @@
+{
+ "id": "I-027",
+ "working_id": "E27",
+ "title": "4/13\u20134/14 the 3am pull/build/preview chain died on `bts data pull` without --start/--end: no fresh blend or preview",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "D"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "liveness failure of the nightly data/preview chain: every 3am run after the crontab reinstall stopped at its first command, so build, preview and the next-day blend were not produced and production ran a blend 2\u20133 days stale (operator report)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "The 3am cron chain pulls the latest game feeds, rebuilds the season parquet, produces the preview pick and next-day blend, and syncs to R2.",
+  "source": "scripts/cron-setup-hetzner.sh header '03:00 \u2014 nightly data refresh + sync to R2 + tomorrow's preview pick' (d5c466c)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the 3am line ran `bts data pull` with no --start/--end; the command has required both since d991a79 (3/29), so every run exited 'Missing option --start' and the && chain skipped build and preview",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "dccbfbb",
+     "symbol": "CRON_LINES (03:00 line)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/cli.py",
+     "ref": "dccbfbb",
+     "symbol": "pull",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "28732c2"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "28732c2",
+    "live_by": "2026-04-14T15:47:20Z",
+    "run_id": 24408775842,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": {
+    "action": "crontab reinstalled from the fixed script (an operator step; deploys do not install crontabs)",
+    "at": "unknown"
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "deploys do not install crontab changes: the fix stays inert until `bash scripts/cron-setup-hetzner.sh install` runs on the box",
+   "reaches_production": true,
+   "source": "docs/superpowers/specs/2026-07-07-park-drag-delta-context-feature.md 'Post-deploy steps'"
+  },
+  {
+   "text": "a failed 3am chain raised no alert until the blend_training health check (e74c485, 4/27: CRITICAL when tomorrow's blend pickle is missing at end of day)",
+   "reaches_production": false,
+   "source": "src/bts/health/blend_training.py docstring (e74c485)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "by 04:30 ET the 3am chain's log shows no completed data build and preview, or by end of day the next day's blend pickle is missing",
+  "recovery_assertion": "today's preview and tomorrow's blend exist and post-date today's 03:00 run"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 28732c2 message body",
+   "written_at": "2026-04-14T11:47:16-04:00",
+   "what": "every nightly 3am run short-circuited at `bts data pull` with 'Error: Missing option --start.'; build and preview never ran and no new blend pickle was generated; production ran a blend 2\u20133 days stale; found by probing the 3am retrain watcher"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py pull at d991a79 (3/29) and at dccbfbb",
+   "what": "--start and --end are required=True from the command's creation, so the body's 'the CLI was updated to require' is inaccurate: the 3am line was wrong from d5c466c on"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "scripts/cron-setup-hetzner.sh at d5c466c and 715c932; src/bts/health/blend_training.py docstring (e74c485)",
+   "what": "the 3am line had no --start/--end; the 3am run on day N produces blend_<N+1>.pkl, and a missing pickle makes the next prediction fall back to a stale blend"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24408775842 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head 28732c2, created 2026-04-14T15:47:20Z, concluded success \u2014 the script reached the box; the crontab install is not a workflow step"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "3am runs after the 4/12 crontab reinstall (4/13, 4/14)",
+   "onset": {
+    "not_before": "2026-04-13T03:00:00-04:00",
+    "not_after": "2026-04-14T11:47:16-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-14T11:47:16-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-14T11:47:16-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "28732c2",
+   "d5c466c",
+   "715c932",
+   "d991a79"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-07-07-park-drag-delta-context-feature.md 'Post-deploy steps'"
+  ]
+ },
+ "related": [
+  "I-019"
+ ],
+ "notes": [
+  "continuation of I-019: the 3am chain produced nothing from the 4/11 cutover until this fix plus a reinstall (first `source`, then the missing arguments)",
+  "the 'retrain watcher' the body mentions is not located in the repo",
+  "onset not_before 4/13 03:00: the first 3am slot after the d5c466c script existed (4/12 11:46); the 4/12 03:00 run had already died on `source` (I-019); the reinstall time of the d5c466c crontab is not recorded",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; script-only fix, no test"
+ ]
+}

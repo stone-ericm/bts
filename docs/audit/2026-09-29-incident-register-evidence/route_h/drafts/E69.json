@@ -1,0 +1,306 @@
+{
+ "id": "I-069",
+ "working_id": "E69",
+ "title": "7/01–7/02 first live pick→skip flip: dashboard hid the SKIP banner and showed the declined provisional pick; skip wording and history rows contradicted the skip",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "display/wording defects; the skip DM stayed authoritative and no wrong entry is evidenced (the 7/01 audit flagged that an operator following the dashboard could enter the declined pick)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "dashboard",
+ "authority": "local",
+ "contract": {
+  "text": "On a day whose standing decision is an MDP skip, the dashboard shows the skip (banner, no pick hero, no pending pick) and skip messages state the bar that actually applied; a provisional, undelivered pick file is not presented as the day's pick.",
+  "source": "ARCHITECTURE.md scheduler.py/web.py 'Skip-day visibility' (9dc8ee4); docs/audit/2026-07-01-production-state-audit.md F1; the #145 committed-pick predicate daily_decision.is_scoreable_commit"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "web.py suppressed the SKIP TODAY banner whenever a pick FILE for today existed (_has_today_pick) and rendered the hero from that file without checking delivery or decision state; on the first projected-pick→real-skip flip, the stale provisional (undelivered) file hid the banner and showed the declined candidate as today's pick",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "83a5cad",
+     "symbol": "render_page (_has_today_pick banner suppression; hero card)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "skip messages (log line, skip DM, banner) said 'below the ~80% bar', but the deployed policy's bar is streak-dependent, so a skip of a candidate above 80% read as a contradiction",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "83a5cad",
+     "symbol": "build_skip_summary / skip message text",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "after the skip finalized, the result-less provisional file rendered in history as an eternally pending pick, and the 'Waiting for lineups' placeholder, hero card and live-scorecard section still contradicted the SKIP banner",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "48e8485",
+     "symbol": "render_page (history rows, placeholder, hero, live section)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "258aaa4"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "48e8485",
+    "live_by": "2026-07-02T15:28:12Z",
+    "not_live_before": "2026-07-02T15:28:10Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": {
+    "action": "operator caveat in the audit memo: the skip DM is authoritative; do not enter the dashboard pick",
+    "at": {
+     "not_after": "2026-07-01T18:57:28-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "258aaa4"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "48e8485",
+    "live_by": "2026-07-02T15:28:12Z",
+    "not_live_before": "2026-07-02T15:28:10Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "2c62d72"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2c62d72",
+    "live_by": "2026-07-02T16:06:38Z",
+    "not_live_before": "2026-07-02T16:06:36Z",
+    "run_id": 28604004289,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "on a date whose final decision is a skip (no scoreable commit), the contest account shows an entry for that date, or the dashboard's rendered state (hero pick / pending history row) disagrees with decision.json after finalization",
+  "recovery_assertion": "the dashboard shows the SKIP banner with no pick hero and a SKIP history marker for the date, and no contest entry exists for a skip day unless the operator deliberately overrode the skip"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'Live event during audit' and Findings F1 (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "verified live: at 18:26 ET the MDP flipped a provisional pick to a genuine skip while an undelivered provisional pick file for the day existed; the SKIP banner is suppressed by that file and the hero shows the declined candidate as today's pick, so an operator following the dashboard could enter a pick the MDP declined; the skip DM is the authoritative signal"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 258aaa4 message body",
+   "written_at": "2026-07-01T20:17:44-04:00",
+   "what": "triggered by the first live projected-pick→real-skip flip: the stale undelivered file hid the banner while the hero showed a pick production had declined; skip messages said '~80% bar' although the bar is streak-dependent, so the day's skip read as a contradiction"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2c62d72 message body",
+   "written_at": "2026-07-02T12:01:29-04:00",
+   "what": "Eric's two reports on 2026-07-02: a skip day's result-less pick file rendered as an eternally pending history row; the placeholder, hero card and live section contradicted the SKIP TODAY banner"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z -> deployed 48e8485 at 15:28:12Z, canary passed; 48e8485 contains 258aaa4 and lacks 2c62d72"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28604004289 (deploy_runs.json)",
+   "what": "pre-deploy 48e8485 -> deployed 2c62d72 at 2026-07-02T16:06:38Z, canary passed"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'Production ops' table, Deployed SHA row",
+   "what": "the audit reports box HEAD 83a5cad == deploy ref on 7/01 (box state not located here); no deploy run occurred between 28520680537 (7/01 13:21Z) and 28601525167"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-01 (flip day)",
+   "onset": {
+    "at": "2026-07-01T18:26:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-01T18:26:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-01T18:57:28-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-01T20:17:44-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-07-01T18:57:28-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  },
+  {
+   "label": "2026-07-02 (Eric's two reports)",
+   "onset": {
+    "not_before": "2026-07-02",
+    "not_after": "2026-07-02T12:01:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-07-02",
+    "not_after": "2026-07-02T12:01:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-02T12:01:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-02T12:01:29-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "258aaa4",
+   "2c62d72",
+   "9dc8ee4",
+   "7636c11"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-01-production-state-audit.md F1 and 'Live event during audit'"
+  ]
+ },
+ "related": [
+  "I-065",
+  "I-066",
+  "I-071"
+ ],
+ "notes": [
+  "defective refs: links 1–2 cite 83a5cad, the installed tree per the audit (src/ identical to 258aaa4^ = 7636c11, docs-only between); ref_basis candidate because the first retained log observing 83a5cad (run 28601525167, 7/02 15:28:10Z) postdates the 7/01 evening — no deploy run in between. Link 3 cites 48e8485 (log-installed 15:28:12Z–16:06:38Z; web.py/scheduler.py identical to 2c62d72^ = 598a40b), the likely tree for Eric's banner-contradiction report, which needs the 258aaa4 banner to be showing",
+  "link 1 complete_fix_set false: 258aaa4 fixed the banner gate; the hero/placeholder/live-section half of the same class needed 2c62d72 (link 3)",
+  "the 7/01 audit and both bodies name the declined candidate, its probability and the streak; not repeated here",
+  "no wrong entry is evidenced for 7/01; note that the entry check is gated on a scoreable commit, so an entry on a skip day would not be flagged by it (watchdog above)",
+  "delivery_mode unknown (5/20–7/05 window)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 258aaa4 adds banner-gating and bar-wording tests (tests/test_scheduler_skip_visibility.py, tests/test_strategy.py) and 2c62d72 adds 7 render_page-level tests for the flip-day display"
+ ]
+}

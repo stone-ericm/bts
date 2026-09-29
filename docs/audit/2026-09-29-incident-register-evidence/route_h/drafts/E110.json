@@ -1,0 +1,208 @@
+{
+ "id": "I-110",
+ "working_id": "E110",
+ "title": "7/04-7/10: entry check v2 treated present_unverified as confirmed (terminal), so a wrong player or a missing DD slot hidden by a crosswalk gap would have passed silently",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "E",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "entry-verification masking (a missing DD leg could go unalerted); no firing evidenced (7/08's missed leg took the alerted path, I-072); B -> A: at HEAD a marker still present_unverified at the cutoff produces no EOD record",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "contest",
+ "contract": {
+  "text": "check-pick-entered reports the delivered pick as entered only when every delivered slot's player is verified in the contest entry; a wrong player or a missing double-down slot alerts.",
+  "source": "ARCHITECTURE.md 'bts check-pick-entered' (identity-verified, both DD slots, 2026-07-04); contest_fetch.pick_entry_status docstring at df15eb0"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "pick_entry_status returned (True, present_unverified) whenever an entered row could not be mapped through the BTS->MLB crosswalk (or the crosswalk was empty), even with fewer rows entered than slots delivered",
+   "code": [
+    {
+     "path": "src/bts/contest_fetch.py",
+     "ref": "115c0cf",
+     "symbol": "pick_entry_status",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/contest_fetch.py",
+     "ref": "8bceda1",
+     "symbol": "pick_entry_status",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "check_pick_entered wrote status confirmed for any ok result, and a confirmed marker ends the day's checking",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "115c0cf",
+     "symbol": "check_pick_entered",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "e5ef7ca"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:03Z",
+    "run_id": 29103040814,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "A marker still present_unverified at the cutoff yields no EOD record: the pick_entry health source flags only alerted and dm_failed",
+   "reaches_production": true,
+   "source": "src/bts/health/pick_entry.py check() at 4490aee (unchanged at HEAD); code reading"
+  },
+  {
+   "text": "No postponed-game awareness in the entry checker (nags and a false EOD WARN for a selection that will Pass); deferred as a product call",
+   "reaches_production": true,
+   "source": "docs/audit/2026-07-09-gpt56-sol-audit.md fix-batch round 'Deferred' #6; ARCHITECTURE.md 'Known deferral'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "at a delivered pick's cutoff (earliest slot first pitch - 5) the day's entry marker is anything but an exact-match confirmation (present_unverified, alerted, dm_failed or absent)",
+  "recovery_assertion": "an exact-match confirmation for every delivered slot before the cutoff, or a recorded operator acknowledgement"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-09-gpt56-sol-audit.md 'Fix-batch adversarial review round' #1; commit e5ef7ca body",
+   "written_at": "2026-07-09T22:55:36-04:00",
+   "what": "present_unverified was terminal confirmed, so a wrong player hidden by a crosswalk gap ended the day's checking; now only an exact match is terminal and a missing slot count is a mismatch"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/contest_fetch.py pick_entry_status at df15eb0 (identical at 115c0cf) and src/bts/cli.py check_pick_entered at 115c0cf",
+   "what": "the masking needs an unresolvable entered row or an empty crosswalk; a resolvable single-leg entry already returned mismatch"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy runs 28694407483 (720651a -> df15eb0 at 2026-07-04T04:10:53Z) ... 29103040814 (115c0cf -> 49f2538 at 2026-07-10T15:20:05Z) (deploy_runs.json, logs retained)",
+   "what": "the defective check was installed continuously from 7/04 04:10:53Z until 7/10 15:20:05Z"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 8bceda1 message body",
+   "written_at": "2026-07-09T22:32:26-04:00",
+   "what": "7/08's DD leg went unentered past a single 18:00 alert because alerted was terminal: the 7/08 path was 'alerted', not present_unverified"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-09T22:55:36-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "720651a",
+   "df15eb0",
+   "8bceda1",
+   "e5ef7ca"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-09-gpt56-sol-audit.md fix-batch round",
+   "ARCHITECTURE.md 'bts check-pick-entered'"
+  ]
+ },
+ "related": [
+  "I-061",
+  "I-062",
+  "I-072",
+  "I-073"
+ ],
+ "notes": [
+  "the row's 'DL?' holds: code + logged installs; firing would need a DD day 7/04-7/10 with one entered leg the crosswalk could not resolve; Route R: pick_entry_check.json history and the contest ledger for those days",
+  "the first v2 install (720651a, 7/04 03:07:46Z, ~1 h overnight) counted any entered row via has_prediction_for, an even coarser version of the same masking",
+  "e5ef7ca also reworked I-073 fixes before their first install; the e5ef7ca entry-check hunks are this record's",
+  "tests added by the fix: tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_unverified_presence_is_nonterminal (link 2) and ::test_missing_slot_count_is_mismatch_despite_crosswalk_gap (link 1)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

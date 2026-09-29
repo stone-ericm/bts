@@ -1,0 +1,58 @@
+{
+ "id": "EX3",
+ "episode_row": [
+  "EX3",
+  "4/14",
+  "research-audit cloud fleet: silent retrieve failure left zombie boxes",
+  "\u2014",
+  "EX",
+  "\u2014",
+  "d3e5082 d868eff (not the production service)"
+ ],
+ "commits": [
+  {
+   "sha": "d3e5082",
+   "authored": "2026-04-24T16:17:52-04:00",
+   "subject": "docs(spec): audit teardown safety \u2014 per-box gate on retrieve success",
+   "body": "Brainstormed design for fixing the partial-retrieve-then-teardown\ndata-loss risk in audit_driver.py + audit_attach.py. New helper\nteardown_retrieved(provider, boxes, retrieve_results) filters the\nclean subset before calling teardown_all. Behavior matrix + data\nflow for four cases (happy / partial / systemic failure / pre-\nretrieve exception) + 9 unit tests covering the filter contract.\n\nKey invariant: destruction requires explicit evidence of success.\nAnything that doesn't produce retrieve_results[box.name] == \"ok\" \u2014\nexception, crash, partial, skipped \u2014 defaults to preservation.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "docs/superpowers/specs/2026-04-24-audit-teardown-safety-design.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24912487086,
+    "created_at": "2026-04-24T21:22:03Z",
+    "head_sha": "6ccd7e5",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d868eff",
+   "authored": "2026-04-24T17:10:35-04:00",
+   "subject": "docs(plan): audit teardown safety \u2014 7-task TDD implementation plan",
+   "body": "Tasks 1-4: test infrastructure + 11 failing tests (RED at each commit).\nTask 5: implement teardown_all return int + teardown_retrieved helper (GREEN).\nTask 6: wire audit_driver.main to use the helper.\nTask 7: wire audit_attach.main (symmetric change, completes the fix).\n\nSpec: docs/superpowers/specs/2026-04-24-audit-teardown-safety-design.md\nTarget: 612 tests passing.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "docs/superpowers/plans/2026-04-24-audit-teardown-safety.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24912487086,
+    "created_at": "2026-04-24T21:22:03Z",
+    "head_sha": "6ccd7e5",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,160 @@
+{
+ "id": "I-030",
+ "working_id": "E30",
+ "title": "shadow-report labelled the DD-aware production day hit rate as 'Production P@1'",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "U",
+  "secondary": [
+   "R"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "wording defect in a manual research report (shadow v1 comparison); the underlying math was unchanged and no data was lost or rewritten",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "shadow_v1",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The shadow comparison report labels each figure by what it computes; a DD-aware day-level result count is not top-1 P@1.",
+  "source": "commit f5e51dc message body; src/bts/cli.py shadow_report docstring ('Reports agreement rate, disagreement details, and P@1 for both models')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "shadow_report counted production days with result == 'hit' (the double-down-aware day result, which needs both picks to hit) and printed it as 'Production P@1', so the figure read as top-1 precision",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "0528bfd",
+     "symbol": "shadow_report",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "f5e51dc"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "e1ebde9",
+    "live_by": "2026-04-16T03:22:41Z",
+    "run_id": 24490273852,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only wording defect in a manually run research CLI; no delivery, entry, grading, restart or preservation boundary is involved",
+  "recovery_assertion": "not_applicable: corrected by the label change"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit f5e51dc message body",
+   "written_at": "2026-04-15T18:54:02-04:00",
+   "what": "the report displayed 'Production P@1: 1/5' while the computation counted DD-aware day results, not top-1 hits"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py shadow_report at 0528bfd; docs/sota_audit/2026-05-09-shadow-context-backfill-quality.md \u00a7Backfill Result (file date range only)",
+   "what": "the report pairs every *.shadow.json with its production file and counts pairs with a hit/miss production result; shadow files begin 2026-04-10, so five resolved pairs exist only once the 4/14 production result was resolved: the quoted run happened on 4/14 or later"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24490273852 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (e1ebde9, push to main) contains f5e51dc, created 2026-04-16T03:22:41Z; log unavailable_expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-14/15 (the run quoted in f5e51dc)",
+   "onset": {
+    "not_before": "2026-04-14",
+    "not_after": "2026-04-15T18:54:02-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-14",
+    "not_after": "2026-04-15T18:54:02-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-15T18:54:02-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-15T18:54:02-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "f5e51dc"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-095"
+ ],
+ "notes": [
+  "prelim was UC; drafted as observed because the body quotes the displayed output and the quoted 5-resolved-day window bounds the run to 4/14\u20134/15 (derivation in ev2), within 48 h of the report; if the lead wants the run date stated explicitly, this becomes unresolved_candidate (no artifact can date the run)",
+  "the body's per-batter outcomes and real P@1 figure are not repeated (no exposure need: the incident is the label, not the values)",
+  "whether shadow-report ran on the box or on a synced laptop copy is not recorded; 'deployed' is the box candidate only",
+  "the same function's shadow tally also counted shadow hits only on agreement days; that was changed by 8671709 (E44 / I-044)",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,169 @@
+{
+ "id": "I-106",
+ "working_id": "E106",
+ "title": "4/08-4/10: an O(n^2) dead probable-pitcher lookup in the bullpen feature ran on every prediction (30+ min on the Fly VM); effect on production worker tiers unknown",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "orchestrator/worker logs for 2026-04-08..04-10 (predict-json durations, tier timeouts or fallbacks); Pi5-era logs are not in the repo and journals start 5/11",
+  "which host produced each 4/08-4/10 production pick and how long its prediction took"
+ ],
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "S"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "prediction latency on the production worker tiers against their timeouts (example config: mac 5 min, alienware 10 min) is unknown; a timeout would fall back to the next tier; the observed 30+ min was on the Fly VM, not production",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "predict-json completes within its tier's timeout.",
+  "source": "config/orchestrator.example.toml [[tiers]] timeout_min (at bb33616); 947fce8 body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "44fdc84 added a df.loc scan inside a .map() lambda over ~1.5M rows per game_pk in the probable-pitcher lookup; a vectorized replacement on the next lines overwrote the result, but the dead scan still ran on every prediction",
+   "code": [
+    {
+     "path": "src/bts/features/compute.py",
+     "ref": "bb33616",
+     "symbol": "_build_probable_pitcher_lookup (bullpen block)",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "947fce8"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a prediction cascade's duration exceeds its tier timeout or leaves less than the delivery reserve before the earliest pick game's cutoff",
+  "recovery_assertion": "cascade durations back under the timeout and the day's pick delivered before its cutoff"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 947fce8 message body",
+   "written_at": "2026-04-10T18:18:03-04:00",
+   "what": "the dead O(n^2) scan 'still ran, causing 30+ minute predictions on the Fly 2-vCPU VM'; also: R2 sync lacked mdp_policy.npz, 'causing strategy to fall back to heuristic on Fly'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 44fdc84",
+   "written_at": "2026-04-08T12:20:19-04:00",
+   "what": "added opp_bullpen_hr_30g and the probable-pitcher lookup carrying the dead scan"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 5207a09 (workers auto-pull since 2026-04-04)",
+   "what": "worker tiers picked up 44fdc84 at their next prediction after the 4/08 push"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "config/orchestrator.example.toml at bb33616, [[tiers]]",
+   "what": "tier timeouts: mac 5 min, alienware 10 min"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 24266755555 (deploy_runs.json)",
+   "what": "success for head 947fce8 created 2026-04-10T22:18:26Z (Fly workflow; log expired)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-08 -> 2026-04-10 (every prediction)",
+   "onset": {
+    "not_before": "2026-04-08T12:20:19-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-10T18:18:03-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-04-10T18:18:03-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "44fdc84",
+   "947fce8",
+   "5207a09"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "config/orchestrator.example.toml [[tiers]]"
+  ]
+ },
+ "related": [
+  "I-016",
+  "I-017",
+  "I-113"
+ ],
+ "notes": [
+  "the 947fce8 body is contemporaneous with the Fly observation but describes Fly, not production, so it is carried as inference here",
+  "E16 (4/08 timeout scanning ~23K raw feeds, I-016) is a separate cause in the same window",
+  "the production workers auto-pulled main from 4/04 (5207a09), so the fix reached them at their next prediction after the 4/10 push (not evidenced); log bound: live by 2026-06-07T00:11:19Z",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24266755555 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover",
+  "the R2-sync omission fixed by the same commit is I-113 (restore coverage)"
+ ]
+}

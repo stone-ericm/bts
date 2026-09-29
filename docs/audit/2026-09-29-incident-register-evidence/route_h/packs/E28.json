@@ -1,0 +1,38 @@
+{
+ "id": "E28",
+ "episode_row": [
+  "E28",
+  "4/14",
+  "deploy pull failed on uv.lock drift; stale code while CI green",
+  "S",
+  "OI",
+  "A",
+  "6bffd63"
+ ],
+ "commits": [
+  {
+   "sha": "6bffd63",
+   "authored": "2026-04-14T19:47:44-04:00",
+   "subject": "fix(deploy): prevent silent deploy failures from uv.lock drift",
+   "body": "Root cause: Mac has ~/.config/uv/uv.toml with exclude-newer = \"3 days\"\n(supply-chain defense per Willison's \"package managers need to cool down\"\npost). bts-mlb had no matching global config, so its uv dropped the\n[options] section from uv.lock on every `uv run`. Every commit touching\nuv.lock would silently fail the `git pull --ff-only` step, and the\nworkflow script had no `set -e`, so services would restart on stale code\nwith the GitHub Actions run still showing green. This session's\ncatboost commit was the first uv.lock change in 3 days and tripped it.\n\nThree fixes together:\n\n1. Move exclude-newer into pyproject.toml [tool.uv] with an absolute\n   date (\"2026-04-11\") instead of the relative \"3 days\" value. Project\n   config overrides user config, so both Mac and bts-mlb now produce\n   byte-identical uv.lock files. Update this line manually when\n   refreshing the supply-chain window.\n\n2. Add `set -e` to the deploy workflow script so any failing step\n   (git pull, uv sync, systemctl) halts the deploy and turns the GH\n   Actions run red. No more silent green-on-broken.\n\n3. Add `uv sync --locked --extra model` as a post-pull validation step.\n   Errors out if uv.lock drifts from pyproject.toml, and installs any\n   newly-declared deps into the venv (fixes the chronic \"production\n   missing an optional dep\" class of problem).\n\nAlso: run git pull and uv sync as `sudo -Hu bts` rather than root, so\npulled files keep bts ownership and uv reads bts's home config.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    "pyproject.toml",
+    "uv.lock"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24428702189,
+    "created_at": "2026-04-14T23:47:55Z",
+    "head_sha": "6bffd63",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

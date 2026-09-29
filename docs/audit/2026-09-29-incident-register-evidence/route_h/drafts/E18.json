@@ -1,0 +1,79 @@
+{
+ "id": "I-018",
+ "working_id": "E18",
+ "title": "4/11 Hetzner deploy runs reported success while git pull failed (safe.directory) and the restart hit the wrong unit manager",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "S", "secondary": []},
+ "tier": "A",
+ "tier_reason": "the deploy path reported success without installing or restarting the pushed code, so a shipped fix would not have taken effect (deploy recoverability); the code actually stranded between 4/11 01:21 and the 4/12 11:52 ET run was dashboard cosmetics plus workflow and docs changes",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A successful deploy run installs the pushed commit on the box and restarts the production services on it.",
+  "source": ".github/workflows/deploy.yml at 51ef987 (git pull --ff-only; systemctl restart bts-scheduler bts-dashboard; echo 'Deployed <sha>')"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the workflow ran git pull as root in the bts-owned checkout without a safe.directory entry, so git refused the repository and the pull failed; with no set -e the script carried on, restarted services and the run concluded success",
+   "code": [{"path": ".github/workflows/deploy.yml", "ref": "17ca511", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "root's systemctl restart addressed the system-level manager, not the bts user's units that the operator treated as canonical (user-level units were created 4/11 22:04; legacy system-level units from the 01:08 setup were still present, I-020)",
+   "code": [{"path": ".github/workflows/deploy.yml", "ref": "11003e3", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["870cede"], "complete_fix_set": false},
+   "deployed": {"basis": "candidate_ancestry", "sha": "d5c466c", "live_by": "2026-04-12T15:52:42Z", "run_id": 24310493193, "evidence": ["ev4"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["cda8c1c"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "d5c466c", "live_by": "2026-04-12T15:52:42Z", "run_id": 24310493193, "evidence": ["ev4"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "the workflow still had no set -e, so any failing step kept reporting success until 6bffd63 on 4/14 (I-028)", "reaches_production": false, "source": "6bffd63 body"},
+  {"text": "the paths filter excluded .github/workflows/deploy.yml, so 870cede and cda8c1c triggered no run; they first ran with d5c466c on 4/12, and 8193909 added the workflow file to the filter", "reaches_production": false, "source": "deploy_runs.json (no run for 870cede or cda8c1c); 8193909 body"},
+  {"text": "restarting only the user-level units left the legacy system-level scheduler running until 8193909 (I-020)", "reaches_production": false, "source": "8193909 body"}
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "after a deploy run concludes success, the box's HEAD differs from the run's head SHA, or no scheduler (user unit) start is recorded after the run",
+  "recovery_assertion": "box HEAD equals the pushed SHA and a single scheduler process started after the run"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 870cede subject (no body)", "written_at": "2026-04-11T02:18:18-04:00",
+   "what": "'fix(deploy): add safe.directory for git pull (was silently failing)'"},
+  {"id": "ev2", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit cda8c1c message body", "written_at": "2026-04-11T22:11:56-04:00",
+   "what": "root can't see user-level units without XDG_RUNTIME_DIR; 'Previous systemctl restart silently failed since the units only exist under the bts user's service manager'"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy runs 24275567197, 24276399623, 24276428167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "the three Hetzner runs on 4/11 (05:21Z–06:14Z; heads d771ae1, 76b63fa, 17ca511) concluded success; logs expired"},
+  {"id": "ev4", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24310493193 (deploy_runs.json)",
+   "what": "next run 2026-04-12T15:52:42Z (head d5c466c), the first whose workflow contained 870cede and cda8c1c; concluded success; log expired"},
+  {"id": "ev5", "kind": "inference", "strength": "primary", "locator": "commit 8193909 message body (4/12 12:37 ET)",
+   "what": "system-level units were created by the original Hetzner setup at 01:08 on 4/11; user-level units at 22:04 on 4/11"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-11 → 2026-04-12 (Hetzner cutover)",
+  "onset": {"not_before": "2026-04-11T05:21:28Z", "not_after": "2026-04-11T02:18:18-04:00", "evidence": ["ev1", "ev3"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-11T02:18:18-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-11T22:11:56-04:00", "evidence": ["ev2"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["870cede", "cda8c1c", "51ef987"], "R": "pending_phase2", "X": ["ARCHITECTURE.md (11003e3) Hetzner migration"]},
+ "related": ["I-020", "I-028", "I-019"],
+ "notes": [
+  "disposition changed from the lead row (UC) to observed_incident: 870cede's subject says the pull 'was silently failing', written within an hour of the three 4/11 runs; the alternative is unresolved_candidate pending the expired run logs (Phase 2 deploy_history.txt)",
+  "cda8c1c's diagnosis ('units only exist under the bts user's service manager') conflicts with 8193909's later finding that legacy system-level units existed; read together, root's restart reached the legacy units, not the user units",
+  "tier A reads 'loss of recoverability' as 'the deploy path silently did not take effect'; the lead may prefer B because nothing production-relevant was stranded",
+  "stranded code is inference from git history: only d771ae1, 76b63fa, 17ca511 (dashboard) and workflow/docs commits were pushed before the 4/12 run; whether the box was pulled by hand meanwhile is not evidenced",
+  "deployed: the fixes first ran in Hetzner run 24310493193; log expired",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; workflow-only fixes, no test"
+ ]
+}

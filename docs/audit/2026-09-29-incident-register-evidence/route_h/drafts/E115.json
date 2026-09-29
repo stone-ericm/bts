@@ -1,0 +1,193 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "authority": "not_applicable",
+ "routes": {
+  "H": [],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-059"
+ ],
+ "id": "I-115",
+ "working_id": "E115",
+ "title": "Daily realized_calibration CRITICAL DMs computed on the biased streak-proxy path (the scheduler passed no data_dir) until 88234ae",
+ "disposition": "unresolved_candidate",
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if the daily CRITICALs were false they were a daily false page (alert noise, A); if they were true there is no incident; the only repo account hedges the attribution",
+ "missing_evidence": [
+  "the EOD health alert/DM records for 2026-05-01 -> 2026-07-02 (box alert state and DM log; Phase 2 Route R)",
+  "a PA-frame recomputation of realized_calibration for those days showing whether each CRITICAL would still have fired"
+ ],
+ "policy_objective": "none",
+ "stream": "production",
+ "contract": {
+  "text": "Each EOD health check evaluates the data it was calibrated for: realized_calibration runs on the PA-frame attribution path its thresholds assume.",
+  "source": "docs/audit/2026-06-09-fable5-full-audit.md (O2); 88234ae body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the same call passed no data_dir, so realized_calibration fell back to the streak-proxy attribution path the project had diagnosed as biased, while its thresholds were calibrated for the PA-frame path; its CRITICAL DMs were computed on that basis",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "5e435db",
+     "symbol": "run_day (EOD run_all_checks call)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/realized_calibration.py",
+     "ref": "5e435db",
+     "symbol": "check (streak-proxy branch when data_dir is None)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "88234ae"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "alert-input correctness (a health check fed the data path its thresholds were calibrated for) is not a W4 rank-2 boundary; W4's alert-delivery checks assume the alert content is right",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md (commit f5de8ee)",
+   "what": "read-only code audit of 6/09 naming every defect in this record (O1, O2, H2-H6, P3, D1-D4, M1, M4-M6, E1-E3, S2, G, since_deploy_iso, stat-power gates), each tagged orchestrator-verified or auditor-reported"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 88234ae message body; docs/audit/2026-06-09-fable5-full-audit.md 'Act on these first' #1",
+   "written_at": "2026-06-09T21:59:55-04:00",
+   "what": "realized_calibration ran on the biased streak-proxy path in production, 'inflating the daily CRITICAL DMs' (the memo: 'plausibly drives' them), despite pa_<season>.parquet being on the box"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy eaccaf8 -> deployed 2b752be at 2026-06-07T00:11:21Z (6/06 20:11 ET), canary passed; the workflow restarts bts-scheduler, so this is a restart inside the window where the UTC default selected the next date (link 3)"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "its retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); every fix commit in this record is an ancestor of 83a5cad (no run has a logged deployed SHA 83a5cad: run 28520680537 deployed head 83a5cad but its log expired)"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "message bodies of the 24 fix commits (trail)",
+   "trail": [
+    "88234ae",
+    "925db1d",
+    "ce5f51d",
+    "aa6b7b1",
+    "0f2bc3c",
+    "b302935",
+    "af08426",
+    "082e5b0",
+    "dfcf655",
+    "86ff4f1",
+    "c27480e",
+    "8550b80",
+    "63fcb67",
+    "736ea8f",
+    "6d929f8",
+    "0794116",
+    "e1594e3",
+    "a7663ca",
+    "3a6e48b",
+    "40a091c",
+    "8e867fc",
+    "bb7ccc1",
+    "6471f40",
+    "d94a51f"
+   ],
+   "what": "each body states the defective behaviour and the audit finding it fixes"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "daily EOD realized_calibration CRITICAL DMs (reported 6/09)",
+   "onset": {
+    "not_before": "2026-05-01",
+    "not_after": "2026-06-09T21:59:55-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-09T21:59:55-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "continuing": true,
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "notes": [
+  "split from I-059 (its link 2): 88234ae's body reports the daily CRITICAL DMs, but that they were false is only 'plausibly' (the memo), so it stays a candidate",
+  "onset not_before 2026-05-01 = b08769d (the PA-frame path added and never passed by the scheduler; I-059 exposure note)",
+  "the DMs themselves are the alert path working; 'alert: none' records that nothing flagged them as false",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

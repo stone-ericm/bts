@@ -1,0 +1,59 @@
+{
+ "id": "E56",
+ "episode_row": [
+  "E56",
+  "5/29\u20136/06",
+  "contest state silently frozen at 7 while real streak 0; no alert",
+  "G/A",
+  "OI",
+  "A",
+  "365ea40 (PR #142, spec d383db5)"
+ ],
+ "commits": [
+  {
+   "sha": "365ea40",
+   "authored": "2026-06-06T16:03:06-04:00",
+   "subject": "feat(health): CRITICAL on stale contest state + WARN on legacy/expired manual override",
+   "body": "Closes the alert gap that hid the silent freeze: stale (source_date < latest resolved pick) now alarms when contest state is expected.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/contest_state.py",
+    "tests/health/test_contest_state.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27072979769,
+    "created_at": "2026-06-06T20:25:30Z",
+    "head_sha": "eaccaf8",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d383db5",
+   "authored": "2026-06-06T15:22:21-04:00",
+   "subject": "docs(spec): contest-streak automation design (Claude+Codex)",
+   "body": "Auto-fetch the real MLB BTS streak via existing leaderboard auth; expiring manual override; stale-state CRITICAL alert (the missing alarm that hid the bug); currentness-proof so a 200 response != fresh. Design developed collaboratively with Codex (GPT-5.5); proposal in agent-room/docs/codex-contest-streak-design.md.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27072979769,
+    "created_at": "2026-06-06T20:25:30Z",
+    "head_sha": "eaccaf8",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

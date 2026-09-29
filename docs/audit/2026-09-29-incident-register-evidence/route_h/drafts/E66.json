@@ -1,0 +1,381 @@
+{
+ "id": "I-066",
+ "working_id": "E66",
+ "title": "GH #144: a stale provisional pick file on a final-skip day could be delivered by the fallback and scored by check-results or result polling",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "D",
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "the defect class reaches delivery (the fallback delivered the cached provisional pick on a genuine skip) and local streak state (check-results / result polling scored a non-committed pick); two accepted private-mode residuals reached production once delivery went private on 9/14",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "A genuine MDP skip day delivers nothing, is never locked for result polling and changes no streak state; only a committed pick (delivered, private_locked or locked_unconfirmed) may be scored — a provisional <date>.json (3am preview or pre-lock candidate save) is never delivered, polled or scored on a skip day.",
+  "source": "docs/superpowers/plans/2026-06-22-decision-record-daemon-paths.md 'Global Constraints'; docs/superpowers/specs/2026-06-21-daily-decision-record-design.md 'Problem' / 'Solution' (GH #144)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "bts check-results (01:00 cron) scored whatever load_pick(date) returned, gated only on 'already resolved', so a stale provisional <date>.json on a final-skip day would be scored and the streak updated from a pick production never made",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "d929479",
+     "symbol": "check_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "run_day's result-polling block was gated only on state.pick_locked; a non-delivered classification-lock of the stale file (game start / status failure) set pick_locked, and run_result_polling -> update_streak scored it with no internal scoreable guard",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "f1539c1",
+     "symbol": "run_day (step 8 result polling)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "the fallback re-evaluated at its deadline, got pick_result None (a genuine MDP skip) and, treating it as 'no fresh pick, use cached', delivered and locked the stale provisional pick",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "add1b3f",
+     "symbol": "_refresh_pick_at_fallback_decision + run_day fallback delivery sites",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "three checks read an undelivered pick file as a failure on a deliberate-skip day — the E3 missed-pick alert, the EOD post_failure CRITICAL and analytics_artifacts_missing (pick_locked-or-delivered heuristic) — so a correctly undelivered file raises false alerts",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "62cfe4e",
+     "symbol": "_maybe_alert_missed_pick",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/post_failure.py",
+     "ref": "62cfe4e",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/analytics_artifacts_missing.py",
+     "ref": "62cfe4e",
+     "symbol": "_locked_pick_exists",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "2b2b120",
+     "d929479",
+     "d6ae318",
+     "b0877fd",
+     "f1539c1",
+     "ffc9e2b",
+     "5fa36c3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "first live projected-pick→real-skip flip (7/01): the stale provisional file was still result-less on 7/02 after the 01:00 scoring run ('no scorer will ever fill it (correctly)')",
+    "at": {
+     "not_after": "2026-07-02T12:01:29-04:00",
+     "evidence": [
+      "ev12",
+      "ev13"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "b0877fd",
+     "25aeaee"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "62cfe4e",
+     "add1b3f",
+     "5fa36c3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "7/01 flip: the stale provisional file was never delivered — the day finalized as an MDP skip (decision.json action=skip) with the file undelivered",
+    "at": {
+     "not_after": "2026-07-02T12:01:29-04:00",
+     "evidence": [
+      "ev11",
+      "ev12",
+      "ev13"
+     ]
+    }
+   }
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "7bd2934",
+     "5fa36c3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Accepted private-mode edges: a private pick whose best-effort decision.json write fails goes unscored, and a private pick is not re-locked on a restart before first pitch; production delivery was private from 9/14.",
+   "reaches_production": true,
+   "source": "ARCHITECTURE.md 'Daemon-path completion' (5d2bf39); delivery axis (pick_delivery = private from 9/14)"
+  },
+  {
+   "text": "By design the fallback's cascade-error safety net still delivers the cached provisional pick when no standing skip is known yet, so a cascade failure on a day that confirmed lineups would have turned into a skip can deliver that provisional pick.",
+   "reaches_production": true,
+   "source": "62cfe4e body; ARCHITECTURE.md 'Daemon-path completion'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after the 01:00 check-results run and after any result-polling write: a date whose pick file gained a result, or whose streak.json changed, while its decision.json is absent or scoreable=false and the pick file has no delivery record (notification_sent / bluesky_posted / delivered_at); separately, any delivery record on a date whose decision.json action is skip",
+  "recovery_assertion": "for every final-skip date the pick file stays result-less, streak.json is unchanged by that date and no delivery exists; a violation is reverted and alerted"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d73face message body",
+   "written_at": "2026-06-21T00:38:57-04:00",
+   "what": "found during the skip-policy shadow work and deferred as tracked: 'a pre-existing check-results bug — it scores undelivered preview/provisional picks on skip days, corrupting the streak'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-06-21-daily-decision-record-design.md 'Problem' (commit 2e9e2b8)",
+   "what": "check-results scores whatever load_pick(date) returns, gated only on 'already resolved'; production has no single authoritative record of its final decision (GH #144)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 25aeaee message body",
+   "what": "result polling gated only on state.pick_locked; a non-delivered classification-lock of a stale projected preview sets pick_locked on an MDP-skip day and run_result_polling -> update_streak scores it (C2)"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 62cfe4e message body",
+   "what": "on the projected→real flip the fallback got pick_result None (a real skip) and, treating it as 'no fresh pick, use cached', delivered + locked + scored the stale preview (C1)"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 7bd2934 message body",
+   "what": "_maybe_alert_missed_pick, post_failure.check and analytics_artifacts_missing read an undelivered pick file as a failure on skip days (D6)"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py check_results and src/bts/scheduler.py (_refresh_pick_at_fallback_decision, run_day steps 5 / 5b / 8) at 9dc8ee4",
+   "what": "in the last deployed pre-fix head: no committed-pick gate before scoring; the fallback returns the cached pick when pick_result is None and delivers it; polling gated on state.pick_locked; step 5b alerts on any undelivered pick file. The same check-results, fallback and polling logic is present at 2b752be"
+  },
+  {
+   "id": "ev7",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: 2b752be deployed 2026-06-07T00:11:21Z, canary passed — the check-results / fallback / polling logic of links 1–3 was installed"
+  },
+  {
+   "id": "ev8",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27799639516 (deploy_runs.json)",
+   "what": "success at 2026-06-19T01:23:43Z with head 9dc8ee4 (log expired): the last successful deploy before the fix set"
+  },
+  {
+   "id": "ev9",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27996097986 (deploy_runs.json)",
+   "what": "success at 2026-06-23T01:35:58Z with head 5fa36c3 (log expired): the first successful deploy whose head contains the whole fix set (candidate ancestry); no deploy ran between this and run 27799639516"
+  },
+  {
+   "id": "ev10",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); every fix commit is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev11",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 258aaa4 message body",
+   "written_at": "2026-07-01T20:17:44-04:00",
+   "what": "7/01 was 'the first live projected-pick->real-skip flip'; the stale provisional file stayed undelivered while the dashboard showed 'a pick production had declined'"
+  },
+  {
+   "id": "ev12",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 2c62d72 message body",
+   "written_at": "2026-07-02T12:01:29-04:00",
+   "what": "on 7/02 the flip day's history row was 'a result-less pick file whose day finalized as an MDP skip (decision.json action=skip)' — 'no scorer will ever fill it (correctly)'"
+  },
+  {
+   "id": "ev13",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md '#145 decision.json model — working in production' + 'Live event during audit' (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "decision.json written every day 2026-06-23 → 06-30; the projected-pick → real-skip flip 'has never yet occurred live' before 7/01; on 7/01 a stale provisional file (delivery_attempted=false, notification_sent=false) existed after the flip"
+  },
+  {
+   "id": "ev14",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "ARCHITECTURE.md 'Daemon-path completion (the full #144 fix, shipped 2026-06-22 — PR #145)' (commit 5d2bf39)",
+   "what": "documents the shared is_scoreable_commit predicate, C1 / C2 / persistence / alert gating, and two accepted private-mode edges"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "2b2b120",
+   "d929479",
+   "d6ae318",
+   "b0877fd",
+   "f1539c1",
+   "25aeaee",
+   "add1b3f",
+   "62cfe4e",
+   "7bd2934",
+   "ffc9e2b",
+   "5fa36c3",
+   "d73face",
+   "5d2bf39",
+   "258aaa4",
+   "2c62d72",
+   "7636c11",
+   "9dc8ee4",
+   "2b752be"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "GH issue #144",
+   "PR #145",
+   "docs/superpowers/specs/2026-06-21-daily-decision-record-design.md",
+   "docs/superpowers/plans/2026-06-21-daily-decision-record.md",
+   "docs/superpowers/plans/2026-06-22-decision-record-daemon-paths.md",
+   "docs/audit/2026-06-20-skip-policy-shadow.md 'GH #144 fix'",
+   "docs/audit/2026-07-01-production-state-audit.md",
+   "ARCHITECTURE.md 'Daemon-path completion'"
+  ]
+ },
+ "related": [
+  "I-078",
+  "I-065",
+  "I-069",
+  "I-209"
+ ],
+ "notes": [
+  "prelim UC; drafted deployed_latent_defect: the defect is established by code (9dc8ee4, and 2b752be under a retained log) plus deployment, and no repo artifact reports a pre-fix firing — d73face and the spec describe it as found in review. The 7/01 audit (ev13) and 258aaa4 (ev11) call 7/01 the first live projected-pick→real-skip flip (the main precondition), which suggests no pre-fix firing via that path ('first' scope not stated). Route R's V1 preview-only / committed-but-undelivered candidates on pre-6/23 final-skip days would upgrade this to observed_incident; revert to unresolved_candidate if the lead wants that check first",
+  "GH issue #144's own text (Route X, R3) was not read (no gh); if it records a live occurrence, re-dispose",
+  "pre-ship inside the fix change (never deployed alone: no deploy ran between runs 27799639516 (6/19) and 27996097986 (6/23)): FinalizationState lost on a same-day restart (d929479 → add1b3f, D5); a standing skip suppressing a genuine late pick (62cfe4e → 5fa36c3 fix 1); skip_summary left set after a flip suppressing E3 (7bd2934 → 5fa36c3 fix 2); load_decision accepting partial records (2b2b120 → f1539c1 / 5fa36c3 fix 3)",
+  "link 4's E3 alert (_maybe_alert_missed_pick) exists only from bb7ccc1 (6/10, the E59 batch); the post_failure / analytics_artifacts_missing parts predate it",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing each fix = run 27996097986 at 2026-06-23T01:35:58Z (head 5fa36c3, log expired); the 7/01 audit reports decision.json written every day from 6/23 (operator report)",
+  "run_id 28601525167 = the run whose retained log observed 83a5cad as the pre-deploy SHA; no run has a logged deployed SHA 83a5cad (run 28520680537 deployed head 83a5cad, log expired)",
+  "verified_recovered for links 1 and 3 uses the 7/01 flip, which is also an occurrence of I-078 (the control-held near miss) — one event, two roles; link 2 (polling) is unknown because the repo does not show the 7/01 file classification-locked; link 4 (no false alerts on 7/01) is claimed only in a memory note",
+  "reproducing tests: tests/test_cli_integration.py test_check_results_missing_decision_undelivered_not_scored ('the core #144 case', d6ae318); tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_skip_day_skips_result_polling (25aeaee) and ::test_fallback_genuine_skip_recaptures_after_projected_pick_cleared (62cfe4e); tests/test_e3_missed_pick_alert.py::test_no_alert_on_skip_day_final_skip_candidate and tests/health/test_analytics_artifacts_missing.py::test_no_artifacts_expected_for_skip_classification_lock (7bd2934)",
+  "the Phase 1 plan (docs/superpowers/plans/2026-09-29-incident-register-phase1.md) already lists GH #144 among the 'other fixed Tier-A links' for current-defence fixtures",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

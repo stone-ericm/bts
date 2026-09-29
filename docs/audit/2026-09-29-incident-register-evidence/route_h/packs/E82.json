@@ -1,0 +1,42 @@
+{
+ "id": "E82",
+ "episode_row": [
+  "E82",
+  "8/11",
+  "MLB auth/login flap \u2192 failed cron + DM advising cookie re-capture; park_drag table stale",
+  "A/X",
+  "OI",
+  "A",
+  "404358d"
+ ],
+ "commits": [
+  {
+   "sha": "404358d",
+   "authored": "2026-08-11T16:20:09-04:00",
+   "subject": "fix(auth): classify MLB auth/login failures; retry only outage shapes",
+   "body": "2026-08-11 incident: MLB endpoints flapped; auth/login returned blank\nHTTP 200s (~1-in-3 for a stretch) and 503s. The single-shot login in\nfetch-contest-streak turned one blank 200 into a failed cron + a DM\nadvising cookie re-capture \u2014 a misdiagnosis (cookies were valid all day).\n\nfetch_login_session now retries in-process (2s/4s doubling, numeric\nRetry-After honored capped 30s) ONLY shapes that cannot be a rejection of\nus: transport errors, 5xx, and zero-length 200 bodies. Non-empty non-JSON\n200s (challenge-page shaped), non-object JSON, and 2xx!=200 raise\nTransientAuthError immediately \u2014 no retry (kill-switch), no cookie advice.\n429 raises RateLimitedLoginError (\"back off\", never \"re-capture\" \u2014 the\ninteractive recapture flow ADDS auth traffic). Other 4xx/3xx/missing-xSid\nstay credential-shaped (cookie advice), now carrying the errors envelope\nor body snippet for cron.log diagnosability. Malformed bodies (null body,\nsuccess/user non-dict) no longer escape as AttributeError past every\nhandler \u2014 that hole meant NO DM exactly when MLB served garbage.\n\nfetch-contest-streak: distinct handlers + per-category DM cooldowns\n(transient / rate_limited / actionable) so an outage DM cannot suppress a\nlater real cookie-death DM; stamps survive successful runs (a flap that\nrecovers and re-breaks stays throttled); legacy single-stamp records\nmigrate to ALL categories (pure legacy semantics, no double DM on\nupgrade). Profile-stage 429 / 5xx / transport failures categorize as\nrate_limited / transient as well.\n\ncheck-pick-entered: attempts=2 (the */15 cron is the outer retry loop),\nand minutes-to-cutoff is now net of monotonic fetch elapsed \u2014 never DM\n\"Fix it now\" for an entry that locked mid-fetch; that no-DM path still\nwrites the \"alerted\" marker so the EOD pick_entry audit fires\n(detected-and-unresolved, same semantics as the tier-exhausted branch).\n\nleaderboard scrape: same three-way message split.\n\nTwo Codex review rounds (gpt-5.6-sol xhigh, full repo access): r1 found\nthe challenge-page retry hazard and the AttributeError alerting hole; r2\ncaught regressions in the r1 amendments (whitespace != empty, hostile\nRetry-After values reaching time.sleep, the cutoff guard erasing the EOD\naudit marker, success wiping cooldown stamps, legacy-migration order\ndependence). All fixed test-first. Rejected with rationale: backoff\njitter (single low-volume client), is_session_valid contract change\n(zero callers; documented), check-pick quiet-skip redesign (deliberate\nv3 design).\n\nFast suite 1918 -> 1958, 0 fail.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_011czP4NdvbzHHTDdhUF5Evk",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/leaderboard/auth.py",
+    "src/bts/leaderboard/cli.py",
+    "tests/leaderboard/test_auth.py",
+    "tests/leaderboard/test_cli.py",
+    "tests/test_cli_integration.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "404358d",
+    "live_by": "2026-08-11T20:30:11Z",
+    "not_live_before": "2026-08-11T20:30:11Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31532428453,
+    "created_at": "2026-08-11T20:20:32Z",
+    "head_sha": "404358d",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

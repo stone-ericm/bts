@@ -1,0 +1,169 @@
+{
+ "id": "I-094",
+ "working_id": "E94",
+ "title": "3/31: the first `bts run` automation could re-pick over the day's manually posted pick (lock keyed only on game start); days 1-3 pick files were created retroactively that night",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "whether any automated `bts run` executed on 2026-03-31 between 18:49 ET (8fc68cb) and 22:08 ET (1c2efaa): the install time of the Mac crontab from dd3b954 (19:30 run 'always posts') and data/picks/automation.log on that host; neither is in the repo",
+  "the bot account's public Bluesky post history for 2026-03-31 (a second pick post would show a firing); outside the repo"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "G",
+   "S"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if a scheduled run fired inside the 3-hour window it could post a second public pick and leave a local record that differs from the posted pick (delivery/state impact, A); no firing is evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Once a day's pick has been posted, later automated runs keep it: no re-pick and no second post; the posted pick is the day's record.",
+  "source": "1c2efaa ('lock picks that were already posted to Bluesky'; body: 'Prevents cron from overwriting a pick that was already posted')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "cli.run locked the current pick only when its game had started (status != 'P'): a posted pick whose game had not started fell through to re-selection, and a different top batter overwrote the day's pick file (the posted flag carried over, so no second post, but the local record no longer matched the posted pick); a day with no pick file at all (days 1-3 were posted before pick persistence existed) had nothing to lock, so a run could pick and post anew",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "267a189",
+     "symbol": "run (step 4 lock check)",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "1c2efaa"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": {
+    "action": "retroactive pick files for days 1-3 created (outside git; data/picks is gitignored) so later runs see those days as picked",
+    "at": {
+     "not_after": "2026-03-31T22:08:58-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "for a date, more than one pick delivery receipt (post/DM) exists, or the local pick file's selection differs from the delivered selection",
+  "recovery_assertion": "exactly one delivered selection per date and the graded pick equals it"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 1c2efaa message body",
+   "written_at": "2026-03-31T22:08:58-04:00",
+   "what": "the posted-pick lock 'prevents cron from overwriting a pick that was already posted'; retroactive pick files were created for days 1-3"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commits 8fc68cb (bts run, 2026-03-31T18:49:15-04:00) and dd3b954 (scripts/cron-setup.sh, 2026-03-31T19:04:45-04:00)",
+   "what": "`bts run` and a Mac crontab (11:00, 16:00, 19:30 'always posts', 01:00 check-results) first existed on the evening of 3/31"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commits 85b61f1 (bts post, 2026-03-31T10:21:15-04:00) and 6798410 (pick persistence, 2026-03-31T18:22:45-04:00)",
+   "what": "pick files did not exist before 3/31 18:22; the 3/29-3/31 picks were made and posted without them"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-season-ledger.md §5 (match table)",
+   "what": "the 3/29-3/30 files carry no game_pk (selection_game_pk_unrecorded 2), consistent with retroactive reconstruction"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate window 2026-03-31 18:49-22:08 ET",
+   "onset": "unknown",
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-03-31T22:08:58-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-03-31T22:08:58-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-03-31T22:08:58-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "85b61f1",
+   "6798410",
+   "8fc68cb",
+   "dd3b954",
+   "1c2efaa"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-28-season-ledger.md §5"
+  ]
+ },
+ "related": [
+  "I-008"
+ ],
+ "notes": [
+  "split? the row's subject (days 1-3 pick files are 3/31 reconstructions) is an evidence-provenance fact for the memo's coverage inventory, not a contract deviation: pick persistence shipped 3/31 18:22 (6798410), after those picks were made; the only defect in 1c2efaa is the posted-pick lock, drafted here",
+  "names of the day 1-3 picks appear in the 1c2efaa body; not repeated",
+  "log bound for the fix: live by 2026-06-07T00:11:19Z (eaccaf8, run 27077693688)",
+  "no alerting of any kind existed on 3/31 (alert fields 'none')",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

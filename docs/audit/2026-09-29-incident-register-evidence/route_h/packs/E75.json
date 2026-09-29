@@ -1,0 +1,94 @@
+{
+ "id": "E75",
+ "episode_row": [
+  "E75",
+  "7/12",
+  "eve-of-break restart loop + 47-DM storm + confounded pvr CRITICAL + blind restart_spike",
+  "L/A",
+  "OI",
+  "A",
+  "9551818 ec242da 230f65c"
+ ],
+ "commits": [
+  {
+   "sha": "9551818",
+   "authored": "2026-07-12T20:28:06-04:00",
+   "subject": "fix(scheduler): eve-of-break wakeup \u2014 never idle on a past next_wakeup",
+   "body": "2026-07-12 incident: the last games-day before the All-Star break completed\nat 18:36 ET; step 7's raw compute_wakeup_time(fetch_schedule(tomorrow))\nreturned TODAY 10:00 for the empty tomorrow, _idle_until_next_wakeup\nsilently no-opped on the past time, run_day returned, and Restart=always\nrelaunched every ~48s (NRestarts 3\u219250, one health DM per cycle).\n\n- step 7 now uses _next_day_wakeup (audit E1 \u2014 built for exactly this,\n  but only wired into the no-games-today path until now)\n- _next_day_wakeup: day-bump reserved for EMPTY tomorrows; a nonempty\n  tomorrow whose wake has passed hands off in ~1min (bumping a day would\n  sleep through a real early slate \u2014 post-midnight EOD before London\n  06:10 ET; review r2#1); fetch/compute failure hands off on a 15-min\n  retry instead of guessing a safe morning (r2#2); computation shares the\n  fetch's exception boundary (r3 \u2014 a malformed gameDate in a successful\n  response must not raise into a bare churn loop)\n- compute_wakeup_time gains now_et (caller's clock) so the empty branch\n  is testable and consistent with the bump comparison\n- _idle_until_next_wakeup no-ops stay (substituting a guessed wake could\n  sleep through a REAL game day) but are now loud\n- fetch_schedule + predict._fetch_game_slots filter to regular-season\n  games via shared util.is_regular_season_game \u2014 the 7/14 All-Star Game\n  is not a pickable slate, and the preview cron fetches independently\n  (r2#3)\n- 'Tomorrow's wake-up' log now prints the date; the time-only format hid\n  the wrong-day wakeup all through the incident journal\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01SPZRHPmXx6YokcauM7JDNw",
+   "files": [
+    "src/bts/model/predict.py",
+    "src/bts/scheduler.py",
+    "src/bts/util.py",
+    "tests/test_scheduler_eve_of_break.py"
+   ],
+   "first_live_log": {
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:47Z",
+    "not_live_before": "2026-07-13T01:12:47Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29216777239,
+    "created_at": "2026-07-13T01:08:13Z",
+    "head_sha": "230f65c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "ec242da",
+   "authored": "2026-07-12T20:28:33-04:00",
+   "subject": "fix(health): dedup health DMs per day + unblind restart_spike",
+   "body": "The 7/12 loop sent 47 identical CRITICAL DMs because the dispatcher is\ndesigned to run once per day and sends unconditionally, and restart_spike\nadvanced its checkpoint every run \u2014 48s re-walks moved the baseline +1 at\na time, so the storm never summed past the +3 threshold (aliasing).\n\n- dispatch_dm_for_health_alerts: per-day (level, incident-identity)-set\n  dedup persisted in health_dm_delivery_status.json. Keyed on identity,\n  not body hash (a growing delta is the same problem); a NEW source\n  same-day still sends; failed sends are never suppressed (H6 resurface\n  intact); keyed to the PROCESSED day via runner now_et_date=today so a\n  post-midnight EOD for D doesn't consume D+1's budget (r2#5)\n- Alert gains optional incident_key (r2#6): two DIFFERENT crashed checks\n  both carry source=health_runner and the second must still reach the\n  operator; _safe_run sets health_runner:{check}; attention._with_streak\n  preserves it through reconstruction (r3)\n- restart_spike: checkpoint anchors to the processed date and advances\n  only across a date boundary; multi-day gaps budget one planned\n  exit-restart per elapsed day beyond the first (threshold base+(gap-1)\n  keeps the UNPLANNED bar constant at base-1 \u2014 the daily idle\u2192return\u2192\n  Restart=always exit is planned, and no-games days never run health, so\n  the 4-day break would have read as a +4 false spike on 7/16) (r2#4)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01SPZRHPmXx6YokcauM7JDNw",
+   "files": [
+    "src/bts/health/alert.py",
+    "src/bts/health/attention.py",
+    "src/bts/health/restart_spike.py",
+    "src/bts/health/runner.py",
+    "tests/health/test_alert.py",
+    "tests/health/test_attention.py",
+    "tests/health/test_restart_spike.py",
+    "tests/health/test_runner.py"
+   ],
+   "first_live_log": {
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:47Z",
+    "not_live_before": "2026-07-13T01:12:47Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29216777239,
+    "created_at": "2026-07-13T01:08:13Z",
+    "head_sha": "230f65c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "230f65c",
+   "authored": "2026-07-12T20:28:33-04:00",
+   "subject": "fix(health): predicted_vs_realized grades per slot; recalibrate CRITICAL",
+   "body": "The 7/12 CRITICAL compared the PRIMARY's p_game_hit against the DAY-level\nresult \u2014 on double-down days the day result requires BOTH legs, so the\nMDP's DD-dense streak-0 rebuild mechanically inflated the gap. Live\ndecomposition: day-level drift +0.1737 'CRITICAL' vs primary-only +0.042;\nthe real signal was the DD leg going 1-for-6 (~0.56% if calibrated).\n\n- per-slot grading via slot_results (primary + DD leg each against its\n  own p) \u2014 the attribution realized_calibration adopted 2026-05-01 for\n  this exact bias; validated against the live pick data: drift +0.1276\n- legacy files: single-pick day result kept (it IS the primary outcome);\n  legacy DD days excluded symmetrically \u2014 keeping attributable hits\n  while dropping unattributable misses is outcome-dependent censoring\n  that can MASK degradation (r2#7)\n- drift_critical 0.12 \u2192 0.25: the overlapping 14d/28d drift SE is \u22480.094\n  at day level, so 0.12 was ~1.3\u03c3 (r2#9); WARN 0.08 stays the attention\n  signal; day-block bootstrap recalibration queued\n- incident audit doc (3 review rounds) + ARCHITECTURE health-table row +\n  CLAUDE.md suite count 1839\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01SPZRHPmXx6YokcauM7JDNw",
+   "files": [
+    "ARCHITECTURE.md",
+    "CLAUDE.md",
+    "docs/audit/2026-07-12-eve-of-break-restart-loop.md",
+    "src/bts/health/predicted_vs_realized.py",
+    "tests/health/test_predicted_vs_realized.py"
+   ],
+   "first_live_log": {
+    "sha": "230f65c",
+    "live_by": "2026-07-13T01:12:47Z",
+    "not_live_before": "2026-07-13T01:12:47Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29216777239,
+    "created_at": "2026-07-13T01:08:13Z",
+    "head_sha": "230f65c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

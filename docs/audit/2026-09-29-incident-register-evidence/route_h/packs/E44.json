@@ -1,0 +1,39 @@
+{
+ "id": "E44",
+ "episode_row": [
+  "E44",
+  "4/10\u20135/08",
+  "shadow results never reconciled (27/29 unresolved)",
+  "R",
+  "OI",
+  "A",
+  "8671709 (PR #56)"
+ ],
+ "commits": [
+  {
+   "sha": "8671709",
+   "authored": "2026-05-08T21:00:04-04:00",
+   "subject": "fix shadow result reconciliation",
+   "body": "",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/web.py",
+    "tests/test_cli_integration.py",
+    "tests/test_shadow_report.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25590588217,
+    "created_at": "2026-05-09T03:34:05Z",
+    "head_sha": "293ce51",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

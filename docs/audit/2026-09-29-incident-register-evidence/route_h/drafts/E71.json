@@ -1,0 +1,249 @@
+{
+ "id": "I-071",
+ "working_id": "E71",
+ "title": "7/06 check-pick-entered sent a 'not entered — fix it now' DM for an undelivered, later-deferred double-down preview",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "E"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "the occurrence was a false entry alarm urging entry of a pick the system never delivered (entry hazard; no wrong entry evidenced); tier A by the B→A rule: deferred review findings on the same gate remain unfixed on the deployed path (load_decision does not check the record's own date, is_scoreable_commit ignores action, the checker reads {date}.json rather than the decision payload) and can change entry alerting under an inconsistent record",
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "check-pick-entered alerts only for a committed pick (delivered, private_locked or locked_unconfirmed) and only while it can still be submitted (before first pitch − 5 min); a preview or deferred candidate never triggers a 'not entered' DM.",
+  "source": "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md 'Bug (real, unambiguous)' and Recommendation 1; BTS rule 'submitted ≥ 5 minutes before first pitch' (same memo, confirmed by Eric)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_pick_entered treated the mere existence of {date}.json as a pick Eric had been told to enter; the scheduler rewrites that file all day with previews/projections, so at 13:30 ET it DM'd 'not entered … Fix it now!' for an undelivered double-down preview (should_lock=False) that the fallback deferred and deleted 16 minutes later",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "86e3026",
+     "symbol": "check_pick_entered (load_pick + window check, no commit gate)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the DM countdown measured minutes to first pitch instead of the submission cutoff (first pitch − 5), and the firing window ran to first pitch, so a run in the final 5 minutes could nag for a pick that can no longer be submitted",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "86e3026",
+     "symbol": "check_pick_entered (window lower bound, countdown text)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "af6329f"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "39b02bd",
+    "live_by": "2026-07-06T20:39:41Z",
+    "not_live_before": "2026-07-06T20:39:39Z",
+    "run_id": 28821478951,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "af6329f",
+     "540b1ab"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "39b02bd",
+    "live_by": "2026-07-06T20:39:41Z",
+    "not_live_before": "2026-07-06T20:39:39Z",
+    "run_id": 28821478951,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "load_decision does not assert the record's internal date equals the requested date, and is_scoreable_commit ignores action (an inconsistent action=skip, scoreable=true record would alert and score) — deferred as corruption-class shared code; still so at HEAD.",
+   "reaches_production": true,
+   "source": "540b1ab body; memo 'Codex pre-merge review … Deferred'; src/bts/daily_decision.py load_decision / is_scoreable_commit at HEAD"
+  },
+  {
+   "text": "The checker reads {date}.json, not the committed decision payload; a post-lock divergence would make it check the wrong player (low risk: the scheduler stops rewriting the file once locked).",
+   "reaches_production": true,
+   "source": "memo 'Deferred' (MEDIUM); src/bts/cli.py check_pick_entered (load_pick) at HEAD"
+  },
+  {
+   "text": "private_locked / locked_unconfirmed with a failed best-effort decision.json write was not alerted (is_scoreable_commit falls back only to pick_was_delivered).",
+   "reaches_production": false,
+   "source": "memo 'Deferred' (HIGH); closed 2026-08-14 per ARCHITECTURE.md check-pick-entered ('Former residual limitation … closed'); I-209"
+  },
+  {
+   "text": "Crash between the preview write and the fallback defer could let the classification lock strand the undelivered preview once the early game starts (a no-pick day).",
+   "reaches_production": false,
+   "source": "memo Q2 and Recommendation 2(b); addressed 2026-08-30 by 3697512 F5 (stale preview archived as stale_pick_* and re-selected, I-084)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "entry",
+  "trigger": "an entry-check DM is sent for a date that has no scoreable commit (no decision record with scoreable=true and no delivery record) at send time, or is sent at or after the selection's submission cutoff",
+  "recovery_assertion": "every 'not entered' DM for the date refers to a committed, deliverable selection and was sent before first pitch − 5 min; the date's entry status is then confirmed or the day ends with an explicit skip/defer record"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md 'Summary' and 'Timeline (2026-07-06, ET)' (commit 65197fc)",
+   "written_at": "2026-07-06T15:24:22-04:00",
+   "what": "13:10–13:21 the lineup check selected a double-down (projected primary, should_lock=False) and wrote {date}.json; 13:30:01 check-pick-entered found the file, 40 min before the earliest game, no entry → DM sent, marker {reason: no_pick, status: alerted}; 13:46:58 FALLBACK DEFERRED archived the pick and deleted the file; Eric flagged the DM as firing early"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit af6329f message body",
+   "written_at": "2026-07-06T15:25:27-04:00",
+   "what": "check-pick-entered treated the existence of {date}.json as 'a pick Eric was told to enter'; on 2026-07-06 it fired a premature 'not entered' DM for a deferred double-down 16 min before the scheduler deleted the pick"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 540b1ab message body",
+   "written_at": "2026-07-06T15:37:18-04:00",
+   "what": "pre-merge review: the DM used the T−5 countdown while the window still ran to first pitch (negative countdown possible); window lower bound raised; three findings deferred"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28821478951 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 86e3026 -> deployed 39b02bd at 2026-07-06T20:39:41Z, canary passed: both fixes first installed"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28694736302 (deploy_runs.json)",
+   "what": "deployed 86e3026 at 2026-07-04T04:25:19Z, canary passed; it stayed installed until run 28821478951 (whose pre-deploy SHA is 86e3026): the defective checker was live at 13:30 ET on 7/06"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/daily_decision.py load_decision and is_scoreable_commit at HEAD (9907cb9); src/bts/cli.py check_pick_entered at HEAD",
+   "what": "the deferred findings are still present: no internal-date check, scoreable read without action, and the checker loads {date}.json"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-06",
+   "onset": {
+    "at": "2026-07-06T13:30:01-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-06T13:30:01-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_before": "2026-07-06T13:30:01-04:00",
+    "not_after": "2026-07-06T15:24:22-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-07-06T15:25:27-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "af6329f",
+   "540b1ab",
+   "65197fc",
+   "39b02bd"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-07-06-deferred-dd-and-premature-entry-alert.md",
+   "ARCHITECTURE.md 'bts check-pick-entered' (hardened 2026-07-06)"
+  ]
+ },
+ "related": [
+  "I-061",
+  "I-062",
+  "I-072",
+  "I-083",
+  "I-084",
+  "I-209"
+ ],
+ "notes": [
+  "defective ref 86e3026 = the installed tree (log: deployed 7/04 04:25Z, still the pre-deploy SHA at 7/06 20:39Z); only docs commits lie between it and af6329f^ (65197fc), src/ and scripts/ identical",
+  "link 2 (window/countdown) did not fire on 7/06 (the DM came 40 min before the game); it is the review-found half of the same checker defect and could split off as latent",
+  "alert fields not_applicable: the symptom IS the false DM; the memo says the marker was written as alerted",
+  "the memo names the candidates, games and probabilities; not repeated here. Whether the day was re-picked and delivered in the evening was left unverified by the memo (Route R: 7/06 evening journal + decision.json)",
+  "tier A rests only on corruption-class residuals verified unfixed at HEAD by code reading (ev6); without them this record would be B",
+  "the memo is also the source of the guide's delivery_mode rule (prod pick_delivery = dm on 7/06)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; af6329f/540b1ab add tests/test_cli_integration.py::…::test_uncommitted_pick_in_window_no_dm (reproduces the 7/06 case, link 1), test_dm_countdown_uses_submission_cutoff and test_no_alert_inside_submission_cutoff (link 2), plus test_committed_via_decision_record_alerts and test_skip_day_decision_no_dm (controls)"
+ ]
+}

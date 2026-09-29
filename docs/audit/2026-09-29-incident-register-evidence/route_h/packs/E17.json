@@ -1,0 +1,36 @@
+{
+ "id": "E17",
+ "episode_row": [
+  "E17",
+  "~4/10",
+  "Fly shadow instance posted picks publicly as a 2nd bot",
+  "D",
+  "OI?",
+  "A",
+  "5075fba"
+ ],
+ "commits": [
+  {
+   "sha": "5075fba",
+   "authored": "2026-04-10T17:05:15-04:00",
+   "subject": "fix(scheduler): wire shadow_mode into all Bluesky posting paths",
+   "body": "CRITICAL FIX: shadow_mode config was set but never read by the\nscheduler. The Fly machine was posting to Bluesky as a second\nproduction instance. This wraps all 3 post_to_bluesky call sites\n(normal lock, fallback deadline, final fallback) in shadow_mode\nchecks. When shadow=true, picks are saved locally but never posted.",
+   "files": [
+    "src/bts/scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24264137959,
+    "created_at": "2026-04-10T21:05:18Z",
+    "head_sha": "5075fba",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

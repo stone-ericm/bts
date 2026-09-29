@@ -1,0 +1,37 @@
+{
+ "id": "E22",
+ "episode_row": [
+  "E22",
+  "4/12",
+  "confirmation counter logged \"0 new\" while lineups flipped the pick",
+  "U",
+  "OI",
+  "B",
+  "bd8bcd3"
+ ],
+ "commits": [
+  {
+   "sha": "bd8bcd3",
+   "authored": "2026-04-12T13:40:33-04:00",
+   "subject": "fix(scheduler): track lineup confirmations at team level, not game level",
+   "body": "Bug: count_new_confirmations reported 0 new confirmations when a game\nhad previously been partially confirmed (e.g., only the home team's\nlineup posted) and then the away team posted its lineup. The game was\nalready in the tracking set, so no new game \u2192 0. But the prediction\npipeline uses per-side lineup data, so the newly posted side DID\nchange the inputs \u2014 the log message just hid it.\n\nObserved live on 2026-04-12: two back-to-back lineup-check runs,\nboth against the same 14-game confirmed set. Run 1 saw \"6 teams\nusing projected lineups\" and picked Roman Anthony. Run 2 reported\n\"0 new confirmed lineup(s)\" yet the prediction dropped to \"3 teams\nprojected\" and flipped the pick to Brendan Donovan. The 3 additional\nteam-level confirmations were real; the old game-level counter just\ncouldn't see them.\n\nFix: `check_confirmed_lineups` now returns `dict[int, set[str]]`\n(game_pk \u2192 set of confirmed sides). `count_new_confirmations` tracks\na `set[tuple[int, str]]` of (game_pk, side) pairs and counts each\nnewly confirmed side separately. run_day passes this set instead of\na set of game_pks; `state.confirmed_game_pks` is now derived from\nthe side set for backward compatibility of the scheduler_state.json\nschema. DH game 2 recheck uses the same tuple set.\n\nTest updates:\n  - check_confirmed_lineups return type changed from bool \u2192 set[str]\n    in existing tests\n  - counts_new_confirmations: a fully confirmed game now counts as 2\n    (both sides), not 1\n  - New regression test: game with (pk, \"away\") already in the set\n    gets the (pk, \"home\") side confirmed \u2192 counts as +1, not 0\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24312504594,
+    "created_at": "2026-04-12T17:40:40Z",
+    "head_sha": "bd8bcd3",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,179 @@
+{
+ "id": "I-077",
+ "working_id": "E77",
+ "title": "7/16 singleton slate: the lone check (planned from a stale 19:10 start) fired at the moved-up 18:10 first pitch and the pick was never delivered",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "a machine observation or contemporaneous report for 2026-07-16: the scheduler journal (check at 18:10, classification game_started_or_final) and the 7/16 pick file / decision record \u2014 Phase 2 Route R (journals retained from 5/11)"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "an enterable pick was never delivered and nothing alerted; the gap is unfixed, so a strong pick on a future one-game slate would be passed the same way",
+ "residual_reaches_production": true,
+ "plan_named": true,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "An enterable pick is delivered before the entry cutoff (first pitch minus 5 minutes), also on a one-game slate whose start moves after the morning schedule fetch.",
+  "source": "design \u00a710.3 (7/16 characterization); picks.SUBMISSION_CUTOFF_MIN; docs/optimization-ideas.md 'Singleton slates get zero pre-start lineup checks'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "compute_run_times derives every lineup check from game starts once, at the 10:00 fetch; a one-game slate gets a single check (start minus 60) and no other anchor or intermediate tick",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "afbea38",
+     "symbol": "compute_run_times",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the plan is static: MLB moved the game from 19:10 to 18:10 after the fetch, so the lone check fired at first pitch, classified the preview game_started_or_final and locked the day undelivered",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "afbea38",
+     "symbol": "run_day",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": [
+   {
+    "nodes": [
+     "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff"
+    ],
+    "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
+    "controls": [
+     "tests/test_incident_register_2026.py::test_e77_positive_execution_control_correct_schedule_delivers",
+     "tests/test_incident_register_2026.py::test_e77_verdict_fixed_direction_passes",
+     "tests/test_incident_register_2026.py::test_e77_verdict_bad_direction_raises_the_dedicated_exception"
+    ],
+    "acceptance": "docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json"
+   }
+  ]
+ },
+ "residual": [
+  {
+   "text": "Unfixed: one-game slates still get a single check computed once from the morning schedule; no re-fetch re-anchors a moved-up start and no missed-delivery alert fires for a day ending game_started_or_final with a never-delivered pick.",
+   "reaches_production": true,
+   "source": "docs/optimization-ideas.md 'Singleton slates\u2026' (backlogged 2026-07-27)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "singleton_slate",
+  "trigger": "a slate whose pick game has no scheduled check before its cutoff, or whose start moved earlier after the morning plan; and at cutoff an undelivered candidate with no deliberate skip",
+  "recovery_assertion": "a check runs and the pick is delivered before first pitch minus 5, or the day is alerted as undelivered"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/optimization-ideas.md 'Singleton slates get zero pre-start lineup checks' (commit 7b70da7)",
+   "written_at": "2026-07-27T13:36:14-04:00",
+   "exposure_row": "X-01",
+   "what": "later write-up (11 days after): the 10:00 plan held one check at 18:10; MLB moved the game from 19:10 to 18:10; the check fired at first pitch, classified game_started_or_final, and the day locked undelivered; the only same-day signal was a log-only calibration_drift WARN"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "tests/test_incident_register_2026.py E77 section + docs/audit/2026-09-29-incident-register-evidence/expected_failures_runs/acceptance-c5cf6bc.json",
+   "what": "the real run_day reproduces the sequence under a truthful clock-aware schedule (strict XFAIL, accepted); with the move known at the morning fetch the same machinery delivers at 17:10"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29223211407 (deploy_runs.json)",
+   "what": "afbea38 installed 2026-07-13T04:12:55Z and not replaced until 2026-08-03: the static single-fetch planner was live on 7/16"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-16",
+   "onset": {
+    "at": "2026-07-16T18:10:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-07-16T18:05:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-07-27T13:36:14-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "7b70da7"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/optimization-ideas.md 'Scheduler Edge Cases'"
+  ]
+ },
+ "related": [
+  "I-084",
+  "I-083"
+ ],
+ "notes": [
+  "Phase 1 disposition is evidence-limited: the only repo account was written 11 days after the event (inference under design \u00a73); Route R is expected to supply the machine observation",
+  "first_detectable = the 18:05 cutoff (first pitch 18:10)"
+ ]
+}

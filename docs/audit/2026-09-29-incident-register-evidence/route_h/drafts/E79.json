@@ -1,0 +1,138 @@
+{
+ "id": "I-079",
+ "working_id": "E79",
+ "title": "Schedule discovery used a bare urlopen: one transient MLB error failed the whole data pull — on the 3am chain and on the live cascade's season refresh",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "X",
+  "secondary": [
+   "L",
+   "S"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "no firing is evidenced in the repo; the exposed paths include the live lineup-check prediction (season refresh inside run_pipeline) as well as the 3am pull → build → preview chain, so a firing would be a liveness/delivery (A) impact, while none found leaves it latent — Route R decides",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Idempotent MLB statsapi GETs on the data-pull path retry transient failures (shared retry_urlopen: 3 attempts, linear backoff, no retry on 4xx), so one blip cannot discard a pull.",
+  "source": "src/bts/util.py retry_urlopen (the policy every other HTTP caller uses, per 950c081 body); 950c081"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "discover_games walked the date range one day at a time with a bare urlopen, so any transient MLB error raised out of pull_feeds; the 3am cron's `bts data pull` (7-day window) then failed, skipping build, preview and R2 sync, and the live path — orchestrator.predict_local → run_pipeline(refresh_data=True) → _refresh_season_data → pull_feeds(season start → yesterday) — raised too, which predict_local catches as 'Prediction failed', leaving that lineup check with no predictions",
+   "code": [
+    {
+     "path": "src/bts/data/pull.py",
+     "ref": "afbea38",
+     "symbol": "discover_games (bare urlopen)",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "afbea38",
+     "symbol": "run_pipeline -> _refresh_season_data -> pull_feeds",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/orchestrator.py",
+     "ref": "afbea38",
+     "symbol": "predict_local (except Exception -> return None)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "950c081"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "5bde492",
+    "live_by": "2026-08-03T16:53:22Z",
+    "not_live_before": "2026-08-03T16:53:20Z",
+    "run_id": 30833938616,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a lineup check whose prediction ends in 'Prediction failed' (or a 3am chain whose `bts data pull` exits nonzero) with an MLB statsapi network/5xx error as the cause, on a game day before the earliest cutoff",
+  "recovery_assertion": "a later check on the same day produces predictions and the day ends with a scoreable commit or a recorded skip; the 3am chain's next run completes pull → build → preview"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 950c081 message body and diff (src/bts/data/pull.py)",
+   "what": "discover_games walked the range with a bare urlopen, so one transient MLB blip threw away every day already fetched; the last unprotected fetch on the pull path; the body calls it 'Backfill-only path; the live pick pipeline was never affected'"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/model/predict.py run_pipeline/_refresh_season_data, src/bts/orchestrator.py predict_local, src/bts/data/pull.py pull_feeds at d3b2954 (= 950c081^)",
+   "what": "the live prediction path refreshes the season via pull_feeds → discover_games with no guard around the refresh; predict_local converts the exception to None"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 30833938616 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy afbea38 -> deployed 5bde492 at 2026-08-03T16:53:22Z, canary passed: first install of the fix"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29223211407 (deploy_runs.json)",
+   "what": "afbea38 deployed 2026-07-13T04:12:55Z; no deploy run until 30833938616, whose pre-deploy SHA is afbea38"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "950c081",
+   "23051b7"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "scripts/cron-setup-hetzner.sh 3am chain"
+  ]
+ },
+ "related": [
+  "I-068"
+ ],
+ "notes": [
+  "DOUBT: the fix body says 'Backfill-only path; the live pick pipeline was never affected', but the code at 950c081^ shows the live cascade's season refresh calling discover_games (ev2); 'never affected' is not backed by any cited artifact. Firing is unknown — Route R: scheduler journal 'Prediction failed' lines carrying urlopen/timeout/5xx errors (5/11 → 8/03) and cron.log 3am pull failures",
+  "exposure: bare urlopen since 23051b7 (2026-03-29) until 5bde492 (8/03 16:53:22Z); defective ref cites the installed tree afbea38 (log both ends; pull.py/predict.py/orchestrator.py identical to 950c081^ = d3b2954)",
+  "reasoning only (not listed as a residual): at HEAD a refresh that still fails after retries aborts that check's prediction rather than predicting on the existing parquet; before 8/30 every intraday cascade re-pulled, since then only the first successful re-pull per day (BTS_REFRESH_ALWAYS)",
+  "the unretried Open-Meteo fetch is a separate record (I-208 / L08)",
+  "verified_recovered not_applicable: no firing to recover from",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 950c081 adds tests/data/test_pull.py::test_discover_games_survives_transient_failure"
+ ]
+}
