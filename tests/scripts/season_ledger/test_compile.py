@@ -219,6 +219,16 @@ def test_raw_values_round_trip_through_the_occurrence_table(tmp_path):
     assert json.loads(round_occ["record_raw_json"])["streak"] == "RAW_STREAK"
 
 
+def test_a_naive_manifest_mtime_is_unknown_not_read_in_the_host_zone(tmp_path):
+    # Codex code r1 #7: a source mtime without an offset must never be interpreted in the host's time zone.
+    rel = "picks/2026-09-10.json"
+    seal_bundle(tmp_path / "b", {rel: pick_json("2026-09-10", result="hit")}, mtimes={rel: "2026-09-11T01:00:00"})
+    compile_bundle(tmp_path / "b", tmp_path / "o", uv_lock_sha256="test-lock")
+    recon = pq.read_table(tmp_path / "o" / "season_2026_ledger_reconciliation.parquet").to_pylist()
+    assert {(m["source_mtime_utc"], m["mtime_after_recipe_date"]) for m in recon if m["source_path"] == rel} == {
+        (None, None)}
+
+
 def test_outcome_status_distinguishes_a_malformed_grade_from_a_source_null():
     from scripts.audit.season_ledger.compile import _outcome_status
     assert (_outcome_status("hit", "value"), _outcome_status(None, "null"), _outcome_status(None, "type_mismatch")) == (

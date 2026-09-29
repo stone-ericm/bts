@@ -114,7 +114,8 @@ def compile_bundle(bundle_root, out_dir, *, uv_lock_sha256: str | None, code_sha
     if out.exists():
         raise FileExistsError(f"output directory already exists: {out} (each build writes a new directory)")
     manifest, files = open_bundle(bundle_root)
-    mtimes = {e["rel_path"]: e.get("source_mtime_utc") for e in manifest["entries"]}
+    # Codex code r1 #7: the offset-required time policy applies to manifest mtimes too (a naive one is unknown).
+    mtimes = {e["rel_path"]: utc_iso(e.get("source_mtime_utc")) for e in manifest["entries"]}
     routed = {rel: kind for rel, data in files.items() if data is not None and (kind := route(rel))}
     parsed = {rel: PARSERS[kind](rel, files[rel]) for rel, kind in routed.items()}
 
