@@ -3,9 +3,10 @@
 These pin how pytest 9.0.2 itself REPORTS each shape (in-process ``inline_run`` reports). They
 are documentation of pytest's behaviour, not the acceptance rule: pytest converts a matching
 ``raises=`` exception to XFAIL in ANY phase, setup included. The register's acceptance rule is
-``scripts/audit/incident_register/acceptance.accept_expected_failure`` (call phase only, raised
-inside the oracle, strict marker, clean setup and teardown, no imperative xfail), tested against
-real plugin reports in ``tests/scripts/incident_register/test_acceptance.py``.
+``scripts/audit/incident_register/acceptance.accept``: a marked run and a ``--runxfail`` run of the
+same worktree state, call phase only, the registered exception raised inside the registered oracle,
+strict marker, clean setup and teardown, no imperative xfail, the production entry invoked — tested
+against real observer reports in ``tests/scripts/incident_register/test_expected_failure.py``.
 """
 from __future__ import annotations
 

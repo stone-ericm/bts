@@ -1,0 +1,276 @@
+{
+ "schema": "w15-expected-failures-v1",
+ "note": "Reviewed registry (design \u00a79.7): each strict-XFAIL node, its dedicated exception, the oracle that alone raises it, the production entry that must run in the call phase, and the declared bad/required values (reprs as the oracle prints them).",
+ "entries": [
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[sac_bunt_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_walks_only]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_grade_pick_in_feed[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassGradedAsMiss",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "grade_pick_in_feed"
+   },
+   "bad": "'miss'",
+   "required": "'void'"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[sac_bunt_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_single_pick[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[walks_only]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[did_not_play]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_hit_plus_pass[suspended_ab_no_hit]",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'hit', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'hit', 'double_down': 'void'}, 'hit', 6, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_check_results_pass_plus_pass_preserves",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss', 'double_down': 'miss'}, 'miss', 0, True)",
+   "required": "({'pick': 'void', 'double_down': 'void'}, 'void', 5, True)"
+  },
+  {
+   "incident": "L01",
+   "node": "tests/test_incident_register_2026.py::test_l01_pass_at_saver_streak_keeps_the_saver",
+   "exception": "tests.test_incident_register_2026.PassScoredAsNoHit",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/cli.py",
+    "qualname": "check_results"
+   },
+   "bad": "({'pick': 'miss'}, 'miss', 12, False)",
+   "required": "({'pick': 'void'}, 'void', 12, True)"
+  },
+  {
+   "incident": "L02",
+   "node": "tests/test_incident_register_2026.py::test_l02_same_day_hit_survives_two_late_reconciles",
+   "exception": "tests.test_incident_register_2026.SameDayReplayRollback",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "reconcile_results"
+   },
+   "bad": "[(1, True), (1, True)]",
+   "required": "[(2, True), (2, True)]"
+  },
+  {
+   "incident": "L02",
+   "node": "tests/test_incident_register_2026.py::test_l02_same_day_saver_consumption_survives_two_late_reconciles",
+   "exception": "tests.test_incident_register_2026.SameDayReplayRollback",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/picks.py",
+    "qualname": "reconcile_results"
+   },
+   "bad": "[(10, True), (10, True)]",
+   "required": "[(10, False), (10, False)]"
+  },
+  {
+   "incident": "E77",
+   "node": "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff",
+   "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
+   "oracle": {
+    "path": "tests/test_incident_register_2026.py",
+    "qualname": "_oracle"
+   },
+   "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_day"
+   },
+   "bad": "('never_delivered',)",
+   "required": "('delivered_before_cutoff',)"
+  }
+ ]
+}

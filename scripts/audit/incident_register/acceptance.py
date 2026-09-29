@@ -1,140 +1,95 @@
-"""Acceptance rules over the evidence plugin's structured reports (Codex phase-1 r1 #4, #5).
+"""Strict expected-failure acceptance (design §9.7; Codex phase-1 r2 #3, #4).
 
-These are the only functions that may turn a run into a certificate input. Every rule looks at
-ALL phases of a node (setup, call, teardown), requires the node to be collected exactly once,
-and names the reason when it refuses.
+A registered node is accepted as a reproduction only from a PAIR of observed runs of the same
+worktree state — the marked run and a ``--runxfail`` run — each passing the session gate:
+
+* marked: the node is XFAIL in its CALL phase (setup and teardown passed), not imperative, under a
+  strict marker whose ``raises`` is exactly the registered exception (``module.qualname``); every
+  other selected node passes;
+* ``--runxfail``: the node fails in its CALL phase with exactly the registered exception class
+  (module AND qualname), raised in the registered oracle function of the registered file (exact
+  realpath, not a suffix), and the message carries the declared bad value and the required value;
+  the declared production entry was invoked inside the node's observed call phase;
+* both runs collected the same inventory, the same test-file bytes and the same ``bts`` modules.
+
+The registry (``expected_failures.json``) binds each node to its exception, oracle, entry, bad and
+required values; it is reviewed data, hashed into the acceptance output.
 """
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
+
+from scripts.audit.incident_register import certify, runner
 
 
-def load(path) -> list[dict]:
-    events = []
-    with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            if line.strip():
-                events.append(json.loads(line))
-    return events
+def observe_config(worktree, registry: list[dict]) -> dict:
+    wt = os.path.realpath(worktree)
+    return {"nodes": [r["node"] for r in registry],
+            "entries": [{"file": os.path.join(wt, r["entry"]["path"]), "qualname": r["entry"]["qualname"]}
+                        for r in registry], "boundaries": [], "returns": []}
 
 
-def collected(events: list[dict]) -> list[str]:
-    ids: list[str] = []
-    for e in events:
-        if e["kind"] == "collected":
-            ids.extend(e["nodeids"])
-    return ids
+def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list[dict]) -> dict:
+    """{node: [reasons]} (empty list = accepted) plus a "_session" key for run-level reasons."""
+    wt = os.path.realpath(worktree)
+    nodes = {r["node"] for r in registry}
+    out: dict[str, list[str]] = {"_session": []}
+    inventory = runner.collected(marked.events)
+    out["_session"] += [f"marked: {r}" for r in runner.gate(marked, worktree=worktree, mode="expected_failure",
+                                                            expected_failures=frozenset(nodes))]
+    un_gate = runner.gate(unmarked, worktree=worktree, mode="mutant", expected=inventory)
+    out["_session"] += [f"--runxfail: {r}" for r in un_gate]
+    killed = {n for n in inventory if runner.node_state(unmarked.events, n) == "failed"}
+    if killed != nodes:
+        out["_session"].append(f"--runxfail failures {sorted(killed ^ nodes)[:5]} differ from the registry")
+    files = [e for e in marked.events if e["kind"] == "collected"]
+    files_u = [e for e in unmarked.events if e["kind"] == "collected"]
+    if not files or not files_u or files[0].get("files") != files_u[0].get("files"):
+        out["_session"].append("the two runs collected different test-file bytes")
+    imp = [e["modules"] for e in marked.events if e["kind"] == "imports"]
+    imp_u = [e["modules"] for e in unmarked.events if e["kind"] == "imports"]
+    if not imp or imp != imp_u:
+        out["_session"].append("the two runs imported different bts modules")
+    for r in registry:
+        n, why = r["node"], []
+        call = runner.phases(marked.events, n).get("call", [])
+        if len(call) != 1 or not call[0].get("wasxfail") or call[0]["outcome"] != "skipped":
+            why.append("marked run: not an XFAIL in the call phase")
+        else:
+            c = call[0]
+            marker = c.get("marker") or {}
+            if c.get("imperative_xfail"):
+                why.append("marked run: imperative pytest.xfail()")
+            if marker.get("raises") != [r["exception"]]:
+                why.append(f"marked run: marker raises {marker.get('raises')} != [{r['exception']}]")
+            strict = marker.get("strict")
+            if not (strict is True or (strict is None and _ini_strict(marked))):
+                why.append("marked run: marker is not strict")
+        ucall = runner.phases(unmarked.events, n).get("call", [])
+        if len(ucall) != 1 or ucall[0]["outcome"] != "failed":
+            why.append("--runxfail: the node did not fail in its call phase")
+        else:
+            u = ucall[0]
+            if f"{u.get('exc_module')}.{u.get('exc_qualname')}" != r["exception"]:
+                why.append(f"--runxfail: raised {u.get('exc_module')}.{u.get('exc_qualname')}")
+            last = u["frames"][-1] if u.get("frames") else None
+            oracle_file = os.path.join(wt, r["oracle"]["path"])
+            if not last or last[0] != oracle_file or last[2] != r["oracle"]["qualname"]:
+                why.append(f"--runxfail: raised in {last[0] if last else None}::{last[2] if last else None}, "
+                           f"not {oracle_file}::{r['oracle']['qualname']}")
+            msg = u.get("message") or ""
+            if f"got the declared bad value {r['bad']}" not in msg or f"required {r['required']}" not in msg:
+                why.append("--runxfail: the message lacks the declared bad/required values")
+        inside, iv_why = certify.interval(unmarked.events, n)
+        why += [f"--runxfail observation: {x}" for x in iv_why]
+        entry_file = os.path.join(wt, r["entry"]["path"])
+        if not any(e["kind"] == "entry" and e["file"] == entry_file and e["qualname"] == r["entry"]["qualname"]
+                   for e in inside):
+            why.append(f"--runxfail: production entry {r['entry']['qualname']} was never invoked")
+        out[n] = why
+    return out
 
 
-def reports(events: list[dict], nodeid: str) -> dict[str, list[dict]]:
-    by_when: dict[str, list[dict]] = {}
-    for e in events:
-        if e["kind"] == "report" and e["nodeid"] == nodeid:
-            by_when.setdefault(e["when"], []).append(e)
-    return by_when
-
-
-def _base(events: list[dict], nodeid: str) -> tuple[dict | None, list[str]]:
-    """The single setup/call/teardown triple of a node, or the reasons it is not usable."""
-    why = []
-    n = collected(events).count(nodeid)
-    if n != 1:
-        why.append(f"collected {n} times")
-    by_when = reports(events, nodeid)
-    for when in ("setup", "call", "teardown"):
-        got = by_when.get(when, [])
-        if when == "call" and not got and by_when.get("setup") and by_when["setup"][0]["outcome"] != "passed":
-            continue
-        if len(got) != 1:
-            why.append(f"{len(got)} {when} reports")
-    if why:
-        return None, why
-    return {w: by_when[w][0] for w in by_when}, why
-
-
-def node_state(events: list[dict], nodeid: str) -> str:
-    triple, why = _base(events, nodeid)
-    if triple is None:
-        return "missing" if "collected 0 times" in why else "malformed"
-    setup, call, teardown = triple.get("setup"), triple.get("call"), triple.get("teardown")
-    if setup["outcome"] != "passed":
-        return "setup_xfail" if setup.get("wasxfail") else "setup_error"
-    if teardown["outcome"] != "passed":
-        return "teardown_error"
-    if call["outcome"] == "passed":
-        return "passed"
-    if call["outcome"] == "skipped":
-        return "xfail" if call.get("wasxfail") else "skipped"
-    return "failed"
-
-
-def accept_green(events: list[dict], nodeids: list[str], expected_xfail: set[str] = frozenset()) -> tuple[bool, list[str]]:
-    """Every listed node collected once and passed (or xfailed where that is its baseline state)."""
-    why = []
-    for nid in nodeids:
-        state = node_state(events, nid)
-        want = "xfail" if nid in expected_xfail else "passed"
-        if state != want:
-            why.append(f"{nid}: {state} (want {want})")
-    return (not why), why
-
-
-def accept_killed(events: list[dict], nodeid: str) -> tuple[bool, list[str]]:
-    """The killing node failed in its CALL phase, with clean setup and teardown."""
-    triple, why = _base(events, nodeid)
-    if triple is None:
-        return False, why
-    state = node_state(events, nodeid)
-    if state != "failed":
-        return False, [f"state {state}, not a call-phase failure"]
-    return True, []
-
-
-def accept_expected_failure(events: list[dict], nodeid: str, *, exc_class: str, oracle_func: str,
-                            test_file: str) -> tuple[bool, list[str]]:
-    """A strict xfail counts only as: collected once; setup and teardown passed; the CALL phase
-    raised exactly ``exc_class`` (not an imperative ``pytest.xfail``), raised inside
-    ``oracle_func`` in ``test_file``; and the node's marker is strict with raises=exc_class."""
-    triple, why = _base(events, nodeid)
-    if triple is None:
-        return False, why
-    setup, call, teardown = triple.get("setup"), triple.get("call"), triple.get("teardown")
-    if setup["outcome"] != "passed":
-        why.append(f"setup {setup['outcome']}")
-    if teardown["outcome"] != "passed":
-        why.append(f"teardown {teardown['outcome']}")
-    if call is None:
-        return False, why + ["no call report"]
-    if call["outcome"] != "skipped" or not call.get("wasxfail"):
-        why.append(f"call outcome {call['outcome']} (not an xfail)")
-    if call.get("imperative_xfail"):
-        why.append("imperative pytest.xfail()")
-    if call.get("exc_type") != exc_class:
-        why.append(f"exception {call.get('exc_type')!r} != {exc_class!r}")
-    frames = call.get("frames") or []
-    if not frames or frames[-1]["func"] != oracle_func or not frames[-1]["path"].endswith(test_file):
-        last = frames[-1] if frames else None
-        why.append(f"raised at {last and (last['path'], last['func'])!r}, not in {oracle_func} of {test_file}")
-    marker = call.get("marker") or {}
-    if marker.get("strict") is not True or marker.get("raises") != [exc_class]:
-        why.append(f"marker {marker!r} is not strict with raises=[{exc_class}]")
-    return (not why), why
-
-
-def imports_under(events: list[dict], root: Path) -> tuple[bool, list[str]]:
-    """Every imported ``bts`` module resolved inside ``root`` (the certified worktree's src)."""
-    root = os.path.realpath(root)
-    offenders = []
-    seen = False
-    for e in events:
-        if e["kind"] != "imports":
-            continue
-        seen = True
-        for name, info in e["modules"].items():
-            if not info["file"].startswith(root + os.sep):
-                offenders.append(f"{name} -> {info['file']}")
-    if not seen:
-        return False, ["no imports record (session did not finish?)"]
-    return (not offenders), offenders
+def _ini_strict(run: runner.Run) -> bool:
+    starts = [e for e in run.events if e["kind"] == "session_start"]
+    return bool(starts and starts[0].get("xfail_strict_ini"))

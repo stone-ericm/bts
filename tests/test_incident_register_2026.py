@@ -395,13 +395,18 @@ def test_l02_unplayed_undelivered_preview_is_excluded(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # E77 — 7/16 singleton slate (characterization; the repair design is open, the contract is not)
 #
-# Component level. Mocked: fetch_schedule (MLB schedule; its STALE morning answer is the trigger),
-# bts.picks.get_game_statuses_detailed (MLB status), count_new_confirmations (boxscore lineups),
-# bts.orchestrator.run_and_pick (the model cascade), run_result_polling, the live-forward capture
-# trigger, bts.dm.send_dm (transport), load_decision_streak_state (contest state),
+# Component level. Mocked: fetch_schedule (MLB schedule), bts.picks.get_game_statuses_detailed (MLB
+# status), count_new_confirmations (boxscore lineups), bts.orchestrator.run_and_pick (the model
+# cascade: a canned confirmed selection of the same batter), run_result_polling, the live-forward
+# capture trigger, bts.dm.send_dm (transport), load_decision_streak_state (contest state),
 # _idle_until_next_wakeup (post-observation idle; it reads the real wall clock), and the clock
 # (_now_et + time.sleep). run_day, run_single_check, the lock classifier and the delivery
 # chokepoint run for real; the two spies below only observe them.
+#
+# The schedule mock is TRUTHFUL at every instant (Codex phase-1 r2 #7): it answers 19:10 before
+# ``move_at`` and 18:10 from then on (declared assumption: MLB moved the game at 12:00 ET, after the
+# 10:00 morning fetch; the true move time is not in the repo). Any fetch the scheduler makes gets
+# the answer a real fetch would have got then, so a repair is not presupposed and not blocked.
 # ---------------------------------------------------------------------------
 class _Clock:
     def __init__(self, start: datetime):
@@ -435,7 +440,7 @@ def _dm_kind(text: str) -> str:
     return "other"
 
 
-def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, morning_start: str,
+def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, move_at: datetime,
                        true_first_pitch: datetime, cascade=None) -> dict:
     """Run ``preview.date`` through run_day with the mocks listed above; return observations."""
     from unittest.mock import patch
@@ -446,7 +451,14 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, morning_start: st
     save_pick(preview, picks_dir)
     game = preview.pick.game_pk
     clock = _Clock(datetime.combine(true_first_pitch.date(), datetime.min.time(), ET) + timedelta(hours=10))
-    obs = {"checks": [], "classified": [], "dms": [], "idle_at": [], "completed": False}
+    obs = {"checks": [], "classified": [], "dms": [], "idle_at": [], "schedule_answers": [], "completed": False}
+
+    def schedule(date):
+        if date != preview.date:
+            return []                                   # tomorrow's slate plays no part
+        start = "19:10" if clock() < move_at else "18:10"
+        obs["schedule_answers"].append((clock(), start))
+        return [_game(game, start, "NYM", "PHI", date=date)]
 
     def statuses(_date):
         started = clock() >= true_first_pitch
@@ -473,18 +485,14 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, morning_start: st
         obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text})
         return "dm-1"
 
-    def no_cascade(*_a, **_k):
-        raise AssertionError("the prediction cascade is not part of this characterization")
-
-    with patch("bts.scheduler.fetch_schedule",
-               side_effect=[[_game(game, morning_start, "NYM", "PHI", date=preview.date)], []]), \
+    with patch("bts.scheduler.fetch_schedule", side_effect=schedule), \
          patch("bts.scheduler._now_et", side_effect=clock), \
          patch("bts.scheduler.time.sleep", side_effect=lambda s: clock.advance(timedelta(seconds=s))), \
          patch("bts.scheduler.run_single_check", side_effect=spy_check), \
          patch("bts.picks.classify_pick_lock_state", side_effect=spy_classify), \
          patch("bts.picks.get_game_statuses_detailed", side_effect=statuses), \
          patch("bts.scheduler.count_new_confirmations", return_value=0), \
-         patch("bts.orchestrator.run_and_pick", side_effect=cascade or no_cascade), \
+         patch("bts.orchestrator.run_and_pick", side_effect=cascade or _confirmed_cascade), \
          patch("bts.scheduler.run_result_polling", return_value="final"), \
          patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
          patch("bts.scheduler._idle_until_next_wakeup",
@@ -501,6 +509,7 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, morning_start: st
 
 E77_TRUE_FIRST_PITCH = datetime(2026, 7, 16, 18, 10, tzinfo=ET)
 E77_TRUE_CUTOFF = E77_TRUE_FIRST_PITCH - timedelta(minutes=5)
+E77_MOVE_AT = datetime(2026, 7, 16, 12, 0, tzinfo=ET)          # declared: after the 10:00 fetch
 
 
 def _turner(**over) -> Pick:
@@ -514,6 +523,21 @@ def _turner(**over) -> Pick:
 def _preview(pick: Pick, **delivery) -> DailyPick:
     return DailyPick(date="2026-07-16", run_time="2026-07-16T07:00:00+00:00", pick=pick,
                      double_down=None, runner_up=None, **delivery)
+
+
+def _confirmed_cascade(*_a, **_k):
+    """The cascade's declared response: a confirmed selection of the same batter at the TRUE start."""
+    import pandas as pd
+
+    from bts.strategy import PickResult, SelectionResult
+
+    confirmed = _preview(_turner(projected_lineup=False, game_time="2026-07-16T22:10:00Z"))
+    predictions = pd.DataFrame([{"batter_name": "Trea Turner", "batter_id": 607208, "team": "PHI",
+                                 "game_pk": 824716, "p_game_hit": 0.675, "flags": ""}])
+    sel = SelectionResult(pick_result=PickResult(daily=confirmed, locked=False), action="single",
+                          source="mdp", primary_candidate=None, double_candidate=None,
+                          no_pick_reason=None, streak=0)
+    return predictions, sel, "local"
 
 
 def _delivery_outcome(obs: dict) -> tuple:
@@ -530,55 +554,83 @@ def _delivery_outcome(obs: dict) -> tuple:
     return ("other", bool(daily and daily.notification_sent), len(pick_dms), str(delivered_at))
 
 
-@pytest.mark.xfail(strict=True, raises=SingletonSlateUndelivered,
-                   reason="E77 unfixed: a moved-up singleton slate gets its only check at first pitch")
-def test_e77_singleton_slate_moved_up_is_delivered_before_cutoff(tmp_path):
-    obs = _run_singleton_day(tmp_path / "picks", _preview(_turner()), morning_start="19:10",
-                             true_first_pitch=E77_TRUE_FIRST_PITCH)
-    # the declared mechanism must actually have executed (ordinary assertions)
+def _e77_verdict(obs: dict) -> None:
+    """E77's oracle over one observed day (Codex phase-1 r2 #7).
+
+    Both branches first prove the day really ran (ordinary assertions). The declared BAD outcome must
+    also show the declared mechanism — the lone check at the true first pitch (from the stale 19:10
+    plan), a started-game lock of the undelivered candidate, containment-only DMs — before the
+    dedicated exception; a verified pre-cutoff delivery (pick-file flags + identified pick DM, from a
+    check before the cutoff) reaches the required branch, so a repair turns the marked node into
+    XPASS(strict). Anything else is an ordinary failure.
+    """
     assert obs["completed"] and obs["end"] >= E77_TRUE_CUTOFF, obs["end"]
-    assert [c["at"].strftime("%H:%M") for c in obs["checks"]] == ["18:10"], obs["checks"]
-    assert any(c["game_pk"] == 824716 and c["locked"] and c["reason"] == "game_started_or_final"
-               and c["at"] >= E77_TRUE_FIRST_PITCH for c in obs["classified"]), obs["classified"]
-    assert all(d["kind"] == "alert" for d in obs["dms"]), obs["dms"]   # containment only
-    _oracle(_delivery_outcome(obs), ("delivered_before_cutoff",), ("never_delivered",),
+    assert obs["checks"], "run_day ran no lineup check"
+    outcome = _delivery_outcome(obs)
+    if outcome == ("never_delivered",):
+        assert [c["at"].strftime("%H:%M") for c in obs["checks"]] == ["18:10"], obs["checks"]
+        assert any(c["game_pk"] == 824716 and c["locked"] and c["reason"] == "game_started_or_final"
+                   and c["at"] >= E77_TRUE_FIRST_PITCH for c in obs["classified"]), obs["classified"]
+        assert all(d["kind"] == "alert" for d in obs["dms"]), obs["dms"]          # containment only
+    elif outcome == ("delivered_before_cutoff",):
+        assert any(c["at"] < E77_TRUE_CUTOFF for c in obs["checks"]), obs["checks"]
+    _oracle(outcome, ("delivered_before_cutoff",), ("never_delivered",),
             SingletonSlateUndelivered, "7/16 singleton slate")
 
 
-def test_e77_oracle_only_control_already_delivered(tmp_path):
-    """Oracle-only control: a pick delivered at 17:30 (before any scheduler action) satisfies the
-    delivery oracle. This proves the oracle's pass branch, not the scheduler."""
-    obs = _run_singleton_day(
-        tmp_path / "picks",
-        _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
-                 notification_id="dm-0", delivery_attempted=True,
-                 delivered_at="2026-07-16T21:30:00+00:00"),
-        morning_start="19:10", true_first_pitch=E77_TRUE_FIRST_PITCH)
-    obs["dms"].append({"at": datetime(2026, 7, 16, 17, 30, tzinfo=ET), "kind": "pick", "text": "prior"})
-    assert _delivery_outcome(obs) == ("delivered_before_cutoff",)
+@pytest.mark.xfail(strict=True, raises=SingletonSlateUndelivered,
+                   reason="E77 unfixed: a moved-up singleton slate gets its only check at first pitch")
+def test_e77_singleton_slate_moved_up_is_delivered_before_cutoff(tmp_path):
+    obs = _run_singleton_day(tmp_path / "picks", _preview(_turner()), move_at=E77_MOVE_AT,
+                             true_first_pitch=E77_TRUE_FIRST_PITCH)
+    _e77_verdict(obs)
 
 
 def test_e77_positive_execution_control_correct_schedule_delivers(tmp_path):
-    """Positive execution control (component level; `run_and_pick` returns a canned confirmed
-    selection): with the CORRECT 18:10 start in the morning schedule, the same machinery runs its
-    17:10 check and DMs the pick before the 18:05 cutoff."""
-    import pandas as pd
-
-    from bts.strategy import PickResult, SelectionResult
-
-    confirmed = _preview(_turner(projected_lineup=False, game_time="2026-07-16T22:10:00Z"))
-
-    def cascade(*_a, **_k):
-        predictions = pd.DataFrame([{"batter_name": "Trea Turner", "batter_id": 607208, "team": "PHI",
-                                     "game_pk": 824716, "p_game_hit": 0.675, "flags": ""}])
-        sel = SelectionResult(pick_result=PickResult(daily=confirmed, locked=False), action="single",
-                              source="mdp", primary_candidate=None, double_candidate=None,
-                              no_pick_reason=None, streak=0)
-        return predictions, sel, "local"
-
+    """Positive execution control (component level): the SAME machinery and mocks, with the move
+    already in the morning schedule (move_at 09:00, before the 10:00 fetch), runs its 17:10 check
+    and DMs the pick before the 18:05 cutoff — and the verdict accepts it."""
     obs = _run_singleton_day(tmp_path / "picks", _preview(_turner(game_time="2026-07-16T22:10:00Z")),
-                             morning_start="18:10", true_first_pitch=E77_TRUE_FIRST_PITCH,
-                             cascade=cascade)
-    assert obs["completed"]
+                             move_at=datetime(2026, 7, 16, 9, 0, tzinfo=ET),
+                             true_first_pitch=E77_TRUE_FIRST_PITCH)
     assert [c["at"].strftime("%H:%M") for c in obs["checks"]][:1] == ["17:10"], obs["checks"]
     assert _delivery_outcome(obs) == ("delivered_before_cutoff",), (obs["dms"], obs["daily"])
+    _e77_verdict(obs)
+
+
+def _obs(*, checks, classified=(), dms=(), daily, end=E77_TRUE_FIRST_PITCH + timedelta(hours=1)):
+    return {"completed": True, "end": end, "checks": [{"at": t, "locked": False} for t in checks],
+            "classified": list(classified), "dms": list(dms), "daily": daily}
+
+
+def _at(hh, mm):
+    return datetime(2026, 7, 16, hh, mm, tzinfo=ET)
+
+
+def test_e77_verdict_fixed_direction_passes():
+    """A verified pre-cutoff delivery reaches the required branch (the marked node would XPASS)."""
+    daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
+                     notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:11:00+00:00")
+    _e77_verdict(_obs(checks=[_at(17, 10)], dms=[{"at": _at(17, 11), "kind": "pick", "text": "pick"}], daily=daily))
+
+
+def test_e77_verdict_bad_direction_raises_the_dedicated_exception():
+    classified = [{"at": _at(18, 10), "game_pk": 824716, "locked": True, "reason": "game_started_or_final"}]
+    with pytest.raises(SingletonSlateUndelivered):
+        _e77_verdict(_obs(checks=[_at(18, 10)], classified=classified,
+                          dms=[{"at": _at(19, 0), "kind": "alert", "text": "BTS health"}], daily=_preview(_turner())))
+
+
+@pytest.mark.parametrize("case", ["late_delivery", "no_check", "bad_outcome_other_mechanism"])
+def test_e77_verdict_other_observations_fail_ordinarily(case):
+    undelivered = _preview(_turner())
+    if case == "late_delivery":
+        daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
+                         notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T22:12:00+00:00")
+        obs = _obs(checks=[_at(18, 10)], dms=[{"at": _at(18, 12), "kind": "pick", "text": "pick"}], daily=daily)
+    elif case == "no_check":
+        obs = _obs(checks=[], daily=undelivered)
+    else:   # never delivered, but not through the declared lone-check-at-first-pitch mechanism
+        obs = _obs(checks=[_at(17, 10)], daily=undelivered)
+    with pytest.raises(AssertionError):
+        _e77_verdict(obs)

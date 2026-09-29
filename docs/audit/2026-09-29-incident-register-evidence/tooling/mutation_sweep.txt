@@ -1,0 +1,66 @@
+# Mutation sweep of the v3 evidence tooling (each mutant disables one check; the tests must fail)
+## sweep 1 (45 mutants)
+R1 observer identity: KILLED | ========================= 1 failed, 3 passed in 1.30s ==========================
+R2 own-venv prefix: KILLED | ========================= 1 failed, 4 passed in 1.61s ==========================
+R3 rootdir: KILLED | ========================= 1 failed, 5 passed in 1.93s ==========================
+R4 session finish: SURVIVED | ============================= 45 passed in 27.98s ==============================
+R5 collection errors: KILLED | ========================= 1 failed, 8 passed in 2.99s ==========================
+R6 observer errors: SURVIVED | ============================= 45 passed in 29.26s ==============================
+R7 inventory: KILLED | ========================= 1 failed, 11 passed in 4.46s =========================
+R8 foreign imports: KILLED | ========================= 1 failed, 7 passed in 2.99s ==========================
+R9 per-node state: KILLED | ========================= 1 failed, 9 passed in 3.66s ==========================
+R10 return code: SURVIVED | ============================= 45 passed in 29.56s ==============================
+R11 teardown state: KILLED | ========================= 1 failed, 9 passed in 3.51s ==========================
+R12 pytest shadow (defence-in-depth): SURVIVED | ============================= 45 passed in 29.87s ==============================
+C1 async: KILLED | ========================= 1 failed, 13 passed in 4.58s =========================
+C2 entry file: SURVIVED | ============================= 45 passed in 30.70s ==============================
+C3 invocation link: SURVIVED | ============================= 45 passed in 29.59s ==============================
+C4 event after branch, same invocation: SURVIVED | ============================= 45 passed in 29.01s ==============================
+C5 absence qualifying: KILLED | ======================== 1 failed, 21 passed in 11.38s =========================
+C6 positive control: KILLED | ======================== 1 failed, 24 passed in 15.37s =========================
+C7 unidentified calls: SURVIVED | ============================= 45 passed in 31.29s ==============================
+C8 branch linked: SURVIVED | ============================= 45 passed in 27.92s ==============================
+D1 assertion location: KILLED | ======================== 1 failed, 22 passed in 11.93s =========================
+D2 frozen drift: KILLED | ======================== 1 failed, 26 passed in 16.80s =========================
+D3 not killed: KILLED | ======================== 1 failed, 23 passed in 13.38s =========================
+D4 certificate reasons: KILLED | ======================== 1 failed, 21 passed in 11.43s =========================
+D5 mutant gate: SURVIVED | ============================= 45 passed in 29.17s ==============================
+D6 green gate: SURVIVED | ============================= 45 passed in 29.19s ==============================
+D7 restored gate (may survive): SURVIVED | ============================= 45 passed in 28.52s ==============================
+D8 branch in mutated file: SURVIVED | ============================= 45 passed in 30.04s ==============================
+P1 audit problems: KILLED | ======================== 1 failed, 30 passed in 20.85s =========================
+P2 replay assertion location: SURVIVED | ============================= 45 passed in 30.01s ==============================
+P3 red gate: KILLED | ======================== 1 failed, 33 passed in 24.64s =========================
+P4 replay exception type: KILLED | ======================== 1 failed, 32 passed in 23.51s =========================
+P5 reason required: KILLED | ======================== 1 failed, 30 passed in 21.65s =========================
+A1 imperative: SURVIVED | ============================= 45 passed in 36.25s ==============================
+A2 marker raises: KILLED | ======================== 1 failed, 40 passed in 42.15s =========================
+A3 strict: KILLED | ======================== 1 failed, 39 passed in 35.65s =========================
+A4 exception identity: KILLED | ======================== 1 failed, 37 passed in 36.81s =========================
+A5 oracle frame: KILLED | ======================== 1 failed, 37 passed in 37.01s =========================
+A6 message values: KILLED | ======================== 1 failed, 37 passed in 38.46s =========================
+A7 production invocation: KILLED | ======================== 1 failed, 37 passed in 37.59s =========================
+A8 test bytes pair: KILLED | ======================== 1 failed, 44 passed in 41.79s =========================
+O1 mock identity: KILLED | ========================= 1 failed, 1 passed in 1.79s ==========================
+O2 prod-root filter: KILLED | ========================= 1 failed, 2 passed in 1.95s ==========================
+O3 async flag: KILLED | ========================= 1 failed, 13 passed in 7.01s =========================
+O4 dynamic binding: KILLED | ========================= 1 failed, 1 passed in 1.23s ==========================
+DONE
+
+## sweep 2 (the 15 sweep-1 survivors, after the added tests)
+R4 session finish: KILLED | ========================= 1 failed, 15 passed in 5.36s =========================
+R6 observer errors: KILLED | ========================= 1 failed, 16 passed in 8.72s =========================
+R10 return code: KILLED | ========================= 1 failed, 17 passed in 6.58s =========================
+R12 pytest shadow (defence-in-depth): KILLED | ========================= 1 failed, 18 passed in 6.52s =========================
+C2 entry file: KILLED | ======================== 1 failed, 55 passed in 37.05s =========================
+C3 invocation link: KILLED | ======================== 1 failed, 56 passed in 36.04s =========================
+C4 event after branch, same invocation: KILLED | ======================== 1 failed, 57 passed in 36.59s =========================
+C7 unidentified calls: KILLED | ======================== 1 failed, 63 passed in 35.80s =========================
+C8 branch linked: KILLED | ======================== 1 failed, 56 passed in 37.15s =========================
+D5 mutant gate: KILLED | ======================== 1 failed, 33 passed in 22.79s =========================
+D6 green gate: KILLED | ======================== 1 failed, 34 passed in 24.42s =========================
+D7 restored gate (may survive): KILLED | ======================== 1 failed, 35 passed in 25.03s =========================
+D8 branch in mutated file: KILLED | ======================== 1 failed, 36 passed in 23.64s =========================
+P2 replay assertion location: KILLED | ======================== 1 failed, 44 passed in 31.71s =========================
+A1 imperative: KILLED | ======================== 1 failed, 47 passed in 34.61s =========================
+DONE

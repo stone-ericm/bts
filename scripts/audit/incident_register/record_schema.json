@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bts-w15-incident-register-record-v1",
+  "title": "W1.5 incident register record (design v3.1 §2, §3, §7, §9)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "disposition", "counted", "classes", "tier", "plan_named",
+               "delivery_mode", "policy_objective", "stream", "authority", "contract", "mechanism",
+               "fix", "fixtures", "residual", "watchdog", "evidence", "occurrences", "routes"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^I-[0-9]{3}$"},
+    "working_id": {"type": "string", "pattern": "^(E[0-9]{2,3}|L[0-9]{2}|EX[0-9])$"},
+    "title": {"type": "string", "minLength": 5, "maxLength": 200},
+    "disposition": {"enum": ["observed_incident", "deployed_latent_defect", "near_miss_control_held",
+                             "pre_ship_exclusion", "unresolved_candidate"]},
+    "counted": {"type": "boolean", "description": "false for pre_ship_exclusion (listed, not counted)"},
+    "missing_evidence": {"type": "array", "items": {"type": "string", "minLength": 3}},
+    "classes": {
+      "type": "object", "additionalProperties": false, "required": ["primary", "secondary"],
+      "properties": {
+        "primary": {"$ref": "#/$defs/effect_class"},
+        "secondary": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/effect_class"}}
+      }
+    },
+    "tier": {"enum": ["A", "B", "tier_pending"]},
+    "tier_reason": {"type": "string"},
+    "residual_reaches_production": {"type": "boolean"},
+    "plan_named": {"type": "boolean"},
+    "delivery_mode": {"enum": ["dm", "public", "private", "unknown"]},
+    "policy_objective": {"enum": ["reach57", "emax_season_best", "none", "unknown"]},
+    "stream": {"enum": ["production", "shadow_v1", "shadow_v2", "skip_shadow", "live_forward",
+                        "d8_research", "leaderboard", "backup", "deploy", "cron_job", "dashboard"]},
+    "authority": {"enum": ["contest", "local", "not_applicable", "unknown"]},
+    "contract": {
+      "type": "object", "additionalProperties": false, "required": ["text", "source"],
+      "properties": {"text": {"type": "string", "minLength": 5}, "source": {"type": "string", "minLength": 3}}
+    },
+    "mechanism": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+    "fix": {"type": "array", "items": {"$ref": "#/$defs/fix_link"}},
+    "fixtures": {"$ref": "#/$defs/fixtures"},
+    "residual": {"type": "array", "items": {"$ref": "#/$defs/residual"}},
+    "watchdog": {"$ref": "#/$defs/watchdog"},
+    "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+    "occurrences": {"type": "array", "items": {"$ref": "#/$defs/occurrence"}},
+    "routes": {
+      "type": "object", "additionalProperties": false, "required": ["H", "R", "X"],
+      "properties": {
+        "H": {"type": "array", "items": {"$ref": "#/$defs/sha"}},
+        "R": {"enum": ["pending_phase2"]},
+        "X": {"type": "array", "items": {"type": "string", "minLength": 3}}
+      }
+    },
+    "related": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^I-[0-9]{3}$"}},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "effect_class": {"enum": ["D", "E", "G", "A", "L", "P", "R", "X", "S", "U"]},
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "time": {"type": "string",
+             "pattern": "^2026-[01][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9](:[0-5][0-9])?(Z|[+-][0-2][0-9]:[0-5][0-9]))?$"},
+    "bound": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["at", "evidence"],
+         "properties": {"at": {"$ref": "#/$defs/time"}, "evidence": {"$ref": "#/$defs/ev_refs"}}},
+        {"type": "object", "additionalProperties": false, "required": ["evidence"],
+         "anyOf": [{"required": ["not_before"]}, {"required": ["not_after"]}],
+         "properties": {"not_before": {"$ref": "#/$defs/time"}, "not_after": {"$ref": "#/$defs/time"},
+                        "evidence": {"$ref": "#/$defs/ev_refs"}}},
+        {"enum": ["unknown", "not_applicable", "none"]}
+      ]
+    },
+    "ev_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^ev[0-9]+$"}},
+    "latency": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["min_minutes", "max_minutes"],
+         "properties": {"min_minutes": {"type": ["number", "null"], "minimum": 0},
+                        "max_minutes": {"type": ["number", "null"], "minimum": 0}}},
+        {"enum": ["unknown", "not_applicable"]}
+      ]
+    },
+    "link": {
+      "type": "object", "additionalProperties": false, "required": ["n", "text", "code"],
+      "properties": {
+        "n": {"type": "integer", "minimum": 1},
+        "text": {"type": "string", "minLength": 5},
+        "code": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["path", "ref"],
+          "properties": {"path": {"type": "string"}, "ref": {"$ref": "#/$defs/sha"},
+                         "symbol": {"type": "string"}, "ref_basis": {"enum": ["log", "candidate", "unknown"]}}}}
+      }
+    },
+    "fix_link": {
+      "type": "object", "additionalProperties": false,
+      "required": ["link", "implemented", "deployed", "mitigated", "verified_recovered"],
+      "properties": {
+        "link": {"type": "integer", "minimum": 1},
+        "implemented": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["commits"],
+           "properties": {"commits": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/sha"}},
+                          "complete_fix_set": {"type": "boolean"}}},
+          {"enum": ["unfixed", "config_only", "not_applicable"]}]},
+        "deployed": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["basis"],
+           "properties": {
+             "basis": {"enum": ["log", "operator_report", "candidate_ancestry"]},
+             "sha": {"$ref": "#/$defs/sha"},
+             "live_by": {"$ref": "#/$defs/time"},
+             "not_live_before": {"$ref": "#/$defs/time"},
+             "run_id": {"type": "integer"},
+             "evidence": {"$ref": "#/$defs/ev_refs"}}},
+          {"enum": ["unknown", "not_deployed", "not_applicable"]}]},
+        "mitigated": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["action", "at"],
+           "properties": {"action": {"type": "string"}, "at": {"$ref": "#/$defs/bound"}}},
+          {"enum": ["unknown", "none", "not_applicable"]}]},
+        "verified_recovered": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["how", "at"],
+           "properties": {"how": {"type": "string"}, "at": {"$ref": "#/$defs/bound"}}},
+          {"enum": ["unknown", "not_applicable"]}]}
+      }
+    },
+    "fixtures": {
+      "type": "object", "additionalProperties": false,
+      "required": ["historical_replay", "current_defence", "expected_failure", "characterization"],
+      "properties": {
+        "historical_replay": {"type": "array", "items": {"$ref": "#/$defs/replay"}},
+        "current_defence": {"type": "array", "items": {"$ref": "#/$defs/defence"}},
+        "expected_failure": {"type": "array", "items": {"$ref": "#/$defs/expected_failure"}},
+        "characterization": {"type": "array", "items": {"$ref": "#/$defs/expected_failure"}},
+        "deferred": {"type": "string", "minLength": 5}
+      }
+    },
+    "replay": {
+      "type": "object", "additionalProperties": false, "required": ["status"],
+      "properties": {
+        "status": {"enum": ["certified", "unavailable", "not_applicable"]},
+        "label": {"enum": ["semantic_regression_replay", "semantic_regression_replay_unaudited", "closure_replay"]},
+        "fix_set": {"type": "array", "items": {"$ref": "#/$defs/sha"}},
+        "symptom_nodes": {"type": "array", "items": {"type": "string"}},
+        "acceptance": {"type": "string"},
+        "reason": {"type": "string"}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "certified"}}},
+         "then": {"required": ["label", "fix_set", "symptom_nodes", "acceptance"],
+                  "properties": {"label": {"enum": ["semantic_regression_replay", "closure_replay"]},
+                                 "symptom_nodes": {"minItems": 1}}}},
+        {"if": {"properties": {"status": {"enum": ["unavailable", "not_applicable"]}}},
+         "then": {"required": ["reason"]}}
+      ]
+    },
+    "defence": {
+      "type": "object", "additionalProperties": false, "required": ["link", "status"],
+      "properties": {
+        "link": {"type": "integer", "minimum": 1},
+        "status": {"enum": ["certified", "survivor", "unavailable", "not_applicable"]},
+        "level": {"enum": ["production_path", "component"]},
+        "patch": {"type": "string"},
+        "patch_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "killing_nodes": {"type": "array", "items": {"type": "string"}},
+        "survivor_class": {"enum": ["not_reached", "masked_by_independent_guard", "equivalent", "invalid", "coverage_gap"]},
+        "acceptance": {"type": "string"},
+        "reviewer_decision": {"enum": ["accept", "reject"]},
+        "reason": {"type": "string"}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "certified"}}},
+         "then": {"required": ["level", "patch", "patch_sha256", "killing_nodes", "acceptance", "reviewer_decision"],
+                  "properties": {"reviewer_decision": {"const": "accept"}, "killing_nodes": {"minItems": 1}}}},
+        {"if": {"properties": {"status": {"const": "survivor"}}},
+         "then": {"required": ["patch", "survivor_class", "reason"]}},
+        {"if": {"properties": {"status": {"enum": ["unavailable", "not_applicable"]}}},
+         "then": {"required": ["reason"]}}
+      ]
+    },
+    "expected_failure": {
+      "type": "object", "additionalProperties": false, "required": ["nodes", "exception", "acceptance"],
+      "properties": {
+        "nodes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "exception": {"type": "string"},
+        "controls": {"type": "array", "items": {"type": "string"}},
+        "acceptance": {"type": "string"}
+      }
+    },
+    "residual": {
+      "type": "object", "additionalProperties": false, "required": ["text", "reaches_production"],
+      "properties": {"text": {"type": "string", "minLength": 5}, "reaches_production": {"type": "boolean"},
+                     "source": {"type": "string"}}
+    },
+    "watchdog": {
+      "type": "object", "additionalProperties": false, "required": ["boundary", "trigger", "recovery_assertion"],
+      "properties": {
+        "boundary": {"enum": ["delivery", "entry", "restart", "singleton_slate", "private_vs_contest",
+                              "grading", "preservation", "none"]},
+        "trigger": {"type": "string"},
+        "recovery_assertion": {"type": "string"}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false, "required": ["id", "kind", "strength", "locator", "what"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^ev[0-9]+$"},
+        "kind": {"enum": ["machine_observation", "contemporaneous_operator_report", "inference"]},
+        "strength": {"enum": ["primary", "reported"]},
+        "locator": {"type": "string", "minLength": 3},
+        "written_at": {"$ref": "#/$defs/time"},
+        "trail": {"type": "array", "items": {"type": "string"}},
+        "exposure_row": {"type": "string", "pattern": "^X-[0-9]{2}$"},
+        "what": {"type": "string", "minLength": 5}
+      }
+    },
+    "occurrence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["onset", "first_detectable", "first_machine_detection", "alert", "operator_awareness",
+                   "mitigation", "restored_verification", "latencies"],
+      "properties": {
+        "label": {"type": "string"},
+        "onset": {"$ref": "#/$defs/bound"},
+        "first_detectable": {"$ref": "#/$defs/bound"},
+        "first_machine_detection": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["detector", "at"],
+           "properties": {"detector": {"type": "string"}, "at": {"$ref": "#/$defs/bound"}}},
+          {"enum": ["none", "unknown"]}]},
+        "alert": {
+          "type": "object", "additionalProperties": false, "required": ["attempted", "confirmed", "failed"],
+          "properties": {"attempted": {"$ref": "#/$defs/bound"}, "confirmed": {"$ref": "#/$defs/bound"},
+                         "failed": {"$ref": "#/$defs/bound"}}},
+        "operator_awareness": {"$ref": "#/$defs/bound"},
+        "operator_action": {"$ref": "#/$defs/bound"},
+        "mitigation": {"$ref": "#/$defs/bound"},
+        "restored_verification": {"$ref": "#/$defs/bound"},
+        "recurrence": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"before_fix": {"type": "array", "items": {"$ref": "#/$defs/bound"}},
+                         "after_fix": {"type": "array", "items": {"$ref": "#/$defs/bound"}}}},
+        "latencies": {
+          "type": "object", "additionalProperties": false, "required": ["detection", "notification", "recovery"],
+          "properties": {"detection": {"$ref": "#/$defs/latency"}, "notification": {"$ref": "#/$defs/latency"},
+                         "recovery": {"$ref": "#/$defs/latency"}}}
+      }
+    }
+  }
+}
