@@ -49,6 +49,13 @@ def test_units_carry_status_and_capture_time_and_empty_lists_have_no_rows():
     assert grab[0]["captured_at"] is None
 
 
+def test_a_capture_whose_name_is_not_a_real_time_parses_without_a_capture_time():
+    # Final review #1: a stray capture named with an impossible stamp must not crash the build (Review Focus 1).
+    rows = parse_units("static/units/20260230T000000Z.json.gz", gz(dumps({"units": [
+        {"id": 1, "feedId": 2, "roundId": 3, "status": "scheduled"}]}))).rows
+    assert (rows[0]["unit_id"], rows[0]["captured_at"]) == (1, None)
+
+
 def test_lookups_keep_conflicting_captures():
     units = parse_units("static/units/20260801T150000Z.json", dumps({"units": [{"id": 2449, "feedId": 822679, "roundId": 1009}]})).rows \
         + parse_units("static/units/20260802T150000Z.json", dumps({"units": [{"id": 2449, "feedId": 999999, "roundId": 1009}]})).rows

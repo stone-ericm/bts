@@ -111,8 +111,13 @@ def utc_iso(raw) -> str | None:
 
 
 def stamp_to_utc(name: str) -> str | None:
-    """Static-capture file names carry a UTC stamp 'YYYYmmddTHHMMSSZ'."""
+    """Static-capture file names carry a UTC stamp 'YYYYmmddTHHMMSSZ'. A stamp that is not a real time (a stray or
+    hand-named file) is an unknown capture time, never a crash."""
     m = _STAMP.search(name)
     if m is None:
         return None
-    return datetime.strptime(m.group(1), "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc).strftime(UTC_FORMAT)
+    try:
+        t = datetime.strptime(m.group(1), "%Y%m%dT%H%M%S")
+    except ValueError:
+        return None
+    return t.replace(tzinfo=timezone.utc).strftime(UTC_FORMAT)
