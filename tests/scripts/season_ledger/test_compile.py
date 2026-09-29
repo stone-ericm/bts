@@ -300,6 +300,13 @@ def test_the_latest_contest_observation_carries_the_grade(tmp_path, monkeypatch)
     stale_values = [dict(x, slot_result="hit") if x is m else x for x in matches]    # latest id, stale grade
     with pytest.raises(InvariantError, match="latest observation"):
         check_invariants(files, accounting, stale_values, ledger, membership, summary, dates)
+    # Codex code r3 #1: every carried slot and round fact, not only the grade, is the latest occurrence's.
+    wrong_streak = [dict(x, round_streak=x["round_streak"] + 1) if x is m else x for x in matches]
+    with pytest.raises(InvariantError, match="latest observation"):
+        check_invariants(files, accounting, wrong_streak, ledger, membership, summary, dates)
+    with pytest.raises(InvariantError, match="round fact"):
+        check_invariants(files, accounting, matches, [dict(r, streak_after=(r["streak_after"] or 0) + 1) if r is row
+                                                      else r for r in ledger], membership, summary, dates)
 
 
 def test_a_decision_only_selection_with_an_unrecorded_game_is_kept(tmp_path):

@@ -11,6 +11,7 @@ from collections import Counter
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from .contest import SLOT_VALUE_KEYS
 from .ids import Parsed, canonical_json, load_json_bytes, obs_id, sha256_hex
 from .sources.contest_ledger import parse_contest_ledger, parse_saver_transitions
 from .sources.day_records import parse_decision, parse_lineup_evolution, parse_scheduler_state
@@ -389,7 +390,7 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
         m = by_identity[identity]
         if (m["last_obs_id"] not in last or (m["first_seen"], m["last_seen"], m["last_line_no"], m["n_observations"])
                 != (min(key for key, _o, _f in seen)[0], latest[0], latest[1], len(seen))
-                or any(m[k] != last[m["last_obs_id"]][k] for k in ("slot_result", "slot_result_state", "round_result"))):
+                or any(m[k] != last[m["last_obs_id"]][k] for k in SLOT_VALUE_KEYS)):     # every carried fact (r3 #1)
             raise InvariantError(f"contest slot {identity} does not carry its latest observation")
     placed = Counter()
     for r in ledger_rows:
@@ -405,8 +406,9 @@ def check_invariants(files: dict, accounting: list[dict], matches: list[dict], l
                 or (r["row_kind"] == "selection" and r["selection_id"] != m["selection_id"])):
             raise InvariantError(f"ledger row {r['row_id']} carries contest evidence that is not its own slot's")
         if (r["bts_outcome"] not in (None, occ["slot_result"]) or r.get("contest_round_result") != occ["round_result"]
+                or r.get("streak_after") != occ["round_streak"] or r.get("slot_number") != occ["slot_number"]
                 or (r.get("bts_outcome_status") == "graded" and r["bts_outcome"] != occ["slot_result"])):
-            raise InvariantError(f"ledger row {r['row_id']} carries a grade that is not its slot's")
+            raise InvariantError(f"ledger row {r['row_id']} carries a grade or round fact that is not its slot's")
         placed[identity] += 1
     if set(placed) != set(by_identity) or any(n != 1 for n in placed.values()):
         raise InvariantError("a qualified contest slot is missing from the ledger or placed twice")
