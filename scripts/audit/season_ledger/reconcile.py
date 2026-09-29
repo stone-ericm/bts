@@ -256,9 +256,9 @@ def check_sources(files: dict, routed: dict[str, str], accounting: list[dict]) -
     problems = census_problems(files, routed, accounting)
     if problems:
         raise InvariantError(f"census: {problems[:5]}")
+    shas = {rel: None if data is None else sha256_hex(data) for rel, data in files.items()}   # once per file
     for a in accounting:
-        data = files[a["source_path"]]
-        sha = None if data is None else sha256_hex(data)
+        sha = shas[a["source_path"]]
         want = (obs_id(a["source_path"], a["locator"], "missing" if sha is None else sha), sha, routed.get(a["source_path"]))
         if (a["obs_id"], a["content_sha256"], a["kind"]) != want:
             raise InvariantError(f"occurrence identity does not match its source: {a['source_path']} {a['locator']}")

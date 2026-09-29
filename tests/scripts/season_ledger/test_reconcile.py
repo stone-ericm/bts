@@ -180,6 +180,21 @@ def test_source_checks_reject_the_codex_r3_census_probes():
         check_sources(files, routed, forged)
 
 
+def test_check_sources_hashes_each_file_once(monkeypatch):
+    # Final review #2: the identity check must not re-hash a file per occurrence — the real contest ledger holds
+    # tens of thousands of occurrences in one multi-megabyte file.
+    from scripts.audit.season_ledger import reconcile
+    rel = "picks/account_state/contest_ledger.jsonl"
+    lines = [contest_line(f"2026-08-2{i}T14:30:00Z", [rnd(971 + i, "hit", i, 1, [slot(1928 + i, 2513, "hit")])])
+             for i in range(3)]
+    files, routed = {rel: ("\n".join(lines) + "\n").encode()}, {rel: "contest_ledger"}
+    acc = account(files, routed, _parse(files, routed))
+    calls, real = [], reconcile.sha256_hex
+    monkeypatch.setattr(reconcile, "sha256_hex", lambda data: calls.append(1) or real(data))
+    check_sources(files, routed, acc)
+    assert len(acc) == 9 and len(calls) == len(files)
+
+
 def test_only_a_readable_empty_container_is_a_file_without_records():
     empty, unreadable = "static/units/20260927T230002Z.json.gz", "static/units/20260926T230002Z.json"
     files = {empty: gz(dumps({"units": []})), unreadable: dumps({"error": "x"})}
