@@ -21,7 +21,8 @@
    "connection": {
     "kind": "return",
     "path": "src/bts/picks.py",
-    "qualname": "grade_pick_in_feed"
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -43,7 +44,8 @@
    "connection": {
     "kind": "return",
     "path": "src/bts/picks.py",
-    "qualname": "grade_pick_in_feed"
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -65,7 +67,8 @@
    "connection": {
     "kind": "return",
     "path": "src/bts/picks.py",
-    "qualname": "grade_pick_in_feed"
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -87,7 +90,8 @@
    "connection": {
     "kind": "return",
     "path": "src/bts/picks.py",
-    "qualname": "grade_pick_in_feed"
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -109,7 +113,8 @@
    "connection": {
     "kind": "return",
     "path": "src/bts/picks.py",
-    "qualname": "grade_pick_in_feed"
+    "qualname": "grade_pick_in_feed",
+    "review": "The oracle's actual is the value returned by the node's single grade_pick_in_feed call, on the line before, for BATTER_A on the case's synthetic feed; no other call of the function runs in the node. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -164,7 +169,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -219,7 +225,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -274,7 +281,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -329,7 +337,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -384,7 +393,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -441,7 +451,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -498,7 +509,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -555,7 +567,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -612,7 +625,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -667,7 +681,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir): DATE's pick file (slot_results, result), the streak and the saver read from the node's OWN tmp picks dir right after its one `bts check-results --date DATE --picks-dir <that dir>` run. That dir holds one date and one streak file, so the matched read-back is that run's output. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -718,7 +733,8 @@
       "qualname": "load_saver_available",
       "all": true
      }
-    ]
+    ],
+    "review": "The oracle's actual is the list _two_late_reconciles builds: (load_streak, load_saver_available) of the node's own picks dir read after EACH of its two reconcile_results runs on that dir. The zipped components are exactly those four reads, so both cardinalities are 2. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -769,7 +785,8 @@
       "qualname": "load_saver_available",
       "all": true
      }
-    ]
+    ],
+    "review": "The oracle's actual is the list _two_late_reconciles builds: (load_streak, load_saver_available) of the node's own picks dir read after EACH of its two reconcile_results runs on that dir. The zipped components are exactly those four reads, so both cardinalities are 2. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -794,7 +811,7 @@
    ],
    "connection": {
     "kind": "derived",
-    "review": "E77's outcome is a label computed by _delivery_outcome from the pick file's delivery flags (notification_sent, delivered_at) and the identified pick DMs; the derivation and its bad-path assertions were reviewed in Codex phase-1 r3 (answer 4); 2026-09-29 (lead): the required branch no longer presupposes a lineup check (any verified pre-cutoff delivery path reaches it, as for L04) and both cascade bindings are mocked; Codex review of this change pending (phase-1 r4)"
+    "review": "E77's outcome is a label computed by _delivery_outcome. Required: exactly one send to the configured recipient naming the declared batter, before the true cutoff, whose id, selection and instant the saved record describes. Bad: no send naming the batter to anyone, and a record claiming no delivery. The bad-path mechanism assertions (lone check at first pitch, started-game lock, containment-only DMs) apply only to the bad outcome. Reviewed in Codex phase-1 r3 (answer 4). After r4 #7 the lead added the identified-send predicate and negative controls (status message, wrong batter, wrong recipient, inconsistent record, duplicate send) on 2026-09-29. Codex review pending (r5)."
    }
   },
   {
@@ -849,7 +866,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -904,7 +922,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -959,7 +978,8 @@
       "path": "src/bts/picks.py",
       "qualname": "load_saver_available"
      }
-    ]
+    ],
+    "review": "The oracle's actual is _outcome(picks_dir) after the restarted scorer: the LAST reads of the node's own tmp picks dir (DATE's pick file, streak, saver) following the final `bts check-results` run. The read between the runs only checks the fault point and is not the matched value. Reviewed by the lead 2026-09-29."
    }
   },
   {
@@ -984,7 +1004,7 @@
    ],
    "connection": {
     "kind": "derived",
-    "review": "L03's outcome is a label computed by _l03_outcome from the pick file's delivery flags and the identified pick DMs sent at or after the declared postponement; _l03_verdict applies the mechanism assertions (the 18:10 check selected the pick, the refresh at the 18:35 deadline got no predictions, the send came after the postponement and before the cutoff) only on the bad outcome. Reviewed by the lead 2026-09-29: fails unmarked with the declared values; a simulated status-checking repair turns it XPASS(strict); the positive control delivers a playable game's cached pick. Codex review pending (phase-1 r4)."
+    "review": "L03's outcome is a label computed by _l03_outcome from the COMPLETE send history relative to the declared 18:20 postponement. Bad: the one identified send naming the batter came at or after the postponement, and the record describes it. Required: no such send, and the record agrees (it describes the one earlier send, or claims no delivery when there was none). A send to another recipient is 'other'. Reviewed by the lead 2026-09-29: fails unmarked with the declared values; a status-checking repair XPASSes; the playable-game and early-delivery controls pass. Codex review pending (r5)."
    }
   }
  ]

@@ -223,6 +223,11 @@ def plain():
     return "done"
 
 
+def long_send():
+    transport.send("eric", "pick: " + "x" * 600)
+    return "y" * 600
+
+
 class HardError(Exception):
     pass
 
@@ -282,6 +287,11 @@ def test_rebound_helper_twice(monkeypatch):
 def test_c_boundary(monkeypatch):
     monkeypatch.setattr(transport, "send", print)
     scen.plain()
+
+
+def test_long():
+    with patch("bts.transport.send"):
+        scen.long_send()
 
 
 def test_raises():
@@ -425,3 +435,14 @@ def test_a_boundary_outside_production_stays_enabled_after_its_first_call(scen, 
                    observe=_obs(wt, "test_rebound_helper_twice", "plain"))
     calls = [e for e in _inside(r, "test_rebound_helper_twice") if e["kind"] == "boundary"]
     assert [(c["identity"]["value"], c["identity"]["category"]) for c in calls] == [("pick: plain", "pick")] * 2
+
+
+def test_an_incompletely_observed_value_is_never_classified(scen, tmp_path):
+    """A boundary text or return longer than the serializer keeps is 'unavailable', never a category
+    read off its prefix (Codex phase-1 r4 #2): 'pick: xxx…' must not count as a pick."""
+    repo, wt = scen
+    r = runner.run(wt, ["tests/test_scen.py::test_long", "-q"], tmp_path / "o", "g",
+                   observe=_obs(wt, "test_long", "long_send", returns=["long_send"]))
+    inside = _inside(r, "test_long")
+    assert [e["identity"]["category"] for e in inside if e["kind"] == "boundary"] == ["unavailable"]
+    assert [e["category"] for e in inside if e["kind"] == "return"] == ["unavailable"]

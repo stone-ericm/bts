@@ -577,6 +577,34 @@ def _dm_kind(text: str) -> str:
     return "other"
 
 
+RECIPIENT = "eric"
+
+
+def _dm_recorder(obs: dict, clock):
+    """The transport mock: every send is recorded with its recipient, text and its OWN id."""
+    def send_dm(recipient, text):
+        msg_id = f"dm-{len(obs['dms']) + 1}"
+        obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text, "recipient": recipient, "id": msg_id})
+        return msg_id
+    return send_dm
+
+
+def _named_sends(obs: dict, batter: str, *, recipient: str | None = RECIPIENT) -> list[dict]:
+    """Non-alert sends whose text names the declared batter (to ``recipient``; None = to anyone)."""
+    return [d for d in obs["dms"] if d["kind"] != "alert" and batter in d["text"]
+            and (recipient is None or d.get("recipient") == recipient)]
+
+
+def _record_matches(daily, dm: dict, batter: str, game_pk: int) -> bool:
+    """The saved delivery record describes exactly THIS send: the declared selection, flagged sent, the
+    send's own id, and a delivery time at the send's instant (Codex phase-1 r4 #7)."""
+    if not (daily and daily.notification_sent and daily.notification_id == dm.get("id") and daily.delivered_at
+            and daily.pick.batter_name == batter and daily.pick.game_pk == game_pk):
+        return False
+    delivered = datetime.fromisoformat(daily.delivered_at).astimezone(ET)
+    return abs((delivered - dm["at"]).total_seconds()) <= 60
+
+
 def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, move_at: datetime,
                        true_first_pitch: datetime, cascade=None) -> dict:
     """Run ``preview.date`` through run_day with the mocks listed above; return observations."""
@@ -618,9 +646,7 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, move_at: datetime
                                   "reason": state.reason})
         return state
 
-    def send_dm(recipient, text):
-        obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text})
-        return "dm-1"
+    send_dm = _dm_recorder(obs, clock)
 
     with patch("bts.scheduler.fetch_schedule", side_effect=schedule), \
          patch("bts.scheduler._now_et", side_effect=clock), \
@@ -678,18 +704,22 @@ def _confirmed_cascade(*_a, **_k):
     return predictions, sel, "local"
 
 
+E77_BATTER, E77_GAME = "Trea Turner", 824716
+
+
 def _delivery_outcome(obs: dict) -> tuple:
-    """Delivery outcome from the pick file AND the identified pick DM (alerts never count)."""
+    """Delivery outcome from the IDENTIFIED send and the saved record together (Codex phase-1 r4 #7: a
+    'No pick today' message with the flags set used to pass). Required: exactly one send to the
+    recipient naming the declared batter, before the true cutoff, that the saved record describes. Bad:
+    no send naming the batter to anyone, and a record claiming no delivery. Anything else is 'other'."""
     daily = obs["daily"]
-    pick_dms = [d for d in obs["dms"] if d["kind"] == "pick"]
-    before = [d for d in pick_dms if d["at"] < E77_TRUE_CUTOFF]
-    delivered_at = (datetime.fromisoformat(daily.delivered_at).astimezone(ET)
-                    if daily and daily.delivered_at else None)
-    if daily and daily.notification_sent and before and delivered_at and delivered_at < E77_TRUE_CUTOFF:
+    named = _named_sends(obs, E77_BATTER)
+    if len(named) == 1 and named[0]["at"] < E77_TRUE_CUTOFF and _record_matches(daily, named[0], E77_BATTER, E77_GAME):
         return ("delivered_before_cutoff",)
-    if daily and not daily.notification_sent and not pick_dms and daily.delivered_at is None:
+    if (not _named_sends(obs, E77_BATTER, recipient=None) and daily and not daily.notification_sent
+            and daily.delivered_at is None):
         return ("never_delivered",)
-    return ("other", bool(daily and daily.notification_sent), len(pick_dms), str(delivered_at))
+    return ("other", bool(daily and daily.notification_sent), len(named))
 
 
 def _e77_verdict(obs: dict) -> None:
@@ -743,18 +773,44 @@ def _at(hh, mm):
     return datetime(2026, 7, 16, hh, mm, tzinfo=ET)
 
 
+def _dm(at, text, *, recipient=RECIPIENT, msg_id="dm-1") -> dict:
+    return {"at": at, "kind": _dm_kind(text), "text": text, "recipient": recipient, "id": msg_id}
+
+
+def _flagged(at_utc: str, msg_id: str = "dm-1") -> DailyPick:
+    return _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
+                    notification_id=msg_id, delivery_attempted=True, delivered_at=at_utc)
+
+
+@pytest.mark.parametrize("case", ["status_message", "wrong_batter", "wrong_recipient", "inconsistent_record",
+                                  "duplicate_send"])
+def test_e77_verdict_a_flagged_record_without_the_identified_send_fails_ordinarily(case):
+    """Codex phase-1 r4 #7 negative controls: the delivery is the identified send AND its record."""
+    daily = _flagged("2026-07-16T21:11:00+00:00")
+    dms = {"status_message": [_dm(_at(17, 11), "No pick today")],
+           "wrong_batter": [_dm(_at(17, 11), "pick: Kyle Schwarber")],
+           "wrong_recipient": [_dm(_at(17, 11), "pick: Trea Turner", recipient="mallory")],
+           "inconsistent_record": [_dm(_at(17, 11), "pick: Trea Turner", msg_id="dm-7")],
+           "duplicate_send": [_dm(_at(17, 11), "pick: Trea Turner"),
+                              _dm(_at(17, 12), "pick: Trea Turner", msg_id="dm-2")]}[case]
+    obs = _obs(checks=[_at(17, 10)], dms=dms, daily=daily)
+    assert _delivery_outcome(obs)[0] == "other"
+    with pytest.raises(AssertionError):
+        _e77_verdict(obs)
+
+
 def test_e77_verdict_fixed_direction_passes():
     """A verified pre-cutoff delivery reaches the required branch (the marked node would XPASS)."""
     daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                      notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:11:00+00:00")
-    _e77_verdict(_obs(checks=[_at(17, 10)], dms=[{"at": _at(17, 11), "kind": "pick", "text": "pick"}], daily=daily))
+    _e77_verdict(_obs(checks=[_at(17, 10)], dms=[_dm(_at(17, 11), "pick: Trea Turner")], daily=daily))
 
 
 def test_e77_verdict_bad_direction_raises_the_dedicated_exception():
     classified = [{"at": _at(18, 10), "game_pk": 824716, "locked": True, "reason": "game_started_or_final"}]
     with pytest.raises(SingletonSlateUndelivered):
         _e77_verdict(_obs(checks=[_at(18, 10)], classified=classified,
-                          dms=[{"at": _at(19, 0), "kind": "alert", "text": "BTS health"}], daily=_preview(_turner())))
+                          dms=[_dm(_at(19, 0), "BTS health CRITICAL")], daily=_preview(_turner())))
 
 
 def test_e77_verdict_any_pre_cutoff_delivery_path_passes():
@@ -762,7 +818,7 @@ def test_e77_verdict_any_pre_cutoff_delivery_path_passes():
     all (e.g. a woken fallback) also reaches the required branch."""
     daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                      notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:35:00+00:00")
-    _e77_verdict(_obs(checks=[], dms=[{"at": _at(17, 35), "kind": "pick", "text": "pick"}], daily=daily))
+    _e77_verdict(_obs(checks=[], dms=[_dm(_at(17, 35), "pick: Trea Turner")], daily=daily))
 
 
 @pytest.mark.parametrize("case", ["late_delivery", "no_check", "bad_outcome_other_mechanism"])
@@ -771,7 +827,7 @@ def test_e77_verdict_other_observations_fail_ordinarily(case):
     if case == "late_delivery":
         daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                          notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T22:12:00+00:00")
-        obs = _obs(checks=[_at(18, 10)], dms=[{"at": _at(18, 12), "kind": "pick", "text": "pick"}], daily=daily)
+        obs = _obs(checks=[_at(18, 10)], dms=[_dm(_at(18, 12), "pick: Trea Turner")], daily=daily)
     elif case == "no_check":
         obs = _obs(checks=[], daily=undelivered)
     else:   # never delivered, but not through the declared lone-check-at-first-pitch mechanism
@@ -850,9 +906,7 @@ def _run_l03_day(picks_dir: Path, *, postponed_at: datetime | None) -> dict:
         obs["cascade"].append(clock())
         return _l03_selection() if len(obs["cascade"]) == 1 else (None, None, "local")
 
-    def send_dm(recipient, text):
-        obs["dms"].append({"at": clock(), "kind": _dm_kind(text), "text": text})
-        return "dm-1"
+    send_dm = _dm_recorder(obs, clock)
 
     with patch("bts.scheduler.fetch_schedule", side_effect=schedule), \
          patch("bts.scheduler._now_et", side_effect=clock), \
@@ -875,14 +929,28 @@ def _run_l03_day(picks_dir: Path, *, postponed_at: datetime | None) -> dict:
 
 
 def _l03_outcome(obs: dict, postponed_at: datetime) -> tuple:
-    """Did a delivery name the game after it was postponed (the pick file AND an identified pick DM)?"""
+    """Decided from the COMPLETE send history relative to the postponement, with the saved record
+    required to agree (Codex phase-1 r4 #8: a valid delivery BEFORE the postponement was refused).
+    Bad: the one identified send naming the batter came at/after the postponement and the record
+    describes it. Required: no such send, and the record agrees — it describes the one earlier send, or
+    claims no delivery when there was none. Anything else is 'other'."""
     daily = obs["daily"]
-    after = [d for d in obs["dms"] if d["kind"] == "pick" and L03_BATTER in d["text"] and d["at"] >= postponed_at]
-    if daily and daily.notification_sent and daily.pick.game_pk == L03_GAME and after:
-        return ("postponed_pick_delivered",)
-    if not after and not (daily and daily.notification_sent and daily.pick.game_pk == L03_GAME):
+    named = _named_sends(obs, L03_BATTER)
+    after = [d for d in named if d["at"] >= postponed_at]
+    stray = [d for d in _named_sends(obs, L03_BATTER, recipient=None) if d not in named]
+    if stray:
+        return ("other", "a send naming the batter to another recipient")
+    if after:
+        if len(named) == 1 and _record_matches(daily, after[0], L03_BATTER, L03_GAME):
+            return ("postponed_pick_delivered",)
+        return ("other", len(named), bool(daily and daily.notification_sent))
+    if named:
+        if len(named) == 1 and _record_matches(daily, named[0], L03_BATTER, L03_GAME):
+            return ("no_postponed_delivery",)
+        return ("other", len(named), bool(daily and daily.notification_sent))
+    if daily is None or (not daily.notification_sent and daily.delivered_at is None):
         return ("no_postponed_delivery",)
-    return ("other", bool(daily and daily.notification_sent), len(after))
+    return ("other", "a record claiming a delivery no send supports")
 
 
 def _l03_verdict(obs: dict) -> None:
@@ -916,3 +984,35 @@ def test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game
     sent = [d["at"] for d in obs["dms"] if d["kind"] == "pick" and L03_BATTER in d["text"]]
     assert sent and all(L03_FALLBACK <= t < L03_CUTOFF for t in sent), obs["dms"]
     assert obs["daily"].notification_sent
+
+
+def _l03_obs(dms, daily) -> dict:
+    return {"daily": daily, "dms": dms, "completed": True, "end": L03_FALLBACK + timedelta(minutes=30),
+            "cascade": [L03_CHECK, L03_FALLBACK]}
+
+
+def _l03_daily(at_utc: str | None, msg_id: str = "dm-1") -> DailyPick:
+    daily = _l03_selection()[1].pick_result.daily
+    if at_utc:
+        daily.notification_sent, daily.notification_id, daily.delivered_at = True, msg_id, at_utc
+    return daily
+
+
+def test_l03_verdict_a_valid_delivery_before_the_postponement_passes():
+    """Codex phase-1 r4 #8: the pick DM'd at 18:15, before the 18:20 postponement, and nothing after it."""
+    at = datetime(2026, 7, 20, 18, 15, tzinfo=ET)
+    obs = _l03_obs([_dm(at, f"pick: {L03_BATTER}")], _l03_daily("2026-07-20T22:15:00+00:00"))
+    assert _l03_outcome(obs, L03_POSTPONED_AT) == ("no_postponed_delivery",)
+    _l03_verdict(obs)
+
+
+@pytest.mark.parametrize("case", ["record_disagrees", "record_without_send", "send_to_another_recipient"])
+def test_l03_verdict_a_history_the_record_does_not_describe_fails_ordinarily(case):
+    at = datetime(2026, 7, 20, 18, 15, tzinfo=ET)
+    obs = {"record_disagrees": _l03_obs([_dm(at, f"pick: {L03_BATTER}")], _l03_daily("2026-07-20T22:15:00+00:00", "dm-9")),
+           "record_without_send": _l03_obs([], _l03_daily("2026-07-20T22:15:00+00:00")),
+           "send_to_another_recipient": _l03_obs([_dm(at, f"pick: {L03_BATTER}", recipient="mallory")],
+                                                 _l03_daily(None))}[case]
+    assert _l03_outcome(obs, L03_POSTPONED_AT)[0] == "other"
+    with pytest.raises(AssertionError):
+        _l03_verdict(obs)

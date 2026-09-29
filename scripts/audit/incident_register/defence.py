@@ -65,14 +65,15 @@ def _check_spec(spec: dict) -> None:
         raise SpecError("the branch anchor must be in a mutated file")
 
 
-def _drift(worktree, frozen: dict, untracked: list, venv: str, exclude, where: str) -> list[str]:
+def _drift(worktree, frozen: dict, untracked: dict, venv: str, exclude, where: str) -> list[str]:
     m = owned.manifest(worktree, exclude=exclude)
     why = []
     changed = sorted(k for k in set(frozen) | set(m["files"]) if frozen.get(k) != m["files"].get(k))
     if changed:
         why.append(f"{where}: frozen files changed: {changed[:5]}")
-    if m["untracked"] != untracked:
-        why.append(f"{where}: untracked files changed: {sorted(set(m['untracked']) ^ set(untracked))[:5]}")
+    moved = sorted(k for k in set(untracked) | set(m["untracked"]) if untracked.get(k) != m["untracked"].get(k))
+    if moved:                                            # added, removed or changed in content
+        why.append(f"{where}: untracked files changed: {moved[:5]}")
     if owned.venv_fingerprint(worktree) != venv:
         why.append(f"{where}: the venv changed")
     return why
@@ -86,16 +87,32 @@ def innermost_repo_frame(frames: list, worktree: str) -> list | None:
     return inside[-1] if inside else None
 
 
+def _failure(run: runner.Run, node: str, worktree: str):
+    """(exception module.qualname, innermost worktree frame [path, line]) of a failed call phase."""
+    calls = runner.phases(run.events, node).get("call", [])
+    if len(calls) != 1:
+        return None
+    c = calls[0]
+    last = innermost_repo_frame(c.get("frames") or [], worktree)
+    return (f"{c.get('exc_module')}.{c.get('exc_qualname')}", last[:2] if last else None)
+
+
 def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str, mode: str,
                  inventory: list[str]) -> tuple[runner.Run, list[str]]:
-    """Re-run ``tests`` with NO observation and require identical per-node states (design §9.3 as
-    amended: observer-on behaviour is validated against an observer-off control)."""
+    """Re-run ``tests`` with NO observation and require identical per-node states — and, for a node that
+    fails both ways, the same failure: exception type and innermost worktree frame (design §9.3 as
+    amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2)."""
     plain = runner.run(worktree, tests, out_dir, stage, observe=None, env_extra=env)
     why = [f"{stage}: {r}" for r in runner.gate(plain, worktree=worktree, mode=mode, expected=inventory)]
+    wt = os.path.realpath(worktree)
     for n in inventory:
         a, b = runner.node_state(observed.events, n), runner.node_state(plain.events, n)
         if a != b:
             why.append(f"{stage}: {n} is {a} observed but {b} unobserved")
+        elif a == "failed":
+            fa, fb = _failure(observed, n, wt), _failure(plain, n, wt)
+            if fa != fb:
+                why.append(f"{stage}: {n} failed differently observed ({fa}) and unobserved ({fb})")
     return plain, why
 
 

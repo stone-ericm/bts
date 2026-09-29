@@ -135,7 +135,8 @@ def test_manifest_hashes_working_bytes_and_lists_untracked(wt):
     write(wt, "new_untracked.txt", "x")
     m1 = owned.manifest(wt)
     assert m1["files"]["tests/test_mod.py"] != m0["files"]["tests/test_mod.py"]
-    assert m1["untracked"] == ["new_untracked.txt"] and m0["untracked"] == []
+    assert list(m1["untracked"]) == ["new_untracked.txt"] and m0["untracked"] == {}
+    assert m1["untracked"]["new_untracked.txt"] == owned._sha(b"x")        # frozen by content, not only name
     assert owned.manifest(wt, exclude={"tests/test_mod.py"})["files"].keys() == m0["files"].keys() - {"tests/test_mod.py"}
 
 
@@ -185,14 +186,15 @@ def _fake_venv(root: Path, outside: Path) -> Path:
 
 def test_venv_fingerprint_hashes_file_contents_not_just_names(tmp_path):
     """Sweep W3: an installed file whose bytes change under the same name (same size here) must change
-    the fingerprint; bytecode caches must not."""
+    the fingerprint — bytecode included, since a cached .pyc is what runs (Codex phase-1 r4 #4)."""
     root = tmp_path / "wt"
     site = _fake_venv(root, tmp_path / "outside")
     f0 = owned.venv_fingerprint(root)
-    (site / "pkg.cpython-312.pyc").write_bytes(b"\x01bytecode")
-    assert owned.venv_fingerprint(root) == f0
     (site / "pkg.py").write_text("VALUE = 2\n")
-    assert owned.venv_fingerprint(root) != f0
+    f1 = owned.venv_fingerprint(root)
+    assert f1 != f0
+    (site / "pkg.cpython-312.pyc").write_bytes(b"\x01bytecode")
+    assert owned.venv_fingerprint(root) != f1
 
 
 def test_venv_fingerprint_hashes_pth_trees_outside_the_worktree(tmp_path):

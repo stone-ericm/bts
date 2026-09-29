@@ -4,14 +4,40 @@ Runs only where ``jsonschema`` is importable (``uv run --with jsonschema==4.23.0
 package is deliberately not added to the project lock, which the box syncs on deploy.
 """
 import copy
+import hashlib
+import json
+import tempfile
 
 import pytest
 
 pytest.importorskip("jsonschema")
 
-from scripts.audit.incident_register.records import validate  # noqa: E402
+from scripts.audit.incident_register.records import REGISTRY_PATH, validate  # noqa: E402
 
 ORACLE = "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff"
+
+# the accepted pair behind base()'s expected-failure fixture, and the registry that pair accepted
+EF_REGISTRY = [{"incident": "E77", "node": ORACLE,
+                "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
+                "connection": {"kind": "derived", "review": "fixture reviewed"}}]
+EF_ACCEPTANCE = json.dumps({"verdict": "accepted", "accepted_nodes": [ORACLE],
+                            "connections": {ORACLE: "exception_shape"},
+                            "registry_sha256": hashlib.sha256(json.dumps(EF_REGISTRY, sort_keys=True).encode()).hexdigest()})
+EF_ACCEPTANCE_SHA = hashlib.sha256(EF_ACCEPTANCE.encode()).hexdigest()
+
+
+def ef_root(root) -> "Path":
+    """An evidence root holding base()'s expected-failure acceptance artifact and its registry."""
+    from pathlib import Path
+    root = Path(root)
+    (root / REGISTRY_PATH).parent.mkdir(parents=True, exist_ok=True)
+    (root / REGISTRY_PATH).write_text(json.dumps({"entries": EF_REGISTRY}))
+    (root / "evidence/expected_failure").mkdir(parents=True, exist_ok=True)
+    (root / "evidence/expected_failure/acceptance.json").write_text(EF_ACCEPTANCE)
+    return root
+
+
+_ROOT = ef_root(tempfile.mkdtemp(prefix="w15-records-"))
 
 
 def base():
@@ -29,7 +55,8 @@ def base():
                  "verified_recovered": "not_applicable"}],
         "fixtures": {"historical_replay": [], "current_defence": [],
                      "expected_failure": [{"nodes": [ORACLE], "exception": "SingletonSlateUndelivered",
-                                           "acceptance": "evidence/expected_failure/acceptance.json"}],
+                                           "acceptance": "evidence/expected_failure/acceptance.json",
+                                           "acceptance_sha256": EF_ACCEPTANCE_SHA}],
                      "characterization": []},
         "residual": [{"text": "the singleton-slate gap is unfixed", "reaches_production": True}],
         "watchdog": {"boundary": "singleton_slate", "trigger": "no delivery by first pitch minus 5",
@@ -64,7 +91,7 @@ def fixed_tier_a():
 
 
 def errors_for(*records):
-    return validate(list(records))
+    return validate(list(records), evidence_root=_ROOT)
 
 
 def test_valid_records_pass():
@@ -190,9 +217,9 @@ def test_certified_defence_requires_an_accepting_reviewer():
         "link": 1, "status": "certified", "level": "component", "patch": "mutants/x.patch",
         "patch_sha256": "0" * 64, "killing_nodes": ["tests/x.py::test_y"], "acceptance": "a.json",
         "acceptance_sha256": "1" * 64, "reviewer_decision": "reject"}]
-    assert errors_for(r)
+    assert validate([r], publish=False)                 # the artifact binding is exercised in publication tests
     r["fixtures"]["current_defence"][0]["reviewer_decision"] = "accept"
-    assert errors_for(r) == []
+    assert validate([r], publish=False) == []
 
 
 def test_numeric_latency_needs_bounded_endpoints():
@@ -231,16 +258,6 @@ def test_latency_tighter_than_its_bounds_is_rejected():
     assert any("tighter than its endpoint bounds" in e for e in errors_for(r))
     o["latencies"]["detection"] = {"min_minutes": 2, "max_minutes": 5}
     assert not any("detection" in e for e in errors_for(r))
-
-
-def test_a_report_written_during_a_continuing_condition_is_contemporaneous():
-    r = base()
-    r["occurrences"][0]["onset"] = {"at": "2026-07-01", "evidence": ["ev1"]}   # began two weeks before the report
-    assert any("not contemporaneous" in e for e in errors_for(r))             # as a one-shot event: too late
-    r["occurrences"][0]["continuing"] = True
-    assert not any("contemporaneous" in e for e in errors_for(r))             # a condition still present
-    r["occurrences"][0]["mitigation"] = {"at": "2026-07-02", "evidence": ["ev1"]}
-    assert any("not contemporaneous" in e for e in errors_for(r))             # written > 48 h after it ended
 
 
 def test_an_uncited_operator_report_is_rejected():
@@ -327,13 +344,12 @@ def test_a_report_may_describe_the_fix_step_that_cites_it():
     judged against that step (written after it began, within 48 h of it), and still never uncited."""
     assert errors_for(latent_with_a_verification_report("2026-09-04T12:30:00-04:00")) == []
     late = errors_for(latent_with_a_verification_report("2026-09-08T12:30:00-04:00"))
-    assert any("ev2 is not contemporaneous with the fix step it describes" in e for e in late), late
+    assert any("ev2 is not contemporaneous with the claim at /fix[0]/verified_recovered/at" in e for e in late), late
     early = errors_for(latent_with_a_verification_report("2026-09-04T11:00:00-04:00"))
-    assert any("ev2 is not contemporaneous with the fix step it describes" in e for e in early), early
+    assert any("ev2 is not contemporaneous with the claim at /fix[0]/verified_recovered/at" in e for e in early), early
     uncited = latent_with_a_verification_report("2026-09-04T12:30:00-04:00")
     uncited["fix"][0]["verified_recovered"] = "unknown"
-    assert any("ev2 operator report is not cited by any occurrence or fix step it describes" in e
-               for e in errors_for(uncited))
+    assert any("ev2 operator report is not cited by any dated claim it describes" in e for e in errors_for(uncited))
 
 
 def test_an_operator_report_can_date_an_install():
@@ -342,45 +358,109 @@ def test_an_operator_report_can_date_an_install():
     r["fix"][0]["deployed"] = {"basis": "operator_report", "live_by": "2026-09-04T12:30:00-04:00", "evidence": ["ev2"]}
     assert errors_for(r) == []
     r["evidence"][1]["written_at"] = "2026-09-07T12:30:00-04:00"         # the report dates it three days late
-    assert any("ev2 is not contemporaneous with the fix step it describes" in e for e in errors_for(r))
+    assert any("ev2 is not contemporaneous with the claim at /fix[0]/deployed" in e for e in errors_for(r))
 
 
-def two_link_continuing(report_at, links=None, mitigation=None):
-    """Link 1 fixed early (7/02), link 2 fixed late (7/20); one continuing occurrence from 7/01."""
-    r = fixed_tier_a()
-    r["mechanism"] = [{"n": 1, "text": "first defect", "code": [{"path": "src/bts/a.py", "ref": "7b70da7", "ref_basis": "candidate"}]},
-                      {"n": 2, "text": "second defect", "code": [{"path": "src/bts/b.py", "ref": "7b70da7", "ref_basis": "candidate"}]}]
-    run = {"basis": "log", "sha": "0abf503", "run_id": 1, "evidence": ["ev1"]}
-    r["fix"] = [dict(r["fix"][0], link=1, deployed=dict(run, live_by="2026-07-02T12:00:00Z")),
-                dict(r["fix"][0], link=2, deployed=dict(run, live_by="2026-07-20T12:00:00Z"))]
-    r["fixtures"]["current_defence"] = [dict(r["fixtures"]["current_defence"][0], link=n) for n in (1, 2)]
-    r["evidence"] = [{"id": "ev1", "kind": "machine_observation", "strength": "primary", "locator": "run 1", "what": "deploy log"},
-                     {"id": "ev2", "kind": "contemporaneous_operator_report", "strength": "primary",
-                      "locator": "commit x body", "written_at": report_at, "what": "the stall is still there"}]
+def test_a_continuing_condition_is_witnessed_only_at_its_observed_times():
+    """Ruling 6 as replaced (Codex phase-1 r4): absence of a known end is not evidence of continuity; a
+    report describing a still-present condition is qualified against an OBSERVED time, never an onset
+    long past."""
+    r = base()
     o = r["occurrences"][0]
-    o.update(onset={"at": "2026-07-01", "evidence": ["ev2"]}, continuing=True,
-             operator_awareness={"not_after": report_at, "evidence": ["ev2"]})
-    if links is not None:
-        o["links"] = links
-    if mitigation is not None:
-        o["mitigation"] = {"at": mitigation, "evidence": ["ev2"]}
-    return r
+    o.update(onset={"at": "2026-07-01", "evidence": ["ev1"]}, continuing=True)
+    errs = errors_for(r)
+    assert any("ev1 is not contemporaneous with the claim at /occurrences[0]/onset" in e for e in errs), errs
+    r["evidence"].append({"id": "ev2", "kind": "inference", "strength": "primary", "locator": "src/bts/scheduler.py",
+                          "what": "the defective plan dates from the 7/01 deploy"})
+    o["onset"] = {"not_before": "2026-07-01", "not_after": "2026-07-16", "evidence": ["ev2"]}   # inferred onset
+    o["observed"] = [{"at": "2026-07-16T09:00:00-04:00", "evidence": ["ev1"]}]                # witnessed state
+    assert errors_for(r) == []
 
 
-def test_a_continuing_condition_ends_at_its_earliest_end_event():
-    """Self-review 2026-09-29: the end was the LATEST of mitigation / recovery / every fix install, so a
-    report written long after a mitigation ended the condition still counted while a later fix existed."""
-    late = errors_for(two_link_continuing("2026-07-10T12:00:00-04:00", links=[2], mitigation="2026-07-05T12:00:00-04:00"))
-    assert any("ev2 is not contemporaneous with the occurrence" in e for e in late), late
-    ok = errors_for(two_link_continuing("2026-07-06T12:00:00-04:00", links=[2], mitigation="2026-07-05T12:00:00-04:00"))
-    assert not any("contemporaneous" in e for e in ok), ok
+def test_an_occurrence_names_only_existing_links():
+    r = base()
+    r["occurrences"][0]["links"] = [3]
+    assert any("an occurrence names link 3, which the mechanism does not have" in e for e in errors_for(r))
 
 
-def test_an_occurrence_ends_with_the_fixes_of_its_own_links():
-    """A multi-link record: the occurrence of link 2 ends with link 2's fix, not link 1's earlier one;
-    naming no links means every link's fix, whose earliest then ends it."""
-    assert not any("contemporaneous" in e for e in errors_for(two_link_continuing("2026-07-10T12:00:00-04:00", links=[2])))
-    unnamed = errors_for(two_link_continuing("2026-07-10T12:00:00-04:00"))
-    assert any("ev2 is not contemporaneous with the occurrence" in e for e in unnamed), unnamed
-    assert any("names link 3, which the mechanism does not have" in e
-               for e in errors_for(two_link_continuing("2026-07-06T12:00:00-04:00", links=[3])))
+def test_a_repair_only_report_does_not_make_an_observed_incident():
+    """Codex phase-1 r4 #5.1: a report cited only by a verification step promoted the record."""
+    r = base()
+    r["occurrences"] = []
+    r["evidence"][0]["what"] = "verified the repair installed; no failure occurrence witnessed"
+    r["fix"][0]["verified_recovered"] = {"how": "verified code live",
+                                         "at": {"at": "2026-07-17T09:00:00-04:00", "evidence": ["ev1"]}}
+    assert any("observed_incident needs a qualified primary witness" in e for e in errors_for(r))
+
+
+def test_each_citation_of_a_report_is_qualified_on_its_own():
+    """Codex phase-1 r4 #5.2/#5.3: one timely citation qualified an April occurrence and an April step."""
+    r = base()
+    old = copy.deepcopy(r["occurrences"][0])
+    old["onset"] = {"at": "2026-04-01", "evidence": ["ev1"]}
+    r["occurrences"].append(old)
+    assert any("ev1 is not contemporaneous with the claim at /occurrences[1]/onset" in e for e in errors_for(r))
+    r = base()
+    r["fix"][0]["mitigated"] = {"action": "first action", "at": {"at": "2026-04-01", "evidence": ["ev1"]}}
+    r["fix"][0]["verified_recovered"] = {"how": "verified live", "at": {"at": "2026-07-17T09:00:00-04:00", "evidence": ["ev1"]}}
+    errs = errors_for(r)
+    assert any("ev1 is not contemporaneous with the claim at /fix[0]/mitigated/at" in e for e in errs), errs
+    assert not any("verified_recovered" in e for e in errs), errs
+
+
+def test_an_impossible_chronology_is_rejected():
+    """Codex phase-1 r4 #6.2: detection an hour BEFORE the onset validated as a zero latency."""
+    r = base()
+    o = r["occurrences"][0]
+    o["onset"] = {"at": "2026-07-16T18:00:00-04:00", "evidence": ["ev1"]}
+    o["first_machine_detection"] = {"detector": "test", "at": {"at": "2026-07-16T17:00:00-04:00", "evidence": ["ev1"]}}
+    o["latencies"]["detection"] = {"min_minutes": 0, "max_minutes": 0}
+    assert any("impossible chronology: the detection interval ends before it starts" in e for e in errors_for(r))
+
+
+def test_publication_binds_expected_failure_fixtures(tmp_path):
+    """Codex phase-1 r4 #6.1: a path to a missing acceptance file satisfied publication."""
+    assert errors_for(base()) == []                                     # bound to the fixture root's pair
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    assert any("expected-failure acceptance file evidence/expected_failure/acceptance.json not found" in e
+               for e in validate([base()], evidence_root=bare))
+    r = base()
+    r["fixtures"]["expected_failure"][0]["acceptance_sha256"] = "2" * 64
+    assert any("expected-failure acceptance file hash mismatch" in e for e in errors_for(r))
+    r = base()
+    r["fixtures"]["expected_failure"][0]["exception"] = "PassGradedAsMiss"
+    assert any("is not registered with the record's exception PassGradedAsMiss" in e for e in errors_for(r))
+    root = ef_root(tmp_path / "other")
+    (root / REGISTRY_PATH).write_text(json.dumps({"entries": EF_REGISTRY + [dict(EF_REGISTRY[0], node="x")]}))
+    assert any("the registry differs from the one the pair accepted" in e for e in validate([base()], evidence_root=root))
+
+
+def test_publication_without_an_evidence_root_is_refused_for_bound_claims():
+    assert any("publication needs an evidence root" in e for e in validate([base()]))
+    assert validate([base()], publish=False) == []                      # draft mode binds nothing
+
+
+def test_an_open_ended_claim_anchors_no_report():
+    """A claim with no latest instant cannot place a report within 48 h of anything."""
+    r = base()
+    r["occurrences"][0]["onset"] = {"not_before": "2026-07-16", "evidence": ["ev1"]}
+    assert any("ev1 is not contemporaneous with the claim at /occurrences[0]/onset" in e for e in errors_for(r))
+
+
+def test_operator_awareness_alone_does_not_witness_the_deviation():
+    """Witness roles are the onset, observed times and machine detection; awareness is not a witness."""
+    r = base()
+    r["evidence"].append({"id": "ev2", "kind": "inference", "strength": "primary", "locator": "src/bts/scheduler.py",
+                          "what": "the stale plan"})
+    r["occurrences"][0]["onset"] = {"at": "2026-07-16", "evidence": ["ev2"]}
+    assert any("observed_incident needs a qualified primary witness" in e for e in errors_for(r))
+
+
+def test_a_report_written_at_the_claims_own_instant_qualifies():
+    """Found on the real drafts: 'operator acted at T' cited by the report written at T was refused."""
+    r = base()
+    r["occurrences"][0]["operator_action"] = {"at": "2026-07-17T10:00:00-04:00", "evidence": ["ev1"]}
+    assert errors_for(r) == []
+    r["evidence"][0]["written_at"] = "2026-07-17T09:59:59-04:00"          # one second before the action
+    assert any("ev1 is not contemporaneous with the claim at /occurrences[0]/operator_action" in e for e in errors_for(r))

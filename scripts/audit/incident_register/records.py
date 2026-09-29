@@ -7,11 +7,21 @@ its acceptance artifact: the file exists under the root, its sha256 matches, the
 ``accepted``, and it covers the claimed nodes / patch / fix set. Needs ``jsonschema``
 (``uv run --with jsonschema==4.23.0 ...``); it is deliberately not in the project lock.
 
-Contemporaneity (design §3, ruling of 2026-09-29): an operator report is contemporaneous for an
-occurrence that cites it when it was written after the occurrence began and within 48 h of the time it
-was last observable — the event itself for a one-shot occurrence; for a ``continuing`` condition its
-mitigation / verified recovery / fix install, or at any time while none of those is known (the report
-then describes a condition still present). A date-only time covers its whole ET day.
+Contemporaneity (design §3; plan ruling 6 as replaced after Codex phase-1 r4 #5): every CITATION of an
+operator report by a dated claim — an occurrence bound (onset, observed times, detection, alert,
+awareness, action, mitigation, restoration) or a fix step (mitigation, install, verification) — is
+qualified on its own: the report was written no earlier than the claim's earliest instant and within
+48 h after its latest; an open-ended claim anchors nothing. One timely citation never qualifies another.
+A continuing condition is witnessed only at its supported ``observed`` times (absence of a known end is
+not evidence of continuity). An observed incident needs a QUALIFIED PRIMARY WITNESS to the deviation: an
+onset, observed-time or machine-detection claim of an occurrence citing a primary machine observation or
+a qualifying primary report; a fix-step report establishes only its step. A date-only time covers its
+whole ET day.
+
+Expected-failure fixtures are bound like certificates: publication with ``evidence_root`` requires the
+pair's acceptance artifact (hash, verdict ``accepted``, the nodes accepted with a reviewed connection)
+and the registry it accepted (hash, the record's exception); publication without an evidence root is
+refused whenever such claims exist (Codex phase-1 r4 #6).
 """
 from __future__ import annotations
 
@@ -22,8 +32,10 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 SCHEMA_PATH = Path(__file__).with_name("record_schema.json")
+REGISTRY_PATH = "docs/audit/2026-09-29-incident-register-evidence/expected_failures.json"
 ET = ZoneInfo("America/New_York")
-_OBSERVATION_KINDS = {"machine_observation", "contemporaneous_operator_report"}
+WINDOW = timedelta(hours=48)
+_WITNESS_ROLES = ("onset", "observed", "first_machine_detection")
 
 
 def _parse(t: str) -> datetime:
@@ -84,40 +96,50 @@ def _feasible_minutes(start_bound, end_bound):
     return max(0.0, (e_lo - s_hi).total_seconds() / 60), (e_hi - s_lo).total_seconds() / 60
 
 
-def _occurrence_end(o: dict, r: dict):
-    """When the occurrence was last observable: a one-shot event ends with its onset; a
-    ``continuing`` condition ends at the EARLIEST of its own mitigation / verified recovery and the
-    installs of the fixes of ITS links (``links``, default every link), and is treated as still ongoing
-    (None) while none of those is known. (Self-review 2026-09-29: the latest of every fix in the record
-    let a report written long after a mitigation count while an unrelated later fix existed.)"""
-    if not o.get("continuing"):
-        return _span(o.get("onset"))[1]
-    ends = []
-    for key in ("mitigation", "restored_verification"):
-        hi = _span(o.get(key))[1]
-        if hi is not None:
-            ends.append(hi)
-    links = set(o.get("links") or [f["link"] for f in r["fix"]])
-    for f in r["fix"]:
-        d = f["deployed"]
-        if f["link"] in links and isinstance(d, dict) and d.get("live_by"):
-            ends.append(_span({"at": d["live_by"]})[1])
-    return min(ends) if ends else None
+def _claims(obj, path: str = ""):
+    """Yield ``(path, (earliest, latest), evidence ids)`` for every dated claim inside ``obj``: a bound
+    (at / not_before / not_after) or a dated install (``live_by`` with its ``not_live_before``)."""
+    if isinstance(obj, dict):
+        refs = obj.get("evidence")
+        if isinstance(refs, list):
+            if obj.get("live_by"):
+                lo = _parse(obj["not_live_before"]) if obj.get("not_live_before") else None
+                yield path, (lo, _span({"at": obj["live_by"]})[1]), refs
+            elif any(k in obj for k in ("at", "not_before", "not_after")):
+                yield path, _span(obj), refs
+        for k, v in obj.items():
+            if k != "evidence":
+                yield from _claims(v, f"{path}/{k}")
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from _claims(v, f"{path}[{i}]")
 
 
-def _fix_steps(r: dict):
-    """Yield (span, evidence ids) for every dated fix step: a mitigation, an install or a verification.
-    An operator report may describe one of these rather than an occurrence (e.g. "verified live on the
-    box"); it is then judged against that step."""
-    for f in r["fix"]:
-        d = f["deployed"]
-        if isinstance(d, dict) and d.get("live_by") and d.get("evidence"):
-            lo = _parse(d["not_live_before"]) if d.get("not_live_before") else None
-            yield (lo, _span({"at": d["live_by"]})[1]), d["evidence"]
-        for key in ("mitigated", "verified_recovered"):
-            step = f[key]
-            if isinstance(step, dict) and isinstance(step["at"], dict):
-                yield _span(step["at"]), step["at"].get("evidence", [])
+def _qualified(report: dict, span) -> bool:
+    """A report qualifies for ONE dated claim: written no earlier than the claim's earliest instant and
+    within 48 h after its latest. An open-ended claim (no latest instant) anchors nothing."""
+    lo, hi = span
+    w_lo, w_hi = _span({"at": report["written_at"]})
+    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time
+        return False
+    return w_lo <= hi + WINDOW
+
+
+def _witnessed(r: dict, ev: dict) -> bool:
+    """Some occurrence has an onset / observed-time / machine-detection claim citing a primary machine
+    observation or a primary operator report that qualifies for that very claim."""
+    for o in r.get("occurrences", []):
+        for role in _WITNESS_ROLES:
+            for _path, span, refs in _claims(o.get(role), role):
+                for ref in refs:
+                    e = ev.get(ref)
+                    if e is None or e["strength"] != "primary":
+                        continue
+                    if e["kind"] == "machine_observation":
+                        return True
+                    if e["kind"] == "contemporaneous_operator_report" and "written_at" in e and _qualified(e, span):
+                        return True
+    return False
 
 
 def _latency_errs(rid: str, o: dict) -> list[str]:
@@ -127,6 +149,11 @@ def _latency_errs(rid: str, o: dict) -> list[str]:
     pairs = {"detection": (o["onset"], det_at), "notification": (det_at, o["alert"]["confirmed"]),
              "recovery": (o["onset"], o["restored_verification"])}
     for name, (a, b) in pairs.items():
+        s_lo, _ = _span(a)
+        _, e_hi = _span(b)
+        if s_lo is not None and e_hi is not None and e_hi < s_lo:          # Codex phase-1 r4 #6
+            errs.append(f"{rid}: impossible chronology: the {name} interval ends before it starts")
+            continue
         lat = o["latencies"][name]
         if not isinstance(lat, dict):
             continue
@@ -167,6 +194,40 @@ def _binding_errs(rid: str, kind: str, entry: dict, root: Path) -> list[str]:
     return errs
 
 
+def _ef_binding_errs(rid: str, entry: dict, root: Path) -> list[str]:
+    """An expected-failure claim is bound to the accepted pair that reproduced it and to the registry that
+    pair accepted (Codex phase-1 r4 #6: a bare path to a missing file used to satisfy publication)."""
+    path = root / entry["acceptance"]
+    if not path.is_file():
+        return [f"{rid}: expected-failure acceptance file {entry['acceptance']} not found"]
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != entry.get("acceptance_sha256"):
+        return [f"{rid}: expected-failure acceptance file hash mismatch"]
+    acc = json.loads(data)
+    errs = []
+    if acc.get("verdict") != "accepted":
+        errs.append(f"{rid}: expected-failure pair whose verdict is {acc.get('verdict')!r}")
+    missing = sorted(set(entry["nodes"]) - set(acc.get("accepted_nodes", [])))
+    if missing:
+        errs.append(f"{rid}: expected-failure nodes the pair did not accept: {missing[:3]}")
+    for n in entry["nodes"]:
+        status = acc.get("connections", {}).get(n)
+        if status not in ("value_match", "exception_shape"):
+            errs.append(f"{rid}: {n} has no reviewed connection in the pair ({status})")
+    reg = root / REGISTRY_PATH
+    if not reg.is_file():
+        return errs + [f"{rid}: the expected-failure registry {REGISTRY_PATH} is missing"]
+    entries = json.loads(reg.read_text())["entries"]
+    if hashlib.sha256(json.dumps(entries, sort_keys=True).encode()).hexdigest() != acc.get("registry_sha256"):
+        errs.append(f"{rid}: the registry differs from the one the pair accepted")
+    by_node = {x["node"]: x for x in entries}
+    for n in entry["nodes"]:
+        x = by_node.get(n)
+        if x is None or x["exception"].rsplit(".", 1)[-1] != entry["exception"].rsplit(".", 1)[-1]:
+            errs.append(f"{rid}: {n} is not registered with the record's exception {entry['exception']}")
+    return errs
+
+
 def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path | None = None) -> list[str]:
     rid = r.get("id", "?")
     errs: list[str] = []
@@ -182,37 +243,25 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
             errs.append(f"{rid}: unknown related record {rel}")
 
     disp = r["disposition"]
-    if disp == "observed_incident" and not any(
-            e["kind"] in _OBSERVATION_KINDS and e["strength"] == "primary" for e in r["evidence"]):
-        errs.append(f"{rid}: observed_incident needs a primary machine observation or contemporaneous operator report")
+    ev = {e["id"]: e for e in r.get("evidence", [])}
+    claims = list(_claims({k: v for k, v in r.items() if k != "evidence"}))
     for e in r["evidence"]:
         if e["kind"] != "contemporaneous_operator_report":
             continue
         if "written_at" not in e:
             errs.append(f"{rid}: {e['id']} operator report needs written_at")
             continue
-        cites = [o for o in r.get("occurrences", []) if e["id"] in set(_ev_refs(o))]
-        steps = [span for span, refs in _fix_steps(r) if e["id"] in refs]
-        if not cites and not steps:
-            errs.append(f"{rid}: {e['id']} operator report is not cited by any occurrence or fix step it describes")
-            continue
-        w_lo, w_hi = _span({"at": e["written_at"]})     # a date-only time covers its whole ET day
-        window = timedelta(hours=48)
-        ok = False
-        for o in cites:
-            onset_lo, _ = _span(o["onset"])
-            if onset_lo is not None and w_hi <= onset_lo:
-                continue                                  # certainly written before the occurrence began
-            end = _occurrence_end(o, r)
-            if end is None or w_lo <= end + window:
-                ok = True
-        if cites and not ok:
-            errs.append(f"{rid}: {e['id']} is not contemporaneous with the occurrence it describes "
-                        "(written before it began, or more than 48 h after its last known time)")
-        # each role is judged on its own: a report cited by a fix step must be contemporaneous with one
-        if steps and not any((lo is None or w_hi > lo) and (hi is None or w_lo <= hi + window) for lo, hi in steps):
-            errs.append(f"{rid}: {e['id']} is not contemporaneous with the fix step it describes "
-                        "(written before the step, or more than 48 h after it)")
+        citing = [(path, span) for path, span, refs in claims if e["id"] in refs]
+        if not citing:
+            errs.append(f"{rid}: {e['id']} operator report is not cited by any dated claim it describes")
+        for path, span in citing:                        # every citation on its own (Codex phase-1 r4 #5)
+            if not _qualified(e, span):
+                errs.append(f"{rid}: {e['id']} is not contemporaneous with the claim at {path} (a report must be "
+                            "written after the claim's earliest time and within 48 h of its latest)")
+    if disp == "observed_incident" and not _witnessed(r, ev):
+        errs.append(f"{rid}: observed_incident needs a qualified primary witness to the deviation (an onset, "
+                    "observed-time or machine-detection claim citing a primary machine observation or a "
+                    "qualifying primary operator report)")
     if disp == "unresolved_candidate" and not r.get("missing_evidence"):
         errs.append(f"{rid}: unresolved_candidate must name its missing_evidence")
     if (disp == "pre_ship_exclusion") == r["counted"]:
@@ -243,6 +292,10 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
     unfixed = any(f["implemented"] == "unfixed" for f in r["fix"])
     if publish and unfixed and "§10" in r["contract"]["source"] and not (fx["expected_failure"] or fx["characterization"]):
         errs.append(f"{rid}: unfixed defect with a fixed (§10) contract needs an expected-failure fixture")
+    bound_claims = ([h for h in fx["historical_replay"] if h["status"] == "certified"]
+                    + [d for d in fx["current_defence"] if d["status"] == "certified"] + fx["expected_failure"])
+    if publish and bound_claims and evidence_root is None:
+        errs.append(f"{rid}: publication needs an evidence root to bind its certified and expected-failure claims")
     if publish and evidence_root is not None:
         for h in fx["historical_replay"]:
             if h["status"] == "certified":
@@ -250,6 +303,8 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
         for d in fx["current_defence"]:
             if d["status"] == "certified":
                 errs += _binding_errs(rid, "defence", d, evidence_root)
+        for x in fx["expected_failure"]:
+            errs += _ef_binding_errs(rid, x, evidence_root)
 
     if r["tier"] == "B" and any(x["reaches_production"] for x in r["residual"]):
         errs.append(f"{rid}: residual reaches production (B → A)")

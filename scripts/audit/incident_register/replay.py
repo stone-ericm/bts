@@ -78,9 +78,10 @@ def _drift(worktree, m0: dict, v0: str, where: str, *, src_too: bool) -> list[st
     changed = sorted(k for k in set(files) | set(m0["files"]) if files.get(k) != m0["files"].get(k))
     if changed:
         why.append(f"{where}: frozen files changed: {changed[:5]}")
-    extra = sorted(set(m["untracked"]) ^ set(m0["untracked"]))
-    if extra and (src_too or any(not u.startswith("src/") for u in extra)):
-        why.append(f"{where}: untracked files changed: {extra[:5]}")
+    moved = sorted(k for k in set(m["untracked"]) | set(m0["untracked"])
+                   if m["untracked"].get(k) != m0["untracked"].get(k) and (src_too or not k.startswith("src/")))
+    if moved:                                            # added, removed or changed in content
+        why.append(f"{where}: untracked files changed: {moved[:5]}")
     if owned.venv_fingerprint(worktree) != v0:
         why.append(f"{where}: the environment changed")
     return why

@@ -12,7 +12,8 @@ a different invocation).
 * ``return`` (wrong value): a return of the declared function with the declared category (or safe
   value), after the branch, with a common live invocation;
 * ``absence`` (missing event): an invocation live at the branch EXITED inside the interval
-  (completion), no thread started in the interval is still alive at its end, the boundary had no
+  (completion), no other thread — started in the interval or already running before it — is still alive
+  at its end (Codex phase-1 r4 #1.3), the boundary had no
   coverage gap (not Python-observable, or rebound to an unseen callable), there is NO boundary call of
   that name with the qualifying category from ANY caller in the interval (callee-side recording sees
   C-invoked and threaded calls), none with an unavailable identity, and the same node's baseline
@@ -24,8 +25,10 @@ conformance runs, and the reviewer reads the patch, frames and linked events.
 """
 from __future__ import annotations
 
-COVERAGE = {"recorder": "callee-side, Python-observable boundaries (mocks and Python functions)",
-            "unsupported": ["C-implemented boundaries", "subprocesses", "work outliving the call phase"]}
+COVERAGE = {"recorder": "callee-side, Python-observable boundaries (mocks, Python functions, bound methods of the declared receiver)",
+            "unavailable_when": ["a C-implemented or unresolvable boundary", "a call on another receiver of the boundary's code",
+                                 "a value too large or too deep to serialize completely", "any other thread alive at the end",
+                                 "subprocesses", "async tasks"]}
 
 
 def interval(events: list[dict], node: str) -> tuple[list[dict], list[str]]:
@@ -110,6 +113,9 @@ def certify(events: list[dict], *, node: str, kind: str, entry: dict, bad: dict 
             why.append("the invocation that executed the mutated line did not complete inside the interval")
         if end.get("outstanding_threads"):
             why.append(f"{end['outstanding_threads']} thread(s) started in the interval were still alive at its end: absence unavailable")
+        if end.get("preexisting_threads_alive"):
+            why.append(f"{end['preexisting_threads_alive']} thread(s) already running when the observed interval began "
+                       "were still alive at its end and could do the declared work afterwards: absence unavailable")
         gaps = [g for g in body if g["kind"] == "boundary_gap" and g["name"] == bad["boundary"]]
         if gaps:
             why.append(f"boundary {bad['boundary']!r} coverage gap ({gaps[0]['reason']}): absence unavailable")

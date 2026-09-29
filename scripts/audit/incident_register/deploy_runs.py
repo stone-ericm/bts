@@ -85,6 +85,11 @@ def extract(log_text: str) -> dict:
         anomalies.append("canary_sha_mismatch")
     if failed_sha and pre and not (failed_sha.startswith(pre) or pre.startswith(failed_sha)):
         anomalies.append("rollback_target_mismatch")
+    # the rollback's own log line names what was reinstalled; it must agree with the intended target
+    # (Codex phase-1 r4 #9: a 'rolled back cleanly to C' after 'rolling back to A' was read as A)
+    target = failed_sha or pre
+    if rolled_sha and target and not (rolled_sha.startswith(target) or target.startswith(rolled_sha)):
+        anomalies.append("rolled_back_sha_mismatch")
     if "rollback_unhealthy" in hits:
         rollback = "unhealthy"
     elif "rolled_back" in hits:
@@ -105,7 +110,7 @@ def extract(log_text: str) -> dict:
                 anomalies.append("unrecognised_pytest_count")
     return {"pre_sha": pre, "pre_at": pre_at, "deployed_sha": deployed, "deployed_at": deployed_at,
             "canary": canary, "canary_at": canary_at or failed_at, "rollback": rollback,
-            "rolled_back_at": rolled_at, "clean_completion": "clean_completion" in hits,
+            "rolled_back_at": rolled_at, "rolled_back_sha": rolled_sha, "clean_completion": "clean_completion" in hits,
             "test_gate": gate, "template_hits": {k: len(v) for k, v in hits.items()},
             "anomalies": anomalies}
 
@@ -133,7 +138,7 @@ def build(runs: list[dict], *, fetch=fetch_log) -> list[dict]:
         else:
             rec.update({"pre_sha": None, "pre_at": None, "deployed_sha": None, "deployed_at": None,
                         "canary": "absent", "canary_at": None, "rollback": "none", "rolled_back_at": None,
-                        "clean_completion": False, "test_gate": None, "template_hits": {}, "anomalies": []})
+                        "rolled_back_sha": None, "clean_completion": False, "test_gate": None, "template_hits": {}, "anomalies": []})
         out.append(rec)
     return out
 
@@ -147,15 +152,23 @@ def observations(runs: list[dict]) -> list[dict]:
     ``pre_deploy`` (before checkout), ``deployed`` (after checkout + service restart) and
     ``rolled_back``. A canary pass is a separate health observation, not an installation time."""
     obs = []
-    for r in sorted(runs, key=lambda r: r["created_at"]):
+    for order, r in enumerate(sorted(runs, key=lambda r: r["created_at"])):
         if r["log"] != "retained":
             continue
         if r.get("pre_sha"):
-            obs.append({"at": r["pre_at"], "sha": r["pre_sha"], "kind": "pre_deploy", "run_id": r["run_id"]})
+            obs.append({"at": r["pre_at"], "sha": r["pre_sha"], "kind": "pre_deploy", "run_id": r["run_id"], "_k": (order, 0)})
         if r.get("deployed_sha"):
-            obs.append({"at": r["deployed_at"], "sha": r["deployed_sha"], "kind": "deployed", "run_id": r["run_id"]})
-            if r.get("rollback") == "clean" and r.get("rolled_back_at") and r.get("pre_sha"):
-                obs.append({"at": r["rolled_back_at"], "sha": r["pre_sha"], "kind": "rolled_back", "run_id": r["run_id"]})
+            obs.append({"at": r["deployed_at"], "sha": r["deployed_sha"], "kind": "deployed", "run_id": r["run_id"], "_k": (order, 1)})
+        # only the SHA the rollback line itself names is an observation, never the intended target
+        if r.get("rollback") == "clean" and r.get("rolled_back_at") and r.get("rolled_back_sha"):
+            obs.append({"at": r["rolled_back_at"], "sha": r["rolled_back_sha"], "kind": "rolled_back",
+                        "run_id": r["run_id"], "_k": (order, 2)})
+    # ordered by when each point was OBSERVED (Codex phase-1 r4 #9: an older-created run can execute
+    # later); within one run the log order breaks a same-second tie
+    obs.sort(key=lambda p: (p["at"], p.pop("_k")))
+    for a, b in zip(obs, obs[1:]):
+        if a["at"] == b["at"] and a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]):
+            raise ValueError(f"observations of different runs disagree at {a['at']}: {a['sha']} vs {b['sha']}")
     return obs
 
 

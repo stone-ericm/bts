@@ -48,7 +48,8 @@ REGISTRY = [{"node": NODE, "exception": "tests.test_incident.GradedAsMiss",
              "oracle": {"path": "tests/test_incident.py", "qualname": "_oracle"},
              "entry": {"path": "src/bts/mod.py", "qualname": "grade"}, "bad": "'miss'", "required": "'void'",
              "bad_json": "miss", "required_json": "void",
-             "connection": {"kind": "return", "path": "src/bts/mod.py", "qualname": "grade"}}]
+             "connection": {"kind": "return", "path": "src/bts/mod.py", "qualname": "grade",
+                            "review": "the oracle's actual is grade()'s return on the same line"}}]
 MISS = MOD.replace('def grade():\n    return "void"', 'def grade():\n    return "miss"')
 
 
@@ -72,18 +73,27 @@ def pair(wt, tmp_path, registry=REGISTRY, between=None):
                              oracle_records=acceptance.load_oracle_records(oracle))
 
 
-def test_genuine_reproduction_is_accepted_and_connected(tmp_path):
+def test_genuine_reproduction_is_accepted_as_a_reviewed_value_match(tmp_path):
     repo, wt = setup_project(tmp_path, GOOD)
     got = pair(wt, tmp_path)
     assert got["_session"] == [] and got[NODE] == []
-    assert got["_connections"] == {NODE: "connected"}
+    assert got["_connections"] == {NODE: "value_match"}
+
+
+def test_a_value_match_without_a_recorded_review_is_unmatched(tmp_path):
+    """Codex phase-1 r4 #3: the tool matches values, it does not see which call the oracle consumed."""
+    repo, wt = setup_project(tmp_path, GOOD)
+    reg = [dict(REGISTRY[0], connection={k: v for k, v in REGISTRY[0]["connection"].items() if k != "review"})]
+    got = pair(wt, tmp_path, registry=reg)
+    assert got["_connections"][NODE] == "unmatched"
+    assert "return connection without a recorded fixture review" in got[NODE]
 
 
 def test_run_pair_accepts_one_frozen_closure(tmp_path):
     repo, wt = setup_project(tmp_path, GOOD)
     res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
     assert res["verdict"] == "accepted", res["reasons"]
-    assert res["connections"] == {NODE: "connected"} and len(res["registry_sha256"]) == 64
+    assert res["connections"] == {NODE: "value_match"} and len(res["registry_sha256"]) == 64
 
 
 def test_a_literal_oracle_value_disconnected_from_production_is_rejected(tmp_path):
@@ -91,7 +101,7 @@ def test_a_literal_oracle_value_disconnected_from_production_is_rejected(tmp_pat
     text = GOOD.replace('_oracle(mod.grade(), "void"', 'mod.grade()\n    _oracle("miss", "void"')
     repo, wt = setup_project(tmp_path, text, mod=MOD)          # production correct: grade() == "void"
     got = pair(wt, tmp_path)
-    assert got["_connections"][NODE] == "unconnected"
+    assert got["_connections"][NODE] == "unmatched"
     assert any("returned 'void', the oracle saw 'miss'" in r for r in got[NODE]), got[NODE]
 
 
@@ -112,7 +122,7 @@ def test_derived_connection_needs_a_recorded_review(tmp_path):
     repo, wt = setup_project(tmp_path, GOOD)
     reg = [dict(REGISTRY[0], connection={"kind": "derived", "review": ""})]
     got = pair(wt, tmp_path, registry=reg)
-    assert got["_connections"][NODE] == "unconnected"
+    assert got["_connections"][NODE] == "unmatched"
     reg = [dict(REGISTRY[0], connection={"kind": "derived", "review": "fixture reviewed (r3 answer 4)"})]
     assert pair(wt, tmp_path, registry=reg)["_connections"][NODE] == "exception_shape"
 

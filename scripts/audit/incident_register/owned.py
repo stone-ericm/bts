@@ -155,22 +155,23 @@ def apply_edits(root, edits, allowed) -> list[str]:
     return sorted(staged)
 
 
+def _file_state(p: Path) -> str:
+    if p.is_symlink():
+        return _sha(("symlink:" + os.readlink(p)).encode())
+    if p.is_file():
+        return _sha(p.read_bytes())
+    return "missing"
+
+
 def manifest(root, exclude=()) -> dict:
-    """sha256 of the WORKING bytes of every tracked file (minus ``exclude``) + untracked files."""
+    """sha256 of the WORKING bytes of every tracked file (minus ``exclude``) and of every untracked,
+    non-ignored file: an untracked input is frozen by content, not only by name (Codex phase-1 r4 #4)."""
     root = Path(root)
     exclude = set(exclude)
-    files = {}
-    for rel in _git(root, "ls-files", "-z").stdout.split("\0"):
-        if not rel or rel in exclude:
-            continue
-        p = root / rel
-        if p.is_symlink():
-            files[rel] = _sha(("symlink:" + os.readlink(p)).encode())
-        elif p.is_file():
-            files[rel] = _sha(p.read_bytes())
-        else:
-            files[rel] = "missing"
-    untracked = sorted(r for r in _git(root, "ls-files", "--others", "--exclude-standard", "-z").stdout.split("\0") if r)
+    files = {rel: _file_state(root / rel) for rel in _git(root, "ls-files", "-z").stdout.split("\0")
+             if rel and rel not in exclude}
+    untracked = {rel: _file_state(root / rel)
+                 for rel in sorted(_git(root, "ls-files", "--others", "--exclude-standard", "-z").stdout.split("\0")) if rel}
     return {"files": files, "untracked": untracked}
 
 
@@ -178,23 +179,58 @@ def manifest_digest(m: dict) -> str:
     return _sha(json.dumps(m, sort_keys=True).encode())
 
 
-def _tree_hash(h, base: Path, skip_under: str | None = None) -> None:
+_DIGESTS: dict[tuple, bytes] = {}
+
+
+def _hash_file(h, path: str) -> None:
+    """Feed the file's content digest into ``h``. Digests are memoized per process on the file's full
+    identity — device, inode, size, mtime AND ctime (ns): ``os.utime`` can put an mtime back, but any
+    write or utime moves the ctime, so a same-size, same-mtime rewrite still misses the memo and is
+    re-read (the adversarial case of Codex phase-1 r4 #4)."""
+    st = os.stat(path)
+    key = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+    digest = _DIGESTS.get(key)
+    if digest is None:
+        d = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                d.update(chunk)
+        digest = _DIGESTS[key] = d.digest()
+    h.update(digest)
+
+
+def _tree_hash(h, base: Path, visited: set | None = None) -> None:
+    """Hash every file under ``base`` as Python would execute it (Codex phase-1 r4 #4):
+    * bytecode INCLUDED — ``-B``/``PYTHONDONTWRITEBYTECODE`` stop writes, not reads, and a cached .pyc
+      whose source stamp still matches is what runs;
+    * a symlink contributes its spelling AND the bytes it resolves to; a symlinked directory is walked
+      at its real path; each real directory is walked once (cycles and repeats are marked, not followed)."""
+    visited = set() if visited is None else visited
+    real = os.path.realpath(base)
+    if real in visited:
+        h.update(b"revisit:" + real.encode())
+        return
+    visited.add(real)
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
-        if skip_under and os.path.realpath(dirpath).startswith(skip_under):
-            dirnames[:] = []
-            continue
+        dirnames.sort()
+        for d in [d for d in dirnames if os.path.islink(os.path.join(dirpath, d))]:
+            full = os.path.join(dirpath, d)             # os.walk lists a directory symlink but never enters it
+            h.update(os.path.relpath(full, base).encode() + b"\0dirlink:" + os.readlink(full).encode())
+            _tree_hash(h, Path(os.path.realpath(full)), visited)
         for name in sorted(filenames):
-            if name.endswith(".pyc"):
-                continue
             p = os.path.join(dirpath, name)
             h.update(os.path.relpath(p, base).encode() + b"\0")
             if os.path.islink(p):
                 h.update(b"link:" + os.readlink(p).encode())
+                target = os.path.realpath(p)
+                if os.path.isdir(target):
+                    _tree_hash(h, Path(target), visited)
+                elif os.path.isfile(target):
+                    _hash_file(h, target)
+                else:
+                    h.update(b"dangling")
             elif os.path.isfile(p):
-                with open(p, "rb") as fh:
-                    for chunk in iter(lambda: fh.read(1 << 20), b""):
-                        h.update(chunk)
+                _hash_file(h, p)
 
 
 def venv_fingerprint(root) -> str:
@@ -211,9 +247,11 @@ def venv_fingerprint(root) -> str:
     for pth in sorted(env.glob("lib/python3*/site-packages/*.pth")):
         for line in pth.read_text(errors="replace").splitlines():
             line = line.strip()
-            if not line or line.startswith(("#", "import ")):
-                continue
-            target = os.path.realpath(line)
+            if not line or line.startswith(("#", "import ", "import\t")):
+                continue                                 # executable lines are hashed with the .pth bytes
+            # site.addpackage semantics: a relative line is relative to the .pth file's own directory,
+            # never to the reviewer's working directory (Codex phase-1 r4 #4)
+            target = os.path.realpath(os.path.join(os.path.dirname(pth), line))
             if os.path.isdir(target) and not target.startswith(wt):
                 h.update(b"pth:" + target.encode())
                 _tree_hash(h, Path(target))

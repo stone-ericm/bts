@@ -905,6 +905,10 @@
         },
         "acceptance": {
           "type": "string"
+        },
+        "acceptance_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -1140,6 +1144,13 @@
           },
           "uniqueItems": true,
           "description": "the mechanism links this occurrence is a firing of (default: every link); a continuing occurrence can end only with their fixes"
+        },
+        "observed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bound"
+          },
+          "description": "supported times at which a continuing condition was witnessed as still present; a report describing that state is qualified against these, never against an unknown end"
         }
       }
     },

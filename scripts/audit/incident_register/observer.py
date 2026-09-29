@@ -115,26 +115,50 @@ def _plain_instance_dict(value):
     return d if type(d) is dict else None
 
 
+def _safe_items(items, key: str, depth: int, *, skip_private: bool = False) -> dict:
+    """Copy (str key, value) pairs from a dict's items view: iterating items never looks a key up again,
+    so no application ``__eq__``/``__hash__`` runs (Codex phase-1 r4 #2). Anything omitted marks the
+    form ``incomplete``."""
+    pairs, incomplete = {}, False
+    for n, (k, v) in enumerate(items):
+        if n >= 50:
+            incomplete = True
+            break
+        if type(k) is not str or (skip_private and k.startswith("_")):
+            incomplete = True
+            continue
+        pairs[k] = _safe(v, depth + 1)
+    out = {key: pairs}
+    if incomplete:
+        out["incomplete"] = True
+    return out
+
+
 def _safe(value, depth: int = 0):
-    """JSON-safe copy built without running application code (see module doc)."""
+    """JSON-safe copy built without running application code (see module doc). Whatever is omitted — a
+    truncated string, sequence or map, a non-string key, a private field, the depth limit, an object
+    without a plain ``__dict__`` — marks the form ``incomplete``; an incomplete form never compares
+    equal to anything (``acceptance.unwrap``), so a partial value can never witness a whole one."""
     t = type(value)
     if value is None or t is bool or t is int or t is float:
         return value
     if t is str:
-        return value[:500]
+        return value if len(value) <= 500 else {"str": value[:500], "length": len(value), "incomplete": True}
     if depth >= 3:
-        return {"unavailable": "depth"}
+        return {"unavailable": "depth", "incomplete": True}
     if t is tuple or t is list:
-        return {"seq": [_safe(v, depth + 1) for v in value[:50]]}
+        out = {"seq": [_safe(v, depth + 1) for v in value[:50]]}
+        if len(value) > 50:
+            out.update(length=len(value), incomplete=True)
+        return out
     if t is dict:
-        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1)
-                        for k in list(dict.keys(value))[:50] if type(k) is str}}
+        return _safe_items(dict.items(value), "map", depth)
     d = _plain_instance_dict(value)
     if d is None:
-        return {"type": type_name(t), "unavailable": "no plain __dict__"}
-    return {"type": type_name(t), "fields": {k: _safe(dict.__getitem__(d, k), depth + 1)
-                                            for k in list(dict.keys(d))[:50]
-                                            if type(k) is str and not k.startswith("_")}}
+        return {"type": type_name(t), "unavailable": "no plain __dict__", "incomplete": True}
+    out = _safe_items(dict.items(d), "fields", depth, skip_private=True)
+    out["type"] = type_name(t)
+    return out
 
 
 def _text(safe_value) -> str:
@@ -290,7 +314,7 @@ class _Monitor:
         self.boundaries = [dict(b) for b in observe.get("boundaries", [])]
         self.events: list[dict] = []
         self.instrumented: set = set()
-        self.boundary_codes: dict = {}          # code object -> boundary spec
+        self.boundary_codes: dict = {}          # code object -> [(boundary spec, bound receiver or None)]
         self.seen_targets: dict = {}            # id(obj) -> obj: every binding value registered
         self.paths: dict[str, str] = {}
         self.threads_at_start: set = set()
@@ -330,8 +354,9 @@ class _Monitor:
         if not ok:
             return {"value": None, "category": "unavailable"}
         safe = _safe(value)
+        incomplete = type(safe) is dict and bool(safe.get("incomplete"))
         return {"value": safe, "sha256": hashlib.sha256(_text(safe).encode()).hexdigest(),
-                "category": _classify(spec.get("classify", []), safe)}
+                "category": "unavailable" if incomplete else _classify(spec.get("classify", []), safe)}
 
     def _is_mock(self, obj) -> bool:
         return issubclass(type(obj), self.mock_base)
@@ -345,7 +370,10 @@ class _Monitor:
         return obj.__code__ if kind == "builtins.function" else None
 
     def _register(self, spec: dict, obj) -> None:
-        if obj is None or id(obj) in self.seen_targets:
+        if obj is None:
+            self._record("boundary_gap", {"name": spec["name"], "reason": "the declared binding resolves to nothing"})
+            return
+        if id(obj) in self.seen_targets:
             return
         self.seen_targets[id(obj)] = obj
         if self._is_mock(obj):
@@ -355,10 +383,12 @@ class _Monitor:
             self._record("boundary_gap", {"name": spec["name"], "reason": "not a Python-observable callable",
                                           "type": type_name(type(obj))})
             return
-        if code not in self.boundary_codes:
-            self.boundary_codes[code] = spec
-            if self.active:
-                sys.monitoring.restart_events()              # its PY_START may have been disabled
+        # a bound method is the boundary only for ITS receiver: other instances share the code object
+        # (Codex phase-1 r4 #1.4); method.__self__ is a C member, no application code runs
+        receiver = obj.__self__ if type_name(type(obj)) == "builtins.method" else None
+        self.boundary_codes.setdefault(code, []).append((spec, receiver))
+        if self.active:
+            sys.monitoring.restart_events()                  # its PY_START may have been disabled
 
     def _mock_spec(self, obj):
         if obj is None:
@@ -377,6 +407,9 @@ class _Monitor:
             self._err("use_tool_id", e)
             return
         self.threads_at_start = {t.ident for t in threading.enumerate()}
+        # obs_start FIRST: a gap found while registering the boundaries belongs to this interval
+        # (Codex phase-1 r4 #1.1: it used to precede obs_start and so fell outside the certificate)
+        self._record("obs_start", {})
         for spec in self.boundaries:
             spec["_start"] = _resolve(spec["binding"])
             self._register(spec, spec["_start"])
@@ -387,7 +420,6 @@ class _Monitor:
         mon.register_callback(TOOL_ID, ev.PY_RETURN, self._on_return)
         mon.register_callback(TOOL_ID, ev.PY_UNWIND, self._on_unwind)
         self.active = True
-        self._record("obs_start", {})
         mon.set_events(TOOL_ID, ev.PY_START | ev.PY_UNWIND)
 
     def stop(self) -> None:
@@ -407,8 +439,13 @@ class _Monitor:
             now = _resolve(spec["binding"])
             if now is not None and id(now) not in self.seen_targets and not self._is_mock(now):
                 self._record("boundary_gap", {"name": spec["name"], "reason": "binding replaced by an unseen callable"})
-        outstanding = [t for t in threading.enumerate() if t.ident not in self.threads_at_start and t.is_alive()]
-        self._record("obs_end", {"outstanding_threads": len(outstanding)})
+        me = threading.get_ident()
+        alive = [t for t in threading.enumerate() if t.is_alive() and t.ident != me]
+        self._record("obs_end", {
+            "outstanding_threads": sum(1 for t in alive if t.ident not in self.threads_at_start),
+            # a worker that was already running can also do the declared work after the interval
+            # (Codex phase-1 r4 #1.3)
+            "preexisting_threads_alive": sum(1 for t in alive if t.ident in self.threads_at_start)})
 
     # -- callbacks (never raise; never run application code)
     def _on_start(self, code, offset):
@@ -424,8 +461,9 @@ class _Monitor:
                     self._boundary(spec, frame, list(extra) if type(extra) is tuple else [],
                                    dict(kwargs) if type(kwargs) is dict else {})
                 return None
-            spec = self.boundary_codes.get(code)
-            if spec is not None:
+            pairs = self.boundary_codes.get(code)
+            if pairs is not None:
+                spec = pairs[0][0]
                 frame = sys._getframe(1)
                 loc = frame.f_locals
                 positional = code.co_varnames[:code.co_argcount]
@@ -434,7 +472,12 @@ class _Monitor:
                     extra = loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ())
                     args += list(extra) if type(extra) is tuple else []
                 kwargs = {n: loc.get(n) for n in code.co_varnames[:code.co_argcount + code.co_kwonlyargcount]}
-                self._boundary(spec, frame, args, kwargs)
+                first = args[0] if args else None
+                matched = [sp for sp, rcv in pairs if rcv is None or first is rcv]
+                if matched:
+                    self._boundary(matched[0], frame, args, kwargs)
+                else:                                        # same code, another receiver: ambiguous
+                    self._boundary(spec, frame, args, kwargs, other_receiver=True)
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
                 return None if spec is not None else sys.monitoring.DISABLE
@@ -456,11 +499,12 @@ class _Monitor:
             self._err("py_start", e)
         return None
 
-    def _boundary(self, spec: dict, callee_frame, args, kwargs) -> None:
+    def _boundary(self, spec: dict, callee_frame, args, kwargs, *, other_receiver: bool = False) -> None:
         stack, is_async = self._stack(callee_frame.f_back)
+        identity = ({"value": None, "category": "unavailable", "reason": "another receiver of the boundary's code"}
+                    if other_receiver else self._identity(spec, args, kwargs))
         self._record("boundary", {"name": spec["name"], "caller": stack[0][:3] if stack else None,
-                                  "stack": stack[:40], "async": is_async,
-                                  "identity": self._identity(spec, args, kwargs)})
+                                  "stack": stack[:40], "async": is_async, "identity": identity})
 
     def _on_line(self, code, line):
         try:
@@ -473,12 +517,15 @@ class _Monitor:
         return None
 
     def _on_call(self, code, offset, callable_, arg0):
-        """Discovery only: a production call to a CURRENT binding value not registered yet registers
-        it (restarting disabled events) before the callee starts; recording is callee-side."""
+        """Discovery only: at EVERY production call, a declared binding whose current value has not been
+        seen is registered before anything is called (restarting disabled events), so a temporary
+        rebinding invoked through C (``map``) or restored before the interval ends is still covered
+        (Codex phase-1 r4 #1.2); recording stays callee-side."""
         try:
             for spec in self.boundaries:
-                if _resolve(spec["binding"]) is callable_ and id(callable_) not in self.seen_targets:
-                    self._register(spec, callable_)
+                current = _resolve(spec["binding"])
+                if current is not None and id(current) not in self.seen_targets:
+                    self._register(spec, current)
         except BaseException as e:  # noqa: BLE001
             self._err("call", e)
         return None
@@ -493,8 +540,10 @@ class _Monitor:
             stack, is_async = self._stack(frame)
             # an exceptional exit is observed only as the exception's type name (no application code)
             safe = _safe(retval) if how == "return" else {"raised": type_name(type(retval))}
+            incomplete = type(safe) is dict and bool(safe.get("incomplete"))
+            category = "unavailable" if incomplete else _classify(self.returns[key], safe)
             self._record("return", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
-                                    "value": safe, "category": _classify(self.returns[key], safe), "how": how,
+                                    "value": safe, "category": category, "how": how,
                                     "stack": stack[:40], "async": is_async})
         if key in self.entries:
             self._record("entry_exit", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),

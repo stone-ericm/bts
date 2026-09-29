@@ -125,7 +125,9 @@ def rec(day, *, log="retained", pre=None, dep=None, canary="passed", rollback="n
     return {"run_id": day, "created_at": t(0), "conclusion": conclusion, "log": log,
             "pre_sha": pre, "pre_at": t(0) if pre else None, "deployed_sha": dep, "deployed_at": t(2) if dep else None,
             "canary": canary, "canary_at": t(10) if dep else None, "rollback": rollback,
-            "rolled_back_at": t(30) if rollback == "clean" else None, "anomalies": []}
+            "rolled_back_at": t(30) if rollback == "clean" else None,
+            # a clean rollback's own log line names the SHA it reinstalled (here the pre-deploy SHA)
+            "rolled_back_sha": pre if rollback == "clean" else None, "anomalies": []}
 
 
 def at(sha, basis="assumed_continuous", candidate=None):
@@ -194,3 +196,36 @@ def test_first_live_is_bounded_across_an_expired_run(chain):
                       rec(3, pre=c2, dep=c2)], c1, repo=repo)
     assert (got["not_live_before"], got["live_by"], got["live_by_kind"]) == (
         "2026-07-01T00:00:02Z", "2026-07-03T00:00:00Z", "pre_deploy")
+
+
+def _typed(num, created, pre_at, post_at, pre, post):
+    return dict(run_id=num, created_at=created, log="retained", pre_sha=pre, pre_at=pre_at,
+                deployed_sha=post, deployed_at=post_at, canary="passed", rollback="none", anomalies=[])
+
+
+def test_observation_points_follow_their_own_timestamps(monkeypatch):
+    """Codex phase-1 r4 #9: an older-created run that EXECUTED later was ordered by creation time."""
+    from scripts.audit.incident_register import deploy_runs as d
+    runs = [_typed(1, "2026-01-01T10:00:00Z", "2026-01-01T14:00:00Z", "2026-01-01T14:01:00Z", "bbbbbbb", "ccccccc"),
+            _typed(2, "2026-01-01T11:00:00Z", "2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "aaaaaaa", "bbbbbbb")]
+    monkeypatch.setattr(d, "_is_ancestor", lambda fix, sha, repo: sha in ("bbbbbbb", "ccccccc"))
+    got = d.first_live(runs, "bbbbbbb", repo=".")
+    assert (got["not_live_before"], got["live_by"]) == ("2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z")
+
+
+def test_disagreeing_observations_at_the_same_instant_are_refused():
+    from scripts.audit.incident_register import deploy_runs as d
+    runs = [_typed(1, "2026-01-01T10:00:00Z", "2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "aaaaaaa", "bbbbbbb"),
+            _typed(2, "2026-01-01T11:00:00Z", "2026-01-01T12:01:00Z", "2026-01-01T12:02:00Z", "ccccccc", "ddddddd")]
+    with pytest.raises(ValueError, match="disagree"):
+        d.observations(runs)
+
+
+def test_the_rollback_observation_is_the_sha_the_log_names():
+    """Codex phase-1 r4 #9: 'rolled back cleanly to C' after 'rolling back to A' produced an invented A point."""
+    from scripts.audit.incident_register import deploy_runs as d
+    got = extract("\n".join([line(1, "Pre-deploy SHA: aaaaaaa"), line(2, "Deployed bbbbbbb"),
+                             line(3, "CANARY FAILED — rolling back to aaaaaaa"), line(4, "Rolled back cleanly to ccccccc")]))
+    assert got["rolled_back_sha"] == "ccccccc" and "rolled_back_sha_mismatch" in got["anomalies"]
+    rec = dict(run_id=1, created_at="2026-09-22T16:28:00Z", log="retained", **got)
+    assert d.observations([rec])[-1]["sha"] == "ccccccc"

@@ -13,12 +13,14 @@ execution closure is frozen and re-checked by the driver around both runs):
   entry was invoked inside the node's observed call phase;
 * the oracle's structured record (``$W15_ORACLE_OUT``) shows actual == declared bad == the registry's
   ``bad_json`` and required == ``required_json``;
-* CONNECTION: the declared bad value is what production produced — ``return``: the last return of the
-  declared production function in the call phase equals the oracle's actual; ``reads``: the values the
-  fixture read back through production loaders, outside any live entry invocation and after the entry
-  ran, equal it component by component; ``derived``: no machine connection (the outcome is a derived
-  label) — the node's status is then ``exception_shape`` and needs the fixture review recorded in the
-  registry;
+* CONNECTION (plan ruling 7 as amended after Codex phase-1 r4 #3): a VALUE MATCH, never a dataflow
+  proof — ``return``: the last complete return of the declared production function in the call phase
+  equals the oracle's actual; ``reads``: the complete values the fixture read back through production
+  loaders, outside any live entry invocation and after the entry ran, equal it component by component
+  (zipped components with equal cardinality). The tool cannot see which invocation or selection the
+  oracle consumed, so a match counts (``value_match``) only with the fixture review recorded in the
+  registry, which states that dataflow. ``derived``: no value is matched (the outcome is a derived
+  label) — ``exception_shape``, again only with a recorded review. Anything else is ``unmatched``;
 * both runs collected the same inventory, test-file bytes and ``bts`` modules.
 
 The registry (``expected_failures.json``) is reviewed data; the driver hashes it into its output.
@@ -50,18 +52,29 @@ def observe_config(worktree, registry: list[dict]) -> dict:
 
 
 def unwrap(safe):
-    """The plain JSON value behind an observer ``_safe`` form (unavailable parts never compare equal)."""
+    """The plain JSON value behind an observer ``_safe`` form, or UNAVAILABLE when any part of it is
+    incomplete or unavailable (Codex phase-1 r4 #2: a truncated 50-of-51 list matched a wrong oracle)."""
     t = type(safe)
     if safe is None or t in (bool, int, float, str):
         return safe
-    if t is dict:
-        if "seq" in safe:
-            return [unwrap(v) for v in safe["seq"]]
-        if "map" in safe:
-            return {k: unwrap(v) for k, v in safe["map"].items()}
-        if "fields" in safe:
-            return {k: unwrap(v) for k, v in safe["fields"].items()}
+    if t is not dict or safe.get("incomplete") or "unavailable" in safe:
+        return UNAVAILABLE
+    if "seq" in safe:
+        parts = [unwrap(v) for v in safe["seq"]]
+        return UNAVAILABLE if any(v is UNAVAILABLE for v in parts) else parts
+    for key in ("map", "fields"):
+        if key in safe:
+            parts = {k: unwrap(v) for k, v in safe[key].items()}
+            return UNAVAILABLE if any(v is UNAVAILABLE for v in parts.values()) else parts
     return UNAVAILABLE
+
+
+def _field(safe, name: str):
+    """One named field of an observed object, complete on its own (the object may omit private fields)."""
+    fields = safe.get("fields") if type(safe) is dict else None
+    if type(fields) is not dict or name not in fields:
+        return UNAVAILABLE
+    return unwrap(fields[name])
 
 
 def _returns(inside: list[dict], wt: str, comp: dict) -> list[dict]:
@@ -70,16 +83,16 @@ def _returns(inside: list[dict], wt: str, comp: dict) -> list[dict]:
 
 
 def connection(unmarked: runner.Run, node: str, reg: dict, actual, wt: str) -> tuple[str, list[str]]:
-    """(status, reasons): ``connected`` | ``exception_shape`` (derived) | ``unconnected``."""
+    """(status, reasons): ``value_match`` | ``exception_shape`` (derived) | ``unmatched``."""
     conn = reg.get("connection") or {}
     kind = conn.get("kind")
+    if not str(conn.get("review", "")).strip():
+        return "unmatched", [f"{kind} connection without a recorded fixture review"]
     if kind == "derived":
-        if not str(conn.get("review", "")).strip():
-            return "unconnected", ["derived connection without a recorded fixture review"]
         return "exception_shape", []
     inside, why = certify.interval(unmarked.events, node)
     if why:
-        return "unconnected", [f"connection: {w}" for w in why]
+        return "unmatched", [f"connection: {w}" for w in why]
     body = inside[:-1]
     entry_file = os.path.join(wt, reg["entry"]["path"])
     entries = [e for e in body if e["kind"] == "entry" and e["file"] == entry_file
@@ -87,31 +100,35 @@ def connection(unmarked: runner.Run, node: str, reg: dict, actual, wt: str) -> t
     if kind == "return":
         rets = _returns(body, wt, conn)
         if not rets:
-            return "unconnected", [f"connection: no return of {conn['qualname']} observed"]
+            return "unmatched", [f"connection: no return of {conn['qualname']} observed"]
         got = unwrap(rets[-1]["value"])
-        return ("connected", []) if got == actual else \
-            ("unconnected", [f"connection: {conn['qualname']} returned {got!r}, the oracle saw {actual!r}"])
+        if got is UNAVAILABLE:
+            return "unmatched", [f"connection: {conn['qualname']}'s return was not observed completely"]
+        return ("value_match", []) if got == actual else \
+            ("unmatched", [f"connection: {conn['qualname']} returned {got!r}, the oracle saw {actual!r}"])
     if kind == "reads":
         if not entries:
-            return "unconnected", ["connection: the production entry never ran"]
+            return "unmatched", ["connection: the production entry never ran"]
         first = entries[0]["seq"]
         values = []
         for comp in conn["components"]:
             outside = [r for r in _returns(body, wt, comp) if r["seq"] > first
                        and not any(certify._live(en, r, body) for en in entries)]
             if not outside:
-                return "unconnected", [f"connection: the fixture never read {comp['qualname']} after the entry ran"]
-            vals = []
-            for r in outside:
-                v = unwrap(r["value"])
-                for key in ([comp["field"]] if comp.get("field") else []):
-                    v = v.get(key, UNAVAILABLE) if type(v) is dict else UNAVAILABLE
-                vals.append(v)
+                return "unmatched", [f"connection: the fixture never read {comp['qualname']} after the entry ran"]
+            vals = [_field(r["value"], comp["field"]) if comp.get("field") else unwrap(r["value"]) for r in outside]
+            if any(v is UNAVAILABLE for v in (vals if comp.get("all") else vals[-1:])):
+                return "unmatched", [f"connection: a read of {comp['qualname']} was not observed completely"]
             values.append(vals if comp.get("all") else vals[-1])
-        got = [list(t) for t in zip(*values)] if conn.get("shape") == "zip" else values
-        return ("connected", []) if got == actual else \
-            ("unconnected", [f"connection: production read-back {got!r} != the oracle's actual {actual!r}"])
-    return "unconnected", [f"unknown connection kind {kind!r}"]
+        if conn.get("shape") == "zip":
+            if len({len(v) for v in values}) != 1:
+                return "unmatched", ["connection: zipped read-backs have different cardinalities"]
+            got = [list(t) for t in zip(*values)]
+        else:
+            got = values
+        return ("value_match", []) if got == actual else \
+            ("unmatched", [f"connection: production read-back {got!r} != the oracle's actual {actual!r}"])
+    return "unmatched", [f"unknown connection kind {kind!r}"]
 
 
 def load_oracle_records(path) -> dict[str, dict]:
@@ -129,7 +146,7 @@ def load_oracle_records(path) -> dict[str, dict]:
 def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list[dict],
            oracle_records: dict | None = None) -> dict:
     """{node: [reasons]} (empty = accepted), plus "_session" (run-level reasons) and
-    "_connections" ({node: connected | exception_shape | unconnected})."""
+    "_connections" ({node: value_match | exception_shape | unmatched})."""
     wt = os.path.realpath(worktree)
     nodes = {r["node"] for r in registry}
     out: dict = {"_session": [], "_connections": {}}
@@ -189,7 +206,7 @@ def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list
         rec = records.get(n)
         if rec is None:
             why.append("--runxfail: no structured oracle record")
-            out["_connections"][n] = "unconnected"
+            out["_connections"][n] = "unmatched"
         else:
             if "bad_json" in r and rec["bad"] != r["bad_json"]:
                 why.append("oracle record: bad value differs from the registry")
@@ -215,7 +232,8 @@ def run_pair(worktree, registry: list[dict], tests: list[str], out_dir, *, env: 
     Every tracked file's working bytes, the untracked list and the environment's content fingerprint
     are taken before the pair and re-checked after EACH run (Codex phase-1 r3 #4: a helper changed
     between the runs was accepted). A node counts as a reproduction only when the pair verdict is
-    ``accepted``; ``connections`` says which nodes are machine-connected to production."""
+    ``accepted``; ``connections`` says, per node, ``value_match`` / ``exception_shape`` (each only with
+    its recorded fixture review) or ``unmatched``."""
     import hashlib
     from pathlib import Path
 
