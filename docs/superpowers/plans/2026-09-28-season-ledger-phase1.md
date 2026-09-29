@@ -2779,8 +2779,9 @@ git commit -m "feat(ledger): day status, row kinds, set-level commit and history
   - **G1:** the day `result ∈ {hit, miss}` counts a primary, and counts a leg when the file has a double-down.
   - **G2:** `slot_results.pick`/`.double_down ∈ {hit, miss}`. A file with no `slot_results` and no double-down uses its day result for the primary.
   - **G3:** as G1, but any non-null label counts.
-  - **G4:** every slot object counts, ungraded included (added in rev 2 at Codex r1 #10's suggestion, before any count).
-  - Recipes read the raw record, as the historical scripts did. G1 and G2 count only the string labels `hit`/`miss`, so a non-string value is never counted and never crashes; G3 counts any non-null value and G4 every slot, as those naive rules would.
+  - **G4:** every present slot counts, ungraded included (added in rev 2 at Codex r1 #10's suggestion, before any count).
+  - Recipes read the raw record, as the historical scripts did. G1 and G2 count only the string labels `hit`/`miss`, so a non-string value is never counted and never crashes; G3 counts any non-null value and G4 every present slot, as those naive rules would.
+  - A slot is present when its value is not null (pinned by Codex code r1 #6, before any real count). In every production file that value is an object; a malformed non-null value is quarantined as an occurrence but still counts as a present slot for the recipes, exactly as the fingerprinted code reads it. "The file has a double-down" means its `double_down` is not null.
 - **9/11 scorecard** (published 141 / 82; prose "prod pick files `data/picks/2026-*.json` … primary slot, hit/miss only … DD legs"):
   - S1–S8 = {F1, F2} × primary {G1, G2} × legs {G1, G2}, in that order.
   - Window 2026-03-29 → 2026-09-10; recipe date 2026-09-11.

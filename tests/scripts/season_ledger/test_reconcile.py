@@ -317,6 +317,18 @@ def test_the_fingerprint_binds_regex_flags_and_fails_closed_on_unknown_configura
         rules_fingerprint()
 
 
+def test_a_recipe_slot_is_present_when_its_value_is_not_null():
+    # Codex code r1 #6, pinned before any real count: the frozen rules read a slot as present when its value is not
+    # null — an object in every production file. A malformed non-null value (false, a number, a list) is quarantined
+    # as an occurrence, but the recipes still count it as a present slot, exactly as the fingerprinted code reads it.
+    for value in (False, 0, [], {"batter_id": 2}):
+        doc = {"pick": {"batter_id": 1}, "double_down": value, "result": "hit"}
+        assert set(slot_inclusion(doc, "G4", "G4")) == {"primary", "double_down"}, value
+        assert slot_inclusion(doc, "G1", "G1")["double_down"] == ("hit", True), value
+    assert set(slot_inclusion({"pick": {"batter_id": 1}, "double_down": None, "result": "hit"}, "G4", "G4")) == {
+        "primary"}
+
+
 def test_grading_truth_table_covers_every_label_shape():
     labels = ("hit", "miss", "void", "suspended", "unresolved", None, {"odd": 1})
     single = {label if isinstance(label, (str, type(None))) else "object": {g: slot_inclusion(
