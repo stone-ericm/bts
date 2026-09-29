@@ -794,7 +794,7 @@
    ],
    "connection": {
     "kind": "derived",
-    "review": "E77's outcome is a label computed by _delivery_outcome from the pick file's delivery flags (notification_sent, delivered_at) and the identified pick DMs; the derivation and its bad-path assertions were reviewed in Codex phase-1 r3 (answer 4)"
+    "review": "E77's outcome is a label computed by _delivery_outcome from the pick file's delivery flags (notification_sent, delivered_at) and the identified pick DMs; the derivation and its bad-path assertions were reviewed in Codex phase-1 r3 (answer 4); 2026-09-29 (lead): the required branch no longer presupposes a lineup check (any verified pre-cutoff delivery path reaches it, as for L04) and both cascade bindings are mocked; Codex review of this change pending (phase-1 r4)"
    }
   },
   {

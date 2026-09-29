@@ -532,8 +532,9 @@ def test_l04_control_without_the_fault_a_rerun_is_a_no_op(monkeypatch, tmp_path)
 # E77 — 7/16 singleton slate (characterization; the repair design is open, the contract is not)
 #
 # Component level. Mocked: fetch_schedule (MLB schedule), bts.picks.get_game_statuses_detailed (MLB
-# status), count_new_confirmations (boxscore lineups), bts.orchestrator.run_and_pick (the model
-# cascade: a canned confirmed selection of the same batter), run_result_polling, the live-forward
+# status), count_new_confirmations (boxscore lineups), the model cascade (bts.orchestrator.run_and_pick
+# and the fallback refresh's import-time bts.scheduler.run_and_pick: a canned confirmed selection of
+# the same batter), run_result_polling, the live-forward
 # capture trigger, bts.dm.send_dm (transport), load_decision_streak_state (contest state),
 # _idle_until_next_wakeup (post-observation idle; it reads the real wall clock), and the clock
 # (_now_et + time.sleep). run_day, run_single_check, the lock classifier and the delivery
@@ -629,6 +630,7 @@ def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, move_at: datetime
          patch("bts.picks.get_game_statuses_detailed", side_effect=statuses), \
          patch("bts.scheduler.count_new_confirmations", return_value=0), \
          patch("bts.orchestrator.run_and_pick", side_effect=cascade or _confirmed_cascade), \
+         patch("bts.scheduler.run_and_pick", side_effect=cascade or _confirmed_cascade), \
          patch("bts.scheduler.run_result_polling", return_value="final"), \
          patch("bts.scheduler._trigger_live_forward_capture_on_lock"), \
          patch("bts.scheduler._idle_until_next_wakeup",
@@ -693,23 +695,21 @@ def _delivery_outcome(obs: dict) -> tuple:
 def _e77_verdict(obs: dict) -> None:
     """E77's oracle over one observed day (Codex phase-1 r2 #7).
 
-    Both branches first prove the day really ran (ordinary assertions). The declared BAD outcome must
-    also show the declared mechanism — the lone check at the true first pitch (from the stale 19:10
-    plan), a started-game lock of the undelivered candidate, containment-only DMs — before the
-    dedicated exception; a verified pre-cutoff delivery (pick-file flags + identified pick DM, from a
-    check before the cutoff) reaches the required branch, so a repair turns the marked node into
-    XPASS(strict). Anything else is an ordinary failure.
+    Both branches first prove the day really ran past the cutoff (ordinary assertions). The declared
+    BAD outcome must also show the declared mechanism — the lone check at the true first pitch (from
+    the stale 19:10 plan), a started-game lock of the undelivered candidate, containment-only DMs —
+    before the dedicated exception. A verified pre-cutoff delivery (pick-file flags + identified pick
+    DM, both from production) reaches the required branch BY ANY PATH — a re-planned check, a woken
+    fallback — so any repair turns the marked node into XPASS(strict); no repair shape is presupposed
+    (2026-09-29, as for L04). Anything else is an ordinary failure.
     """
     assert obs["completed"] and obs["end"] >= E77_TRUE_CUTOFF, obs["end"]
-    assert obs["checks"], "run_day ran no lineup check"
     outcome = _delivery_outcome(obs)
     if outcome == ("never_delivered",):
         assert [c["at"].strftime("%H:%M") for c in obs["checks"]] == ["18:10"], obs["checks"]
         assert any(c["game_pk"] == 824716 and c["locked"] and c["reason"] == "game_started_or_final"
                    and c["at"] >= E77_TRUE_FIRST_PITCH for c in obs["classified"]), obs["classified"]
         assert all(d["kind"] == "alert" for d in obs["dms"]), obs["dms"]          # containment only
-    elif outcome == ("delivered_before_cutoff",):
-        assert any(c["at"] < E77_TRUE_CUTOFF for c in obs["checks"]), obs["checks"]
     _oracle(outcome, ("delivered_before_cutoff",), ("never_delivered",),
             SingletonSlateUndelivered, "7/16 singleton slate")
 
@@ -755,6 +755,14 @@ def test_e77_verdict_bad_direction_raises_the_dedicated_exception():
     with pytest.raises(SingletonSlateUndelivered):
         _e77_verdict(_obs(checks=[_at(18, 10)], classified=classified,
                           dms=[{"at": _at(19, 0), "kind": "alert", "text": "BTS health"}], daily=_preview(_turner())))
+
+
+def test_e77_verdict_any_pre_cutoff_delivery_path_passes():
+    """A repair need not deliver from a lineup check: a verified pre-cutoff delivery with no check at
+    all (e.g. a woken fallback) also reaches the required branch."""
+    daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
+                     notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:35:00+00:00")
+    _e77_verdict(_obs(checks=[], dms=[{"at": _at(17, 35), "kind": "pick", "text": "pick"}], daily=daily))
 
 
 @pytest.mark.parametrize("case", ["late_delivery", "no_check", "bad_outcome_other_mechanism"])
