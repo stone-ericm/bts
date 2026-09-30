@@ -123,10 +123,14 @@ LINKED = window(entry(1, 10), branch(2, IN), call(3, "alert", IN), exit_(4, 10))
     window(entry(1, 10), branch(2, IN), exit_(3, 10), call(4, "pick", ("test_y", "/wt/tests/test_x.py", 3))),
 ], ids=["zero-calls", "incomplete", "gap", "qualifying-call"])
 def test_absence_is_refused_whatever_its_events(events):
-    """Plan ruling 10: Phase 1 certifies no missing event, however complete the recorded interval looks."""
-    with pytest.raises(AbsenceRefused) as info:
-        certify(events, node=N, kind="absence", entry=ENTRY, bad=Q)
-    assert str(info.value) == ABSENCE_REFUSAL
+    """Plan ruling 10: Phase 1 certifies no missing event, however complete the recorded interval looks.
+    The refusal is exactly ``AbsenceRefused`` with the report's reason: any other exception (the unknown-kind
+    ``ValueError`` below it, sweep C14 at ``c468430``) or a result fails the assertion, not the call."""
+    try:
+        got = certify(events, node=N, kind="absence", entry=ENTRY, bad=Q)
+    except Exception as e:  # noqa: BLE001 - the exact refusal is the contract
+        got = e
+    assert type(got) is AbsenceRefused and str(got) == ABSENCE_REFUSAL
 
 
 def test_an_unknown_kind_is_an_error():

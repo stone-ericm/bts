@@ -220,7 +220,9 @@ def test_stop_never_raises_under_a_raising_audit_hook():
                            'watchers': [mon.dict_watcher, mon.func_watcher], 'kinds': kinds,
                            'why': certify.interval(mon.events, 'n')[1]}}))
     """)
-    got = json.loads(subprocess.run([sys.executable, "-c", script], check=True, capture_output=True, text=True).stdout)
+    run = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert run.returncode == 0, (run.returncode, run.stderr[-1500:])   # an _err doing I/O crashed it (sweep O49)
+    got = json.loads(run.stdout)
     assert got["stop"] == "returned" and got["tool"] is None and got["watchers"] == [None, None], got
     assert got["kinds"][0] == "obs_start" and got["kinds"][-1] == "obs_end", got
     assert "observer_error" in got["kinds"], got            # the refused end check is recorded, not raised
