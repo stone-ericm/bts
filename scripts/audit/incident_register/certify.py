@@ -14,9 +14,11 @@ a different invocation).
 * ``absence`` (missing event): an invocation live at the branch EXITED inside the interval
   (completion), no other thread — started in the interval or already running before it — is still alive
   at its end (Codex phase-1 r4 #1.3), the boundary had no
-  coverage gap (not Python-observable, or rebound to an unseen callable), there is NO boundary call of
-  that name with the qualifying category from ANY caller in the interval (callee-side recording sees
-  C-invoked and threaded calls), none with an unavailable identity, and the same node's baseline
+  coverage gap (see ``COVERAGE``), there is NO boundary call of that name with the qualifying category
+  from ANY caller in the interval (callee-side recording sees C-invoked and threaded calls; the
+  binding is tracked at every store on its path, so a rebinding made anywhere is registered before it
+  can be called), none with an unavailable identity (which includes a callable bound to several
+  boundaries and one the binding held earlier in the interval), and the same node's baseline
   interval DOES contain a qualifying call (positive control).
 
 Each certificate states its coverage. A certificate is necessary, not sufficient: the defence
@@ -25,10 +27,15 @@ conformance runs, and the reviewer reads the patch, frames and linked events.
 """
 from __future__ import annotations
 
-COVERAGE = {"recorder": "callee-side, Python-observable boundaries (mocks, Python functions, bound methods of the declared receiver)",
+COVERAGE = {"recorder": "callee-side, Python-observable boundaries (mocks, Python functions, bound methods of the declared "
+                        "receiver); bindings tracked at every store on their module/class namespace path and every "
+                        "in-place __code__ replacement (CPython dict and function watchers)",
             "unavailable_when": ["a C-implemented or unresolvable boundary", "a call on another receiver of the boundary's code",
-                                 "a value too large or too deep to serialize completely", "any other thread alive at the end",
-                                 "subprocesses", "async tasks"]}
+                                 "a binding path through anything but module and class namespaces",
+                                 "a callable bound to several boundaries", "a callable the binding held earlier in the interval",
+                                 "a watched namespace replaced wholesale", "a mock boundary whose __call__ is replaced",
+                                 "a value incomplete at any depth (too large, too deep, or not plainly serializable)",
+                                 "any other thread alive at the end", "subprocesses", "async tasks"]}
 
 
 def interval(events: list[dict], node: str) -> tuple[list[dict], list[str]]:

@@ -10,8 +10,16 @@ phase-1 r3 #1, #2, #7):
   recorded as unavailable;
 * boundary calls are recorded on the CALLEE side (the start of a boundary mock's ``__call__`` or of
   the real boundary function), so calls made from C (``map``, callbacks) or from other threads are
-  still seen; a boundary that is not a Python-observable callable, or a binding replaced by an unseen
-  callable, is recorded as a coverage gap;
+  still seen;
+* a declared binding is TRACKED AT EVERY STORE on its path (CPython dict watchers on the module and
+  class namespaces from ``sys.modules`` down, and a function watcher for ``__code__`` replaced in
+  place), whoever makes the store, so every callable is registered before anything can call it
+  through the binding. Every value a binding holds stays a target of that binding for the rest of the
+  interval, registered per binding + callable. A call that cannot be attributed to one binding's
+  current value is recorded with an unavailable identity. An unsupported namespace (anything but a
+  module or a class), a callable that is not Python-observable, a namespace replaced wholesale, a
+  mock boundary whose ``__call__`` is replaced, or a change no watched store explains, is a coverage
+  gap (Codex phase-1 r5 #1, #3);
 * the entry's exits (return or exception) are recorded, and threads started during the observed
   call phase that are still alive at its end are counted, so a certificate can require completion
   and refuse an interval with outstanding work.
@@ -25,6 +33,8 @@ Records are JSON lines (``kind`` field) written to the file named in the config 
 """
 from __future__ import annotations
 
+import ctypes
+import gc
 import hashlib
 import inspect
 import itertools
@@ -33,6 +43,8 @@ import os
 import re
 import sys
 import threading
+import traceback
+import types
 
 import pytest
 
@@ -45,6 +57,22 @@ _TYPE_MODULE = type.__dict__["__module__"]
 _TYPE_DICT = type.__dict__["__dict__"]
 _TYPE_MRO = type.__dict__["__mro__"]
 _GETSET = type(type.__dict__["__dict__"])
+_MODULE_DICT = types.ModuleType.__dict__["__dict__"]
+
+# CPython's dict and function watchers (3.12 C API, through ctypes; callbacks run with the GIL held).
+# Object arguments are declared as addresses so that a dict or function being deallocated is never
+# turned into a Python reference.
+_API = ctypes.pythonapi
+_DICT_WATCH_CB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+_FUNC_WATCH_CB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+for _fn, _argtypes in (("PyDict_AddWatcher", [_DICT_WATCH_CB]), ("PyDict_ClearWatcher", [ctypes.c_int]),
+                       ("PyDict_Watch", [ctypes.c_int, ctypes.py_object]),
+                       ("PyDict_Unwatch", [ctypes.c_int, ctypes.py_object]),
+                       ("PyFunction_AddWatcher", [_FUNC_WATCH_CB]), ("PyFunction_ClearWatcher", [ctypes.c_int])):
+    getattr(_API, _fn).argtypes = _argtypes
+    getattr(_API, _fn).restype = ctypes.c_int
+_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED, _DICT_CLONED, _DICT_CLEARED = 0, 1, 2, 3, 4
+_FUNC_MODIFY_CODE = 2
 
 
 def _config() -> dict:
@@ -279,16 +307,78 @@ def _access(specs, args, kwargs):
     return False, None
 
 
-def _resolve(binding: str):
-    """The object currently bound at ``module:attr[.attr]``, read from namespaces (no getattr hooks)."""
+# ---------------------------------------------------------------------------- binding resolution
+# A declared binding ``module:attr[.attr]`` is resolved through NAMESPACE DICTS only, read by C
+# descriptors: never an object's own ``__getattribute__``, ``__getattr__`` or properties (Codex
+# phase-1 r5 #3). Two shapes are supported, modules and classes. Their namespace dict cannot be
+# replaced wholesale, so a dict watcher on it sees every store (an instance's ``__dict__`` can be
+# reassigned, which no watcher sees; Codex phase-1 r5 #1). Any other shape on the path is a
+# coverage gap.
+
+def _lookup(ns: dict, name: str):
+    """(found, value) for a str key, found by iterating the dict's items: a hashed lookup would compare
+    the key with any same-hash application key and so run its ``__eq__`` (Codex phase-1 r4 #2)."""
+    for k, v in dict.items(ns):
+        if type(k) is str and k == name:
+            return True, v
+    return False, None
+
+
+def _type_ns(cls):
+    """A class's real namespace dict, behind its read-only mappingproxy (type's C descriptor)."""
+    refs = gc.get_referents(_TYPE_DICT.__get__(cls, type))
+    return refs[0] if len(refs) == 1 and type(refs[0]) is dict else None
+
+
+def _namespace(obj):
+    """The namespace dict of a module or a class, or None for any other shape (see above)."""
+    t = type(obj)
+    mro = _TYPE_MRO.__get__(t, type)
+    if any(c is types.ModuleType for c in mro):
+        for cls in mro:
+            ns = _type_ns(cls)
+            found, desc = _lookup(ns, "__dict__") if ns is not None else (False, None)
+            if found:
+                if desc is not _MODULE_DICT:
+                    return None                         # a subclass redefines __dict__ (application code)
+                break
+        d = _MODULE_DICT.__get__(obj, t)
+        return d if type(d) is dict else None
+    if any(c is type for c in mro):                     # a class: ``t`` is its metaclass
+        return _type_ns(obj)
+    return None
+
+
+def _walk(keys: list, level: int, obj, chain: list):
+    """Resolve ``keys[level + 1:]`` from ``obj`` (the value at ``level``), appending each (namespace
+    dict, key) step to ``chain``. Returns (value, why-unresolved or None)."""
+    for key in keys[level + 1:]:
+        ns = _namespace(obj)
+        if ns is None:
+            return None, "unsupported namespace: only module and class namespaces are watched"
+        chain.append((ns, key))
+        found, obj = _lookup(ns, key)
+        if not found:
+            return None, "the declared binding resolves to nothing"
+    return obj, None
+
+
+def _resolve_chain(binding: str):
+    """(keys, chain, value, why): ``chain`` lists the (namespace dict, key) steps that decide the
+    value, from ``sys.modules`` down."""
     module, _, attr = binding.partition(":")
-    obj = sys.modules.get(module)
-    for part in attr.split("."):
-        if obj is None:
-            return None
-        ns = getattr(obj, "__dict__", None)
-        obj = ns.get(part) if type(ns) is dict else None
-    return obj
+    keys = [module] + attr.split(".")
+    chain = [(sys.modules, module)]
+    found, obj = _lookup(sys.modules, module)
+    if not found:
+        return keys, chain, None, "the declared binding resolves to nothing"
+    value, why = _walk(keys, 0, obj, chain)
+    return keys, chain, value, why
+
+
+def _resolve(binding: str):
+    """The object currently bound at ``module:attr[.attr]``, or None."""
+    return _resolve_chain(binding)[2]
 
 
 def _classify(rules, safe_value) -> str:
@@ -297,6 +387,21 @@ def _classify(rules, safe_value) -> str:
         if re.search(pattern, text):
             return label
     return "other"
+
+
+def _complete(safe) -> bool:
+    """True when no part of a ``_safe`` form was omitted AT ANY DEPTH (Codex phase-1 r5 #2: only the top
+    level was checked, so a nested truncated payload was classified and certified)."""
+    if type(safe) is not dict:
+        return True
+    if safe.get("incomplete") or "unavailable" in safe:
+        return False
+    if "seq" in safe:
+        return all(_complete(v) for v in safe["seq"])
+    for key in ("map", "fields"):
+        if key in safe:
+            return all(_complete(v) for v in safe[key].values())
+    return True
 
 
 class _Monitor:
@@ -315,7 +420,13 @@ class _Monitor:
         self.events: list[dict] = []
         self.instrumented: set = set()
         self.boundary_codes: dict = {}          # code object -> [(boundary spec, bound receiver or None)]
-        self.seen_targets: dict = {}            # id(obj) -> obj: every binding value registered
+        self.state: dict = {}                   # spec name -> {"keys", "chain", "current", "held"}
+        self.watch_index: dict = {}             # address of a namespace dict -> [(spec name, chain level)]
+        self.call_watch: dict = {}              # address of a mock class's namespace -> {spec names}
+        self.watched: dict = {}                 # address -> namespace dict, kept alive while watched
+        self.functions: dict = {}               # address of a target function -> (function, [(spec, receiver)])
+        self.dict_watcher = self.func_watcher = None
+        self._dict_cb = self._func_cb = None    # the ctypes trampolines, kept alive while installed
         self.paths: dict[str, str] = {}
         self.threads_at_start: set = set()
         self.active = False
@@ -336,8 +447,11 @@ class _Monitor:
     def _err(self, where: str, exc: BaseException) -> None:
         name = type_name(type(exc))
         # the observer's own failures are builtin exceptions; their text runs no application code
-        detail = "".join(__import__("traceback").format_exception(exc))[-800:] if name.startswith("builtins.") else None
+        detail = "".join(traceback.format_exception(exc))[-800:] if name.startswith("builtins.") else None
         self._record("observer_error", {"where": where, "error_type": name, "detail": detail})
+
+    def _gap(self, name: str, reason: str, **extra) -> None:
+        self._record("boundary_gap", {"name": name, "reason": reason, **extra})
 
     def _stack(self, frame):
         out, is_async, n = [], False, 0
@@ -354,9 +468,8 @@ class _Monitor:
         if not ok:
             return {"value": None, "category": "unavailable"}
         safe = _safe(value)
-        incomplete = type(safe) is dict and bool(safe.get("incomplete"))
         return {"value": safe, "sha256": hashlib.sha256(_text(safe).encode()).hexdigest(),
-                "category": "unavailable" if incomplete else _classify(spec.get("classify", []), safe)}
+                "category": _classify(spec.get("classify", []), safe) if _complete(safe) else "unavailable"}
 
     def _is_mock(self, obj) -> bool:
         return issubclass(type(obj), self.mock_base)
@@ -369,34 +482,149 @@ class _Monitor:
             kind = type_name(type(obj))
         return obj.__code__ if kind == "builtins.function" else None
 
-    def _register(self, spec: dict, obj) -> None:
-        if obj is None:
-            self._record("boundary_gap", {"name": spec["name"], "reason": "the declared binding resolves to nothing"})
+    # -- binding tracking (Codex phase-1 r5 #1): every store on a binding's path is seen when it happens,
+    # whoever makes it (production, a test helper, a C callback), so a callable is registered before
+    # anything can call it through the binding
+    def _watch(self, ns: dict, name: str | None = None, level: int | None = None) -> None:
+        if id(ns) not in self.watched:
+            self.watched[id(ns)] = ns
+            if self.dict_watcher is not None:
+                _API.PyDict_Watch(self.dict_watcher, ns)
+        if name is not None:
+            self.watch_index.setdefault(id(ns), []).append((name, level))
+
+    def _track(self, spec: dict) -> None:
+        keys, chain, value, why = _resolve_chain(spec["binding"])
+        self.state[spec["name"]] = {"keys": keys, "chain": chain, "current": None, "held": []}
+        for level, (ns, _key) in enumerate(chain):
+            self._watch(ns, spec["name"], level)
+        if why is not None:
+            self._gap(spec["name"], why)
+        else:
+            self._hold(spec, value)
+
+    def _hold(self, spec: dict, obj) -> None:
+        """``obj`` is now bound at ``spec``'s binding. It stays a target of THAT spec for the rest of the
+        interval, since a caller may have captured it before a restore. Targets are registered per spec
+        + callable, so a callable bound to two boundaries counts for both (Codex phase-1 r5 #1.2)."""
+        st = self.state[spec["name"]]
+        st["current"] = obj
+        if any(o is obj for o in st["held"]):
             return
-        if id(obj) in self.seen_targets:
-            return
-        self.seen_targets[id(obj)] = obj
+        st["held"].append(obj)
         if self._is_mock(obj):
-            return                                           # every mock call starts mock_call_code
+            # every mock call starts mock_call_code, unless its class's __call__ is replaced
+            for cls in _TYPE_MRO.__get__(type(obj), type):
+                ns = _type_ns(cls)
+                if ns is not None:
+                    self._watch(ns)
+                    self.call_watch.setdefault(id(ns), set()).add(spec["name"])
+            return
         code = self._code_of(obj)
         if code is None:
-            self._record("boundary_gap", {"name": spec["name"], "reason": "not a Python-observable callable",
-                                          "type": type_name(type(obj))})
+            self._gap(spec["name"], "not a Python-observable callable", type=type_name(type(obj)))
             return
         # a bound method is the boundary only for ITS receiver: other instances share the code object
-        # (Codex phase-1 r4 #1.4); method.__self__ is a C member, no application code runs
+        # (Codex phase-1 r4 #1.4); method.__self__/__func__ are C members, no application code runs
         receiver = obj.__self__ if type_name(type(obj)) == "builtins.method" else None
-        self.boundary_codes.setdefault(code, []).append((spec, receiver))
-        if self.active:
-            sys.monitoring.restart_events()                  # its PY_START may have been disabled
+        func = obj.__func__ if receiver is not None else obj
+        self.functions.setdefault(id(func), (func, []))[1].append((spec, receiver))   # its __code__ can be swapped
+        self._add_code(code, spec, receiver)
 
-    def _mock_spec(self, obj):
-        if obj is None:
-            return None
-        for spec in self.boundaries:
-            if _resolve(spec["binding"]) is obj or spec.get("_start") is obj:
-                return spec
-        return None
+    def _add_code(self, code, spec: dict, receiver) -> None:
+        pairs = self.boundary_codes.setdefault(code, [])
+        if not any(sp is spec and rcv is receiver for sp, rcv in pairs):
+            pairs.append((spec, receiver))
+            if self.active:
+                sys.monitoring.restart_events()          # its PY_START may have been disabled
+
+    def _restep(self, name: str, level: int, found: bool, value) -> None:
+        """A store at ``level`` of ``name``'s chain, reported BEFORE the dict changes, with the new value:
+        re-resolve the rest of the chain from it, watch any new namespace, and hold the new final value."""
+        st = self.state[name]
+        spec = next(sp for sp in self.boundaries if sp["name"] == name)
+        chain = st["chain"][:level + 1]
+        if not found:
+            st["chain"], st["current"] = chain, None     # deleted: nothing can be called through it
+            return
+        obj, why = _walk(st["keys"], level, value, chain)
+        st["chain"] = chain
+        for lv in range(level + 1, len(chain)):
+            self._watch(chain[lv][0], name, lv)
+        if why is not None:
+            st["current"] = None
+            if why.startswith("unsupported"):
+                self._gap(name, why)
+            return
+        self._hold(spec, obj)
+
+    def _on_dict(self, event, dict_addr, key_addr, new_addr):
+        """Dict watcher callback (C trampoline). Addresses, not objects, arrive: a dying dict is never
+        touched. Must return 0 and never raise."""
+        try:
+            hits = self.watch_index.get(dict_addr, ())
+            calls = self.call_watch.get(dict_addr, ())
+            if not hits and not calls:
+                return 0
+            if event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED):
+                key = ctypes.cast(key_addr, ctypes.py_object).value if key_addr else None
+                if type(key) is not str:
+                    return 0
+                if key == "__call__":
+                    for name in sorted(calls):
+                        self._gap(name, "a mock boundary's __call__ was replaced")
+                new = ctypes.cast(new_addr, ctypes.py_object).value if new_addr and event != _DICT_DELETED else None
+                d = self.watched.get(dict_addr)
+                for name, level in list(hits):
+                    chain = self.state[name]["chain"]
+                    if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
+                        self._restep(name, level, event != _DICT_DELETED, new)
+            elif event in (_DICT_CLONED, _DICT_CLEARED):
+                for name in sorted({n for n, _lv in hits} | set(calls)):
+                    self._gap(name, "a watched namespace was replaced wholesale")
+        except BaseException as e:  # noqa: BLE001
+            self._err("dict_watch", e)
+        return 0
+
+    def _on_func(self, event, func_addr, new_addr):
+        """Function watcher callback: a target function's ``__code__`` replaced in place starts new code,
+        which is registered for the same spec + receiver (Codex phase-1 r5 #1)."""
+        try:
+            if event != _FUNC_MODIFY_CODE:
+                return 0
+            entry = self.functions.get(func_addr)
+            if entry is None:
+                return 0
+            code = ctypes.cast(new_addr, ctypes.py_object).value if new_addr else None
+            if type(code) is types.CodeType:
+                for spec, receiver in entry[1]:
+                    self._add_code(code, spec, receiver)
+        except BaseException as e:  # noqa: BLE001
+            self._err("func_watch", e)
+        return 0
+
+    def _install_watchers(self) -> bool:
+        try:
+            self._dict_cb = _DICT_WATCH_CB(self._on_dict)
+            self.dict_watcher = _API.PyDict_AddWatcher(self._dict_cb)
+            self._func_cb = _FUNC_WATCH_CB(self._on_func)
+            self.func_watcher = _API.PyFunction_AddWatcher(self._func_cb)
+            return True
+        except BaseException as e:  # noqa: BLE001
+            self._err("install_watchers", e)
+            return False
+
+    def _remove_watchers(self) -> None:
+        try:
+            if self.dict_watcher is not None:
+                for ns in self.watched.values():
+                    _API.PyDict_Unwatch(self.dict_watcher, ns)
+                _API.PyDict_ClearWatcher(self.dict_watcher)
+            if self.func_watcher is not None:
+                _API.PyFunction_ClearWatcher(self.func_watcher)
+        except BaseException as e:  # noqa: BLE001
+            self._err("remove_watchers", e)
+        self.dict_watcher = self.func_watcher = None
 
     # -- lifecycle
     def start(self) -> None:
@@ -410,13 +638,14 @@ class _Monitor:
         # obs_start FIRST: a gap found while registering the boundaries belongs to this interval
         # (Codex phase-1 r4 #1.1: it used to precede obs_start and so fell outside the certificate)
         self._record("obs_start", {})
+        watching = self._install_watchers() if self.boundaries else False
         for spec in self.boundaries:
-            spec["_start"] = _resolve(spec["binding"])
-            self._register(spec, spec["_start"])
+            self._track(spec)
+            if not watching:
+                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")
         ev = mon.events
         mon.register_callback(TOOL_ID, ev.PY_START, self._on_start)
         mon.register_callback(TOOL_ID, ev.LINE, self._on_line)
-        mon.register_callback(TOOL_ID, ev.CALL, self._on_call)
         mon.register_callback(TOOL_ID, ev.PY_RETURN, self._on_return)
         mon.register_callback(TOOL_ID, ev.PY_UNWIND, self._on_unwind)
         self.active = True
@@ -429,16 +658,17 @@ class _Monitor:
         mon.set_events(TOOL_ID, 0)
         for code in self.instrumented:
             mon.set_local_events(TOOL_ID, code, 0)
-        for event in (mon.events.PY_START, mon.events.LINE, mon.events.CALL, mon.events.PY_RETURN,
-                      mon.events.PY_UNWIND):
+        for event in (mon.events.PY_START, mon.events.LINE, mon.events.PY_RETURN, mon.events.PY_UNWIND):
             mon.register_callback(TOOL_ID, event, None)
         mon.free_tool_id(TOOL_ID)
         mon.restart_events()
         self.active = False
-        for spec in self.boundaries:
-            now = _resolve(spec["binding"])
-            if now is not None and id(now) not in self.seen_targets and not self._is_mock(now):
-                self._record("boundary_gap", {"name": spec["name"], "reason": "binding replaced by an unseen callable"})
+        self._remove_watchers()
+        for spec in self.boundaries:                    # fail closed: a change no watched store explains
+            st = self.state.get(spec["name"])
+            _keys, _chain, now, why = _resolve_chain(spec["binding"])
+            if st is not None and why is None and now is not st["current"]:
+                self._gap(spec["name"], "the binding changed without a watched store")
         me = threading.get_ident()
         alive = [t for t in threading.enumerate() if t.is_alive() and t.ident != me]
         self._record("obs_end", {
@@ -448,22 +678,38 @@ class _Monitor:
             "preexisting_threads_alive": sum(1 for t in alive if t.ident in self.threads_at_start)})
 
     # -- callbacks (never raise; never run application code)
+    def _matched(self, specs: list, current: list, frame, args, kwargs) -> None:
+        """One boundary record per matched spec. A call whose callable is bound to several boundaries,
+        or is a value the binding held earlier in the interval (not its current one), cannot be
+        attributed: its identity is unavailable, so it never witnesses an event and always blocks an
+        absence (Codex phase-1 r5 #1)."""
+        names = [sp["name"] for sp in specs]
+        for sp, is_current in zip(specs, current):
+            reason = None
+            if len(specs) > 1:
+                reason = f"the callable is bound to several boundaries: {names}"
+            elif not is_current:
+                reason = "a callable the binding held earlier in the interval, not its current value"
+            self._boundary(sp, frame, args, kwargs, reason=reason)
+
     def _on_start(self, code, offset):
-        spec = None
+        matched = None
         try:
             if code is self.mock_call_code:
                 frame = sys._getframe(1)
                 loc = frame.f_locals
-                spec = self._mock_spec(loc.get("self"))
-                if spec is not None:
+                me = loc.get("self")
+                matched = [sp for sp in self.boundaries
+                           if any(o is me for o in self.state.get(sp["name"], {}).get("held", ()))]
+                if matched:
                     extra = loc.get("args", ())
                     kwargs = loc.get("kwargs", {})
-                    self._boundary(spec, frame, list(extra) if type(extra) is tuple else [],
-                                   dict(kwargs) if type(kwargs) is dict else {})
+                    self._matched(matched, [self.state[sp["name"]]["current"] is me for sp in matched], frame,
+                                  list(extra) if type(extra) is tuple else [],
+                                  dict(kwargs) if type(kwargs) is dict else {})
                 return None
             pairs = self.boundary_codes.get(code)
             if pairs is not None:
-                spec = pairs[0][0]
                 frame = sys._getframe(1)
                 loc = frame.f_locals
                 positional = code.co_varnames[:code.co_argcount]
@@ -473,22 +719,31 @@ class _Monitor:
                     args += list(extra) if type(extra) is tuple else []
                 kwargs = {n: loc.get(n) for n in code.co_varnames[:code.co_argcount + code.co_kwonlyargcount]}
                 first = args[0] if args else None
-                matched = [sp for sp, rcv in pairs if rcv is None or first is rcv]
-                if matched:
-                    self._boundary(matched[0], frame, args, kwargs)
+                mine, others = [], []
+                for sp, rcv in pairs:
+                    bucket = mine if rcv is None or first is rcv else others
+                    if not any(s is sp for s in bucket):
+                        bucket.append(sp)
+                if mine:
+                    matched = mine
+                    self._matched(mine, [self._current_code(sp) is code and self._receiver_ok(sp, first)
+                                         for sp in mine], frame, args, kwargs)
                 else:                                        # same code, another receiver: ambiguous
-                    self._boundary(spec, frame, args, kwargs, other_receiver=True)
+                    matched = others
+                    for sp in others:
+                        self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
-                return None if spec is not None else sys.monitoring.DISABLE
+                return None if matched else sys.monitoring.DISABLE
             if code not in self.instrumented:
-                events = sys.monitoring.events.CALL
+                events = 0
                 if self.branch and filename == self.branch[0]:
                     events |= sys.monitoring.events.LINE
                 key = (filename, code.co_qualname)
                 if key in self.returns or key in self.entries:
                     events |= sys.monitoring.events.PY_RETURN       # PY_UNWIND is global-only (3.12)
-                sys.monitoring.set_local_events(TOOL_ID, code, events)
+                if events:
+                    sys.monitoring.set_local_events(TOOL_ID, code, events)
                 self.instrumented.add(code)
             if (filename, code.co_qualname) in self.entries:
                 frame = sys._getframe(1)
@@ -499,10 +754,18 @@ class _Monitor:
             self._err("py_start", e)
         return None
 
-    def _boundary(self, spec: dict, callee_frame, args, kwargs, *, other_receiver: bool = False) -> None:
+    def _current_code(self, spec: dict):
+        cur = self.state[spec["name"]]["current"]
+        return None if cur is None or self._is_mock(cur) else self._code_of(cur)
+
+    def _receiver_ok(self, spec: dict, first) -> bool:
+        cur = self.state[spec["name"]]["current"]
+        return type_name(type(cur)) != "builtins.method" or cur.__self__ is first
+
+    def _boundary(self, spec: dict, callee_frame, args, kwargs, *, reason: str | None = None) -> None:
         stack, is_async = self._stack(callee_frame.f_back)
-        identity = ({"value": None, "category": "unavailable", "reason": "another receiver of the boundary's code"}
-                    if other_receiver else self._identity(spec, args, kwargs))
+        identity = ({"value": None, "category": "unavailable", "reason": reason}
+                    if reason else self._identity(spec, args, kwargs))
         self._record("boundary", {"name": spec["name"], "caller": stack[0][:3] if stack else None,
                                   "stack": stack[:40], "async": is_async, "identity": identity})
 
@@ -516,20 +779,6 @@ class _Monitor:
             self._err("line", e)
         return None
 
-    def _on_call(self, code, offset, callable_, arg0):
-        """Discovery only: at EVERY production call, a declared binding whose current value has not been
-        seen is registered before anything is called (restarting disabled events), so a temporary
-        rebinding invoked through C (``map``) or restored before the interval ends is still covered
-        (Codex phase-1 r4 #1.2); recording stays callee-side."""
-        try:
-            for spec in self.boundaries:
-                current = _resolve(spec["binding"])
-                if current is not None and id(current) not in self.seen_targets:
-                    self._register(spec, current)
-        except BaseException as e:  # noqa: BLE001
-            self._err("call", e)
-        return None
-
     def _exit(self, code, retval, how):
         filename = self._real(code.co_filename)
         key = (filename, code.co_qualname)
@@ -540,8 +789,7 @@ class _Monitor:
             stack, is_async = self._stack(frame)
             # an exceptional exit is observed only as the exception's type name (no application code)
             safe = _safe(retval) if how == "return" else {"raised": type_name(type(retval))}
-            incomplete = type(safe) is dict and bool(safe.get("incomplete"))
-            category = "unavailable" if incomplete else _classify(self.returns[key], safe)
+            category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"
             self._record("return", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
                                     "value": safe, "category": category, "how": how,
                                     "stack": stack[:40], "async": is_async})

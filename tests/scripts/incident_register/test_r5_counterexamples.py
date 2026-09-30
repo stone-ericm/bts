@@ -76,3 +76,186 @@ def test_a_pair_whose_symlinked_helper_changes_is_rejected(tmp_path):
     assert target.read_text() == "VALUE=2\n"                            # the probe really changed it
     assert res["verdict"] == "rejected"
     assert any("after marked: untracked files changed: ['tests/helper.py']" in r for r in res["reasons"]), res["reasons"]
+
+
+# --- finding 1: boundary discovery -----------------------------------------------------------------
+
+from scripts.audit.incident_register import defence, observer  # noqa: E402
+from tests.scripts.incident_register.synth import DM  # noqa: E402
+from tests.scripts.incident_register.test_r4_counterexamples import one_spec  # noqa: E402
+
+TRANSPORT = ("sent=[]\ndef send(recipient,text):\n    sent.append((recipient,text))\n"
+             "def replacement(recipient,text):\n    sent.append((recipient,text))\n")
+PROBE = ("from bts import mod,transport\ndef test_probe():\n    result=mod.deliver()\n"
+         "    assert transport.sent==[('eric','pick: Turner')]\n    assert result=='done'  # ASSERT-RESULT\n")
+NODE = "tests/test_probe.py::test_probe"
+HELPER_PROD = ("from bts import transport\nfrom tests.helper import invoke\ndef deliver():\n"
+               "    invoke(transport,False)  # BRANCH\n    return 'done'\n")
+HELPER_MUTANT = ("invoke(transport,False)  # BRANCH\n    return 'done'", "invoke(transport,True)  # BRANCH\n    return 'defer'")
+
+
+def _defend(tmp_path, files, old, new, boundaries=None):
+    _, wt = defended_project(tmp_path, {"src/bts/transport.py": TRANSPORT, "tests/test_probe.py": PROBE, **files})
+    spec = one_spec(old, new)
+    if boundaries:
+        spec["boundaries"] = boundaries
+    return defence.current_defence(wt, spec, tmp_path / "out")
+
+
+def _refused(res, reason):
+    cert = res["certificates"][NODE]
+    assert res["verdict"] == "rejected" and not cert["ok"], res
+    assert any(reason in r for r in cert["reasons"]), cert["reasons"]
+    return cert
+
+
+def test_a_rebinding_inside_a_frozen_helper_is_seen(tmp_path):
+    """r5 #1.1 measured: a test helper rebound transport.send, called it through map() and restored it.
+    Discovery at production calls came too late, and the absence was accepted with zero calls."""
+    helper = ("def invoke(transport,rebind):\n    saved=transport.send\n    if rebind:\n"
+              "        transport.send=transport.replacement\n    list(map(transport.send,['eric'],['pick: Turner']))\n"
+              "    transport.send=saved\n")
+    res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
+    assert _refused(res, "1 qualifying 'dm' call(s) occurred")["linked"]["calls_observed"] == 1
+
+
+def test_a_callable_bound_to_two_boundaries_is_attributed_to_neither(tmp_path):
+    """r5 #1.2 measured: the mutant bound send_b to send_a's function, which was already registered for
+    the other boundary; the one send was recorded only under that name, and send_b's absence was
+    accepted."""
+    transport = ("sent=[]\ndef send_a(recipient,text):\n    sent.append((recipient,text))\n"
+                 "def send_b(recipient,text):\n    sent.append((recipient,text))\n")
+    prod = "from bts import transport\ndef deliver():\n    transport.send_b('eric','pick: Turner')  # BRANCH\n    return 'done'\n"
+    res = _defend(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport},
+                  "    transport.send_b('eric','pick: Turner')  # BRANCH\n    return 'done'",
+                  "    saved=transport.send_b\n    transport.send_b=transport.send_a  # BRANCH\n"
+                  "    transport.send_b('eric','pick: Turner')\n    transport.send_b=saved\n    return 'defer'",
+                  boundaries=[dict(DM, name="other", binding="bts.transport:send_a"),
+                              dict(DM, binding="bts.transport:send_b")])
+    _refused(res, "'dm' call(s) without identity")
+
+
+def test_a_callable_captured_before_a_restore_is_still_a_boundary_call(tmp_path):
+    """Beyond the r5 probes: the replacement is captured, the binding restored, and only then called.
+    It is no longer the current value, so the call cannot be attributed, but it is not absent."""
+    helper = ("def invoke(transport,rebind):\n    if rebind:\n        saved=transport.send\n"
+              "        transport.send=transport.replacement\n        f=transport.send\n        transport.send=saved\n"
+              "        f('eric','pick: Turner')\n    else:\n        transport.send('eric','pick: Turner')\n")
+    res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
+    _refused(res, "'dm' call(s) without identity")
+
+
+def test_a_code_object_swapped_in_place_is_seen(tmp_path):
+    """Beyond the r5 probes: the bound function stays the same object, but its ``__code__`` is replaced
+    for one call (a function watcher registers the new code)."""
+    helper = ("def invoke(transport,rebind):\n    if rebind:\n        code=transport.send.__code__\n"
+              "        transport.send.__code__=transport.replacement.__code__\n        transport.send('eric','pick: Turner')\n"
+              "        transport.send.__code__=code\n    else:\n        transport.send('eric','pick: Turner')\n")
+    res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
+    _refused(res, "1 qualifying 'dm' call(s) occurred")
+
+
+def test_a_binding_through_an_instance_namespace_is_a_coverage_gap(tmp_path):
+    """An instance's ``__dict__`` can be replaced wholesale, which no watcher sees: such a path is
+    unsupported, so the absence is unavailable instead of certified."""
+    transport = TRANSPORT + "class Holder:\n    pass\nholder=Holder()\nholder.send=send\n"
+    prod = ("from bts import transport\ndef deliver():\n    transport.holder.send('eric','pick: Turner')  # BRANCH\n"
+            "    return 'done'\n")
+    res = _defend(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport},
+                  "    transport.holder.send('eric','pick: Turner')  # BRANCH\n    return 'done'",
+                  "    pass  # BRANCH\n    return 'defer'",
+                  boundaries=[dict(DM, binding="bts.transport:holder.send")])
+    _refused(res, "coverage gap (unsupported namespace")
+
+
+def test_a_replaced_mock_call_is_a_coverage_gap():
+    """A mock boundary is recognised by mock_call_code; replacing its class's ``__call__`` would bypass
+    that code, so the store is watched and recorded as a gap."""
+    import sys
+    import types
+    from unittest import mock
+    mod = types.ModuleType("w15_r5_mockmod")
+    mod.send = mock.MagicMock()
+    sys.modules["w15_r5_mockmod"] = mod
+    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="w15_r5_mockmod:send")]}, "")
+    try:
+        mon.start()
+        type(mod.send).__call__ = lambda self, *a, **k: None
+    finally:
+        mon.stop()
+        del sys.modules["w15_r5_mockmod"]
+    assert any(e["kind"] == "boundary_gap" and e["reason"] == "a mock boundary's __call__ was replaced"
+               for e in mon.events), mon.events
+
+
+# --- finding 3: resolution runs no application code ------------------------------------------------
+
+def test_resolving_a_binding_runs_no_application_attribute_code():
+    """r5 #3 measured: _resolve called getattr(obj, '__dict__'), which ran an overridden
+    __getattribute__. Namespaces are now read by C descriptors, and only modules and classes."""
+    import sys
+    import types
+    called = []
+
+    class Holder:
+        def __getattribute__(self, name):
+            called.append(name)
+            return object.__getattribute__(self, name)
+
+    class LoudModule(types.ModuleType):
+        def __getattribute__(self, name):
+            called.append(name)
+            return types.ModuleType.__getattribute__(self, name)
+
+    class DictPropertyModule(types.ModuleType):
+        @property
+        def __dict__(self):
+            called.append("__dict__ property")
+            return {}
+
+    holder = Holder()
+    holder.send = len
+    loud = LoudModule("w15_r5_loud")
+    loud.send, loud.holder = len, holder
+    odd = DictPropertyModule("w15_r5_odd")
+    sys.modules.update(w15_r5_loud=loud, w15_r5_odd=odd)
+    try:
+        assert observer._resolve("w15_r5_loud:send") is len                  # raw module namespace
+        assert observer._resolve("w15_r5_loud:holder.send") is None          # an instance: unsupported
+        assert observer._resolve("w15_r5_odd:anything") is None              # __dict__ redefined: refused
+        assert called == []
+    finally:
+        del sys.modules["w15_r5_loud"], sys.modules["w15_r5_odd"]
+
+
+# --- finding 2: nested completeness ----------------------------------------------------------------
+
+NESTED = [{"tag": "pick", "payload": [0] * 51},                     # a truncated nested sequence
+          {"tag": "pick", "payload": [__import__("threading").Lock()]},   # a nested unsupported object
+          {"tag": "pick", "payload": [[[0]]]}]                      # past the depth limit
+
+
+@pytest.mark.parametrize("value", NESTED, ids=["sequence", "unsupported", "depth"])
+def test_a_nested_incomplete_identity_is_unavailable(value):
+    """r5 #2 measured: only the top level's flag was checked, so the value classified as 'pick'."""
+    ident = observer._Monitor("n", {}, "")._identity({"value": ["args[0]"], "classify": [["pick", "pick"]]}, [value], {})
+    assert acceptance.unwrap(ident["value"]) is acceptance.UNAVAILABLE
+    assert ident["category"] == "unavailable"
+
+
+@pytest.mark.parametrize("payload", ["[0]*51", "[__import__('threading').Lock()]", "[[[0]]]"],
+                         ids=["sequence", "unsupported", "depth"])
+def test_a_nested_incomplete_return_is_not_certified(tmp_path, payload):
+    """r5 #2 measured through the real defence runner: the mutant's incompletely serialized return was
+    classified 'bad' and certified."""
+    prod = "def deliver():\n    return {'tag':'bad','payload':1}  # BRANCH\n"
+    test = "from bts import mod\ndef test_probe():\n    result=mod.deliver()\n    assert result['payload']==1  # ASSERT-RESULT\n"
+    _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "tests/test_probe.py": test})
+    spec = one_spec("'payload':1}", f"'payload':{payload}}}", kind="return", category="bad")
+    spec["boundaries"] = []
+    spec["returns"] = [{"path": "src/bts/mod.py", "qualname": "deliver", "classify": [["bad", "bad"]]}]
+    spec["symptom"] = {"kind": "return", "path": "src/bts/mod.py", "qualname": "deliver", "category": "bad",
+                       "classify": [["bad", "bad"]]}
+    res = defence.current_defence(wt, spec, tmp_path / "out")
+    assert res["verdict"] == "rejected", res
+    assert any("no 'bad' return after the branch" in r for r in res["certificates"][NODE]["reasons"])
