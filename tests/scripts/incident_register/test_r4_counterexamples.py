@@ -9,7 +9,7 @@ import copy
 
 import pytest
 
-from scripts.audit.incident_register import acceptance, defence, observer
+from scripts.audit.incident_register import acceptance, certify, defence, observer, runner
 from tests.scripts.incident_register.synth import ABSENCE_EDITS, DM, defended_project, refused_as_absence
 from tests.scripts.incident_register.test_expected_failure import HEADER, NODE, REGISTRY, setup_project
 
@@ -30,7 +30,8 @@ def one_spec(old, new, *, assertion="# ASSERT-RESULT", kind="event", category="a
 # --- finding 1: the certificate's event set --------------------------------------------------------
 
 def test_an_initially_unsupported_c_boundary_makes_absence_unavailable(tmp_path):
-    """r4 #1.1: the gap was recorded before obs_start and so fell outside the certified interval."""
+    """r4 #1.1: the gap was recorded before obs_start and so fell outside the certified interval. Gaps no
+    longer feed a certificate (plan ruling 10), but the reviewer reads them inside the node's interval."""
     prod = "from bts import transport\ndef deliver():\n    transport.send('pick: Turner')  # BRANCH\n    return 'done'\n"
     transport = "sent=[]\ndef send(text):\n    sent.append(text)\n"
     test = ("from bts import mod,transport\ndef test_probe():\n    result=mod.deliver()\n"
@@ -49,6 +50,8 @@ def test_an_initially_unsupported_c_boundary_makes_absence_unavailable(tmp_path)
     assert res["verdict"] == "rejected"
     cert = res["certificates"]["tests/test_probe.py::test_probe"]
     assert any("no 'alert' event" in r for r in cert["reasons"]), cert["reasons"]
+    inside, _ = certify.interval(runner.load(tmp_path / "out" / "mutant.events.jsonl"), "tests/test_probe.py::test_probe")
+    assert any(e["kind"] == "boundary_gap" and e["reason"] == "not a Python-observable callable" for e in inside)
 
 
 def test_a_temporary_rebinding_called_from_c_is_seen(tmp_path):
