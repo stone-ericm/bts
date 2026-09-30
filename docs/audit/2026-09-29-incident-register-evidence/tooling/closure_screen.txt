@@ -1,0 +1,17 @@
+# closure screen at c468430: src/bts and tests (tests/scripts/incident_register excluded); reviewed: the two sys.modules stores register a loaded script under its own name, on no declared binding path (benign)
+
+## audit hook: 0
+
+## signal handler or timer: 0
+
+## collector control: 0
+
+## finalizer or exit hook: 0
+
+## class assignment: 0
+
+## sys.modules store: 2
+tests/scripts/test_canonicalize_realized_picks.py:40: sys.modules["canonicalize_realized_picks"] = mod
+tests/scripts/test_canonicalize_realized_picks_p1.py:45: sys.modules["canonicalize_realized_picks"] = mod
+
+## stdlib patch: 0
