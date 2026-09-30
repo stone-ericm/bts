@@ -3,6 +3,8 @@
 Adapted from the reviewer's retained probes (``test_review_r5.py``). Each of them measured a FALSE
 acceptance at 274ceeb. A certificate that cannot establish its coverage must be refused or
 unavailable (design §9.3 as amended), never turned into an absence, classification or closure claim.
+Since plan ruling 10 every absence probe is refused outright; each binding probe also runs as an event,
+where a call that cannot be attributed must not witness anything.
 """
 import os
 import subprocess
@@ -80,26 +82,35 @@ def test_a_pair_whose_symlinked_helper_changes_is_rejected(tmp_path):
 
 # --- finding 1: boundary discovery -----------------------------------------------------------------
 
-from scripts.audit.incident_register import defence, observer  # noqa: E402
-from tests.scripts.incident_register.synth import DM  # noqa: E402
-from tests.scripts.incident_register.test_r4_counterexamples import one_spec  # noqa: E402
+from scripts.audit.incident_register import defence, observer, runner  # noqa: E402
+from tests.scripts.incident_register.synth import DM, refused_as_absence  # noqa: E402
+from tests.scripts.incident_register.test_r4_counterexamples import ALERT, one_spec  # noqa: E402
 
 TRANSPORT = ("sent=[]\ndef send(recipient,text):\n    sent.append((recipient,text))\n"
              "def replacement(recipient,text):\n    sent.append((recipient,text))\n")
 PROBE = ("from bts import mod,transport\ndef test_probe():\n    result=mod.deliver()\n"
          "    assert transport.sent==[('eric','pick: Turner')]\n    assert result=='done'  # ASSERT-RESULT\n")
 NODE = "tests/test_probe.py::test_probe"
+SENT = "[ALERT if rebind else 'pick: Turner']"
 HELPER_PROD = ("from bts import transport\nfrom tests.helper import invoke\ndef deliver():\n"
                "    invoke(transport,False)  # BRANCH\n    return 'done'\n")
 HELPER_MUTANT = ("invoke(transport,False)  # BRANCH\n    return 'done'", "invoke(transport,True)  # BRANCH\n    return 'defer'")
 
 
 def _defend(tmp_path, files, old, new, boundaries=None):
+    """The probe as an absence (refused, plan ruling 10) and then as an event: the mutant's call carries
+    the alert, and the frozen test fails at its send assertion."""
     _, wt = defended_project(tmp_path, {"src/bts/transport.py": TRANSPORT, "tests/test_probe.py": PROBE, **files})
-    spec = one_spec(old, new)
+    absence = one_spec(old, new, kind="absence", category="pick")
+    assert refused_as_absence(defence.current_defence(wt, absence, tmp_path / "out0"))
+    spec = one_spec(old, new, assertion="assert transport.sent==")
     if boundaries:
         spec["boundaries"] = boundaries
     return defence.current_defence(wt, spec, tmp_path / "out")
+
+
+def _mutant_boundaries(tmp_path):
+    return [e for e in runner.load(tmp_path / "out" / "mutant.events.jsonl") if e["kind"] in ("boundary", "boundary_gap")]
 
 
 def _refused(res, reason):
@@ -112,11 +123,11 @@ def _refused(res, reason):
 def test_a_rebinding_inside_a_frozen_helper_is_seen(tmp_path):
     """r5 #1.1 measured: a test helper rebound transport.send, called it through map() and restored it.
     Discovery at production calls came too late, and the absence was accepted with zero calls."""
-    helper = ("def invoke(transport,rebind):\n    saved=transport.send\n    if rebind:\n"
-              "        transport.send=transport.replacement\n    list(map(transport.send,['eric'],['pick: Turner']))\n"
+    helper = (f"ALERT={ALERT!r}\ndef invoke(transport,rebind):\n    saved=transport.send\n    if rebind:\n"
+              f"        transport.send=transport.replacement\n    list(map(transport.send,['eric'],{SENT}))\n"
               "    transport.send=saved\n")
     res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
-    assert _refused(res, "1 qualifying 'dm' call(s) occurred")["linked"]["calls_observed"] == 1
+    assert res["verdict"] == "accepted", res["reasons"]          # seen at the helper's store, linked
 
 
 def test_a_callable_bound_to_two_boundaries_is_attributed_to_neither(tmp_path):
@@ -129,32 +140,36 @@ def test_a_callable_bound_to_two_boundaries_is_attributed_to_neither(tmp_path):
     res = _defend(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport},
                   "    transport.send_b('eric','pick: Turner')  # BRANCH\n    return 'done'",
                   "    saved=transport.send_b\n    transport.send_b=transport.send_a  # BRANCH\n"
-                  "    transport.send_b('eric','pick: Turner')\n    transport.send_b=saved\n    return 'defer'",
+                  f"    transport.send_b('eric',{ALERT!r})\n    transport.send_b=saved\n    return 'defer'",
                   boundaries=[dict(DM, name="other", binding="bts.transport:send_a"),
                               dict(DM, binding="bts.transport:send_b")])
-    _refused(res, "'dm' call(s) without identity")
+    _refused(res, "no 'alert' event")
+    assert any("bound to several boundaries" in (e.get("identity") or {}).get("reason", "")
+               for e in _mutant_boundaries(tmp_path) if e.get("name") == "dm")
 
 
 def test_a_callable_captured_before_a_restore_is_still_a_boundary_call(tmp_path):
     """Beyond the r5 probes: the replacement is captured, the binding restored, and only then called.
     It is no longer the current value, so the call cannot be attributed, but it is not absent."""
-    helper = ("def invoke(transport,rebind):\n    if rebind:\n        saved=transport.send\n"
+    helper = (f"ALERT={ALERT!r}\ndef invoke(transport,rebind):\n    if rebind:\n        saved=transport.send\n"
               "        transport.send=transport.replacement\n        f=transport.send\n        transport.send=saved\n"
-              "        f('eric','pick: Turner')\n    else:\n        transport.send('eric','pick: Turner')\n")
+              "        f('eric',ALERT)\n    else:\n        transport.send('eric','pick: Turner')\n")
     res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
-    _refused(res, "'dm' call(s) without identity")
+    _refused(res, "no 'alert' event")
+    assert any("held earlier" in (e.get("identity") or {}).get("reason", "") for e in _mutant_boundaries(tmp_path))
 
 
 def test_a_code_object_swapped_in_place_is_seen(tmp_path):
     """Beyond the r5 probes: the bound function stays the same object, but its ``__code__`` is replaced
     for one call (a function watcher registers the new code)."""
-    helper = ("def invoke(transport,rebind):\n    if rebind:\n        code=transport.send.__code__\n"
-              "        transport.send.__code__=transport.replacement.__code__\n        transport.send('eric','pick: Turner')\n"
+    helper = (f"ALERT={ALERT!r}\ndef invoke(transport,rebind):\n    if rebind:\n        code=transport.send.__code__\n"
+              "        transport.send.__code__=transport.replacement.__code__\n        transport.send('eric',ALERT)\n"
               "        transport.send.__code__=code\n    else:\n        transport.send('eric','pick: Turner')\n")
     res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
     # r6 #2: after the swap two live functions (send, replacement) run that code, so the call is seen but
-    # not attributed
-    _refused(res, "'dm' call(s) without identity")
+    # not attributed, and witnesses nothing
+    _refused(res, "no 'alert' event")
+    assert any("shared by 2 functions" in (e.get("identity") or {}).get("reason", "") for e in _mutant_boundaries(tmp_path))
 
 
 def test_a_binding_through_an_instance_namespace_is_a_coverage_gap(tmp_path):
@@ -165,9 +180,10 @@ def test_a_binding_through_an_instance_namespace_is_a_coverage_gap(tmp_path):
             "    return 'done'\n")
     res = _defend(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport},
                   "    transport.holder.send('eric','pick: Turner')  # BRANCH\n    return 'done'",
-                  "    pass  # BRANCH\n    return 'defer'",
+                  f"    transport.holder.send('eric',{ALERT!r})  # BRANCH\n    return 'done'",
                   boundaries=[dict(DM, binding="bts.transport:holder.send")])
-    _refused(res, "coverage gap (unsupported namespace")
+    _refused(res, "no 'alert' event")                             # never recorded: it can only miss
+    assert any(e["kind"] == "boundary_gap" and "unsupported namespace" in e["reason"] for e in _mutant_boundaries(tmp_path))
 
 
 def test_a_replaced_mock_call_is_a_coverage_gap():

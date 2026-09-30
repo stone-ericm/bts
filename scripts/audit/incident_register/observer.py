@@ -18,11 +18,17 @@ phase-1 r3 #1, #2, #7):
   interval, registered per binding + callable. A call that cannot be attributed to one binding's
   current value is recorded with an unavailable identity. An unsupported namespace (anything but a
   module or a class), a callable that is not Python-observable, a namespace replaced wholesale, a
-  mock boundary whose ``__call__`` is replaced, or a change no watched store explains, is a coverage
-  gap (Codex phase-1 r5 #1, #3);
-* the entry's exits (return or exception) are recorded, and threads started during the observed
-  call phase that are still alive at its end are counted, so a certificate can require completion
-  and refuse an interval with outstanding work.
+  mock boundary whose ``__call__`` is replaced, or a change no watched store explains, is recorded as
+  a ``boundary_gap`` for the reviewer (Codex phase-1 r5 #1, #3). Phase 1 issues no absence
+  certificate (plan ruling 10), so a missed call can only fail to witness an event;
+* a mock boundary's call counts only while the mock's effective ``__call__`` (read from the raw
+  namespaces of its class's MRO) is the standard one and its class is the one it was held with; else
+  the call's identity is unavailable (Codex phase-1 r7 #3);
+* PURITY (Codex phase-1 r7 #4): ``obs_start`` and ``obs_end`` record the trusted bootstrap's
+  audit-hook census (``_AUDIT_CENSUS``), whether automatic garbage collection is on (it is switched
+  off for the call phase of every observed or quiesced node, so no collection runs an application
+  finalizer inside a callback) and any application signal handler; a certificate requires none;
+* the entry's exits (return or exception) are recorded.
 
 Records are JSON lines (``kind`` field) written to the file named in the config at
 ``$W15_OBS_CONFIG``: ``session_start`` (identity + ``src_digest``), ``collect_error``,
@@ -41,9 +47,9 @@ import itertools
 import json
 import os
 import re
+import signal
 import sys
 import threading
-import traceback
 import types
 
 import pytest
@@ -52,12 +58,15 @@ TOOL_ID = 4
 CO_ASYNC = inspect.CO_COROUTINE | inspect.CO_ITERABLE_COROUTINE | inspect.CO_ASYNC_GENERATOR
 _SEQ = itertools.count(1)
 _CONFIG: dict | None = None
+_AUDIT_CENSUS: dict | None = None      # set by the trusted bootstrap after loading this module
 _TYPE_QUALNAME = type.__dict__["__qualname__"]
 _TYPE_MODULE = type.__dict__["__module__"]
 _TYPE_DICT = type.__dict__["__dict__"]
 _TYPE_MRO = type.__dict__["__mro__"]
 _GETSET = type(type.__dict__["__dict__"])
 _MODULE_DICT = types.ModuleType.__dict__["__dict__"]
+_EXC_ARGS = BaseException.__dict__["args"]
+_EXC_TB = BaseException.__dict__["__traceback__"]
 _FUNCTION, _METHOD = types.FunctionType, types.MethodType     # neither can be subclassed
 
 # CPython's dict and function watchers (3.12 C API, through ctypes; callbacks run with the GIL held).
@@ -266,19 +275,30 @@ def pytest_runtest_makereport(item, call):
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_call(item):
     observe = _config().get("observe") or {}
-    if item.nodeid not in set(observe.get("nodes", [])):
+    observed = item.nodeid in set(observe.get("nodes", []))
+    if not observed and item.nodeid not in set(_config().get("quiesce", [])):
         return (yield)
-    mon = _Monitor(item.nodeid, observe, _config().get("prod_root") or "")
+    # automatic collection off for the call phase, observed or not (the observer-off twin runs the
+    # same way), so no collection can run an application finalizer inside an observer callback
+    gc_was = gc.isenabled()
+    gc.disable()
     try:
+        if not observed:
+            return (yield)
+        mon = _Monitor(item.nodeid, observe, _config().get("prod_root") or "")
         try:
-            mon.start()
-        except BaseException as e:  # noqa: BLE001 - recorded; stop() still releases what start acquired
-            mon._err("start", e)
-        return (yield)
+            try:
+                mon.start()
+            except BaseException as e:  # noqa: BLE001 - recorded; stop() still releases what start acquired
+                mon._err("start", e)
+            return (yield)
+        finally:
+            mon.stop()
+            for rec in mon.events:
+                _write(rec)
     finally:
-        mon.stop()
-        for rec in mon.events:
-            _write(rec)
+        if gc_was:
+            gc.enable()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -335,10 +355,12 @@ def _type_ns(cls):
 
 
 def _namespace(obj):
-    """The namespace dict of a module or class whose attribute dispatch is EXACTLY the standard one
-    (``type(obj) is ModuleType`` or ``type(obj) is type``): only then does the raw namespace say what
-    attribute lookup returns (Codex phase-1 r6 #1: a ModuleType subclass or a metaclass can answer from
-    ``__getattribute__`` while the raw slot never changes). None for any other shape."""
+    """The namespace dict of an exact module (``type(obj) is ModuleType``) or an exact-``type`` class, the
+    only shapes watched (Codex phase-1 r6 #1: a ModuleType subclass or a metaclass can answer from
+    ``__getattribute__`` while the raw slot never changes). Even for these the raw namespace is not all
+    of attribute lookup (a module ``__getattr__`` fallback, an inherited class attribute; Codex phase-1
+    r7 #1): a call reached that way is not recorded, which can only miss an event. None for any other
+    shape."""
     if type(obj) is types.ModuleType:
         d = _MODULE_DICT.__get__(obj, types.ModuleType)
         return d if type(d) is dict else None
@@ -349,18 +371,18 @@ def _namespace(obj):
 
 def _walk(keys: list, level: int, obj, chain: list):
     """Resolve ``keys[level + 1:]`` from ``obj`` (the value at ``level``), appending each step to
-    ``chain`` as (namespace dict, key, owner, owner's type). ``keys[0]`` is sys's 'modules' entry, so
-    step 1 looks the module up in sys.modules itself (owner None). Returns (value, why-unresolved)."""
+    ``chain`` as (namespace dict, key). ``keys[0]`` is sys's 'modules' entry, so step 1 looks the module
+    up in sys.modules itself. Returns (value, why-unresolved)."""
     for i in range(level + 1, len(keys)):
         if i == 1:
-            ns, owner = (obj if type(obj) is dict else None), None
+            ns = obj if type(obj) is dict else None
             if ns is None:
                 return None, "unsupported namespace: sys.modules is not a plain dict"
         else:
-            ns, owner = _namespace(obj), obj
+            ns = _namespace(obj)
             if ns is None:
                 return None, "unsupported namespace: only exact modules and classes (standard attribute dispatch) are watched"
-        chain.append((ns, keys[i], owner, type(owner) if owner is not None else None))
+        chain.append((ns, keys[i]))
         found, obj = _lookup(ns, keys[i])
         if not found:
             return None, "the declared binding resolves to nothing"
@@ -374,7 +396,7 @@ def _resolve_chain(binding: str):
     module, _, attr = binding.partition(":")
     keys = ["modules", module] + attr.split(".")
     sys_ns = _MODULE_DICT.__get__(sys, types.ModuleType)
-    chain = [(sys_ns, "modules", sys, type(sys))]
+    chain = [(sys_ns, "modules")]
     found, modules = _lookup(sys_ns, "modules")
     if not found:
         return keys, chain, None, "unsupported namespace: sys.modules is missing"
@@ -414,7 +436,8 @@ class _Monitor:
     def __init__(self, nodeid: str, observe: dict, prod_root: str):
         from unittest import mock
         self.mock_base = mock.NonCallableMock
-        self.mock_call_code = mock.CallableMixin.__call__.__code__
+        self.mock_call_fn = mock.CallableMixin.__dict__["__call__"]
+        self.mock_call_code = self.mock_call_fn.__code__
         self.nodeid = nodeid
         self.prod_root = os.path.realpath(prod_root) + os.sep if prod_root else None
         self.entries = {(os.path.realpath(e["file"]), e["qualname"]) for e in observe.get("entries", [])}
@@ -434,8 +457,7 @@ class _Monitor:
         self.dict_watcher = self.func_watcher = None
         self._dict_cb = self._func_cb = None    # the ctypes trampolines, kept alive while installed
         self.paths: dict[str, str] = {}
-        self.threads_at_start: set = set()
-        self.dispatch_changed: set = set()     # spec names already reported for a changed path type
+        self.mock_types: dict = {}              # id of a held mock -> its class when first held
         self.tool_acquired = self.started = self.active = False
 
     # -- bookkeeping
@@ -452,10 +474,21 @@ class _Monitor:
         return rec
 
     def _err(self, where: str, exc: BaseException) -> None:
-        name = type_name(type(exc))
-        # the observer's own failures are builtin exceptions; their text runs no application code
-        detail = "".join(traceback.format_exception(exc))[-800:] if name.startswith("builtins.") else None
-        self._record("observer_error", {"where": where, "error_type": name, "detail": detail})
+        """Record an observer failure with no I/O and no application code, so recording it cannot fail in
+        turn (self-review before r8: formatting read source files, an audited ``open``, and ran ``str`` of
+        arbitrary exception arguments): the exception's type name, its plain-str arguments and its
+        traceback's (file, line, function) entries, read through C descriptors."""
+        try:
+            args = _EXC_ARGS.__get__(exc, BaseException)
+            tb, frames = _EXC_TB.__get__(exc, BaseException), []
+            while tb is not None and len(frames) < 40:
+                code = tb.tb_frame.f_code
+                frames.append([code.co_filename, tb.tb_lineno, code.co_name])
+                tb = tb.tb_next
+            detail = {"args": [a[:200] for a in args if type(a) is str][:3], "frames": frames[-10:]}
+        except BaseException:  # noqa: BLE001
+            detail = None
+        self._record("observer_error", {"where": where, "error_type": type_name(type(exc)), "detail": detail})
 
     def _gap(self, name: str, reason: str, **extra) -> None:
         self._record("boundary_gap", {"name": name, "reason": reason, **extra})
@@ -480,6 +513,25 @@ class _Monitor:
 
     def _is_mock(self, obj) -> bool:
         return issubclass(type(obj), self.mock_base)
+
+    def _effective_call(self, cls):
+        """The ``__call__`` a call of an instance of ``cls`` runs: the first entry in the raw namespaces of
+        its MRO (read by C descriptors, no application code), or None if unreadable or absent."""
+        for c in _TYPE_MRO.__get__(cls, type):
+            ns = _type_ns(c)
+            if ns is None:
+                return None
+            found, value = _lookup(ns, "__call__")
+            if found:
+                return value
+        return None
+
+    def _mock_verified(self, obj) -> bool:
+        """A held mock whose class is still the one it was held with and whose effective ``__call__`` is
+        the standard one: only then are the arguments its standard code receives the call's (Codex
+        phase-1 r7 #3: a subclass overriding ``__call__`` before observation was admitted)."""
+        t = type(obj)
+        return t is self.mock_types.get(id(obj)) and self._effective_call(t) is self.mock_call_fn
 
     def _code_of(self, obj):
         """The code object a call to ``obj`` starts: plain functions and bound methods only, recognised by
@@ -526,7 +578,10 @@ class _Monitor:
             return
         st["held"].append(obj)
         if self._is_mock(obj):
-            # every mock call starts mock_call_code, unless its class's __call__ is replaced
+            # a standard mock call starts mock_call_code; each call re-checks the effective __call__
+            self.mock_types.setdefault(id(obj), type(obj))
+            if not self._mock_verified(obj):
+                self._gap(spec["name"], "a mock boundary whose effective __call__ is not the standard one")
             for cls in _TYPE_MRO.__get__(type(obj), type):
                 ns = _type_ns(cls)
                 if ns is not None:
@@ -558,7 +613,9 @@ class _Monitor:
         spec = next(sp for sp in self.boundaries if sp["name"] == name)
         chain = st["chain"][:level + 1]
         if not found:
-            st["chain"], st["current"] = chain, None     # deleted: nothing can be called through it
+            # deleted: the binding holds nothing. A call reached through fallback or inherited lookup is
+            # not recorded, which can only miss an event (no absence is certified; plan ruling 10)
+            st["chain"], st["current"] = chain, None
             return
         obj, why = _walk(st["keys"], level, value, chain)
         st["chain"] = chain
@@ -570,21 +627,6 @@ class _Monitor:
                 self._gap(name, why)
             return
         self._hold(spec, obj)
-
-    def _check_dispatch(self) -> None:
-        """Every owner on a tracked path must keep the exact type its namespace was read under: a
-        ``__class__`` swap changes attribute dispatch without any namespace store (Codex phase-1 r6 #1).
-        Checked at every function start while boundaries are observed."""
-        for name, st in self.state.items():
-            if name in self.dispatch_changed:
-                continue
-            for step in st["chain"]:
-                owner, owner_type = step[2], step[3]
-                if owner is not None and type(owner) is not owner_type:
-                    self.dispatch_changed.add(name)
-                    self._gap(name, f"attribute dispatch changed: an object on the path became "
-                                    f"{type_name(type(owner))} (was {type_name(owner_type)})")
-                    break
 
     def _on_dict(self, event, dict_addr, key_addr, new_addr):
         """Dict watcher callback (C trampoline). Addresses, not objects, arrive: a dying dict is never
@@ -674,12 +716,9 @@ class _Monitor:
             self._err("use_tool_id", e)
             return
         self.tool_acquired = True
-        # every live interpreter thread, including those started with _thread and never registered with
-        # threading (Codex phase-1 r6 #5)
-        self.threads_at_start = set(sys._current_frames())
         # obs_start FIRST: a gap found while registering the boundaries belongs to this interval
         # (Codex phase-1 r4 #1.1: it used to precede obs_start and so fell outside the certificate)
-        self._record("obs_start", {})
+        self._record("obs_start", {"purity": self._purity()})
         self.started = True
         watching = self._install_watchers() if self.boundaries else False
         for spec in self.boundaries:
@@ -722,33 +761,46 @@ class _Monitor:
                     self._gap(spec["name"], "the binding changed without a watched store")
             except BaseException as e:  # noqa: BLE001 - stop() must never raise
                 self._err("end_check", e)
-        alive = set(sys._current_frames()) - {threading.get_ident()}
-        self._record("obs_end", {
-            "outstanding_threads": len(alive - self.threads_at_start),
-            # a worker that was already running can also do the declared work after the interval
-            # (Codex phase-1 r4 #1.3)
-            "preexisting_threads_alive": len(alive & self.threads_at_start)})
+        self._record("obs_end", {"purity": self._purity()})
+
+    def _purity(self) -> dict | None:
+        """What could run application code inside observation (Codex phase-1 r7 #4): audit hooks added
+        after the trusted bootstrap (None without its census), automatic garbage collection, and Python
+        signal handlers other than the defaults. Never raises: a failure is an observer error."""
+        try:
+            census = _AUDIT_CENSUS
+            handlers = []
+            for sig in sorted(signal.valid_signals()):
+                h = signal.getsignal(sig)
+                if not (h is None or h is signal.SIG_DFL or h is signal.SIG_IGN or h is signal.default_int_handler):
+                    handlers.append(int(sig))
+            return {"audit_hooks_added": census["hooks_added"] if type(census) is dict else None,
+                    "gc_enabled": gc.isenabled(), "signal_handlers": handlers}
+        except BaseException as e:  # noqa: BLE001
+            self._err("purity", e)
+            return None
 
     # -- callbacks (never raise; never run application code)
-    def _matched(self, specs: list, current: list, frame, args, kwargs) -> None:
+    def _matched(self, specs: list, current: list, frame, args, kwargs, *, unverified: str | None = None) -> None:
         """One boundary record per matched spec. A call whose callable is bound to several boundaries,
-        or is a value the binding held earlier in the interval (not its current one), cannot be
-        attributed: its identity is unavailable, so it never witnesses an event and always blocks an
-        absence (Codex phase-1 r5 #1)."""
+        is a value the binding held earlier in the interval (not its current one), or is an unverified
+        mock call, cannot be attributed: its identity is unavailable, so it never witnesses an event
+        (Codex phase-1 r5 #1, r7 #3)."""
         names = [sp["name"] for sp in specs]
         for sp, is_current in zip(specs, current):
-            reason = None
-            if len(specs) > 1:
+            if unverified is not None:
+                reason = unverified
+            elif len(specs) > 1:
                 reason = f"the callable is bound to several boundaries: {names}"
             elif not is_current:
                 reason = "a callable the binding held earlier in the interval, not its current value"
+            else:
+                reason = None
             self._boundary(sp, frame, args, kwargs, reason=reason)
 
     def _on_start(self, code, offset):
         matched = None
         try:
-            if self.boundaries:
-                self._check_dispatch()
             if code is self.mock_call_code:
                 frame = sys._getframe(1)
                 loc = frame.f_locals
@@ -760,7 +812,9 @@ class _Monitor:
                     kwargs = loc.get("kwargs", {})
                     self._matched(matched, [self.state[sp["name"]]["current"] is me for sp in matched], frame,
                                   list(extra) if type(extra) is tuple else [],
-                                  dict(kwargs) if type(kwargs) is dict else {})
+                                  dict(kwargs) if type(kwargs) is dict else {},
+                                  unverified=None if self._mock_verified(me) else
+                                  "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
             pairs = self.boundary_codes.get(code)
             if pairs is not None:
@@ -794,8 +848,7 @@ class _Monitor:
                         self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
-                # while boundaries are observed every function start is kept: _check_dispatch runs there
-                return None if matched or self.boundaries else sys.monitoring.DISABLE
+                return None if matched else sys.monitoring.DISABLE
             if code not in self.instrumented:
                 events = 0
                 if self.branch and filename == self.branch[0]:

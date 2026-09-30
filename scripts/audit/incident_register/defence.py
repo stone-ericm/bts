@@ -6,13 +6,17 @@ One run certifies one causal link of one incident at the pinned baseline, inside
 1. spec checks — mutation targets obey the hard rule, assertion anchors are in frozen files, the
    baseline is reset and every tracked file's working bytes and the venv are fingerprinted;
 2. GREEN — the selected tests under the observer (entry + boundary recorder on the killing
-   nodes); the session gate accepts it; this run is also the positive control of an absence claim;
+   nodes); the session gate accepts it;
 3. MUTANT — the mutation edits (the smallest semantic mutant restoring the pre-fix decision) touch
    only allowed ``src/bts`` files, every other file is byte-identical; the observer also watches the
    mutated line (a unique anchor in the mutated file); the gate accepts the session with the SAME
    inventory; each declared killing node fails in its CALL phase with a builtin ``AssertionError``
    whose last frame is the declared assertion line of its frozen test file; each has a certificate;
 4. RESTORE — reset, identical manifest, GREEN again with the same inventory.
+
+Each observed run has an observer-off twin (same per-node states, same failure); automatic garbage
+collection is off during the killing nodes' call phase in both, so the twins differ only by observation.
+An absence spec is refused before anything runs (plan ruling 10, ``certify.ABSENCE_REFUSAL``).
 
 The manifest and venv fingerprint are compared after every subprocess. ``acceptance.json`` is
 written on every path; the verdict is ``accepted`` only when no reason was recorded. The runner's
@@ -28,7 +32,7 @@ from pathlib import Path
 
 from scripts.audit.incident_register import certify, owned, runner
 
-KINDS = ("event", "absence", "return")
+KINDS = ("event", "return")
 
 
 class SpecError(ValueError):
@@ -57,6 +61,8 @@ def _check_spec(spec: dict) -> None:
     for key in ("label", "baseline", "tests", "allowed_paths", "mutation_edits", "branch", "entry", "symptom", "killing"):
         if key not in spec:
             raise SpecError(f"spec lacks {key!r}")
+    if spec["symptom"].get("kind") == "absence":
+        raise SpecError(certify.ABSENCE_REFUSAL)
     if spec["symptom"].get("kind") not in KINDS:
         raise SpecError(f"symptom kind must be one of {KINDS}")
     if not spec["killing"]:
@@ -98,11 +104,11 @@ def _failure(run: runner.Run, node: str, worktree: str):
 
 
 def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str, mode: str,
-                 inventory: list[str]) -> tuple[runner.Run, list[str]]:
+                 inventory: list[str], quiet: list[str]) -> tuple[runner.Run, list[str]]:
     """Re-run ``tests`` with NO observation and require identical per-node states — and, for a node that
     fails both ways, the same failure: exception type and innermost worktree frame (design §9.3 as
     amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2)."""
-    plain = runner.run(worktree, tests, out_dir, stage, observe=None, env_extra=env)
+    plain = runner.run(worktree, tests, out_dir, stage, observe=None, quiesce=quiet, env_extra=env)
     why = [f"{stage}: {r}" for r in runner.gate(plain, worktree=worktree, mode=mode, expected=inventory)]
     wt = os.path.realpath(worktree)
     for n in inventory:
@@ -172,7 +178,8 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         why += [f"green: {r}" for r in g]
         why += _drift(worktree, m0["files"], m0["untracked"], v0, (), "after green")
         why += [f"killing node {n} not in the green inventory" for n in knodes if n not in inventory]
-        green_plain, cw = _conformance(worktree, green, out_dir, spec["tests"], env, "green_unobserved", "green", inventory)
+        green_plain, cw = _conformance(worktree, green, out_dir, spec["tests"], env, "green_unobserved", "green",
+                                       inventory, knodes)
         why += cw
         why += _drift(worktree, m0["files"], m0["untracked"], v0, (), "after green_unobserved")
         if why:
@@ -193,7 +200,8 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         mg = runner.gate(mutant, worktree=worktree, mode="mutant", expected=inventory)
         kills = [n for n in inventory if runner.node_state(mutant.events, n) == "failed"]
         res["stages"]["mutant"] = {"returncode": mutant.returncode, "kills": kills, "gate": mg}
-        mutant_plain, cw = _conformance(worktree, mutant, out_dir, spec["tests"], env, "mutant_unobserved", "mutant", inventory)
+        mutant_plain, cw = _conformance(worktree, mutant, out_dir, spec["tests"], env, "mutant_unobserved", "mutant",
+                                        inventory, knodes)
         why += cw
         why += [f"mutant: {r}" for r in mg]
         why += _drift(worktree, frozen, m0["untracked"], v0, touched, "after mutant")
@@ -210,8 +218,7 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
                 why.append(f"declared killing node {n} was not killed")
                 continue
             why += _assertion_ok(mutant, n, k["_path"], k["_line"], wt)
-            cert = certify.certify(mutant.events, node=n, kind=sym["kind"], entry=entry, bad=bad,
-                                   positive_events=green.events)
+            cert = certify.certify(mutant.events, node=n, kind=sym["kind"], entry=entry, bad=bad)
             res["certificates"][n] = cert
             why += [f"certificate {n}: {r}" for r in cert["reasons"]]
 

@@ -24,11 +24,11 @@ Known equivalent guards (not listed):
   records a reason (D11/P7 pin that reason); removing it cannot be observed today;
 * the observer's end-of-interval "binding changed without a watched store" gap. Codex r6 reached it by
   replacing sys.modules itself; since r7 the root (sys's own 'modules' entry) is watched too, so that
-  probe is caught as a qualifying call (test_r6_counterexamples.py::test_a_persistent_sys_modules_replacement_is_seen)
+  probe is seen at the root (test_r6_counterexamples.py::test_a_persistent_sys_modules_replacement_is_seen)
   and no Python path to the guard is known. It stays as defence in depth;
-* retired O4 (restart events when a new boundary callee is registered): since r7 no function start is
-  disabled while boundaries are observed (O31, O32 pin that), so the restart has nothing to re-enable;
-  measured SURVIVED at 1c6c183. The call stays as defence in depth should that rule ever change;
+* the "keep every start" rule (r7) is gone with the dispatch re-check it served (plan ruling 10), so O4
+  (restart events when a new boundary callee is registered) is listed again, and O31/O32 and the other
+  absence-only mutants (C5-C7, C9-C11, C13, O6, O9, O35) are retired with the code they mutated;
 * retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
   O30) the raw descriptor read and getattr coincide for every accepted object.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
@@ -72,16 +72,10 @@ M = [
  ('certify.py', 'entries = [e for e in body if e["kind"] == "entry" and e["file"] == entry["file"]', 'entries = [e for e in body if e["kind"] == "entry"', 'C2 entry file'),
  ('certify.py', '    if (en["frame"], en["qualname"], en["file"]) not in {(f, q, p) for q, p, _l, f in ev.get("stack", [])}:\n        return False', '    pass', 'C3 invocation on stack'),
  ('certify.py', 'common = [(b, s & live_x) for b, s in live_at_branch if b["seq"] < x["seq"] and s & live_x]', 'common = [(b, s) for b, s in live_at_branch]', 'C4 common invocation after branch'),
- ('certify.py', '        if qualifying:', '        if False:', 'C5 absence qualifying'),
- ('certify.py', 'why.append("positive control: the baseline did not produce the qualifying event")', 'pass', 'C6 positive control'),
- ('certify.py', '        if unidentified:', '        if False:', 'C7 unidentified calls'),
  ('certify.py', '    if not live_at_branch:\n        why.append', '    if False:\n        why.append', 'C8 branch in live invocation'),
- ('certify.py', '        if end.get("outstanding_threads"):', '        if False:', 'C9 outstanding threads'),
- ('certify.py', '        if gaps:', '        if False:', 'C10 boundary coverage gap'),
- ('certify.py', '        if live_at_branch and not completed:', '        if False:', 'C11 invocation completion'),
  ('certify.py', 'r["kind"] in ("entry_exit", "entry") and r["thread"] == en["thread"]:', 'False:', 'C12 exit/reuse splits invocations'),
  ('observer.py', '                if matched:\n                    extra = loc.get("args", ())', '                if False:\n                    extra = loc.get("args", ())', 'O1 mock callee recorder'),
- ('observer.py', 'return None if matched or self.boundaries else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
+ ('observer.py', 'return None if matched else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
  ('observer.py', '            self._gap(spec["name"], "not a Python-observable callable", type=type_name(type(obj)))', '            pass', 'O7 gap for C boundaries'),
@@ -118,16 +112,13 @@ M = [
  ('owned.py', 'if os.path.realpath(gitdir) == os.path.realpath(common):', 'if False:', 'W1 primary checkout'),
  ('owned.py', '        if cur.is_symlink():', '        if False:', 'W2 symlinked component'),
  ('owned.py', '                _tree_hash(h, Path(target))', '                pass', 'W4 pth trees hashed'),
- ('observer.py', '"outstanding_threads": len(alive - self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
- ('observer.py', '"preexisting_threads_alive": len(alive & self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
- ('observer.py', '        self._record("obs_start", {})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
+ ('observer.py', '        self._record("obs_start", {"purity": self._purity()})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {"purity": self._purity()})\n', 'O10 registration gaps inside the interval'),
  ('observer.py', '                    bucket = mine if rcv is None or first is rcv else others', '                    bucket = mine', 'O11 receiver identity'),
  ('observer.py', '                        self._restep(name, level, event != _DICT_DELETED, new)', '                        pass', 'O12 every store on a binding path is seen'),
  ('observer.py', '        return _safe_items(dict.items(value), "map", depth)', '        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1) for k in list(dict.keys(value))[:50] if type(k) is str}}', 'O13 no key lookups'),
  ('observer.py', '            out.update(length=len(value), incomplete=True)', '            pass', 'O14 truncation is incomplete'),
  ('observer.py', '"category": _classify(spec.get("classify", []), safe) if _complete(safe) else "unavailable"}', '"category": _classify(spec.get("classify", []), safe)}', 'O15 incomplete identity unclassified'),
  ('observer.py', '            category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"', '            category = _classify(self.returns[key], safe)', 'O16 incomplete return unclassified'),
- ('certify.py', '        if end.get("preexisting_threads_alive"):', '        if False:', 'C13 pre-existing threads make absence unavailable'),
  ('acceptance.py', '        return ("value_match", []) if got == actual else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', '        return ("value_match", []) if True else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', 'A9 return value match'),
  ('acceptance.py', '    if not str(conn.get("review", "")).strip():', '    if False:', 'A11 fixture review required'),
  ('acceptance.py', '    if t is not dict or safe.get("incomplete") or "unavailable" in safe:', '    if t is not dict or "unavailable" in safe:', 'A12 incomplete never equal'),
@@ -164,7 +155,7 @@ M = [
  ('acceptance.py', '\n                                  if runner.node_state(marked.events, n) == "passed")', ')', 'A15 passed nodes are passes'),
  ('run_expected_failures.py', '"accepted_nodes": [], "passed_nodes": []}', '"accepted_nodes": []}', 'A16 failure artifact carries no controls'),
  ('observer.py', '            elif not is_current:', '            elif False:', 'O17 a former binding value is unattributed'),
- ('observer.py', '            if len(specs) > 1:', '            if False:', 'O18 a callable bound to several boundaries is unattributed'),
+ ('observer.py', '            elif len(specs) > 1:', '            elif False:', 'O18 a callable bound to several boundaries is unattributed'),
  ('observer.py', '            if type(code) is types.CodeType:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', '            if False:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
  ('observer.py', '        if why is not None:\n            self._gap(spec["name"], why)', '        if False:\n            self._gap(spec["name"], why)', 'O20 an unresolvable binding path is a gap'),
  ('observer.py', '                if key == "__call__":', '                if False:', 'O21 a replaced mock __call__ is a gap'),
@@ -185,14 +176,11 @@ M = [
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if skipped:\n        return "SKIPPED", skipped', '    if False:\n        return "SKIPPED", skipped', 'S1 skipped cases are not clean'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):\n        return "INCOMPLETE", []', '    if expected_nodes is not None and len(cases) != len(expected_nodes):\n        return "INCOMPLETE", []', 'S2 the exact baseline inventory'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    except SyntaxError as e:\n        return f"{type(e).__name__}: {e.msg} (line {e.lineno})"', '    except SyntaxError as e:\n        return None', 'S3 a mutant that does not compile is never run'),
- ('observer.py', '    chain = [(sys_ns, "modules", sys, type(sys))]', '    chain = [({}, "modules", sys, type(sys))]', 'O28 sys.modules itself is watched'),
+ ('observer.py', '    chain = [(sys_ns, "modules")]', '    chain = [({}, "modules")]', 'O28 sys.modules itself is watched'),
  ('observer.py', '    if type(obj) is types.ModuleType:\n        d = _MODULE_DICT', '    if isinstance(obj, types.ModuleType):\n        d = _MODULE_DICT', 'O29 exact module dispatch'),
  ('observer.py', '    if type(obj) is type:\n        return _type_ns(obj)', '    if isinstance(obj, type):\n        return _type_ns(obj)', 'O30 exact class dispatch'),
- ('observer.py', '            if self.boundaries:\n                self._check_dispatch()', '            if False:\n                self._check_dispatch()', 'O31 path types re-checked'),
- ('observer.py', 'return None if matched or self.boundaries else sys.monitoring.DISABLE', 'return None if matched else sys.monitoring.DISABLE', 'O32 every start kept while boundaries are observed'),
  ('observer.py', '                    if shared > 1:', '                    if False:', 'O33 shared code is unattributed'),
  ('observer.py', '        if type(obj) is _METHOD:\n            obj = obj.__func__\n        return obj.__code__ if type(obj) is _FUNCTION else None', '        if type_name(type(obj)) == "builtins.method":\n            obj = obj.__func__\n        return obj.__code__ if type_name(type(obj)) == "builtins.function" else None', 'O34 callables by exact type'),
- ('observer.py', '        alive = set(sys._current_frames()) - {threading.get_ident()}', '        alive = {t.ident for t in threading.enumerate()} - {threading.get_ident()}', 'O35 every live thread counted'),
  ('observer.py', '        if self.tool_acquired:\n            steps = [', '        if self.active:\n            steps = [', 'O36 a failed start releases the monitoring id'),
  ('observer.py', '            except BaseException as e:  # noqa: BLE001 - stop() must never raise\n                self._err("end_check", e)', '            except BaseException as e:  # noqa: BLE001 - stop() must never raise\n                raise', 'O37 stop never raises'),
  ('observer.py', '        self.active = False\n        self._remove_watchers()\n        if not self.started:', '        was = self.active\n        self.active = False\n        if was:\n            self._remove_watchers()\n        if not self.started:', 'O38 a failed start releases its watchers'),
@@ -201,6 +189,31 @@ M = [
  ('owned.py', '                if others:\n                    raise ClosureRefused', '                if False:\n                    raise ClosureRefused', 'W14 another importable form of a hook is refused'),
  ('deploy_runs.py', '        for j in range(i + 1, len(obs)):', '        for j in range(i + 1, min(i + 2, len(obs))):', 'DR9 every overlapping pair checked'),
  ('deploy_runs.py', '            if f <= tt < c:\n                return {"sha": None, "basis": "within_observation_precision"', '            if False:\n                return {"sha": None, "basis": "within_observation_precision"', 'DR10 live_at inside an observation unit'),
+ ('observer.py', '                sys.monitoring.restart_events()          # its PY_START may have been disabled', '                pass', 'O4 restart on a new boundary callee'),
+ ('certify.py', '    if kind == "absence":\n        raise AbsenceRefused(ABSENCE_REFUSAL)', '    if False:\n        raise AbsenceRefused(ABSENCE_REFUSAL)', 'C14 certify refuses absence'),
+ ('defence.py', '    if spec["symptom"].get("kind") == "absence":\n        raise SpecError(certify.ABSENCE_REFUSAL)', '    if False:\n        raise SpecError(certify.ABSENCE_REFUSAL)', 'D14 an absence spec is refused before any run'),
+ ('certify.py', '        return [f"observer purity not recorded at {where}"]', '        return []', 'C15 purity must be recorded'),
+ ('certify.py', '    if hooks is None:', '    if False:', 'C16 no census, no certificate'),
+ ('certify.py', '    elif hooks:', '    elif False:', 'C17 an added audit hook makes observation impure'),
+ ('certify.py', '    if p.get("gc_enabled") is not False:', '    if p.get("gc_enabled") is True:', 'C18 collection on or unknown is impure'),
+ ('certify.py', '    if p.get("signal_handlers"):', '    if False:', 'C19 a signal handler makes observation impure'),
+ ('certify.py', '    why = _purity_errs(starts[0], "obs_start") + _purity_errs(ends[0], "obs_end")', '    why = _purity_errs(ends[0], "obs_end")', 'C20 purity at the start'),
+ ('certify.py', '    why = _purity_errs(starts[0], "obs_start") + _purity_errs(ends[0], "obs_end")', '    why = _purity_errs(starts[0], "obs_start")', 'C21 purity at the end'),
+ ('runner.py', '        _c["hooks_added"] += 1', '        pass', 'R16 the census counts added hooks'),
+ ('runner.py', 'module._AUDIT_CENSUS = _census\n', '', 'R17 the observer gets the census'),
+ ('runner.py', '"quiesce": list(quiesce or [])', '"quiesce": []', 'R18 quiesced nodes reach the observer'),
+ ('defence.py', 'observe=None, quiesce=quiet, env_extra=env)', 'observe=None, env_extra=env)', 'D15 the observer-off twin is quiesced'),
+ ('observer.py', '    gc.disable()\n    try:\n        if not observed:', '    try:\n        if not observed:', 'O39 collection off in the call phase'),
+ ('observer.py', '        if gc_was:\n            gc.enable()', '        pass', 'O40 collection back on after the call phase'),
+ ('observer.py', '    if not observed and item.nodeid not in set(_config().get("quiesce", [])):', '    if not observed:', 'O41 a quiesced node runs with collection off'),
+ ('observer.py', '"audit_hooks_added": census["hooks_added"] if type(census) is dict else None,', '"audit_hooks_added": 0,', 'O42 the census is recorded'),
+ ('observer.py', '"gc_enabled": gc.isenabled(),', '"gc_enabled": False,', 'O43 collection state is recorded'),
+ ('observer.py', '                if not (h is None or h is signal.SIG_DFL or h is signal.SIG_IGN or h is signal.default_int_handler):', '                if False:', 'O44 signal handlers are recorded'),
+ ('observer.py', '            if not self._mock_verified(obj):\n                self._gap(', '            if False:\n                self._gap(', 'O45 an unverified mock is a gap when held'),
+ ('observer.py', 'unverified=None if self._mock_verified(me) else', 'unverified=None if True else', 'O46 an unverified mock call is unattributed'),
+ ('observer.py', '        return t is self.mock_types.get(id(obj)) and self._effective_call(t) is self.mock_call_fn', '        return self._effective_call(t) is self.mock_call_fn', 'O47 a held mock keeps its class'),
+ ('observer.py', '        return t is self.mock_types.get(id(obj)) and self._effective_call(t) is self.mock_call_fn', '        return t is self.mock_types.get(id(obj))', 'O48 a held mock keeps the standard __call__'),
+ ('observer.py', '        try:\n            args = _EXC_ARGS.__get__(exc, BaseException)', '        import traceback\n        detail = "".join(traceback.format_exception(exc))[-800:]\n        try:\n            args = _EXC_ARGS.__get__(exc, BaseException)', 'O49 recording an error runs no I/O'),
 ]
 
 

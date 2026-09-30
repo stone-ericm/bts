@@ -6,6 +6,13 @@ then starts ``<worktree>/.venv/bin/python bootstrap.py`` which loads that exact 
 is imported by name, so no module in the worktree can stand in for the observer; the observer
 reports its own loaded file and sha256, and ``gate`` compares them with the trusted copy.
 
+The bootstrap's FIRST statement installs an audit-hook census (Codex phase-1 r7 #4): the observer's own
+primitives (``id``, ``sys._getframe``, ``gc.get_referrers`` …) raise audit events, so any other audit
+hook would run inside observation. Only interpreter start-up — site initialisation and the reviewed
+``.pth`` hooks (``owned.REVIEWED_PTH_IMPORTS``) — runs before the census; every later
+``sys.addaudithook`` raises the ``sys.addaudithook`` event through it and is counted. The observer
+records the count, and a certificate needs it to be zero (``certify``).
+
 ``gate`` is the one session-level acceptance check every stage shares: the observer identity, the
 worktree's own venv (prefix and executable), rootdir, pytest not shadowed from the worktree, a
 finished session whose exit status equals the process return code, no collection or observer
@@ -29,12 +36,19 @@ from scripts.audit.incident_register import owned
 from scripts.audit.incident_register.observer import src_digest
 
 OBSERVER_SRC = Path(__file__).with_name("observer.py")
-BOOTSTRAP = """import importlib.util, sys
+BOOTSTRAP = """import sys
+_census = {"hooks_added": 0}
+def _w15_audit_census(event, args, _c=_census):
+    if event == "sys.addaudithook":
+        _c["hooks_added"] += 1
+sys.addaudithook(_w15_audit_census)
+import importlib.util
 path, name = sys.argv[1], sys.argv[2]
 spec = importlib.util.spec_from_file_location(name, path)
 module = importlib.util.module_from_spec(spec)
 sys.modules[name] = module
 spec.loader.exec_module(module)
+module._AUDIT_CENSUS = _census
 import pytest
 sys.exit(pytest.main(sys.argv[3:], plugins=[module]))
 """
@@ -71,7 +85,9 @@ def _inifile(worktree: Path) -> Path:
 
 
 def run(worktree, args: list[str], out_dir, stage: str, *, observe: dict | None = None,
-        env_extra: dict | None = None, timeout: int = 3600) -> Run:
+        quiesce: list[str] | None = None, env_extra: dict | None = None, timeout: int = 3600) -> Run:
+    """``quiesce``: nodes whose call phase runs with automatic garbage collection off although nothing
+    observes them (an observed run's twin; observed nodes are always quiesced)."""
     worktree = Path(worktree)
     owned.assert_owned(worktree)
     out_dir = Path(out_dir)
@@ -95,7 +111,8 @@ def run(worktree, args: list[str], out_dir, stage: str, *, observe: dict | None 
             events_path.unlink()
         cfg = tmp / "config.json"
         cfg.write_text(json.dumps({"out": str(events_path), "run_id": f"{stage}-{name}",
-                                   "prod_root": os.path.join(wt, "src"), "observe": observe or {}}))
+                                   "prod_root": os.path.join(wt, "src"), "observe": observe or {},
+                                   "quiesce": list(quiesce or [])}))
         env = {k: v for k, v in os.environ.items() if k not in _SCRUB}
         env.update({"W15_OBS_CONFIG": str(cfg), "PYTHONDONTWRITEBYTECODE": "1"})
         env.update(env_extra or {})

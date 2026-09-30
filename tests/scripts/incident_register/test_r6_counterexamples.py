@@ -1,7 +1,9 @@
 """Codex phase-1 r6 counterexamples, each pinned in the direction the design requires.
 
 Adapted from the reviewer's retained probes (``test_review_r6.py``). Each of them measured a FALSE
-certificate or a broken observational guarantee at cd9456b.
+certificate or a broken observational guarantee at cd9456b. Since plan ruling 10 every absence probe is
+refused outright and also runs as an event: a call the recorder sees must witness it, and a call it
+cannot see (unsupported or overridden dispatch) must witness nothing.
 """
 import importlib.util
 import marshal
@@ -13,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
-from scripts.audit.incident_register import defence, deploy_runs, observer, owned
-from tests.scripts.incident_register.synth import DM, defended_project
-from tests.scripts.incident_register.test_r4_counterexamples import one_spec
+from scripts.audit.incident_register import defence, deploy_runs, observer, owned, runner
+from tests.scripts.incident_register.synth import DM, defended_project, refused_as_absence
+from tests.scripts.incident_register.test_r4_counterexamples import ALERT, one_spec
 
 NODE = "tests/test_probe.py::test_probe"
 PROD = ("from bts import transport\nfrom tests.helper import invoke\ndef deliver():\n"
@@ -27,13 +29,24 @@ TEST = ("from bts import mod,transport\ndef test_probe():\n    result=mod.delive
 MUTANT = ("invoke(transport,False)  # BRANCH\n    return 'done'", "invoke(transport,True)  # BRANCH\n    return 'defer'")
 
 
-def _defend(tmp_path, helper, *, transport=TRANSPORT, test=TEST, boundaries=None):
+def _defend(tmp_path, helper, *, transport=TRANSPORT, test=TEST, boundaries=None, event=True):
+    """The probe as an absence (refused, plan ruling 10) and, unless ``event`` is False, as an event: the
+    helper sends the alert under the mutant and the frozen test fails at its send assertion."""
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": PROD, "src/bts/transport.py": transport,
-                                        "tests/helper.py": helper, "tests/test_probe.py": test})
-    spec = one_spec(*MUTANT)
+                                        "tests/helper.py": f"ALERT={ALERT!r}\n" + helper, "tests/test_probe.py": test})
+    absence = one_spec(*MUTANT, kind="absence", category="pick")
+    res = defence.current_defence(wt, absence, tmp_path / "out0")
+    assert refused_as_absence(res)
+    if not event:
+        return res
+    spec = one_spec(*MUTANT, assertion="assert transport.sent==")
     if boundaries:
         spec["boundaries"] = boundaries
     return defence.current_defence(wt, spec, tmp_path / "out")
+
+
+def _gaps(tmp_path):
+    return [e["reason"] for e in runner.load(tmp_path / "out" / "mutant.events.jsonl") if e["kind"] == "boundary_gap"]
 
 
 def _refused(res, reason):
@@ -58,7 +71,7 @@ def invoke(transport,rebind):
         sys.modules['bts.transport']=alternate
         imported=importlib.import_module('bts.transport')
         assert imported is alternate
-        list(map(imported.send,['eric'],['pick: Turner']))
+        list(map(imported.send,['eric'],[ALERT]))
     finally:
         sys.modules=old
 """
@@ -66,8 +79,10 @@ def invoke(transport,rebind):
 
 def test_a_temporary_sys_modules_replacement_is_seen(tmp_path):
     """r6 #1 measured: a helper swapped sys.modules for a copy, imported an alternate module from it and
-    called its sender through map(); the watchers stayed on the old root and absence was accepted."""
-    _refused(_defend(tmp_path, SYS_MODULES_SWAP), "1 qualifying 'dm' call(s) occurred")
+    called its sender through map(); the watchers stayed on the old root and absence was accepted. As an
+    event, the root watch sees the new root and the alternate module: the alert is linked."""
+    res = _defend(tmp_path, SYS_MODULES_SWAP)
+    assert res["verdict"] == "accepted", res["reasons"]
 
 
 def test_a_persistent_sys_modules_replacement_is_seen(tmp_path):
@@ -75,7 +90,8 @@ def test_a_persistent_sys_modules_replacement_is_seen(tmp_path):
     helper = SYS_MODULES_SWAP.replace("    finally:\n        sys.modules=old\n", "    finally:\n        pass\n")
     test = ("import sys,pytest\nfrom bts import mod,transport\nimport tests.helper\n"
             "_saved=sys.modules\n@pytest.fixture(autouse=True)\ndef cleanup():\n    yield\n    sys.modules=_saved\n" + TEST[TEST.index("def test_probe"):])
-    _refused(_defend(tmp_path, helper, test=test), "1 qualifying 'dm' call(s) occurred")
+    res = _defend(tmp_path, helper, test=test)
+    assert res["verdict"] == "accepted", res["reasons"]
 
 
 def test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap(tmp_path):
@@ -89,22 +105,26 @@ def test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap(tmp_path)
                              "        return types.ModuleType.__getattribute__(self,name)\n"
                              "module=sys.modules[__name__]\nmodule.__class__=DynamicModule\nmodule.alternate=False\n")
     helper = ("def invoke(transport,rebind):\n    transport.alternate=rebind\n    try:\n"
-              "        list(map(transport.send,['eric'],['pick: Turner']))\n    finally:\n        transport.alternate=False\n")
-    _refused(_defend(tmp_path, helper, transport=transport), "coverage gap (unsupported namespace")
+              "        list(map(transport.send,['eric'],[ALERT if rebind else 'pick: Turner']))\n    finally:\n"
+              "        transport.alternate=False\n")
+    _refused(_defend(tmp_path, helper, transport=transport), "no 'alert' event")        # missed, never false
+    assert any(g.startswith("unsupported namespace") for g in _gaps(tmp_path))
 
 
 def test_a_transient_module_type_change_is_a_coverage_gap(tmp_path):
     """r6 #1 measured: the module is exact ModuleType at both ends, but its __class__ is swapped to an
-    overriding subclass for the call. The path objects' exact types are re-checked at every function
-    start while boundaries are observed, so the swap is seen when the override runs."""
+    overriding subclass for the call. Since plan ruling 10 the recorder does not follow such dispatch (the
+    r7 C-level variant showed sampling types at function starts cannot): the call is missed, so it
+    witnesses nothing."""
     transport = TRANSPORT + ("import types\nclass DynamicModule(types.ModuleType):\n"
                              "    def __getattribute__(self,name):\n        if name=='send':\n"
                              "            return types.ModuleType.__getattribute__(self,'replacement')\n"
                              "        return types.ModuleType.__getattribute__(self,name)\n")
     helper = ("def invoke(transport,rebind):\n    original=type(transport)\n    try:\n        if rebind:\n"
               "            transport.__class__=transport.DynamicModule\n"
-              "        list(map(transport.send,['eric'],['pick: Turner']))\n    finally:\n        transport.__class__=original\n")
-    _refused(_defend(tmp_path, helper, transport=transport), "coverage gap (attribute dispatch changed")
+              "        list(map(transport.send,['eric'],[ALERT if rebind else 'pick: Turner']))\n    finally:\n"
+              "        transport.__class__=original\n")
+    _refused(_defend(tmp_path, helper, transport=transport), "no 'alert' event")
 
 
 def test_a_class_with_a_custom_metaclass_is_a_coverage_gap(tmp_path):
@@ -114,36 +134,11 @@ def test_a_class_with_a_custom_metaclass_is_a_coverage_gap(tmp_path):
                              "            return replacement\n        return type.__getattribute__(cls,name)\n"
                              "class API(metaclass=Meta):\n    send=send\n    alternate=False\n")
     helper = ("def invoke(transport,rebind):\n    transport.API.alternate=rebind\n    try:\n"
-              "        list(map(transport.API.send,['eric'],['pick: Turner']))\n    finally:\n        transport.API.alternate=False\n")
+              "        list(map(transport.API.send,['eric'],[ALERT if rebind else 'pick: Turner']))\n    finally:\n"
+              "        transport.API.alternate=False\n")
     _refused(_defend(tmp_path, helper, transport=transport, boundaries=[dict(DM, binding="bts.transport:API.send")]),
-             "coverage gap (unsupported namespace")
-
-
-def test_every_function_start_is_kept_while_boundaries_are_observed():
-    """The dispatch re-check runs at function starts, so while boundaries are observed no code may be
-    disabled after its first start: here f's SECOND start is the first one after the swap."""
-    mod = types.ModuleType("w15_r7_dispatch")
-    mod.send = lambda recipient, text: None
-
-    class Loud(types.ModuleType):
-        pass
-
-    def f():
-        return 1
-
-    sys.modules[mod.__name__] = mod
-    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="w15_r7_dispatch:send")]}, "")
-    try:
-        mon.start()
-        f()
-        mod.__class__ = Loud
-        f()
-        mod.__class__ = types.ModuleType
-    finally:
-        mon.stop()
-        del sys.modules["w15_r7_dispatch"]
-    assert any(e["kind"] == "boundary_gap" and e["reason"].startswith("attribute dispatch changed")
-               for e in mon.events), mon.events
+             "no 'alert' event")
+    assert any(g.startswith("unsupported namespace") for g in _gaps(tmp_path))
 
 
 # --- finding 2: a code object does not identify its function --------------------------------------
@@ -158,7 +153,7 @@ def test_a_function_sharing_the_senders_code_is_not_the_sender(tmp_path):
             "    assert len(transport.unrelated)==(0 if result=='done' else 1)\n    assert result=='done'  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport, "tests/test_probe.py": test})
     spec = one_spec("    return 'done'  # BRANCH", "    transport.clone('eric','pick: Turner')  # BRANCH\n    return 'defer'",
-                    kind="event")
+                    category="pick")
     _refused(defence.current_defence(wt, spec, tmp_path / "out"), "no 'pick' event after the branch")
 
 
@@ -194,11 +189,13 @@ def test_a_spoofed_function_type_name_runs_no_application_code():
     assert any(e["kind"] == "boundary_gap" and e["reason"] == "not a Python-observable callable" for e in mon.events)
 
 
-# --- finding 5: every live thread, not only threading's registered ones ---------------------------
+# --- finding 5: a low-level worker (absence only) ----------------------------------------------------
 
 def test_a_low_level_worker_started_in_the_interval_makes_absence_unavailable(tmp_path):
     """r6 #5 measured: a _thread worker (never registered with threading) was live at the interval's end
-    and sent afterwards; the census counted zero threads and absence was accepted."""
+    and sent afterwards; the census counted zero threads and absence was accepted. Refused since plan
+    ruling 10, which also retired the thread census: no positive witness depends on it (an event links
+    only on the entry invocation's own thread)."""
     helper = ("import _thread,threading\nrelease=threading.Event()\nfinished=threading.Event()\nstarted=threading.Event()\n"
               "def invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n        return\n"
               "    def work():\n        started.set()\n        release.wait()\n        transport.send('eric','pick: Turner')\n"
@@ -207,30 +204,7 @@ def test_a_low_level_worker_started_in_the_interval_makes_absence_unavailable(tm
             "def cleanup():\n    yield\n    helper.release.set()\n    if helper.started.is_set():\n        assert helper.finished.wait(5)\n"
             "    assert transport.sent==[('eric','pick: Turner')]\ndef test_probe():\n    result=mod.deliver()\n"
             "    assert result=='done'  # ASSERT-RESULT\n")
-    _refused(_defend(tmp_path, helper, test=test), "thread(s) started in the interval were still alive")
-
-
-def test_a_pre_existing_low_level_worker_is_counted():
-    import _thread
-    import threading
-    started, release, done = threading.Event(), threading.Event(), threading.Event()
-
-    def work():
-        started.set()
-        release.wait()
-        done.set()
-
-    _thread.start_new_thread(work, ())
-    assert started.wait(5)
-    mon = observer._Monitor("n", {}, "")
-    try:
-        mon.start()
-    finally:
-        mon.stop()
-        release.set()
-        assert done.wait(5)
-    end = [e for e in mon.events if e["kind"] == "obs_end"][0]
-    assert end["preexisting_threads_alive"] >= 1, end
+    _defend(tmp_path, helper, test=test, event=False)
 
 
 # --- finding 6: a failed start releases everything it acquired ------------------------------------

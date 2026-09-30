@@ -1,5 +1,8 @@
-"""certify() on hand-built observer events: linking, ordering, file identity (Codex phase-1 r2 #5)."""
-from scripts.audit.incident_register.certify import certify
+"""certify() on hand-built observer events: linking, ordering, file identity (Codex phase-1 r2 #5);
+purity (r7 #4); absence refused (plan ruling 10)."""
+import pytest
+
+from scripts.audit.incident_register.certify import ABSENCE_REFUSAL, AbsenceRefused, certify
 
 N = "tests/test_x.py::test_y"
 F = "/wt/src/bts/mod.py"
@@ -34,8 +37,11 @@ def exit_(seq, frame, how="return"):
     return ev("entry_exit", seq, file=F, qualname="deliver", frame=frame, how=how)
 
 
-def window(*events, outstanding=0):
-    return [ev("obs_start", 0), *events, ev("obs_end", 1000, outstanding_threads=outstanding)]
+PURE = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}
+
+
+def window(*events, start=PURE, end=PURE):
+    return [ev("obs_start", 0, purity=start), *events, ev("obs_end", 1000, purity=end)]
 
 
 IN = ("deliver", F, 10)
@@ -77,7 +83,7 @@ def test_wrong_category_is_not_the_event():
 
 
 def test_incomplete_window_is_rejected():
-    got = certify([ev("obs_start", 0), entry(1, 10), branch(2, IN), call(3, "alert", IN)],
+    got = certify([ev("obs_start", 0, purity=PURE), entry(1, 10), branch(2, IN), call(3, "alert", IN)],
                   node=N, kind="event", entry=ENTRY, bad=BAD)
     assert not got["ok"] and any("observation" in r for r in got["reasons"])
 
@@ -97,19 +103,6 @@ def test_return_kind_links_the_returning_invocation():
     assert not certify(window(entry(1, 10), branch(2, IN), wrong), node=N, kind="return", entry=ENTRY, bad=bad)["ok"]
 
 
-def test_absence_needs_zero_qualifying_calls_and_a_positive_control():
-    q = {"boundary": "dm", "category": "pick"}
-    base = window(entry(1, 10), call(2, "pick", IN))
-    ok = certify(window(entry(1, 10), branch(2, IN), call(3, "alert", IN), exit_(4, 10)), node=N, kind="absence",
-                 entry=ENTRY, bad=q, positive_events=base)
-    assert ok["ok"], ok
-    unidentified = call(3, "pick", IN)
-    unidentified["identity"] = None
-    got = certify(window(entry(1, 10), branch(2, IN), unidentified, exit_(4, 10)), node=N, kind="absence",
-                  entry=ENTRY, bad=q, positive_events=base)
-    assert not got["ok"] and any("without identity" in r for r in got["reasons"])
-
-
 def test_return_kind_by_category():
     ret = ev("return", 3, file=F, qualname="deliver", frame=10, value="PickLockState(locked=True, reason='x')",
              category="locked", type="PickLockState", stack=stack(IN))
@@ -120,34 +113,49 @@ def test_return_kind_by_category():
 
 
 Q = {"boundary": "dm", "category": "pick"}
-BASE = window(entry(1, 10), call(2, "pick", IN))
+LINKED = window(entry(1, 10), branch(2, IN), call(3, "alert", IN), exit_(4, 10))
 
 
-def test_absence_requires_the_invocation_to_complete():
-    got = certify(window(entry(1, 10), branch(2, IN)), node=N, kind="absence", entry=ENTRY, bad=Q, positive_events=BASE)
-    assert not got["ok"] and any("did not complete" in r for r in got["reasons"])
+@pytest.mark.parametrize("events", [
+    LINKED,                                                              # the old accepted absence shape
+    window(entry(1, 10), branch(2, IN)),                                 # the invocation never completed
+    window(entry(1, 10), branch(2, IN), ev("boundary_gap", 3, name="dm", reason="x"), exit_(4, 10)),
+    window(entry(1, 10), branch(2, IN), exit_(3, 10), call(4, "pick", ("test_y", "/wt/tests/test_x.py", 3))),
+], ids=["zero-calls", "incomplete", "gap", "qualifying-call"])
+def test_absence_is_refused_whatever_its_events(events):
+    """Plan ruling 10: Phase 1 certifies no missing event, however complete the recorded interval looks."""
+    with pytest.raises(AbsenceRefused) as info:
+        certify(events, node=N, kind="absence", entry=ENTRY, bad=Q)
+    assert str(info.value) == ABSENCE_REFUSAL
 
 
-def test_absence_with_outstanding_workers_is_unavailable():
-    """r3 #1 measured: a worker started at the branch sent after obs_end; absence was accepted."""
-    got = certify(window(entry(1, 10), branch(2, IN), exit_(3, 10), outstanding=1), node=N, kind="absence",
-                  entry=ENTRY, bad=Q, positive_events=BASE)
-    assert not got["ok"] and any("still alive" in r for r in got["reasons"])
+def test_an_unknown_kind_is_an_error():
+    with pytest.raises(ValueError):
+        certify(LINKED, node=N, kind="missing", entry=ENTRY, bad=BAD)
 
 
-def test_absence_over_a_coverage_gap_is_unavailable():
-    gap = ev("boundary_gap", 3, name="dm", reason="not a Python-observable callable")
-    got = certify(window(entry(1, 10), branch(2, IN), gap, exit_(4, 10)), node=N, kind="absence", entry=ENTRY,
-                  bad=Q, positive_events=BASE)
-    assert not got["ok"] and any("coverage gap" in r for r in got["reasons"])
+LINKED_EVENT = (entry(1, 10), branch(2, IN), call(3, "alert", IN))
 
 
-def test_a_qualifying_call_from_any_caller_defeats_absence():
-    from_test = ev("boundary", 3, name="dm", caller=["test_y", "/wt/tests/test_x.py", 3], stack=stack(),
-                   identity={"category": "pick", "value": "x", "sha256": "0"})
-    got = certify(window(entry(1, 10), branch(2, IN), exit_(3, 10), from_test), node=N, kind="absence",
-                  entry=ENTRY, bad=Q, positive_events=BASE)
-    assert not got["ok"] and any("qualifying" in r for r in got["reasons"])
+@pytest.mark.parametrize("where", ["start", "end"])
+@pytest.mark.parametrize("purity,needle", [
+    (None, "purity not recorded"),
+    (dict(PURE, audit_hooks_added=None), "no audit-hook census"),
+    (dict(PURE, audit_hooks_added=1), "1 audit hook(s) added after the trusted bootstrap"),
+    (dict(PURE, gc_enabled=True), "automatic garbage collection on"),
+    (dict(PURE, gc_enabled=None), "automatic garbage collection on"),
+    (dict(PURE, signal_handlers=[15]), "application signal handler(s)"),
+], ids=["missing", "no-census", "hook", "gc-on", "gc-unknown", "signal"])
+def test_an_impure_observation_certifies_nothing(purity, needle, where):
+    """Codex phase-1 r7 #4: application code the observation itself could run (an audit hook, a finalizer
+    in a collection, a signal handler) makes the interval unavailable, at either end."""
+    events = window(*LINKED_EVENT, **{where: purity})
+    got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
+    assert not got["ok"] and any(needle in r for r in got["reasons"]), got["reasons"]
+
+
+def test_a_pure_observation_is_certified():
+    assert certify(window(*LINKED_EVENT), node=N, kind="event", entry=ENTRY, bad=BAD)["ok"]
 
 
 def test_recursion_links_through_the_common_outer_invocation():

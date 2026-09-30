@@ -326,13 +326,14 @@ def test_a_send_made_from_c_is_recorded(scen, tmp_path):
     assert [c["identity"]["category"] for c in calls] == ["pick"]
 
 
-def test_a_worker_alive_at_the_end_of_the_call_phase_is_counted(scen, tmp_path):
+def test_a_real_run_records_a_pure_observation(scen, tmp_path):
+    """Codex phase-1 r7 #4: the trusted bootstrap's census is present and counts no audit hook, automatic
+    collection is off at both ends of the call phase, and no application signal handler is installed."""
     repo, wt = scen
-    r = runner.run(wt, ["tests/test_scen.py::test_worker", "-q"], tmp_path / "o", "g",
-                   observe=_obs(wt, "test_worker", "via_worker"))
-    end = _inside(r, "test_worker")[-1]
-    assert end["kind"] == "obs_end" and end["outstanding_threads"] == 1   # released only in teardown
-    assert runner.gate(r, worktree=wt, mode="green") == []
+    r = runner.run(wt, ["tests/test_scen.py::test_map", "-q"], tmp_path / "o", "g", observe=_obs(wt, "test_map", "via_map"))
+    marks = [e for e in r.events if e["kind"] in ("obs_start", "obs_end")]
+    assert [e["purity"] for e in marks] == [{"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}] * 2
+    assert certify.interval(r.events, "tests/test_scen.py::test_map")[1] == []
 
 
 def test_observing_a_return_runs_no_application_code(scen, tmp_path):

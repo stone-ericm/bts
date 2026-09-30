@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from scripts.audit.incident_register.defence import current_defence
-from tests.scripts.incident_register.synth import defended_project, git, spec, write
+from tests.scripts.incident_register.synth import (ABSENCE, ABSENCE_EDITS, defended_project, git, refused_as_absence,
+                                                   spec, write)
 
 SEND = "tests/test_mod.py::test_deliver_sends_one_pick"
 COUNT = "tests/test_mod.py::test_run_sends_once_and_returns_done"
@@ -24,20 +25,20 @@ def run(project, tmp_path, **over):
     return res
 
 
-def test_absence_certificate_is_accepted(project, tmp_path):
+def test_an_absence_spec_is_refused_before_anything_runs(project, tmp_path):
+    """Plan ruling 10 (the old accepted absence certificate of this project): refused, and says why."""
+    res = run(project, tmp_path, mutation_edits=ABSENCE_EDITS, branch={"path": "src/bts/mod.py", "text": "if not ready:"},
+              symptom=ABSENCE)
+    assert refused_as_absence(res), res["reasons"]
+    assert not (tmp_path / "out" / "mutant.patch").exists()
+
+
+def test_event_certificate_is_accepted(project, tmp_path):
     res = run(project, tmp_path)
     assert res["verdict"] == "accepted", res["reasons"]
     assert res["stages"]["mutant"]["kills"] == [SEND, COUNT]
     assert res["certificates"][SEND]["ok"]
-    assert (tmp_path / "out" / "mutant.patch").read_text().count("if not ready:") == 1
-
-
-def test_event_certificate_is_accepted(project, tmp_path):
-    res = run(project, tmp_path,
-              mutation_edits=[["src/bts/mod.py", "    if late:\n", "    if not late:\n"]],
-              branch={"path": "src/bts/mod.py", "text": "if not late:"},
-              symptom={"kind": "event", "boundary": "dm", "category": "alert"})
-    assert res["verdict"] == "accepted", res["reasons"]
+    assert (tmp_path / "out" / "mutant.patch").read_text().count("if not late:") == 1
 
 
 def test_return_certificate_is_accepted(project, tmp_path):
@@ -83,14 +84,15 @@ def test_primary_checkout_is_never_used(project, tmp_path):
 
 
 def test_absence_with_a_real_send_elsewhere_is_rejected(project, tmp_path):
-    """r2 #5 measured: the callee lacked a boundary but run() still sent the pick; `accepted`."""
+    """r2 #5 measured: the callee lacked a boundary but run() still sent the pick; `accepted`. Refused
+    since plan ruling 10."""
     edits = [["src/bts/mod.py",
               '    if ready:\n        transport.send("eric", "pick: Turner")\n    return "done"',
               '    if not ready:\n        transport.send("eric", "pick: Turner")\n    return "defer"']]
-    res = run(project, tmp_path, mutation_edits=edits,
+    res = run(project, tmp_path, mutation_edits=edits, branch={"path": "src/bts/mod.py", "text": "if not ready:"},
+              symptom=ABSENCE,
               killing=[{"node": COUNT, "assertion": {"path": "tests/test_mod.py", "text": "# ASSERT-RESULT"}}])
-    assert res["verdict"] == "rejected"
-    assert any("qualifying 'dm' call(s) occurred" in r for r in res["reasons"]), res["reasons"]
+    assert refused_as_absence(res), res["reasons"]
 
 
 def test_killing_failure_at_an_undeclared_assertion_is_rejected(project, tmp_path):
@@ -108,9 +110,10 @@ def test_declared_killing_node_that_survives_is_rejected(project, tmp_path):
 
 
 def test_absence_without_a_positive_control_is_rejected(project, tmp_path):
-    """The baseline never produces a 'pick' in this node, so absence proves nothing."""
+    """The baseline never produces a 'pick' in this node, so absence proves nothing. Refused since plan
+    ruling 10."""
     res = run(project, tmp_path, symptom={"kind": "absence", "boundary": "dm", "category": "alert"})
-    assert res["verdict"] == "rejected" and any("positive control" in r for r in res["reasons"])
+    assert refused_as_absence(res), res["reasons"]
 
 
 def test_mutated_line_outside_the_entry_invocation_is_rejected(project, tmp_path):
@@ -153,7 +156,7 @@ def test_malformed_spec_still_writes_a_rejected_acceptance(project, tmp_path):
 def test_mutant_only_teardown_error_is_rejected(tmp_path):
     """r2 #3 probe 2 through the pipeline: an unrelated node's teardown fails only under the mutant."""
     conftest = ("import pytest\nfrom bts import mod\n\n@pytest.fixture(autouse=True)\ndef guard(request):\n"
-                "    yield\n    if request.node.name == 'test_unrelated' and 'not ready' in open(mod.__file__).read():\n"
+                "    yield\n    if request.node.name == 'test_unrelated' and 'not late' in open(mod.__file__).read():\n"
                 "        raise ValueError('mutant-only teardown error')\n")
     project = defended_project(tmp_path, extra={"tests/conftest.py": conftest})
     res = run(project, tmp_path)
@@ -277,9 +280,8 @@ def test_absence_is_not_certified_over_a_send_made_from_c(project, tmp_path):
               '    if ready:\n        list(map(transport.send, ["eric"], ["pick: Turner"]))  # W1.5 mutant: via C\n'
               '    return "defer"']]
     res = run(project, tmp_path, mutation_edits=edits, branch={"path": "src/bts/mod.py", "text": "W1.5 mutant: via C"},
-              killing=ASSERT_RESULT)
-    assert res["verdict"] == "rejected"
-    assert any("qualifying 'dm' call(s) occurred" in r for r in res["reasons"]), res["reasons"]
+              symptom=ABSENCE, killing=ASSERT_RESULT)
+    assert refused_as_absence(res), res["reasons"]      # plan ruling 10; the C-made send: test_runner
 
 
 def test_absence_is_not_certified_while_a_worker_is_outstanding(project, tmp_path):
@@ -289,9 +291,9 @@ def test_absence_is_not_certified_while_a_worker_is_outstanding(project, tmp_pat
               '        threading.Thread(target=lambda: (threading.Event().wait(2), transport.send("eric", "pick: Turner"))).start()\n'
               '    return "defer"']]
     res = run(project, tmp_path, mutation_edits=edits,
-              branch={"path": "src/bts/mod.py", "text": "W1.5 mutant: deferred to a worker"}, killing=ASSERT_RESULT)
-    assert res["verdict"] == "rejected"
-    assert any("still alive" in r for r in res["reasons"]), res["reasons"]
+              branch={"path": "src/bts/mod.py", "text": "W1.5 mutant: deferred to a worker"}, symptom=ABSENCE,
+              killing=ASSERT_RESULT)
+    assert refused_as_absence(res), res["reasons"]      # plan ruling 10
 
 
 def test_an_unexpected_exception_never_writes_an_accepted_artifact(project, tmp_path, monkeypatch):
@@ -322,7 +324,9 @@ def test_observer_dependence_visible_only_under_the_mutant_is_rejected(tmp_path)
         "    with patch('bts.transport.send') as send:\n        mod.run(True)\n"
         "    assert send.call_args_list or sys.monitoring.get_tool(4) is None  # ASSERT-OBS\n")}
     project = defended_project(tmp_path, extra=extra)
+    # the mutant stops the sends, so only the observed mutant run fails the node
     res = run(project, tmp_path, tests=["tests/test_mod.py", "tests/test_mutant_aware.py", "-q"],
+              mutation_edits=ABSENCE_EDITS, branch={"path": "src/bts/mod.py", "text": "if not ready:"},
               killing=[{"node": "tests/test_mutant_aware.py::test_mutant_aware",
                         "assertion": {"path": "tests/test_mutant_aware.py", "text": "# ASSERT-OBS"}}])
     assert res["verdict"] == "rejected"

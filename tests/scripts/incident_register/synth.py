@@ -177,20 +177,30 @@ def defended_project(tmp_path, extra: dict | None = None):
     return repo, wt
 
 
+ABSENCE = {"kind": "absence", "boundary": "dm", "category": "pick"}
+ABSENCE_EDITS = [["src/bts/mod.py", '    if ready:\n        transport.send("eric", "pick: Turner")',
+                  '    if not ready:\n        transport.send("eric", "pick: Turner")']]
+
+
 def spec(**over) -> dict:
-    """An absence-kind spec: the mutant stops deliver() sending the pick."""
+    """An event-kind spec: the mutant makes deliver() send a health alert before the pick."""
     base = {
         "label": "synthetic", "baseline": "HEAD", "tests": ["tests/test_mod.py", "-q"],
         "allowed_paths": ["src/bts/mod.py"],
-        "mutation_edits": [["src/bts/mod.py",
-                            '    if ready:\n        transport.send("eric", "pick: Turner")',
-                            '    if not ready:\n        transport.send("eric", "pick: Turner")']],
-        "branch": {"path": "src/bts/mod.py", "text": "if not ready:"},
+        "mutation_edits": [["src/bts/mod.py", "    if late:\n", "    if not late:\n"]],
+        "branch": {"path": "src/bts/mod.py", "text": "if not late:"},
         "entry": {"path": "src/bts/mod.py", "qualname": "deliver"},
         "boundaries": [DM],
-        "symptom": {"kind": "absence", "boundary": "dm", "category": "pick"},
+        "symptom": {"kind": "event", "boundary": "dm", "category": "alert"},
         "killing": [{"node": "tests/test_mod.py::test_deliver_sends_one_pick",
                      "assertion": {"path": "tests/test_mod.py", "text": "# ASSERT-SEND"}}],
     }
     base.update(over)
     return base
+
+
+def refused_as_absence(res: dict) -> bool:
+    """Plan ruling 10: an absence spec is refused before anything runs, with the Phase 1 reason."""
+    from scripts.audit.incident_register.certify import ABSENCE_REFUSAL
+    return (res["verdict"] == "rejected" and not res["stages"]
+            and any(ABSENCE_REFUSAL in r for r in res["reasons"]))

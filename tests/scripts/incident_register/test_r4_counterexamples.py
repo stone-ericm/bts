@@ -2,18 +2,22 @@
 
 Adapted from the reviewer's retained probes. Each of them measured a FALSE acceptance at 74b04e8. A
 certificate that cannot establish its coverage must be refused or unavailable (design §9.3 as amended),
-never turned into an absence or connection claim.
+never turned into an absence or connection claim. Since plan ruling 10 every absence probe is refused
+outright; where the probe's mechanism matters to a positive witness, the test also runs it as an event.
 """
 import copy
 
 import pytest
 
 from scripts.audit.incident_register import acceptance, defence, observer
-from tests.scripts.incident_register.synth import DM, defended_project
+from tests.scripts.incident_register.synth import ABSENCE_EDITS, DM, defended_project, refused_as_absence
 from tests.scripts.incident_register.test_expected_failure import HEADER, NODE, REGISTRY, setup_project
 
 
-def one_spec(old, new, *, assertion="# ASSERT-RESULT", kind="absence", category="pick", boundary=DM):
+ALERT = "BTS health CRITICAL: x"
+
+
+def one_spec(old, new, *, assertion="# ASSERT-RESULT", kind="event", category="alert", boundary=DM):
     return dict(label="r4", baseline="HEAD", tests=["tests/test_probe.py", "-q"],
                 allowed_paths=["src/bts/mod.py"], mutation_edits=[["src/bts/mod.py", old, new]],
                 branch=dict(path="src/bts/mod.py", text="# BRANCH"),
@@ -33,12 +37,18 @@ def test_an_initially_unsupported_c_boundary_makes_absence_unavailable(tmp_path)
             "    assert transport.sent==['pick: Turner']\n    assert result=='done'  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport,
                                         "tests/test_probe.py": test})
-    spec = one_spec("return 'done'", "return 'defer'", boundary=dict(DM, value=["args[0]"]))
+    absence = one_spec("return 'done'", "return 'defer'", kind="absence", category="pick",
+                       boundary=dict(DM, value=["args[0]"]))
+    assert refused_as_absence(defence.current_defence(wt, absence, tmp_path / "out0"))
+    # as an event: the C-implemented sender's alert is never recorded, so it witnesses nothing
+    spec = one_spec("    transport.send('pick: Turner')  # BRANCH", f"    transport.send({ALERT!r})  # BRANCH",
+                    assertion="assert transport.sent==", boundary=dict(DM, value=["args[0]"]))
     spec["mutation_edits"].append(["src/bts/transport.py", "def send(text):\n    sent.append(text)", "send=sent.append"])
     spec["allowed_paths"].append("src/bts/transport.py")
     res = defence.current_defence(wt, spec, tmp_path / "out")
     assert res["verdict"] == "rejected"
-    assert any("coverage gap" in r for r in res["reasons"]), res["reasons"]
+    cert = res["certificates"]["tests/test_probe.py::test_probe"]
+    assert any("no 'alert' event" in r for r in cert["reasons"]), cert["reasons"]
 
 
 def test_a_temporary_rebinding_called_from_c_is_seen(tmp_path):
@@ -50,13 +60,17 @@ def test_a_temporary_rebinding_called_from_c_is_seen(tmp_path):
             "    assert transport.sent==[('eric','pick: Turner')]\n    assert result=='done'  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "src/bts/transport.py": transport,
                                         "tests/test_probe.py": test})
-    spec = one_spec("    transport.send('eric','pick: Turner')  # BRANCH\n    return 'done'",
-                    "    saved=transport.send\n    transport.send=transport.replacement  # BRANCH\n"
-                    "    list(map(transport.send,['eric'],['pick: Turner']))\n    transport.send=saved\n    return 'defer'")
+    old = "    transport.send('eric','pick: Turner')  # BRANCH\n    return 'done'"
+    absence = one_spec(old, "    saved=transport.send\n    transport.send=transport.replacement  # BRANCH\n"
+                       "    list(map(transport.send,['eric'],['pick: Turner']))\n    transport.send=saved\n    return 'defer'",
+                       kind="absence", category="pick")
+    assert refused_as_absence(defence.current_defence(wt, absence, tmp_path / "out0"))
+    # as an event: the alert sent through the temporary rebinding, from C, is recorded and linked
+    spec = one_spec(old, "    saved=transport.send\n    transport.send=transport.replacement  # BRANCH\n"
+                    f"    list(map(transport.send,['eric'],[{ALERT!r}]))\n    transport.send=saved\n    return 'done'",
+                    assertion="assert transport.sent==")
     res = defence.current_defence(wt, spec, tmp_path / "out")
-    assert res["verdict"] == "rejected"
-    cert = res["certificates"]["tests/test_probe.py::test_probe"]
-    assert any("qualifying 'dm' call(s) occurred" in r for r in cert["reasons"]), cert["reasons"]
+    assert res["verdict"] == "accepted", res["reasons"]
 
 
 def test_a_worker_alive_before_the_call_phase_makes_absence_unavailable(tmp_path):
@@ -71,10 +85,8 @@ def test_a_worker_alive_before_the_call_phase_makes_absence_unavailable(tmp_path
             "def test_probe():\n    result=mod.deliver()\n    assert result=='done'  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "tests/test_probe.py": test})
     spec = one_spec("    transport.send('eric','pick: Turner')  # BRANCH\n    return 'done'",
-                    "    global queued\n    queued=True  # BRANCH\n    return 'defer'")
-    res = defence.current_defence(wt, spec, tmp_path / "out")
-    assert res["verdict"] == "rejected"
-    assert any("already running when the observed interval began" in r for r in res["reasons"]), res["reasons"]
+                    "    global queued\n    queued=True  # BRANCH\n    return 'defer'", kind="absence", category="pick")
+    assert refused_as_absence(defence.current_defence(wt, spec, tmp_path / "out"))      # plan ruling 10
 
 
 def test_a_call_on_another_receiver_is_not_the_declared_boundary(tmp_path):
@@ -86,7 +98,7 @@ def test_a_call_on_another_receiver_is_not_the_declared_boundary(tmp_path):
             "    assert transport.real.sent == ['pick: Turner']  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/transport.py": transport, "src/bts/mod.py": prod,
                                         "tests/test_probe.py": test})
-    spec = one_spec("transport.send('pick: Turner')", "transport.other.send('pick: Turner')", kind="event",
+    spec = one_spec("transport.send('pick: Turner')", "transport.other.send('pick: Turner')", category="pick",
                     boundary=dict(DM, value=["args[1]"]))
     res = defence.current_defence(wt, spec, tmp_path / "out")
     assert res["verdict"] == "rejected"
@@ -161,6 +173,7 @@ def test_a_node_that_fails_differently_when_observed_is_rejected(tmp_path):
         "            assert send.call_args_list  # ASSERT-DIFF\n        raise RuntimeError('unobserved')\n")}
     project = defended_project(tmp_path, extra=extra)
     res = defence_run(project, tmp_path, tests=["tests/test_mod.py", "tests/test_diff.py", "-q"],
+                      mutation_edits=ABSENCE_EDITS, branch={"path": "src/bts/mod.py", "text": "if not ready:"},
                       killing=[{"node": "tests/test_diff.py::test_diff",
                                 "assertion": {"path": "tests/test_diff.py", "text": "# ASSERT-DIFF"}}])
     assert res["verdict"] == "rejected"
@@ -242,7 +255,8 @@ def test_zipped_read_backs_of_different_cardinalities_do_not_match():
     wt, node = "/wt", "tests/test_incident.py::test_pass_is_void"
     f = "/wt/src/bts/mod.py"
     stack = lambda q, fr: [[q, f, 1, fr]]                                           # noqa: E731
-    ev = [{"kind": "obs_start", "seq": 1, "node": node, "thread": 1},
+    pure = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}
+    ev = [{"kind": "obs_start", "seq": 1, "node": node, "thread": 1, "purity": pure},
           {"kind": "entry", "seq": 2, "node": node, "file": f, "qualname": "grade", "frame": 100, "thread": 1,
            "stack": stack("grade", 100)},
           {"kind": "entry_exit", "seq": 3, "node": node, "file": f, "qualname": "grade", "frame": 100, "thread": 1,
@@ -253,7 +267,7 @@ def test_zipped_read_backs_of_different_cardinalities_do_not_match():
            "stack": stack("a", 201)},
           {"kind": "return", "seq": 6, "node": node, "file": f, "qualname": "b", "value": True, "frame": 202, "thread": 1,
            "stack": stack("b", 202)},
-          {"kind": "obs_end", "seq": 7, "node": node, "thread": 1, "outstanding_threads": 0, "preexisting_threads_alive": 0}]
+          {"kind": "obs_end", "seq": 7, "node": node, "thread": 1, "purity": pure}]
     reg = {"entry": {"path": "src/bts/mod.py", "qualname": "grade"},
            "connection": {"kind": "reads", "shape": "zip", "review": "reviewed",
                           "components": [{"path": "src/bts/mod.py", "qualname": "a", "all": True},
