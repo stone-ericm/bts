@@ -54,6 +54,10 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
   - **Rebuilding:** it rebuilds byte for byte from bundle `data/hetzner_results/season_2026_ledger_evidence/v1`, which is restic-backed, plus the code commit, via `scripts/audit/build_season_ledger.py compile` (see the memo `docs/audit/2026-09-28-season-ledger.md` §9).
   - **Reading it:** exposure row X-19 covered counts only, so any analysis of the ledger's outcomes needs a **new** exposure-register row first.
   - **Frozen rules:** never edit the recipe rules or their evaluator (fingerprint `5e9d74f2…`). A new acquisition is an intentional `v2`, never a rewrite of `v1`.
+- **W1.5 incident register, Phase 1 (repo-only; IN REVIEW, unmerged).**
+  - **Where it is:** plan `docs/superpowers/plans/2026-09-29-incident-register-phase1.md`; branch `w15-incident-register-phase1`, worktree `~/projects/bts-w15`; tooling `scripts/audit/incident_register/`.
+  - **Scope (plan ruling 10, 2026-09-30):** Phase 1 certifies only wrong or extra events and wrong returned values. A missing-event ("absence") defence link is refused and reads unavailable. Don't reintroduce absence certificates without a new ruling.
+  - **Where to run evidence:** in worktrees under `~/projects/`, never the session scratchpad. `/private/tmp` is cleared on a Mac reboot, and on 9/30 that lost a mid-run sweep and uncommitted evidence.
 
 ## Testing gotchas
 - **pi5 clone (`/home/stonehengee/projects/bts`) has 22 known env-only fast-suite failures** (verified identical with/without diff via stash-compare, 2026-08-14): LightGBM not installed (plain `uv sync`, by design) fails tests/test_lgb_params + predict/calibrate/blend/local_tier/preview files, and the box-ported real `.env` credentials shadow the test fixtures in tests/test_dm.py + test_posting.py. A clean run on pi5 = exactly these 22; anything else is yours.
