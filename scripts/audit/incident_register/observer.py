@@ -335,13 +335,8 @@ def _namespace(obj):
     t = type(obj)
     mro = _TYPE_MRO.__get__(t, type)
     if any(c is types.ModuleType for c in mro):
-        for cls in mro:
-            ns = _type_ns(cls)
-            found, desc = _lookup(ns, "__dict__") if ns is not None else (False, None)
-            if found:
-                if desc is not _MODULE_DICT:
-                    return None                         # a subclass redefines __dict__ (application code)
-                break
+        # ModuleType's own member descriptor: the dict attribute lookup really uses, read without any
+        # subclass __getattribute__ or __dict__ property running
         d = _MODULE_DICT.__get__(obj, t)
         return d if type(d) is dict else None
     if any(c is type for c in mro):                     # a class: ``t`` is its metaclass

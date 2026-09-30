@@ -42,7 +42,23 @@ def test_each_failure_shape_is_classified(tmp_path, body, verdict):
     assert _sweep().classify(xml, rc)[0] == verdict
 
 
-def test_a_run_short_of_the_baseline_count_is_incomplete(tmp_path):
+def test_a_run_whose_inventory_differs_from_the_baseline_is_incomplete(tmp_path):
+    """The baseline's exact node ids, not only their count (Codex phase-1 r5 #8)."""
     xml, rc = _junit(tmp_path, "def test_a():\n    assert 1 == 2\n")
-    assert _sweep().classify(xml, rc, expected_cases=5)[0] == "INCOMPLETE"
-    assert _sweep().classify(xml, rc, expected_cases=1) == ("KILLED", ["test_x::test_a"])
+    assert _sweep().classify(xml, rc, expected_nodes=["test_x::test_a", "test_x::test_b"])[0] == "INCOMPLETE"
+    assert _sweep().classify(xml, rc, expected_nodes=["test_x::test_b"])[0] == "INCOMPLETE"     # same count
+    assert _sweep().classify(xml, rc, expected_nodes=["test_x::test_a"]) == ("KILLED", ["test_x::test_a"])
+
+
+def test_a_skipped_baseline_is_not_clean(tmp_path):
+    """r5 #8 measured: a real run with one skipped node exits 0 and was SURVIVED, i.e. a clean baseline."""
+    xml, rc = _junit(tmp_path, "import pytest\ndef test_a():\n    pytest.skip('not exercised')\n")
+    assert rc == 0 and _sweep().classify(xml, rc)[0] == "SKIPPED"
+
+
+def test_an_assertion_beside_a_skip_is_not_a_kill(tmp_path):
+    """A mutant that makes one node skip while another asserts is not a clean kill: the skipped node's
+    verdict is unknown."""
+    xml, rc = _junit(tmp_path, "import pytest\ndef test_a():\n    assert 1 == 2\n"
+                               "def test_b():\n    pytest.skip('mutant made this skip')\n")
+    assert _sweep().classify(xml, rc, expected_nodes=["test_x::test_a", "test_x::test_b"])[0] == "SKIPPED"

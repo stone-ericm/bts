@@ -343,3 +343,49 @@ def test_disagreeing_observations_that_precision_cannot_order_are_refused():
     b = _run(2, "job\tstep\t2026-07-01T00:00:00.500Z Deployed bbbbbbb\n")
     with pytest.raises(ValueError, match="cannot be ordered"):
         deploy_runs.observations([a, b])
+
+
+# --- fail-closed guards added in r6 ----------------------------------------------------------------
+
+def test_a_watched_namespace_cleared_wholesale_is_a_coverage_gap():
+    import sys
+    import types
+    mod = types.ModuleType("w15_r6_cleared")
+    mod.send = len
+    sys.modules["w15_r6_cleared"] = mod
+    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="w15_r6_cleared:send")]}, "")
+    try:
+        mon.start()
+        mod.__dict__.clear()
+    finally:
+        mon.stop()
+        del sys.modules["w15_r6_cleared"]
+    assert any(e["kind"] == "boundary_gap" and e["reason"] == "a watched namespace was replaced wholesale"
+               for e in mon.events), mon.events
+
+
+def test_watchers_that_cannot_be_installed_make_every_boundary_a_gap(monkeypatch):
+    class NoWatchers:
+        def __getattr__(self, name):
+            def refuse(*_a):
+                raise RuntimeError("no more watcher IDs available")
+            return refuse
+    monkeypatch.setattr(observer, "_API", NoWatchers())
+    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="os:getcwd")]}, "")
+    try:
+        mon.start()
+    finally:
+        mon.stop()
+    assert any(e["kind"] == "boundary_gap" and e["reason"].startswith("store watching unavailable")
+               for e in mon.events), mon.events
+
+
+def test_not_live_before_is_the_latest_earlier_point_by_instant(monkeypatch):
+    """Two points of one SHA in the same second: by instant, '...00.500Z' is the later one (by text it
+    sorts first), so it is the tighter not-live-before bound."""
+    from scripts.audit.incident_register import deploy_runs
+    a = _run(1, "job\tstep\t2026-07-01T00:00:00Z Deployed aaaaaaa\n")
+    b = _run(2, "job\tstep\t2026-07-01T00:00:00.500Z Pre-deploy SHA: aaaaaaa\njob\tstep\t2026-07-01T00:00:02Z Deployed bbbbbbb\n",
+             created="2026-07-01T00:00:01Z")
+    monkeypatch.setattr(deploy_runs, "_is_ancestor", lambda fix, sha, repo: sha == "bbbbbbb")
+    assert deploy_runs.first_live([a, b], "bbbbbbb", repo=".")["not_live_before"] == "2026-07-01T00:00:00.500000Z"

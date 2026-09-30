@@ -2,23 +2,30 @@
 
     python mutation_sweep.py <build-worktree> [LABEL,LABEL,...]
 
-1. BASELINE: the tooling tests must pass cleanly (exit 0, no failure, no error); its test count is kept.
+1. BASELINE: the tooling tests must pass cleanly (exit 0, every node passed: no failure, error or skip);
+   its exact node inventory is kept.
 2. For each mutant (one check disabled), rerun the WHOLE suite (no ``-x``) and classify from pytest's
    JUnit XML, never from free-text summary lines (Codex phase-1 r4 #10: ``RuntimeError("DID NOT RAISE")``
    passed a substring test). ``classify`` is the rule:
-   * KILLED — exit code 1, the baseline's test count, no testcase error, and at least one failure whose
+   * KILLED — exit code 1, the baseline's exact node inventory, no testcase error or skip, and at least one failure whose
      message has an ASSERTION shape: a rewritten ``assert`` (pytest's message starts with ``assert ``;
      ``assert`` is a keyword, so no exception class can print that prefix), an explicit builtin
      ``AssertionError`` (exact prefix — a look-alike class prints its qualified name), or pytest.raises'
      own ``Failed: DID NOT RAISE``;
    * ERRORED — any testcase error (collection/setup/teardown) or an exit code other than 0/1;
-   * INCOMPLETE — a test count different from the baseline's;
+   * INCOMPLETE — a node inventory different from the baseline's (not only its count; Codex phase-1 r5 #8);
+   * SKIPPED — any skipped case (skip or xfail): that node's verdict is unknown, so it is neither a clean
+     baseline nor a clean kill (Codex phase-1 r5 #8: an all-skipped run was a clean baseline);
    * FAILED-OTHER — failures, none of an assertion shape;
    * SURVIVED — exit 0, no failure.
    EVERY killing node id is printed, so a kill for the wrong reason is visible.
-Known equivalent guard (not listed): the ``completed and`` condition on the defence/replay verdict is
-redundant while every exception path records a reason (D11/P7 pin that reason); removing it cannot be
-observed today. The source file is restored after every mutant (verified by byte comparison). No bytecode
+Known equivalent guards (not listed):
+* the ``completed and`` condition on the defence/replay verdict is redundant while every exception path
+  records a reason (D11/P7 pin that reason); removing it cannot be observed today;
+* the observer's end-of-interval "binding changed without a watched store" gap: every change of a
+  supported (module or class) namespace IS a watched store, so no Python code can reach it; it stays
+  as defence in depth.
+Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
 is written during the sweep and none compiled before it is left to be read (a same-size mutant or restore
 written within the same second as the previous compile would otherwise run the stale .pyc).
 """
@@ -67,11 +74,11 @@ M = [
  ('certify.py', '        if gaps:', '        if False:', 'C10 boundary coverage gap'),
  ('certify.py', '        if live_at_branch and not completed:', '        if False:', 'C11 invocation completion'),
  ('certify.py', 'r["kind"] in ("entry_exit", "entry") and r["thread"] == en["thread"]:', 'False:', 'C12 exit/reuse splits invocations'),
- ('observer.py', '                if spec is not None:\n                    extra = loc.get("args", ())', '                if False:\n                    extra = loc.get("args", ())', 'O1 mock callee recorder'),
- ('observer.py', 'return None if spec is not None else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
+ ('observer.py', '                if matched:\n                    extra = loc.get("args", ())', '                if False:\n                    extra = loc.get("args", ())', 'O1 mock callee recorder'),
+ ('observer.py', 'return None if matched else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
- ('observer.py', '            self._record("boundary_gap", {"name": spec["name"], "reason": "not a Python-observable callable",', '            return None and self._record("boundary_gap", {"name": spec["name"], "reason": "not a Python-observable callable",', 'O7 gap for C boundaries'),
+ ('observer.py', '            self._gap(spec["name"], "not a Python-observable callable", type=type_name(type(obj)))', '            pass', 'O7 gap for C boundaries'),
  ('observer.py', 'safe = _safe(retval) if how == "return" else {"raised": type_name(type(retval))}', 'safe = _safe(retval)', 'O8 exceptional exit as type name'),
  ('defence.py', 'why += _assertion_ok(mutant, n, k["_path"], k["_line"], wt)', 'pass', 'D1 assertion location'),
  ('defence.py', '        why.append(f"{where}: frozen files changed: {changed[:5]}")', '        pass', 'D2 frozen drift'),
@@ -105,16 +112,16 @@ M = [
  ('owned.py', 'if os.path.realpath(gitdir) == os.path.realpath(common):', 'if False:', 'W1 primary checkout'),
  ('owned.py', '        if cur.is_symlink():', '        if False:', 'W2 symlinked component'),
  ('owned.py', '                _tree_hash(h, Path(target))', '                pass', 'W4 pth trees hashed'),
- ('observer.py', '            sys.monitoring.restart_events()                  # its PY_START may have been disabled', '            pass', 'O4 restart on a new boundary callee'),
+ ('observer.py', '                sys.monitoring.restart_events()          # its PY_START may have been disabled', '                pass', 'O4 restart on a new boundary callee'),
  ('observer.py', '"outstanding_threads": sum(1 for t in alive if t.ident not in self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
  ('observer.py', '"preexisting_threads_alive": sum(1 for t in alive if t.ident in self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
- ('observer.py', '        self._record("obs_start", {})\n        for spec in self.boundaries:\n            spec["_start"] = _resolve(spec["binding"])\n            self._register(spec, spec["_start"])', '        for spec in self.boundaries:\n            spec["_start"] = _resolve(spec["binding"])\n            self._register(spec, spec["_start"])\n        self._record("obs_start", {})', 'O10 registration gaps inside the interval'),
- ('observer.py', 'matched = [sp for sp, rcv in pairs if rcv is None or first is rcv]', 'matched = [sp for sp, rcv in pairs]', 'O11 receiver identity'),
- ('observer.py', 'if current is not None and id(current) not in self.seen_targets:', 'if current is callable_ and id(current) not in self.seen_targets:', 'O12 every current binding discovered'),
+ ('observer.py', '        self._record("obs_start", {})\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n', '        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
+ ('observer.py', '                    bucket = mine if rcv is None or first is rcv else others', '                    bucket = mine', 'O11 receiver identity'),
+ ('observer.py', '                        self._restep(name, level, event != _DICT_DELETED, new)', '                        pass', 'O12 every store on a binding path is seen'),
  ('observer.py', '        return _safe_items(dict.items(value), "map", depth)', '        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1) for k in list(dict.keys(value))[:50] if type(k) is str}}', 'O13 no key lookups'),
  ('observer.py', '            out.update(length=len(value), incomplete=True)', '            pass', 'O14 truncation is incomplete'),
- ('observer.py', '"category": "unavailable" if incomplete else _classify(spec.get("classify", []), safe)}', '"category": _classify(spec.get("classify", []), safe)}', 'O15 incomplete identity unclassified'),
- ('observer.py', '            category = "unavailable" if incomplete else _classify(self.returns[key], safe)', '            category = _classify(self.returns[key], safe)', 'O16 incomplete return unclassified'),
+ ('observer.py', '"category": _classify(spec.get("classify", []), safe) if _complete(safe) else "unavailable"}', '"category": _classify(spec.get("classify", []), safe)}', 'O15 incomplete identity unclassified'),
+ ('observer.py', '            category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"', '            category = _classify(self.returns[key], safe)', 'O16 incomplete return unclassified'),
  ('certify.py', '        if end.get("preexisting_threads_alive"):', '        if False:', 'C13 pre-existing threads make absence unavailable'),
  ('acceptance.py', '        return ("value_match", []) if got == actual else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', '        return ("value_match", []) if True else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', 'A9 return value match'),
  ('acceptance.py', '    if not str(conn.get("review", "")).strip():', '    if False:', 'A11 fixture review required'),
@@ -129,13 +136,13 @@ M = [
  ('owned.py', '    untracked = {rel: _file_state(root / rel)', '    untracked = {rel: "present"', 'W7 untracked contents in the manifest'),
  ('owned.py', '        for name in sorted(filenames):\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")', '        for name in sorted(f for f in filenames if not f.endswith(".pyc")):\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")', 'W8 bytecode hashed'),
  ('owned.py', '    key = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)', '    key = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)', 'W9 digest memo keyed on ctime'),
- ('deploy_runs.py', '    obs.sort(key=lambda p: (p["at"], p.pop("_k")))', '    obs.sort(key=lambda p: p.pop("_k"))', 'DR1 observation time order'),
- ('deploy_runs.py', '        if a["at"] == b["at"] and a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]):', '        if False:', 'DR2 equal-time disagreement refused'),
+ ('deploy_runs.py', '    obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))', '    obs.sort(key=lambda p: p.pop("_k"))', 'DR1 observation time order'),
+ ('deploy_runs.py', '        if (a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"])', '        if (False and not _same(a["sha"], b["sha"])', 'DR2 cross-run disagreement refused'),
  ('deploy_runs.py', '"sha": r["rolled_back_sha"], "kind": "rolled_back",', '"sha": r["pre_sha"], "kind": "rolled_back",', 'DR3 rollback observation is the logged sha'),
  ('deploy_runs.py', '        anomalies.append("rolled_back_sha_mismatch")', '        pass', 'DR4 rollback sha mismatch flagged'),
- ('records.py', '    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim\'s time\n        return False\n    return w_lo <= hi + WINDOW', '    if hi is None:\n        return False\n    return w_lo <= hi + WINDOW', 'V1 report before the claim'),
- ('records.py', '    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim\'s time\n        return False\n    return w_lo <= hi + WINDOW', '    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim\'s time\n        return False\n    return True', 'V4 48 h after the claim'),
- ('records.py', '    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim\'s time\n        return False\n    return w_lo <= hi + WINDOW', '    if lo is not None and w_hi <= lo:\n        return False\n    return hi is None or w_lo <= hi + WINDOW', 'V5 open-ended claim anchors nothing'),
+ ('records.py', "    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time\n        return False\n    return w_lo <= hi + WINDOW", '    if hi is None:\n        return False\n    return w_lo <= hi + WINDOW', 'V1 report before the claim'),
+ ('records.py', "    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time\n        return False\n    return w_lo <= hi + WINDOW", "    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time\n        return False\n    return True", 'V4 48 h after the claim'),
+ ('records.py', "    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time\n        return False\n    return w_lo <= hi + WINDOW", '    if lo is not None and w_hi <= lo:\n        return False\n    return hi is None or w_lo <= hi + WINDOW', 'V5 open-ended claim anchors nothing'),
  ('records.py', '        if not citing:', '        if False:', 'V6 uncited report'),
  ('records.py', '            if not _qualified(e, span):', '            if not any(_qualified(e, sp) for _p, sp in citing):', 'V7 each citation on its own'),
  ('records.py', '        for n in o.get("links", []):', '        for n in o.get("links", [])[:0]:', 'V8 occurrence links exist'),
@@ -151,6 +158,28 @@ M = [
  ('acceptance.py', '                           if res["verdict"] == "accepted" else [])', '                           if True else [])', 'A14 a rejected pair vouches for no control'),
  ('acceptance.py', '\n                                  if runner.node_state(marked.events, n) == "passed")', ')', 'A15 passed nodes are passes'),
  ('run_expected_failures.py', '"accepted_nodes": [], "passed_nodes": []}', '"accepted_nodes": []}', 'A16 failure artifact carries no controls'),
+ ('observer.py', '            elif not is_current:', '            elif False:', 'O17 a former binding value is unattributed'),
+ ('observer.py', '            if len(specs) > 1:', '            if False:', 'O18 a callable bound to several boundaries is unattributed'),
+ ('observer.py', '            if type(code) is types.CodeType:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', '            if False:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
+ ('observer.py', '        if why is not None:\n            self._gap(spec["name"], why)', '        if False:\n            self._gap(spec["name"], why)', 'O20 an unresolvable binding path is a gap'),
+ ('observer.py', '                if key == "__call__":', '                if False:', 'O21 a replaced mock __call__ is a gap'),
+ ('observer.py', '        d = _MODULE_DICT.__get__(obj, t)', '        d = getattr(obj, "__dict__", None)', 'O22 namespaces read without application code'),
+ ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
+ ('observer.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'O24 nested sequences are checked'),
+ ('observer.py', '            return all(_complete(v) for v in safe[key].values())', '            return True', 'O25 nested maps and fields are checked'),
+ ('observer.py', '            elif event in (_DICT_CLONED, _DICT_CLEARED):', '            elif False:', 'O26 a namespace replaced wholesale is a gap'),
+ ('observer.py', '            if not watching:', '            if False:', 'O27 no watchers means a gap'),
+ ('owned.py', '                if not (name.isidentifier() and hook.is_file()\n                        and _sha(hook.read_bytes()) in REVIEWED_PTH_IMPORTS.get(name, {})):', '                if False:', 'W10 executable .pth lines refused unless reviewed'),
+ ('owned.py', '        elif os.path.isfile(target):\n            _hash_file(h, target)\n        else:\n            h.update(b"dangling")\n        return h.hexdigest()', '        return h.hexdigest()', 'W11 symlink target bytes in the manifest'),
+ ('deploy_runs.py', '(?P<ts>\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?)Z ', '(?P<ts>\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d)(?:\\.\\d+)?Z ', 'DR5 fractions kept'),
+ ('deploy_runs.py', '"live_by": _iso(_instant(p["at"])[1])', '"live_by": _iso(_instant(p["at"])[0])', 'DR6 live_by at the end of its unit'),
+ ('deploy_runs.py', '                and _instant(b["at"])[0] < _instant(a["at"])[1]):', '                and _instant(b["at"])[0] == _instant(a["at"])[0]):', 'DR7 overlapping disagreement refused'),
+ ('deploy_runs.py', '    obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))', '    obs.sort(key=lambda p: (p["at"], p.pop("_k")))', 'DR8 ordered by instant'),
+ ('records.py', '        if s_lo is not None and e_hi is not None and e_hi < s_lo:\n            if then_name', '        if False:\n            if then_name', 'V18 reversed chronology refused'),
+ ('records.py', '        pairs.append(("observed time", seen, "restoration", o.get("restored_verification")))', '        pass', 'V19 observed before restoration'),
+ ('records.py', '             ("alert attempt", alert.get("attempted"), "alert confirmation", alert.get("confirmed")),\n', '', 'V20 alert attempted before confirmed'),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if skipped:\n        return "SKIPPED", skipped', '    if False:\n        return "SKIPPED", skipped', 'S1 skipped cases are not clean'),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):\n        return "INCOMPLETE", []', '    if expected_nodes is not None and len(cases) != len(expected_nodes):\n        return "INCOMPLETE", []', 'S2 the exact baseline inventory'),
 ]
 
 
@@ -160,27 +189,39 @@ def _assertion_shaped(message: str) -> bool:
             or message.startswith("Failed: DID NOT RAISE"))
 
 
-def classify(junit_xml: str, returncode: int, expected_cases: int | None = None) -> tuple[str, list[str]]:
+def _node(case) -> str:
+    return f"{case.get('classname')}::{case.get('name')}"
+
+
+def nodes_of(junit_xml: str) -> list[str]:
+    """The run's node inventory, in order."""
+    return [_node(c) for c in ET.fromstring(junit_xml).iter("testcase")]
+
+
+def classify(junit_xml: str, returncode: int, expected_nodes: list[str] | None = None) -> tuple[str, list[str]]:
     """(verdict, killing node ids) from a run's JUnit XML — see the module docstring."""
     root = ET.fromstring(junit_xml)
     cases = list(root.iter("testcase"))
-    node = lambda c: f"{c.get('classname')}::{c.get('name')}"                  # noqa: E731
     errors = [c for c in cases if c.find("error") is not None]
     failures = [(c, c.find("failure")) for c in cases if c.find("failure") is not None]
-    kills = [node(c) for c, f in failures if _assertion_shaped(f.get("message") or "")]
+    kills = [_node(c) for c, f in failures if _assertion_shaped(f.get("message") or "")]
     if errors or returncode not in (0, 1):
-        return "ERRORED", [node(c) for c in errors]
-    if expected_cases is not None and len(cases) != expected_cases:
+        return "ERRORED", [_node(c) for c in errors]
+    if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):
         return "INCOMPLETE", []
+    skipped = [_node(c) for c in cases if c.find("skipped") is not None]
+    if skipped:
+        return "SKIPPED", skipped
     if returncode == 1 and kills:
         return "KILLED", kills
     if failures:
-        return "FAILED-OTHER", [node(c) for c, _ in failures]
+        return "FAILED-OTHER", [_node(c) for c, _ in failures]
     return ("SURVIVED", []) if returncode == 0 else ("ERRORED", [])
 
 
 def run(build: Path) -> tuple[int, str, int, str]:
-    """(return code, JUnit XML, test count, last output line) of one whole-suite run."""
+    """(return code, JUnit XML, test count, last output line) of one whole-suite run (the node
+    inventory is ``nodes_of`` the XML)."""
     with tempfile.TemporaryDirectory() as td:
         xml = Path(td) / "junit.xml"
         p = subprocess.run(CMD + [f"--junitxml={xml}"], cwd=build, capture_output=True, text=True, env=ENV)
@@ -201,12 +242,15 @@ def main(argv: list[str]) -> int:
     for bak in d.glob("*.sweepbak"):   # a previous sweep died mid-mutant: restore before anything else
         shutil.move(bak, bak.with_suffix(""))
         print(f"restored leftover {bak.name}", flush=True)
-    for cache in [*d.rglob("__pycache__"), *(build / "tests/scripts/incident_register").rglob("__pycache__")]:
+    tooling = build / "docs/audit/2026-09-29-incident-register-evidence/tooling"   # the classifier's tests import it
+    for cache in [*d.rglob("__pycache__"), *(build / "tests/scripts/incident_register").rglob("__pycache__"),
+                  *tooling.rglob("__pycache__")]:
         shutil.rmtree(cache)           # no bytecode compiled before the sweep can be read during it
     rc, xml, n_cases, tail = run(build)
     verdict, _ = classify(xml, rc)
+    baseline_nodes = nodes_of(xml)
     print(f"BASELINE rc={rc} tests={n_cases} verdict={verdict} | {tail}", flush=True)
-    if verdict != "SURVIVED":          # a clean baseline: every test passed
+    if verdict != "SURVIVED":          # a clean baseline: every node passed (no failure, error or skip)
         print("baseline is not clean; stopping", flush=True)
         return 1
     for fname, old, new, label in M:
@@ -223,7 +267,7 @@ def main(argv: list[str]) -> int:
         try:
             f.write_text(text.replace(old, new, 1))
             rc, xml, _n, tail = run(build)
-            verdict, nodes = classify(xml, rc, expected_cases=n_cases)
+            verdict, nodes = classify(xml, rc, expected_nodes=baseline_nodes)
             print(f"{label}: {verdict} | rc={rc} | {tail[:80]} | {nodes}", flush=True)
         finally:
             f.write_bytes(src)
