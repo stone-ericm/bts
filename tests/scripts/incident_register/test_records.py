@@ -15,12 +15,13 @@ pytest.importorskip("jsonschema")
 from scripts.audit.incident_register.records import REGISTRY_PATH, validate  # noqa: E402
 
 ORACLE = "tests/test_incident_register_2026.py::test_e77_singleton_slate_moved_up_is_delivered_before_cutoff"
+CONTROL = "tests/test_incident_register_2026.py::test_e77_verdict_fixed_direction_passes"
 
 # the accepted pair behind base()'s expected-failure fixture, and the registry that pair accepted
 EF_REGISTRY = [{"incident": "E77", "node": ORACLE,
                 "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
                 "connection": {"kind": "derived", "review": "fixture reviewed"}}]
-EF_ACCEPTANCE = json.dumps({"verdict": "accepted", "accepted_nodes": [ORACLE],
+EF_ACCEPTANCE = json.dumps({"verdict": "accepted", "accepted_nodes": [ORACLE], "passed_nodes": [CONTROL],
                             "connections": {ORACLE: "exception_shape"},
                             "registry_sha256": hashlib.sha256(json.dumps(EF_REGISTRY, sort_keys=True).encode()).hexdigest()})
 EF_ACCEPTANCE_SHA = hashlib.sha256(EF_ACCEPTANCE.encode()).hexdigest()
@@ -54,7 +55,9 @@ def base():
         "fix": [{"link": 1, "implemented": "unfixed", "deployed": "not_applicable", "mitigated": "none",
                  "verified_recovered": "not_applicable"}],
         "fixtures": {"historical_replay": [], "current_defence": [],
-                     "expected_failure": [{"nodes": [ORACLE], "exception": "SingletonSlateUndelivered",
+                     "expected_failure": [{"nodes": [ORACLE],
+                                           "exception": "tests.test_incident_register_2026.SingletonSlateUndelivered",
+                                           "controls": [CONTROL],
                                            "acceptance": "evidence/expected_failure/acceptance.json",
                                            "acceptance_sha256": EF_ACCEPTANCE_SHA}],
                      "characterization": []},
@@ -429,11 +432,44 @@ def test_publication_binds_expected_failure_fixtures(tmp_path):
     r["fixtures"]["expected_failure"][0]["acceptance_sha256"] = "2" * 64
     assert any("expected-failure acceptance file hash mismatch" in e for e in errors_for(r))
     r = base()
-    r["fixtures"]["expected_failure"][0]["exception"] = "PassGradedAsMiss"
-    assert any("is not registered with the record's exception PassGradedAsMiss" in e for e in errors_for(r))
+    r["fixtures"]["expected_failure"][0]["exception"] = "tests.test_incident_register_2026.PassGradedAsMiss"
+    assert any("is not registered with the record's exception tests.test_incident_register_2026.PassGradedAsMiss" in e
+               for e in errors_for(r))
     root = ef_root(tmp_path / "other")
     (root / REGISTRY_PATH).write_text(json.dumps({"entries": EF_REGISTRY + [dict(EF_REGISTRY[0], node="x")]}))
     assert any("the registry differs from the one the pair accepted" in e for e in validate([base()], evidence_root=root))
+
+
+def test_publication_binds_characterization_fixtures(tmp_path):
+    """A characterization entry claims the same accepted reproduction as an expected-failure entry (one
+    schema, one pair), so publication binds it the same way (found in review after r4: only the
+    expected-failure list was bound)."""
+    r = base()
+    r["fixtures"]["characterization"], r["fixtures"]["expected_failure"] = r["fixtures"]["expected_failure"], []
+    assert errors_for(r) == []
+    assert any("publication needs an evidence root" in e for e in validate([r]))
+    r["fixtures"]["characterization"][0]["acceptance"] = "evidence/expected_failure/missing.json"
+    assert any("characterization acceptance file evidence/expected_failure/missing.json not found" in e
+               for e in errors_for(r))
+
+
+def test_a_record_exception_must_be_the_registered_one_exactly():
+    """The registry names each exception as module.qualname; a same-named class elsewhere is another one."""
+    r = base()
+    r["fixtures"]["expected_failure"][0]["exception"] = "bts.other.SingletonSlateUndelivered"
+    assert any("is not registered with the record's exception bts.other.SingletonSlateUndelivered" in e
+               for e in errors_for(r))
+
+
+def test_record_controls_are_bound_to_the_pairs_passing_nodes():
+    """A control the record cites must have passed in both runs of the accepted pair."""
+    r = base()
+    r["fixtures"]["expected_failure"][0]["controls"] = ["tests/test_incident_register_2026.py::test_no_such_control"]
+    assert any("control tests/test_incident_register_2026.py::test_no_such_control did not pass in the pair" in e
+               for e in errors_for(r))
+    r = base()
+    r["fixtures"]["expected_failure"][0]["controls"] = [ORACLE]         # the XFAIL node is no control
+    assert any(f"control {ORACLE} did not pass in the pair" in e for e in errors_for(r))
 
 
 def test_publication_without_an_evidence_root_is_refused_for_bound_claims():

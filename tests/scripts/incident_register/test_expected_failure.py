@@ -94,6 +94,20 @@ def test_run_pair_accepts_one_frozen_closure(tmp_path):
     res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
     assert res["verdict"] == "accepted", res["reasons"]
     assert res["connections"] == {NODE: "value_match"} and len(res["registry_sha256"]) == 64
+    assert res["passed_nodes"] == ["tests/test_incident.py::test_control"]       # what a record may cite
+
+
+def test_a_control_skipped_under_runxfail_rejects_the_pair(tmp_path):
+    """A record's controls must have passed in BOTH runs. ``passed_nodes`` lists the marked run's passes of
+    an accepted pair only; that is sound because the gate refuses every other --runxfail outcome for an
+    unregistered node, so a control the --runxfail run skips rejects the pair."""
+    text = GOOD.replace("def test_control():\n", "import os\n\n\n@pytest.mark.skipif(\"W15_ORACLE_OUT\" in os.environ, "
+                        "reason=\"x\")\ndef test_control():\n")
+    repo, wt = setup_project(tmp_path, text)
+    res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
+    assert res["verdict"] == "rejected"
+    assert "--runxfail: tests/test_incident.py::test_control: skipped" in res["reasons"]
+    assert res["passed_nodes"] == []
 
 
 def test_a_literal_oracle_value_disconnected_from_production_is_rejected(tmp_path):
@@ -116,6 +130,7 @@ def test_a_helper_changed_inside_the_pair_is_rejected(tmp_path):
     res = acceptance.run_pair(wt, REGISTRY, ["tests/test_incident.py", "-q"], tmp_path / "out")
     assert res["verdict"] == "rejected"
     assert any("after marked: frozen files changed" in r for r in res["reasons"]), res["reasons"]
+    assert res["passed_nodes"] == []                  # a rejected pair vouches for no control
 
 
 def test_derived_connection_needs_a_recorded_review(tmp_path):
@@ -198,4 +213,5 @@ def test_driver_writes_a_rejected_artifact_on_failure(tmp_path):
     res = drv.main(str(wt), "HEAD", str(tmp_path / "drv"))          # the synthetic repo has no registry file
     saved = json.loads((tmp_path / "drv" / "expected_failures_acceptance.json").read_text())
     assert res["verdict"] == saved["verdict"] == "rejected" and saved["accepted_nodes"] == []
+    assert saved.get("passed_nodes") == []
     assert any("refused" in r for r in saved["reasons"])

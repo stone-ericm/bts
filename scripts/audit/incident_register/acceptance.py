@@ -233,7 +233,8 @@ def run_pair(worktree, registry: list[dict], tests: list[str], out_dir, *, env: 
     are taken before the pair and re-checked after EACH run (Codex phase-1 r3 #4: a helper changed
     between the runs was accepted). A node counts as a reproduction only when the pair verdict is
     ``accepted``; ``connections`` says, per node, ``value_match`` / ``exception_shape`` (each only with
-    its recorded fixture review) or ``unmatched``."""
+    its recorded fixture review) or ``unmatched``; ``passed_nodes`` lists the nodes an accepted pair
+    passed, which are the only controls a record may cite."""
     import hashlib
     from pathlib import Path
 
@@ -269,4 +270,10 @@ def run_pair(worktree, registry: list[dict], tests: list[str], out_dir, *, env: 
     res["raw_events_sha256"] = {r.stage: hashlib.sha256(r.events_path.read_bytes()).hexdigest()
                                 for r in (marked, unmarked) if r.events_path.exists()}
     res["verdict"] = "accepted" if not res["reasons"] else "rejected"
+    # the nodes a record may cite as controls. The gate refuses every --runxfail outcome other than a pass
+    # for an unregistered node (a skip or error rejects the pair; its failures must be the registered
+    # nodes), so in an accepted pair these passed in both runs. A rejected pair vouches for none.
+    res["passed_nodes"] = (sorted(n for n in runner.collected(marked.events)
+                                  if runner.node_state(marked.events, n) == "passed")
+                           if res["verdict"] == "accepted" else [])
     return res

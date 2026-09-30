@@ -5,9 +5,9 @@
 Builds a REJECTED result first; after proving ownership it resets the evidence worktree to ``ref``,
 runs ``acceptance.run_pair`` (marked + ``--runxfail`` over one frozen closure) with the registry in the
 evidence directory, restores the worktree in ``finally``, and ALWAYS writes
-``expected_failures_acceptance.json``: resolved ref, registry sha256, overall verdict, per-node reasons
-and connection status. A session-level reason rejects the whole pair; no node is then reported as an
-accepted reproduction.
+``expected_failures_acceptance.json``: resolved ref, registry sha256, overall verdict, per-node reasons,
+connection status and the passed nodes a record may cite as controls. A session-level reason rejects the
+whole pair; no node is then reported as an accepted reproduction or a passed control.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ FIXTURES = "tests/test_incident_register_2026.py"
 def main(worktree: str, ref: str, out: str) -> dict:
     wt, out_dir = Path(worktree), Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    result = {"ref": ref, "verdict": "rejected", "reasons": [], "accepted_nodes": []}
+    result = {"ref": ref, "verdict": "rejected", "reasons": [], "accepted_nodes": [], "passed_nodes": []}
     owned_ok = False
     t0 = time.time()
     try:

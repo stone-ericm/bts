@@ -194,26 +194,31 @@ def _binding_errs(rid: str, kind: str, entry: dict, root: Path) -> list[str]:
     return errs
 
 
-def _ef_binding_errs(rid: str, entry: dict, root: Path) -> list[str]:
-    """An expected-failure claim is bound to the accepted pair that reproduced it and to the registry that
-    pair accepted (Codex phase-1 r4 #6: a bare path to a missing file used to satisfy publication)."""
+def _ef_binding_errs(rid: str, kind: str, entry: dict, root: Path) -> list[str]:
+    """An expected-failure or characterization claim (one schema, one pair) is bound to the accepted pair
+    that reproduced it and to the registry that pair accepted (Codex phase-1 r4 #6: a bare path to a
+    missing file used to satisfy publication). Its controls must be nodes that pair passed, and its
+    exception the registered ``module.qualname`` exactly."""
     path = root / entry["acceptance"]
     if not path.is_file():
-        return [f"{rid}: expected-failure acceptance file {entry['acceptance']} not found"]
+        return [f"{rid}: {kind} acceptance file {entry['acceptance']} not found"]
     data = path.read_bytes()
     if hashlib.sha256(data).hexdigest() != entry.get("acceptance_sha256"):
-        return [f"{rid}: expected-failure acceptance file hash mismatch"]
+        return [f"{rid}: {kind} acceptance file hash mismatch"]
     acc = json.loads(data)
     errs = []
     if acc.get("verdict") != "accepted":
-        errs.append(f"{rid}: expected-failure pair whose verdict is {acc.get('verdict')!r}")
+        errs.append(f"{rid}: {kind} pair whose verdict is {acc.get('verdict')!r}")
     missing = sorted(set(entry["nodes"]) - set(acc.get("accepted_nodes", [])))
     if missing:
-        errs.append(f"{rid}: expected-failure nodes the pair did not accept: {missing[:3]}")
+        errs.append(f"{rid}: {kind} nodes the pair did not accept: {missing[:3]}")
     for n in entry["nodes"]:
         status = acc.get("connections", {}).get(n)
         if status not in ("value_match", "exception_shape"):
             errs.append(f"{rid}: {n} has no reviewed connection in the pair ({status})")
+    for c in entry.get("controls", []):
+        if c not in acc.get("passed_nodes", []):
+            errs.append(f"{rid}: control {c} did not pass in the pair")
     reg = root / REGISTRY_PATH
     if not reg.is_file():
         return errs + [f"{rid}: the expected-failure registry {REGISTRY_PATH} is missing"]
@@ -223,7 +228,7 @@ def _ef_binding_errs(rid: str, entry: dict, root: Path) -> list[str]:
     by_node = {x["node"]: x for x in entries}
     for n in entry["nodes"]:
         x = by_node.get(n)
-        if x is None or x["exception"].rsplit(".", 1)[-1] != entry["exception"].rsplit(".", 1)[-1]:
+        if x is None or x["exception"] != entry["exception"]:
             errs.append(f"{rid}: {n} is not registered with the record's exception {entry['exception']}")
     return errs
 
@@ -293,7 +298,8 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
     if publish and unfixed and "§10" in r["contract"]["source"] and not (fx["expected_failure"] or fx["characterization"]):
         errs.append(f"{rid}: unfixed defect with a fixed (§10) contract needs an expected-failure fixture")
     bound_claims = ([h for h in fx["historical_replay"] if h["status"] == "certified"]
-                    + [d for d in fx["current_defence"] if d["status"] == "certified"] + fx["expected_failure"])
+                    + [d for d in fx["current_defence"] if d["status"] == "certified"] + fx["expected_failure"]
+                    + fx["characterization"])
     if publish and bound_claims and evidence_root is None:
         errs.append(f"{rid}: publication needs an evidence root to bind its certified and expected-failure claims")
     if publish and evidence_root is not None:
@@ -304,7 +310,9 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
             if d["status"] == "certified":
                 errs += _binding_errs(rid, "defence", d, evidence_root)
         for x in fx["expected_failure"]:
-            errs += _ef_binding_errs(rid, x, evidence_root)
+            errs += _ef_binding_errs(rid, "expected-failure", x, evidence_root)
+        for x in fx["characterization"]:
+            errs += _ef_binding_errs(rid, "characterization", x, evidence_root)
 
     if r["tier"] == "B" and any(x["reaches_production"] for x in r["residual"]):
         errs.append(f"{rid}: residual reaches production (B → A)")

@@ -141,9 +141,16 @@ M = [
  ('records.py', '        for n in o.get("links", []):', '        for n in o.get("links", [])[:0]:', 'V8 occurrence links exist'),
  ('records.py', '    if disp == "observed_incident" and not _witnessed(r, ev):', '    if False:', 'V9 qualified witness required'),
  ('records.py', '_WITNESS_ROLES = ("onset", "observed", "first_machine_detection")', '_WITNESS_ROLES = ("onset", "observed", "first_machine_detection", "operator_awareness")', 'V10 awareness is not a witness'),
- ('records.py', '        for x in fx["expected_failure"]:\n            errs += _ef_binding_errs(rid, x, evidence_root)', '        for x in fx["expected_failure"][:0]:\n            errs += _ef_binding_errs(rid, x, evidence_root)', 'V11 expected-failure binding'),
+ ('records.py', '        for x in fx["expected_failure"]:\n            errs += _ef_binding_errs(rid, "expected-failure", x, evidence_root)', '        for x in fx["expected_failure"][:0]:\n            errs += _ef_binding_errs(rid, "expected-failure", x, evidence_root)', 'V11 expected-failure binding'),
  ('records.py', '    if publish and bound_claims and evidence_root is None:', '    if False:', 'V12 evidence root required'),
  ('records.py', '        if s_lo is not None and e_hi is not None and e_hi < s_lo:          # Codex phase-1 r4 #6', '        if False:', 'V13 impossible chronology'),
+ ('records.py', '        for x in fx["characterization"]:\n            errs += _ef_binding_errs(rid, "characterization", x, evidence_root)', '        for x in fx["characterization"][:0]:\n            errs += _ef_binding_errs(rid, "characterization", x, evidence_root)', 'V14 characterization binding'),
+ ('records.py', '                    + fx["characterization"])', '                    )', 'V15 characterization needs an evidence root'),
+ ('records.py', '        if c not in acc.get("passed_nodes", []):', '        if False:', 'V16 controls passed in the pair'),
+ ('records.py', '        if x is None or x["exception"] != entry["exception"]:', '        if x is None or x["exception"].rsplit(".", 1)[-1] != entry["exception"].rsplit(".", 1)[-1]:', 'V17 exact registered exception'),
+ ('acceptance.py', '                           if res["verdict"] == "accepted" else [])', '                           if True else [])', 'A14 a rejected pair vouches for no control'),
+ ('acceptance.py', '\n                                  if runner.node_state(marked.events, n) == "passed")', ')', 'A15 passed nodes are passes'),
+ ('run_expected_failures.py', '"accepted_nodes": [], "passed_nodes": []}', '"accepted_nodes": []}', 'A16 failure artifact carries no controls'),
 ]
 
 
