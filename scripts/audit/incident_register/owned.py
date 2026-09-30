@@ -33,6 +33,23 @@ class PathRefused(RuntimeError):
     """A mutation path or edit is outside the hard rule (nothing was changed)."""
 
 
+class ClosureRefused(RuntimeError):
+    """The execution environment has a shape whose effects no hash here covers (Codex phase-1 r5 #4)."""
+
+
+# An executable ``.pth`` line runs at every interpreter start. It is allowed only in the one shape this
+# fingerprint covers: ``import <module>`` of a module in the same site-packages (its bytes are in the
+# tree hash) whose reviewed content is listed here. Anything else is refused: the code such a line runs
+# can put roots outside every hash on sys.path (Codex phase-1 r5 #4).
+REVIEWED_PTH_IMPORTS = {
+    "_virtualenv": {
+        "cfb3db86aaa53bb62b5ff764970bec2d71c9228590a0ebec57f6ec926cc0bf1a":
+            "uv's venv hook (reviewed 2026-09-30): installs a meta-path finder that patches distutils/setuptools "
+            "config parsing; imports only the stdlib and adds no sys.path entry",
+    },
+}
+
+
 def _git(cwd, *args, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True)
 
@@ -156,8 +173,19 @@ def apply_edits(root, edits, allowed) -> list[str]:
 
 
 def _file_state(p: Path) -> str:
+    """A file's working bytes. A symlink is frozen by its spelling AND the bytes it resolves to (a
+    directory target by its whole tree, cycles marked), so a harness file reached through a link
+    cannot change unseen (Codex phase-1 r5 #4)."""
     if p.is_symlink():
-        return _sha(("symlink:" + os.readlink(p)).encode())
+        h = hashlib.sha256(("symlink:" + os.readlink(p)).encode())
+        target = os.path.realpath(p)
+        if os.path.isdir(target):
+            _tree_hash(h, Path(target))
+        elif os.path.isfile(target):
+            _hash_file(h, target)
+        else:
+            h.update(b"dangling")
+        return h.hexdigest()
     if p.is_file():
         return _sha(p.read_bytes())
     return "missing"
@@ -235,8 +263,9 @@ def _tree_hash(h, base: Path, visited: set | None = None) -> None:
 
 def venv_fingerprint(root) -> str:
     """Content hash of the worktree's execution environment (Codex phase-1 r3 #4): every file of
-    ``root/.venv`` (bytecode caches excluded) and every directory a ``.pth`` file adds from OUTSIDE
-    the worktree. Directories inside the worktree (the editable ``src``) are the manifest's job."""
+    ``root/.venv`` (bytecode included, see ``_tree_hash``) and every directory a ``.pth`` path line adds
+    from OUTSIDE the worktree. Directories inside the worktree (the editable ``src``) are the manifest's
+    job. Raises ``ClosureRefused`` for an executable ``.pth`` line that is not a reviewed import hook."""
     root = Path(root)
     env = root / ".venv"
     if not env.is_dir():
@@ -247,8 +276,15 @@ def venv_fingerprint(root) -> str:
     for pth in sorted(env.glob("lib/python3*/site-packages/*.pth")):
         for line in pth.read_text(errors="replace").splitlines():
             line = line.strip()
-            if not line or line.startswith(("#", "import ", "import\t")):
-                continue                                 # executable lines are hashed with the .pth bytes
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith(("import ", "import\t")):       # site.addpackage exec()s these lines
+                name = line[len("import"):].strip()
+                hook = pth.parent / f"{name}.py"
+                if not (name.isidentifier() and hook.is_file()
+                        and _sha(hook.read_bytes()) in REVIEWED_PTH_IMPORTS.get(name, {})):
+                    raise ClosureRefused(f"{pth.name}: executable line {line[:80]!r} is not a reviewed import hook")
+                continue                                 # the hook module's bytes are in the tree hash
             # site.addpackage semantics: a relative line is relative to the .pth file's own directory,
             # never to the reviewer's working directory (Codex phase-1 r4 #4)
             target = os.path.realpath(os.path.join(os.path.dirname(pth), line))
