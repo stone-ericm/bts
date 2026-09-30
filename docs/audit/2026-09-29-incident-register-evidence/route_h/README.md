@@ -35,4 +35,19 @@ Repository-only evidence: commits, repo documents, and the typed deploy-run tabl
 - **Occurrence `links`:** I-050's two occurrences name the links they fire (7 and 4). Under ruling 6, a continuing occurrence ends at its earliest end event, including the fix installs of its own links.
 - **Built fixtures:** the notes of I-203 (L03) and I-204 (L04) record their new strict expected-failure fixtures (Task 1).
 
-Result: 0 draft-mode errors.
+Result: 0 draft-mode errors (115 records).
+
+## After Codex phase-1 r4 (2026-09-29, plan rev 5)
+119 records, 0 draft-mode errors under the replaced ruling 6. Ruling 6 now qualifies each citation separately and requires a qualified primary witness for an observed incident.
+
+- **Re-attached reports:** a first-hand report that describes a still-present condition is cited by an `observed` time, not by an onset long past:
+  - I-063: inferred onset from 6/11; the condition was witnessed 6/16–6/17;
+  - I-074: the stranded result was witnessed on 8/09, with an explicit continuity assumption;
+  - I-095: the repair addendum witnesses the pre-repair state.
+- **Dated claims:** open-ended claims that a report dates were closed at the report time (I-075, I-084). I-084's 8/27 recurrence rests on later analysis (the 8/30 write-up, more than 48 h later).
+- **Reinstated as records:**
+  - I-103 (grading lacked the saver rule): the exclusion's "streak < 10 throughout" had no Phase 1 source;
+  - I-104 (worker version drift): tier retirement does not erase the class.
+- **New records from a275399's operational pieces:** I-116 (WARN-attention routing) and I-117 (drift-threshold noise).
+- **Narrowed exclusion:** the I-076 exclusion now covers only the model-quality question. The per-bucket attention identity is listed as pre-ship support for the new bucket.
+- **I-113:** evidence phrased at its actual strength — the fallback is reported, the mechanism is verified in code, and no production impact is claimed.

@@ -9,7 +9,8 @@
   "X": []
  },
  "related": [
-  "I-059"
+  "I-059",
+  "I-116"
  ],
  "id": "I-115",
  "working_id": "E115",
@@ -188,6 +189,7 @@
   "split from I-059 (its link 2): 88234ae's body reports the daily CRITICAL DMs, but that they were false is only 'plausibly' (the memo), so it stays a candidate",
   "onset not_before 2026-05-01 = b08769d (the PA-frame path added and never passed by the scheduler; I-059 exposure note)",
   "the DMs themselves are the alert path working; 'alert: none' records that nothing flagged them as false",
-  "fixtures: filled from Task 5/6 acceptance objects at build time"
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "a275399 (7/13) made production slot_results the authoritative grading source for realized_calibration and excluded the knowingly-biased legacy DD fallback — the same biased-input class, closed for the DD legs (Codex phase-1 r4 Task 7 ruling)"
  ]
 }

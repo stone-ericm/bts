@@ -201,7 +201,6 @@
     "not_before": "2026-07-11T01:00:00-04:00",
     "not_after": "2026-07-12T01:00:00-04:00",
     "evidence": [
-     "ev1",
      "ev5"
     ]
    },
@@ -209,7 +208,7 @@
     "not_before": "2026-07-11T01:00:00-04:00",
     "not_after": "2026-07-12T01:00:00-04:00",
     "evidence": [
-     "ev1"
+     "ev5"
     ]
    },
    "first_machine_detection": "none",
@@ -242,7 +241,15 @@
     "notification": "not_applicable",
     "recovery": "unknown"
    },
-   "continuing": true
+   "continuing": true,
+   "observed": [
+    {
+     "not_after": "2026-08-09T20:29:06-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   ]
   }
  ],
  "routes": {
@@ -268,6 +275,7 @@
   "split? 4f0257a also closes a separate pre-existing latent hazard found in review: check-results for an old date applied results against the CURRENT streak state (out-of-order grading corrupts the streak) — now refused for dates older than 2 days unless --allow-stale-scoring; no firing evidenced",
   "delivery_mode dm (7/06–9/13); no decision involved",
   "fixtures: filled from Task 5/6 acceptance objects at build time; 4f0257a adds tests/test_check_results_wait.py (shadow reconcile on every exit incl. production-pending; wait loop; stale guard) and 41b2bb1 adds tests/health/test_result_resolution.py",
-  "re-disposed observed_incident under ruling 6: the 7/10 shadow result was still ungraded when 4f0257a was written (8/09 20:29), a continuing condition, so that first-hand body is a contemporaneous report; missing_evidence now names what Phase 2 needs to date the grading, not what the disposition needs"
+  "re-disposed observed_incident under ruling 6: the 7/10 shadow result was still ungraded when 4f0257a was written (8/09 20:29), a continuing condition, so that first-hand body is a contemporaneous report; missing_evidence now names what Phase 2 needs to date the grading, not what the disposition needs",
+  "ruling 6 as replaced (Codex phase-1 r4): 4f0257a's body witnesses the stranded result ON 8/09 (observed); the 7/11 onset rests on the endpoint deploy observations (ev5) plus an explicit CONTINUITY ASSUMPTION that the installed code did not change between them. The later code install (8/10) is not verification that the stranded result was repaired."
  ]
 }

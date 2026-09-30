@@ -321,7 +321,8 @@
      "not_before": "2026-07-12T18:39:00-04:00",
      "evidence": [
       "ev2"
-     ]
+     ],
+     "not_after": "2026-07-12T20:28:33-04:00"
     },
     "confirmed": "unknown",
     "failed": "unknown"

@@ -1,0 +1,131 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "related": [
+  "I-004",
+  "I-106"
+ ],
+ "notes": [
+  "re-disposed from the exclusion list after Codex phase-1 r4 (Task 7 ruling): retirement of the tiers does not erase the version-drift class",
+  "whether any 4/01-4/04 production prediction came from a stale worker checkout is not evidenced in the repo (Phase 2 / host logs)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ],
+ "id": "I-104",
+ "working_id": "E104",
+ "title": "Orchestrator worker tiers ran whatever code was checked out (no pull before predict) 4/01-4/04",
+ "disposition": "deployed_latent_defect",
+ "classes": {
+  "primary": "S",
+  "secondary": [
+   "P"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "version drift: a worker tier could predict with code other than main; whether any production pick came from stale code is unknown (Phase 2 / retired hosts). The version-drift class stays relevant to W4 (running code vs the deployed ref)",
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every host that computes a production prediction runs the deployed code revision.",
+  "source": "5207a09 body; design §2 (deployed service)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "ssh_predict ran `bts predict-json` in the worker's checkout without pulling, so each SSH tier (Mac, Alienware) used whatever revision it last had",
+   "code": [
+    {
+     "path": "src/bts/orchestrator.py",
+     "ref": "6d36adb",
+     "symbol": "ssh_predict",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "5207a09"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "run_id": 27077693688,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "residual": [
+  {
+   "text": "The auto-pull itself is a version-drift control only while the SSH tiers exist; the tiers were later retired, and no check compares the running code of any predicting host with the deploy ref.",
+   "reaches_production": false,
+   "source": "5207a09 diff; later tier retirement (CLAUDE.md: Mac/Alienware tiers)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "version drift of a predicting host (running revision != deploy ref at prediction time) is not one of the W4 rank-2 boundaries; noted for the deploy/restart review",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 5207a09 message body and diff (src/bts/orchestrator.py ssh_predict)",
+   "what": "workers now `git pull -q origin main` before running bts predict-json, 'ensuring they always use the latest code without manual intervention'; before it, no pull"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy SHA eaccaf8 at 2026-06-07T00:11:19Z, the first retained observation; eaccaf8 contains the fix"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": "unknown",
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "5207a09"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ }
+}

@@ -282,7 +282,6 @@
     "not_before": "2026-06-11",
     "not_after": "2026-06-17T15:38:59-04:00",
     "evidence": [
-     "ev1",
      "ev8"
     ]
    },
@@ -325,7 +324,16 @@
     "notification": "unknown",
     "recovery": "unknown"
    },
-   "continuing": true
+   "continuing": true,
+   "observed": [
+    {
+     "not_before": "2026-06-16",
+     "not_after": "2026-06-17T15:38:59-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   ]
   }
  ],
  "routes": {
@@ -365,6 +373,7 @@
   "streak values appear only because the incident is about them (exposure_row X-01 on ev1/ev3)",
   "delivery_mode unknown (5/20–7/05 window); policy_objective reach57 (decisions ran on the inflated streak)",
   "fixtures: filled from Task 5/6 acceptance objects at build time; 2b4ff1d adds the keystone regression tests/test_contest_state.py::test_model_never_inflates_decision_streak ('The 2026-06-17 incident': model 10, stale contest 8 → decision 8, doubles on), which reproduces link 1; 4bdfdb8 adds CLI lag / source_date=None regression tests (link 2)",
-  "continuing (ruling 6): the inflation began once the missed 6/11 double-down resolved in the model replay (inferred, spec §1-§2) and lasted until the 6/17 override; only the 6/16-6/17 state is observed (the refused fetch naming latest resolved pick 2026-06-16, the dashboard 10 vs 8)"
+  "continuing (ruling 6): the inflation began once the missed 6/11 double-down resolved in the model replay (inferred, spec §1-§2) and lasted until the 6/17 override; only the 6/16-6/17 state is observed (the refused fetch naming latest resolved pick 2026-06-16, the dashboard 10 vs 8)",
+  "ruling 6 as replaced (Codex phase-1 r4): the onset (not before the missed 6/11 entry) is INFERRED (ev8, spec §1-§2); the June 17 spec witnesses the condition on 6/16-6/17 (observed); the interval between is not measured"
  ]
 }

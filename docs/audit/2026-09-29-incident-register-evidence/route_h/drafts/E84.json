@@ -100,7 +100,8 @@
      "not_before": "2026-08-30T13:36:14-04:00",
      "evidence": [
       "ev1"
-     ]
+     ],
+     "not_after": "2026-08-30T14:54:10-04:00"
     }
    },
    "verified_recovered": "unknown"
@@ -258,6 +259,13 @@
    "strength": "primary",
    "locator": "GitHub Actions deploy run 31831299733 (deploy_runs.json)",
    "what": "3e1791c installed 2026-08-14T19:04:35Z and not replaced until run 33335535999: the defective code was live on 8/30"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "memo §Summary ('FALLBACK DEFERRED had fired three times in four days')",
+   "what": "the same 8/30 write-up's account of the 8/27 recurrence, written more than 48 h after it (later analysis, not a contemporaneous report of 8/27)"
   }
  ],
  "occurrences": [
@@ -294,13 +302,15 @@
     "not_before": "2026-08-30T13:36:14-04:00",
     "evidence": [
      "ev1"
-    ]
+    ],
+    "not_after": "2026-08-30T14:54:10-04:00"
    },
    "mitigation": {
     "not_before": "2026-08-30T13:36:14-04:00",
     "evidence": [
      "ev1"
-    ]
+    ],
+    "not_after": "2026-08-30T14:54:10-04:00"
    },
    "restored_verification": "unknown",
    "recurrence": {
@@ -308,7 +318,7 @@
      {
       "at": "2026-08-27",
       "evidence": [
-       "ev4"
+       "ev7"
       ]
      },
      {

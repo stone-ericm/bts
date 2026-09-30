@@ -1,0 +1,124 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "related": [
+  "I-116"
+ ],
+ "notes": [
+  "split out of a275399 after Codex phase-1 r4 (Task 7 ruling on the I-076 exclusion)",
+  "whether the 0.08 WARN actually reached the digest in 2026 is in the box journals (Phase 2); predicted_vs_realized was already a REPEATED-attention source",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ],
+ "id": "I-117",
+ "working_id": "E117",
+ "title": "predicted_vs_realized drift_warn 0.08 would feed the two-consecutive-day digest in ~69% of calibrated seasons (raised to 0.15 in a275399)",
+ "disposition": "deployed_latent_defect",
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "alert noise: a WARN threshold that the production-clock null simulation shows crossing persistently in most perfectly calibrated seasons; fixed 7/13",
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A drift WARN that enters the operator digest fires rarely when the model is calibrated.",
+  "source": "a275399 body; afbea38 (production-clock threshold simulation)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "drift_warn 0.08 on overlapping windows: crossings are serially persistent, so the two-consecutive-day digest rule fired in ~69% of simulated calibrated seasons",
+   "code": [
+    {
+     "path": "src/bts/health/predicted_vs_realized.py",
+     "ref": "57ab96c",
+     "symbol": "drift_warn",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "a275399"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "afbea38",
+    "live_by": "2026-07-13T04:12:55Z",
+    "run_id": 29223211407,
+    "evidence": [
+     "ev2"
+    ],
+    "not_live_before": "2026-07-13T04:12:54Z"
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "alert-noise calibration of a model-quality monitor is not one of the W4 rank-2 boundaries",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a275399 message body and diff; commit afbea38 (the simulation)",
+   "what": "'the production-clock null simulation shows 0.08 would feed the two-consecutive-day digest in ~69% of calibrated seasons ... 0.15 ≈ 13%/season'"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 29223211407 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy line at 2026-07-13T04:12:54Z, deployed afbea38 (contains a275399) at 04:12:55Z"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": "unknown",
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "a275399",
+   "afbea38"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ }
+}

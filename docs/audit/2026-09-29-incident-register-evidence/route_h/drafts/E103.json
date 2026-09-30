@@ -1,0 +1,123 @@
+{
+ "counted": true,
+ "plan_named": false,
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "related": [
+  "I-111"
+ ],
+ "notes": [
+  "re-disposed from the exclusion list after Codex phase-1 r4 (Task 7 ruling): the draft's claim that the rule 'could not fire (streak < 10 throughout)' has no Phase 1 source — with double-downs (+2/day) 3/26-4/01 could reach 10 — so whether it fired stays open; the grading/version class keeps watchdog relevance",
+  "Phase 2: the 3/29-4/01 local streak values and results (box pick files) settle whether a miss at 10-15 occurred",
+  "deployed: log bound only (live by 6/07 on Hetzner); the pre-4/11 production hosts (Pi5/Mac, manual pulls) have no install record",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ],
+ "id": "I-103",
+ "working_id": "E103",
+ "title": "Local grading had no streak-saver rule 3/29-4/01 (any miss reset the local streak to 0)",
+ "disposition": "deployed_latent_defect",
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "a grading-correctness defect in the local streak, fixed 4/01; whether it fired needs the 3/29-4/01 streak values (Phase 2). The grading class stays relevant to the W4 grading boundary",
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Local grading applies the contest's streak-saver rule: a miss at streak 10-15 with the saver available holds the streak and consumes the saver.",
+  "source": "BTS official rules (streak saver); 2be445e body; CLAUDE.md 'Streak saver tracked'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "update_streak reset the streak to 0 on any miss (new = current + len(results) if all(results) else 0); no saver state existed",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "a0aa4f4",
+     "symbol": "update_streak",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "2be445e"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "run_id": 27077693688,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "after each scoring, the local streak/saver transition differs from the contest rule applied to that day's graded result (e.g. a miss at 10-15 with the saver available resets to 0)",
+  "recovery_assertion": "a replay of the season's graded results under the contest rule reproduces streak.json (streak and saver)"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 2be445e message body and diff (src/bts/picks.py)",
+   "what": "adds saver state to streak.json and makes update_streak hold the streak on a miss at 10-15 when the saver is available; before it, update_streak reset any miss to 0"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: pre-deploy SHA eaccaf8 at 2026-06-07T00:11:19Z, the first retained observation; eaccaf8 contains the fix"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": "unknown",
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "2be445e"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ }
+}

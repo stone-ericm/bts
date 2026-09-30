@@ -75,7 +75,7 @@
    "strength": "primary",
    "locator": "commit 947fce8 message body",
    "written_at": "2026-04-10T18:18:03-04:00",
-   "what": "947fce8 also added mdp_policy.npz to sync_to_r2: without it 'strategy fell back to the heuristic' on the Fly host restored from R2"
+   "what": "reported contemporaneous fallback on Fly: 947fce8's body says the R2-restored Fly host lacked mdp_policy.npz and the strategy fell back to the heuristic (the restore log itself is not retained)"
   }
  ],
  "occurrences": [
@@ -126,6 +126,7 @@
   "split from E106 per Codex phase-1 r3 answer 7: the same commit fixed a restore-coverage defect with its own mechanism",
   "deployed unknown: the fix's candidate run executed the Fly deploy.yml; production (Pi5) has no install record before the 4/11 cutover",
   "fixtures: filled from Task 5/6 acceptance objects at build time",
-  "observed on the Fly shadow host (the 2nd bot of I-017), a real restore from R2: the design's scope covers restore dependencies on any host (§2), so the restore contract's deviation is an observed incident; whether any public Fly pick was decided by the heuristic is not evidenced"
+  "observed on the Fly shadow host (the 2nd bot of I-017), a real restore from R2: the design's scope covers restore dependencies on any host (§2), so the restore contract's deviation is an observed incident; whether any public Fly pick was decided by the heuristic is not evidenced",
+  "evidence strength (Codex phase-1 r4 ruling): reported contemporaneous fallback on Fly; the R2 omission (sync_to_r2 at 947fce8^) and the bootstrap path (scripts/fly-bootstrap.sh runs sync-from-r2 for the model directory on an empty volume) are verified in code. Not established: an exact outage start, a witnessed contest pick, a verified repair, or any production impact."
  ]
 }

@@ -9,25 +9,13 @@
   "working_id": "E76",
   "former_id": "I-076",
   "title": "Calibration monitors could not see a chronic double-down-leg shortfall: no absolute-level check covered the DD band, and realized_calibration WARNs never reached the DM digest",
-  "reason": "calibration-monitor coverage of a model-quality signal (DD-leg shortfall): model quality, out of scope (design \u00a71)"
+  "reason": "the DD-leg shortfall statistic and the new DD-bucket calibration coverage in a275399 \u2014 a model-quality monitoring question (design \u00a71). a275399's operational pieces are disposed separately: I-116 (WARN-attention routing), I-117 (drift-threshold noise), the authoritative slot readback as a note on I-115, and the per-bucket attention identity as pre-ship support for the new bucket (below)"
  },
  {
   "working_id": "L08",
   "former_id": "I-208",
   "title": "Open-Meteo weather enrichment uses a bare urlopen with no retry and swallows every error (silent skip); the command is in no cron or unit",
   "reason": "unretried Open-Meteo fetch on a path no cron, unit or production job runs; the cited 8/03 note is not in the repo: not a deployed path"
- },
- {
-  "working_id": "E103",
-  "former_id": "I-103",
-  "title": "3/29-4/01: local grading had no streak-saver rule (any miss reset the local streak to 0)",
-  "reason": "local grading lacked the saver rule 3/29-4/01; it could not fire (streak < 10 throughout) and was fixed 4/01; no watchdog or restore relevance"
- },
- {
-  "working_id": "E104",
-  "former_id": "I-104",
-  "title": "4/01-4/04: orchestrator SSH worker tiers (Mac, Alienware) ran whatever code was checked out; no pull before predict-json",
-  "reason": "worker tiers ran unpulled code 4/01-4/04 on retired infrastructure (Mac/Alienware tiers); no watchdog or restore relevance today"
  },
  {
   "working_id": "E70",
@@ -52,5 +40,11 @@
   "former_id": null,
   "title": null,
   "reason": "4/14 research-audit cloud fleet (silent retrieve failure, zombie boxes): not the production service"
+ },
+ {
+  "working_id": "a275399-bucket-identity",
+  "former_id": null,
+  "title": null,
+  "reason": "per-bucket attention identity (incident_key per bucket) in a275399: pre-ship support for the new second realized_calibration bucket added in the same change (Codex phase-1 r4: 'may be pre-ship support for a new feature'); not a previously deployed failure"
  }
 ]
