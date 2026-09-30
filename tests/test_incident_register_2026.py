@@ -17,6 +17,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -589,20 +590,43 @@ def _dm_recorder(obs: dict, clock):
     return send_dm
 
 
-def _named_sends(obs: dict, batter: str, *, recipient: str | None = RECIPIENT) -> list[dict]:
-    """Non-alert sends whose text names the declared batter (to ``recipient``; None = to anyone)."""
-    return [d for d in obs["dms"] if d["kind"] != "alert" and batter in d["text"]
-            and (recipient is None or d.get("recipient") == recipient)]
+def _pick_text_matches(text: str, pick: Pick) -> bool:
+    """AFFIRMATIVE pick-recommendation content for the declared selection, specified here and never
+    produced by the formatter under test (Codex phase-1 r5 #5: any text naming the batter, e.g. 'No pick
+    today for Trea Turner' or 'Do not enter Trea Turner', counted as the delivery). The single-pick
+    message names the batter, the batter's team and the opposing pitcher, which is the game the
+    selection is in. The day comes from the send's and the record's timestamps."""
+    pattern = (rf"Today's pick: {re.escape(pick.batter_name)} \({re.escape(pick.team)}\)\n"
+               rf"vs {re.escape(pick.pitcher_name)} \| \d{{1,3}}\.\d%\n\nStreak: \d+")
+    return re.fullmatch(pattern, text) is not None
 
 
-def _record_matches(daily, dm: dict, batter: str, game_pk: int) -> bool:
-    """The saved delivery record describes exactly THIS send: the declared selection, flagged sent, the
-    send's own id, and a delivery time at the send's instant (Codex phase-1 r4 #7)."""
-    if not (daily and daily.notification_sent and daily.notification_id == dm.get("id") and daily.delivered_at
-            and daily.pick.batter_name == batter and daily.pick.game_pk == game_pk):
+def _mentions(obs: dict, batter: str) -> list[dict]:
+    """Every non-alert send, to anyone, whose text names the batter."""
+    return [d for d in obs["dms"] if d["kind"] != "alert" and batter in d["text"]]
+
+
+def _pick_sends(obs: dict, pick: Pick, *, recipient: str = RECIPIENT) -> list[dict]:
+    """The sends to ``recipient`` whose text is the affirmative pick message for ``pick``."""
+    return [d for d in obs["dms"] if d.get("recipient") == recipient and _pick_text_matches(d["text"], pick)]
+
+
+def _on_day_before(t: datetime, day: str, cutoff: datetime) -> bool:
+    return t.astimezone(ET).date().isoformat() == day and t < cutoff
+
+
+def _record_matches(daily, dm: dict, pick: Pick, *, day: str, cutoff: datetime) -> bool:
+    """The saved delivery record describes exactly THIS send (Codex phase-1 r4 #7): the declared selection
+    and day, flagged sent, the send's own id, a delivery time at the send's instant. BOTH timestamps fall
+    on the declared day and strictly before the cutoff (Codex phase-1 r5 #5: a previous-day send and a
+    record persisted at the cutoff itself were accepted)."""
+    if not (daily and daily.date == day and daily.notification_sent and daily.notification_id == dm.get("id")
+            and daily.delivered_at and daily.pick.batter_name == pick.batter_name
+            and daily.pick.game_pk == pick.game_pk):
         return False
-    delivered = datetime.fromisoformat(daily.delivered_at).astimezone(ET)
-    return abs((delivered - dm["at"]).total_seconds()) <= 60
+    delivered = datetime.fromisoformat(daily.delivered_at)
+    return (_on_day_before(dm["at"], day, cutoff) and _on_day_before(delivered, day, cutoff)
+            and abs((delivered - dm["at"]).total_seconds()) <= 60)
 
 
 def _run_singleton_day(picks_dir: Path, preview: DailyPick, *, move_at: datetime,
@@ -704,22 +728,26 @@ def _confirmed_cascade(*_a, **_k):
     return predictions, sel, "local"
 
 
-E77_BATTER, E77_GAME = "Trea Turner", 824716
+E77_BATTER, E77_GAME, E77_DAY = "Trea Turner", 824716, "2026-07-16"
+E77_PICK = _turner()                      # the declared selection: batter, team, opposing pitcher, game
+E77_TEXT = "Today's pick: Trea Turner (PHI)\nvs P | 67.5%\n\nStreak: 0"        # written out, never formatted
 
 
 def _delivery_outcome(obs: dict) -> tuple:
-    """Delivery outcome from the IDENTIFIED send and the saved record together (Codex phase-1 r4 #7: a
-    'No pick today' message with the flags set used to pass). Required: exactly one send to the
-    recipient naming the declared batter, before the true cutoff, that the saved record describes. Bad:
-    no send naming the batter to anyone, and a record claiming no delivery. Anything else is 'other'."""
+    """Delivery outcome from the IDENTIFIED send and the saved record together (Codex phase-1 r4 #7, r5
+    #5). Required: exactly one send to the recipient carrying the AFFIRMATIVE pick message for the
+    declared selection, no other send naming the batter, and a saved record that describes that send,
+    with both timestamps on the declared day and strictly before the true cutoff. Bad: no send naming
+    the batter to anyone, and a record claiming no delivery. Anything else is 'other'."""
     daily = obs["daily"]
-    named = _named_sends(obs, E77_BATTER)
-    if len(named) == 1 and named[0]["at"] < E77_TRUE_CUTOFF and _record_matches(daily, named[0], E77_BATTER, E77_GAME):
+    picks = _pick_sends(obs, E77_PICK)
+    others = [d for d in _mentions(obs, E77_BATTER) if d not in picks]
+    if len(picks) == 1 and not others and _record_matches(daily, picks[0], E77_PICK, day=E77_DAY,
+                                                          cutoff=E77_TRUE_CUTOFF):
         return ("delivered_before_cutoff",)
-    if (not _named_sends(obs, E77_BATTER, recipient=None) and daily and not daily.notification_sent
-            and daily.delivered_at is None):
+    if not _mentions(obs, E77_BATTER) and daily and not daily.notification_sent and daily.delivered_at is None:
         return ("never_delivered",)
-    return ("other", bool(daily and daily.notification_sent), len(named))
+    return ("other", bool(daily and daily.notification_sent), len(picks), len(others))
 
 
 def _e77_verdict(obs: dict) -> None:
@@ -782,18 +810,32 @@ def _flagged(at_utc: str, msg_id: str = "dm-1") -> DailyPick:
                     notification_id=msg_id, delivery_attempted=True, delivered_at=at_utc)
 
 
-@pytest.mark.parametrize("case", ["status_message", "wrong_batter", "wrong_recipient", "inconsistent_record",
-                                  "duplicate_send"])
+E77_CASES = {
+    # Codex phase-1 r4 #7
+    "status_message": ([(_at(17, 11), "No pick today")], "2026-07-16T21:11:00+00:00"),
+    "wrong_batter": ([(_at(17, 11), E77_TEXT.replace("Trea Turner", "Kyle Schwarber"))], "2026-07-16T21:11:00+00:00"),
+    "wrong_recipient": ([(_at(17, 11), E77_TEXT, "mallory")], "2026-07-16T21:11:00+00:00"),
+    "inconsistent_record": ([(_at(17, 11), E77_TEXT, RECIPIENT, "dm-7")], "2026-07-16T21:11:00+00:00"),
+    "duplicate_send": ([(_at(17, 11), E77_TEXT), (_at(17, 12), E77_TEXT, RECIPIENT, "dm-2")], "2026-07-16T21:11:00+00:00"),
+    # Codex phase-1 r5 #5: a name mention is not delivery; both timestamps on the day, before the cutoff
+    "named_status": ([(_at(17, 11), "No pick today for Trea Turner")], "2026-07-16T21:11:00+00:00"),
+    "negative_instruction": ([(_at(17, 11), "Do not enter Trea Turner")], "2026-07-16T21:11:00+00:00"),
+    "wrong_game_and_date": ([(_at(17, 11), "pick: Trea Turner, game 999 on 2026-07-15")], "2026-07-16T21:11:00+00:00"),
+    "another_games_pick": ([(_at(17, 11), E77_TEXT.replace("(PHI)\nvs P", "(PHI)\nvs Q"))], "2026-07-16T21:11:00+00:00"),
+    "status_beside_the_pick": ([(_at(17, 11), E77_TEXT), (_at(17, 12), "No pick today for Trea Turner", RECIPIENT, "dm-2")],
+                               "2026-07-16T21:11:00+00:00"),
+    "previous_day": ([(_at(17, 11) - timedelta(days=1), E77_TEXT)], "2026-07-15T21:11:00+00:00"),
+    "persisted_at_the_cutoff": ([(_at(18, 4), E77_TEXT)], "2026-07-16T22:05:00+00:00"),
+}
+
+
+@pytest.mark.parametrize("case", list(E77_CASES))
 def test_e77_verdict_a_flagged_record_without_the_identified_send_fails_ordinarily(case):
-    """Codex phase-1 r4 #7 negative controls: the delivery is the identified send AND its record."""
-    daily = _flagged("2026-07-16T21:11:00+00:00")
-    dms = {"status_message": [_dm(_at(17, 11), "No pick today")],
-           "wrong_batter": [_dm(_at(17, 11), "pick: Kyle Schwarber")],
-           "wrong_recipient": [_dm(_at(17, 11), "pick: Trea Turner", recipient="mallory")],
-           "inconsistent_record": [_dm(_at(17, 11), "pick: Trea Turner", msg_id="dm-7")],
-           "duplicate_send": [_dm(_at(17, 11), "pick: Trea Turner"),
-                              _dm(_at(17, 12), "pick: Trea Turner", msg_id="dm-2")]}[case]
-    obs = _obs(checks=[_at(17, 10)], dms=dms, daily=daily)
+    """Negative controls: the delivery is the identified AFFIRMATIVE send AND its record, both on the day
+    and before the cutoff (Codex phase-1 r4 #7, r5 #5)."""
+    sends, delivered_at = E77_CASES[case]
+    dms = [_dm(*send[:2], **dict(zip(("recipient", "msg_id"), send[2:]))) for send in sends]
+    obs = _obs(checks=[_at(17, 10)], dms=dms, daily=_flagged(delivered_at))
     assert _delivery_outcome(obs)[0] == "other"
     with pytest.raises(AssertionError):
         _e77_verdict(obs)
@@ -803,7 +845,7 @@ def test_e77_verdict_fixed_direction_passes():
     """A verified pre-cutoff delivery reaches the required branch (the marked node would XPASS)."""
     daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                      notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:11:00+00:00")
-    _e77_verdict(_obs(checks=[_at(17, 10)], dms=[_dm(_at(17, 11), "pick: Trea Turner")], daily=daily))
+    _e77_verdict(_obs(checks=[_at(17, 10)], dms=[_dm(_at(17, 11), E77_TEXT)], daily=daily))
 
 
 def test_e77_verdict_bad_direction_raises_the_dedicated_exception():
@@ -818,7 +860,7 @@ def test_e77_verdict_any_pre_cutoff_delivery_path_passes():
     all (e.g. a woken fallback) also reaches the required branch."""
     daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                      notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T21:35:00+00:00")
-    _e77_verdict(_obs(checks=[], dms=[_dm(_at(17, 35), "pick: Trea Turner")], daily=daily))
+    _e77_verdict(_obs(checks=[], dms=[_dm(_at(17, 35), E77_TEXT)], daily=daily))
 
 
 @pytest.mark.parametrize("case", ["late_delivery", "no_check", "bad_outcome_other_mechanism"])
@@ -827,7 +869,7 @@ def test_e77_verdict_other_observations_fail_ordinarily(case):
     if case == "late_delivery":
         daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
                          notification_id="dm-1", delivery_attempted=True, delivered_at="2026-07-16T22:12:00+00:00")
-        obs = _obs(checks=[_at(18, 10)], dms=[_dm(_at(18, 12), "pick: Trea Turner")], daily=daily)
+        obs = _obs(checks=[_at(18, 10)], dms=[_dm(_at(18, 12), E77_TEXT)], daily=daily)
     elif case == "no_check":
         obs = _obs(checks=[], daily=undelivered)
     else:   # never delivered, but not through the declared lone-check-at-first-pitch mechanism
@@ -876,6 +918,10 @@ def _l03_selection():
                           source="mdp", primary_candidate=None, double_candidate=None,
                           no_pick_reason=None, streak=0)
     return predictions, sel, "local"
+
+
+L03_PICK = _l03_selection()[1].pick_result.daily.pick
+L03_TEXT = "Today's pick: Batter 660101 (NYM)\nvs P | 74.0%\n\nStreak: 0"       # written out, never formatted
 
 
 def _run_l03_day(picks_dir: Path, *, postponed_at: datetime | None) -> dict:
@@ -931,23 +977,24 @@ def _run_l03_day(picks_dir: Path, *, postponed_at: datetime | None) -> dict:
 def _l03_outcome(obs: dict, postponed_at: datetime) -> tuple:
     """Decided from the COMPLETE send history relative to the postponement, with the saved record
     required to agree (Codex phase-1 r4 #8: a valid delivery BEFORE the postponement was refused).
-    Bad: the one identified send naming the batter came at/after the postponement and the record
-    describes it. Required: no such send, and the record agrees — it describes the one earlier send, or
-    claims no delivery when there was none. Anything else is 'other'."""
+    A delivery is the AFFIRMATIVE pick message for the declared selection (Codex phase-1 r5 #5: a status
+    message naming the batter reached the dedicated exception). Bad: the one such send came at/after the
+    postponement and the record describes it. Required: no such send, and the record agrees: it
+    describes the one earlier send, or claims no delivery when there was none. Any other send naming the
+    batter, to anyone, is 'other'."""
     daily = obs["daily"]
-    named = _named_sends(obs, L03_BATTER)
-    after = [d for d in named if d["at"] >= postponed_at]
-    stray = [d for d in _named_sends(obs, L03_BATTER, recipient=None) if d not in named]
-    if stray:
-        return ("other", "a send naming the batter to another recipient")
+    picks = _pick_sends(obs, L03_PICK)
+    if [d for d in _mentions(obs, L03_BATTER) if d not in picks]:
+        return ("other", "a send naming the batter that is not the declared pick delivery")
+    after = [d for d in picks if d["at"] >= postponed_at]
     if after:
-        if len(named) == 1 and _record_matches(daily, after[0], L03_BATTER, L03_GAME):
+        if len(picks) == 1 and _record_matches(daily, after[0], L03_PICK, day=L03_DATE, cutoff=L03_CUTOFF):
             return ("postponed_pick_delivered",)
-        return ("other", len(named), bool(daily and daily.notification_sent))
-    if named:
-        if len(named) == 1 and _record_matches(daily, named[0], L03_BATTER, L03_GAME):
+        return ("other", len(picks), bool(daily and daily.notification_sent))
+    if picks:
+        if len(picks) == 1 and _record_matches(daily, picks[0], L03_PICK, day=L03_DATE, cutoff=L03_CUTOFF):
             return ("no_postponed_delivery",)
-        return ("other", len(named), bool(daily and daily.notification_sent))
+        return ("other", len(picks), bool(daily and daily.notification_sent))
     if daily is None or (not daily.notification_sent and daily.delivered_at is None):
         return ("no_postponed_delivery",)
     return ("other", "a record claiming a delivery no send supports")
@@ -962,7 +1009,7 @@ def _l03_verdict(obs: dict) -> None:
     outcome = _l03_outcome(obs, L03_POSTPONED_AT)
     if outcome == ("postponed_pick_delivered",):
         assert any(t >= L03_FALLBACK for t in obs["cascade"][1:]), obs["cascade"]   # the failed refresh
-        sent = [d["at"] for d in obs["dms"] if d["kind"] == "pick"]
+        sent = [d["at"] for d in _pick_sends(obs, L03_PICK)]
         assert sent and all(L03_POSTPONED_AT <= t < L03_CUTOFF for t in sent), sent
         assert obs["daily"].pick.batter_name == L03_BATTER                            # the cached pick
     _oracle(outcome, ("no_postponed_delivery",), ("postponed_pick_delivered",),
@@ -981,7 +1028,7 @@ def test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game
     playable), so the incident node differs only in the postponement."""
     obs = _run_l03_day(tmp_path / "picks", postponed_at=None)
     assert obs["cascade"][0] == L03_CHECK and any(t >= L03_FALLBACK for t in obs["cascade"][1:]), obs["cascade"]
-    sent = [d["at"] for d in obs["dms"] if d["kind"] == "pick" and L03_BATTER in d["text"]]
+    sent = [d["at"] for d in _pick_sends(obs, L03_PICK)]                     # the affirmative pick message
     assert sent and all(L03_FALLBACK <= t < L03_CUTOFF for t in sent), obs["dms"]
     assert obs["daily"].notification_sent
 
@@ -1001,18 +1048,27 @@ def _l03_daily(at_utc: str | None, msg_id: str = "dm-1") -> DailyPick:
 def test_l03_verdict_a_valid_delivery_before_the_postponement_passes():
     """Codex phase-1 r4 #8: the pick DM'd at 18:15, before the 18:20 postponement, and nothing after it."""
     at = datetime(2026, 7, 20, 18, 15, tzinfo=ET)
-    obs = _l03_obs([_dm(at, f"pick: {L03_BATTER}")], _l03_daily("2026-07-20T22:15:00+00:00"))
+    obs = _l03_obs([_dm(at, L03_TEXT)], _l03_daily("2026-07-20T22:15:00+00:00"))
     assert _l03_outcome(obs, L03_POSTPONED_AT) == ("no_postponed_delivery",)
     _l03_verdict(obs)
 
 
-@pytest.mark.parametrize("case", ["record_disagrees", "record_without_send", "send_to_another_recipient"])
+@pytest.mark.parametrize("case", ["record_disagrees", "record_without_send", "send_to_another_recipient",
+                                  "named_status_after_the_postponement", "previous_day", "persisted_at_the_cutoff"])
 def test_l03_verdict_a_history_the_record_does_not_describe_fails_ordinarily(case):
+    """Negative controls (Codex phase-1 r4 #8, r5 #5): none of these is the declared postponed delivery,
+    so none may reach the dedicated exception."""
     at = datetime(2026, 7, 20, 18, 15, tzinfo=ET)
-    obs = {"record_disagrees": _l03_obs([_dm(at, f"pick: {L03_BATTER}")], _l03_daily("2026-07-20T22:15:00+00:00", "dm-9")),
+    late = L03_POSTPONED_AT + timedelta(minutes=15)
+    obs = {"record_disagrees": _l03_obs([_dm(at, L03_TEXT)], _l03_daily("2026-07-20T22:15:00+00:00", "dm-9")),
            "record_without_send": _l03_obs([], _l03_daily("2026-07-20T22:15:00+00:00")),
-           "send_to_another_recipient": _l03_obs([_dm(at, f"pick: {L03_BATTER}", recipient="mallory")],
-                                                 _l03_daily(None))}[case]
+           "send_to_another_recipient": _l03_obs([_dm(at, L03_TEXT, recipient="mallory")], _l03_daily(None)),
+           "named_status_after_the_postponement": _l03_obs([_dm(late, f"No pick today for {L03_BATTER}")],
+                                                           _l03_daily(late.isoformat())),
+           "previous_day": _l03_obs([_dm(late - timedelta(days=1), L03_TEXT)],
+                                    _l03_daily((late - timedelta(days=1)).isoformat())),
+           "persisted_at_the_cutoff": _l03_obs([_dm(L03_CUTOFF - timedelta(minutes=1), L03_TEXT)],
+                                               _l03_daily(L03_CUTOFF.isoformat()))}[case]
     assert _l03_outcome(obs, L03_POSTPONED_AT)[0] == "other"
     with pytest.raises(AssertionError):
         _l03_verdict(obs)
