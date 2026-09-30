@@ -841,6 +841,16 @@ def test_e77_verdict_a_flagged_record_without_the_identified_send_fails_ordinari
         _e77_verdict(obs)
 
 
+def test_e77_verdict_a_record_of_another_day_fails_ordinarily():
+    """The saved record must be the declared day's own, even when its timestamps fall on that day."""
+    daily = _flagged("2026-07-16T21:11:00+00:00")
+    daily.date = "2026-07-15"
+    obs = _obs(checks=[_at(17, 10)], dms=[_dm(_at(17, 11), E77_TEXT)], daily=daily)
+    assert _delivery_outcome(obs)[0] == "other"
+    with pytest.raises(AssertionError):
+        _e77_verdict(obs)
+
+
 def test_e77_verdict_fixed_direction_passes():
     """A verified pre-cutoff delivery reaches the required branch (the marked node would XPASS)."""
     daily = _preview(_turner(), notification_sent=True, notification_channel="bluesky_dm",
