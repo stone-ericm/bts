@@ -305,3 +305,41 @@ def test_overlapping_or_unknown_endpoints_are_left_as_they_are(tmp_path):
         o["restored_verification"] = {"at": "2026-07-16T12:00:00-04:00", "evidence": ["ev1"]}
         o["observed"] = [{"at": "2026-07-16", "evidence": ["ev1"]}]
     assert not [e for e in _chronology(tmp_path, edit) if "chronology" in e]
+
+
+# --- finding 7: deploy observation precision -------------------------------------------------------
+
+def _run(run_id, text, created="2026-07-01T00:00:00Z"):
+    from scripts.audit.incident_register import deploy_runs
+    return {"run_id": run_id, "created_at": created, "log": "retained", **deploy_runs.extract(text)}
+
+
+def test_same_run_fractional_times_bound_a_non_empty_install_interval(monkeypatch):
+    """r5 #7 measured: extraction dropped the fractions, and first_live returned the empty (t, t]."""
+    from scripts.audit.incident_register import deploy_runs
+    text = ("job\tstep\t2026-07-01T00:00:00.100Z Pre-deploy SHA: aaaaaaa\n"
+            "job\tstep\t2026-07-01T00:00:00.900Z Deployed bbbbbbb\n")
+    monkeypatch.setattr(deploy_runs, "_is_ancestor", lambda fix, sha, repo: sha == "bbbbbbb")
+    got = deploy_runs.first_live([_run(1, text)], "bbbbbbb", repo=".")
+    # the deployed line proves the install by the END of its millisecond, never earlier
+    assert (got["not_live_before"], got["live_by"]) == ("2026-07-01T00:00:00.100000Z", "2026-07-01T00:00:00.901000Z")
+
+
+def test_a_second_precision_deploy_line_bounds_live_by_at_the_end_of_its_second(monkeypatch):
+    """A whole-second stamp truncates: the install happened by the end of that second, so the same
+    second for both lines still gives a non-empty interval."""
+    from scripts.audit.incident_register import deploy_runs
+    text = "job\tstep\t2026-07-01T00:00:00Z Pre-deploy SHA: aaaaaaa\njob\tstep\t2026-07-01T00:00:00Z Deployed bbbbbbb\n"
+    monkeypatch.setattr(deploy_runs, "_is_ancestor", lambda fix, sha, repo: sha == "bbbbbbb")
+    got = deploy_runs.first_live([_run(1, text)], "bbbbbbb", repo=".")
+    assert (got["not_live_before"], got["live_by"]) == ("2026-07-01T00:00:00Z", "2026-07-01T00:00:01Z")
+
+
+def test_disagreeing_observations_that_precision_cannot_order_are_refused():
+    """Generalizes r4 #9's equal-time refusal: '00:00:00Z' may be any instant in that second, so it
+    cannot be ordered against '00:00:00.500Z' from another run when the two disagree."""
+    from scripts.audit.incident_register import deploy_runs
+    a = _run(1, "job\tstep\t2026-07-01T00:00:00Z Deployed aaaaaaa\n")
+    b = _run(2, "job\tstep\t2026-07-01T00:00:00.500Z Deployed bbbbbbb\n")
+    with pytest.raises(ValueError, match="cannot be ordered"):
+        deploy_runs.observations([a, b])

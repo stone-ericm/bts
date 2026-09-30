@@ -17,9 +17,12 @@ from __future__ import annotations
 
 import re
 import subprocess
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-_LINE = re.compile(r"^[^\t]*\t[^\t]*\t(?P<ts>\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.\d+)?Z "
+# the timestamp is kept at the precision the log prints it (Codex phase-1 r5 #7: fractions were dropped,
+# and two lines of one second collapsed into an empty first-live interval)
+_LINE = re.compile(r"^[^\t]*\t[^\t]*\t(?P<ts>\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)Z "
                    r"(?:(?:out|err): )?(?P<text>.*)$")
 _SHA = r"(?P<sha>[0-9a-f]{7,40})"
 TEMPLATES = {
@@ -143,6 +146,21 @@ def build(runs: list[dict], *, fetch=fetch_log) -> list[dict]:
     return out
 
 
+def _instant(ts: str) -> tuple[datetime, datetime]:
+    """``[floor, ceil)`` of a printed UTC timestamp: the printed value truncates the true instant, which
+    lies at or after it and before it plus one unit of the printed precision (1 s with no fraction;
+    below a microsecond, 1 µs)."""
+    body = ts[:-1] if ts.endswith("Z") else ts
+    frac = body.partition(".")[2]
+    floor = datetime.fromisoformat(body).replace(tzinfo=timezone.utc)
+    step = timedelta(seconds=1) if not frac else timedelta(microseconds=max(1, 10 ** (6 - len(frac))) if len(frac) <= 6 else 1)
+    return floor, floor + step
+
+
+def _iso(t: datetime) -> str:
+    return t.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _same(a: str | None, b: str | None) -> bool:
     return bool(a and b) and (a.startswith(b) or b.startswith(a))
 
@@ -163,12 +181,16 @@ def observations(runs: list[dict]) -> list[dict]:
         if r.get("rollback") == "clean" and r.get("rolled_back_at") and r.get("rolled_back_sha"):
             obs.append({"at": r["rolled_back_at"], "sha": r["rolled_back_sha"], "kind": "rolled_back",
                         "run_id": r["run_id"], "_k": (order, 2)})
-    # ordered by when each point was OBSERVED (Codex phase-1 r4 #9: an older-created run can execute
-    # later); within one run the log order breaks a same-second tie
-    obs.sort(key=lambda p: (p["at"], p.pop("_k")))
+    # ordered by the INSTANT each point was observed, never by its text (Codex phase-1 r4 #9: an
+    # older-created run can execute later; r5 #7: '...00Z' sorts after '...00.5Z' as text); within one
+    # run the log order breaks a tie
+    obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))
     for a, b in zip(obs, obs[1:]):
-        if a["at"] == b["at"] and a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]):
-            raise ValueError(f"observations of different runs disagree at {a['at']}: {a['sha']} vs {b['sha']}")
+        # two runs' points whose precision intervals overlap cannot be ordered; if they disagree, refuse
+        if (a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"])
+                and _instant(b["at"])[0] < _instant(a["at"])[1]):
+            raise ValueError(f"observations of different runs cannot be ordered at their precision and disagree: "
+                             f"{a['at']} {a['sha']} vs {b['at']} {b['sha']}")
     return obs
 
 
@@ -182,14 +204,15 @@ def installed_timeline(runs: list[dict]) -> list[dict]:
     ``unknown`` — from the start of a run whose log expired (or a failed canary without a clean
     rollback) until the next observation, whose SHA is kept only as a ``candidate``."""
     points = observations(runs)
-    breaks = sorted(r["created_at"] for r in runs if r["log"] != "retained")
-    breaks += sorted(r["canary_at"] or r["deployed_at"] for r in runs if r["log"] == "retained"
-                     and r.get("canary") == "failed" and r.get("rollback") != "clean" and r.get("deployed_at"))
-    breaks = sorted(breaks)
+    breaks = [r["created_at"] for r in runs if r["log"] != "retained"]
+    breaks += [r["canary_at"] or r["deployed_at"] for r in runs if r["log"] == "retained"
+               and r.get("canary") == "failed" and r.get("rollback") != "clean" and r.get("deployed_at")]
+    breaks = sorted(breaks, key=lambda t: _instant(t)[0])
     segs: list[dict] = []
     for a, b in zip(points, points[1:] + [None]):
         to = b["at"] if b else None
-        brk = [t for t in breaks if a["at"] < t and (to is None or t < to)]
+        brk = [t for t in breaks if _instant(a["at"])[0] < _instant(t)[0]
+               and (to is None or _instant(t)[0] < _instant(to)[0])]
         if b is not None and a["run_id"] == b["run_id"]:
             segs.append({"from": a["at"], "to": to, "sha": None, "basis": "transition", "candidate": None,
                          "between": [a["sha"], b["sha"]]})
@@ -214,7 +237,8 @@ def live_at(timeline: list[dict], t: str) -> dict:
         if seg["from"] == t and seg["basis"] in ("assumed_continuous", "transition"):
             sha = seg["sha"] if seg["basis"] == "assumed_continuous" else seg["between"][0]
             return {"sha": sha, "basis": "observed", "candidate": None}
-    inside = [s for s in timeline if s["from"] <= t and (s["to"] is None or t < s["to"])]
+    inside = [s for s in timeline if _instant(s["from"])[0] <= _instant(t)[0]
+              and (s["to"] is None or _instant(t)[0] < _instant(s["to"])[0])]
     if not inside:
         first = next((s["sha"] or (s.get("between") or [None])[0] for s in timeline), None)
         return {"sha": None, "basis": "unknown", "candidate": first}
@@ -234,6 +258,9 @@ def first_live(runs_or_points, fix: str, *, repo) -> dict | None:
     of an install without it: the first-live time lies in ``(not_live_before, live_by]``. Both ends are
     observation points (e.g. a run's pre-deploy line and its deployed line), never a segment boundary,
     so a deploy is bounded by its own log lines, not collapsed to one instant (Codex phase-1 r3 #5).
+    Each end keeps its line's precision (Codex phase-1 r5 #7): ``not_live_before`` is the earlier line's
+    printed instant (the true one is at or after it), ``live_by`` the END of the containing line's
+    printed unit (the true one is before it), so the interval is never empty.
     ``live_by`` is the earliest OBSERVED containing install, not proof of the first-ever install when
     earlier logs expired (``not_live_before`` is then older or None)."""
     points = runs_or_points if runs_or_points and "kind" in runs_or_points[0] else observations(runs_or_points)
@@ -241,6 +268,7 @@ def first_live(runs_or_points, fix: str, *, repo) -> dict | None:
     for i, p in enumerate(points):
         if _is_ancestor(fix, p["sha"], repo):
             prior = [q for q in points[:i] if not _is_ancestor(fix, q["sha"], repo)]
-            return {"sha": p["sha"], "live_by": p["at"], "live_by_kind": p["kind"], "run_id": p["run_id"],
-                    "not_live_before": prior[-1]["at"] if prior else None, "basis": "log"}
+            return {"sha": p["sha"], "live_by": _iso(_instant(p["at"])[1]), "live_by_kind": p["kind"],
+                    "run_id": p["run_id"], "not_live_before": _iso(_instant(prior[-1]["at"])[0]) if prior else None,
+                    "basis": "log"}
     return None

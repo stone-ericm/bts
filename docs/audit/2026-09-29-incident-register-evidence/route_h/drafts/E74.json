@@ -81,7 +81,7 @@
    "deployed": {
     "basis": "log",
     "sha": "64f0ffb",
-    "live_by": "2026-08-10T00:41:08Z",
+    "live_by": "2026-08-10T00:41:09Z",
     "not_live_before": "2026-08-10T00:41:06Z",
     "run_id": 31344916217,
     "evidence": [
@@ -115,7 +115,7 @@
    "deployed": {
     "basis": "log",
     "sha": "64f0ffb",
-    "live_by": "2026-08-10T00:41:08Z",
+    "live_by": "2026-08-10T00:41:09Z",
     "not_live_before": "2026-08-10T00:41:06Z",
     "run_id": 31344916217,
     "evidence": [

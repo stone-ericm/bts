@@ -67,7 +67,7 @@ def test_passed_canary():
     got = extract(PASSED)
     assert got["pre_sha"] == "d15d382" and got["deployed_sha"] == "4490aee"
     assert got["canary"] == "passed" and got["rollback"] == "none"
-    assert got["deployed_at"] == "2026-09-22T16:28:50Z"
+    assert got["deployed_at"] == "2026-09-22T16:28:50.5977631Z"        # the printed precision is kept
     assert got["test_gate"] == {"passed": 2895, "skipped": 1, "deselected": 7, "warnings": 2}
     assert got["anomalies"] == []
 
@@ -76,7 +76,7 @@ def test_failed_canary_with_clean_rollback():
     got = extract(ROLLED_BACK)
     assert (got["pre_sha"], got["deployed_sha"], got["canary"], got["rollback"]) == (
         "1111111", "2222222", "failed", "clean")
-    assert got["rolled_back_at"] == "2026-09-22T16:28:58Z"
+    assert got["rolled_back_at"] == "2026-09-22T16:28:58.5977631Z"
     assert got["test_gate"] is None
 
 
@@ -185,7 +185,8 @@ def test_first_live_is_bounded_by_the_runs_own_log_lines(chain):
     """r3 #5 measured: (t, t] was reported as an exact install time."""
     repo, (c0, c1, c2) = chain
     got = first_live([rec(1, pre=c0, dep=c0), rec(3, pre=c0, dep=c2)], c1, repo=repo)
-    assert (got["not_live_before"], got["live_by"]) == ("2026-07-03T00:00:00Z", "2026-07-03T00:00:02Z")
+    # live_by is the END of the deployed line's printed second (Codex phase-1 r5 #7)
+    assert (got["not_live_before"], got["live_by"]) == ("2026-07-03T00:00:00Z", "2026-07-03T00:00:03Z")
     assert got["live_by_kind"] == "deployed" and got["sha"] == c2
     assert first_live([rec(1, pre=c0, dep=c0)], "0000000", repo=repo) is None
 
@@ -195,7 +196,7 @@ def test_first_live_is_bounded_across_an_expired_run(chain):
     got = first_live([rec(1, pre=c0, dep=c0), rec(2, log="unavailable_expired", canary="absent"),
                       rec(3, pre=c2, dep=c2)], c1, repo=repo)
     assert (got["not_live_before"], got["live_by"], got["live_by_kind"]) == (
-        "2026-07-01T00:00:02Z", "2026-07-03T00:00:00Z", "pre_deploy")
+        "2026-07-01T00:00:02Z", "2026-07-03T00:00:01Z", "pre_deploy")
 
 
 def _typed(num, created, pre_at, post_at, pre, post):
@@ -210,7 +211,7 @@ def test_observation_points_follow_their_own_timestamps(monkeypatch):
             _typed(2, "2026-01-01T11:00:00Z", "2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "aaaaaaa", "bbbbbbb")]
     monkeypatch.setattr(d, "_is_ancestor", lambda fix, sha, repo: sha in ("bbbbbbb", "ccccccc"))
     got = d.first_live(runs, "bbbbbbb", repo=".")
-    assert (got["not_live_before"], got["live_by"]) == ("2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z")
+    assert (got["not_live_before"], got["live_by"]) == ("2026-01-01T12:00:00Z", "2026-01-01T12:01:01Z")
 
 
 def test_disagreeing_observations_at_the_same_instant_are_refused():

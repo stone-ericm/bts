@@ -69,7 +69,7 @@
    "deployed": {
     "basis": "log",
     "sha": "48e8485",
-    "live_by": "2026-07-02T15:28:12Z",
+    "live_by": "2026-07-02T15:28:13Z",
     "not_live_before": "2026-07-02T15:28:10Z",
     "run_id": 28601525167,
     "evidence": [
@@ -98,7 +98,7 @@
    "deployed": {
     "basis": "log",
     "sha": "48e8485",
-    "live_by": "2026-07-02T15:28:12Z",
+    "live_by": "2026-07-02T15:28:13Z",
     "not_live_before": "2026-07-02T15:28:10Z",
     "run_id": 28601525167,
     "evidence": [
@@ -119,7 +119,7 @@
    "deployed": {
     "basis": "log",
     "sha": "2c62d72",
-    "live_by": "2026-07-02T16:06:38Z",
+    "live_by": "2026-07-02T16:06:39Z",
     "not_live_before": "2026-07-02T16:06:36Z",
     "run_id": 28604004289,
     "evidence": [
