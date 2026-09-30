@@ -197,6 +197,23 @@ def test_venv_fingerprint_hashes_file_contents_not_just_names(tmp_path):
     assert owned.venv_fingerprint(root) != f1
 
 
+def test_a_same_size_rewrite_with_its_mtime_put_back_still_changes_the_fingerprint(tmp_path):
+    """Sweep W9: digests are memoized per process on the file's identity. After a same-size rewrite,
+    os.utime can put the mtime back; only the ctime still moves, so it must be part of the memo key
+    (the test above changes the mtime, which misses the memo on its own)."""
+    root = tmp_path / "wt"
+    site = _fake_venv(root, tmp_path / "outside")
+    f = site / "pkg.py"
+    f0 = owned.venv_fingerprint(root)
+    before = f.stat()
+    f.write_text("VALUE = 2\n")                                 # same size, same inode
+    os.utime(f, ns=(before.st_atime_ns, before.st_mtime_ns))
+    after = f.stat()
+    assert (after.st_ino, after.st_size, after.st_mtime_ns) == (before.st_ino, before.st_size, before.st_mtime_ns)
+    assert after.st_ctime_ns != before.st_ctime_ns
+    assert owned.venv_fingerprint(root) != f0
+
+
 def test_venv_fingerprint_hashes_pth_trees_outside_the_worktree(tmp_path):
     """Sweep W4: a directory a .pth file adds from OUTSIDE the worktree is part of the environment."""
     root = tmp_path / "wt"

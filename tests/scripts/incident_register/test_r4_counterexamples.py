@@ -226,11 +226,14 @@ def test_the_manifest_hashes_untracked_file_contents(tmp_path):
     from tests.scripts.incident_register.synth import write
     _, wt = defended_project(tmp_path)
     write(wt, "tests/helper_data.txt", "one\n")
-    m0 = owned.manifest(wt)
+    m0, v0 = owned.manifest(wt), owned.venv_fingerprint(wt)
     write(wt, "tests/helper_data.txt", "two\n")
     m1 = owned.manifest(wt)
     assert set(m0["untracked"]) == set(m1["untracked"]) and m0 != m1
-    assert defence._drift(wt, m0["files"], m0["untracked"], "v", (), "x") != []
+    # the real venv fingerprint, so the only reason left is the content change (sweep D13: a dummy
+    # fingerprint made _drift return "the venv changed" whatever the untracked comparison did)
+    assert defence._drift(wt, m0["files"], m0["untracked"], v0, (), "x") == [
+        "x: untracked files changed: ['tests/helper_data.txt']"]
 
 
 def test_zipped_read_backs_of_different_cardinalities_do_not_match():
