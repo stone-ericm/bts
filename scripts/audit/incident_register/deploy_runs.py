@@ -187,8 +187,9 @@ def observations(runs: list[dict]) -> list[dict]:
     obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))
     for a, b in zip(obs, obs[1:]):
         # two runs' points whose precision intervals overlap cannot be ordered; if they disagree, refuse
-        if (a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"])
-                and _instant(b["at"])[0] < _instant(a["at"])[1]):
+        # (a symmetric overlap test: it must not depend on the order it is asked to check)
+        (fa, ca), (fb, cb) = _instant(a["at"]), _instant(b["at"])
+        if a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]) and fa < cb and fb < ca:
             raise ValueError(f"observations of different runs cannot be ordered at their precision and disagree: "
                              f"{a['at']} {a['sha']} vs {b['at']} {b['sha']}")
     return obs

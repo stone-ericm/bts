@@ -389,3 +389,31 @@ def test_not_live_before_is_the_latest_earlier_point_by_instant(monkeypatch):
              created="2026-07-01T00:00:01Z")
     monkeypatch.setattr(deploy_runs, "_is_ancestor", lambda fix, sha, repo: sha == "bbbbbbb")
     assert deploy_runs.first_live([a, b], "bbbbbbb", repo=".")["not_live_before"] == "2026-07-01T00:00:00.500000Z"
+
+
+def test_a_call_on_another_receiver_is_recorded_as_such():
+    """Sweep O11 at d92869c: the rev 6 current-value check also makes another receiver's call
+    unattributable, so the r4 outcome test passed with the receiver rule removed. The recorded reason
+    is what a reviewer reads: it must say 'another receiver', not 'a former value'."""
+    import sys
+    import types
+
+    class Transport:
+        def send(self, text):
+            return text
+
+    mod = types.ModuleType("w15_r6_receivers")
+    mod.real, mod.other = Transport(), Transport()
+    mod.send = mod.real.send
+    sys.modules["w15_r6_receivers"] = mod
+    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="w15_r6_receivers:send", value=["args[1]"])]}, "")
+    try:
+        mon.start()
+        mod.other.send("pick: Turner")
+        mod.real.send("pick: Turner")
+    finally:
+        mon.stop()
+        del sys.modules["w15_r6_receivers"]
+    calls = [e["identity"] for e in mon.events if e["kind"] == "boundary"]
+    assert [c.get("reason") for c in calls] == ["another receiver of the boundary's code", None], calls
+    assert calls[1]["category"] == "pick"
