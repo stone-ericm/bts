@@ -115,7 +115,7 @@ M = [
  ('observer.py', '                sys.monitoring.restart_events()          # its PY_START may have been disabled', '                pass', 'O4 restart on a new boundary callee'),
  ('observer.py', '"outstanding_threads": sum(1 for t in alive if t.ident not in self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
  ('observer.py', '"preexisting_threads_alive": sum(1 for t in alive if t.ident in self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
- ('observer.py', '        self._record("obs_start", {})\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n', '        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
+ ('observer.py', '        self._record("obs_start", {})\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
  ('observer.py', '                    bucket = mine if rcv is None or first is rcv else others', '                    bucket = mine', 'O11 receiver identity'),
  ('observer.py', '                        self._restep(name, level, event != _DICT_DELETED, new)', '                        pass', 'O12 every store on a binding path is seen'),
  ('observer.py', '        return _safe_items(dict.items(value), "map", depth)', '        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1) for k in list(dict.keys(value))[:50] if type(k) is str}}', 'O13 no key lookups'),
@@ -180,6 +180,7 @@ M = [
  ('records.py', '             ("alert attempt", alert.get("attempted"), "alert confirmation", alert.get("confirmed")),\n', '', 'V20 alert attempted before confirmed'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if skipped:\n        return "SKIPPED", skipped', '    if False:\n        return "SKIPPED", skipped', 'S1 skipped cases are not clean'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):\n        return "INCOMPLETE", []', '    if expected_nodes is not None and len(cases) != len(expected_nodes):\n        return "INCOMPLETE", []', 'S2 the exact baseline inventory'),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    except SyntaxError as e:\n        return f"{type(e).__name__}: {e.msg} (line {e.lineno})"', '    except SyntaxError as e:\n        return None', 'S3 a mutant that does not compile is never run'),
 ]
 
 
@@ -230,6 +231,18 @@ def run(build: Path) -> tuple[int, str, int, str]:
     return p.returncode, text, len(list(ET.fromstring(text).iter("testcase"))), (lines[-1] if lines else p.stderr[-200:])
 
 
+def mutant_error(text: str, old: str, new: str, filename: str) -> str | None:
+    """Why the mutated text is not a runnable mutant, or None. A mutant that does not compile would make
+    every importing module fail to collect: that is a defect of the mutant, not an ERRORED run."""
+    if text.count(old) != 1:
+        return f"ANCHOR COUNT {text.count(old)}"
+    try:
+        compile(text.replace(old, new, 1), filename, "exec")
+    except SyntaxError as e:
+        return f"{type(e).__name__}: {e.msg} (line {e.lineno})"
+    return None
+
+
 def _on_term(signum, frame):
     raise KeyboardInterrupt            # so the finally below restores the mutated file
 
@@ -259,8 +272,9 @@ def main(argv: list[str]) -> int:
         f = d / fname
         src = f.read_bytes()
         text = src.decode()
-        if text.count(old) != 1:
-            print(f"{label}: ANCHOR COUNT {text.count(old)}", flush=True)
+        invalid = mutant_error(text, old, new, str(f))
+        if invalid:
+            print(f"{label}: INVALID MUTANT | {invalid}", flush=True)
             continue
         bak = f.with_name(f.name + ".sweepbak")
         bak.write_bytes(src)

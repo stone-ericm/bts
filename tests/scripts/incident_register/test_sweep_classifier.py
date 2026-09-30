@@ -62,3 +62,13 @@ def test_an_assertion_beside_a_skip_is_not_a_kill(tmp_path):
     xml, rc = _junit(tmp_path, "import pytest\ndef test_a():\n    assert 1 == 2\n"
                                "def test_b():\n    pytest.skip('mutant made this skip')\n")
     assert _sweep().classify(xml, rc, expected_nodes=["test_x::test_a", "test_x::test_b"])[0] == "SKIPPED"
+
+
+def test_a_mutant_that_does_not_compile_is_never_run():
+    """r6: a mutant whose text does not compile made six modules fail to collect and looked like an
+    ERRORED run; it is now reported as an invalid mutant before anything runs."""
+    text = "def f(x):\n    if x:\n        return 1\n    return 2\n"
+    err = _sweep().mutant_error(text, "    if x:\n", "if x:\n", "m.py")
+    assert err is not None and err.startswith("IndentationError"), err
+    assert _sweep().mutant_error(text, "return 1", "return 3", "m.py") is None
+    assert _sweep().mutant_error(text, "return", "yield", "m.py") == "ANCHOR COUNT 2"
