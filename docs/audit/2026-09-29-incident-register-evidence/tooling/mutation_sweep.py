@@ -26,6 +26,9 @@ Known equivalent guards (not listed):
   replacing sys.modules itself; since r7 the root (sys's own 'modules' entry) is watched too, so that
   probe is caught as a qualifying call (test_r6_counterexamples.py::test_a_persistent_sys_modules_replacement_is_seen)
   and no Python path to the guard is known. It stays as defence in depth;
+* retired O4 (restart events when a new boundary callee is registered): since r7 no function start is
+  disabled while boundaries are observed (O31, O32 pin that), so the restart has nothing to re-enable;
+  measured SURVIVED at 1c6c183. The call stays as defence in depth should that rule ever change;
 * retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
   O30) the raw descriptor read and getattr coincide for every accepted object.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
@@ -115,7 +118,6 @@ M = [
  ('owned.py', 'if os.path.realpath(gitdir) == os.path.realpath(common):', 'if False:', 'W1 primary checkout'),
  ('owned.py', '        if cur.is_symlink():', '        if False:', 'W2 symlinked component'),
  ('owned.py', '                _tree_hash(h, Path(target))', '                pass', 'W4 pth trees hashed'),
- ('observer.py', '                sys.monitoring.restart_events()          # its PY_START may have been disabled', '                pass', 'O4 restart on a new boundary callee'),
  ('observer.py', '"outstanding_threads": len(alive - self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
  ('observer.py', '"preexisting_threads_alive": len(alive & self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
  ('observer.py', '        self._record("obs_start", {})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),

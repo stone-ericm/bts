@@ -1,13 +1,13 @@
-BASELINE rc=0 | ======================== 40 passed, 22 xfailed in 1.25s ========================
-P1 affirmative content (not a name match): CAUGHT | =================== 5 failed, 35 passed, 22 xfailed in 1.01s ===================
-P2 send and record on the declared day: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.98s ===================
-P3 strictly before the cutoff: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.99s ===================
-P4 the record's delivered_at bounded: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.99s ===================
-P5 E77: no other send naming the batter: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.98s ===================
-P6 L03: another send naming the batter is other: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.98s ===================
-P7 the record is the declared day's: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.98s ===================
-F1 named status formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 0.70s ==================
-F2 unqualified no-pick formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 0.70s ==================
-R1 L03 postponement guard at the delivery chokepoint: REACHES THE REQUIRED BRANCH | ================== 1 failed, 8 passed, 53 deselected in 0.60s ==================
-R2 E77 noon schedule re-fetch: REACHES THE REQUIRED BRANCH | ================== 1 failed, 1 passed, 60 deselected in 0.60s ==================
+BASELINE rc=0 | ======================== 40 passed, 22 xfailed in 1.52s ========================
+P1 affirmative content (not a name match): CAUGHT | =================== 5 failed, 35 passed, 22 xfailed in 0.98s ===================
+P2 send and record on the declared day: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.96s ===================
+P3 strictly before the cutoff: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.96s ===================
+P4 the record's delivered_at bounded: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 0.96s ===================
+P5 E77: no other send naming the batter: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.94s ===================
+P6 L03: another send naming the batter is other: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.95s ===================
+P7 the record is the declared day's: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 0.96s ===================
+F1 named status formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 0.68s ==================
+F2 unqualified no-pick formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 0.68s ==================
+R1 L03 postponement guard at the delivery chokepoint: REACHES THE REQUIRED BRANCH | ================== 1 failed, 8 passed, 53 deselected in 0.59s ==================
+R2 E77 noon schedule re-fetch: REACHES THE REQUIRED BRANCH | ================== 1 failed, 1 passed, 60 deselected in 0.58s ==================
 ALL AS REQUIRED
