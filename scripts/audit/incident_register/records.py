@@ -168,6 +168,41 @@ def _latency_errs(rid: str, o: dict) -> list[str]:
     return errs
 
 
+def _chronology_errs(rid: str, o: dict) -> list[str]:
+    """Certainly reversed, contract-ordered endpoints of one occurrence (Codex phase-1 r5 #6: a condition
+    observed after its own restoration, and an alert confirmed before its attempt, validated). A pair is
+    refused only when the later event's latest instant precedes the earlier event's earliest one;
+    unknown and overlapping bounds stay as they are. A recurrence after a restoration is its own
+    occurrence."""
+    def bound(x):
+        if isinstance(x, dict) and isinstance(x.get("at"), dict):
+            return x["at"]                                    # a detection: {detector, at: bound}
+        return x if isinstance(x, dict) else None
+    alert = o.get("alert") if isinstance(o.get("alert"), dict) else {}
+    pairs = [("onset", o.get("onset"), "first detectable time", o.get("first_detectable")),
+             ("first detectable time", o.get("first_detectable"), "first machine detection",
+              bound(o.get("first_machine_detection"))),
+             ("alert attempt", alert.get("attempted"), "alert confirmation", alert.get("confirmed")),
+             ("alert attempt", alert.get("attempted"), "alert failure", alert.get("failed"))]
+    for seen in o.get("observed", []):
+        pairs.append(("onset", o.get("onset"), "observed time", seen))
+        pairs.append(("observed time", seen, "restoration", o.get("restored_verification")))
+    errs = []
+    for first_name, first, then_name, then in pairs:
+        first, then = bound(first), bound(then)
+        if first is None or then is None:
+            continue
+        s_lo, _ = _span(first)
+        _, e_hi = _span(then)
+        if s_lo is not None and e_hi is not None and e_hi < s_lo:
+            if then_name == "restoration":
+                errs.append(f"{rid}: impossible chronology: a condition observed after its restoration "
+                            "(a recurrence is its own occurrence)")
+            else:
+                errs.append(f"{rid}: impossible chronology: the {then_name} precedes the {first_name}")
+    return errs
+
+
 def _binding_errs(rid: str, kind: str, entry: dict, root: Path) -> list[str]:
     path = root / entry["acceptance"]
     if not path.is_file():
@@ -329,6 +364,7 @@ def _semantic(r: dict, ids: set[str], publish: bool = True, evidence_root: Path 
             errs.append(f"{rid}: deployed not_live_before is after live_by")
     for o in r.get("occurrences", []):
         errs += _latency_errs(rid, o)
+        errs += _chronology_errs(rid, o)
     return errs
 
 

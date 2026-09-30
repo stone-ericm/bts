@@ -259,3 +259,49 @@ def test_a_nested_incomplete_return_is_not_certified(tmp_path, payload):
     res = defence.current_defence(wt, spec, tmp_path / "out")
     assert res["verdict"] == "rejected", res
     assert any("no 'bad' return after the branch" in r for r in res["certificates"][NODE]["reasons"])
+
+
+# --- finding 6: chronology coherence ---------------------------------------------------------------
+
+def _chronology(tmp_path, edit):
+    from scripts.audit.incident_register.records import validate
+    from tests.scripts.incident_register.test_records import base, ef_root
+    r = base()
+    edit(r["occurrences"][0])
+    return validate([r], evidence_root=ef_root(tmp_path / "evidence"))
+
+
+def test_a_condition_observed_after_its_restoration_is_refused(tmp_path):
+    """r5 #6 measured: restored at 7/16 12:00, then 'observed still deviating' at 7/17 09:00, with zero
+    errors. A recurrence is its own occurrence; it is not witnessed after this one ended."""
+    def edit(o):
+        o["restored_verification"] = {"at": "2026-07-16T12:00:00-04:00", "evidence": ["ev1"]}
+        o["observed"] = [{"at": "2026-07-17T09:00:00-04:00", "evidence": ["ev1"]}]
+    assert any("observed after its restoration" in e for e in _chronology(tmp_path, edit))
+
+
+def test_an_alert_confirmed_before_its_attempt_is_refused(tmp_path):
+    """r5 #6 measured: an alert confirmed at 18:00 but first attempted at 19:00, with zero errors."""
+    def edit(o):
+        o["alert"]["attempted"] = {"at": "2026-07-16T19:00:00-04:00", "evidence": ["ev1"]}
+        o["alert"]["confirmed"] = {"at": "2026-07-16T18:00:00-04:00", "evidence": ["ev1"]}
+    assert any("the alert confirmation precedes the alert attempt" in e for e in _chronology(tmp_path, edit))
+
+
+@pytest.mark.parametrize("field, value, message", [
+    ("first_detectable", {"at": "2026-07-15T12:00:00-04:00", "evidence": ["ev1"]}, "the first detectable time precedes the onset"),
+    ("observed", [{"at": "2026-07-15T12:00:00-04:00", "evidence": ["ev1"]}], "the observed time precedes the onset"),
+])
+def test_other_certainly_reversed_endpoints_are_refused(tmp_path, field, value, message):
+    """Nothing about a condition can be detectable or observed before its onset (onset: 7/16)."""
+    def edit(o):
+        o[field] = value
+    assert any(message in e for e in _chronology(tmp_path, edit))
+
+
+def test_overlapping_or_unknown_endpoints_are_left_as_they_are(tmp_path):
+    """Only a CERTAIN reversal is refused: a same-day observation and a restoration later that day pass."""
+    def edit(o):
+        o["restored_verification"] = {"at": "2026-07-16T12:00:00-04:00", "evidence": ["ev1"]}
+        o["observed"] = [{"at": "2026-07-16", "evidence": ["ev1"]}]
+    assert not [e for e in _chronology(tmp_path, edit) if "chronology" in e]
