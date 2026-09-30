@@ -103,11 +103,38 @@ def assert_owned(path) -> dict:
     return record
 
 
+def _reviewed_hooks(root) -> list[tuple[Path, str]]:
+    """(site-packages dir, module name) of every reviewed import hook a ``.pth`` line runs."""
+    hooks = []
+    for pth in sorted(Path(root).glob(".venv/lib/python3*/site-packages/*.pth")):
+        for line in pth.read_text(errors="replace").splitlines():
+            line = line.strip()
+            if line.startswith(("import ", "import\t")):
+                name = line[len("import"):].strip()
+                if name in REVIEWED_PTH_IMPORTS:
+                    hooks.append((pth.parent, name))
+    return hooks
+
+
+def purge_hook_caches(root) -> list[str]:
+    """Delete the cached bytecode of every reviewed import hook, so the reviewed SOURCE is what runs:
+    Python executes a valid cache instead of the source, and a cache is not the reviewed code (Codex
+    phase-1 r6 #3). Evidence runs never write bytecode, so the cache does not come back."""
+    removed = []
+    for site, name in _reviewed_hooks(root):
+        for cache in sorted((site / "__pycache__").glob(f"{name}.*.pyc")):
+            cache.unlink()
+            removed.append(str(cache))
+    return removed
+
+
 def reset(path, ref: str) -> None:
-    """Hard reset + clean (``.venv`` kept) of an owned worktree, verified clean afterwards."""
+    """Hard reset + clean (``.venv`` kept, reviewed hook caches purged) of an owned worktree, verified
+    clean afterwards."""
     assert_owned(path)
     _git(path, "reset", "-q", "--hard", ref)
     _git(path, "clean", "-qffdx", "-e", ".venv")
+    purge_hook_caches(path)
     left = [ln for ln in _out(path, "status", "--porcelain", "--ignored").splitlines() if ln != "!! .venv/"]
     if left:
         raise OwnershipError(f"{path}: reset left residue: {left[:5]}")
@@ -284,6 +311,17 @@ def venv_fingerprint(root) -> str:
                 if not (name.isidentifier() and hook.is_file()
                         and _sha(hook.read_bytes()) in REVIEWED_PTH_IMPORTS.get(name, {})):
                     raise ClosureRefused(f"{pth.name}: executable line {line[:80]!r} is not a reviewed import hook")
+                # the review covers the SOURCE: a cache or any other importable form of the name would
+                # run instead (Codex phase-1 r6 #3)
+                caches = sorted((pth.parent / "__pycache__").glob(f"{name}.*.pyc"))
+                if caches:
+                    raise ClosureRefused(f"{name}: cached bytecode of a reviewed hook ({caches[0].name}) would run "
+                                         "instead of the reviewed source; owned.reset purges it")
+                others = sorted(q.name for q in pth.parent.iterdir()          # a .pth is configuration, not a module
+                                if q.name != f"{name}.py" and q.suffix != ".pth"
+                                and (q.name == name or q.name.startswith(f"{name}.")))
+                if others:
+                    raise ClosureRefused(f"{name}: another importable form of the reviewed hook: {others[:3]}")
                 continue                                 # the hook module's bytes are in the tree hash
             # site.addpackage semantics: a relative line is relative to the .pth file's own directory,
             # never to the reviewer's working directory (Codex phase-1 r4 #4)

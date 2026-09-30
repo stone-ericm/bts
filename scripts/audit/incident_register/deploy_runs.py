@@ -185,11 +185,18 @@ def observations(runs: list[dict]) -> list[dict]:
     # older-created run can execute later; r5 #7: '...00Z' sorts after '...00.5Z' as text); within one
     # run the log order breaks a tie
     obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))
-    for a, b in zip(obs, obs[1:]):
-        # two runs' points whose precision intervals overlap cannot be ordered; if they disagree, refuse
-        # (a symmetric overlap test: it must not depend on the order it is asked to check)
-        (fa, ca), (fb, cb) = _instant(a["at"]), _instant(b["at"])
-        if a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]) and fa < cb and fb < ca:
+    # two runs' points whose precision intervals overlap cannot be ordered; if they disagree, refuse. EVERY
+    # overlapping pair is checked, not only neighbours (Codex phase-1 r6 #7: an agreeing point between
+    # them shielded the pair); the test is symmetric, so it does not depend on the order it is asked in
+    spans = [_instant(p["at"]) for p in obs]
+    for i, a in enumerate(obs):
+        fa, ca = spans[i]
+        for j in range(i + 1, len(obs)):
+            b, (fb, cb) = obs[j], spans[j]
+            if fb >= ca:                                  # sorted by floor: nothing later overlaps a
+                break
+            if a["run_id"] == b["run_id"] or _same(a["sha"], b["sha"]) or not (fa < cb and fb < ca):
+                continue
             raise ValueError(f"observations of different runs cannot be ordered at their precision and disagree: "
                              f"{a['at']} {a['sha']} vs {b['at']} {b['sha']}")
     return obs
@@ -216,16 +223,19 @@ def installed_timeline(runs: list[dict]) -> list[dict]:
                and (to is None or _instant(t)[0] < _instant(to)[0])]
         if b is not None and a["run_id"] == b["run_id"]:
             segs.append({"from": a["at"], "to": to, "sha": None, "basis": "transition", "candidate": None,
-                         "between": [a["sha"], b["sha"]]})
+                         "between": [a["sha"], b["sha"]], "observed_sha": a["sha"]})
             continue
         end = brk[0] if brk else to
         if b is None and not brk:
-            segs.append({"from": a["at"], "to": None, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None})
+            segs.append({"from": a["at"], "to": None, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None,
+                         "observed_sha": a["sha"]})
             continue
         if b is not None and not brk and not _same(a["sha"], b["sha"]):
-            segs.append({"from": a["at"], "to": to, "sha": None, "basis": "drift", "candidate": None})
+            segs.append({"from": a["at"], "to": to, "sha": None, "basis": "drift", "candidate": None,
+                         "observed_sha": a["sha"]})
             continue
-        segs.append({"from": a["at"], "to": end, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None})
+        segs.append({"from": a["at"], "to": end, "sha": a["sha"], "basis": "assumed_continuous", "candidate": None,
+                     "observed_sha": a["sha"]})
         if brk:
             segs.append({"from": brk[0], "to": to, "sha": None, "basis": "unknown",
                          "candidate": b["sha"] if b else None})
@@ -233,11 +243,16 @@ def installed_timeline(runs: list[dict]) -> list[dict]:
 
 
 def live_at(timeline: list[dict], t: str) -> dict:
-    """What the box ran at ``t``: ``observed`` exactly at an observation point, else the segment's basis."""
+    """What the box ran at ``t``, the segment's basis. Inside an observation's printed unit
+    ([printed, printed + unit)) the observation itself may fall before or after ``t``, so the state is
+    ``within_observation_precision`` with that observation's SHA only a candidate (Codex phase-1 r6 #7:
+    the floor of an uncertain observation was called ``observed``)."""
+    tt = _instant(t)[0]
     for seg in timeline:
-        if seg["from"] == t and seg["basis"] in ("assumed_continuous", "transition"):
-            sha = seg["sha"] if seg["basis"] == "assumed_continuous" else seg["between"][0]
-            return {"sha": sha, "basis": "observed", "candidate": None}
+        if seg.get("observed_sha") is not None:
+            f, c = _instant(seg["from"])
+            if f <= tt < c:
+                return {"sha": None, "basis": "within_observation_precision", "candidate": seg["observed_sha"]}
     inside = [s for s in timeline if _instant(s["from"])[0] <= _instant(t)[0]
               and (s["to"] is None or _instant(t)[0] < _instant(s["to"])[0])]
     if not inside:

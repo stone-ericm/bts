@@ -22,9 +22,12 @@
 Known equivalent guards (not listed):
 * the ``completed and`` condition on the defence/replay verdict is redundant while every exception path
   records a reason (D11/P7 pin that reason); removing it cannot be observed today;
-* the observer's end-of-interval "binding changed without a watched store" gap: every change of a
-  supported (module or class) namespace IS a watched store, so no Python code can reach it; it stays
-  as defence in depth.
+* the observer's end-of-interval "binding changed without a watched store" gap. Codex r6 reached it by
+  replacing sys.modules itself; since r7 the root (sys's own 'modules' entry) is watched too, so that
+  probe is caught as a qualifying call (test_r6_counterexamples.py::test_a_persistent_sys_modules_replacement_is_seen)
+  and no Python path to the guard is known. It stays as defence in depth;
+* retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
+  O30) the raw descriptor read and getattr coincide for every accepted object.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
 is written during the sweep and none compiled before it is left to be read (a same-size mutant or restore
 written within the same second as the previous compile would otherwise run the stale .pyc).
@@ -75,7 +78,7 @@ M = [
  ('certify.py', '        if live_at_branch and not completed:', '        if False:', 'C11 invocation completion'),
  ('certify.py', 'r["kind"] in ("entry_exit", "entry") and r["thread"] == en["thread"]:', 'False:', 'C12 exit/reuse splits invocations'),
  ('observer.py', '                if matched:\n                    extra = loc.get("args", ())', '                if False:\n                    extra = loc.get("args", ())', 'O1 mock callee recorder'),
- ('observer.py', 'return None if matched else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
+ ('observer.py', 'return None if matched or self.boundaries else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
  ('observer.py', '            self._gap(spec["name"], "not a Python-observable callable", type=type_name(type(obj)))', '            pass', 'O7 gap for C boundaries'),
@@ -113,9 +116,9 @@ M = [
  ('owned.py', '        if cur.is_symlink():', '        if False:', 'W2 symlinked component'),
  ('owned.py', '                _tree_hash(h, Path(target))', '                pass', 'W4 pth trees hashed'),
  ('observer.py', '                sys.monitoring.restart_events()          # its PY_START may have been disabled', '                pass', 'O4 restart on a new boundary callee'),
- ('observer.py', '"outstanding_threads": sum(1 for t in alive if t.ident not in self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
- ('observer.py', '"preexisting_threads_alive": sum(1 for t in alive if t.ident in self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
- ('observer.py', '        self._record("obs_start", {})\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
+ ('observer.py', '"outstanding_threads": len(alive - self.threads_at_start),', '"outstanding_threads": 0,', 'O6 outstanding thread count'),
+ ('observer.py', '"preexisting_threads_alive": len(alive & self.threads_at_start)})', '"preexisting_threads_alive": 0})', 'O9 pre-existing threads alive'),
+ ('observer.py', '        self._record("obs_start", {})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {})\n', 'O10 registration gaps inside the interval'),
  ('observer.py', '                    bucket = mine if rcv is None or first is rcv else others', '                    bucket = mine', 'O11 receiver identity'),
  ('observer.py', '                        self._restep(name, level, event != _DICT_DELETED, new)', '                        pass', 'O12 every store on a binding path is seen'),
  ('observer.py', '        return _safe_items(dict.items(value), "map", depth)', '        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1) for k in list(dict.keys(value))[:50] if type(k) is str}}', 'O13 no key lookups'),
@@ -137,7 +140,7 @@ M = [
  ('owned.py', '        for name in sorted(filenames):\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")', '        for name in sorted(f for f in filenames if not f.endswith(".pyc")):\n            p = os.path.join(dirpath, name)\n            h.update(os.path.relpath(p, base).encode() + b"\\0")', 'W8 bytecode hashed'),
  ('owned.py', '    key = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)', '    key = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)', 'W9 digest memo keyed on ctime'),
  ('deploy_runs.py', '    obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))', '    obs.sort(key=lambda p: p.pop("_k"))', 'DR1 observation time order'),
- ('deploy_runs.py', '        if a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]) and fa < cb and fb < ca:', '        if False:', 'DR2 cross-run disagreement refused'),
+ ('deploy_runs.py', '            if a["run_id"] == b["run_id"] or _same(a["sha"], b["sha"]) or not (fa < cb and fb < ca):\n                continue', '            if True:\n                continue', 'DR2 cross-run disagreement refused'),
  ('deploy_runs.py', '"sha": r["rolled_back_sha"], "kind": "rolled_back",', '"sha": r["pre_sha"], "kind": "rolled_back",', 'DR3 rollback observation is the logged sha'),
  ('deploy_runs.py', '        anomalies.append("rolled_back_sha_mismatch")', '        pass', 'DR4 rollback sha mismatch flagged'),
  ('records.py', "    if hi is None or (lo is not None and w_hi < lo):           # certainly written before the claim's time\n        return False\n    return w_lo <= hi + WINDOW", '    if hi is None:\n        return False\n    return w_lo <= hi + WINDOW', 'V1 report before the claim'),
@@ -163,7 +166,6 @@ M = [
  ('observer.py', '            if type(code) is types.CodeType:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', '            if False:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
  ('observer.py', '        if why is not None:\n            self._gap(spec["name"], why)', '        if False:\n            self._gap(spec["name"], why)', 'O20 an unresolvable binding path is a gap'),
  ('observer.py', '                if key == "__call__":', '                if False:', 'O21 a replaced mock __call__ is a gap'),
- ('observer.py', '        d = _MODULE_DICT.__get__(obj, t)', '        d = getattr(obj, "__dict__", None)', 'O22 namespaces read without application code'),
  ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
  ('observer.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'O24 nested sequences are checked'),
  ('observer.py', '            return all(_complete(v) for v in safe[key].values())', '            return True', 'O25 nested maps and fields are checked'),
@@ -173,7 +175,7 @@ M = [
  ('owned.py', '        elif os.path.isfile(target):\n            _hash_file(h, target)\n        else:\n            h.update(b"dangling")\n        return h.hexdigest()', '        return h.hexdigest()', 'W11 symlink target bytes in the manifest'),
  ('deploy_runs.py', '(?P<ts>\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?)Z ', '(?P<ts>\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d)(?:\\.\\d+)?Z ', 'DR5 fractions kept'),
  ('deploy_runs.py', '"live_by": _iso(_instant(p["at"])[1])', '"live_by": _iso(_instant(p["at"])[0])', 'DR6 live_by at the end of its unit'),
- ('deploy_runs.py', '        if a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]) and fa < cb and fb < ca:', '        if a["run_id"] != b["run_id"] and not _same(a["sha"], b["sha"]) and fa == fb:', 'DR7 overlapping disagreement refused'),
+ ('deploy_runs.py', '            if a["run_id"] == b["run_id"] or _same(a["sha"], b["sha"]) or not (fa < cb and fb < ca):', '            if a["run_id"] == b["run_id"] or _same(a["sha"], b["sha"]) or not (fa == fb):', 'DR7 overlapping disagreement refused'),
  ('deploy_runs.py', '    obs.sort(key=lambda p: (_instant(p["at"])[0], p.pop("_k")))', '    obs.sort(key=lambda p: (p["at"], p.pop("_k")))', 'DR8 ordered by instant'),
  ('records.py', '        if s_lo is not None and e_hi is not None and e_hi < s_lo:\n            if then_name', '        if False:\n            if then_name', 'V18 reversed chronology refused'),
  ('records.py', '        pairs.append(("observed time", seen, "restoration", o.get("restored_verification")))', '        pass', 'V19 observed before restoration'),
@@ -181,6 +183,22 @@ M = [
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if skipped:\n        return "SKIPPED", skipped', '    if False:\n        return "SKIPPED", skipped', 'S1 skipped cases are not clean'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):\n        return "INCOMPLETE", []', '    if expected_nodes is not None and len(cases) != len(expected_nodes):\n        return "INCOMPLETE", []', 'S2 the exact baseline inventory'),
  ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    except SyntaxError as e:\n        return f"{type(e).__name__}: {e.msg} (line {e.lineno})"', '    except SyntaxError as e:\n        return None', 'S3 a mutant that does not compile is never run'),
+ ('observer.py', '    chain = [(sys_ns, "modules", sys, type(sys))]', '    chain = [({}, "modules", sys, type(sys))]', 'O28 sys.modules itself is watched'),
+ ('observer.py', '    if type(obj) is types.ModuleType:\n        d = _MODULE_DICT', '    if isinstance(obj, types.ModuleType):\n        d = _MODULE_DICT', 'O29 exact module dispatch'),
+ ('observer.py', '    if type(obj) is type:\n        return _type_ns(obj)', '    if isinstance(obj, type):\n        return _type_ns(obj)', 'O30 exact class dispatch'),
+ ('observer.py', '            if self.boundaries:\n                self._check_dispatch()', '            if False:\n                self._check_dispatch()', 'O31 path types re-checked'),
+ ('observer.py', 'return None if matched or self.boundaries else sys.monitoring.DISABLE', 'return None if matched else sys.monitoring.DISABLE', 'O32 every start kept while boundaries are observed'),
+ ('observer.py', '                    if shared > 1:', '                    if False:', 'O33 shared code is unattributed'),
+ ('observer.py', '        if type(obj) is _METHOD:\n            obj = obj.__func__\n        return obj.__code__ if type(obj) is _FUNCTION else None', '        if type_name(type(obj)) == "builtins.method":\n            obj = obj.__func__\n        return obj.__code__ if type_name(type(obj)) == "builtins.function" else None', 'O34 callables by exact type'),
+ ('observer.py', '        alive = set(sys._current_frames()) - {threading.get_ident()}', '        alive = {t.ident for t in threading.enumerate()} - {threading.get_ident()}', 'O35 every live thread counted'),
+ ('observer.py', '        if self.tool_acquired:\n            steps = [', '        if self.active:\n            steps = [', 'O36 a failed start releases the monitoring id'),
+ ('observer.py', '            except BaseException as e:  # noqa: BLE001 - stop() must never raise\n                self._err("end_check", e)', '            except BaseException as e:  # noqa: BLE001 - stop() must never raise\n                raise', 'O37 stop never raises'),
+ ('observer.py', '        self.active = False\n        self._remove_watchers()\n        if not self.started:', '        was = self.active\n        self.active = False\n        if was:\n            self._remove_watchers()\n        if not self.started:', 'O38 a failed start releases its watchers'),
+ ('owned.py', '                if caches:\n                    raise ClosureRefused', '                if False:\n                    raise ClosureRefused', 'W12 a cached reviewed hook is refused'),
+ ('owned.py', '    _git(path, "clean", "-qffdx", "-e", ".venv")\n    purge_hook_caches(path)', '    _git(path, "clean", "-qffdx", "-e", ".venv")', 'W13 reset purges reviewed hook caches'),
+ ('owned.py', '                if others:\n                    raise ClosureRefused', '                if False:\n                    raise ClosureRefused', 'W14 another importable form of a hook is refused'),
+ ('deploy_runs.py', '        for j in range(i + 1, len(obs)):', '        for j in range(i + 1, min(i + 2, len(obs))):', 'DR9 every overlapping pair checked'),
+ ('deploy_runs.py', '            if f <= tt < c:\n                return {"sha": None, "basis": "within_observation_precision"', '            if False:\n                return {"sha": None, "basis": "within_observation_precision"', 'DR10 live_at inside an observation unit'),
 ]
 
 

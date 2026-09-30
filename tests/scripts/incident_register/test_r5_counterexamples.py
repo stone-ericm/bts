@@ -152,7 +152,9 @@ def test_a_code_object_swapped_in_place_is_seen(tmp_path):
               "        transport.send.__code__=transport.replacement.__code__\n        transport.send('eric','pick: Turner')\n"
               "        transport.send.__code__=code\n    else:\n        transport.send('eric','pick: Turner')\n")
     res = _defend(tmp_path, {"src/bts/mod.py": HELPER_PROD, "tests/helper.py": helper}, *HELPER_MUTANT)
-    _refused(res, "1 qualifying 'dm' call(s) occurred")
+    # r6 #2: after the swap two live functions (send, replacement) run that code, so the call is seen but
+    # not attributed
+    _refused(res, "'dm' call(s) without identity")
 
 
 def test_a_binding_through_an_instance_namespace_is_a_coverage_gap(tmp_path):
@@ -220,7 +222,8 @@ def test_resolving_a_binding_runs_no_application_attribute_code():
     odd = DictPropertyModule("w15_r5_odd")
     sys.modules.update(w15_r5_loud=loud, w15_r5_odd=odd)
     try:
-        assert observer._resolve("w15_r5_loud:send") is len                  # raw module namespace
+        # a ModuleType subclass's dispatch is not the standard one: unsupported since r6 #1 (exact types)
+        assert observer._resolve("w15_r5_loud:send") is None
         assert observer._resolve("w15_r5_loud:holder.send") is None          # an instance: unsupported
         assert observer._resolve("w15_r5_odd:anything") is None              # __dict__ redefined: refused
         assert called == []

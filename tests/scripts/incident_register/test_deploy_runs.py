@@ -139,7 +139,8 @@ def test_timeline_separates_observations_transitions_and_assumptions():
             rec(3, pre="ccccccc", dep="ddddddd"),
             rec(4, pre="ddddddd", dep="eeeeeee", canary="failed", rollback="clean")]
     tl = installed_timeline(runs)
-    assert live_at(tl, "2026-07-01T00:00:00Z") == at("aaaaaaa", "observed")        # the pre-deploy line
+    # the pre-deploy line happened somewhere in its printed second (Codex phase-1 r6 #7)
+    assert live_at(tl, "2026-07-01T00:00:00Z") == at(None, "within_observation_precision", "aaaaaaa")
     assert live_at(tl, "2026-07-01T00:00:01Z") == at(None, "transition")          # checkout/restart in flight
     assert live_at(tl, "2026-07-01T12:00:00Z") == at("bbbbbbb")                     # assumed until the next run
     assert live_at(tl, "2026-07-02T12:00:00Z") == at(None, "unknown", "ccccccc")    # expired log in between

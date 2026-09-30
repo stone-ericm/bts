@@ -28,10 +28,13 @@ conformance runs, and the reviewer reads the patch, frames and linked events.
 from __future__ import annotations
 
 COVERAGE = {"recorder": "callee-side, Python-observable boundaries (mocks, Python functions, bound methods of the declared "
-                        "receiver); bindings tracked at every store on their module/class namespace path and every "
-                        "in-place __code__ replacement (CPython dict and function watchers)",
+                        "receiver); bindings tracked at every store on their path from sys's own namespace (sys.modules "
+                        "included) and every in-place __code__ replacement (CPython dict and function watchers); every "
+                        "live interpreter thread counted",
             "unavailable_when": ["a C-implemented or unresolvable boundary", "a call on another receiver of the boundary's code",
-                                 "a binding path through anything but module and class namespaces",
+                                 "a binding path through anything but exact modules and classes (standard attribute dispatch)",
+                                 "an object on the path whose type changes during the interval",
+                                 "a boundary code object shared by several live functions",
                                  "a callable bound to several boundaries", "a callable the binding held earlier in the interval",
                                  "a watched namespace replaced wholesale", "a mock boundary whose __call__ is replaced",
                                  "a value incomplete at any depth (too large, too deep, or not plainly serializable)",
