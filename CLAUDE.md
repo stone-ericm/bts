@@ -57,7 +57,12 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **W1.5 incident register, Phase 1 (repo-only; IN REVIEW, unmerged).**
   - **Where it is:** plan `docs/superpowers/plans/2026-09-29-incident-register-phase1.md`; branch `w15-incident-register-phase1`, worktree `~/projects/bts-w15`; tooling `scripts/audit/incident_register/`.
   - **Scope (plan ruling 10, 2026-09-30):** Phase 1 certifies only wrong or extra events and wrong returned values. A missing-event ("absence") defence link is refused and reads unavailable. Don't reintroduce absence certificates without a new ruling.
-  - **Where to run evidence:** in worktrees under `~/projects/`, never the session scratchpad. `/private/tmp` is cleared on a Mac reboot, and on 9/30 that lost a mid-run sweep and uncommitted evidence.
+  - **Observation rule (plan ruling 11, 2026-10-01):** inside the observed call phase the observer never hashes, compares or dispatches on an application object unless it is an exact builtin. A dict holding a key that is not an exact `str` is unsupported, never skipped (`observer._lookup`). Keep new observer code to that rule: no `in`, `[]`, `.get`, `getattr` or f-strings on application values.
+  - **Where to run evidence:** in worktrees under `~/projects/`, never the session scratchpad. `/private/tmp` is cleared on a Mac reboot, and on 9/30 that lost a mid-run sweep and uncommitted evidence. The evidence worktrees are `~/projects/bts-w15-evidence/{tool,pred,s0..s3}` plus the owned `ev`.
+  - **The strict mutation sweep** (`docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py`, 4 niced shards, `merge_shards.py`):
+    - It can exceed a background Bash's 2-hour cap: resume only the missing labels at the same commit, and record the resume in the output header.
+    - Check every anchor with `mutant_error` before launching, since a code edit can stale one (O8, O26).
+    - Never run timing- or hash-seed-sensitive tests alongside it.
 
 ## Testing gotchas
 - **pi5 clone (`/home/stonehengee/projects/bts`) has 22 known env-only fast-suite failures** (verified identical with/without diff via stash-compare, 2026-08-14): LightGBM not installed (plain `uv sync`, by design) fails tests/test_lgb_params + predict/calibrate/blend/local_tier/preview files, and the box-ported real `.env` credentials shadow the test fixtures in tests/test_dm.py + test_posting.py. A clean run on pi5 = exactly these 22; anything else is yours.
