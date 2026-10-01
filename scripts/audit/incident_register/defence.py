@@ -65,6 +65,12 @@ def _check_spec(spec: dict) -> None:
         raise SpecError(certify.ABSENCE_REFUSAL)
     if spec["symptom"].get("kind") not in KINDS:
         raise SpecError(f"symptom kind must be one of {KINDS}")
+    reserved = certify.RESERVED_CATEGORY
+    if spec["symptom"].get("category") == reserved or any(
+            rule[0] == reserved for item in [*spec.get("boundaries", []), *spec.get("returns", [])]
+            for rule in item.get("classify", [])):
+        raise SpecError(f"the category {reserved!r} is reserved for unattributed or incomplete records: no "
+                        "symptom or classify rule may name it (Codex phase-1 r8 #2)")
     if not spec["killing"]:
         raise SpecError("no killing node declared")
     if spec["branch"]["path"] not in {e[0] for e in spec["mutation_edits"]}:

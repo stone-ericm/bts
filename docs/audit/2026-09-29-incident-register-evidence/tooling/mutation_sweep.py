@@ -79,7 +79,7 @@ M = [
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
  ('observer.py', '            self._gap(spec["name"], "not a Python-observable callable", type=type_name(type(obj)))', '            pass', 'O7 gap for C boundaries'),
- ('observer.py', 'safe = _safe(retval) if how == "return" else {"raised": type_name(type(retval))}', 'safe = _safe(retval)', 'O8 exceptional exit as type name'),
+ ('observer.py', 'safe = _safe(retval) if how == "return" else _raised(type(retval))', 'safe = _safe(retval)', 'O8 exceptional exit as type name'),
  ('defence.py', 'why += _assertion_ok(mutant, n, k["_path"], k["_line"], wt)', 'pass', 'D1 assertion location'),
  ('defence.py', '        why.append(f"{where}: frozen files changed: {changed[:5]}")', '        pass', 'D2 frozen drift'),
  ('defence.py', 'why.append(f"declared killing node {n} was not killed")', 'pass', 'D3 not killed'),
@@ -214,6 +214,18 @@ M = [
  ('observer.py', '        return t is self.mock_types.get(id(obj)) and self._effective_call(t) is self.mock_call_fn', '        return self._effective_call(t) is self.mock_call_fn', 'O47 a held mock keeps its class'),
  ('observer.py', '        return t is self.mock_types.get(id(obj)) and self._effective_call(t) is self.mock_call_fn', '        return t is self.mock_types.get(id(obj))', 'O48 a held mock keeps the standard __call__'),
  ('observer.py', '        try:\n            args = _EXC_ARGS.__get__(exc, BaseException)', '        import traceback\n        detail = "".join(traceback.format_exception(exc))[-800:]\n        try:\n            args = _EXC_ARGS.__get__(exc, BaseException)', 'O49 recording an error runs no I/O'),
+ ('observer.py', '                        st["chain"], st["current"] = st["chain"][:level + 1], None', '                        pass', 'O50 a namespace clear leaves nothing current'),
+ ('observer.py', '    if type(module) is not str or type(qualname) is not str:\n        return None\n    return module + "." + qualname', '    return f"{module}.{qualname}"', 'O51 class metadata joined only as exact strings'),
+ ('observer.py', '    if name is None:\n        return {"unavailable": "type identity not readable as exact strings", "incomplete": True}', '    if False:\n        return {"unavailable": "type identity not readable as exact strings", "incomplete": True}', 'O52 an unreadable type identity is incomplete'),
+ ('observer.py', '{"raised": "<unnamed>", "incomplete": True}', '{"raised": "<unnamed>"}', 'O53 an unnamed exception exit is incomplete'),
+ ('certify.py', '    if bad.get("category") == RESERVED_CATEGORY:\n        why.append', '    if False:\n        why.append', 'C22 the reserved category cannot be requested'),
+ ('certify.py', '        return "reason" not in ident and _complete(ident.get("value"))', '        return _complete(ident.get("value"))', 'C23 an unattributed call never witnesses'),
+ ('certify.py', '        return "reason" not in ident and _complete(ident.get("value"))', '        return "reason" not in ident', 'C24 an incomplete identity never witnesses'),
+ ('certify.py', '    return _complete(x.get("value"))\n', '    return True\n', 'C25 an incomplete return never witnesses'),
+ ('certify.py', '    if safe.get("incomplete") or "unavailable" in safe:\n        return False', '    if False:\n        return False', 'C26 completeness reads the omission markers'),
+ ('certify.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'C27 completeness at every depth'),
+ ('defence.py', '        raise SpecError(f"the category {reserved!r} is reserved', '        pass\n        (f"the category {reserved!r} is reserved', 'D16 a spec naming the reserved category is refused'),
+ ('defence.py', '            rule[0] == reserved for item in', '            False for item in', 'D17 classify rules are checked for the reserved category'),
 ]
 
 

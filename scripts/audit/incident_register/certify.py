@@ -1,8 +1,9 @@
 """Causal-path certificates over observer events (design §9.3 as amended; Codex phase-1 r2 #5, r3 #1, #7).
 
 **Phase 1 certifies POSITIVE witnesses only** (plan ruling 10: Eric, 2026-09-30, after the Codex
-consult on the absence loop). Every false certificate from Codex phase-1 r5 to r7 was a missing-event
-("absence") certificate, and complete in-process boundary coverage has no bounded argument. An absence
+consult on the absence loop). The r5–r7 reviews found absence-coverage failures and a false positive event
+attribution. Phase 1 defers absence certification; attribution, observational purity and execution closure
+remain independent obligations for retained positive witnesses (Codex phase-1 r8 #5, verbatim). An absence
 request is refused (``AbsenceRefused``): its link reads unavailable with ``ABSENCE_REFUSAL``. A call the
 recorder misses can only fail to witness a positive event; it never creates one.
 
@@ -22,8 +23,11 @@ Every certificate needs:
 Then:
 * ``event`` (wrong or extra event): a boundary call with the declared bad category after the branch,
   with some invocation live at both (recursion: the common live invocation counts);
-* ``return`` (wrong value): a return of the declared function with the declared category (or safe
-  value), after the branch, with a common live invocation.
+* ``return`` (wrong value): a return from the declared function's source (file and qualname) with the
+  declared category (or safe value), after the branch, with a common live invocation.
+
+A witness is never an unattributed call (its identity carries a reason), an incomplete value, or the
+reserved category ``unavailable``, which no request may name (Codex phase-1 r8 #2).
 
 Each certificate states its coverage and model. A certificate is necessary, not sufficient: the
 defence runner also requires the killing failure at the declared assertion and the observer-on/off
@@ -43,8 +47,12 @@ class AbsenceRefused(ValueError):
 # unavailable, and what lies outside the model and so outside any claim.
 COVERAGE = {
     "claims": "a positive witness in this pinned synthetic execution: a recorded call of a declared boundary with the "
-              "declared bad category, or a recorded return of the declared function with the declared value or "
-              "category, linked to the mutated line through a common live invocation of the declared entry",
+              "declared bad category, or a recorded return from the declared function's source with the declared "
+              "value or category, linked to the mutated line through a common live invocation of the declared entry",
+    "return_identity": "Entry and return identity are source-file and qualname identities, not Python function-object, "
+                       "globals or receiver identities. The fixture review must establish that the observed code "
+                       "invocation belongs to the declared contract and selection. A claim requiring exact callable or "
+                       "receiver identity needs an additional witness or reads unavailable.",
     "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding "
                      "is tracked at every store on its path from sys's own namespace, by CPython dict and function "
                      "watchers); for a mock, the arguments its standard __call__ received, which is what the mock "
@@ -115,8 +123,34 @@ def _live(en: dict, ev: dict, records: list[dict]) -> bool:
     return True
 
 
+RESERVED_CATEGORY = "unavailable"   # an unattributed or incomplete witness's category: never requestable
+
+
 def _category(ev: dict) -> str:
-    return (ev.get("identity") or {}).get("category", "unavailable")
+    return (ev.get("identity") or {}).get("category", RESERVED_CATEGORY)
+
+
+def _complete(safe) -> bool:
+    """True when no part of an observer ``_safe`` form was omitted at any depth (as ``observer._complete``)."""
+    if type(safe) is not dict:
+        return True
+    if safe.get("incomplete") or "unavailable" in safe:
+        return False
+    if "seq" in safe:
+        return all(_complete(v) for v in safe["seq"])
+    for key in ("map", "fields"):
+        if key in safe:
+            return all(_complete(v) for v in safe[key].values())
+    return True
+
+
+def _witness(x: dict) -> bool:
+    """An attributed, complete record (Codex phase-1 r8 #2): no attribution-failure reason, no omitted part.
+    (The reserved category itself is refused as a request, below.)"""
+    if x["kind"] == "boundary":
+        ident = x.get("identity") or {}
+        return "reason" not in ident and _complete(ident.get("value"))
+    return _complete(x.get("value"))
 
 
 def certify(events: list[dict], *, node: str, kind: str, entry: dict, bad: dict) -> dict:
@@ -140,12 +174,15 @@ def certify(events: list[dict], *, node: str, kind: str, entry: dict, bad: dict)
     live_at_branch = [(b, s) for b, s in live_at_branch if s]
     if not live_at_branch:
         why.append("the mutated line never executed inside a live declared entry invocation")
+    if bad.get("category") == RESERVED_CATEGORY:
+        why.append(f"the category {RESERVED_CATEGORY!r} is reserved for unattributed or incomplete records and "
+                   "cannot be requested")
     if kind == "event":
         candidates = [x for x in body if x["kind"] == "boundary" and x["name"] == bad["boundary"]
-                      and _category(x) == bad["category"]]
+                      and _witness(x) and _category(x) == bad["category"]]
     else:
         candidates = [x for x in body if x["kind"] == "return" and x["file"] == bad["file"]
-                      and x["qualname"] == bad["qualname"]
+                      and x["qualname"] == bad["qualname"] and _witness(x)
                       and (("category" in bad and x.get("category") == bad["category"])
                            or ("value" in bad and x.get("value") == bad["value"]))]
     linked = None

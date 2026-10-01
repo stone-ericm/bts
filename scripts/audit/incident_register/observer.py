@@ -129,12 +129,30 @@ def src_digest(root: str | None) -> str | None:
     return h.hexdigest()
 
 
-def type_name(t) -> str:
-    """A class's module + qualname read through type's own C descriptors (no metaclass code)."""
+def _exact_type_name(t) -> str | None:
+    """A class's module + qualname read through type's own C descriptors (no metaclass code), or None when
+    either is not an exact str: a class's ``__module__`` may hold any object, and interpolating one runs its
+    own ``__format__`` (Codex phase-1 r8 #3)."""
     try:
-        return f"{_TYPE_MODULE.__get__(t, type)}.{_TYPE_QUALNAME.__get__(t, type)}"
+        module, qualname = _TYPE_MODULE.__get__(t, type), _TYPE_QUALNAME.__get__(t, type)
     except Exception:  # noqa: BLE001
-        return "<unnamed>"
+        return None
+    if type(module) is not str or type(qualname) is not str:
+        return None
+    return module + "." + qualname
+
+
+def type_name(t) -> str:
+    """``_exact_type_name``, or a fixed ``<unnamed>`` for reports."""
+    name = _exact_type_name(t)
+    return "<unnamed>" if name is None else name
+
+
+def _raised(t) -> dict:
+    """An exceptional exit, observed only as its exception's type name; incomplete when that name is not
+    readable as exact strings."""
+    name = _exact_type_name(t)
+    return {"raised": name} if name is not None else {"raised": "<unnamed>", "incomplete": True}
 
 
 def _plain_instance_dict(value):
@@ -191,11 +209,14 @@ def _safe(value, depth: int = 0):
         return out
     if t is dict:
         return _safe_items(dict.items(value), "map", depth)
+    name = _exact_type_name(t)
+    if name is None:
+        return {"unavailable": "type identity not readable as exact strings", "incomplete": True}
     d = _plain_instance_dict(value)
     if d is None:
-        return {"type": type_name(t), "unavailable": "no plain __dict__", "incomplete": True}
+        return {"type": name, "unavailable": "no plain __dict__", "incomplete": True}
     out = _safe_items(dict.items(d), "fields", depth, skip_private=True)
-    out["type"] = type_name(t)
+    out["type"] = name
     return out
 
 
@@ -652,6 +673,14 @@ class _Monitor:
             elif event in (_DICT_CLONED, _DICT_CLEARED):
                 for name in sorted({n for n, _lv in hits} | set(calls)):
                     self._gap(name, "a watched namespace was replaced wholesale")
+                # nothing on a path through this namespace is current until a per-key store re-resolves it
+                # (Codex phase-1 r8 #1: a captured former callable stayed current); the new contents are
+                # not read here, before the change
+                d = self.watched.get(dict_addr)
+                for name, level in list(hits):
+                    st = self.state[name]
+                    if level < len(st["chain"]) and st["chain"][level][0] is d:
+                        st["chain"], st["current"] = st["chain"][:level + 1], None
         except BaseException as e:  # noqa: BLE001
             self._err("dict_watch", e)
         return 0
@@ -902,7 +931,7 @@ class _Monitor:
         if key in self.returns:                             # recorded BEFORE the exit: frame still live
             stack, is_async = self._stack(frame)
             # an exceptional exit is observed only as the exception's type name (no application code)
-            safe = _safe(retval) if how == "return" else {"raised": type_name(type(retval))}
+            safe = _safe(retval) if how == "return" else _raised(type(retval))
             category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"
             self._record("return", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
                                     "value": safe, "category": category, "how": how,
