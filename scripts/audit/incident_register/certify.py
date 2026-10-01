@@ -73,8 +73,10 @@ COVERAGE = {
     "observation": "inside the call phase the observer hashes, compares or dispatches only on values it owns or has "
                    "type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it "
                    "holds a key that is not an exact str; class metadata and instance dicts are read through C "
-                   "descriptors found that way; a code object's name that is not an exact str reads as unnamed "
-                   "(plan ruling 11, Codex phase-1 r9)",
+                   "descriptors found that way; a code object's name that is not an exact str reads as unnamed, "
+                   "and code objects themselves are never hashed or compared (the observer's maps key them by id: "
+                   "a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex "
+                   "phase-1 r9; code objects: self-review during r10)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "
                         "bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it "
                         "can only fail to witness an event",

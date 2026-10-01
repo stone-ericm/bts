@@ -188,6 +188,14 @@ def _plain_instance_dict(value):
     return None
 
 
+def _code_key(code) -> int:
+    """A code object's key in the observer's maps: its id. Hashing a code object hashes its ``co_name`` and
+    ``co_consts``, and comparing two compares them (CPython ``code_hash`` / ``code_richcompare``); crafted code
+    may make those application objects (plan ruling 11). Each map also holds the code object itself, so its
+    id stays unique while it is a key."""
+    return id(code)
+
+
 def _name(value) -> str:
     """A code object's name when it is an exact str, else a fixed ``<unnamed>``: crafted code may carry a
     str subclass, whose hash and comparison are application code."""
@@ -529,8 +537,8 @@ class _Monitor:
                         for r in observe.get("returns", [])}
         self.boundaries = [dict(b) for b in observe.get("boundaries", [])]
         self.events: list[dict] = []
-        self.instrumented: set = set()
-        self.boundary_codes: dict = {}          # code object -> [(boundary spec, bound receiver or None)]
+        self.instrumented: dict = {}            # _code_key -> the instrumented code object
+        self.boundary_codes: dict = {}          # _code_key -> (code object, [(boundary spec, bound receiver or None)])
         self.state: dict = {}                   # spec name -> {"keys", "chain", "current", "held"}
         self.watch_index: dict = {}             # address of a namespace dict -> [(spec name, chain level)]
         self.call_watch: dict = {}              # address of a mock class's namespace -> {spec names}
@@ -688,7 +696,7 @@ class _Monitor:
         self._add_code(code, spec, receiver)
 
     def _add_code(self, code, spec: dict, receiver) -> None:
-        pairs = self.boundary_codes.setdefault(code, [])
+        pairs = self.boundary_codes.setdefault(_code_key(code), (code, []))[1]
         if not any(sp is spec and rcv is receiver for sp, rcv in pairs):
             pairs.append((spec, receiver))
             if self.active:
@@ -838,7 +846,7 @@ class _Monitor:
         mon = sys.monitoring
         if self.tool_acquired:
             steps = [lambda: mon.set_events(TOOL_ID, 0)]
-            steps += [lambda c=code: mon.set_local_events(TOOL_ID, c, 0) for code in self.instrumented]
+            steps += [lambda c=code: mon.set_local_events(TOOL_ID, c, 0) for code in self.instrumented.values()]
             steps += [lambda e=event: mon.register_callback(TOOL_ID, e, None)
                       for event in (mon.events.PY_START, mon.events.LINE, mon.events.PY_RETURN, mon.events.PY_UNWIND)]
             steps += [lambda: mon.free_tool_id(TOOL_ID), mon.restart_events]
@@ -916,7 +924,8 @@ class _Monitor:
                                   unverified=None if self._mock_verified(me) else
                                   "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
-            pairs = self.boundary_codes.get(code)
+            entry = self.boundary_codes.get(_code_key(code))
+            pairs = entry[1] if entry is not None else None
             if pairs is not None:
                 frame = sys._getframe(1)
                 loc = frame.f_locals
@@ -949,7 +958,7 @@ class _Monitor:
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
                 return None if matched else sys.monitoring.DISABLE
-            if code not in self.instrumented:
+            if _code_key(code) not in self.instrumented:
                 events = 0
                 if self.branch and filename == self.branch[0]:
                     events |= sys.monitoring.events.LINE
@@ -958,7 +967,7 @@ class _Monitor:
                     events |= sys.monitoring.events.PY_RETURN       # PY_UNWIND is global-only (3.12)
                 if events:
                     sys.monitoring.set_local_events(TOOL_ID, code, events)
-                self.instrumented.add(code)
+                self.instrumented[_code_key(code)] = code
             if (filename, _name(code.co_qualname)) in self.entries:
                 frame = sys._getframe(1)
                 stack, is_async = self._stack(frame)

@@ -242,6 +242,7 @@ M = [
  ('observer.py', '        plain = str.__str__(name)', '        plain = str(name)', "O65 a module name is copied by str's own slot"),
  ('runner.py', '        if "file" not in m:\n            why.append', '        if False:\n            why.append', 'R19 unavailable module provenance is refused'),
  ('runner.py', '    if len(imports) == 1 and "unavailable" in imports[0]:\n        why.append', '    if False:\n        why.append', 'R20 an unavailable import record is refused'),
+ ('observer.py', '    return id(code)', '    return code', 'O66 code-object maps are keyed by id'),
 ]
 
 
