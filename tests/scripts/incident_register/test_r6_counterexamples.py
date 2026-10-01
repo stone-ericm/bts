@@ -97,7 +97,9 @@ def test_a_persistent_sys_modules_replacement_is_seen(tmp_path):
 def test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap(tmp_path):
     """r6 #1 measured: a ModuleType subclass returned the replacement from __getattribute__ while its raw
     'send' slot never changed. Only exact ModuleType (and exact type for classes) have the attribute
-    dispatch that reading the raw namespace describes."""
+    dispatch that reading the raw namespace describes. Since rev 10 (Codex phase-1 r9 #3) the module stays
+    a subclass at session end, so its import provenance is unavailable and every stage is refused at its
+    gate; the observed green run still records the unsupported namespace."""
     transport = TRANSPORT + ("import sys,types\nclass DynamicModule(types.ModuleType):\n"
                              "    def __getattribute__(self,name):\n"
                              "        if name=='send' and types.ModuleType.__getattribute__(self,'alternate'):\n"
@@ -107,8 +109,11 @@ def test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap(tmp_path)
     helper = ("def invoke(transport,rebind):\n    transport.alternate=rebind\n    try:\n"
               "        list(map(transport.send,['eric'],[ALERT if rebind else 'pick: Turner']))\n    finally:\n"
               "        transport.alternate=False\n")
-    _refused(_defend(tmp_path, helper, transport=transport), "no 'alert' event")        # missed, never false
-    assert any(g.startswith("unsupported namespace") for g in _gaps(tmp_path))
+    res = _defend(tmp_path, helper, transport=transport)                                  # never a certificate
+    assert res["verdict"] == "rejected" and "certificates" not in res, res
+    assert any("bts.transport: import provenance unavailable (not an exact module)" in r for r in res["reasons"])
+    green = runner.load(tmp_path / "out" / "green.events.jsonl")
+    assert any(e["kind"] == "boundary_gap" and e["reason"].startswith("unsupported namespace") for e in green)
 
 
 def test_a_transient_module_type_change_is_a_coverage_gap(tmp_path):

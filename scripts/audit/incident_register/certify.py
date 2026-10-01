@@ -60,11 +60,21 @@ COVERAGE = {
     "unattributed_when": ["a callable bound to several boundaries", "a callable the binding held earlier in the interval",
                           "a boundary code object shared by several live functions", "a call on another receiver",
                           "a mock whose effective __call__ is not the standard one, or whose class changed",
-                          "a value incomplete at any depth"],
+                          "a value incomplete at any depth",
+                          "a binding whose path passes through a namespace holding a key that is not an exact str, "
+                          "or was changed by a store through such a key (until a per-key store re-resolves it)",
+                          "an identity read from a keyword dict holding a key that is not an exact str"],
     "unavailable_when": ["an absence claim (ABSENCE_REFUSAL)", "an audit hook added after the trusted bootstrap",
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
                          "an application signal handler at either end of the call phase", "observer errors",
-                         "an incomplete observation window", "a coroutine frame"],
+                         "an incomplete observation window", "a coroutine frame",
+                         "a run whose bts import provenance is unreadable without application dispatch (refused at "
+                         "every stage's gate)"],
+    "observation": "inside the call phase the observer hashes, compares or dispatches only on values it owns or has "
+                   "type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it "
+                   "holds a key that is not an exact str; class metadata and instance dicts are read through C "
+                   "descriptors found that way; a code object's name that is not an exact str reads as unnamed "
+                   "(plan ruling 11, Codex phase-1 r9)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "
                         "bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it "
                         "can only fail to witness an event",

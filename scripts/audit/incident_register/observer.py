@@ -63,7 +63,10 @@ _TYPE_QUALNAME = type.__dict__["__qualname__"]
 _TYPE_MODULE = type.__dict__["__module__"]
 _TYPE_DICT = type.__dict__["__dict__"]
 _TYPE_MRO = type.__dict__["__mro__"]
+_TYPE_FLAGS = type.__dict__["__flags__"]
+_HEAPTYPE = 1 << 9                      # Py_TPFLAGS_HEAPTYPE: the class keeps __module__ in its namespace dict
 _GETSET = type(type.__dict__["__dict__"])
+_NO_PATH = "<no exact-str filename>"    # never absolute, so never under prod_root and never an entry file
 _MODULE_DICT = types.ModuleType.__dict__["__dict__"]
 _EXC_ARGS = BaseException.__dict__["args"]
 _EXC_TB = BaseException.__dict__["__traceback__"]
@@ -134,7 +137,14 @@ def _exact_type_name(t) -> str | None:
     either is not an exact str: a class's ``__module__`` may hold any object, and interpolating one runs its
     own ``__format__`` (Codex phase-1 r8 #3)."""
     try:
-        module, qualname = _TYPE_MODULE.__get__(t, type), _TYPE_QUALNAME.__get__(t, type)
+        if _TYPE_FLAGS.__get__(t, type) & _HEAPTYPE:
+            # the C descriptor would look __module__ up in the class namespace, comparing any same-hash
+            # application key (Codex phase-1 r9 #1): read it by iteration instead
+            ns = _type_ns(t)
+            module = _lookup(ns, "__module__")[1] if ns is not None else None   # None when unsupported
+        else:
+            module = _TYPE_MODULE.__get__(t, type)
+        qualname = _TYPE_QUALNAME.__get__(t, type)
     except Exception:  # noqa: BLE001
         return None
     if type(module) is not str or type(qualname) is not str:
@@ -156,19 +166,32 @@ def _raised(t) -> dict:
 
 
 def _plain_instance_dict(value):
-    """The instance's raw __dict__ when its class uses the standard C __dict__ descriptor, else None."""
+    """The instance's raw __dict__, read by calling the standard C ``__dict__`` descriptor found by iterating
+    the MRO's class namespaces, else None: no hashed lookup and no generic attribute lookup, either of which
+    would compare a same-hash application key (Codex phase-1 r9 #1)."""
     t = type(value)
     for cls in _TYPE_MRO.__get__(t, type):
-        ns = _TYPE_DICT.__get__(cls, type)
-        if "__dict__" in ns:
-            if type(ns["__dict__"]) is not _GETSET:
+        ns = _type_ns(cls)
+        if ns is None:
+            return None
+        found, desc, why = _lookup(ns, "__dict__")
+        if why is not None:
+            return None
+        if found:
+            if type(desc) is not _GETSET:
                 return None
-            break
-    try:
-        d = object.__getattribute__(value, "__dict__")
-    except Exception:  # noqa: BLE001
-        return None
-    return d if type(d) is dict else None
+            try:
+                d = desc.__get__(value, t)
+            except Exception:  # noqa: BLE001
+                return None
+            return d if type(d) is dict else None
+    return None
+
+
+def _name(value) -> str:
+    """A code object's name when it is an exact str, else a fixed ``<unnamed>``: crafted code may carry a
+    str subclass, whose hash and comparison are application code."""
+    return value if type(value) is str else "<unnamed>"
 
 
 def _safe_items(items, key: str, depth: int, *, skip_private: bool = False) -> dict:
@@ -322,15 +345,36 @@ def pytest_runtest_call(item):
             gc.enable()
 
 
+def _import_record(mod) -> dict | None:
+    """One bts module's provenance, read without application dispatch (Codex phase-1 r9 #3): an exact
+    module, its namespace by the C descriptor, ``__file__`` by iteration over exact-str keys. Anything else
+    is recorded unavailable, which the runner refuses."""
+    if type(mod) is not types.ModuleType:
+        return {"unavailable": "not an exact module"}
+    ns = _MODULE_DICT.__get__(mod, types.ModuleType)
+    if type(ns) is not dict:
+        return {"unavailable": "no plain module namespace"}
+    found, f, why = _lookup(ns, "__file__")
+    if why is not None:
+        return {"unavailable": why}
+    return {"file": os.path.realpath(f), "sha256": _sha_file(f)} if found and type(f) is str else None
+
+
 def pytest_sessionfinish(session, exitstatus):
     mods = {}
-    for name, mod in list(sys.modules.items()):
-        if name == "bts" or name.startswith("bts."):
-            ns = getattr(mod, "__dict__", None)
-            f = ns.get("__file__") if type(ns) is dict else None
-            if type(f) is str:
-                mods[name] = {"file": os.path.realpath(f), "sha256": _sha_file(f)}
-    _write({"kind": "imports", "modules": mods})
+    found, modules, why = _lookup(_MODULE_DICT.__get__(sys, types.ModuleType), "modules")
+    for name, mod in (list(dict.items(modules)) if found and why is None and type(modules) is dict else []):
+        if not issubclass(type(name), str):
+            continue
+        plain = str.__str__(name)         # an exact copy, made by str's own C slot (no method of a subclass)
+        if not (plain == "bts" or plain.startswith("bts.")):
+            continue
+        rec = (_import_record(mod) if type(name) is str
+               else {"unavailable": "a sys.modules key that is not an exact str"})
+        if rec is not None:
+            mods[plain] = rec
+    _write({"kind": "imports", "modules": mods} if found and why is None and type(modules) is dict
+           else {"kind": "imports", "modules": {}, "unavailable": why or "sys.modules is not a plain dict"})
     _write({"kind": "session_finish", "exitstatus": int(exitstatus),
             "src_digest": src_digest(_config().get("prod_root"))})
 
@@ -341,14 +385,19 @@ _ACCESSOR = re.compile(r"args\[(\d+)\]|kw:(\w+)")
 
 
 def _access(specs, args, kwargs):
+    """The first accessible identity value. A keyword is found by iterating the call's keyword dict, which
+    must hold exact-str keys only: membership or subscription would compare a same-hash application key
+    (Codex phase-1 r9 #2)."""
     for spec in specs:
         m = _ACCESSOR.fullmatch(spec)
         if not m:
             continue
         if m.group(1) is not None and int(m.group(1)) < len(args):
             return True, args[int(m.group(1))]
-        if m.group(2) is not None and m.group(2) in kwargs:
-            return True, kwargs[m.group(2)]
+        if m.group(2) is not None:
+            found, value, _why = _lookup(kwargs, m.group(2))     # not found when the dict is unsupported
+            if found:
+                return True, value
     return False, None
 
 
@@ -360,13 +409,21 @@ def _access(specs, args, kwargs):
 # reassigned, which no watcher sees; Codex phase-1 r5 #1). Any other shape on the path is a
 # coverage gap.
 
+_NON_STR_KEY = "unsupported namespace: a key that is not an exact str (its hash and __eq__ are application code)"
+
+
 def _lookup(ns: dict, name: str):
-    """(found, value) for a str key, found by iterating the dict's items: a hashed lookup would compare
-    the key with any same-hash application key and so run its ``__eq__`` (Codex phase-1 r4 #2)."""
+    """(found, value, why) for a str key, found by iterating the dict's items: a hashed lookup would compare
+    the key with any same-hash application key and so run its ``__eq__`` (Codex phase-1 r4 #2). A dict
+    holding any key that is not an exact str is unsupported (``why``): skipping such a key could miss the
+    entry real lookup finds (Codex phase-1 r9, plan ruling 11)."""
+    found, value = False, None
     for k, v in dict.items(ns):
-        if type(k) is str and k == name:
-            return True, v
-    return False, None
+        if type(k) is not str:
+            return False, None, _NON_STR_KEY
+        if not found and k == name:
+            found, value = True, v
+    return found, value, None
 
 
 def _type_ns(cls):
@@ -404,7 +461,9 @@ def _walk(keys: list, level: int, obj, chain: list):
             if ns is None:
                 return None, "unsupported namespace: only exact modules and classes (standard attribute dispatch) are watched"
         chain.append((ns, keys[i]))
-        found, obj = _lookup(ns, keys[i])
+        found, obj, why = _lookup(ns, keys[i])
+        if why is not None:
+            return None, why
         if not found:
             return None, "the declared binding resolves to nothing"
     return obj, None
@@ -418,7 +477,9 @@ def _resolve_chain(binding: str):
     keys = ["modules", module] + attr.split(".")
     sys_ns = _MODULE_DICT.__get__(sys, types.ModuleType)
     chain = [(sys_ns, "modules")]
-    found, modules = _lookup(sys_ns, "modules")
+    found, modules, why = _lookup(sys_ns, "modules")
+    if why is not None:
+        return keys, chain, None, why
     if not found:
         return keys, chain, None, "unsupported namespace: sys.modules is missing"
     value, why = _walk(keys, 0, modules, chain)
@@ -482,7 +543,11 @@ class _Monitor:
         self.tool_acquired = self.started = self.active = False
 
     # -- bookkeeping
-    def _real(self, filename: str) -> str:
+    def _real(self, filename) -> str:
+        """A code filename's realpath, cached; ``_NO_PATH`` when it is not an exact str (crafted code may
+        carry a str subclass, whose hash and path methods are application code; plan ruling 11)."""
+        if type(filename) is not str:
+            return _NO_PATH
         path = self.paths.get(filename)
         if path is None:
             path = self.paths[filename] = os.path.realpath(filename)
@@ -504,7 +569,7 @@ class _Monitor:
             tb, frames = _EXC_TB.__get__(exc, BaseException), []
             while tb is not None and len(frames) < 40:
                 code = tb.tb_frame.f_code
-                frames.append([code.co_filename, tb.tb_lineno, code.co_name])
+                frames.append([_name(code.co_filename), tb.tb_lineno, _name(code.co_name)])
                 tb = tb.tb_next
             detail = {"args": [a[:200] for a in args if type(a) is str][:3], "frames": frames[-10:]}
         except BaseException:  # noqa: BLE001
@@ -520,7 +585,7 @@ class _Monitor:
             code = frame.f_code
             if code.co_flags & CO_ASYNC:
                 is_async = True
-            out.append([code.co_qualname, self._real(code.co_filename), frame.f_lineno, id(frame)])
+            out.append([_name(code.co_qualname), self._real(code.co_filename), frame.f_lineno, id(frame)])
             frame, n = frame.f_back, n + 1
         return out, is_async
 
@@ -542,7 +607,9 @@ class _Monitor:
             ns = _type_ns(c)
             if ns is None:
                 return None
-            found, value = _lookup(ns, "__call__")
+            found, value, why = _lookup(ns, "__call__")
+            if why is not None:
+                return None
             if found:
                 return value
         return None
@@ -657,10 +724,9 @@ class _Monitor:
             calls = self.call_watch.get(dict_addr, ())
             if not hits and not calls:
                 return 0
-            if event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED):
-                key = ctypes.cast(key_addr, ctypes.py_object).value if key_addr else None
-                if type(key) is not str:
-                    return 0
+            per_key = event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED)
+            key = ctypes.cast(key_addr, ctypes.py_object).value if per_key and key_addr else None
+            if per_key and type(key) is str:
                 if key == "__call__":
                     for name in sorted(calls):
                         self._gap(name, "a mock boundary's __call__ was replaced")
@@ -670,9 +736,14 @@ class _Monitor:
                     chain = self.state[name]["chain"]
                     if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
                         self._restep(name, level, event != _DICT_DELETED, new)
-            elif event in (_DICT_CLONED, _DICT_CLEARED):
+            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):
+                # a store through a key that is not an exact str may change any binding (its hash and
+                # __eq__ decide which entry it replaces; Codex phase-1 r9, plan ruling 11), as a clear or
+                # clone does
+                reason = ("a store with a key that is not an exact str" if per_key
+                          else "a watched namespace was replaced wholesale")
                 for name in sorted({n for n, _lv in hits} | set(calls)):
-                    self._gap(name, "a watched namespace was replaced wholesale")
+                    self._gap(name, reason)
                 # nothing on a path through this namespace is current until a per-key store re-resolves it
                 # (Codex phase-1 r8 #1: a captured former callable stayed current); the new contents are
                 # not read here, before the change
@@ -841,7 +912,7 @@ class _Monitor:
                     kwargs = loc.get("kwargs", {})
                     self._matched(matched, [self.state[sp["name"]]["current"] is me for sp in matched], frame,
                                   list(extra) if type(extra) is tuple else [],
-                                  dict(kwargs) if type(kwargs) is dict else {},
+                                  kwargs if type(kwargs) is dict else {},   # not copied: a copy can compare keys
                                   unverified=None if self._mock_verified(me) else
                                   "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
@@ -882,16 +953,16 @@ class _Monitor:
                 events = 0
                 if self.branch and filename == self.branch[0]:
                     events |= sys.monitoring.events.LINE
-                key = (filename, code.co_qualname)
+                key = (filename, _name(code.co_qualname))
                 if key in self.returns or key in self.entries:
                     events |= sys.monitoring.events.PY_RETURN       # PY_UNWIND is global-only (3.12)
                 if events:
                     sys.monitoring.set_local_events(TOOL_ID, code, events)
                 self.instrumented.add(code)
-            if (filename, code.co_qualname) in self.entries:
+            if (filename, _name(code.co_qualname)) in self.entries:
                 frame = sys._getframe(1)
                 stack, is_async = self._stack(frame)
-                self._record("entry", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
+                self._record("entry", {"file": filename, "qualname": _name(code.co_qualname), "frame": id(frame),
                                        "stack": stack[:40], "async": is_async})
         except BaseException as e:  # noqa: BLE001
             self._err("py_start", e)
@@ -924,7 +995,7 @@ class _Monitor:
 
     def _exit(self, code, retval, how):
         filename = self._real(code.co_filename)
-        key = (filename, code.co_qualname)
+        key = (filename, _name(code.co_qualname))
         if key not in self.entries and key not in self.returns:
             return
         frame = sys._getframe(2)
@@ -933,11 +1004,11 @@ class _Monitor:
             # an exceptional exit is observed only as the exception's type name (no application code)
             safe = _safe(retval) if how == "return" else _raised(type(retval))
             category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"
-            self._record("return", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
+            self._record("return", {"file": filename, "qualname": _name(code.co_qualname), "frame": id(frame),
                                     "value": safe, "category": category, "how": how,
                                     "stack": stack[:40], "async": is_async})
         if key in self.entries:
-            self._record("entry_exit", {"file": filename, "qualname": code.co_qualname, "frame": id(frame),
+            self._record("entry_exit", {"file": filename, "qualname": _name(code.co_qualname), "frame": id(frame),
                                         "how": how})
 
     def _on_return(self, code, offset, retval):

@@ -29,6 +29,9 @@ Known equivalent guards (not listed):
 * the "keep every start" rule (r7) is gone with the dispatch re-check it served (plan ruling 10), so O4
   (restart events when a new boundary callee is registered) is listed again, and O31/O32 and the other
   absence-only mutants (C5-C7, C9-C11, C13, O6, O9, O35) are retired with the code they mutated;
+* retired O61 (a Mock call's keyword dict read in place, not copied): CPython builds a fresh keyword dict
+  compactly, and copying such a dict takes the clone path, which re-inserts nothing and so compares no keys
+  (measured: SURVIVED at 962c20f). The in-place read stays as defence in depth;
 * retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
   O30) the raw descriptor read and getattr coincide for every accepted object.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
@@ -162,7 +165,7 @@ M = [
  ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
  ('observer.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'O24 nested sequences are checked'),
  ('observer.py', '            return all(_complete(v) for v in safe[key].values())', '            return True', 'O25 nested maps and fields are checked'),
- ('observer.py', '            elif event in (_DICT_CLONED, _DICT_CLEARED):', '            elif False:', 'O26 a namespace replaced wholesale is a gap'),
+ ('observer.py', '            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):', '            elif False:', 'O26 a namespace replaced wholesale is a gap'),
  ('observer.py', '            if not watching:', '            if False:', 'O27 no watchers means a gap'),
  ('owned.py', '                if not (name.isidentifier() and hook.is_file()\n                        and _sha(hook.read_bytes()) in REVIEWED_PTH_IMPORTS.get(name, {})):', '                if False:', 'W10 executable .pth lines refused unless reviewed'),
  ('owned.py', '        elif os.path.isfile(target):\n            _hash_file(h, target)\n        else:\n            h.update(b"dangling")\n        return h.hexdigest()', '        return h.hexdigest()', 'W11 symlink target bytes in the manifest'),
@@ -226,6 +229,19 @@ M = [
  ('certify.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'C27 completeness at every depth'),
  ('defence.py', '        raise SpecError(f"the category {reserved!r} is reserved', '        pass\n        (f"the category {reserved!r} is reserved', 'D16 a spec naming the reserved category is refused'),
  ('defence.py', '            rule[0] == reserved for item in', '            False for item in', 'D17 classify rules are checked for the reserved category'),
+ ('observer.py', '        if _TYPE_FLAGS.__get__(t, type) & _HEAPTYPE:', '        if False:', 'O54 a heap class reads __module__ by iteration'),
+ ('observer.py', '        if why is not None:\n            return None\n        if found:\n            if type(desc) is not _GETSET:', '        if found:\n            if type(desc) is not _GETSET:', 'O55 an unsupported class namespace ends the instance-dict search'),
+ ('observer.py', '            found, value, _why = _lookup(kwargs, m.group(2))     # not found when the dict is unsupported', '            found, value, _why = m.group(2) in kwargs, kwargs.get(m.group(2)), None', 'O56 keyword identities read by iteration'),
+ ('observer.py', '        if type(k) is not str:\n            return False, None, _NON_STR_KEY', '        if type(k) is not str:\n            continue', 'O57 a dict with a key that is not an exact str is unsupported'),
+ ('observer.py', '            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):', '            elif event in (_DICT_CLONED, _DICT_CLEARED):', 'O58 a store through a non-str key invalidates'),
+ ('observer.py', '        if type(filename) is not str:\n            return _NO_PATH', '        if False:\n            return _NO_PATH', 'O59 a code filename must be an exact str'),
+ ('observer.py', '    return value if type(value) is str else "<unnamed>"', '    return value', 'O60 a code name must be an exact str'),
+ ('observer.py', '    if type(mod) is not types.ModuleType:\n        return {"unavailable": "not an exact module"}', '    if False:\n        return {"unavailable": "not an exact module"}', 'O62 import records need an exact module'),
+ ('observer.py', '    found, f, why = _lookup(ns, "__file__")\n    if why is not None:\n        return {"unavailable": why}', '    found, f, why = _lookup(ns, "__file__")', 'O63 import records need an exact-str namespace'),
+ ('observer.py', '               else {"unavailable": "a sys.modules key that is not an exact str"})', '               else _import_record(mod))', 'O64 a non-str sys.modules key is unavailable'),
+ ('observer.py', '        plain = str.__str__(name)', '        plain = str(name)', "O65 a module name is copied by str's own slot"),
+ ('runner.py', '        if "file" not in m:\n            why.append', '        if False:\n            why.append', 'R19 unavailable module provenance is refused'),
+ ('runner.py', '    if len(imports) == 1 and "unavailable" in imports[0]:\n        why.append', '    if False:\n        why.append', 'R20 an unavailable import record is refused'),
 ]
 
 

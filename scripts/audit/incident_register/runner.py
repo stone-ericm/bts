@@ -212,11 +212,15 @@ def gate(run: Run, *, worktree, mode: str, expected: list[str] | None = None,
         why.append(f"node inventory differs (missing {missing}, extra {extra})")
     imports = [e for e in ev if e["kind"] == "imports"]
     mods = imports[0]["modules"] if len(imports) == 1 else {}
+    if len(imports) == 1 and "unavailable" in imports[0]:
+        why.append(f"import provenance unavailable: {imports[0]['unavailable']}")
     if not mods:
         why.append("no bts modules imported")
     src = os.path.join(wt, "src") + os.sep
     for name, m in sorted(mods.items()):
-        if not m["file"].startswith(src):
+        if "file" not in m:
+            why.append(f"module {name}: import provenance unavailable ({m.get('unavailable')})")
+        elif not m["file"].startswith(src):
             why.append(f"module {name} imported from outside the worktree src: {m['file']}")
         elif not os.path.exists(m["file"]) or m["sha256"] != _sha(m["file"]):
             why.append(f"module {name} changed after import")
