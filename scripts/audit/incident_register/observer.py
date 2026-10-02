@@ -87,11 +87,11 @@ for _fn, _argtypes in (("PyDict_AddWatcher", [_DICT_WATCH_CB]), ("PyDict_ClearWa
 _DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED, _DICT_CLONED, _DICT_CLEARED = 0, 1, 2, 3, 4
 _FUNC_MODIFY_CODE = 2
 for _fn, _argtypes in (("PyInterpreterState_Get", []), ("PyInterpreterState_ThreadHead", [ctypes.c_void_p]),
-                       ("PyThreadState_Next", [ctypes.c_void_p])):
+                       ("PyThreadState_Next", [ctypes.c_void_p]), ("PyThreadState_Get", [])):
     getattr(_API, _fn).argtypes = _argtypes
     getattr(_API, _fn).restype = ctypes.c_void_p
-_INTERP_GET, _THREAD_HEAD, _THREAD_NEXT = (_API.PyInterpreterState_Get, _API.PyInterpreterState_ThreadHead,
-                                           _API.PyThreadState_Next)
+_INTERP_GET, _THREAD_HEAD, _THREAD_NEXT, _TS_GET = (_API.PyInterpreterState_Get, _API.PyInterpreterState_ThreadHead,
+                                                    _API.PyThreadState_Next, _API.PyThreadState_Get)
 _CONCURRENT = ("another thread was alive: the observer reads no application object then, since a temporary "
                "reference it held could become the last one and run an application finalizer (plan ruling 12)")
 
@@ -101,10 +101,20 @@ def _alone() -> bool:
     object is referenced; the GIL is held). Inside the call phase the observer reads application objects only then
     (plan ruling 12, Codex phase-1 r11 #1): while another thread can run, it could drop its own reference to an
     object the observer holds a temporary reference to, and releasing that temporary would run the object's
-    finalizer inside observation. When this thread is alone, nothing else can change a reference count."""
+    finalizer inside observation. When this thread is alone, nothing else can change a reference count.
+
+    New thread states are inserted at the HEAD of the list, so this thread is alone exactly when its own state is
+    the head and has no successor. Only this thread's own state (never freed while it runs) and the
+    interpreter's head pointer are read: the GIL can pass between these calls, and a version that followed the
+    head's successor read a short-lived thread's freed state and reported "alone" while another thread lived
+    (Codex phase-1 r12). The head is read again last, so a state inserted meanwhile is seen."""
     try:
-        head = _THREAD_HEAD(_INTERP_GET())
-        return bool(head) and not _THREAD_NEXT(head)
+        me, interp = _TS_GET(), _INTERP_GET()
+        if not me or _THREAD_HEAD(interp) != me:
+            return False
+        if _THREAD_NEXT(me):
+            return False
+        return _THREAD_HEAD(interp) == me
     except Exception:  # noqa: BLE001 - unreadable thread states: not alone, so nothing is read (a miss, never false)
         return False
 

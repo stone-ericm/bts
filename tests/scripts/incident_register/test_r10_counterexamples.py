@@ -470,3 +470,53 @@ def test_no_application_finalizer_runs_inside_observation(tmp_path):
     assert "observer_calls 0 cycle_timeouts 0" in observed and "observer_calls 0 cycle_timeouts 0" in plain, (observed, plain)
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
     assert _concurrent_boundaries(tmp_path), _boundaries(tmp_path)
+
+
+def test_alone_never_reports_alone_while_another_thread_exists():
+    """Codex r12: _alone read the list head, then the head's successor, in two calls. Between them the GIL can
+    pass to a short-lived child thread, which finishes and frees its thread state, so the second call read freed
+    memory and reported "alone" while the driver thread was alive (at 78d6d38). The read now touches only this
+    thread's own state and the interpreter's head pointer."""
+    import threading
+    import time
+    stop, ready = threading.Event(), threading.Event()
+
+    def churn():
+        ready.set()
+        while not stop.is_set():
+            child = threading.Thread(target=lambda: None)
+            child.start()
+            child.join()
+    driver = threading.Thread(target=churn)
+    driver.start()
+    assert ready.wait(5)
+    wrong, checks, deadline = 0, 0, time.monotonic() + 3
+    try:
+        while time.monotonic() < deadline:
+            checks += 1
+            wrong += observer._alone()
+    finally:
+        stop.set()
+        driver.join(timeout=5)
+    assert not driver.is_alive() and checks > 1000 and wrong == 0, (wrong, checks)
+
+
+def test_alone_is_the_head_with_no_successor(monkeypatch):
+    """Deterministic: alone exactly when this thread's state heads the list and has no successor, read twice
+    (new thread states are inserted at the head); an unreadable state is not alone (O80, O81, O82)."""
+    me, other = 0x1000, 0x2000
+    monkeypatch.setattr(observer, "_TS_GET", lambda: me)
+    monkeypatch.setattr(observer, "_INTERP_GET", lambda: 0x10)
+    for head, nxt, want in [(me, 0, True), (other, 0, False), (me, other, False)]:
+        monkeypatch.setattr(observer, "_THREAD_HEAD", lambda _i, h=head: h)
+        monkeypatch.setattr(observer, "_THREAD_NEXT", lambda _t, n=nxt: n)
+        assert observer._alone() is want, (head, nxt)
+    heads = iter([me, other])                                    # a thread state inserted between the two reads
+    monkeypatch.setattr(observer, "_THREAD_HEAD", lambda _i: next(heads))
+    monkeypatch.setattr(observer, "_THREAD_NEXT", lambda _t: 0)
+    assert observer._alone() is False
+
+    def boom(*_a):
+        raise OSError("unreadable")
+    monkeypatch.setattr(observer, "_THREAD_HEAD", boom)
+    assert observer._alone() is False
