@@ -1,13 +1,14 @@
-BASELINE rc=0 | ======================= 40 passed, 22 xfailed in 17.78s ========================
-P1 affirmative content (not a name match): CAUGHT | ================== 5 failed, 35 passed, 22 xfailed in 14.89s ===================
-P2 send and record on the declared day: CAUGHT | ================== 2 failed, 38 passed, 22 xfailed in 16.89s ===================
-P3 strictly before the cutoff: CAUGHT | ================== 2 failed, 38 passed, 22 xfailed in 14.95s ===================
-P4 the record's delivered_at bounded: CAUGHT | ================== 2 failed, 38 passed, 22 xfailed in 14.22s ===================
-P5 E77: no other send naming the batter: CAUGHT | ================== 1 failed, 39 passed, 22 xfailed in 14.61s ===================
-P6 L03: another send naming the batter is other: CAUGHT | ================== 1 failed, 39 passed, 22 xfailed in 12.61s ===================
-P7 the record is the declared day's: CAUGHT | ================== 1 failed, 39 passed, 22 xfailed in 12.18s ===================
-F1 named status formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 9.62s ==================
-F2 unqualified no-pick formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 9.02s ==================
-R1 L03 postponement guard at the delivery chokepoint: REACHES THE REQUIRED BRANCH | ================== 1 failed, 8 passed, 53 deselected in 7.68s ==================
-R2 E77 noon schedule re-fetch: REACHES THE REQUIRED BRANCH | ================== 1 failed, 1 passed, 60 deselected in 8.76s ==================
+# ref 308f51a, resolved 308f51a7f10612f59be0ae9c7df8a3b6dd9c5d2c; run 2026-10-01 in the evidence worktree ~/projects/bts-w15-evidence/pred with: .venv/bin/python docs/audit/2026-09-29-incident-register-evidence/tooling/fixture_predicate_mutants.py <worktree>; fixtures tests/test_incident_register_2026.py sha256 5c5748ec9b9a66da63e0f17a9fba1355ded0ed91d4f342756110b888e4b7226b; script sha256 b56d72ebe0e57fb918dcd0145ce0d066df806a03ef3d57d19b7ac501ef2586db
+BASELINE rc=0 | ======================== 40 passed, 22 xfailed in 2.12s ========================
+P1 affirmative content (not a name match): CAUGHT | =================== 5 failed, 35 passed, 22 xfailed in 1.60s ===================
+P2 send and record on the declared day: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 1.58s ===================
+P3 strictly before the cutoff: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 1.54s ===================
+P4 the record's delivered_at bounded: CAUGHT | =================== 2 failed, 38 passed, 22 xfailed in 1.55s ===================
+P5 E77: no other send naming the batter: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 1.53s ===================
+P6 L03: another send naming the batter is other: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 1.52s ===================
+P7 the record is the declared day's: CAUGHT | =================== 1 failed, 39 passed, 22 xfailed in 1.52s ===================
+F1 named status formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 1.22s ==================
+F2 unqualified no-pick formatter: CAUGHT | failed ['test_e77_positive_execution_control_correct_schedule_delivers', 'test_l03_positive_execution_control_cached_fallback_delivers_a_playable_game', 'test_l03_postponed_game_is_never_delivered_by_the_cached_fallback'] | ================= 3 failed, 58 deselected, 1 xfailed in 1.23s ==================
+R1 L03 postponement guard at the delivery chokepoint: REACHES THE REQUIRED BRANCH | ================== 1 failed, 8 passed, 53 deselected in 1.12s ==================
+R2 E77 noon schedule re-fetch: REACHES THE REQUIRED BRANCH | ================== 1 failed, 1 passed, 60 deselected in 1.11s ==================
 ALL AS REQUIRED
