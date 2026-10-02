@@ -86,6 +86,27 @@ for _fn, _argtypes in (("PyDict_AddWatcher", [_DICT_WATCH_CB]), ("PyDict_ClearWa
     getattr(_API, _fn).restype = ctypes.c_int
 _DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED, _DICT_CLONED, _DICT_CLEARED = 0, 1, 2, 3, 4
 _FUNC_MODIFY_CODE = 2
+for _fn, _argtypes in (("PyInterpreterState_Get", []), ("PyInterpreterState_ThreadHead", [ctypes.c_void_p]),
+                       ("PyThreadState_Next", [ctypes.c_void_p])):
+    getattr(_API, _fn).argtypes = _argtypes
+    getattr(_API, _fn).restype = ctypes.c_void_p
+_INTERP_GET, _THREAD_HEAD, _THREAD_NEXT = (_API.PyInterpreterState_Get, _API.PyInterpreterState_ThreadHead,
+                                           _API.PyThreadState_Next)
+_CONCURRENT = ("another thread was alive: the observer reads no application object then, since a temporary "
+               "reference it held could become the last one and run an application finalizer (plan ruling 12)")
+
+
+def _alone() -> bool:
+    """True when the calling thread is the interpreter's only thread, read from the C thread-state list (no Python
+    object is referenced; the GIL is held). Inside the call phase the observer reads application objects only then
+    (plan ruling 12, Codex phase-1 r11 #1): while another thread can run, it could drop its own reference to an
+    object the observer holds a temporary reference to, and releasing that temporary would run the object's
+    finalizer inside observation. When this thread is alone, nothing else can change a reference count."""
+    try:
+        head = _THREAD_HEAD(_INTERP_GET())
+        return bool(head) and not _THREAD_NEXT(head)
+    except Exception:  # noqa: BLE001 - unreadable thread states: not alone, so nothing is read (a miss, never false)
+        return False
 
 
 def _config() -> dict:
@@ -555,8 +576,10 @@ class _Monitor:
         self.tool_acquired = self.started = self.active = False
         # one lock for every binding-state transition and every attribution read (Codex phase-1 r10 part 2
         # #1: another thread's invalidation landed between a re-resolution's read and its publication, which
-        # then overwrote it). Each watched store's callback takes it BEFORE its change, so while an attribution
-        # read holds it no watched namespace changes. Reentrant: observer code can start inside a callback.
+        # then overwrote it). The lock serializes watcher bookkeeping and attribution checks. It does not cover
+        # the subsequent C-level store commit; _current_now separately re-resolves the binding (Codex phase-1 r11
+        # #2), and since plan ruling 12 those reads run only while this thread is the only one. Reentrant:
+        # observer code can start inside a callback.
         self._lock = threading.RLock()
 
     # -- bookkeeping
@@ -664,6 +687,10 @@ class _Monitor:
             self.watch_index.setdefault(id(ns), []).append((name, level))
 
     def _track(self, spec: dict) -> None:
+        if not _alone():                                 # nothing is read: the binding is never held (missed)
+            self.state[spec["name"]] = {"keys": [], "chain": [], "current": None, "held": []}
+            self._gap(spec["name"], _CONCURRENT, where="start")
+            return
         keys, chain, value, why = _resolve_chain(spec["binding"])
         self.state[spec["name"]] = {"keys": keys, "chain": chain, "current": None, "held": []}
         for level, step in enumerate(chain):
@@ -750,6 +777,7 @@ class _Monitor:
                 calls = self.call_watch.get(dict_addr, ())
                 if not hits and not calls:
                     return 0
+                alone = _alone()
                 per_key = event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED)
                 key = ctypes.cast(key_addr, ctypes.py_object).value if per_key and key_addr else None
                 if per_key and type(key) is str:
@@ -761,7 +789,12 @@ class _Monitor:
                     for name, level in list(hits):
                         chain = self.state[name]["chain"]
                         if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
-                            self._restep(name, level, event != _DICT_DELETED, new)
+                            if alone:
+                                self._restep(name, level, event != _DICT_DELETED, new)
+                            else:                       # re-resolving would read application objects (ruling 12)
+                                self._gap(name, _CONCURRENT, where="store")
+                                st = self.state[name]
+                                st["chain"], st["current"] = chain[:level + 1], None
                 elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):
                     # a store through a key that is not an exact str may change any binding (its hash and
                     # __eq__ decide which entry it replaces; Codex phase-1 r9, plan ruling 11), as a clear or
@@ -885,6 +918,9 @@ class _Monitor:
             try:
                 with self._lock:
                     st = self.state.get(spec["name"])
+                    if not _alone():
+                        self._gap(spec["name"], _CONCURRENT, where="end")
+                        continue
                     _keys, _chain, now, why = _resolve_chain(spec["binding"])
                     if st is not None and why is None and now is not st["current"]:
                         self._gap(spec["name"], "the binding changed without a watched store")
@@ -937,7 +973,10 @@ class _Monitor:
                     me = loc.get("self")
                     matched = [sp for sp in self.boundaries
                                if any(o is me for o in self.state.get(sp["name"], {}).get("held", ()))]
-                    if matched:
+                    if matched and not _alone():                 # ruling 12: no application object is read
+                        for sp in matched:
+                            self._boundary(sp, frame, [], {}, reason=_CONCURRENT)
+                    elif matched:
                         extra = loc.get("args", ())
                         kwargs = loc.get("kwargs", {})
                         self._matched(matched, [self._current_now(sp) is me for sp in matched], frame,
@@ -964,7 +1003,11 @@ class _Monitor:
                         bucket = mine if rcv is None or first is rcv else others
                         if not any(s is sp for s in bucket):
                             bucket.append(sp)
-                    if mine:
+                    if mine and not _alone():                    # ruling 12: no census, no read
+                        matched = mine
+                        for sp in mine:
+                            self._boundary(sp, frame, args, kwargs, reason=_CONCURRENT)
+                    elif mine:
                         matched = mine
                         shared = self._code_shared(code)
                         if shared > 1:                           # the code does not say which function ran
@@ -1004,7 +1047,8 @@ class _Monitor:
         only while the binding resolves to it NOW through watched namespaces that are all supported (Codex
         phase-1 r10 part 2 #1). A store's callback runs before its change, so a re-resolution can read a
         namespace another thread is about to change; this read, at the call, sees the change if it landed
-        before the call. Called under ``_lock``: no watched namespace changes while it reads."""
+        before the call. Called under ``_lock``, and only while this thread is the interpreter's only thread (plan
+        ruling 12), so no store is pending and no namespace changes while it reads."""
         cur = self.state[spec["name"]]["current"]
         if cur is None:
             return None
@@ -1050,7 +1094,10 @@ class _Monitor:
         if key in self.returns:                             # recorded BEFORE the exit: frame still live
             stack, is_async = self._stack(frame)
             # an exceptional exit is observed only as the exception's type name (no application code)
-            safe = _safe(retval) if how == "return" else _raised(type(retval))
+            if not _alone():                                # ruling 12: the value is not read
+                safe = {"unavailable": _CONCURRENT, "incomplete": True}
+            else:
+                safe = _safe(retval) if how == "return" else _raised(type(retval))
             category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"
             self._record("return", {"file": filename, "qualname": _name(code.co_qualname), "frame": id(frame),
                                     "value": safe, "category": category, "how": how,

@@ -34,10 +34,11 @@ Known equivalent guards (not listed):
   (measured: SURVIVED at 962c20f and in Codex phase-1 r10's targeted run). The equivalence is qualified to
   this interpreter (3.12) and the fresh-call shape: copying a SPARSE dict (keys deleted after growth) does
   compare keys (Codex r10, measured). The in-place read stays as defence in depth;
-* the observer's lock (``_lock``, Codex phase-1 r10 part 2 #1) has no deterministic killer: the races it
-  closes need thread interleavings no test can force. The call-time read it protects (O70, O71) is what
-  keeps a lost race from attributing a call, and test_r10's concurrent regression exercises that race
-  (its interleaving is asserted, its outcome is independent of the timing);
+* the observer's lock (``_lock``, Codex phase-1 r10 part 2 #1), in Codex phase-1 r11 #3's words: No deterministic
+  full-integration killer for the lock is currently included. O70 and O71 test the call-time guards. The
+  integration race checks refusal once the worker's store has completed; it does not establish overlap or an
+  atomic namespace snapshot. (Since plan ruling 12 the reads it orders run only while the observed thread is
+  alone; O73-O79 test that gate.)
 * retired O64 and O65 (a str-subclass sys.modules key: its own unavailable record; its text copied by str's
   slot): since Codex phase-1 r10 #3 any key that is not an exact str makes the whole import record
   unavailable (O69), so neither branch exists;
@@ -86,7 +87,7 @@ M = [
  ('certify.py', 'common = [(b, s & live_x) for b, s in live_at_branch if b["seq"] < x["seq"] and s & live_x]', 'common = [(b, s) for b, s in live_at_branch]', 'C4 common invocation after branch'),
  ('certify.py', '    if not live_at_branch:\n        why.append', '    if False:\n        why.append', 'C8 branch in live invocation'),
  ('certify.py', 'r["kind"] in ("entry_exit", "entry") and r["thread"] == en["thread"]:', 'False:', 'C12 exit/reuse splits invocations'),
- ('observer.py', '                    if matched:\n                        extra = loc.get("args", ())', '                    if False:\n                        extra = loc.get("args", ())', 'O1 mock callee recorder'),
+ ('observer.py', '                    elif matched:\n                        extra = loc.get("args", ())', '                    elif False:\n                        extra = loc.get("args", ())', 'O1 mock callee recorder'),
  ('observer.py', 'return None if matched else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
@@ -256,6 +257,13 @@ M = [
  ('observer.py', '        if why is not None or value is not cur:\n            return None', '        if False:\n            return None', 'O70 attribution reads the binding at the call'),
  ('observer.py', '            if self.watched.get(id(ns)) is not ns:\n                return None', '            if False:\n                return None', 'O71 attribution needs every namespace on the path watched'),
  ('observer.py', '    if not found or type(f) is not str:\n        return {"unavailable": "no __file__ that is an exact str"}', '    if not found or type(f) is not str:\n        if found:\n            try:\n                os.fspath(f)\n            except TypeError:\n                pass\n        return {"unavailable": "no __file__ that is an exact str"}', 'O72 an unreadable __file__ is never resolved (Codex r10 part 2 FG_PATHLIKE)'),
+ ('observer.py', '        return bool(head) and not _THREAD_NEXT(head)', '        return True', 'O73 _alone reads the thread states'),
+ ('observer.py', '                    if mine and not _alone():                    # ruling 12: no census, no read', '                    if False:                    # ruling 12: no census, no read', 'O74 a function boundary call reads nothing while another thread is alive'),
+ ('observer.py', '                    if matched and not _alone():                 # ruling 12: no application object is read', '                    if False:                 # ruling 12: no application object is read', 'O75 a mock boundary call reads nothing while another thread is alive'),
+ ('observer.py', '            if not _alone():                                # ruling 12: the value is not read', '            if False:                                # ruling 12: the value is not read', 'O76 a return is not read while another thread is alive'),
+ ('observer.py', '                            if alone:\n                                self._restep(', '                            if True:\n                                self._restep(', 'O77 a store while another thread is alive cuts, never re-resolves'),
+ ('observer.py', '        if not _alone():                                 # nothing is read: the binding is never held (missed)', '        if False:                                 # nothing is read: the binding is never held (missed)', 'O78 tracking at the start needs the thread alone'),
+ ('observer.py', '                    if not _alone():\n                        self._gap(spec["name"], _CONCURRENT, where="end")', '                    if False:\n                        self._gap(spec["name"], _CONCURRENT, where="end")', 'O79 the end check needs the thread alone'),
 ]
 
 

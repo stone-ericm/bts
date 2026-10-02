@@ -227,6 +227,7 @@ def invoke(transport,rebind):
         time.sleep(0)
         place.append('began during store' if not stored.is_set() else 'began after store')
         parent_namespace[key]=1
+        place.append('stored')
     worker=threading.Thread(target=change)
     worker.start()
     assert ready.wait(10)
@@ -235,6 +236,7 @@ def invoke(transport,rebind):
         transport.API=new
         stored.set()
         worker.join(timeout=12)
+        assert not worker.is_alive() and place[-1:]==['stored'],place
         print('change_place',place)
         list(map(new.send,['eric'],[ALERT]))
     finally:
@@ -245,13 +247,14 @@ def invoke(transport,rebind):
 
 def test_a_concurrent_invalidation_is_never_overwritten(tmp_path):
     """Codex r10 part 2 #1: accepted at 0dad851 (an attributed alert after the worker's bad-key gap). The worker
-    adds a key that is not an exact str to the parent module while the main thread's store of a large class is
-    being re-resolved; the key stays until after the call. The run must be rejected, and the worker's store must
-    have BEGUN while the main store was in progress (otherwise the interleaving was not exercised)."""
+    adds a key that is not an exact str to the parent module, racing the main thread's store of a large class; the
+    key stays until after the call. Whatever the schedule, the run must be rejected (Codex r11 #3: the printed
+    label is not a commit witness, so it is not asserted; the worker's completed store is)."""
     res = _defend(tmp_path, RACE_HELPER, transport=REVIVE_TRANSPORT,
                   boundaries=[dict(DM, binding="bts.transport:API.send")])
     observed, _plain = _counts(tmp_path)
-    assert "began during store" in observed, observed
+    assert "'stored']" in observed, observed
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
     bs = _boundaries(tmp_path)
     assert bs and not any(e["identity"]["category"] == "alert" for e in bs), bs
@@ -344,3 +347,126 @@ def test_composite_serialization_runs_no_member_code():
     for form in forms:
         observer._safe(form)
     assert hits == [], hits
+
+
+# --- Codex r11 #1 (plan ruling 12): while another thread is alive the observer reads no application object ------
+
+def test_alone_reads_the_interpreters_thread_states():
+    assert observer._alone()
+    import threading
+    gate = threading.Event()
+    worker = threading.Thread(target=gate.wait)
+    worker.start()
+    try:
+        assert not observer._alone()                             # O73
+    finally:
+        gate.set()
+        worker.join()
+    assert observer._alone()
+
+
+def _concurrent_boundaries(tmp_path):
+    return [e for e in _boundaries(tmp_path) if e["identity"].get("reason") == observer._CONCURRENT]
+
+
+THREAD_AROUND = ("import threading\ndef invoke(transport,rebind):\n    if not rebind:\n"
+                 "        transport.send('eric','pick: Turner')\n        return\n"
+                 "    gate=threading.Event()\n    worker=threading.Thread(target=gate.wait)\n    worker.start()\n"
+                 "    try:\n        transport.send('eric',ALERT)\n    finally:\n        gate.set()\n        worker.join()\n")
+MOCK_TRANSPORT = ("from unittest.mock import Mock\nsent=[]\ndef effect(recipient,text):\n    sent.append((recipient,text))\n"
+                  "send=Mock(side_effect=effect)\n")
+
+
+@pytest.mark.parametrize("kind", ["function", "mock"])
+def test_a_boundary_call_while_another_thread_is_alive_reads_nothing(tmp_path, kind):
+    """The call is recorded with an unavailable identity: neither its arguments nor the binding is read (O74, O75)."""
+    res = _defend(tmp_path, THREAD_AROUND, **({"transport": MOCK_TRANSPORT} if kind == "mock" else {}))
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    bs = _boundaries(tmp_path)
+    assert bs and _concurrent_boundaries(tmp_path) and not any(e["identity"]["category"] == "alert" for e in bs), bs
+
+
+def test_a_return_while_another_thread_is_alive_is_not_read(tmp_path):
+    """The bad return is real, but it is observed while a worker is alive, so its value is not read (O76)."""
+    prod = ("import threading\ngate=threading.Event()\nworkers=[]\ndef deliver():\n"
+            "    w=threading.Thread(target=gate.wait)\n    w.start()\n    workers.append(w)\n"
+            "    return 'done'  # BRANCH\n")
+    test = ("from bts import mod\ndef test_probe():\n    result=mod.deliver()\n    mod.gate.set()\n"
+            "    [w.join() for w in mod.workers]\n    assert result=='done'  # ASSERT-RESULT\n")
+    _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "tests/test_probe.py": test})
+    res = defence.current_defence(wt, _return_spec(), tmp_path / "out")
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    ret = next(e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "return")
+    assert ret["category"] == "unavailable" and ret["value"].get("unavailable") == observer._CONCURRENT, ret
+
+
+def test_a_store_while_another_thread_is_alive_cuts_the_binding(tmp_path):
+    """A rebind and restore made while a worker is alive is not re-resolved (that would read application objects):
+    the binding is cut, so the later call, made alone, is not attributed (O77)."""
+    helper = ("import threading\ndef invoke(transport,rebind):\n    if not rebind:\n"
+              "        transport.send('eric','pick: Turner')\n        return\n"
+              "    gate=threading.Event()\n    worker=threading.Thread(target=gate.wait)\n    worker.start()\n"
+              "    try:\n        original=transport.send\n        transport.send=transport.replacement\n"
+              "        transport.send=original\n    finally:\n        gate.set()\n        worker.join()\n"
+              "    transport.send('eric',ALERT)\n")
+    res = _defend(tmp_path, helper)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    gaps = [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "boundary_gap"]
+    assert any(g["reason"] == observer._CONCURRENT and g.get("where") == "store" for g in gaps), gaps
+
+
+def test_a_thread_alive_through_the_call_phase_leaves_the_binding_untracked(tmp_path):
+    """A daemon thread started at the test module's import is alive when the call phase starts and when it ends:
+    the binding is not resolved at the start, the end check reads nothing, and no call is attributed (O78, O79)."""
+    test = ("import threading\nfrom bts import mod,transport\n_gate=threading.Event()\n"
+            "threading.Thread(target=_gate.wait,daemon=True).start()\ndef test_probe():\n    result=mod.deliver()\n"
+            "    assert transport.sent==[('eric','pick: Turner')]\n    assert result=='done'  # ASSERT-RESULT\n")
+    res = _defend(tmp_path, "def invoke(transport,rebind):\n    transport.send('eric',ALERT if rebind else 'pick: Turner')\n",
+                  test=test)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    gaps = [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "boundary_gap"]
+    wheres = {g.get("where") for g in gaps if g["reason"] == observer._CONCURRENT}
+    assert {"start", "end"} <= wheres, gaps
+
+
+FINALIZER_TRANSPORT = ("import sys,threading\nsent=[]\nobserved=0\nreleased=0\napplication_lock=threading.Lock()\n"
+                       "cycle_timeouts=0\ndef send(recipient,text):\n    sent.append((recipient,text))\n"
+                       "class Ref:\n    __slots__=('code',)\n    def __init__(self,code):\n        self.code=code\n"
+                       "    def __del__(self):\n        global observed,released,cycle_timeouts\n        released+=1\n"
+                       "        f=sys._getframe(1)\n        while f is not None:\n"
+                       "            if '/w15obs_' in f.f_code.co_filename:\n                observed+=1\n"
+                       "                if not application_lock.acquire(timeout=.25):\n                    cycle_timeouts+=1\n"
+                       "                else:\n                    application_lock.release()\n                return\n"
+                       "            f=f.f_back\n")
+FINALIZER_HELPER = ("import threading,time,sys\ndef invoke(transport,rebind):\n    if not rebind:\n"
+                    "        transport.send('eric','pick: Turner')\n        return\n"
+                    "    padding=[(transport.send.__code__,i) for i in range(500000)]\n"
+                    "    holder=[transport.Ref(transport.send.__code__)]\n    main=threading.get_ident()\n"
+                    "    finished=threading.Event()\n    begin=threading.Event()\n    ready=threading.Event()\n"
+                    "    def release():\n        ready.set()\n        assert begin.wait(10)\n"
+                    "        deadline=time.monotonic()+10\n        while time.monotonic()<deadline:\n"
+                    "            f=sys._current_frames().get(main)\n            while f is not None:\n"
+                    "                if (f.f_code.co_name=='<genexpr>' and '/w15obs_' in f.f_code.co_filename and f.f_back is not None\n"
+                    "                        and f.f_back.f_code.co_name=='_code_shared'):\n"
+                    "                    with transport.application_lock:\n                        holder.clear()\n"
+                    "                        transport.worker_store=1\n                    return\n"
+                    "                f=f.f_back\n            if finished.is_set():\n                holder.clear()\n"
+                    "                return\n            time.sleep(0)\n        holder.clear()\n"
+                    "    worker=threading.Thread(target=release)\n    worker.start()\n    assert ready.wait(10)\n"
+                    "    try:\n        begin.set()\n        transport.send('eric',ALERT)\n        finished.set()\n"
+                    "        worker.join(timeout=12)\n        assert not worker.is_alive()\n"
+                    "        print('finalizer',transport.released,'observer_calls',transport.observed,"
+                    "'cycle_timeouts',transport.cycle_timeouts)\n    finally:\n        worker.join(timeout=12)\n"
+                    "        holder.clear()\n")
+
+
+def test_no_application_finalizer_runs_inside_observation(tmp_path):
+    """Codex r11 #1: accepted at 308f51a while an application __del__ ran inside the observer's shared-code census
+    (released by a worker while the census held the last reference), and under the lock it waited on an
+    application lock a worker held. Now nothing is read while the worker is alive: no finalizer runs with an
+    observer frame on the stack, nothing waits, and the call is not attributed."""
+    res = _defend(tmp_path, FINALIZER_HELPER, transport=FINALIZER_TRANSPORT)
+    observed, plain = _counts(tmp_path)
+    assert "observer_calls 0 cycle_timeouts 0" in observed and "observer_calls 0 cycle_timeouts 0" in plain, (observed, plain)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert _concurrent_boundaries(tmp_path), _boundaries(tmp_path)

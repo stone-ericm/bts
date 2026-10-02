@@ -63,6 +63,7 @@ COVERAGE = {
                           "a value incomplete at any depth",
                           "a binding whose path passes through a namespace holding a key that is not an exact str, "
                           "or was changed by a store through such a key (until a per-key store re-resolves it)",
+                          "a call observed while another thread was alive (nothing is read then; plan ruling 12)",
                           "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all "
                           "supported, read under the lock every watched store takes before its change (Codex phase-1 "
                           "r10 part 2 #1)",
@@ -71,6 +72,7 @@ COVERAGE = {
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
                          "an application signal handler at either end of the call phase", "observer errors",
                          "an incomplete observation window", "a coroutine frame",
+                         "a return observed while another thread was alive (its value is not read; plan ruling 12)",
                          "a run whose bts import provenance is unreadable without application dispatch (refused at "
                          "every stage's gate)"],
     "observation": "inside the call phase the observer hashes, compares or dispatches only on values it owns or has "
@@ -80,7 +82,10 @@ COVERAGE = {
                    "iteration; a code object's name that is not an exact str reads as unnamed, "
                    "and code objects themselves are never hashed or compared (the observer's maps key them by id: "
                    "a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex "
-                   "phase-1 r9; code objects: self-review during r10)",
+                   "phase-1 r9; code objects: self-review during r10). It reads application objects only while the observed "
+                   "thread is the interpreter's only thread; otherwise it reads none (calls and returns read "
+                   "unavailable, a store cuts the binding), since another thread could make a temporary reference it "
+                   "holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "
                         "bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it "
                         "can only fail to witness an event",
