@@ -26,8 +26,8 @@ import pytest
 
 from scripts.audit.incident_register import defence, observer, runner
 from tests.scripts.incident_register.synth import DM, defended_project
-from tests.scripts.incident_register.test_r4_counterexamples import one_spec
-from tests.scripts.incident_register.test_r6_counterexamples import NODE, _defend
+from tests.scripts.incident_register.test_r4_counterexamples import ALERT, one_spec
+from tests.scripts.incident_register.test_r6_counterexamples import MUTANT, NODE, PROD, TEST, _defend
 from tests.scripts.incident_register.test_r9_counterexamples import _boundaries, _counting_key, _counts
 
 
@@ -473,9 +473,10 @@ def test_no_application_finalizer_runs_inside_observation(tmp_path):
 
 
 def test_alone_never_reports_alone_while_another_thread_exists():
-    """Codex r12: _alone read the list head, then the head's successor, in two calls. Between them the GIL can
-    pass to a short-lived child thread, which finishes and frees its thread state, so the second call read freed
-    memory and reported "alone" while the driver thread was alive (at 78d6d38). The read now touches only this
+    """Codex r12: _alone read the list head, then the head's successor, in two calls, and reported "alone" while
+    the driver thread was alive (at 78d6d38). Between the calls the GIL can pass to a short-lived child thread
+    that may finish meanwhile: following another thread's sampled state was unsafe, with the exact cause
+    (the unlink/free sequence) inferred, not measured (Codex phase-1 r13). The read now touches only this
     thread's own state and the interpreter's head pointer."""
     import threading
     import time
@@ -612,3 +613,183 @@ def test_an_observer_error_while_another_thread_is_alive_reads_nothing():
     concurrent, alone = mon.events[-2], mon.events[-1]
     assert concurrent["detail"] is None and concurrent["error_type"].startswith("<unread"), concurrent
     assert alone["error_type"] == "builtins.ValueError" and alone["detail"]["args"] == ["detail"], alone
+
+
+# --- Codex r13 #1: an unread argument stays unread (never a witnessed None); duplicate local names are refused
+
+SLOT_TRANSPORT = ("sent=[]\ndef send(recipient,text):\n    def capture():\n        return recipient\n"
+                  "    sent.append((recipient,text))\ncode=send.__code__\n"
+                  "duplicate=code.replace(co_varnames=(code.co_varnames[0],code.co_varnames[0])+code.co_varnames[2:])\n")
+SLOT_HELPER = ("def invoke(transport,rebind):\n    transport.send('eric',ALERT if rebind else 'pick: Turner')\n"
+               "    print('actual_sender_values',transport.sent)\n")
+
+
+@pytest.mark.parametrize("case", ["plain-null", "plain-string", "duplicate-import", "duplicate-swap"])
+def test_an_unread_argument_never_becomes_a_witnessed_null(tmp_path, case):
+    """Codex r13 #1: with two locals sharing the name of a cell argument, the reader took the non-cell slot for a
+    cell and returned unread, which _on_start turned into None: accepted as a witnessed null_argument while the
+    sender received the alert string (at 9c275b1). Unread now stays unread, so the identity reads unavailable;
+    duplicate names are refused. Controls: an actual None is witnessed, an actual string is not a null."""
+    transport = SLOT_TRANSPORT + ("send.__code__=duplicate\n" if case == "duplicate-import" else "")
+    helper = SLOT_HELPER
+    if case == "duplicate-swap":
+        helper = helper.replace("    transport.send(", "    if rebind:\n        transport.send.__code__=transport.duplicate\n    transport.send(", 1)
+    if case == "plain-null":
+        helper = helper.replace("ALERT if rebind", "None if rebind")
+    _, wt = defended_project(tmp_path, {"src/bts/mod.py": PROD, "src/bts/transport.py": transport,
+                                        "tests/helper.py": f"ALERT={ALERT!r}\n" + helper, "tests/test_probe.py": TEST})
+    boundary = dict(DM, value=["args[1]"], classify=[["null_argument", "^null$"]])
+    spec = one_spec(*MUTANT, assertion="assert transport.sent==", category="null_argument", boundary=boundary)
+    res = defence.current_defence(wt, spec, tmp_path / "out")
+    bs = _boundaries(tmp_path)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    if case == "plain-null":
+        assert res["verdict"] == "accepted" and any(b["identity"]["category"] == "null_argument" for b in bs), res
+    else:
+        assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+        assert not any(b["identity"]["category"] == "null_argument" for b in bs), bs
+
+
+def test_duplicate_local_names_are_never_read():
+    """A slot's kind cannot be told by name when two locals share it (O87)."""
+    def probe(x, y):
+        def capture():
+            return x
+        frame = sys._getframe()
+        return observer._fast_local(frame, frame.f_code, 0, True), observer._fast_local(frame, frame.f_code, 1, True)
+    old = probe.__code__
+    probe.__code__ = old.replace(co_varnames=("x", "x") + old.co_varnames[2:])
+    assert probe("left", "right") == (observer._UNREAD, observer._UNREAD)
+
+
+def test_an_unread_value_is_an_unavailable_identity():
+    """_identity never serializes the unread marker as a value (O88)."""
+    mon = observer._Monitor("n", {}, "")
+    got = mon._identity({"value": ["args[0]", "kw:text"], "classify": [["null_argument", "^null$"]]},
+                        [observer._UNREAD], {"text": observer._UNREAD})
+    assert got["category"] == "unavailable" and got["value"] is None, got
+
+
+# --- Codex r13 #2: a coroutine or async-generator boundary is async even when its caller is synchronous ------
+
+@pytest.mark.parametrize("kind", ["generator", "coroutine", "async-generator"])
+def test_an_async_boundary_callee_is_never_witnessed(tmp_path, kind):
+    """Codex r13 #2: the boundary record checked only the caller's stack, so a coroutine or async generator driven
+    synchronously (send(None)) was accepted although async frames are unavailable (at 9c275b1). The callee's own
+    flag now counts (O89); an ordinary generator is still witnessed (control)."""
+    body = {"generator": ("def", "    yield None\n"), "coroutine": ("async def", "    return None\n"),
+            "async-generator": ("async def", "    yield None\n")}[kind]
+    transport = f"sent=[]\n{body[0]} send(recipient,text):\n    sent.append((recipient,text))\n{body[1]}"
+    drive = "    operation=value.__anext__()\n" if kind == "async-generator" else "    operation=value\n"
+    close = ("    finish=value.aclose()\n    try:\n        finish.send(None)\n    except StopIteration:\n        pass\n"
+             if kind == "async-generator" else "    value.close()\n")
+    helper = ("def invoke(transport,rebind):\n    value=transport.send('eric',ALERT if rebind else 'pick: Turner')\n" + drive +
+              "    try:\n        operation.send(None)\n    except StopIteration:\n        pass\n" + close)
+    res = _defend(tmp_path, helper, transport=transport)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    if kind == "generator":
+        assert res["verdict"] == "accepted" and res["certificates"][NODE]["ok"], res
+    else:
+        assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+        assert any(b["async"] for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+# --- Codex r13 #3: while another thread is alive, the read boundary is exactly the one COVERAGE states --------
+
+def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None):
+    """A mock boundary and a function boundary started in-process from their own frames, recording every slot
+    read: [(index, cells)] for each, and the boundary records."""
+    reads = []
+    real = observer._fast_local
+
+    def recording(frame, code, index, cells):
+        reads.append((index, cells))
+        return observer._UNREAD if index == unread_slot else real(frame, code, index, cells)
+    monkeypatch.setattr(observer, "_fast_local", recording)
+    monkeypatch.setattr(observer, "_alone", lambda: alone)
+    mon = observer._Monitor("n", {}, "")
+    target = object()
+    spec = {"name": "dm", "binding": "bts.nowhere:send", "value": value, "classify": [["alert", "^alert$"]]}
+    mon.boundaries = [spec]
+    mon.state["dm"] = {"keys": [], "chain": [], "current": None, "held": [target]}
+
+    def mock_call(self, /, *args, **kwargs):
+        mon._on_start(mock_call.__code__, 0)
+    mon.mock_call_code, mon.mock_slots = mock_call.__code__, (0, 1, 2)
+    mon.mock_types[id(target)] = object          # a standard mock, as _hold records one
+    monkeypatch.setattr(mon, "_mock_verified", lambda obj: obj is target)
+    # the binding is current and the code is one function's: only the slot reads are under test
+    monkeypatch.setattr(mon, "_current_now", lambda sp: target)
+    monkeypatch.setattr(mon, "_is_current_call", lambda sp, code, first: True)
+    monkeypatch.setattr(mon, "_code_shared", lambda code: 1)
+    mock_call(target, "eric", "alert", text="other")
+    mock_reads, reads[:] = list(reads), []
+
+    def send(recipient, *rest, text=None):
+        mon._on_start(send.__code__, 0)
+    mon.boundary_codes[id(send.__code__)] = (send.__code__, [(spec, None)])
+    send("eric", "alert", text="other")
+    records = [e for e in mon.events if e["kind"] == "boundary"]
+    assert len(records) == 2 and not [e for e in mon.events if e["kind"] == "observer_error"], mon.events
+    return mock_reads, list(reads), records
+
+
+@pytest.mark.parametrize("alone", [False, True], ids=["worker", "alone"])
+def test_the_slots_read_while_another_thread_is_alive(monkeypatch, alone):
+    """Codex r13 #3: while another thread is alive, a mock boundary reads only its own `self`, from its non-cell
+    frame slot (the paused frame owns it), to select the unavailable record, and a function boundary reads no
+    slot; alone, both read their arguments (control). COVERAGE admits exactly this read (O90)."""
+    mock_reads, function_reads, records = _run_boundaries(monkeypatch, alone, ["args[1]"])
+    if alone:
+        assert mock_reads == [(0, False), (1, True), (2, True)], mock_reads
+        assert function_reads == [(0, True), (2, True), (0, True), (1, True)], function_reads
+    else:
+        assert mock_reads == [(0, False)] and function_reads == [], (mock_reads, function_reads)
+        assert all(r["identity"]["reason"] == observer._CONCURRENT for r in records), records
+
+
+@pytest.mark.parametrize("unread_slot", [None, 1, 2], ids=["read", "mock-args+function-kwonly", "mock-kwargs+function-varargs"])
+def test_an_unread_argument_container_is_never_an_empty_call(monkeypatch, unread_slot):
+    """Codex r13 #1, the same rule for containers: an unread *args (or a mock's unread args or kwargs) was read as
+    empty, so a later accessor read ANOTHER argument: here kw:text's 'other' instead of args[1]'s 'alert'. It
+    now reads unavailable (O91, O92). Slots: the mock's (self, args, kwargs); the function's (recipient, text,
+    rest), since keyword-only names precede *args. Controls: everything read, and the function with only its
+    keyword-only slot unread, where args[1] is still the alert."""
+    _mock, _function, records = _run_boundaries(monkeypatch, True, ["args[1]", "kw:text"], unread_slot=unread_slot)
+    mock_rec, function_rec = records
+    if unread_slot is None:
+        assert [r["identity"]["value"] for r in records] == ["alert", "alert"], records
+        return
+    assert mock_rec["identity"]["category"] == "unavailable" and mock_rec["identity"]["value"] is None, mock_rec
+    if unread_slot == 1:
+        assert function_rec["identity"]["value"] == "alert", function_rec
+    else:
+        assert function_rec["identity"]["category"] == "unavailable", function_rec
+        assert function_rec["identity"]["value"] is None, function_rec
+
+
+# --- Codex r13 false green: O50's historical killer no longer tests the clear transition itself ---------------
+
+@pytest.mark.parametrize("alone", [True, False], ids=["alone", "worker"])
+@pytest.mark.parametrize("event", ["cleared", "cloned"])
+def test_a_namespace_replaced_wholesale_leaves_nothing_current(monkeypatch, event, alone):
+    """A clear or clone of a namespace on a binding's path cuts the chain at that namespace and leaves nothing
+    current until a per-key store re-resolves it (Codex phase-1 r8 #1). Asserted on the state directly (O50):
+    the end-to-end clone-restore cases reach the same refusal by other routes. The worker case shows the
+    concurrent path leaves the same state; it does not kill O77, since the alone path cuts a clear the same way
+    (O77's killer is the concurrent per-key store test)."""
+    monkeypatch.setattr(observer, "_alone", lambda: alone)
+    mon = observer._Monitor("n", {}, "")
+
+    def send(recipient, text):
+        return None
+    inner, outer = {"send": send}, {}
+    mon.watched.update({id(outer): outer, id(inner): inner})
+    mon.watch_index.update({id(outer): [("dm", 0)], id(inner): [("dm", 1)]})
+    mon.state["dm"] = {"keys": ["transport", "send"], "chain": [(outer, "transport"), (inner, "send")],
+                       "current": send, "held": [send]}
+    which = {"cleared": observer._DICT_CLEARED, "cloned": observer._DICT_CLONED}[event]
+    assert mon._on_dict(which, id(outer), 0, 0) == 0
+    st = mon.state["dm"]
+    assert st["current"] is None and len(st["chain"]) == 1 and st["chain"][0][0] is outer, st
+    assert not [e for e in mon.events if e["kind"] == "observer_error"], mon.events

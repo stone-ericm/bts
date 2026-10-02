@@ -271,6 +271,12 @@ M = [
  ('observer.py', '                if not alone:          # cut by address, before any reference to the key or value (r12 #3)', '                if False:          # cut by address, before any reference to the key or value (r12 #3)', 'O77 a store while another thread is alive cuts, never re-resolves'),
  ('observer.py', '        if not _alone():                                 # nothing is read: the binding is never held (missed)', '        if False:                                 # nothing is read: the binding is never held (missed)', 'O78 tracking at the start needs the thread alone'),
  ('observer.py', '                    if not _alone():\n                        self._gap(spec["name"], _CONCURRENT, where="end")', '                    if False:\n                        self._gap(spec["name"], _CONCURRENT, where="end")', 'O79 the end check needs the thread alone'),
+ ('observer.py', '    if len(set(code.co_varnames)) != len(code.co_varnames):', '    if False:', 'O87 code with duplicate local names is never read (Codex r13 #1)'),
+ ('observer.py', '        if value is _UNREAD:                 # the observer could not read it: never a value (r13 #1)', '        if False:                 # the observer could not read it: never a value (r13 #1)', 'O88 an unread value is an unavailable identity (Codex r13 #1)'),
+ ('observer.py', '        is_async = is_async or bool(callee_frame.f_code.co_flags & CO_ASYNC)', '        is_async = is_async', "O89 the boundary callee's own async flag counts (Codex r13 #2)"),
+ ('observer.py', '                    me = _fast_local(frame, code, self.mock_slots[0], False)', '                    me = _fast_local(frame, code, self.mock_slots[0], True)', "O90 the mock receiver is read only from its non-cell slot (Codex r13 #3)"),
+ ('observer.py', '                                unread = _UNREAD_ARGS', '                                unread = None', 'O91 an unread *args is never an empty call (Codex r13 #1)'),
+ ('observer.py', '                        if type(extra) is not tuple or type(kwargs) is not dict:   # unread, never an empty call', '                        if False:   # unread, never an empty call', "O92 a mock's unread arguments are never an empty call (Codex r13 #1)"),
 ]
 
 

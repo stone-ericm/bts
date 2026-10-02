@@ -101,7 +101,9 @@ def _alone() -> bool:
     object is referenced; the GIL is held). Inside the call phase the observer reads application objects only then
     (plan ruling 12, Codex phase-1 r11 #1): while another thread can run, it could drop its own reference to an
     object the observer holds a temporary reference to, and releasing that temporary would run the object's
-    finalizer inside observation. When this thread is alone, nothing else can change a reference count.
+    finalizer inside observation. When this thread is alone, no other registered thread can change a reference
+    count. The sample is a point predicate: a native thread that attaches to the interpreter after it is not
+    excluded (Codex phase-1 r13 #4, plan ruling 12).
 
     New thread states are inserted at the HEAD of the list, so this thread is alone exactly when its own state is
     the head and has no successor. Only this thread's own state (never freed while it runs) and the
@@ -127,6 +129,7 @@ def _alone() -> bool:
 _PY_FRAME_F_FRAME = 3 * ctypes.sizeof(ctypes.c_void_p)       # PyFrameObject: ob_refcnt, ob_type, f_back, f_frame
 _IFRAME_LOCALSPLUS = 9 * ctypes.sizeof(ctypes.c_void_p)      # _PyInterpreterFrame: f_code ... owner, localsplus
 _UNREAD = object()
+_UNREAD_ARGS = "an argument the observer could not read"
 
 
 def _fast_local(frame, code, index: int, cells: bool):
@@ -136,6 +139,8 @@ def _fast_local(frame, code, index: int, cells: bool):
         return _UNREAD
     if not 0 <= index < code.co_nlocals:
         return _UNREAD
+    if len(set(code.co_varnames)) != len(code.co_varnames):     # a slot's kind cannot be told by a name two locals
+        return _UNREAD                                          # share (Codex phase-1 r13 #1)
     iframe = ctypes.c_void_p.from_address(id(frame) + _PY_FRAME_F_FRAME).value
     if not iframe or ctypes.c_void_p.from_address(iframe).value != id(code):
         return _UNREAD
@@ -714,6 +719,8 @@ class _Monitor:
         ok, value = _access(spec.get("value", []), args, kwargs)
         if not ok:
             return {"value": None, "category": "unavailable"}
+        if value is _UNREAD:                 # the observer could not read it: never a value (r13 #1)
+            return {"value": None, "category": "unavailable", "reason": _UNREAD_ARGS}
         safe = _safe(value)
         return {"value": safe, "sha256": hashlib.sha256(_text(safe).encode()).hexdigest(),
                 "category": _classify(spec.get("classify", []), safe) if _complete(safe) else "unavailable"}
@@ -1066,11 +1073,14 @@ class _Monitor:
                     elif matched:
                         extra = _fast_local(frame, code, self.mock_slots[1], True)
                         kwargs = _fast_local(frame, code, self.mock_slots[2], True)
-                        self._matched(matched, [self._current_now(sp) is me for sp in matched], frame,
-                                      list(extra) if type(extra) is tuple else [],
-                                      kwargs if type(kwargs) is dict else {},   # not copied: a copy can compare keys
-                                      unverified=None if self._mock_verified(me) else
-                                      "a mock whose effective __call__ is not the standard one, or whose class changed")
+                        if type(extra) is not tuple or type(kwargs) is not dict:   # unread, never an empty call
+                            for sp in matched:
+                                self._boundary(sp, frame, [], {}, reason=_UNREAD_ARGS)
+                        else:
+                            self._matched(matched, [self._current_now(sp) is me for sp in matched], frame,
+                                          list(extra), kwargs,                  # not copied: a copy can compare keys
+                                          unverified=None if self._mock_verified(me) else
+                                          "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
             entry = self.boundary_codes.get(_code_key(code))
             if entry is not None:
@@ -1085,15 +1095,18 @@ class _Monitor:
                                 self._boundary(sp, frame, [], {}, reason=_CONCURRENT)
                     else:
                         nargs = code.co_argcount + code.co_kwonlyargcount
+                        # unread values stay unread: an identity reaching one is unavailable, never None (r13 #1)
                         args = [_fast_local(frame, code, i, True) for i in range(code.co_argcount)]
-                        args = [None if v is _UNREAD else v for v in args]
+                        unread = None
                         if code.co_flags & inspect.CO_VARARGS:
                             extra = _fast_local(frame, code, nargs, True)
-                            args += list(extra) if type(extra) is tuple else []
+                            if type(extra) is tuple:
+                                args += list(extra)
+                            else:                    # never an empty *args: a later accessor would read another argument
+                                unread = _UNREAD_ARGS
                         kwargs = {}
                         for i in range(nargs):
-                            v = _fast_local(frame, code, i, True)
-                            kwargs[code.co_varnames[i]] = None if v is _UNREAD else v
+                            kwargs[code.co_varnames[i]] = _fast_local(frame, code, i, True)
                         first = args[0] if args else None
                         mine, others = [], []
                         for sp, rcv in pairs:
@@ -1108,7 +1121,8 @@ class _Monitor:
                                     self._boundary(sp, frame, args, kwargs,
                                                    reason=f"the boundary's code is shared by {shared} functions: the callable is not identified")
                             else:
-                                self._matched(mine, [self._is_current_call(sp, code, first) for sp in mine], frame, args, kwargs)
+                                self._matched(mine, [self._is_current_call(sp, code, first) for sp in mine], frame, args, kwargs,
+                                              unverified=unread)
                         else:                                        # same code, another receiver: ambiguous
                             matched = others
                             for sp in others:
@@ -1141,7 +1155,8 @@ class _Monitor:
         phase-1 r10 part 2 #1). A store's callback runs before its change, so a re-resolution can read a
         namespace another thread is about to change; this read, at the call, sees the change if it landed
         before the call. Called under ``_lock``, and only while this thread is the interpreter's only thread (plan
-        ruling 12), so no store is pending and no namespace changes while it reads."""
+        ruling 12), so no registered thread has a store pending or changes a namespace while it reads (a native
+        thread attaching after the sample is not excluded: Codex phase-1 r13 #4)."""
         cur = self.state[spec["name"]]["current"]
         if cur is None:
             return None
@@ -1163,6 +1178,8 @@ class _Monitor:
 
     def _boundary(self, spec: dict, callee_frame, args, kwargs, *, reason: str | None = None) -> None:
         stack, is_async = self._stack(callee_frame.f_back)
+        # the callee itself may be a coroutine or async generator driven from synchronous code (r13 #2)
+        is_async = is_async or bool(callee_frame.f_code.co_flags & CO_ASYNC)
         identity = ({"value": None, "category": "unavailable", "reason": reason}
                     if reason else self._identity(spec, args, kwargs))
         self._record("boundary", {"name": spec["name"], "caller": stack[0][:3] if stack else None,

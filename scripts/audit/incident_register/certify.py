@@ -63,7 +63,10 @@ COVERAGE = {
                           "a value incomplete at any depth",
                           "a binding whose path passes through a namespace holding a key that is not an exact str, "
                           "or was changed by a store through such a key (until a per-key store re-resolves it)",
-                          "a call observed while another thread was alive (nothing is read then; plan ruling 12)",
+                          "a call observed while another thread was alive (only the reads `observation` admits then "
+                          "happen; plan ruling 12, Codex phase-1 r13 #3)",
+                          "an argument the observer could not read: never read as a null or as an empty call (Codex "
+                          "phase-1 r13 #1)",
                           "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all "
                           "supported, read under the lock every watched store takes before its change (Codex phase-1 "
                           "r10 part 2 #1)",
@@ -71,7 +74,8 @@ COVERAGE = {
     "unavailable_when": ["an absence claim (ABSENCE_REFUSAL)", "an audit hook added after the trusted bootstrap",
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
                          "an application signal handler at either end of the call phase", "observer errors",
-                         "an incomplete observation window", "a coroutine frame",
+                         "an incomplete observation window",
+                         "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
                          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
                          "a run whose bts import provenance is unreadable without application dispatch (refused at "
                          "every stage's gate)"],
@@ -82,10 +86,19 @@ COVERAGE = {
                    "iteration; a code object's name that is not an exact str reads as unnamed, "
                    "and code objects themselves are never hashed or compared (the observer's maps key them by id: "
                    "a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex "
-                   "phase-1 r9; code objects: self-review during r10). It reads application objects only while the observed "
-                   "thread is the interpreter's only thread; otherwise it reads none (calls and returns read "
-                   "unavailable, a store cuts the binding), since another thread could make a temporary reference it "
-                   "holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1)",
+                   "phase-1 r9; code objects: self-review during r10). Arguments are read from the frame's own slots, "
+                   "never through frame.f_locals, whose refresh can release an application reference (Codex phase-1 "
+                   "r12 #1). Other application reads happen only after a sample shows the observed thread is the "
+                   "interpreter's only registered thread, since another thread could make a temporary reference it "
+                   "holds the last one and run a finalizer (plan ruling 12, Codex phase-1 r11 #1). (Codex phase-1 "
+                   "r13 #3, verbatim:) While another thread is alive, application arguments, cell contents and "
+                   "binding namespaces are not read. A mock boundary may retain only `self` from its verified "
+                   "non-cell frame slot and compare its identity with observer-held targets to select an "
+                   "unavailable record. The paused frame owns that reference. Code/frame identity and a live "
+                   "replacement-code operand are also admitted metadata. Calls and returns requiring other "
+                   "application reads are unavailable; stores cut the binding before key/value conversion. The "
+                   "sample is a point predicate: a Python-accessing native thread of the reviewed venv that "
+                   "attaches after it is not excluded (open: Codex phase-1 r13 #4)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "
                         "bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it "
                         "can only fail to witness an event",
