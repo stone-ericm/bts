@@ -353,10 +353,11 @@ def pytest_runtest_call(item):
             gc.enable()
 
 
-def _import_record(mod) -> dict | None:
+def _import_record(mod) -> dict:
     """One bts module's provenance, read without application dispatch (Codex phase-1 r9 #3): an exact
     module, its namespace by the C descriptor, ``__file__`` by iteration over exact-str keys. Anything else
-    is recorded unavailable, which the runner refuses."""
+    is recorded unavailable, which the runner refuses; nothing is omitted (Codex phase-1 r10 #3: a missing
+    or non-str ``__file__`` dropped the module from the record, so the gate never saw it)."""
     if type(mod) is not types.ModuleType:
         return {"unavailable": "not an exact module"}
     ns = _MODULE_DICT.__get__(mod, types.ModuleType)
@@ -365,24 +366,27 @@ def _import_record(mod) -> dict | None:
     found, f, why = _lookup(ns, "__file__")
     if why is not None:
         return {"unavailable": why}
-    return {"file": os.path.realpath(f), "sha256": _sha_file(f)} if found and type(f) is str else None
+    if not found or type(f) is not str:
+        return {"unavailable": "no __file__ that is an exact str"}
+    return {"file": os.path.realpath(f), "sha256": _sha_file(f)}
 
 
 def pytest_sessionfinish(session, exitstatus):
-    mods = {}
+    mods, unavailable = {}, None
     found, modules, why = _lookup(_MODULE_DICT.__get__(sys, types.ModuleType), "modules")
-    for name, mod in (list(dict.items(modules)) if found and why is None and type(modules) is dict else []):
-        if not issubclass(type(name), str):
-            continue
-        plain = str.__str__(name)         # an exact copy, made by str's own C slot (no method of a subclass)
-        if not (plain == "bts" or plain.startswith("bts.")):
-            continue
-        rec = (_import_record(mod) if type(name) is str
-               else {"unavailable": "a sys.modules key that is not an exact str"})
-        if rec is not None:
-            mods[plain] = rec
-    _write({"kind": "imports", "modules": mods} if found and why is None and type(modules) is dict
-           else {"kind": "imports", "modules": {}, "unavailable": why or "sys.modules is not a plain dict"})
+    if not found or why is not None or type(modules) is not dict:
+        unavailable = why or "sys.modules is not a plain dict"
+    else:
+        for name, mod in list(dict.items(modules)):
+            if type(name) is not str:
+                # its hash and __eq__ are application code, so hashed lookup may resolve it as any module
+                # name, whatever its text (Codex phase-1 r10 #3): no record can say which modules were imported
+                unavailable = "a sys.modules key that is not an exact str"
+                break
+            if name == "bts" or name.startswith("bts."):
+                mods[name] = _import_record(mod)
+    _write({"kind": "imports", "modules": mods} if unavailable is None
+           else {"kind": "imports", "modules": {}, "unavailable": unavailable})
     _write({"kind": "session_finish", "exitstatus": int(exitstatus),
             "src_digest": src_digest(_config().get("prod_root"))})
 
@@ -712,6 +716,14 @@ class _Monitor:
             # deleted: the binding holds nothing. A call reached through fallback or inherited lookup is
             # not recorded, which can only miss an event (no absence is certified; plan ruling 10)
             st["chain"], st["current"] = chain, None
+            return
+        # the changed namespace must itself still be supported: a store through an exact key leaves any key that
+        # is not an exact str stored there earlier (Codex phase-1 r10 #2: such a store re-resolved the binding
+        # while the namespace still held one). Read before the change, whose own key is an exact str.
+        _found, _old, why = _lookup(chain[level][0], chain[level][1])
+        if why is not None:
+            st["chain"], st["current"] = chain, None
+            self._gap(name, why)
             return
         obj, why = _walk(st["keys"], level, value, chain)
         st["chain"] = chain

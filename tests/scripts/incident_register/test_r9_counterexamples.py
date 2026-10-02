@@ -140,7 +140,7 @@ def test_a_full_run_never_compares_keyword_keys(tmp_path):
     observed, plain = _counts(tmp_path)
     assert "observer_comparisons 0" in observed and "observer_comparisons 0" in plain, (observed, plain)
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
-    assert all(e["identity"]["category"] == "unavailable" for e in _boundaries(tmp_path))
+    assert _boundaries(tmp_path) and all(e["identity"]["category"] == "unavailable" for e in _boundaries(tmp_path))
 
 
 def test_a_full_run_with_exact_keyword_keys_still_witnesses(tmp_path):
@@ -169,16 +169,21 @@ def test_a_full_run_never_hashes_crafted_code_names(tmp_path):
             "        return str.__hash__(self)\n    def __eq__(self,other):\n        global calls\n        calls+=1\n"
             "        return str.__eq__(self,other)\ndef _inner():\n    return 'done'\n"
             "crafted=type(_inner)(_inner.__code__.replace(co_filename=Key('/elsewhere.py'),co_qualname=Key('inner')),{})\n"
-            "def deliver():\n    crafted()\n    return 'done'  # BRANCH\n")
+            "named=type(_inner)(_inner.__code__.replace(co_qualname=Key('inner')),{})\n"
+            "def deliver():\n    crafted()\n    named()\n    return 'done'  # BRANCH\n")
     test = ("from bts import mod\ndef test_probe():\n    mod.calls=0\n    result=mod.deliver()\n"
             "    print('application_calls',mod.calls)\n    assert result=='done'  # ASSERT-RESULT\n")
     _, wt = defended_project(tmp_path, {"src/bts/mod.py": prod, "tests/test_probe.py": test})
     spec = one_spec("return 'done'  # BRANCH", "return 'defer'  # BRANCH", kind="return")
     spec.update(boundaries=[], returns=[dict(path="src/bts/mod.py", qualname="deliver", classify=[["bad", "defer"]])],
                 symptom=dict(kind="return", path="src/bts/mod.py", qualname="deliver", category="bad"))
-    defence.current_defence(wt, spec, tmp_path / "out")
+    res = defence.current_defence(wt, spec, tmp_path / "out")
     observed, plain = _counts(tmp_path)
     assert "application_calls 0" in observed and "application_calls 0" in plain, (observed, plain)
+    # Codex phase-1 r10 false greens: the result was discarded, and only the non-production filename was
+    # crafted, so O60 (the qualname guard, reached only for production code) was never exercised here;
+    # ``named`` keeps its exact production filename. Names are not identity: the return is still witnessed
+    assert res["verdict"] == "accepted" and res["certificates"][NODE]["ok"], res
 
 
 def test_a_store_through_a_non_string_key_leaves_nothing_current(tmp_path):
@@ -288,7 +293,9 @@ def test_session_imports_of_a_module_subclass_run_no_application_dispatch(monkey
     monkeypatch.setitem(sys.modules, name, Custom(name))
     rec = _session_record(monkeypatch)
     assert hits == [], hits
-    assert "unavailable" in rec["modules"].get(name, {}), rec["modules"].get(name)
+    # the exact reason: since Codex phase-1 r10 #3 an unreadable __file__ is unavailable too, so presence alone
+    # no longer shows which guard refused the record (O62)
+    assert rec["modules"].get(name) == {"unavailable": "not an exact module"}, rec["modules"].get(name)
 
 
 def test_session_imports_of_an_exact_module_with_a_non_string_key_compare_nothing(monkeypatch):
@@ -301,7 +308,7 @@ def test_session_imports_of_an_exact_module_with_a_non_string_key_compare_nothin
     hits.clear()
     rec = _session_record(monkeypatch)
     assert hits == [], hits
-    assert "unavailable" in rec["modules"].get(name, {}), rec["modules"].get(name)
+    assert rec["modules"].get(name) == {"unavailable": observer._NON_STR_KEY}, rec["modules"].get(name)   # (O63)
 
 
 def test_a_run_whose_import_provenance_is_unavailable_is_rejected(tmp_path):
@@ -332,7 +339,9 @@ def test_session_imports_under_a_non_string_sys_modules_key_dispatch_nothing(mon
     hits.clear()
     rec = _session_record(monkeypatch)
     assert hits == [], hits
-    assert "unavailable" in rec["modules"].get("bts.r9_key_probe", {}), rec["modules"].get("bts.r9_key_probe")
+    # since Codex phase-1 r10 #3 any key that is not an exact str makes the whole record unavailable: hashed
+    # lookup may resolve it as any module name, whatever its text
+    assert rec["modules"] == {} and rec.get("unavailable") == "a sys.modules key that is not an exact str", rec
 
 
 def test_a_sys_namespace_with_a_non_string_key_makes_import_provenance_unavailable(tmp_path):

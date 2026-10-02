@@ -31,7 +31,12 @@ Known equivalent guards (not listed):
   absence-only mutants (C5-C7, C9-C11, C13, O6, O9, O35) are retired with the code they mutated;
 * retired O61 (a Mock call's keyword dict read in place, not copied): CPython builds a fresh keyword dict
   compactly, and copying such a dict takes the clone path, which re-inserts nothing and so compares no keys
-  (measured: SURVIVED at 962c20f). The in-place read stays as defence in depth;
+  (measured: SURVIVED at 962c20f and in Codex phase-1 r10's targeted run). The equivalence is qualified to
+  this interpreter (3.12) and the fresh-call shape: copying a SPARSE dict (keys deleted after growth) does
+  compare keys (Codex r10, measured). The in-place read stays as defence in depth;
+* retired O64 and O65 (a str-subclass sys.modules key: its own unavailable record; its text copied by str's
+  slot): since Codex phase-1 r10 #3 any key that is not an exact str makes the whole import record
+  unavailable (O69), so neither branch exists;
 * retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
   O30) the raw descriptor read and getattr coincide for every accepted object.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
@@ -165,7 +170,7 @@ M = [
  ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
  ('observer.py', '        return all(_complete(v) for v in safe["seq"])', '        return True', 'O24 nested sequences are checked'),
  ('observer.py', '            return all(_complete(v) for v in safe[key].values())', '            return True', 'O25 nested maps and fields are checked'),
- ('observer.py', '            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):', '            elif False:', 'O26 a namespace replaced wholesale is a gap'),
+ ('observer.py', '            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):', '            elif False:', 'O26 a namespace replaced wholesale, or a store through a key that is not an exact str, is a gap'),
  ('observer.py', '            if not watching:', '            if False:', 'O27 no watchers means a gap'),
  ('owned.py', '                if not (name.isidentifier() and hook.is_file()\n                        and _sha(hook.read_bytes()) in REVIEWED_PTH_IMPORTS.get(name, {})):', '                if False:', 'W10 executable .pth lines refused unless reviewed'),
  ('owned.py', '        elif os.path.isfile(target):\n            _hash_file(h, target)\n        else:\n            h.update(b"dangling")\n        return h.hexdigest()', '        return h.hexdigest()', 'W11 symlink target bytes in the manifest'),
@@ -238,11 +243,12 @@ M = [
  ('observer.py', '    return value if type(value) is str else "<unnamed>"', '    return value', 'O60 a code name must be an exact str'),
  ('observer.py', '    if type(mod) is not types.ModuleType:\n        return {"unavailable": "not an exact module"}', '    if False:\n        return {"unavailable": "not an exact module"}', 'O62 import records need an exact module'),
  ('observer.py', '    found, f, why = _lookup(ns, "__file__")\n    if why is not None:\n        return {"unavailable": why}', '    found, f, why = _lookup(ns, "__file__")', 'O63 import records need an exact-str namespace'),
- ('observer.py', '               else {"unavailable": "a sys.modules key that is not an exact str"})', '               else _import_record(mod))', 'O64 a non-str sys.modules key is unavailable'),
- ('observer.py', '        plain = str.__str__(name)', '        plain = str(name)', "O65 a module name is copied by str's own slot"),
  ('runner.py', '        if "file" not in m:\n            why.append', '        if False:\n            why.append', 'R19 unavailable module provenance is refused'),
  ('runner.py', '    if len(imports) == 1 and "unavailable" in imports[0]:\n        why.append', '    if False:\n        why.append', 'R20 an unavailable import record is refused'),
  ('observer.py', '    return id(code)', '    return code', 'O66 code-object maps are keyed by id'),
+ ('observer.py', '        _found, _old, why = _lookup(chain[level][0], chain[level][1])\n        if why is not None:', '        _found, _old, why = _lookup(chain[level][0], chain[level][1])\n        if False:', 'O67 a re-resolution re-checks the changed namespace'),
+ ('observer.py', '                mods[name] = _import_record(mod)', '                rec = _import_record(mod)\n                if "unavailable" not in rec:\n                    mods[name] = rec', 'O68 an unreadable import record is kept, not dropped'),
+ ('observer.py', '                unavailable = "a sys.modules key that is not an exact str"\n                break', '                continue', 'O69 a sys.modules key that is not an exact str makes the record unavailable'),
 ]
 
 
