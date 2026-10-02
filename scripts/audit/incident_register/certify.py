@@ -63,6 +63,9 @@ COVERAGE = {
                           "a value incomplete at any depth",
                           "a binding whose path passes through a namespace holding a key that is not an exact str, "
                           "or was changed by a store through such a key (until a per-key store re-resolves it)",
+                          "a call the binding does not resolve to AT THE CALL, through watched namespaces that are all "
+                          "supported, read under the lock every watched store takes before its change (Codex phase-1 "
+                          "r10 part 2 #1)",
                           "an identity read from a keyword dict holding a key that is not an exact str"],
     "unavailable_when": ["an absence claim (ABSENCE_REFUSAL)", "an audit hook added after the trusted bootstrap",
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
@@ -72,8 +75,9 @@ COVERAGE = {
                          "every stage's gate)"],
     "observation": "inside the call phase the observer hashes, compares or dispatches only on values it owns or has "
                    "type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it "
-                   "holds a key that is not an exact str; class metadata and instance dicts are read through C "
-                   "descriptors found that way; a code object's name that is not an exact str reads as unnamed, "
+                   "holds a key that is not an exact str; heap class module metadata is read by raw namespace "
+                   "iteration, and instance dicts through the standard C getset found by raw MRO namespace "
+                   "iteration; a code object's name that is not an exact str reads as unnamed, "
                    "and code objects themselves are never hashed or compared (the observer's maps key them by id: "
                    "a code object's hash and equality reach its co_name and co_consts) (plan ruling 11: Codex "
                    "phase-1 r9; code objects: self-review during r10)",

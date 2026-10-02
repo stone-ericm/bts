@@ -553,6 +553,11 @@ class _Monitor:
         self.paths: dict[str, str] = {}
         self.mock_types: dict = {}              # id of a held mock -> its class when first held
         self.tool_acquired = self.started = self.active = False
+        # one lock for every binding-state transition and every attribution read (Codex phase-1 r10 part 2
+        # #1: another thread's invalidation landed between a re-resolution's read and its publication, which
+        # then overwrote it). Each watched store's callback takes it BEFORE its change, so while an attribution
+        # read holds it no watched namespace changes. Reentrant: observer code can start inside a callback.
+        self._lock = threading.RLock()
 
     # -- bookkeeping
     def _real(self, filename) -> str:
@@ -740,38 +745,39 @@ class _Monitor:
         """Dict watcher callback (C trampoline). Addresses, not objects, arrive: a dying dict is never
         touched. Must return 0 and never raise."""
         try:
-            hits = self.watch_index.get(dict_addr, ())
-            calls = self.call_watch.get(dict_addr, ())
-            if not hits and not calls:
-                return 0
-            per_key = event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED)
-            key = ctypes.cast(key_addr, ctypes.py_object).value if per_key and key_addr else None
-            if per_key and type(key) is str:
-                if key == "__call__":
-                    for name in sorted(calls):
-                        self._gap(name, "a mock boundary's __call__ was replaced")
-                new = ctypes.cast(new_addr, ctypes.py_object).value if new_addr and event != _DICT_DELETED else None
-                d = self.watched.get(dict_addr)
-                for name, level in list(hits):
-                    chain = self.state[name]["chain"]
-                    if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
-                        self._restep(name, level, event != _DICT_DELETED, new)
-            elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):
-                # a store through a key that is not an exact str may change any binding (its hash and
-                # __eq__ decide which entry it replaces; Codex phase-1 r9, plan ruling 11), as a clear or
-                # clone does
-                reason = ("a store with a key that is not an exact str" if per_key
-                          else "a watched namespace was replaced wholesale")
-                for name in sorted({n for n, _lv in hits} | set(calls)):
-                    self._gap(name, reason)
-                # nothing on a path through this namespace is current until a per-key store re-resolves it
-                # (Codex phase-1 r8 #1: a captured former callable stayed current); the new contents are
-                # not read here, before the change
-                d = self.watched.get(dict_addr)
-                for name, level in list(hits):
-                    st = self.state[name]
-                    if level < len(st["chain"]) and st["chain"][level][0] is d:
-                        st["chain"], st["current"] = st["chain"][:level + 1], None
+            with self._lock:
+                hits = self.watch_index.get(dict_addr, ())
+                calls = self.call_watch.get(dict_addr, ())
+                if not hits and not calls:
+                    return 0
+                per_key = event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED)
+                key = ctypes.cast(key_addr, ctypes.py_object).value if per_key and key_addr else None
+                if per_key and type(key) is str:
+                    if key == "__call__":
+                        for name in sorted(calls):
+                            self._gap(name, "a mock boundary's __call__ was replaced")
+                    new = ctypes.cast(new_addr, ctypes.py_object).value if new_addr and event != _DICT_DELETED else None
+                    d = self.watched.get(dict_addr)
+                    for name, level in list(hits):
+                        chain = self.state[name]["chain"]
+                        if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
+                            self._restep(name, level, event != _DICT_DELETED, new)
+                elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):
+                    # a store through a key that is not an exact str may change any binding (its hash and
+                    # __eq__ decide which entry it replaces; Codex phase-1 r9, plan ruling 11), as a clear or
+                    # clone does
+                    reason = ("a store with a key that is not an exact str" if per_key
+                              else "a watched namespace was replaced wholesale")
+                    for name in sorted({n for n, _lv in hits} | set(calls)):
+                        self._gap(name, reason)
+                    # nothing on a path through this namespace is current until a per-key store re-resolves it
+                    # (Codex phase-1 r8 #1: a captured former callable stayed current); the new contents are
+                    # not read here, before the change
+                    d = self.watched.get(dict_addr)
+                    for name, level in list(hits):
+                        st = self.state[name]
+                        if level < len(st["chain"]) and st["chain"][level][0] is d:
+                            st["chain"], st["current"] = st["chain"][:level + 1], None
         except BaseException as e:  # noqa: BLE001
             self._err("dict_watch", e)
         return 0
@@ -780,15 +786,16 @@ class _Monitor:
         """Function watcher callback: a target function's ``__code__`` replaced in place starts new code,
         which is registered for the same spec + receiver (Codex phase-1 r5 #1)."""
         try:
-            if event != _FUNC_MODIFY_CODE:
-                return 0
-            entry = self.functions.get(func_addr)
-            if entry is None:
-                return 0
-            code = ctypes.cast(new_addr, ctypes.py_object).value if new_addr else None
-            if type(code) is types.CodeType:
-                for spec, receiver in entry[1]:
-                    self._add_code(code, spec, receiver)
+            with self._lock:
+                if event != _FUNC_MODIFY_CODE:
+                    return 0
+                entry = self.functions.get(func_addr)
+                if entry is None:
+                    return 0
+                code = ctypes.cast(new_addr, ctypes.py_object).value if new_addr else None
+                if type(code) is types.CodeType:
+                    for spec, receiver in entry[1]:
+                        self._add_code(code, spec, receiver)
         except BaseException as e:  # noqa: BLE001
             self._err("func_watch", e)
         return 0
@@ -841,10 +848,11 @@ class _Monitor:
         self._record("obs_start", {"purity": self._purity()})
         self.started = True
         watching = self._install_watchers() if self.boundaries else False
-        for spec in self.boundaries:
-            self._track(spec)
-            if not watching:
-                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")
+        with self._lock:
+            for spec in self.boundaries:
+                self._track(spec)
+                if not watching:
+                    self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")
         ev = mon.events
         mon.register_callback(TOOL_ID, ev.PY_START, self._on_start)
         mon.register_callback(TOOL_ID, ev.LINE, self._on_line)
@@ -875,10 +883,11 @@ class _Monitor:
         self.started = False
         for spec in self.boundaries:                    # fail closed: a change no watched store explains
             try:
-                st = self.state.get(spec["name"])
-                _keys, _chain, now, why = _resolve_chain(spec["binding"])
-                if st is not None and why is None and now is not st["current"]:
-                    self._gap(spec["name"], "the binding changed without a watched store")
+                with self._lock:
+                    st = self.state.get(spec["name"])
+                    _keys, _chain, now, why = _resolve_chain(spec["binding"])
+                    if st is not None and why is None and now is not st["current"]:
+                        self._gap(spec["name"], "the binding changed without a watched store")
             except BaseException as e:  # noqa: BLE001 - stop() must never raise
                 self._err("end_check", e)
         self._record("obs_end", {"purity": self._purity()})
@@ -922,51 +931,52 @@ class _Monitor:
         matched = None
         try:
             if code is self.mock_call_code:
-                frame = sys._getframe(1)
-                loc = frame.f_locals
-                me = loc.get("self")
-                matched = [sp for sp in self.boundaries
-                           if any(o is me for o in self.state.get(sp["name"], {}).get("held", ()))]
-                if matched:
-                    extra = loc.get("args", ())
-                    kwargs = loc.get("kwargs", {})
-                    self._matched(matched, [self.state[sp["name"]]["current"] is me for sp in matched], frame,
-                                  list(extra) if type(extra) is tuple else [],
-                                  kwargs if type(kwargs) is dict else {},   # not copied: a copy can compare keys
-                                  unverified=None if self._mock_verified(me) else
-                                  "a mock whose effective __call__ is not the standard one, or whose class changed")
+                with self._lock:
+                    frame = sys._getframe(1)
+                    loc = frame.f_locals
+                    me = loc.get("self")
+                    matched = [sp for sp in self.boundaries
+                               if any(o is me for o in self.state.get(sp["name"], {}).get("held", ()))]
+                    if matched:
+                        extra = loc.get("args", ())
+                        kwargs = loc.get("kwargs", {})
+                        self._matched(matched, [self._current_now(sp) is me for sp in matched], frame,
+                                      list(extra) if type(extra) is tuple else [],
+                                      kwargs if type(kwargs) is dict else {},   # not copied: a copy can compare keys
+                                      unverified=None if self._mock_verified(me) else
+                                      "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
             entry = self.boundary_codes.get(_code_key(code))
-            pairs = entry[1] if entry is not None else None
-            if pairs is not None:
-                frame = sys._getframe(1)
-                loc = frame.f_locals
-                positional = code.co_varnames[:code.co_argcount]
-                args = [loc.get(n) for n in positional]
-                if code.co_flags & inspect.CO_VARARGS:
-                    extra = loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ())
-                    args += list(extra) if type(extra) is tuple else []
-                kwargs = {n: loc.get(n) for n in code.co_varnames[:code.co_argcount + code.co_kwonlyargcount]}
-                first = args[0] if args else None
-                mine, others = [], []
-                for sp, rcv in pairs:
-                    bucket = mine if rcv is None or first is rcv else others
-                    if not any(s is sp for s in bucket):
-                        bucket.append(sp)
-                if mine:
-                    matched = mine
-                    shared = self._code_shared(code)
-                    if shared > 1:                           # the code does not say which function ran
-                        for sp in mine:
-                            self._boundary(sp, frame, args, kwargs,
-                                           reason=f"the boundary's code is shared by {shared} functions: the callable is not identified")
-                    else:
-                        self._matched(mine, [self._current_code(sp) is code and self._receiver_ok(sp, first)
-                                             for sp in mine], frame, args, kwargs)
-                else:                                        # same code, another receiver: ambiguous
-                    matched = others
-                    for sp in others:
-                        self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
+            if entry is not None:
+                with self._lock:
+                    pairs = entry[1]
+                    frame = sys._getframe(1)
+                    loc = frame.f_locals
+                    positional = code.co_varnames[:code.co_argcount]
+                    args = [loc.get(n) for n in positional]
+                    if code.co_flags & inspect.CO_VARARGS:
+                        extra = loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ())
+                        args += list(extra) if type(extra) is tuple else []
+                    kwargs = {n: loc.get(n) for n in code.co_varnames[:code.co_argcount + code.co_kwonlyargcount]}
+                    first = args[0] if args else None
+                    mine, others = [], []
+                    for sp, rcv in pairs:
+                        bucket = mine if rcv is None or first is rcv else others
+                        if not any(s is sp for s in bucket):
+                            bucket.append(sp)
+                    if mine:
+                        matched = mine
+                        shared = self._code_shared(code)
+                        if shared > 1:                           # the code does not say which function ran
+                            for sp in mine:
+                                self._boundary(sp, frame, args, kwargs,
+                                               reason=f"the boundary's code is shared by {shared} functions: the callable is not identified")
+                        else:
+                            self._matched(mine, [self._is_current_call(sp, code, first) for sp in mine], frame, args, kwargs)
+                    else:                                        # same code, another receiver: ambiguous
+                        matched = others
+                        for sp in others:
+                            self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
                 return None if matched else sys.monitoring.DISABLE
@@ -989,12 +999,29 @@ class _Monitor:
             self._err("py_start", e)
         return None
 
-    def _current_code(self, spec: dict):
+    def _current_now(self, spec: dict):
+        """The value a call must be to be attributed to ``spec``, or None: the bookkept current value, counted
+        only while the binding resolves to it NOW through watched namespaces that are all supported (Codex
+        phase-1 r10 part 2 #1). A store's callback runs before its change, so a re-resolution can read a
+        namespace another thread is about to change; this read, at the call, sees the change if it landed
+        before the call. Called under ``_lock``: no watched namespace changes while it reads."""
         cur = self.state[spec["name"]]["current"]
-        return None if cur is None or self._is_mock(cur) else self._code_of(cur)
+        if cur is None:
+            return None
+        _keys, chain, value, why = _resolve_chain(spec["binding"])
+        if why is not None or value is not cur:
+            return None
+        for ns, _key in chain:
+            if self.watched.get(id(ns)) is not ns:
+                return None
+        return cur
 
-    def _receiver_ok(self, spec: dict, first) -> bool:
-        cur = self.state[spec["name"]]["current"]
+    def _is_current_call(self, spec: dict, code, first) -> bool:
+        """A start of ``code`` is a call of ``spec``'s current value: that value's code, and its receiver when
+        it is a bound method (Codex phase-1 r4 #1.4)."""
+        cur = self._current_now(spec)
+        if cur is None or self._is_mock(cur) or self._code_of(cur) is not code:
+            return False
         return type(cur) is not _METHOD or cur.__self__ is first
 
     def _boundary(self, spec: dict, callee_frame, args, kwargs, *, reason: str | None = None) -> None:

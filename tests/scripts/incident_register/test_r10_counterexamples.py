@@ -11,8 +11,16 @@ Codex phase-1 r10 part 1 (BLOCK) measured the same code-object finding independe
 more: an exact-key store re-resolved a binding through a namespace that still held a key that is not an exact
 str (#2), and unreadable import records were omitted instead of recorded unavailable, so the gate never
 refused them (#3). Its probes (``r8-probes/r10/test_r10_review.py``) are turned to the required direction.
+
+Part 2 (BLOCK) measured a concurrent case of #2: another thread's invalidation landed while a re-resolution
+was reading, and the re-resolution then published over it. Every binding-state transition and every
+attribution read now holds one lock, which each watched store's callback takes before its change; a call is
+attributed only if, at the call, the binding still resolves to it through watched, supported namespaces
+(``_current_now``). Its probes (``r8-probes/r10/part2/``) are turned to the required direction too.
 """
 import json
+import sys
+import types
 
 import pytest
 
@@ -149,6 +157,9 @@ def test_an_exact_store_never_revives_a_binding_while_its_namespace_holds_a_non_
     """Codex r10 #2: both accepted at 0550cda (an attributed alert) while the namespace still held Key('extra')."""
     res = _revive(tmp_path, where, remove_first=False)
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    # the re-resolution's own refusal (O67), not only the call-time check (which would reject this run too)
+    gaps = [e["reason"] for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "boundary_gap"]
+    assert observer._NON_STR_KEY in gaps, gaps
     bs = _boundaries(tmp_path)
     assert bs and not any(e["identity"]["category"] == "alert" for e in bs), bs
     assert any(e["identity"]["category"] == "unavailable" for e in bs), bs
@@ -193,3 +204,143 @@ def test_an_unreadable_import_record_is_refused_not_omitted(tmp_path, shape):
     assert "import provenance unavailable" in json.dumps(res), res
     imports = next(e for e in runner.load(tmp_path / "out/green.events.jsonl") if e["kind"] == "imports")
     assert "unavailable" in imports or any("unavailable" in m for m in imports["modules"].values()), imports
+
+
+# --- Codex r10 part 2 #1: a concurrent invalidation is never overwritten; attribution reads the binding at the call
+
+RACE_HELPER = """import threading,time,gc
+def invoke(transport,rebind):
+    if not rebind:
+        transport.API.send('eric','pick: Turner')
+        return
+    new=type('Next',(),dict.fromkeys(('padding'+str(i) for i in range(500000)),0))
+    new.send=transport.send
+    parent_namespace=transport.__dict__
+    key=transport.Key('extra')
+    stored=threading.Event()
+    assigning=threading.Event()
+    ready=threading.Event()
+    place=[]
+    def change():
+        ready.set()
+        assert assigning.wait(10)
+        time.sleep(0)
+        place.append('began during store' if not stored.is_set() else 'began after store')
+        parent_namespace[key]=1
+    worker=threading.Thread(target=change)
+    worker.start()
+    assert ready.wait(10)
+    try:
+        assigning.set()
+        transport.API=new
+        stored.set()
+        worker.join(timeout=12)
+        print('change_place',place)
+        list(map(new.send,['eric'],[ALERT]))
+    finally:
+        worker.join(timeout=12)
+        parent_namespace.pop(key,None)
+"""
+
+
+def test_a_concurrent_invalidation_is_never_overwritten(tmp_path):
+    """Codex r10 part 2 #1: accepted at 0dad851 (an attributed alert after the worker's bad-key gap). The worker
+    adds a key that is not an exact str to the parent module while the main thread's store of a large class is
+    being re-resolved; the key stays until after the call. The run must be rejected, and the worker's store must
+    have BEGUN while the main store was in progress (otherwise the interleaving was not exercised)."""
+    res = _defend(tmp_path, RACE_HELPER, transport=REVIVE_TRANSPORT,
+                  boundaries=[dict(DM, binding="bts.transport:API.send")])
+    observed, _plain = _counts(tmp_path)
+    assert "began during store" in observed, observed
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    bs = _boundaries(tmp_path)
+    assert bs and not any(e["identity"]["category"] == "alert" for e in bs), bs
+
+
+def test_attribution_reads_the_binding_at_the_call(monkeypatch):
+    """The bookkept current value counts only while the binding resolves to it NOW, through watched namespaces
+    that are all supported. No watcher is installed here, so each change below leaves the bookkeeping stale on
+    purpose: only the call-time read (O70, O71) can see it."""
+    def send(recipient, text):
+        pass
+
+    def other(recipient, text):
+        pass
+    mod = types.ModuleType("bts.r10_now_probe")
+    mod.send = send
+    monkeypatch.setitem(sys.modules, "bts.r10_now_probe", mod)
+    mon = observer._Monitor("n", {"boundaries": [dict(name="dm", binding="bts.r10_now_probe:send")]}, "")
+    spec = mon.boundaries[0]
+    mon._track(spec)
+    assert mon.state["dm"]["current"] is send and mon._current_now(spec) is send
+    key = _counting_key([], "zzz")("extra")
+    mod.__dict__[key] = 1
+    assert mon._current_now(spec) is None                     # a key that is not an exact str (O70)
+    del mod.__dict__[key]
+    assert mon._current_now(spec) is send
+    mod.send = other
+    assert mon._current_now(spec) is None                     # the binding holds another value (O70)
+    mod.send = send
+    assert mon._current_now(spec) is send
+    del mon.watched[id(mod.__dict__)]
+    assert mon._current_now(spec) is None                     # a namespace the observer does not watch (O71)
+
+
+@pytest.mark.parametrize("level", [0, 1])
+def test_a_bad_key_at_a_root_level_is_not_revived(tmp_path, level):
+    """Codex r10 part 2 (controls at sys's own namespace and sys.modules): an exact store at the level that
+    holds a key that is not an exact str leaves the binding unavailable."""
+    setup = ("namespace=sys.__dict__\n    exact='modules'\n    value=sys.modules" if level == 0 else
+             "namespace=sys.modules\n    exact='bts.transport'\n    value=transport")
+    helper = ("import sys\nclass Key(str):\n    pass\ndef invoke(transport,rebind):\n    if not rebind:\n"
+              "        transport.send('eric','pick: Turner')\n        return\n    callback=transport.send\n"
+              f"    {setup}\n    key=Key('extra-root-key')\n    namespace[key]=1\n    try:\n"
+              "        namespace[exact]=value\n        list(map(callback,['eric'],[ALERT]))\n    finally:\n"
+              "        namespace.pop(key,None)\n")
+    res = _defend(tmp_path, helper)
+    assert res["verdict"] == "rejected", res
+    bs = _boundaries(tmp_path)
+    assert bs and all(e["identity"]["category"] == "unavailable" for e in bs), bs
+
+
+def test_a_non_string_file_is_never_resolved():
+    """Codex r10 part 2 #2: the full PathLike run checks refusal, not purity; this counts __fspath__ (O72)."""
+    hits = []
+
+    class File:
+        def __fspath__(self):
+            hits.append("fspath")
+            return "/unused"
+    m = types.ModuleType("bts.probe")
+    m.__file__ = File()
+    assert observer._import_record(m) == {"unavailable": "no __file__ that is an exact str"}
+    assert hits == [], hits
+
+
+def test_composite_serialization_runs_no_member_code():
+    """Codex r10 part 2 (call-phase audit): exact tuples, lists and dicts are walked without hashing or
+    formatting their members; frozensets, slices and ranges are not read through."""
+    hits = []
+
+    class Member:
+        def __hash__(self):
+            hits.append("hash")
+            return 1
+
+        def __eq__(self, other):
+            hits.append("eq")
+            return self is other
+
+        def __repr__(self):
+            hits.append("repr")
+            return "member"
+
+        def __format__(self, spec):
+            hits.append("format")
+            return "member"
+    value = Member()
+    forms = [(value,), [value], {"x": value}, frozenset([value]), slice(value, value, value), range(4)]
+    hits.clear()                                              # building the frozenset hashed the member
+    for form in forms:
+        observer._safe(form)
+    assert hits == [], hits

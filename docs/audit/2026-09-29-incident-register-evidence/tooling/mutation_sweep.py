@@ -34,6 +34,10 @@ Known equivalent guards (not listed):
   (measured: SURVIVED at 962c20f and in Codex phase-1 r10's targeted run). The equivalence is qualified to
   this interpreter (3.12) and the fresh-call shape: copying a SPARSE dict (keys deleted after growth) does
   compare keys (Codex r10, measured). The in-place read stays as defence in depth;
+* the observer's lock (``_lock``, Codex phase-1 r10 part 2 #1) has no deterministic killer: the races it
+  closes need thread interleavings no test can force. The call-time read it protects (O70, O71) is what
+  keeps a lost race from attributing a call, and test_r10's concurrent regression exercises that race
+  (its interleaving is asserted, its outcome is independent of the timing);
 * retired O64 and O65 (a str-subclass sys.modules key: its own unavailable record; its text copied by str's
   slot): since Codex phase-1 r10 #3 any key that is not an exact str makes the whole import record
   unavailable (O69), so neither branch exists;
@@ -82,7 +86,7 @@ M = [
  ('certify.py', 'common = [(b, s & live_x) for b, s in live_at_branch if b["seq"] < x["seq"] and s & live_x]', 'common = [(b, s) for b, s in live_at_branch]', 'C4 common invocation after branch'),
  ('certify.py', '    if not live_at_branch:\n        why.append', '    if False:\n        why.append', 'C8 branch in live invocation'),
  ('certify.py', 'r["kind"] in ("entry_exit", "entry") and r["thread"] == en["thread"]:', 'False:', 'C12 exit/reuse splits invocations'),
- ('observer.py', '                if matched:\n                    extra = loc.get("args", ())', '                if False:\n                    extra = loc.get("args", ())', 'O1 mock callee recorder'),
+ ('observer.py', '                    if matched:\n                        extra = loc.get("args", ())', '                    if False:\n                        extra = loc.get("args", ())', 'O1 mock callee recorder'),
  ('observer.py', 'return None if matched else sys.monitoring.DISABLE', 'return sys.monitoring.DISABLE', 'O2 keep boundary callee enabled'),
  ('observer.py', '            if code.co_flags & CO_ASYNC:', '            if False:', 'O3 async flag'),
  ('observer.py', '    d = _plain_instance_dict(value)\n    if d is None:', '    return {"repr": repr(value)}\n    if d is None:', 'O5 no application repr'),
@@ -120,7 +124,7 @@ M = [
  ('owned.py', 'if os.path.realpath(gitdir) == os.path.realpath(common):', 'if False:', 'W1 primary checkout'),
  ('owned.py', '        if cur.is_symlink():', '        if False:', 'W2 symlinked component'),
  ('owned.py', '                _tree_hash(h, Path(target))', '                pass', 'W4 pth trees hashed'),
- ('observer.py', '        self._record("obs_start", {"purity": self._purity()})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        for spec in self.boundaries:\n            self._track(spec)\n            if not watching:\n                self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {"purity": self._purity()})\n', 'O10 registration gaps inside the interval'),
+ ('observer.py', '        self._record("obs_start", {"purity": self._purity()})\n        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        with self._lock:\n            for spec in self.boundaries:\n                self._track(spec)\n                if not watching:\n                    self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n', '        self.started = True\n        watching = self._install_watchers() if self.boundaries else False\n        with self._lock:\n            for spec in self.boundaries:\n                self._track(spec)\n                if not watching:\n                    self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")\n        self._record("obs_start", {"purity": self._purity()})\n', 'O10 registration gaps inside the interval'),
  ('observer.py', '                    bucket = mine if rcv is None or first is rcv else others', '                    bucket = mine', 'O11 receiver identity'),
  ('observer.py', '                        self._restep(name, level, event != _DICT_DELETED, new)', '                        pass', 'O12 every store on a binding path is seen'),
  ('observer.py', '        return _safe_items(dict.items(value), "map", depth)', '        return {"map": {k: _safe(dict.__getitem__(value, k), depth + 1) for k in list(dict.keys(value))[:50] if type(k) is str}}', 'O13 no key lookups'),
@@ -164,7 +168,7 @@ M = [
  ('run_expected_failures.py', '"accepted_nodes": [], "passed_nodes": []}', '"accepted_nodes": []}', 'A16 failure artifact carries no controls'),
  ('observer.py', '            elif not is_current:', '            elif False:', 'O17 a former binding value is unattributed'),
  ('observer.py', '            elif len(specs) > 1:', '            elif False:', 'O18 a callable bound to several boundaries is unattributed'),
- ('observer.py', '            if type(code) is types.CodeType:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', '            if False:\n                for spec, receiver in entry[1]:\n                    self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
+ ('observer.py', '                if type(code) is types.CodeType:\n                    for spec, receiver in entry[1]:\n                        self._add_code(code, spec, receiver)', '                if False:\n                    for spec, receiver in entry[1]:\n                        self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
  ('observer.py', '        if why is not None:\n            self._gap(spec["name"], why)', '        if False:\n            self._gap(spec["name"], why)', 'O20 an unresolvable binding path is a gap'),
  ('observer.py', '                if key == "__call__":', '                if False:', 'O21 a replaced mock __call__ is a gap'),
  ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
@@ -249,6 +253,9 @@ M = [
  ('observer.py', '        _found, _old, why = _lookup(chain[level][0], chain[level][1])\n        if why is not None:', '        _found, _old, why = _lookup(chain[level][0], chain[level][1])\n        if False:', 'O67 a re-resolution re-checks the changed namespace'),
  ('observer.py', '                mods[name] = _import_record(mod)', '                rec = _import_record(mod)\n                if "unavailable" not in rec:\n                    mods[name] = rec', 'O68 an unreadable import record is kept, not dropped'),
  ('observer.py', '                unavailable = "a sys.modules key that is not an exact str"\n                break', '                continue', 'O69 a sys.modules key that is not an exact str makes the record unavailable'),
+ ('observer.py', '        if why is not None or value is not cur:\n            return None', '        if False:\n            return None', 'O70 attribution reads the binding at the call'),
+ ('observer.py', '            if self.watched.get(id(ns)) is not ns:\n                return None', '            if False:\n                return None', 'O71 attribution needs every namespace on the path watched'),
+ ('observer.py', '    if not found or type(f) is not str:\n        return {"unavailable": "no __file__ that is an exact str"}', '    if not found or type(f) is not str:\n        if found:\n            try:\n                os.fspath(f)\n            except TypeError:\n                pass\n        return {"unavailable": "no __file__ that is an exact str"}', 'O72 an unreadable __file__ is never resolved (Codex r10 part 2 FG_PATHLIKE)'),
 ]
 
 
