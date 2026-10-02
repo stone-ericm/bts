@@ -1,0 +1,30 @@
+# the r9 test file of 0550cda run against the ee2489d code (measured 2026-10-01 in an evidence worktree): 19 of 28 fail; the 9 passing are the two controls and the seven chain-level clear/clone regressions of r8 #1, resolved at ee2489d
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_ordinary_classes_still_read_completely
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_full_run_with_exact_keyword_keys_still_witnesses
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[module-clone]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[module-keys]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[root-clone]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[root-keys]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[class-clone]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[class-keys]
+PASSED tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[parent-old-child-store]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_class_namespace_with_a_non_string_key_runs_no_application_code[__dict__]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_class_namespace_with_a_non_string_key_runs_no_application_code[__module__]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_an_unsupported_class_namespace_never_falls_through_to_a_base
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_full_run_never_compares_class_namespace_keys[__dict__]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_full_run_never_compares_class_namespace_keys[__module__]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_keyword_dict_with_a_non_string_key_is_unavailable_without_application_code[other-key]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_keyword_dict_with_a_non_string_key_is_unavailable_without_application_code[equal-key]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_full_run_never_compares_keyword_keys
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_code_object_names_that_are_not_strings_run_no_application_code
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_full_run_never_hashes_crafted_code_names
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_store_through_a_non_string_key_leaves_nothing_current
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_binding_path_namespace_with_a_non_string_key_is_unsupported[module]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_binding_path_namespace_with_a_non_string_key_is_unsupported[class]
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_non_string_key_equal_to_call_makes_a_mock_unverified
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_session_imports_of_a_module_subclass_run_no_application_dispatch
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_session_imports_of_an_exact_module_with_a_non_string_key_compare_nothing
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_run_whose_import_provenance_is_unavailable_is_rejected
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_session_imports_under_a_non_string_sys_modules_key_dispatch_nothing
+FAILED tests/scripts/incident_register/test_r9_counterexamples.py::test_a_sys_namespace_with_a_non_string_key_makes_import_provenance_unavailable
+======================== 19 failed, 9 passed in 28.94s =========================

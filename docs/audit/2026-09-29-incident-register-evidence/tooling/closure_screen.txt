@@ -1,4 +1,4 @@
-# closure screen at c468430, rerun at ee2489d with an identical body: src/bts and tests (tests/scripts/incident_register excluded); reviewed: the two sys.modules stores register a loaded script under its own name, on no declared binding path (benign)
+# closure screen at c468430, rerun at ee2489d and at 0dad851 with an identical body: src/bts and tests (tests/scripts/incident_register excluded); reviewed: the two sys.modules stores register a loaded script under its own name, on no declared binding path (benign)
 
 ## audit hook: 0
 
