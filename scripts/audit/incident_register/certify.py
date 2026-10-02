@@ -16,7 +16,7 @@ Every certificate needs:
   observer); (Codex phase-1 r14, verbatim:) Automatic garbage collection stays off; reference-count
   finalizers remain possible, and endpoint fields do not prove callback-free observation. No application
   signal handler is installed; no application trace, profile or monitoring function is active at either end
-  or installed in between (the bootstrap's census counts installs; Codex phase-1 r16);
+  or installed in any thread since the trusted bootstrap (its census counts installs; Codex phase-1 r16);
 * an execution of the mutated line inside a LIVE invocation of the declared entry (matched by file
   realpath and qualname). An invocation E is live at event ev when E started before ev on the same
   thread, E's frame is on ev's stack, and no exit of E and no newer entry record for the same frame id
@@ -81,8 +81,8 @@ COVERAGE = {
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
                          "an application signal handler at either end of the call phase",
                          "an application trace, profile or monitoring function active at either end of the call phase, "
-                         "or installed during it (it runs inside the observer's callbacks and can set f_lineno to re-run "
-                         "a frame's entry; Codex phase-1 r16)", "observer errors",
+                         "or installed in any thread at any time since the trusted bootstrap (it runs inside the "
+                         "observer's callbacks and can set f_lineno to re-run a frame's entry; Codex phase-1 r16)", "observer errors",
                          "an incomplete observation window",
                          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
                          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
@@ -155,6 +155,10 @@ def interval(events: list[dict], node: str) -> tuple[list[dict], list[str]]:
     why = _purity_errs(starts[0], "obs_start") + _purity_errs(ends[0], "obs_end")
     installed = [((e.get("purity") or {}) if type(e.get("purity")) is dict else {}).get("tracers_installed")
                  for e in (starts[0], ends[0])]
+    if installed[0] is not None and installed[0] > 0:
+        why.append(f"{installed[0]} trace, profile or monitoring install(s) before the call phase, in any thread: "
+                   "one may still be active on a thread the endpoint checks cannot see, purity unavailable "
+                   "(Codex phase-1 r16)")
     if installed[0] is not None and installed[1] is not None and installed[0] != installed[1]:
         why.append(f"{installed[1] - installed[0]} trace, profile or monitoring install(s) during the call phase: "
                    "purity unavailable (Codex phase-1 r16)")

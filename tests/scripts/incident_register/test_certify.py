@@ -164,9 +164,18 @@ def test_an_impure_observation_certifies_nothing(purity, needle, where):
 def test_a_tracer_installed_inside_the_call_phase_certifies_nothing():
     """Codex phase-1 r16: a trace, profile or monitoring function installed and removed again inside the call phase
     is gone at both ends; the bootstrap's install count differs between them, so the interval is unavailable."""
-    events = window(*LINKED_EVENT, start=dict(PURE, tracers_installed=3), end=dict(PURE, tracers_installed=5))
+    events = window(*LINKED_EVENT, start=dict(PURE, tracers_installed=0), end=dict(PURE, tracers_installed=2))
     got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
     assert not got["ok"] and any("2 trace, profile or monitoring install(s) during the call phase" in r
+                                 for r in got["reasons"]), got["reasons"]
+
+
+def test_a_tracer_installed_before_the_call_phase_certifies_nothing():
+    """Codex phase-1 r16: a hook installed earlier, on a thread whose trace state the endpoint checks cannot read,
+    may still run inside observer callbacks; any install since the trusted bootstrap refuses the interval."""
+    events = window(*LINKED_EVENT, start=dict(PURE, tracers_installed=1), end=dict(PURE, tracers_installed=1))
+    got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
+    assert not got["ok"] and any("1 trace, profile or monitoring install(s) before the call phase" in r
                                  for r in got["reasons"]), got["reasons"]
 
 

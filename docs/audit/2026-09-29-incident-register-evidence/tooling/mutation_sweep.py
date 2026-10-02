@@ -302,6 +302,7 @@ M = [
  ('observer.py', '    _ENTRY[id(code)] = (weakref.ref(code), entry)', '    _ENTRY[id(code)] = ((lambda kept=code: kept), entry)', "O107 the entry cache never keeps a code object alive (Codex r16 probe)"),
  ('observer.py', '        except StopIteration:\n            return True                        # a table that ends mid-entry is not read (Codex r16 probe)', '        except StopIteration:\n            return False                        # a table that ends mid-entry is not read (Codex r16 probe)', "O108 an exception table that ends mid-entry is not read (Codex r16 probe)"),
  ('observer.py', '        if not first & 128:\n            return True', '        if False:\n            return True', "O109 an exception-table entry without its start marker is not read (Codex r16 probe)"),
+ ('certify.py', '    if installed[0] is not None and installed[0] > 0:', '    if False:', "C31 any trace, profile or monitoring install before the call phase refuses the interval (Codex r16)"),
 ]
 
 
