@@ -332,7 +332,8 @@ def test_a_real_run_records_a_pure_observation(scen, tmp_path):
     repo, wt = scen
     r = runner.run(wt, ["tests/test_scen.py::test_map", "-q"], tmp_path / "o", "g", observe=_obs(wt, "test_map", "via_map"))
     marks = [e for e in r.events if e["kind"] in ("obs_start", "obs_end")]
-    assert [e["purity"] for e in marks] == [{"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}] * 2
+    assert [e["purity"] for e in marks] == [{"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": [],
+                                            "tracing": False, "tracers_installed": 0}] * 2
     assert certify.interval(r.events, "tests/test_scen.py::test_map")[1] == []
 
 

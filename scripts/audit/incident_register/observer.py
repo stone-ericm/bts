@@ -54,6 +54,7 @@ import signal
 import sys
 import threading
 import types
+import weakref
 
 import pytest
 
@@ -140,7 +141,7 @@ _OP = {name: opcode.opmap[name] for name in ("NOP", "EXTENDED_ARG", "COPY_FREE_V
                                              "POP_TOP", "RESUME")}
 
 
-_ENTRY: dict = {}                          # id(code) -> (code, entry offset or None); the code is kept, so ids stay
+_ENTRY: dict = {}       # id(code) -> (weak reference to the code, entry offset or None): never keeps a code alive
 
 
 def _first_resume(code):
@@ -153,7 +154,7 @@ def _first_resume(code):
     re-runs that RESUME mid-call (Codex phase-1 r16 probe), so such code is never read. Compiled code never
     targets its entry. Only raw bytes are read (dis.findlabels reads none of co_consts)."""
     cached = _ENTRY.get(id(code))
-    if cached is not None and cached[0] is code:
+    if cached is not None and cached[0]() is code:
         return cached[1]
     raw = code.co_code
     entry, ext = None, 0
@@ -168,13 +169,15 @@ def _first_resume(code):
             break
     if entry is not None and _entry_targeted(code, raw, entry):
         entry = None
-    _ENTRY[id(code)] = (code, entry)
+    # a weak reference: holding the code would keep its constants alive and so change when application
+    # finalizers run (Codex phase-1 r16 probe: a constant's finalizer ran unobserved but not observed)
+    _ENTRY[id(code)] = (weakref.ref(code), entry)
     return entry
 
 
-def _varint(it) -> int:
+def _varint(it, first=None) -> int:
     """One varint of a 3.12 exception table (6 bits a byte, bit 6 continues; bit 7 marks an entry's start)."""
-    b = next(it)
+    b = next(it) if first is None else first
     value = b & 63
     while b & 64:
         b = next(it)
@@ -187,15 +190,20 @@ def _entry_targeted(code, raw, entry: int) -> bool:
     if any(target <= entry for target in dis.findlabels(raw)):
         return True
     it = iter(code.co_exceptiontable)
-    try:
-        while True:
-            _varint(it)                        # start
+    while True:
+        first = next(it, None)
+        if first is None:
+            return False                       # the table ended cleanly, between entries
+        if not first & 128:
+            return True                        # an entry without its start marker: the table is not read
+        try:
+            _varint(it, first)                 # start
             _varint(it)                        # length
             if _varint(it) * 2 <= entry:       # handler
                 return True
             _varint(it)                        # depth and lasti
-    except StopIteration:
-        return False
+        except StopIteration:
+            return True                        # a table that ends mid-entry is not read (Codex r16 probe)
 
 
 def _prologue_cells(code):
@@ -1062,10 +1070,13 @@ class _Monitor:
                 if not watching:
                     self._gap(spec["name"], "store watching unavailable: a rebinding could go unseen")
         ev = mon.events
-        mon.register_callback(TOOL_ID, ev.PY_START, self._on_start)
-        mon.register_callback(TOOL_ID, ev.LINE, self._on_line)
-        mon.register_callback(TOOL_ID, ev.PY_RETURN, self._on_return)
-        mon.register_callback(TOOL_ID, ev.PY_UNWIND, self._on_unwind)
+        # the bootstrap census counts every callback registration but these exact objects (Codex phase-1 r16)
+        own = [(ev.PY_START, self._on_start), (ev.LINE, self._on_line), (ev.PY_RETURN, self._on_return),
+               (ev.PY_UNWIND, self._on_unwind)]
+        if type(_AUDIT_CENSUS) is dict and type(_AUDIT_CENSUS.get("own")) is list:
+            _AUDIT_CENSUS["own"].extend(f for _event, f in own)
+        for event, f in own:
+            mon.register_callback(TOOL_ID, event, f)
         self.active = True
         mon.set_events(TOOL_ID, ev.PY_START | ev.PY_UNWIND)
 
@@ -1114,8 +1125,15 @@ class _Monitor:
                 h = signal.getsignal(sig)
                 if not (h is None or h is signal.SIG_DFL or h is signal.SIG_IGN or h is signal.default_int_handler):
                     handlers.append(int(sig))
+            # an application trace, profile or monitoring function runs application code inside the observer's
+            # callbacks (the dict watcher's are ordinary Python calls) and can set f_lineno to re-run a frame's
+            # entry (Codex phase-1 r16): one active now, or any installed since the bootstrap, is recorded
+            tracing = (sys.gettrace() is not None or sys.getprofile() is not None or threading.gettrace() is not None
+                       or threading.getprofile() is not None
+                       or any(sys.monitoring.get_tool(i) is not None for i in range(6) if i != TOOL_ID))
             return {"audit_hooks_added": census["hooks_added"] if type(census) is dict else None,
-                    "gc_enabled": gc.isenabled(), "signal_handlers": handlers}
+                    "gc_enabled": gc.isenabled(), "signal_handlers": handlers, "tracing": tracing,
+                    "tracers_installed": census.get("tracers_installed") if type(census) is dict else None}
         except BaseException as e:  # noqa: BLE001
             self._err("purity", e)
             return None

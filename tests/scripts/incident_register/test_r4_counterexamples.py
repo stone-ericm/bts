@@ -258,7 +258,7 @@ def test_zipped_read_backs_of_different_cardinalities_do_not_match():
     wt, node = "/wt", "tests/test_incident.py::test_pass_is_void"
     f = "/wt/src/bts/mod.py"
     stack = lambda q, fr: [[q, f, 1, fr]]                                           # noqa: E731
-    pure = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}
+    pure = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": [], "tracing": False, "tracers_installed": 0}
     ev = [{"kind": "obs_start", "seq": 1, "node": node, "thread": 1, "purity": pure},
           {"kind": "entry", "seq": 2, "node": node, "file": f, "qualname": "grade", "frame": 100, "thread": 1,
            "stack": stack("grade", 100)},

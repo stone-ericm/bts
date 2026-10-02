@@ -293,6 +293,15 @@ M = [
  ('observer.py', '            entry = i if arg == 0 else None', '            entry = i', "O103 the first RESUME must carry the entry argument (Codex r15 #1; re-anchored when _first_resume gained its cache)"),
  ('observer.py', '    if any(target <= entry for target in dis.findlabels(raw)):\n        return True', '    if False:\n        return True', "O104 code whose jumps lead back to its entry is never read (Codex r16 probe)"),
  ('observer.py', '            if _varint(it) * 2 <= entry:       # handler\n                return True', '            if False:       # handler\n                return True', "O105 code whose exception handlers lead to its entry is never read (Codex r16 probe)"),
+ ('runner.py', '        if not any(f is args[0] for f in _c["own"]):', '        if True:', "R21 the install census skips only the observer's own callback objects (Codex r16 probes)"),
+ ('runner.py', '    elif event == "sys.settrace" or event == "sys.setprofile":\n        _c["tracers_installed"] += 1', '    elif event == "sys.settrace" or event == "sys.setprofile":\n        pass', "R22 the install census counts sys.settrace and sys.setprofile (Codex r16 probes)"),
+ ('certify.py', '    if p.get("tracing") is not False:', '    if False:', "C28 an active trace, profile or monitoring function at an end refuses the interval (Codex r16 probes)"),
+ ('certify.py', '    if installed[0] is not None and installed[1] is not None and installed[0] != installed[1]:', '    if False:', "C29 an install during the call phase refuses the interval (Codex r16 probes)"),
+ ('certify.py', '    if p.get("tracers_installed") is None:', '    if False:', "C30 no install census refuses the interval (Codex r16 probes)"),
+ ('observer.py', '            tracing = (sys.gettrace() is not None or sys.getprofile() is not None', '            tracing = (False or sys.getprofile() is not None', "O106 purity records an active trace function (Codex r16 probes)"),
+ ('observer.py', '    _ENTRY[id(code)] = (weakref.ref(code), entry)', '    _ENTRY[id(code)] = ((lambda kept=code: kept), entry)', "O107 the entry cache never keeps a code object alive (Codex r16 probe)"),
+ ('observer.py', '        except StopIteration:\n            return True                        # a table that ends mid-entry is not read (Codex r16 probe)', '        except StopIteration:\n            return False                        # a table that ends mid-entry is not read (Codex r16 probe)', "O108 an exception table that ends mid-entry is not read (Codex r16 probe)"),
+ ('observer.py', '        if not first & 128:\n            return True', '        if False:\n            return True', "O109 an exception-table entry without its start marker is not read (Codex r16 probe)"),
 ]
 
 

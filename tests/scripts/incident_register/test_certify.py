@@ -37,7 +37,7 @@ def exit_(seq, frame, how="return"):
     return ev("entry_exit", seq, file=F, qualname="deliver", frame=frame, how=how)
 
 
-PURE = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": []}
+PURE = {"audit_hooks_added": 0, "gc_enabled": False, "signal_handlers": [], "tracing": False, "tracers_installed": 0}
 
 
 def window(*events, start=PURE, end=PURE):
@@ -149,13 +149,25 @@ LINKED_EVENT = (entry(1, 10), branch(2, IN), call(3, "alert", IN))
     (dict(PURE, gc_enabled=True), "automatic garbage collection on"),
     (dict(PURE, gc_enabled=None), "automatic garbage collection on"),
     (dict(PURE, signal_handlers=[15]), "application signal handler(s)"),
-], ids=["missing", "no-census", "hook", "gc-on", "gc-unknown", "signal"])
+    (dict(PURE, tracing=True), "an application trace, profile or monitoring function"),
+    (dict(PURE, tracing=None), "an application trace, profile or monitoring function"),
+    (dict(PURE, tracers_installed=None), "no trace/profile/monitoring install census"),
+], ids=["missing", "no-census", "hook", "gc-on", "gc-unknown", "signal", "tracing", "tracing-unknown", "no-install-census"])
 def test_an_impure_observation_certifies_nothing(purity, needle, where):
     """Codex phase-1 r7 #4: application code the observation itself could run (an audit hook, a finalizer
     in a collection, a signal handler) makes the interval unavailable, at either end."""
     events = window(*LINKED_EVENT, **{where: purity})
     got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
     assert not got["ok"] and any(needle in r for r in got["reasons"]), got["reasons"]
+
+
+def test_a_tracer_installed_inside_the_call_phase_certifies_nothing():
+    """Codex phase-1 r16: a trace, profile or monitoring function installed and removed again inside the call phase
+    is gone at both ends; the bootstrap's install count differs between them, so the interval is unavailable."""
+    events = window(*LINKED_EVENT, start=dict(PURE, tracers_installed=3), end=dict(PURE, tracers_installed=5))
+    got = certify(events, node=N, kind="event", entry=ENTRY, bad=BAD)
+    assert not got["ok"] and any("2 trace, profile or monitoring install(s) during the call phase" in r
+                                 for r in got["reasons"]), got["reasons"]
 
 
 def test_a_pure_observation_is_certified():

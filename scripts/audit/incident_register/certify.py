@@ -15,7 +15,8 @@ Every certificate needs:
   hook added after it (the observer's own primitives are audited, so any such hook would run inside the
   observer); (Codex phase-1 r14, verbatim:) Automatic garbage collection stays off; reference-count
   finalizers remain possible, and endpoint fields do not prove callback-free observation. No application
-  signal handler is installed;
+  signal handler is installed; no application trace, profile or monitoring function is active at either end
+  or installed in between (the bootstrap's census counts installs; Codex phase-1 r16);
 * an execution of the mutated line inside a LIVE invocation of the declared entry (matched by file
   realpath and qualname). An invocation E is live at event ev when E started before ev on the same
   thread, E's frame is on ev's stack, and no exit of E and no newer entry record for the same frame id
@@ -78,7 +79,10 @@ COVERAGE = {
                           "an identity read from a keyword dict holding a key that is not an exact str"],
     "unavailable_when": ["an absence claim (ABSENCE_REFUSAL)", "an audit hook added after the trusted bootstrap",
                          "no audit-hook census", "automatic garbage collection on at either end of the call phase",
-                         "an application signal handler at either end of the call phase", "observer errors",
+                         "an application signal handler at either end of the call phase",
+                         "an application trace, profile or monitoring function active at either end of the call phase, "
+                         "or installed during it (it runs inside the observer's callbacks and can set f_lineno to re-run "
+                         "a frame's entry; Codex phase-1 r16)", "observer errors",
                          "an incomplete observation window",
                          "a coroutine or async-generator frame, the boundary callee's own included (Codex phase-1 r13 #2)",
                          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
@@ -134,6 +138,11 @@ def _purity_errs(rec: dict, where: str) -> list[str]:
                    "the observer, purity unavailable")
     if p.get("signal_handlers"):
         why.append(f"application signal handler(s) at {where} ({p['signal_handlers'][:3]}): purity unavailable")
+    if p.get("tracing") is not False:
+        why.append(f"an application trace, profile or monitoring function at {where}: it runs inside the observer's "
+                   "callbacks and can re-run a frame's entry, purity unavailable (Codex phase-1 r16)")
+    if p.get("tracers_installed") is None:
+        why.append(f"no trace/profile/monitoring install census at {where}: purity unavailable")
     return why
 
 
@@ -144,6 +153,11 @@ def interval(events: list[dict], node: str) -> tuple[list[dict], list[str]]:
     if len(starts) != 1 or len(ends) != 1:
         return [], [f"{len(starts)} observation starts / {len(ends)} ends for {node} (need exactly one each)"]
     why = _purity_errs(starts[0], "obs_start") + _purity_errs(ends[0], "obs_end")
+    installed = [((e.get("purity") or {}) if type(e.get("purity")) is dict else {}).get("tracers_installed")
+                 for e in (starts[0], ends[0])]
+    if installed[0] is not None and installed[1] is not None and installed[0] != installed[1]:
+        why.append(f"{installed[1] - installed[0]} trace, profile or monitoring install(s) during the call phase: "
+                   "purity unavailable (Codex phase-1 r16)")
     inside = [e for e in mine if starts[0]["seq"] < e["seq"] < ends[0]["seq"]]
     if any(e["kind"] == "observer_error" for e in inside):
         why.append("observer error during the observed interval")

@@ -27,7 +27,7 @@ import pytest
 from scripts.audit.incident_register import defence, observer, runner
 from tests.scripts.incident_register.synth import DM, defended_project
 from tests.scripts.incident_register.test_r4_counterexamples import ALERT, one_spec
-from tests.scripts.incident_register.test_r6_counterexamples import MUTANT, NODE, PROD, TEST, _defend
+from tests.scripts.incident_register.test_r6_counterexamples import MUTANT, NODE, PROD, TEST, TRANSPORT, _defend
 from tests.scripts.incident_register.test_r9_counterexamples import _boundaries, _counting_key, _counts
 
 
@@ -1144,3 +1144,98 @@ def test_a_frame_started_before_observation_never_becomes_a_witness(tmp_path):
     assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
     assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+# --- Codex r16 part 2 probes: application tracing, f_lineno jumps, and code lifetimes -------------------------
+
+TRACE_TRANSPORT = ("sent=[]\nentered=False\ndef send(recipient,text):\n    global entered\n    if entered:\n        return\n"
+                   "    entered=True\n    sent.append((recipient,text))\n    text='BTS health CRITICAL: x'\n    return None\n")
+
+
+def _trace_helper(mode, value="types.CellType(ALERT)"):
+    """A helper whose sys.settrace function either only watches (`none`) or, at the boundary's last line, sets
+    f_lineno back to its def line, re-running the entry RESUME after `text` was rebound (`jump`)."""
+    return ("import sys,types\ndef invoke(transport,rebind):\n"
+            f"    value={value} if rebind else 'pick: Turner'\n    jumped=[]\n    target=transport.send.__code__\n"
+            "    def trace(frame,event,arg):\n        if frame.f_code is target:\n"
+            f"            if {mode!r}=='jump' and event=='line' and frame.f_lineno==target.co_firstlineno+7 and not jumped:\n"
+            "                frame.f_lineno=target.co_firstlineno\n                jumped.append(True)\n"
+            "            return trace\n        return None\n    sys.settrace(trace)\n    try:\n"
+            "        transport.send('eric',value)\n    finally:\n        sys.settrace(None)\n"
+            "    assert transport.sent[-1][1] is value\n    print('jumped',jumped)\n")
+
+
+@pytest.mark.parametrize("mode", ["none", "jump"])
+def test_an_application_tracer_during_the_call_phase_refuses_the_interval(tmp_path, mode):
+    """Codex r16: a tracer setting f_lineno to the def line re-ran the entry RESUME, and the changed local was
+    certified (`jump`, at 6b63b61); and the tracer receives 'call' events for the observer's dict-watcher callback,
+    so application code ran inside the observer (`none`). An application trace, profile or monitoring function
+    installed during the call phase now refuses the interval (O107, O108); a refusal, never a witness."""
+    res = _defend(tmp_path, _trace_helper(mode), transport=TRACE_TRANSPORT)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert any("install(s) during the call phase" in r for r in res["certificates"][NODE].get("why", []) + res["reasons"]), res
+
+
+def test_a_tracer_with_a_real_alert_is_refused_not_accepted(tmp_path):
+    """The same tracer around a real alert: the alert is genuine, but the interval ran application code inside
+    the observer, so it is refused (a missed certificate, never an impure one)."""
+    res = _defend(tmp_path, _trace_helper("none", value="ALERT"), transport=TRACE_TRANSPORT)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+
+
+MONITORING_HELPER = ("import sys\ndef invoke(transport,rebind):\n    if rebind:\n        m=sys.monitoring\n"
+                     "        tool=next(i for i in range(6) if m.get_tool(i) is None)   # the observer holds its own id\n"
+                     "        m.use_tool_id(tool,'application')\n        m.register_callback(tool,m.events.PY_START,lambda c,o:None)\n"
+                     "        m.set_events(tool,m.events.PY_START)\n        try:\n            transport.send('eric',ALERT)\n"
+                     "        finally:\n            m.set_events(tool,0)\n            m.register_callback(tool,m.events.PY_START,None)\n"
+                     "            m.free_tool_id(tool)\n        return\n    transport.send('eric','pick: Turner')\n")
+
+
+def test_an_application_monitoring_tool_refuses_the_interval(tmp_path):
+    """An application sys.monitoring tool can set f_lineno from its own callbacks too; one registered during the
+    call phase refuses the interval (O106 keeps the observer's own registrations out of that count)."""
+    res = _defend(tmp_path, MONITORING_HELPER)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert any("during the call phase" in r for r in res["certificates"][NODE].get("why", []) + res["reasons"]), res
+
+
+def test_a_tracer_active_before_the_call_phase_refuses_the_interval(tmp_path):
+    """A trace function installed at import (before the call phase) and still active at its start: obs_start
+    records it, and the interval is refused."""
+    transport = TRANSPORT + "import sys\ndef _watch(frame,event,arg):\n    return None\nsys.settrace(_watch)\n"
+    res = _defend(tmp_path, "def invoke(transport,rebind):\n    transport.send('eric',ALERT if rebind else 'pick: Turner')\n",
+                  transport=transport)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+
+
+CONSTANT_HELPER = ("import types\nreleased=[]\nclass Constant:\n    def __del__(self):\n        released.append('released')\n"
+                   "def invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n        return\n"
+                   "    constant=Constant()\n    template=compile('lambda: None','<qa-code-constant>','eval').co_consts[0]\n"
+                   "    code=template.replace(co_consts=template.co_consts+(constant,))\n    fn=types.FunctionType(code,{})\n"
+                   "    del constant\n    fn()\n    del fn,code\n    print('constant_released',bool(released))\n"
+                   "    transport.send('eric',None if released else ALERT)\n")
+
+
+def test_observation_never_keeps_an_application_code_object_alive(tmp_path):
+    """Codex r16: the entry cache held every started code object, so a code constant's finalizer did not run
+    when observed (it did unobserved) and the application sent the alert only when observed. The cache holds
+    weak references (O109)."""
+    res = _defend(tmp_path, CONSTANT_HELPER)
+    observed = (tmp_path / "out/mutant.stdout.txt").read_text()
+    plain = (tmp_path / "out/mutant_unobserved.stdout.txt").read_text()
+    assert "constant_released True" in observed and "constant_released True" in plain, (observed, plain)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+
+
+def test_a_malformed_exception_table_makes_the_entry_unreadable():
+    """Codex r16 probe: a table that ends mid-entry was read as having no handler (O108); an entry without its start
+    marker is not read either (O109). Control: a well-formed table whose handler is after the entry."""
+    def f(x):
+        try:
+            return x
+        except ValueError:
+            return None
+    code = f.__code__
+    assert observer._first_resume(code) == 0
+    assert observer._first_resume(code.replace(co_exceptiontable=bytes([0x80, 1, 0x40]))) is None
+    assert observer._first_resume(code.replace(co_exceptiontable=bytes([0x01, 1, 2, 0]))) is None

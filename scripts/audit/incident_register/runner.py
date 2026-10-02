@@ -37,10 +37,15 @@ from scripts.audit.incident_register.observer import src_digest
 
 OBSERVER_SRC = Path(__file__).with_name("observer.py")
 BOOTSTRAP = """import sys
-_census = {"hooks_added": 0}
+_census = {"hooks_added": 0, "tracers_installed": 0, "own": []}
 def _w15_audit_census(event, args, _c=_census):
     if event == "sys.addaudithook":
         _c["hooks_added"] += 1
+    elif event == "sys.settrace" or event == "sys.setprofile":
+        _c["tracers_installed"] += 1
+    elif event == "sys.monitoring.register_callback" and args and args[0] is not None:
+        if not any(f is args[0] for f in _c["own"]):
+            _c["tracers_installed"] += 1
 sys.addaudithook(_w15_audit_census)
 import importlib.util
 path, name = sys.argv[1], sys.argv[2]
