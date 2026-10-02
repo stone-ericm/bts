@@ -696,9 +696,19 @@ def test_an_async_boundary_callee_is_never_witnessed(tmp_path, kind):
 
 # --- Codex r13 #3: while another thread is alive, the read boundary is exactly the one COVERAGE states --------
 
-def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None):
+def _locals_dict(frame):
+    """The frame's cached locals dict pointer (NULL until something reads frame.f_locals)."""
+    import ctypes
+    iframe = ctypes.c_void_p.from_address(id(frame) + observer._PY_FRAME_F_FRAME).value
+    return ctypes.c_void_p.from_address(iframe + 5 * ctypes.sizeof(ctypes.c_void_p)).value
+
+
+def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None, cached=False):
     """A mock boundary and a function boundary started in-process from their own frames, recording every slot
-    read: [(index, cells)] for each, and the boundary records."""
+    read: [(index, cells)] for each, and the boundary records. Neither frame's locals dict may exist after the
+    observer ran: a read outside _fast_local, through frame.f_locals, creates it (Codex phase-1 r14 #2). With
+    ``cached``, the application has already created a now-stale dict, and the observer must not refresh it
+    (the r12 finalizer shape)."""
     reads = []
     real = observer._fast_local
 
@@ -714,7 +724,14 @@ def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None):
     mon.state["dm"] = {"keys": [], "chain": [], "current": None, "held": [target]}
 
     def mock_call(self, /, *args, **kwargs):
+        marker = "before"
+        stale = sys._getframe().f_locals if cached else None        # the application's own read
+        marker = "after"                                            # noqa: F841 - only the frame's slot changes
         mon._on_start(mock_call.__code__, 0)
+        if cached:
+            assert stale["marker"] == "before", "the observer refreshed the mock frame's locals dict"
+        else:
+            assert not _locals_dict(sys._getframe()), "the observer created the mock frame's locals dict"
     mon.mock_call_code, mon.mock_slots = mock_call.__code__, (0, 1, 2)
     mon.mock_types[id(target)] = object          # a standard mock, as _hold records one
     monkeypatch.setattr(mon, "_mock_verified", lambda obj: obj is target)
@@ -726,7 +743,14 @@ def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None):
     mock_reads, reads[:] = list(reads), []
 
     def send(recipient, *rest, text=None):
+        marker = "before"
+        stale = sys._getframe().f_locals if cached else None
+        marker = "after"                                            # noqa: F841
         mon._on_start(send.__code__, 0)
+        if cached:
+            assert stale["marker"] == "before", "the observer refreshed the function frame's locals dict"
+        else:
+            assert not _locals_dict(sys._getframe()), "the observer created the function frame's locals dict"
     mon.boundary_codes[id(send.__code__)] = (send.__code__, [(spec, None)])
     send("eric", "alert", text="other")
     records = [e for e in mon.events if e["kind"] == "boundary"]
@@ -734,12 +758,16 @@ def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None):
     return mock_reads, list(reads), records
 
 
+@pytest.mark.parametrize("cached", [False, True], ids=["no-dict", "stale-dict"])
 @pytest.mark.parametrize("alone", [False, True], ids=["worker", "alone"])
-def test_the_slots_read_while_another_thread_is_alive(monkeypatch, alone):
-    """Codex r13 #3: while another thread is alive, a mock boundary reads only its own `self`, from its non-cell
-    frame slot (the paused frame owns it), to select the unavailable record, and a function boundary reads no
-    slot; alone, both read their arguments (control). COVERAGE admits exactly this read (O90)."""
-    mock_reads, function_reads, records = _run_boundaries(monkeypatch, alone, ["args[1]"])
+def test_the_slots_read_while_another_thread_is_alive(monkeypatch, alone, cached):
+    """Codex r13 #3: while another thread is alive, a mock boundary calls _fast_local only for its own `self`,
+    from its non-cell frame slot (the paused frame owns it), to select the unavailable record, and a function
+    boundary calls it for no slot; alone, both read their arguments (control). This pins the _fast_local
+    invocation sequence (O90); reads outside that helper are checked separately: the locals dict is never
+    created, nor refreshed when the application already holds a stale one (O96, O97; Codex r14 #2). `worker`
+    stubs _alone to False; no thread is started."""
+    mock_reads, function_reads, records = _run_boundaries(monkeypatch, alone, ["args[1]"], cached=cached)
     if alone:
         assert mock_reads == [(0, False), (1, True), (2, True)], mock_reads
         assert function_reads == [(0, True), (2, True), (0, True), (1, True)], function_reads
@@ -793,3 +821,150 @@ def test_a_namespace_replaced_wholesale_leaves_nothing_current(monkeypatch, even
     st = mon.state["dm"]
     assert st["current"] is None and len(st["chain"]) == 1 and st["chain"][0][0] is outer, st
     assert not [e for e in mon.events if e["kind"] == "observer_error"], mon.events
+
+
+# --- Codex phase-1 r14: with UNIQUE names, a relabel still moves a cell name onto another slot ----------------
+
+RELABEL_TRANSPORT = ("sent=[]\ndef send(recipient,text):\n    def capture():\n        return recipient\n"
+                     "    sent.append((recipient,text))\ncode=send.__code__\n"
+                     "relabelled=code.replace(co_varnames=('other',code.co_varnames[0])+code.co_varnames[2:])\n")
+
+
+RELABEL_CASES = {  # case: (code relabelled at import, swapped in the call phase, the argument)
+    "plain": (False, False, "ALERT"), "relabelled-import": (True, False, "types.CellType(ALERT)"),
+    "relabelled-swap": (False, True, "types.CellType(ALERT)"), "relabelled-string": (True, False, "ALERT"),
+    "normal-cell-argument": (False, False, "types.CellType(ALERT)")}
+
+
+@pytest.mark.parametrize("case", list(RELABEL_CASES))
+def test_a_relabelled_cell_name_never_unwraps_a_cell_argument(tmp_path, case):
+    """Codex r14 #1: CodeType.replace gave the cell argument's name to the text slot (names unique), so the
+    reader took that slot for a cell and unwrapped the application's own CellType argument: its contents, the
+    alert, were accepted as the argument, with the code installed at import or swapped in the call phase (at
+    e927a75). A slot's kind now comes from the prologue's MAKE_CELL, and the reader refuses code whose names
+    disagree with it (O93). Controls: the alert passed plainly is witnessed; the relabelled code with a plain
+    string is unread; normal code given a cell argument reads the cell object, which is incomplete."""
+    at_import, swap, value = RELABEL_CASES[case]
+    transport = RELABEL_TRANSPORT + ("send.__code__=relabelled\n" if at_import else "")
+    helper = ("import types\ndef invoke(transport,rebind):\n"
+              f"    value={value} if rebind else 'pick: Turner'\n"
+              + ("    if rebind:\n        transport.send.__code__=transport.relabelled\n" if swap else "")
+              + "    transport.send('eric',value)\n    assert transport.sent[-1][1] is value\n")
+    res = _defend(tmp_path, helper, transport=transport)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    if case == "plain":
+        assert res["verdict"] == "accepted" and res["certificates"][NODE]["ok"], res
+    else:
+        assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+        assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+def test_slot_kinds_come_from_the_prologue():
+    """The prologue's MAKE_CELL slots decide which slot holds a cell (O93, O94, O95): a relabelled code object
+    is never read; an application's own CellType argument in a non-cell slot is that object, never unwrapped; a
+    prologue holding any other instruction reads None; a cell past slot 255 is found through EXTENDED_ARG."""
+    import opcode
+    import types
+
+    def probe(x, y):
+        def capture():
+            return x
+        frame = sys._getframe()
+        return observer._fast_local(frame, frame.f_code, 0, True), observer._fast_local(frame, frame.f_code, 1, True)
+    cell = types.CellType("right")
+    assert probe("left", cell) == ("left", cell) and probe("left", cell)[1] is cell
+    original = probe.__code__
+    probe.__code__ = original.replace(co_varnames=("other", "x") + original.co_varnames[2:])
+    assert probe("left", cell) == (observer._UNREAD, observer._UNREAD)
+    assert observer._prologue_cells(original) == {0}
+    # another instruction ahead of the real prologue, which keeps its MAKE_CELL and RESUME
+    crafted = original.replace(co_code=bytes([opcode.opmap["NOP"], 0, opcode.opmap["LOAD_CONST"], 0]) + original.co_code)
+    assert observer._prologue_cells(crafted) is None
+    names = [f"a{i}" for i in range(300)]
+    ns = {"OBS": observer, "sys": sys}
+    exec(f"def wide({', '.join(names)}):\n    def g():\n        return a299\n    frame = sys._getframe()\n"
+         "    return OBS._fast_local(frame, frame.f_code, 299, True)\n", ns)
+    assert observer._prologue_cells(ns["wide"].__code__) == {299} and ns["wide"](*range(300)) == 299
+
+
+# --- own review during r14 (cause of Codex r14's observed-only segfault): a Python function watcher clobbers an
+# exception pending in C. CPython calls function watchers for EVERY function's creation and destruction; a
+# lambda freed after a failed C call fires one with the error set, the ctypes trampoline returns a result with
+# an exception set, and CPython replaces the application's exception with SystemError (Cython code then built
+# a traceback with no exception set and crashed: pyarrow's ParquetWriter).
+
+EXCEPTION_HELPER = ("def invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n"
+                    "        return\n    try:\n        sorted([1,'a'],key=lambda x: x)\n    except TypeError:\n"
+                    "        return\n    except SystemError:\n        transport.send('eric',ALERT)\n")
+
+
+def test_observation_never_changes_an_application_exception(tmp_path):
+    """The alert is sent only on the SystemError path, which the plain run never takes; the mutant's frozen test
+    fails at the same assertion in both twins. At e927a75 the observed run took that path and sent the alert:
+    observation changed the application. The certificate was refused only because _on_func recorded the
+    converted SystemError as an observer error. Without a function watcher the observed run raises TypeError
+    as the plain run does, and nothing is sent or witnessed."""
+    res = _defend(tmp_path, EXCEPTION_HELPER)
+    observed = (tmp_path / "out/mutant.stdout.txt").read_text()
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+    assert "SystemError" not in observed, observed
+
+
+def test_a_running_observer_leaves_a_pending_c_exception_alone():
+    """In-process: with the observer started, a C call that fails while its lambda argument is freed still
+    raises its own TypeError (at e927a75: SystemError, 'error return without exception set')."""
+    mon = observer._Monitor("n", {"boundaries": [dict(DM, binding="os:getcwd")]}, "")
+    mon.start()
+    try:
+        with pytest.raises(TypeError):
+            sorted([1, "a"], key=lambda x: x)
+    finally:
+        mon.stop()
+
+
+# --- own review during r14: the function watcher's replacement registers a swapped code at its first start ----
+
+@pytest.mark.parametrize("alone", [True, False], ids=["alone", "worker"])
+def test_a_swapped_code_is_registered_at_its_first_start_only_while_alone(monkeypatch, alone):
+    """A held function's __code__ replaced in place is registered at the new code's first start (O98), and only
+    while this thread is alone: with another thread alive the held function is not read and the start is not
+    registered, which can only miss the call (O99). `worker` stubs _alone; no thread is started."""
+    monkeypatch.setattr(observer, "_alone", lambda: alone)
+    mon = observer._Monitor("n", {}, "")
+    spec = {"name": "dm", "binding": "bts.nowhere:send", "value": ["args[1]"], "classify": [["alert", "^alert$"]]}
+    mon.boundaries = [spec]
+    mon.state["dm"] = {"keys": [], "chain": [], "current": None, "held": []}
+
+    def send(recipient, text):
+        return None
+
+    def replacement(recipient, text):
+        return None
+    mon.functions[id(send)] = (send, [(spec, None)])
+    send.__code__ = replacement.__code__
+    mon._on_start(replacement.__code__, 0)
+    registered = observer._code_key(replacement.__code__) in mon.boundary_codes
+    records = [e for e in mon.events if e["kind"] == "boundary"]
+    assert not [e for e in mon.events if e["kind"] == "observer_error"], mon.events
+    if alone:
+        assert registered and len(records) == 1, (registered, records)
+    else:
+        assert not registered and not records, (registered, records)
+
+
+def test_the_observer_source_never_reads_frame_locals():
+    """Supplementary source guard (Codex r14 #2): no f_locals attribute and no locals-materialising helper
+    anywhere in the observer's code; docstrings and comments are not code."""
+    import ast
+    from pathlib import Path
+    banned = {"f_locals", "getargvalues", "getgeneratorlocals", "getcoroutinelocals", "getasyncgenlocals",
+              "PyFrame_FastToLocals", "PyFrame_FastToLocalsWithError", "PyFrame_LocalsToFast", "PyFrame_GetLocals",
+              "locals", "vars"}
+    hits = []
+    for node in ast.walk(ast.parse(Path(observer.__file__).read_text())):
+        name = (node.attr if isinstance(node, ast.Attribute) else node.id if isinstance(node, ast.Name)
+                else node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None)
+        if name in banned:
+            hits.append((node.lineno, name))
+    assert not hits, hits

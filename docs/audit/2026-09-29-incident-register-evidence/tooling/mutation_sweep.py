@@ -44,6 +44,10 @@ Known equivalent guards (not listed):
   unavailable (O69), so neither branch exists;
 * retired O22 (namespaces read without application code): with exact module/class types enforced (O29,
   O30) the raw descriptor read and getattr coincide for every accepted object.
+* retired O19 (a swapped __code__ registered by the function watcher): the function watcher is gone (own
+  review during r14: its Python callback, run for every function's creation and destruction, replaced an
+  exception pending in C with SystemError, so observation changed the application, and a Cython error path
+  crashed). O98 and O99 test its replacement, registration at the swapped code's first start while alone.
 Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (its tests import it). The source file is restored after every mutant (verified by byte comparison). No bytecode
 is written during the sweep and none compiled before it is left to be read (a same-size mutant or restore
 written within the same second as the previous compile would otherwise run the stale .pyc).
@@ -169,7 +173,6 @@ M = [
  ('run_expected_failures.py', '"accepted_nodes": [], "passed_nodes": []}', '"accepted_nodes": []}', 'A16 failure artifact carries no controls'),
  ('observer.py', '            elif not is_current:', '            elif False:', 'O17 a former binding value is unattributed'),
  ('observer.py', '            elif len(specs) > 1:', '            elif False:', 'O18 a callable bound to several boundaries is unattributed'),
- ('observer.py', '                if type(code) is types.CodeType:\n                    for spec, receiver in entry[1]:\n                        self._add_code(code, spec, receiver)', '                if False:\n                    for spec, receiver in entry[1]:\n                        self._add_code(code, spec, receiver)', 'O19 a swapped __code__ is registered'),
  ('observer.py', '        if why is not None:\n            self._gap(spec["name"], why)', '        if False:\n            self._gap(spec["name"], why)', 'O20 an unresolvable binding path is a gap'),
  ('observer.py', '                if key == "__call__":', '                if False:', 'O21 a replaced mock __call__ is a gap'),
  ('observer.py', '        return _type_ns(obj)\n    return None\n', '        return _type_ns(obj)\n    return _plain_instance_dict(obj)\n', 'O23 instance namespaces are unsupported'),
@@ -277,6 +280,13 @@ M = [
  ('observer.py', '                    me = _fast_local(frame, code, self.mock_slots[0], False)', '                    me = _fast_local(frame, code, self.mock_slots[0], True)', "O90 the mock receiver is read only from its non-cell slot (Codex r13 #3)"),
  ('observer.py', '                                unread = _UNREAD_ARGS', '                                unread = None', 'O91 an unread *args is never an empty call (Codex r13 #1)'),
  ('observer.py', '                        if type(extra) is not tuple or type(kwargs) is not dict:   # unread, never an empty call', '                        if False:   # unread, never an empty call', "O92 a mock's unread arguments are never an empty call (Codex r13 #1)"),
+ ('observer.py', '    if made is None or {c for c in made if c < code.co_nlocals} != named:', '    if made is None:', "O93 a slot's kind needs the names and the prologue to agree (Codex r14)"),
+ ('observer.py', '        elif op not in (_OP["NOP"], _OP["COPY_FREE_VARS"], _OP["RETURN_GENERATOR"], _OP["POP_TOP"]):\n            return None', '        elif False:\n            return None', 'O94 a prologue holding any other instruction is unreadable (Codex r14)'),
+ ('observer.py', '            ext = arg << 8', '            ext = 0', 'O95 the prologue parser honours EXTENDED_ARG (Codex r14)'),
+ ('observer.py', '                    frame = sys._getframe(1)\n                    # the mock itself', '                    frame = sys._getframe(1)\n                    hidden_application_locals = frame.f_locals\n                    # the mock itself', "O96 the mock path never reads frame.f_locals (Codex r14 read-set evasion)"),
+ ('observer.py', '                    frame = sys._getframe(1)\n                    if not _alone():         # ruling 12, before ANY read', '                    frame = sys._getframe(1)\n                    hidden_application_locals = frame.f_locals\n                    if not _alone():         # ruling 12, before ANY read', "O97 the function path never reads frame.f_locals (Codex r14 read-set evasion)"),
+ ('observer.py', '            if entry is None and self.functions:             # a held function\'s __code__ replaced in place', '            if False:             # a held function\'s __code__ replaced in place', "O98 a held function's swapped __code__ is registered at its first start (own review during r14: no function watcher)"),
+ ('observer.py', '        if not _alone():\n            return None\n        for func, pairs in list(self.functions.values()):', '        for func, pairs in list(self.functions.values()):', 'O99 a swapped code is looked up only while the thread is alone (own review during r14)'),
 ]
 
 

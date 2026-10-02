@@ -12,9 +12,10 @@ phase-1 r3 #1, #2, #7):
   the real boundary function), so calls made from C (``map``, callbacks) or from other threads are
   still seen;
 * a declared binding is TRACKED AT EVERY STORE on its path (CPython dict watchers on the module and
-  class namespaces from ``sys.modules`` down, and a function watcher for ``__code__`` replaced in
-  place), whoever makes the store, so every callable is registered before anything can call it
-  through the binding. Every value a binding holds stays a target of that binding for the rest of the
+  class namespaces from ``sys.modules`` down), whoever makes the store, so every callable is registered
+  before anything can call it through the binding; a held function's ``__code__`` replaced in place is
+  registered at the new code's first start, before its body runs (there is no function watcher: see
+  ``_swapped``). Every value a binding holds stays a target of that binding for the rest of the
   interval, registered per binding + callable. A call that cannot be attributed to one binding's
   current value is recorded with an unavailable identity. An unsupported namespace (anything but a
   module or a class), a callable that is not Python-observable, a namespace replaced wholesale, a
@@ -45,6 +46,7 @@ import hashlib
 import inspect
 import itertools
 import json
+import opcode
 import os
 import re
 import signal
@@ -72,20 +74,21 @@ _EXC_ARGS = BaseException.__dict__["args"]
 _EXC_TB = BaseException.__dict__["__traceback__"]
 _FUNCTION, _METHOD = types.FunctionType, types.MethodType     # neither can be subclassed
 
-# CPython's dict and function watchers (3.12 C API, through ctypes; callbacks run with the GIL held).
-# Object arguments are declared as addresses so that a dict or function being deallocated is never
-# turned into a Python reference.
+# CPython's dict watchers (3.12 C API, through ctypes; callbacks run with the GIL held). Object arguments are
+# declared as addresses so that a dict being deallocated is never turned into a Python reference. There is no
+# function watcher: CPython calls function watchers for EVERY function's creation and destruction, including a
+# temporary freed after a failed C call while its exception is pending, and a ctypes callback that returns
+# normally then makes CPython replace that exception with SystemError (own review during r14: the application
+# took an except-SystemError path only when observed; a Cython error path built a traceback with no exception
+# set and crashed). A dict watcher fires only for the namespaces watched here, which the observer keeps alive.
 _API = ctypes.pythonapi
 _DICT_WATCH_CB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
-_FUNC_WATCH_CB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
 for _fn, _argtypes in (("PyDict_AddWatcher", [_DICT_WATCH_CB]), ("PyDict_ClearWatcher", [ctypes.c_int]),
                        ("PyDict_Watch", [ctypes.c_int, ctypes.py_object]),
-                       ("PyDict_Unwatch", [ctypes.c_int, ctypes.py_object]),
-                       ("PyFunction_AddWatcher", [_FUNC_WATCH_CB]), ("PyFunction_ClearWatcher", [ctypes.c_int])):
+                       ("PyDict_Unwatch", [ctypes.c_int, ctypes.py_object])):
     getattr(_API, _fn).argtypes = _argtypes
     getattr(_API, _fn).restype = ctypes.c_int
 _DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED, _DICT_CLONED, _DICT_CLEARED = 0, 1, 2, 3, 4
-_FUNC_MODIFY_CODE = 2
 for _fn, _argtypes in (("PyInterpreterState_Get", []), ("PyInterpreterState_ThreadHead", [ctypes.c_void_p]),
                        ("PyThreadState_Next", [ctypes.c_void_p]), ("PyThreadState_Get", [])):
     getattr(_API, _fn).argtypes = _argtypes
@@ -107,9 +110,10 @@ def _alone() -> bool:
 
     New thread states are inserted at the HEAD of the list, so this thread is alone exactly when its own state is
     the head and has no successor. Only this thread's own state (never freed while it runs) and the
-    interpreter's head pointer are read: the GIL can pass between these calls, and a version that followed the
-    head's successor read a short-lived thread's freed state and reported "alone" while another thread lived
-    (Codex phase-1 r12). The head is read again last, so a state inserted meanwhile is seen."""
+    interpreter's head pointer are read, since the GIL can pass between these calls. (Codex phase-1 r14,
+    verbatim:) A version that followed the head's successor reported 'alone' while another thread lived. Reading
+    an unlinked or freed state is an inferred cause, not a measured unlink/free sequence. The head is read again
+    last, so a state inserted meanwhile is seen."""
     try:
         me, interp = _TS_GET(), _INTERP_GET()
         if not me or _THREAD_HEAD(interp) != me:
@@ -130,6 +134,31 @@ _PY_FRAME_F_FRAME = 3 * ctypes.sizeof(ctypes.c_void_p)       # PyFrameObject: ob
 _IFRAME_LOCALSPLUS = 9 * ctypes.sizeof(ctypes.c_void_p)      # _PyInterpreterFrame: f_code ... owner, localsplus
 _UNREAD = object()
 _UNREAD_ARGS = "an argument the observer could not read"
+# the prologue a CPython 3.12 function runs before RESUME (where PY_START fires): which local slots MAKE_CELL wrapped
+_OP = {name: opcode.opmap[name] for name in ("NOP", "EXTENDED_ARG", "COPY_FREE_VARS", "MAKE_CELL", "RETURN_GENERATOR",
+                                             "POP_TOP", "RESUME")}
+
+
+def _prologue_cells(code):
+    """The local slots the code's prologue wraps in cells (MAKE_CELL before the first RESUME), or None when the
+    prologue holds anything else. The interpreter ran exactly these, so they, not the names, say which slot holds
+    a cell: CodeType.replace relabels names (and the kinds derived from them) without touching the bytecode
+    (Codex phase-1 r14 probe)."""
+    raw = code.co_code                     # exact bytes: two per instruction, opcode then argument
+    cells, ext = set(), 0
+    for i in range(0, len(raw) - 1, 2):
+        op, arg = raw[i], raw[i + 1] | ext
+        if op == _OP["EXTENDED_ARG"]:
+            ext = arg << 8
+            continue
+        ext = 0
+        if op == _OP["RESUME"]:
+            return cells
+        if op == _OP["MAKE_CELL"]:
+            cells.add(arg)
+        elif op not in (_OP["NOP"], _OP["COPY_FREE_VARS"], _OP["RETURN_GENERATOR"], _OP["POP_TOP"]):
+            return None
+    return None
 
 
 def _fast_local(frame, code, index: int, cells: bool):
@@ -141,6 +170,10 @@ def _fast_local(frame, code, index: int, cells: bool):
         return _UNREAD
     if len(set(code.co_varnames)) != len(code.co_varnames):     # a slot's kind cannot be told by a name two locals
         return _UNREAD                                          # share (Codex phase-1 r13 #1)
+    made = _prologue_cells(code)
+    named = {i for i in range(code.co_nlocals) if code.co_varnames[i] in code.co_cellvars}
+    if made is None or {c for c in made if c < code.co_nlocals} != named:
+        return _UNREAD                     # the names do not say what the bytecode wrapped: never guess a slot's kind
     iframe = ctypes.c_void_p.from_address(id(frame) + _PY_FRAME_F_FRAME).value
     if not iframe or ctypes.c_void_p.from_address(iframe).value != id(code):
         return _UNREAD
@@ -148,7 +181,7 @@ def _fast_local(frame, code, index: int, cells: bool):
     if not slot:
         return _UNREAD
     value = ctypes.cast(slot, ctypes.py_object).value
-    if code.co_varnames[index] in code.co_cellvars:      # exact strs (CPython requires them in code slots)
+    if index in named:                     # a cell by its name AND by the prologue that made it
         if not cells or type(value) is not types.CellType:
             return _UNREAD
         try:
@@ -651,8 +684,8 @@ class _Monitor:
         self.call_watch: dict = {}              # address of a mock class's namespace -> {spec names}
         self.watched: dict = {}                 # address -> namespace dict, kept alive while watched
         self.functions: dict = {}               # address of a target function -> (function, [(spec, receiver)])
-        self.dict_watcher = self.func_watcher = None
-        self._dict_cb = self._func_cb = None    # the ctypes trampolines, kept alive while installed
+        self.dict_watcher = None
+        self._dict_cb = None                    # the ctypes trampoline, kept alive while installed
         self.paths: dict[str, str] = {}
         self.mock_types: dict = {}              # id of a held mock -> its class when first held
         self.tool_acquired = self.started = self.active = False
@@ -816,7 +849,7 @@ class _Monitor:
         # (Codex phase-1 r4 #1.4); method.__self__/__func__ are C members, no application code runs
         receiver = obj.__self__ if type(obj) is _METHOD else None
         func = obj.__func__ if receiver is not None else obj
-        self.functions.setdefault(id(func), (func, []))[1].append((spec, receiver))   # its __code__ can be swapped
+        self.functions.setdefault(id(func), (func, []))[1].append((spec, receiver))   # its __code__ can be swapped (_swapped)
         self._add_code(code, spec, receiver)
 
     def _add_code(self, code, spec: dict, receiver) -> None:
@@ -907,32 +940,24 @@ class _Monitor:
             self._err("dict_watch", e)
         return 0
 
-    def _on_func(self, event, func_addr, new_addr):
-        """Function watcher callback: a target function's ``__code__`` replaced in place starts new code,
-        which is registered for the same spec + receiver (Codex phase-1 r5 #1)."""
-        try:
-            with self._lock:
-                if event != _FUNC_MODIFY_CODE:
-                    return 0
-                entry = self.functions.get(func_addr)
-                if entry is None:
-                    return 0
-                # the replacement code object is a live operand of the store and is only type-checked and keyed
-                # by id (code identity, admitted metadata: r12 #3); nothing in it is read
-                code = ctypes.cast(new_addr, ctypes.py_object).value if new_addr else None
-                if type(code) is types.CodeType:
-                    for spec, receiver in entry[1]:
-                        self._add_code(code, spec, receiver)
-        except BaseException as e:  # noqa: BLE001
-            self._err("func_watch", e)
-        return 0
+    def _swapped(self, code):
+        """The boundary entry for ``code`` when a held function's ``__code__`` is now ``code`` (replaced in place
+        after it was held, Codex phase-1 r5 #1): registered for the same spec + receiver at the new code's first
+        start, before its body runs. ``__code__`` is a C member of an exact function, and the comparison is by
+        identity. Read only while this thread is alone (plan ruling 12); a swapped code that first starts while
+        another thread lives, or whose start was disabled earlier, is not registered, which can only miss a call."""
+        if not _alone():
+            return None
+        for func, pairs in list(self.functions.values()):
+            if func.__code__ is code:
+                for spec, receiver in pairs:
+                    self._add_code(code, spec, receiver)
+        return self.boundary_codes.get(_code_key(code))
 
     def _install_watchers(self) -> bool:
         try:
             self._dict_cb = _DICT_WATCH_CB(self._on_dict)
             self.dict_watcher = _API.PyDict_AddWatcher(self._dict_cb)
-            self._func_cb = _FUNC_WATCH_CB(self._on_func)
-            self.func_watcher = _API.PyFunction_AddWatcher(self._func_cb)
             return True
         except BaseException as e:  # noqa: BLE001
             self._err("install_watchers", e)
@@ -951,12 +976,7 @@ class _Monitor:
                 _API.PyDict_ClearWatcher(self.dict_watcher)
             except BaseException as e:  # noqa: BLE001
                 self._err("clear_dict_watcher", e)
-        if self.func_watcher is not None:
-            try:
-                _API.PyFunction_ClearWatcher(self.func_watcher)
-            except BaseException as e:  # noqa: BLE001
-                self._err("clear_func_watcher", e)
-        self.dict_watcher = self.func_watcher = None
+        self.dict_watcher = None
 
     # -- lifecycle
     def start(self) -> None:
@@ -1083,6 +1103,9 @@ class _Monitor:
                                           "a mock whose effective __call__ is not the standard one, or whose class changed")
                 return None
             entry = self.boundary_codes.get(_code_key(code))
+            if entry is None and self.functions:             # a held function's __code__ replaced in place
+                with self._lock:
+                    entry = self._swapped(code)
             if entry is not None:
                 with self._lock:
                     pairs = entry[1]

@@ -229,7 +229,7 @@ def test_a_failed_start_releases_its_watchers_and_monitoring_id(monkeypatch):
             mon.stop()
         except BaseException as e:  # noqa: BLE001
             raise AssertionError(f"stop() must never raise: {e!r}")
-        assert mon.dict_watcher is None and mon.func_watcher is None
+        assert mon.dict_watcher is None and not hasattr(mon, 'func_watcher')   # no function watcher (r14)
         assert sys.monitoring.get_tool(observer.TOOL_ID) is None
     finally:
         # whatever a broken stop() leaked is released here, AFTER the assertions: a CPython watcher left

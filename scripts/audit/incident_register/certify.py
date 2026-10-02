@@ -10,10 +10,11 @@ recorder misses can only fail to witness a positive event; it never creates one.
 Every certificate needs:
 * a complete observed CALL phase of the killing node: exactly one ``obs_start`` and ``obs_end``, no
   observer error, no coroutine frame;
-* an observation that ran no application callback (``purity``, recorded at both ends; Codex phase-1 r7
-  #4): the trusted bootstrap's audit-hook census reports no hook added after it (the observer's own
-  primitives are audited, so any such hook would run inside the observer); automatic garbage collection
-  stays off for the whole call phase (so no finalizer runs inside an observer callback); no application
+* clean endpoint purity fields (``purity``, recorded at both ends; Codex phase-1 r7 #4), which do not by
+  themselves prove that no application callback ran: the trusted bootstrap's audit-hook census reports no
+  hook added after it (the observer's own primitives are audited, so any such hook would run inside the
+  observer); (Codex phase-1 r14, verbatim:) Automatic garbage collection stays off; reference-count
+  finalizers remain possible, and endpoint fields do not prove callback-free observation. No application
   signal handler is installed;
 * an execution of the mutated line inside a LIVE invocation of the declared entry (matched by file
   realpath and qualname). An invocation E is live at event ev when E started before ev on the same
@@ -54,8 +55,10 @@ COVERAGE = {
                        "invocation belongs to the declared contract and selection. A claim requiring exact callable or "
                        "receiver identity needs an additional witness or reads unavailable.",
     "boundary_call": "a call that started the code of a value the declared binding held in the interval (the binding "
-                     "is tracked at every store on its path from sys's own namespace, by CPython dict and function "
-                     "watchers); for a mock, the arguments its standard __call__ received, which is what the mock "
+                     "is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a "
+                     "held function's __code__ replaced in place is registered at the new code's first start "
+                     "while the thread is alone, never by a function watcher, whose Python callback replaces an "
+                     "exception pending in C (own review during r14)); for a mock, the arguments its standard __call__ received, which is what the mock "
                      "itself records",
     "unattributed_when": ["a callable bound to several boundaries", "a callable the binding held earlier in the interval",
                           "a boundary code object shared by several live functions", "a call on another receiver",
@@ -96,7 +99,9 @@ COVERAGE = {
                    "non-cell frame slot and compare its identity with observer-held targets to select an "
                    "unavailable record. The paused frame owns that reference. Code/frame identity and a live "
                    "replacement-code operand are also admitted metadata. Calls and returns requiring other "
-                   "application reads are unavailable; stores cut the binding before key/value conversion. The "
+                   "application reads are unavailable; stores cut the binding before key/value conversion. (Since "
+                   "the r14 answer there is no function watcher, so no replacement-code operand is read; a held "
+                   "function's swapped __code__ is compared by identity at its first start, only while alone.) The "
                    "sample is a point predicate: a Python-accessing native thread of the reviewed venv that "
                    "attaches after it is not excluded (open: Codex phase-1 r13 #4)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "

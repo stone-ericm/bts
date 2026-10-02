@@ -217,7 +217,7 @@ def test_stop_never_raises_under_a_raising_audit_hook():
             API.__dict__.get('x'); mod.__dict__[f'k{{i}}'] = i
         kinds = [e['kind'] for e in mon.events]
         print(json.dumps({{'stop': out, 'tool': sys.monitoring.get_tool(observer.TOOL_ID),
-                           'watchers': [mon.dict_watcher, mon.func_watcher], 'kinds': kinds,
+                           'watchers': [mon.dict_watcher, getattr(mon, 'func_watcher', None)], 'kinds': kinds,
                            'why': certify.interval(mon.events, 'n')[1]}}))
     """)
     run = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
