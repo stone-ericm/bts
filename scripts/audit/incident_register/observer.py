@@ -45,6 +45,7 @@ import gc
 import hashlib
 import inspect
 import itertools
+import dis
 import json
 import opcode
 import os
@@ -139,14 +140,23 @@ _OP = {name: opcode.opmap[name] for name in ("NOP", "EXTENDED_ARG", "COPY_FREE_V
                                              "POP_TOP", "RESUME")}
 
 
+_ENTRY: dict = {}                          # id(code) -> (code, entry offset or None); the code is kept, so ids stay
+
+
 def _first_resume(code):
     """The byte offset of the code's first RESUME when that RESUME carries the entry argument (0, after any
-    EXTENDED_ARG), where a call's PY_START fires; otherwise None, and no start of this code is read. A start
-    reported at any other offset is not the start of a call: a later RESUME can carry the entry argument in code
-    built by CodeType.replace or types.CodeType, and PY_START then fires again mid-call, after the body has
-    changed its locals (Codex phase-1 r15 #1)."""
+    EXTENDED_ARG) and nothing can run it again, where a call's PY_START fires; otherwise None, and no start of
+    this code is read. A start reported at any other offset is not the start of a call: a later RESUME can carry
+    the entry argument in code built by CodeType.replace or types.CodeType, and PY_START then fires again
+    mid-call, after the body has changed its locals (Codex phase-1 r15 #1). Nor is a second start at the entry
+    offset itself: code whose jumps or exception handlers lead back to the entry RESUME, or anywhere before it,
+    re-runs that RESUME mid-call (Codex phase-1 r16 probe), so such code is never read. Compiled code never
+    targets its entry. Only raw bytes are read (dis.findlabels reads none of co_consts)."""
+    cached = _ENTRY.get(id(code))
+    if cached is not None and cached[0] is code:
+        return cached[1]
     raw = code.co_code
-    ext = 0
+    entry, ext = None, 0
     for i in range(0, len(raw) - 1, 2):
         op, arg = raw[i], raw[i + 1] | ext
         if op == _OP["EXTENDED_ARG"]:
@@ -154,8 +164,38 @@ def _first_resume(code):
             continue
         ext = 0
         if op == _OP["RESUME"]:
-            return i if arg == 0 else None
-    return None
+            entry = i if arg == 0 else None
+            break
+    if entry is not None and _entry_targeted(code, raw, entry):
+        entry = None
+    _ENTRY[id(code)] = (code, entry)
+    return entry
+
+
+def _varint(it) -> int:
+    """One varint of a 3.12 exception table (6 bits a byte, bit 6 continues; bit 7 marks an entry's start)."""
+    b = next(it)
+    value = b & 63
+    while b & 64:
+        b = next(it)
+        value = (value << 6) | (b & 63)
+    return value
+
+
+def _entry_targeted(code, raw, entry: int) -> bool:
+    """True when a jump or an exception handler in ``code`` leads to ``entry`` or before it."""
+    if any(target <= entry for target in dis.findlabels(raw)):
+        return True
+    it = iter(code.co_exceptiontable)
+    try:
+        while True:
+            _varint(it)                        # start
+            _varint(it)                        # length
+            if _varint(it) * 2 <= entry:       # handler
+                return True
+            _varint(it)                        # depth and lasti
+    except StopIteration:
+        return False
 
 
 def _prologue_cells(code):

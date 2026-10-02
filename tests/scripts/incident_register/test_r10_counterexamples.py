@@ -1055,3 +1055,92 @@ def test_raw_memory_reads_stay_in_their_two_audited_functions():
             visit(child, inner)
     visit(tree, None)
     assert not hits, hits
+
+
+# --- Codex r16 probe: code that jumps back to its own entry RESUME re-fires PY_START at the entry offset -------
+
+REVISIT_TRANSPORT = ("import dis,opcode,types\nsent=[]\nentered=False\ndef send(recipient,text):\n"
+                     "    def capture():\n        return text\n    global entered\n    if entered:\n        return\n"
+                     "    entered=True\n    sent.append((recipient,text))\n    yield None\n"
+                     "    text='BTS health CRITICAL: x'\n    yield None\n"
+                     "code=send.__code__\nraw=bytearray(code.co_code)\n"
+                     "resumes=[i.offset for i in dis.get_instructions(code) if i.opname=='RESUME']\n"
+                     "first,last=resumes[0],resumes[-1]\n"
+                     "raw[last:last+4]=bytes([opcode.opmap['POP_TOP'],0,opcode.opmap['JUMP_BACKWARD'],(last+4-first)//2])\n"
+                     "revisit=code.replace(co_code=bytes(raw))\n")
+
+
+@pytest.mark.parametrize("case", ["ordinary", "revisit-import", "revisit-swap", "direct-constructor", "noncell-revisit"])
+def test_a_jump_back_to_the_entry_is_never_a_second_start(tmp_path, case):
+    """Codex r16: after the body rebinds `text`, a jump back to the entry RESUME fires PY_START at the entry offset
+    itself, which the offset check alone accepted. Code whose jumps or handlers lead to its entry is never read
+    (O104, O105). The argument sent is a CellType, so nothing may be witnessed; ordinary code is the control."""
+    transport = REVISIT_TRANSPORT
+    if case == "noncell-revisit":
+        transport = transport.replace("    def capture():\n        return text\n", "")
+    transport += {"revisit-import": "send.__code__=revisit\n", "noncell-revisit": "send.__code__=revisit\n",
+                  "direct-constructor": LATER_DIRECT.replace("later_start", "revisit")}.get(case, "")
+    helper = ("import types\ndef invoke(transport,rebind):\n"
+              + ("    if rebind:\n        transport.send.__code__=transport.revisit\n" if case == "revisit-swap" else "")
+              + "    value=types.CellType(ALERT) if rebind else 'pick: Turner'\n    operation=transport.send('eric',value)\n"
+              "    for _ in range(3):\n        try:\n            next(operation)\n        except StopIteration:\n            break\n"
+              "    assert transport.sent[-1][1] is value\n")
+    res = _defend(tmp_path, helper, transport=transport)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+def test_a_plain_function_that_jumps_back_to_its_entry_is_never_read(tmp_path):
+    """Codex r16: the same shape without a generator: the final return becomes a jump back to the entry RESUME."""
+    transport = ("import dis,opcode,types\nsent=[]\nentered=False\ndef send(recipient,text):\n    global entered\n"
+                 "    if entered:\n        return\n    entered=True\n    sent.append((recipient,text))\n"
+                 "    text='BTS health CRITICAL: x'\ncode=send.__code__\nraw=bytearray(code.co_code)\n"
+                 "first=next(i.offset for i in dis.get_instructions(code) if i.opname=='RESUME')\n"
+                 "last=list(dis.get_instructions(code))[-1].offset\n"
+                 "raw[last:last+2]=bytes([opcode.opmap['JUMP_BACKWARD'],(last+2-first)//2])\n"
+                 "send.__code__=code.replace(co_code=bytes(raw))\n")
+    helper = ("import types\ndef invoke(transport,rebind):\n    value=types.CellType(ALERT) if rebind else 'pick: Turner'\n"
+              "    transport.send('eric',value)\n    assert transport.sent[-1][1] is value\n")
+    res = _defend(tmp_path, helper, transport=transport)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+def test_an_entry_that_a_jump_or_handler_targets_is_unreadable():
+    """Unit: compiled code has a readable entry (control); a jump back to the entry (O104) or an exception handler
+    targeting it (O105) makes the entry None, so no start of that code is read."""
+    import dis
+    import opcode
+
+    def f(x):
+        def capture():
+            return x
+        return x
+    code = f.__code__
+    first = observer._first_resume(code)
+    assert first is not None
+    raw = bytearray(code.co_code)
+    last = list(dis.get_instructions(code))[-1].offset
+    raw[last:last + 2] = bytes([opcode.opmap["JUMP_BACKWARD"], (last + 2 - first) // 2])
+    assert observer._first_resume(code.replace(co_code=bytes(raw))) is None
+    # one handler entry (start marked by bit 7): covering the instruction after the entry, handled at the entry
+    table = bytes([0x80 | (first // 2 + 1), 1, first // 2, 0])
+    assert observer._first_resume(code.replace(co_exceptiontable=table)) is None
+
+
+def test_a_frame_started_before_observation_never_becomes_a_witness(tmp_path):
+    """Codex r16: a generator created and advanced before the call phase (so its body already rebound `text`) is
+    resumed during it and jumps back to its entry RESUME: the entry start fired inside the interval with the
+    changed local. Code whose jumps lead to its entry is never read (O104)."""
+    transport = (REVISIT_TRANSPORT + "send.__code__=revisit\noriginal=types.CellType('initial cell')\n"
+                 "saved=send('eric',original)\nnext(saved)\nnext(saved)\n")
+    helper = ("def invoke(transport,rebind):\n    if rebind:\n        try:\n            next(transport.saved)\n"
+              "        except StopIteration:\n            pass\n    assert transport.sent[-1][1] is transport.original\n")
+    test = ("from bts import mod,transport\ndef test_probe():\n    result=mod.deliver()\n"
+            "    assert transport.sent==[('eric',transport.original)] and result=='done'\n")
+    res = _defend(tmp_path, helper, transport=transport, test=test)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
