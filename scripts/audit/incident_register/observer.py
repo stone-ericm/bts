@@ -119,6 +119,72 @@ def _alone() -> bool:
         return False
 
 
+# A live frame's fast locals, read straight from its interpreter frame (CPython 3.12 layout, verified by
+# _FAST_LOCALS_OK at import). frame.f_locals is never used: it creates the frame's cached locals dict, or
+# REFRESHES an existing one, and a refresh can release the last reference to an application value and run its
+# finalizer inside observation, with one thread (Codex phase-1 r12 #1: a generator whose locals inspect had
+# read). The frame owns its slots, so a reference taken from one is never the last one.
+_PY_FRAME_F_FRAME = 3 * ctypes.sizeof(ctypes.c_void_p)       # PyFrameObject: ob_refcnt, ob_type, f_back, f_frame
+_IFRAME_LOCALSPLUS = 9 * ctypes.sizeof(ctypes.c_void_p)      # _PyInterpreterFrame: f_code ... owner, localsplus
+_UNREAD = object()
+
+
+def _fast_local(frame, code, index: int, cells: bool):
+    """The value in fast-local slot ``index`` of the live ``frame`` running ``code``, or ``_UNREAD`` (an unbound
+    slot, an unverifiable frame, or a cell when ``cells`` is False: another thread could change a shared cell)."""
+    if not _FAST_LOCALS_OK or type(frame) is not types.FrameType or type(code) is not types.CodeType:
+        return _UNREAD
+    if not 0 <= index < code.co_nlocals:
+        return _UNREAD
+    iframe = ctypes.c_void_p.from_address(id(frame) + _PY_FRAME_F_FRAME).value
+    if not iframe or ctypes.c_void_p.from_address(iframe).value != id(code):
+        return _UNREAD
+    slot = ctypes.c_void_p.from_address(iframe + _IFRAME_LOCALSPLUS + index * ctypes.sizeof(ctypes.c_void_p)).value
+    if not slot:
+        return _UNREAD
+    value = ctypes.cast(slot, ctypes.py_object).value
+    if code.co_varnames[index] in code.co_cellvars:      # exact strs (CPython requires them in code slots)
+        if not cells or type(value) is not types.CellType:
+            return _UNREAD
+        try:
+            return value.cell_contents
+        except ValueError:
+            return _UNREAD
+    return value
+
+
+def _verify_fast_locals() -> bool:
+    """The layout holds for this interpreter: a function, its *args and **kwargs, a generator and a cell argument
+    read back the very objects passed. Any mismatch disables the reader (identities read unavailable)."""
+    global _FAST_LOCALS_OK
+    _FAST_LOCALS_OK = True
+    try:
+        a, b = object(), object()
+
+        def probe(x, *rest, k=None, **kw):
+            frame, code = sys._getframe(), probe.__code__
+            return [_fast_local(frame, code, i, True) for i in range(4)]
+        got = probe(a, 1, k=b, z=2)
+
+        def gen(x):
+            yield _fast_local(sys._getframe(), gen.__code__, 0, True)
+
+        def cell(x):
+            def inner():
+                return x
+            return _fast_local(sys._getframe(), cell.__code__, 0, True), _fast_local(sys._getframe(), cell.__code__, 0, False)
+        ok = (got[0] is a and got[1] is b and type(got[2]) is tuple and got[2] == (1,) and type(got[3]) is dict
+              and next(gen(a)) is a and cell(a)[0] is a and cell(a)[1] is _UNREAD)
+    except Exception:  # noqa: BLE001
+        ok = False
+    _FAST_LOCALS_OK = ok
+    return ok
+
+
+_FAST_LOCALS_OK = False
+_verify_fast_locals()
+
+
 def _config() -> dict:
     global _CONFIG
     if _CONFIG is None:
@@ -563,6 +629,7 @@ class _Monitor:
         self.mock_base = mock.NonCallableMock
         self.mock_call_fn = mock.CallableMixin.__dict__["__call__"]
         self.mock_call_code = self.mock_call_fn.__code__
+        self.mock_slots = tuple(self.mock_call_code.co_varnames.index(n) for n in ("self", "args", "kwargs"))
         self.nodeid = nodeid
         self.prod_root = os.path.realpath(prod_root) + os.sep if prod_root else None
         self.entries = {(os.path.realpath(e["file"]), e["qualname"]) for e in observe.get("entries", [])}
@@ -614,6 +681,10 @@ class _Monitor:
         turn (self-review before r8: formatting read source files, an audited ``open``, and ran ``str`` of
         arbitrary exception arguments): the exception's type name, its plain-str arguments and its
         traceback's (file, line, function) entries, read through C descriptors."""
+        if not _alone():       # ruling 12 (r12 #3): owned fields only; no exception argument or class namespace read
+            self._record("observer_error", {"where": where, "error_type": "<unread: another thread was alive>",
+                                            "detail": None})
+            return
         try:
             args = _EXC_ARGS.__get__(exc, BaseException)
             tb, frames = _EXC_TB.__get__(exc, BaseException), []
@@ -788,6 +859,15 @@ class _Monitor:
                 if not hits and not calls:
                     return 0
                 alone = _alone()
+                if not alone:          # cut by address, before any reference to the key or value (r12 #3)
+                    d = self.watched.get(dict_addr)
+                    for name in sorted({n for n, _lv in hits} | set(calls)):
+                        self._gap(name, _CONCURRENT, where="store")
+                    for name, level in list(hits):
+                        st = self.state[name]
+                        if level < len(st["chain"]) and st["chain"][level][0] is d:
+                            st["chain"], st["current"] = st["chain"][:level + 1], None
+                    return 0
                 per_key = event in (_DICT_ADDED, _DICT_MODIFIED, _DICT_DELETED)
                 key = ctypes.cast(key_addr, ctypes.py_object).value if per_key and key_addr else None
                 if per_key and type(key) is str:
@@ -799,12 +879,7 @@ class _Monitor:
                     for name, level in list(hits):
                         chain = self.state[name]["chain"]
                         if level < len(chain) and chain[level][0] is d and chain[level][1] == key:
-                            if alone:
-                                self._restep(name, level, event != _DICT_DELETED, new)
-                            else:                       # re-resolving would read application objects (ruling 12)
-                                self._gap(name, _CONCURRENT, where="store")
-                                st = self.state[name]
-                                st["chain"], st["current"] = chain[:level + 1], None
+                            self._restep(name, level, event != _DICT_DELETED, new)
                 elif per_key or event in (_DICT_CLONED, _DICT_CLEARED):
                     # a store through a key that is not an exact str may change any binding (its hash and
                     # __eq__ decide which entry it replaces; Codex phase-1 r9, plan ruling 11), as a clear or
@@ -835,6 +910,8 @@ class _Monitor:
                 entry = self.functions.get(func_addr)
                 if entry is None:
                     return 0
+                # the replacement code object is a live operand of the store and is only type-checked and keyed
+                # by id (code identity, admitted metadata: r12 #3); nothing in it is read
                 code = ctypes.cast(new_addr, ctypes.py_object).value if new_addr else None
                 if type(code) is types.CodeType:
                     for spec, receiver in entry[1]:
@@ -979,16 +1056,16 @@ class _Monitor:
             if code is self.mock_call_code:
                 with self._lock:
                     frame = sys._getframe(1)
-                    loc = frame.f_locals
-                    me = loc.get("self")
+                    # the mock itself, from its frame's own slot (not a cell): the frame owns it (r12 #1)
+                    me = _fast_local(frame, code, self.mock_slots[0], False)
                     matched = [sp for sp in self.boundaries
                                if any(o is me for o in self.state.get(sp["name"], {}).get("held", ()))]
                     if matched and not _alone():                 # ruling 12: no application object is read
                         for sp in matched:
                             self._boundary(sp, frame, [], {}, reason=_CONCURRENT)
                     elif matched:
-                        extra = loc.get("args", ())
-                        kwargs = loc.get("kwargs", {})
+                        extra = _fast_local(frame, code, self.mock_slots[1], True)
+                        kwargs = _fast_local(frame, code, self.mock_slots[2], True)
                         self._matched(matched, [self._current_now(sp) is me for sp in matched], frame,
                                       list(extra) if type(extra) is tuple else [],
                                       kwargs if type(kwargs) is dict else {},   # not copied: a copy can compare keys
@@ -1000,36 +1077,42 @@ class _Monitor:
                 with self._lock:
                     pairs = entry[1]
                     frame = sys._getframe(1)
-                    loc = frame.f_locals
-                    positional = code.co_varnames[:code.co_argcount]
-                    args = [loc.get(n) for n in positional]
-                    if code.co_flags & inspect.CO_VARARGS:
-                        extra = loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ())
-                        args += list(extra) if type(extra) is tuple else []
-                    kwargs = {n: loc.get(n) for n in code.co_varnames[:code.co_argcount + code.co_kwonlyargcount]}
-                    first = args[0] if args else None
-                    mine, others = [], []
-                    for sp, rcv in pairs:
-                        bucket = mine if rcv is None or first is rcv else others
-                        if not any(s is sp for s in bucket):
-                            bucket.append(sp)
-                    if mine and not _alone():                    # ruling 12: no census, no read
-                        matched = mine
-                        for sp in mine:
-                            self._boundary(sp, frame, args, kwargs, reason=_CONCURRENT)
-                    elif mine:
-                        matched = mine
-                        shared = self._code_shared(code)
-                        if shared > 1:                           # the code does not say which function ran
-                            for sp in mine:
-                                self._boundary(sp, frame, args, kwargs,
-                                               reason=f"the boundary's code is shared by {shared} functions: the callable is not identified")
-                        else:
-                            self._matched(mine, [self._is_current_call(sp, code, first) for sp in mine], frame, args, kwargs)
-                    else:                                        # same code, another receiver: ambiguous
-                        matched = others
-                        for sp in others:
-                            self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
+                    if not _alone():         # ruling 12, before ANY read (r12 #1): every candidate, no receiver
+                        matched = []
+                        for sp, _rcv in pairs:
+                            if not any(s is sp for s in matched):
+                                matched.append(sp)
+                                self._boundary(sp, frame, [], {}, reason=_CONCURRENT)
+                    else:
+                        nargs = code.co_argcount + code.co_kwonlyargcount
+                        args = [_fast_local(frame, code, i, True) for i in range(code.co_argcount)]
+                        args = [None if v is _UNREAD else v for v in args]
+                        if code.co_flags & inspect.CO_VARARGS:
+                            extra = _fast_local(frame, code, nargs, True)
+                            args += list(extra) if type(extra) is tuple else []
+                        kwargs = {}
+                        for i in range(nargs):
+                            v = _fast_local(frame, code, i, True)
+                            kwargs[code.co_varnames[i]] = None if v is _UNREAD else v
+                        first = args[0] if args else None
+                        mine, others = [], []
+                        for sp, rcv in pairs:
+                            bucket = mine if rcv is None or first is rcv else others
+                            if not any(s is sp for s in bucket):
+                                bucket.append(sp)
+                        if mine:
+                            matched = mine
+                            shared = self._code_shared(code)
+                            if shared > 1:                           # the code does not say which function ran
+                                for sp in mine:
+                                    self._boundary(sp, frame, args, kwargs,
+                                                   reason=f"the boundary's code is shared by {shared} functions: the callable is not identified")
+                            else:
+                                self._matched(mine, [self._is_current_call(sp, code, first) for sp in mine], frame, args, kwargs)
+                        else:                                        # same code, another receiver: ambiguous
+                            matched = others
+                            for sp in others:
+                                self._boundary(sp, frame, args, kwargs, reason="another receiver of the boundary's code")
             filename = self._real(code.co_filename)
             if self.prod_root is None or not filename.startswith(self.prod_root):
                 return None if matched else sys.monitoring.DISABLE

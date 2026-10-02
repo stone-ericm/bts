@@ -520,3 +520,95 @@ def test_alone_is_the_head_with_no_successor(monkeypatch):
         raise OSError("unreadable")
     monkeypatch.setattr(observer, "_THREAD_HEAD", boom)
     assert observer._alone() is False
+
+
+# --- Codex r12 #1: no frame-locals synchronization; the frame's own slots are read --------------------------
+
+CACHED_TRANSPORT = ("import sys,threading\nsent=[]\nreleased=0\nobserved=0\ncycle_timeouts=0\n"
+                    "application_lock=threading.Lock()\nclass Ref:\n    def __del__(self):\n"
+                    "        global released,observed,cycle_timeouts\n        released+=1\n        frame=sys._getframe(1)\n"
+                    "        while frame is not None:\n            if '/w15obs_' in frame.f_code.co_filename:\n"
+                    "                observed+=1\n                if application_lock.acquire(timeout=0.02):\n"
+                    "                    application_lock.release()\n                else:\n                    cycle_timeouts+=1\n"
+                    "                return\n            frame=frame.f_back\n"
+                    "def make():\n    held=Ref()\n    def send(recipient,text):\n        sent.append((recipient,text))\n"
+                    "        yield held\n    def clear():\n        nonlocal held\n        held=None\n    return send,clear\n"
+                    "send,clear=make()\n")
+
+
+def _cached_helper(worker, lock):
+    start = ("    gate=threading.Event()\n    worker=threading.Thread(target=gate.wait)\n    worker.start()\n" if worker else "")
+    stop = ("    gate.set()\n    worker.join(timeout=5)\n    assert not worker.is_alive()\n" if worker else "")
+    step = ("    with transport.application_lock:\n        next(gen)\n" if lock else "    next(gen)\n")
+    return ("import inspect,sys,threading\ndef invoke(transport,rebind):\n" + start +
+            "    gen=transport.send('eric',ALERT if rebind else 'pick: Turner')\n    inspect.getgeneratorlocals(gen)\n"
+            "    transport.clear()\n" + step + "    gen.close()\n    del gen\n" + stop +
+            "    print('finalizer',transport.released,'observer_calls',transport.observed,'cycle_timeouts',transport.cycle_timeouts)\n")
+
+
+@pytest.mark.parametrize("lock", [False, True], ids=["no-lock", "app-lock"])
+@pytest.mark.parametrize("worker", [False, True], ids=["alone", "worker"])
+def test_a_cached_generator_locals_dict_is_never_refreshed(tmp_path, worker, lock):
+    """Codex r12 #1: accepted at 78d6d38 with ONE thread. inspect had cached the generator's locals; the closure
+    cell was then cleared, and the observer's frame.f_locals refreshed the cached dict, releasing the last
+    reference to Ref, whose __del__ ran inside _on_start (and, holding an application lock, timed out on it).
+    Arguments now come from the frame's own slots: no finalizer runs with an observer frame on the stack. Alone,
+    the generator boundary is still witnessed; with a worker alive the call is refused (ruling 12)."""
+    res = _defend(tmp_path, _cached_helper(worker, lock), transport=CACHED_TRANSPORT)
+    observed, plain = _counts(tmp_path)
+    assert "observer_calls 0 cycle_timeouts 0" in observed and "observer_calls 0 cycle_timeouts 0" in plain, (observed, plain)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    if worker:
+        assert res["verdict"] == "rejected" and _concurrent_boundaries(tmp_path), res
+    else:
+        assert res["verdict"] == "accepted" and res["certificates"][NODE]["ok"], res
+
+
+def test_fast_locals_read_the_frames_own_slots():
+    """The reader returns the objects in a live frame's slots (arguments, *args, **kwargs, a cell argument's
+    contents), refuses a cell when cells are not allowed, an unbound slot, an index out of range and a frame/code
+    mismatch, and never creates the frame's locals dict (O84, O85)."""
+    import ctypes
+    a, b = object(), object()
+
+    def probe(x, *rest, k=None, **kw):
+        frame, code = sys._getframe(), probe.__code__
+        iframe = ctypes.c_void_p.from_address(id(frame) + observer._PY_FRAME_F_FRAME).value
+        got = [observer._fast_local(frame, code, i, True) for i in range(4)]
+        mismatched = observer._fast_local(frame, test_fast_locals_read_the_frames_own_slots.__code__, 0, True)
+        out_of_range = observer._fast_local(frame, code, code.co_nlocals, True)
+        unbound = observer._fast_local(frame, code, code.co_varnames.index("later"), True)
+        locals_dict = ctypes.c_void_p.from_address(iframe + 5 * ctypes.sizeof(ctypes.c_void_p)).value
+        later = 1
+        return got, mismatched, out_of_range, unbound, locals_dict, later
+    got, mismatched, out_of_range, unbound, locals_dict, _ = probe(a, 1, k=b, z=2)
+    assert got[0] is a and got[1] is b and got[2] == (1,) and got[3] == {"z": 2}
+    assert mismatched is observer._UNREAD and out_of_range is observer._UNREAD and unbound is observer._UNREAD
+    assert not locals_dict, "the reader created the frame's locals dict"
+
+    def cell(x):
+        def inner():
+            return x
+        frame = sys._getframe()
+        return observer._fast_local(frame, cell.__code__, 0, True), observer._fast_local(frame, cell.__code__, 0, False)
+    assert cell(a) == (a, observer._UNREAD)
+    assert observer._FAST_LOCALS_OK
+
+
+def test_an_observer_error_while_another_thread_is_alive_reads_nothing():
+    """Codex r12 #3: the error record reads exception arguments and class metadata only when this thread is
+    alone; otherwise it records owned fields only (O86)."""
+    import threading
+    mon = observer._Monitor("n", {}, "")
+    gate = threading.Event()
+    worker = threading.Thread(target=gate.wait)
+    worker.start()
+    try:
+        mon._err("probe", ValueError("detail"))
+    finally:
+        gate.set()
+        worker.join()
+    mon._err("probe", ValueError("detail"))
+    concurrent, alone = mon.events[-2], mon.events[-1]
+    assert concurrent["detail"] is None and concurrent["error_type"].startswith("<unread"), concurrent
+    assert alone["error_type"] == "builtins.ValueError" and alone["detail"]["args"] == ["detail"], alone
