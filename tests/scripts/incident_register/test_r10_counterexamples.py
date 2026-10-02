@@ -64,9 +64,9 @@ def test_a_crafted_code_object_is_never_hashed_or_compared(where):
         mon._add_code(code.replace(co_firstlineno=1), spec, None)   # an equal-looking other code object
         assert len(mon.boundary_codes) == 2
     else:
-        first = mon._on_start(code, 0)
-        mon._on_start(code, 0)                                # production: already instrumented
-        mon._on_start(code.replace(co_firstlineno=1), 0)
+        first = mon._on_start(code, observer._first_resume(code))
+        mon._on_start(code, observer._first_resume(code))                                # production: already instrumented
+        mon._on_start(code.replace(co_firstlineno=1), observer._first_resume(code))
         if where == "outside-production":
             assert first is observer.sys.monitoring.DISABLE
         else:
@@ -663,11 +663,13 @@ def test_duplicate_local_names_are_never_read():
 
 
 def test_an_unread_value_is_an_unavailable_identity():
-    """_identity never serializes the unread marker as a value (O88)."""
+    """_identity never serializes the unread marker as a value (O88), reached positionally and, separately, by
+    keyword (Codex r14 false green: the positional case alone never reached the keyword accessor)."""
     mon = observer._Monitor("n", {}, "")
-    got = mon._identity({"value": ["args[0]", "kw:text"], "classify": [["null_argument", "^null$"]]},
-                        [observer._UNREAD], {"text": observer._UNREAD})
-    assert got["category"] == "unavailable" and got["value"] is None, got
+    spec = {"value": ["args[0]", "kw:text"], "classify": [["null_argument", "^null$"]]}
+    for args, kwargs in (([observer._UNREAD], {"text": observer._UNREAD}), ([], {"text": observer._UNREAD})):
+        got = mon._identity(spec, args, kwargs)
+        assert got["category"] == "unavailable" and got["value"] is None, (args, kwargs, got)
 
 
 # --- Codex r13 #2: a coroutine or async-generator boundary is async even when its caller is synchronous ------
@@ -727,7 +729,7 @@ def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None, cached=False
         marker = "before"
         stale = sys._getframe().f_locals if cached else None        # the application's own read
         marker = "after"                                            # noqa: F841 - only the frame's slot changes
-        mon._on_start(mock_call.__code__, 0)
+        mon._on_start(mock_call.__code__, observer._first_resume(mock_call.__code__))
         if cached:
             assert stale["marker"] == "before", "the observer refreshed the mock frame's locals dict"
         else:
@@ -746,7 +748,7 @@ def _run_boundaries(monkeypatch, alone, value, *, unread_slot=None, cached=False
         marker = "before"
         stale = sys._getframe().f_locals if cached else None
         marker = "after"                                            # noqa: F841
-        mon._on_start(send.__code__, 0)
+        mon._on_start(send.__code__, observer._first_resume(send.__code__))
         if cached:
             assert stale["marker"] == "before", "the observer refreshed the function frame's locals dict"
         else:
@@ -943,7 +945,7 @@ def test_a_swapped_code_is_registered_at_its_first_start_only_while_alone(monkey
         return None
     mon.functions[id(send)] = (send, [(spec, None)])
     send.__code__ = replacement.__code__
-    mon._on_start(replacement.__code__, 0)
+    mon._on_start(replacement.__code__, observer._first_resume(replacement.__code__))
     registered = observer._code_key(replacement.__code__) in mon.boundary_codes
     records = [e for e in mon.events if e["kind"] == "boundary"]
     assert not [e for e in mon.events if e["kind"] == "observer_error"], mon.events
@@ -967,4 +969,89 @@ def test_the_observer_source_never_reads_frame_locals():
                 else node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None)
         if name in banned:
             hits.append((node.lineno, name))
+    assert not hits, hits
+
+
+# --- Codex r15 probe: a later RESUME carrying the start argument fires PY_START again, mid-call ---------------
+
+LATER_TRANSPORT = ("import dis,types\nsent=[]\ndef send(recipient,text):\n    def capture():\n        return text\n"
+                   "    sent.append((recipient,text))\n    yield None\n    text='BTS health CRITICAL: x'\n    yield None\n"
+                   "code=send.__code__\nraw=bytearray(code.co_code)\n"
+                   "last=[i.offset for i in dis.get_instructions(code) if i.opname=='RESUME'][-1]\n"
+                   "raw[last+1]=0\nlater_start=code.replace(co_code=bytes(raw))\n")
+LATER_DIRECT = ("c=later_start\nsend.__code__=types.CodeType(c.co_argcount,c.co_posonlyargcount,c.co_kwonlyargcount,"
+                "c.co_nlocals,c.co_stacksize,c.co_flags,c.co_code,c.co_consts,c.co_names,c.co_varnames,c.co_filename,"
+                "c.co_name,c.co_qualname,c.co_firstlineno,c.co_linetable,c.co_exceptiontable,c.co_freevars,"
+                "c.co_cellvars)\n")
+
+
+@pytest.mark.parametrize("case", ["ordinary", "later-import", "later-swap", "direct-constructor"])
+def test_a_later_resume_is_never_a_calls_start(tmp_path, case):
+    """Codex r15: the generator's later RESUME was given the start argument, so PY_START fired again after the
+    body had rebound `text` to the alert, and the observer read that as the call's argument. A start is now
+    only a PY_START at the code's first RESUME (O100). The argument actually sent is a CellType, so no case may
+    be witnessed; the ordinary generator is the control for that."""
+    transport = LATER_TRANSPORT + {"later-import": "send.__code__=later_start\n",
+                                   "direct-constructor": LATER_DIRECT}.get(case, "")
+    helper = ("import types\ndef invoke(transport,rebind):\n"
+              + ("    if rebind:\n        transport.send.__code__=transport.later_start\n" if case == "later-swap" else "")
+              + "    value=types.CellType(ALERT) if rebind else 'pick: Turner'\n    operation=transport.send('eric',value)\n"
+              "    for _ in range(3):\n        try:\n            next(operation)\n        except StopIteration:\n            break\n"
+              "    assert transport.sent[-1][1] is value\n")
+    res = _defend(tmp_path, helper, transport=transport)
+    assert not [e for e in runner.load(tmp_path / "out/mutant.events.jsonl") if e["kind"] == "observer_error"]
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+    assert not any(b["identity"]["category"] == "alert" for b in _boundaries(tmp_path)), _boundaries(tmp_path)
+
+
+def test_a_start_is_read_only_at_the_first_resume(monkeypatch):
+    """In-process: a PY_START reported at any offset but the code's first RESUME reads no slot and records
+    nothing (O100); at the first RESUME the same boundary is read (control); a first RESUME without the entry
+    argument makes no start of that code readable (O103)."""
+    monkeypatch.setattr(observer, "_alone", lambda: True)
+    reads = []
+    real = observer._fast_local
+    monkeypatch.setattr(observer, "_fast_local", lambda f, c, i, cells: reads.append(i) or real(f, c, i, cells))
+    mon = observer._Monitor("n", {}, "")
+    spec = {"name": "dm", "binding": "bts.nowhere:send", "value": ["args[1]"], "classify": [["alert", "^alert$"]]}
+    mon.boundaries = [spec]
+    mon.state["dm"] = {"keys": [], "chain": [], "current": None, "held": []}
+    starts = []
+
+    def send(recipient, text):
+        mon._on_start(send.__code__, starts[-1])
+    mon.boundary_codes[observer._code_key(send.__code__)] = (send.__code__, [(spec, None)])
+    first = observer._first_resume(send.__code__)
+    starts.append(first + 2)
+    send("eric", "alert")
+    assert reads == [] and not [e for e in mon.events if e["kind"] == "boundary"], (reads, mon.events)
+    starts.append(first)
+    send("eric", "alert")
+    assert reads and len([e for e in mon.events if e["kind"] == "boundary"]) == 1, (reads, mon.events)
+    # the first RESUME must carry the entry argument, or no start of that code is read (O103)
+    raw = bytearray(send.__code__.co_code)
+    raw[first + 1] = 1
+    assert observer._first_resume(send.__code__.replace(co_code=bytes(raw))) is None
+
+
+def test_raw_memory_reads_stay_in_their_two_audited_functions():
+    """Supplementary source guard (Codex r15 probe: a raw read of an argument slot, outside _fast_local and before
+    the mock gate, created no locals dict and so passed the read-set checks). Raw memory access (`from_address`)
+    and the frame-layout offsets appear only in _fast_local; an address is turned into an object
+    (`ctypes.cast(..., py_object)`) only in _fast_local and in _on_dict's alone-only path (O101)."""
+    import ast
+    from pathlib import Path
+    allowed = {"from_address": {"_fast_local"}, "_PY_FRAME_F_FRAME": {"_fast_local"},
+               "_IFRAME_LOCALSPLUS": {"_fast_local"}, "cast": {"_fast_local", "_on_dict"}}
+    tree = ast.parse(Path(observer.__file__).read_text())
+    hits = []
+
+    def visit(node, function):
+        for child in ast.iter_child_nodes(node):
+            inner = child.name if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else function
+            name = (child.attr if isinstance(child, ast.Attribute) else child.id if isinstance(child, ast.Name) else None)
+            if name in allowed and inner is not None and inner not in allowed[name]:
+                hits.append((child.lineno, name, inner))
+            visit(child, inner)
+    visit(tree, None)
     assert not hits, hits

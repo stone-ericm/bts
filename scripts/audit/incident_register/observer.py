@@ -139,11 +139,32 @@ _OP = {name: opcode.opmap[name] for name in ("NOP", "EXTENDED_ARG", "COPY_FREE_V
                                              "POP_TOP", "RESUME")}
 
 
+def _first_resume(code):
+    """The byte offset of the code's first RESUME when that RESUME carries the entry argument (0, after any
+    EXTENDED_ARG), where a call's PY_START fires; otherwise None, and no start of this code is read. A start
+    reported at any other offset is not the start of a call: a later RESUME can carry the entry argument in code
+    built by CodeType.replace or types.CodeType, and PY_START then fires again mid-call, after the body has
+    changed its locals (Codex phase-1 r15 #1)."""
+    raw = code.co_code
+    ext = 0
+    for i in range(0, len(raw) - 1, 2):
+        op, arg = raw[i], raw[i + 1] | ext
+        if op == _OP["EXTENDED_ARG"]:
+            ext = arg << 8
+            continue
+        ext = 0
+        if op == _OP["RESUME"]:
+            return i if arg == 0 else None
+    return None
+
+
 def _prologue_cells(code):
     """The local slots the code's prologue wraps in cells (MAKE_CELL before the first RESUME), or None when the
-    prologue holds anything else. The interpreter ran exactly these, so they, not the names, say which slot holds
-    a cell: CodeType.replace relabels names (and the kinds derived from them) without touching the bytecode
-    (Codex phase-1 r14 probe)."""
+    prologue holds anything else. CodeType.replace relabels names (and the kinds derived from them) without
+    touching the bytecode (Codex phase-1 r14 #1), so a slot is decoded only when these agree with the names. This
+    is a prefix-shape check: (Codex phase-1 r15, verbatim) The prefix check verifies cell-layout agreement at the
+    supported initial entry offset; unsupported entry paths are not argument witnesses. It proves nothing about
+    later control flow or the exception table; a start anywhere but that entry offset is not read (_first_resume)."""
     raw = code.co_code                     # exact bytes: two per instruction, opcode then argument
     cells, ext = set(), 0
     for i in range(0, len(raw) - 1, 2):
@@ -1080,6 +1101,8 @@ class _Monitor:
     def _on_start(self, code, offset):
         matched = None
         try:
+            if offset != _first_resume(code):    # not a call's start: nothing is read or recorded here (r15)
+                return None
             if code is self.mock_call_code:
                 with self._lock:
                     frame = sys._getframe(1)

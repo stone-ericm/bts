@@ -58,7 +58,9 @@ COVERAGE = {
                      "is tracked at every store on its path from sys's own namespace, by CPython dict watchers; a "
                      "held function's __code__ replaced in place is registered at the new code's first start "
                      "while the thread is alone, never by a function watcher, whose Python callback replaces an "
-                     "exception pending in C (own review during r14)); for a mock, the arguments its standard __call__ received, which is what the mock "
+                     "exception pending in C (own review during r14)); a call's start is a PY_START at the code's first RESUME "
+                     "carrying the entry argument, and a start reported anywhere else is not read (Codex phase-1 r15 "
+                     "#1); for a mock, the arguments its standard __call__ received, which is what the mock "
                      "itself records",
     "unattributed_when": ["a callable bound to several boundaries", "a callable the binding held earlier in the interval",
                           "a boundary code object shared by several live functions", "a call on another receiver",
