@@ -1239,3 +1239,80 @@ def test_a_malformed_exception_table_makes_the_entry_unreadable():
     assert observer._first_resume(code) == 0
     assert observer._first_resume(code.replace(co_exceptiontable=bytes([0x80, 1, 0x40]))) is None
     assert observer._first_resume(code.replace(co_exceptiontable=bytes([0x01, 1, 2, 0]))) is None
+
+
+def test_purity_reports_a_trace_function_the_census_could_not_count(monkeypatch):
+    """A trace function installed before the trusted bootstrap (by site initialisation or a reviewed .pth hook)
+    is invisible to the census; _purity still reports it from sys.gettrace, so the interval is refused (O106,
+    which C31's install count otherwise masks)."""
+    import sys as _sys
+    monkeypatch.setattr(observer, "_AUDIT_CENSUS", {"hooks_added": 0, "tracers_installed": 0, "own": []})
+    mon = observer._Monitor("n", {}, "")
+    assert mon._purity()["tracing"] is False
+    previous = _sys.gettrace()
+    _sys.settrace(lambda frame, event, arg: None)
+    try:
+        traced = mon._purity()
+    finally:
+        _sys.settrace(previous)
+    assert traced["tracing"] is True and traced["tracers_installed"] == 0, traced
+
+
+# --- Codex r17: lifetime and weak-reference side effects --------------------------------------------------------
+
+def test_the_entry_cache_never_answers_for_another_code_at_a_reused_address():
+    """r17 #2 replaced the weak cache with a digest of the code's own bytes, which owns no application object. Two
+    code shapes of equal size alternate at a reused address (measured: every iteration); an id-keyed cache would
+    answer for the freed one (O107)."""
+    import opcode
+
+    def f(x):
+        return x
+    template = f.__code__
+    first = bytes([opcode.opmap["RESUME"], 0, opcode.opmap["LOAD_FAST"], 0, opcode.opmap["RETURN_VALUE"], 0])
+    second = bytes([opcode.opmap["NOP"], 0, opcode.opmap["RESUME"], 0, opcode.opmap["RETURN_VALUE"], 0])
+    reused, last = 0, None
+    for i in range(200):
+        code = template.replace(co_code=first if i % 2 == 0 else second)
+        reused += last is not None and id(code) == last
+        assert observer._first_resume(code) == (0 if i % 2 == 0 else 2), i
+        last = id(code)
+        del code
+    assert reused, "no address was reused: the test would not distinguish an id-keyed cache"
+
+
+WEAKCOUNT_HELPER = ("import types,weakref\ndef invoke(transport,rebind):\n    if not rebind:\n"
+                    "        transport.send('eric','pick: Turner')\n        return\n"
+                    "    template=compile('lambda: None','<qa-weakcount>','eval').co_consts[0]\n"
+                    "    code=template.replace(co_filename='<qa-weakcount-live>')\n    fn=types.FunctionType(code,{})\n"
+                    "    before=weakref.getweakrefcount(code)\n    fn()\n    after=weakref.getweakrefcount(code)\n"
+                    "    print('weakref_counts',before,after)\n    transport.send('eric',ALERT if after!=before else None)\n")
+
+
+def test_observation_never_changes_an_application_code_weak_reference_count(tmp_path):
+    """Codex r17 #2: the weak entry cache attached a weak reference to the application's own code, so
+    weakref.getweakrefcount changed 0 -> 1 only when observed, and the alert the application then sent was certified.
+    The digest cache attaches nothing: both twins see 0 -> 0, and nothing is witnessed."""
+    res = _defend(tmp_path, WEAKCOUNT_HELPER)
+    observed = (tmp_path / "out/mutant.stdout.txt").read_text()
+    plain = (tmp_path / "out/mutant_unobserved.stdout.txt").read_text()
+    assert "weakref_counts 0 0" in observed and "weakref_counts 0 0" in plain, (observed, plain)
+    assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
+
+
+def test_the_closure_screen_lists_lifetime_dependent_application_code(tmp_path):
+    """Proposed ruling 13 puts behaviour that depends on object lifetimes outside the model (Codex r17 #1: the
+    observer keeps a retired boundary's code, and a finalizer on its constant ran unobserved only). The closure
+    screen lists such code in a closure, so a prepared spec's reliance on it is visible."""
+    import importlib.util
+    from pathlib import Path
+    tool = Path(observer.__file__).parents[3] / "docs/audit/2026-09-29-incident-register-evidence/tooling/closure_screen.py"
+    spec = importlib.util.spec_from_file_location("closure_screen_under_test", tool)
+    screen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(screen)
+    (tmp_path / "src/bts").mkdir(parents=True)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/helper.py").write_text("import weakref\nclass Payload:\n    def __del__(self):\n        pass\n"
+                                              "def count(code):\n    return weakref.getweakrefcount(code)\n")
+    labels = {hit[0] for hit in screen.screen(tmp_path)}
+    assert {"finalizer or exit hook", "lifetime introspection"} <= labels, labels

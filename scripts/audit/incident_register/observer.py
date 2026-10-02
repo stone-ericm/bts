@@ -54,7 +54,6 @@ import signal
 import sys
 import threading
 import types
-import weakref
 
 import pytest
 
@@ -141,7 +140,8 @@ _OP = {name: opcode.opmap[name] for name in ("NOP", "EXTENDED_ARG", "COPY_FREE_V
                                              "POP_TOP", "RESUME")}
 
 
-_ENTRY: dict = {}       # id(code) -> (weak reference to the code, entry offset or None): never keeps a code alive
+_ENTRY: dict = {}       # sha256 of the code's bytes -> entry offset or None: owns no application object
+_ENTRY_LIMIT = 65536
 
 
 def _first_resume(code):
@@ -153,10 +153,12 @@ def _first_resume(code):
     offset itself: code whose jumps or exception handlers lead back to the entry RESUME, or anywhere before it,
     re-runs that RESUME mid-call (Codex phase-1 r16 probe), so such code is never read. Compiled code never
     targets its entry. Only raw bytes are read (dis.findlabels reads none of co_consts)."""
-    cached = _ENTRY.get(id(code))
-    if cached is not None and cached[0]() is code:
-        return cached[1]
-    raw = code.co_code
+    # keyed by a digest of exact bytes the observer owns: neither the code object nor a weak reference to it is
+    # kept (Codex phase-1 r17 #2: a weak reference changed the application's own weakref.getweakrefcount)
+    raw, table = code.co_code, code.co_exceptiontable
+    key = hashlib.sha256(len(raw).to_bytes(8, "little") + raw + table).digest()
+    if key in _ENTRY:
+        return _ENTRY[key]
     entry, ext = None, 0
     for i in range(0, len(raw) - 1, 2):
         op, arg = raw[i], raw[i + 1] | ext
@@ -169,9 +171,9 @@ def _first_resume(code):
             break
     if entry is not None and _entry_targeted(code, raw, entry):
         entry = None
-    # a weak reference: holding the code would keep its constants alive and so change when application
-    # finalizers run (Codex phase-1 r16 probe: a constant's finalizer ran unobserved but not observed)
-    _ENTRY[id(code)] = (weakref.ref(code), entry)
+    if len(_ENTRY) >= _ENTRY_LIMIT:
+        _ENTRY.clear()
+    _ENTRY[key] = entry
     return entry
 
 

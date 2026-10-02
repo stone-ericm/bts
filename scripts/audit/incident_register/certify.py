@@ -88,7 +88,7 @@ COVERAGE = {
                          "a return observed while another thread was alive (its value is not read; plan ruling 12)",
                          "a run whose bts import provenance is unreadable without application dispatch (refused at "
                          "every stage's gate)"],
-    "observation": "inside the call phase the observer hashes, compares or dispatches only on values it owns or has "
+    "observation": "inside a certifiable call phase the observer hashes, compares or dispatches only on values it owns or has "
                    "type-checked as exact builtins: a dict it reads is walked item by item and is unsupported when it "
                    "holds a key that is not an exact str; heap class module metadata is read by raw namespace "
                    "iteration, and instance dicts through the standard C getset found by raw MRO namespace "
@@ -118,7 +118,11 @@ COVERAGE = {
                           "bootstrap (only site initialisation and the reviewed .pth hooks run before it)",
                           "garbage collection or signal handlers switched on and off again inside the call phase",
                           "a test or helper that replaces a standard-library function the observer itself calls",
-                          "a held mock's class changed and restored between the moments the recorder reads it"],
+                          "a held mock's class changed and restored between the moments the recorder reads it",
+                          "application behaviour that depends on object lifetimes or reference bookkeeping (finalizers, "
+                          "weak references or their counts, reference counts, garbage-collector introspection): the "
+                          "observer holds every value a binding held, and its code, until the observation ends (proposed "
+                          "ruling 13, Codex phase-1 r17 #1; the closure screen lists any such use in src/bts and tests)"],
 }
 
 

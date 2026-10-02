@@ -7,7 +7,8 @@ packages can do the same things; the screen's hits are REVIEWED, and a certifica
 runtime checks). It lists, in ``src/bts`` and ``tests`` (the tooling's own tests excluded), every line
 that could put application code inside observation or change what the recorder attributes:
 
-* audit hooks, signal handlers and timers, collector control, finalizers and exit hooks;
+* audit hooks, signal handlers and timers, collector control, finalizers and exit hooks, lifetime introspection
+  (weak-reference counts and collections, reference counts, collector referrer queries: proposed ruling 13);
 * ``__class__`` assignment and ``sys.modules`` stores;
 * patches of the standard-library modules the observer itself calls.
 """
@@ -21,6 +22,9 @@ PATTERNS = {
     "signal handler or timer": r"\bsignal\.(?:signal|setitimer|alarm|siginterrupt|pthread_kill|raise_signal)\b|\bos\.kill\b",
     "collector control": r"\bgc\.(?:enable|disable|callbacks|set_threshold|freeze)\b",
     "finalizer or exit hook": r"\bdef __del__\b|\bweakref\.(?:finalize|ref)\b|\batexit\.register\b",
+    # proposed ruling 13 (Codex phase-1 r17): behaviour that depends on object lifetimes or reference bookkeeping
+    "lifetime introspection": (r"\bweakref\.(?:getweakrefcount|getweakrefs|WeakSet|WeakValueDictionary|WeakKeyDictionary|"
+                               r"WeakMethod)\b|\bsys\.getrefcount\b|\bgc\.get_(?:referrers|referents|objects)\b"),
     "class assignment": r"\.__class__\s*=(?!=)",
     "sys.modules store": r"\bsys\.modules\s*(?:\[[^\]]*\]\s*=(?!=)|=(?!=))|\bsys\.modules\.(?:pop|update|setdefault|clear)\b",
     "stdlib patch": (r"\bpatch(?:\.object)?\(\s*['\"]?" + OBSERVER_STDLIB + r"[.,'\"]|\bmonkeypatch\.(?:setattr|delattr)\(\s*['\"]?"
