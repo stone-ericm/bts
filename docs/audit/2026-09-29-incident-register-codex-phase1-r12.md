@@ -1,0 +1,132 @@
+## Verdict
+
+**BLOCK.** Ruling 12 does not establish observational purity. A supported ordinary generator, a read-only `inspect.getgeneratorlocals` call, and a normal closure assignment suffice to run an application finalizer inside `observer._on_start`, with **one thread**. The full defence run accepts its event certificate with entry/branch/event links **2/3/4**, no observer error, and clean endpoint purity fields. A bounded same-thread application-lock variant also accepts and records one timeout. These violate the promised observation that runs no application callback; I am not claiming that the recorded alert itself was fictitious.
+
+Primary evidence: `P/cache-and-pending-runs/test_single_thread_cached_loca0/measurement.json` and `...loca1/measurement.json`, produced by `P/test_single_thread_cache.py`. The worker variants (`...loca2`, `...loca3`) reject the certificate but still run the finalizer before the concurrency gate. Here and below, **P** is `/Users/eric/projects/bts/.codex-review/2026-09-29-incident-register/r8-probes/r12`.
+
+Pins: code **78d6d381489b63018eca839ece86e163349376c3**; evidence **6096f11414bc705c2575b36c62c1d477bb7f2749**; plan **7bf402c**. `git diff --exit-code 78d6d38..6096f11 -- src scripts tests` is empty. Source references below abbreviate `scripts/audit/incident_register/observer.py` as **O**, `certify.py` as **C**, `defence.py` as **D**, `tests/scripts/incident_register/test_r10_counterexamples.py` as **T**, and `docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py` as **M**, all at `78d6d38`. **L** is `docs/superpowers/plans/2026-09-29-incident-register-phase1.md` at `7bf402c`.
+
+Independent baseline: **365 passed**, no errors or skips (`P/baseline.xml`). The full external 198-mutant sweep has not been supplied to this review. A successful sweep would not resolve the measured purity violation.
+
+## r11 findings status
+
+| r11 finding | Status | Measured rerun at the reviewed code |
+|---|---|---|
+| #1: temporary census references run an application finalizer, including a cross-thread application-lock cycle | **PARTIAL** | All three original shapes—ordinary release, census-coordinated release, and lock cycle—now reject, record the concurrency reason, and report `observer_calls 0` in both twins; the cycle reports `cycle_timeouts 0`. These are the three passing cases in `P/test_r11_finalizers.py`, with measurements under `P/r11-rerun-runs/test_r11_finalizer_shapes_are_0..2`. The proposed class argument nevertheless fails on the new cached-locals case below. |
+| #2: the observer lock was overstated as a complete namespace snapshot | **PARTIAL** | The corrected wording is present at O:577–582 and L:123. The original real-watcher/controlled-lock unit still measures a C-level store committing while another thread holds the monitor lock (`P/r11-rerun-runs/test_a_store_can_commit_while_0/measurement.json`). The adapted pending-store unit now refuses `_current_now` before permitting the physical bad-key commit (`P/cache-and-pending-runs/test_concurrent_store_cuts_bef0/measurement.json`). This fixes that measured re-resolution path. The new assertion that the gate proves no pending store throughout a read remains unsupported: O:1050–1051; finding #2 below. Neither white-box unit attempts a positive certificate. |
+| #3: the race label did not prove overlap, and worker completion was unchecked | **RESOLVED** | T:230,239,256–257 now require the completed-store marker, a finished worker, no observer error, and refusal without requiring the overlap label. Both controlled schedules in `P/test_race_labels.py` reject and have no alert witness. In both, the main store finishes before the worker begins; changing only when the label flag is set produces the two labels. Measurements: `P/r11-rerun-runs/test_worker_label_does_not_ide0..1/measurement.json`. The separate ordinary zero-dispatch race control passes too. |
+| #4: the plan incorrectly described the predicate output as lacking a ref header | **RESOLVED** | L:61,503 now describe the actual header. Its full resolved ref and both hashes match the reviewed commit (`P/evidence-bindings.json`); the independent eleven-control rerun ends `ALL AS REQUIRED` (`P/predicate-verified.log`). |
+
+The combined r11 rerun has **26 passed**, no errors or skips (`P/r11-reruns.xml`): the three finalizer shapes, two race schedules, one lock-window unit, twelve call-time path units, three r10b controls, one ordinary race control and four remaining boundary/serialization controls. The adapted pending-store case adds one pass. The twelve path units call the internal read directly; they verify rejection of stale/unsupported/unwatched paths, not ruling 12's gate placement or a complete concurrent certificate.
+
+## New findings
+
+1. **BLOCKER — synchronizing cached frame locals runs an application finalizer, before the gate, even with one thread.** O:993 reads `frame.f_locals`; O:995–1000 obtains argument references; only O:1006 tests `_alone`. The mock path similarly synchronizes locals and obtains `self` at O:972–975 before its check at O:976. Ordinary generators are admitted: O:58's `CO_ASYNC` excludes `CO_GENERATOR`, and O:626 only checks that mask.
+
+   The regression creates a generator boundary closing over a `Ref`, reads its locals with standard `inspect.getgeneratorlocals`, changes the closure cell to `None`, and starts the generator. The cached locals dictionary still owns the old `Ref`. Refreshing it at O:993 drops that last reference and calls `Ref.__del__`. There is no observer patch, frame write, standard-library replacement, signal handler, audit hook, or in-phase GC switch. The helper uses a normal closure assignment, and the generator's boundary binding stays unchanged.
+
+   Measured results from the final four-case run (`P/cache-and-pending.xml`, **four expected regression failures and one passing pending-store unit**, no errors/skips):
+
+   | Worker alive | Application lock held across `next(gen)` | Observed callback / timeout / thread count | Plain callback / timeout / thread count | Certificate |
+   |---|---|---|---|---|
+   | No | No | 1 / 0 / 1 | 0 / 0 / 1 | accepted, links 2/3/4 |
+   | No | Yes | 1 / 1 / 1 | 0 / 0 / 1 | accepted, links 2/3/4 |
+   | Yes | No | 1 / 0 / 2 | 0 / 0 / 2 | rejected, concurrency reason |
+   | Yes | Yes | 1 / 1 / 2 | 0 / 0 / 2 | rejected, concurrency reason |
+
+   Each observed finalizer records its immediate observer site as `['_on_start', 993]`. Each twin releases the object once. The plain release occurs outside the observer. The timeout is bounded; I did not run an indefinitely hanging version. The two single-thread cases also reproduced in the separate niced two-case run (`P/cache-verified.xml`), and the first uninstrumented-count variant accepted too (`P/single-thread-cache-runs/.../measurement.json`).
+
+   This violates O:7's no-application-code obligation, C:13's required callback-free observation, C:78–87's observation policy, and L:117,130–132,500. Clean GC/hook/signal endpoints are not evidence against a reference-count finalizer. D:112–135 compares per-node outcomes and failure identity, so the twins can differ in this callback and bounded wait yet pass conformance.
+
+   **Smallest measured-case repair:** reject ordinary generator boundary frames before touching `f_locals`, and move both concurrency checks before locals/receiver/argument extraction. On a concurrent function start, use the observer-owned candidate specs to record unavailable identities without first deriving `mine` from application arguments; on a mock start, do not obtain `self` first. This blocks the demonstrated cases but is not a proof for every remaining locals read. **Smallest conservative interim class repair:** record unavailable for every boundary identity requiring an in-phase `frame.f_locals` synchronization until a nonmutating reader/lifetime argument is reviewed. Retain code/frame entry and branch records and independently supportable returns. Merely refusing `_code_shared` does not repair this earlier read. A larger native reader must avoid synchronizing application frame dictionaries and avoid releasing the last application reference inside its callback.
+
+2. **SHOULD — `_alone` itself can return True while a persistent ordinary Python worker exists.** O:106–107 obtain the head and its successor in separate calls. Bound PyDLL calls hold the GIL individually; the Python sequence is not one indivisible traversal. Binding the functions at import does not protect a head pointer between those calls.
+
+   `P/probe_alone_churn.py` starts a persistent driver, which starts and joins ordinary short-lived children. At the default switch interval, the unchanged `_alone` returned True while `driver.is_alive()` was True and its stop event was False. The first two runs failed at checks **23,753** and **128,478**. The niced, GC-disabled confirmation failed at **953,774**, after 62 child iterations (`P/alone-gc-off-verified.log`). There was no thread error and the driver joined successfully. `P/native-bindings.json` binds this to the reviewed observer SHA256 and records PyDLL, pointer signatures, and flags 5 for all three C functions.
+
+   The earlier direct `_track` unit also resolved and held the application sender with the driver alive (checks **332,929** and **641,623**; `P/track-churn.log`, `P/track-churn-repeat.log`). Those versions had no installed native watchers or production lock. The later versions using real watchers and the monitor lock did **not** reproduce in their bounded trials, including the GC-disabled run (`P/track-watchers-verified.log`, `P/track-gc-off-verified.log`). Both full event-attribution probes reject (`P/concurrent-attribution.xml`, `P/frame-attribution.xml`); the latter confirms a child exiting after its state was sampled, without obtaining an accepted concurrent call. I therefore report the helper's demonstrated correctness error and unsafe premise, not a measured accepted concurrent certificate or an independently proven complete-window coverage violation.
+
+   **Inference:** state-list changes between the head sample and successor read are a plausible cause. I did not establish the exact deletion/allocator sequence, invalid-memory behavior, or a crash. Do not report those as measurements.
+
+   **Smallest repair:** replace the Python sequence with a single reviewed native predicate anchored to the calling thread's live state, with runtime-supported protection against concurrent state registration/removal and no unowned head pointer exposed across Python execution. Do not assume the GIL alone supplies every required state-list guarantee. A point-in-time predicate still needs a separate argument for the whole subsequent read; otherwise refuse that identity. Regression: a persistent driver plus child-state churn must never produce True, then repeat under real monitoring, watchers and the lock. The stable sleeping-worker test alone cannot verify this.
+
+3. **SHOULD — the remaining gate policy needs explicit operand/metadata exceptions or earlier guards.** The concrete locals violation is already blocker #1. Additional reads are visible in source even on a false/no gate: `_on_dict` turns the application key and new-value addresses into Python references at O:782,787, before the `alone` branch at O:792; `_on_func` obtains the replacement code object at O:828 with no `_alone` check; `_err` reads exception arguments/traceback and heap-class type metadata at O:608–617 without a gate. These contradict a literal reading of L:131,500's “none”/“every path” descriptions.
+
+   I have not shown these particular watcher operand reads cause a last-reference finalizer: the C store/setter supplies live operands, and exact code identity is already an admitted kind of metadata. An `observer_error` also refuses the certificate (C:128–129), so `_err` is not a demonstrated acceptance bypass. Distinguish operand retention and code/frame identity from namespace/value traversal rather than claiming they never occur.
+
+   **Smallest repair:** on a false dict gate, invalidate/cut every affected observer-owned binding using addresses and indices before converting key/new pointers. Gate or explicitly document the code-only function-watcher operation. On a false error-path gate, record an opaque observer error using owned fields without exception-argument or class-namespace traversal. Regression cases should exercise a concurrent per-key store, code replacement and error recording and inspect reference acquisition/lifetime, not only the final unavailable category. Changing wording alone does not repair blocker #1.
+
+## False greens
+
+- **T:381–386, `test_a_boundary_call_while_another_thread_is_alive_reads_nothing[function,mock]`:** green for refusal, false green for its “neither its arguments nor the binding is read” claim. It checks the verdict and recorded category/reason, not the earlier locals/argument read. The worker versions of the cached-locals regression reject with exactly that reason while an application finalizer has already run.
+- **T:354–365, `test_alone_reads_the_interpreters_thread_states`:** verifies a stable waiting worker; it does not cover a changing list. The niced churn regression fails the stronger advertised condition.
+- **T:463–472, `test_no_application_finalizer_runs_inside_observation`:** now correctly passes the specific r11 cross-thread census shape. Its name and L:500's class-level conclusion exceed that witness: it cannot establish callback-free observation for cached frame locals.
+- **O73–O79 kill results:** each removes its named refusal condition and is killed by the intended stable-worker case. They establish refusal at that conditional, not that no application reference was taken beforehand or that the shared predicate is accurate. O74's surviving earlier read is visible at O:993–1000.
+- **88 clean pair purity endpoints / a green conformance run:** correct measurements, not proof that no reference-count finalizer ran between endpoints. The new accepted single-thread certificates have the same endpoint fields. C:101–118 checks only the recorded audit-hook census, GC state and signal handlers; D:112–135 checks outcome/failure equivalence.
+
+The repaired race test is **not** still a false green for claimed overlap: the current acceptance assertion no longer requires the label to establish overlap. The controlled schedules show why preserving this distinction matters.
+
+## Rulings
+
+**Ruling 10 remains appropriate.** I found no reason to reintroduce missing-event certificates. I-0813-b and I-0830-b refuse with `ABSENCE_REFUSAL` before running; their missing witnesses remain unavailable (C:38–39; D:64–65).
+
+**Ruling 11's callback-free requirement remains necessary.** Exact-builtin dispatch rules and GC disabled do not prevent the observer's own C descriptor call from replacing cached references and running `__del__`. Treat this as a lifetime/mutation obligation as well as an equality/hash/attribute-dispatch obligation. Findings #1–#3 identify the relevant reads; none authorizes editing production BTS code.
+
+**Ruling 12 is not accurate as stated.** L:130's sufficient-condition argument omits reference-count changes caused by the observer itself. L:132's no-arguments statement is contradicted by O:993–1000, and L:500's “every path” statement is too broad. The gate is also a sample rather than a lease. The corrected lock scope at L:123 is accurate; its subsequent “so no store is pending” assertion is not established by this implementation. No new full false-attribution certificate is claimed here.
+
+Minimum replacement text for L:130–132 and the corresponding class claim in L:500:
+
+> A sample showing one thread state does not establish callback-free observation. The observer must also avoid mutations such as frame-locals synchronization that release application references, and a thread-state sample must cover the complete read or the witness is unavailable. A concurrent boundary is refused before reading locals, receivers or arguments. Entries and branches may retain code/frame identity only. The r11 worker-census regressions verify that shape's refusal; they do not prove the full lifetime rule.
+
+This describes an obligation to implement, not behavior already delivered by `78d6d38`. Do not approve it as a documentation-only repair.
+
+Minimum evidence wording for L:58's “pure” records:
+
+> All 44 endpoint records in each run report no added audit hook, GC disabled and no application signal handler. These fields do not by themselves prove that no application callback ran inside the observation interval.
+
+**Prepared-spec cost is acceptable for this pinned set, conditional on a correct purity implementation.** The byte-equivalent synthetic run at the reviewed code adds no concurrency-unavailable positive link. `P/prepared-verified/summary.json` records all nine outcomes:
+
+| Prepared spec | Measured outcome | Concurrency records |
+|---|---|---|
+| I-0811-a | accepted | 0 |
+| I-0811-b | accepted | 0 |
+| I-0813-a | accepted | 0 |
+| I-0813-b | unavailable: absence refused | 0 |
+| I-0830-a | accepted | 0 |
+| I-0830-b | unavailable: absence refused | 0 |
+| I-0830-c | accepted | 0 |
+| I-0830-d | accepted | 0 |
+| I-0903-a | accepted | 0 |
+
+The reviewed specs are `docs/audit/2026-09-29-incident-register-evidence/current_defence/specs/*.json` at `78d6d38`. The synthetic ref is **e683f9999ee2896ea8b907c59f53a31cabb35c48**, not the actual BTS commit. `P/frozen/equivalence.json` maps 566 copied code/config/registry/spec/tool files to their source hashes; each spec's original bytes are separately hashed in the cost summary, and only its baseline ref is substituted. The synthetic source tree contains no BTS data corpus. All runs restore their manifests; `P/prepared-verified/cleanup.json` verifies removal of that synthetic worktree. These are fresh specification-level QA results, not permission to publish seven certificates without purity review. The broader worklist's future concurrency cost remains unknown (L:139).
+
+## Answers
+
+**Is one thread state sufficient? No, for the proposed purity rule.** The observer can itself synchronize a cached locals dictionary and release its last application reference, with no second thread. This is measured, not a hypothetical failure. A narrower claim about a purely temporary census reference, whose other owners remain unchanged, is not disproved solely by this single-thread case; it is the extension of that premise to every observer read that fails.
+
+| Requested scenario | Disposition and regression case |
+|---|---|
+| C-level threads creating thread states | The predicate samples the current interpreter's linked states, not all OS threads or a future registration. Inference: a native thread without a state can attach after a sample. A regression should use a reviewed venv component that actually attaches and accesses shared application objects, then require unavailable observation throughout that read. I did not execute such a native-component probe or show this mechanism in a prepared closure. Newly compiled unreviewed native code is outside C:92–93's model. Merely having a numerical native worker without shared Python-object access is not a false certificate. |
+| A thread created during a callback | A correct single-state sample would still require that no intervening observer action can run application code or yield to a state-creating native operation. The cached-locals finalizer disproves the first prerequisite. Extend that regression with a finalizer starting a worker and a second application-reference release; require zero application callbacks, then unavailable identity while the worker lives. This extension is proposed, not a measured accepted certificate. |
+| Daemon threads | A daemon with a linked state must count. The stable daemon case T:418–429 records start and end gaps; O78/O79 each detect bypassing one guard. A daemon status is not an exclusion. Add child-state churn with a persistent daemon; normal exit can exercise the same list-change concern. |
+| Subinterpreters | `_INTERP_GET` at O:106 chooses the calling interpreter. The predicate is not a process-wide thread census. Ordinary separate-interpreter objects are not thereby shared application objects, so a worker in another interpreter is not automatically a counterexample. Regression: distinguish a separate-interpreter control from a reviewed native component that shares relevant state; require refusal in the latter. No shared-state counterexample or prepared-spec dependence was established here. |
+| Thread exit before state deletion | A still-linked exited state should conservatively prevent “alone.” The dangerous issue is a state sampled as head changing before the successor read. Ordinary child churn already makes `_alone` misreport; no exact unlink/free sequence was measured. Regression: repeat churn with a persistent driver and verify its successful shutdown, then test the complete observer path. Do not infer a memory fault from the current outputs. |
+| Objects held only by garbage cycles while collection is off | Inference from reference ownership: a cycle whose edges remain intact does not disappear merely because an external temporary is released. GC-off stops automatic cyclic collection; it does not stop reference-count finalization when a cache or cycle edge is removed. Regression: retain a self-cycle through the observation as the negative control, break the last retaining edge through an ordinary application action in a second case, and separately retain the measured stale-locals case. Explicit collection inside the observer must remain forbidden; toggling GC inside the phase is already outside the model. |
+
+**Path audit:** function and mock `_on_start` have the pre-gate reads listed in #1. `_on_dict`, `_on_func`, and `_err` have the additional reads listed in #3. `_exit` gates value/raised-type serialization at O:1097–1100; it first reads only the admitted code/frame metadata at O:1089–1095. `_track` gates before resolution at O:689–701. The end check gates before resolution at O:921–924. `_restep` and `_hold` have no local gate (O:741,703): their normal callers inherit `_track`'s or `_on_dict`'s earlier result. That is reliance on the predicate and interval argument, not an independent lifetime guard. `_stack` reads code/frame descriptors and exact-string/fallback identities, not `f_locals` (O:622–630); `_record` consumes owned fields and counters (O:596–600). They fit the explicit metadata exception. Error-path refusal prevents a positive certificate, but does not make the error path a no-read path.
+
+**Binding/ctypes:** O:89–94 bind correctly typed pointer-returning PyDLL functions at import; the watcher-failure API replacement test no longer redirects those references (L:508; included in the 365-pass baseline). The functions are still shared mutable ctypes objects, not frozen prototypes. Deliberately replacing observer bindings or their standard-library behavior is outside the stated model; no such replacement was used in the churn regressions. A private reviewed binding can reduce accidental signature interference, but it does not make three calls atomic or fix stale locals. The flags/type computation is in `P/native-bindings.json`.
+
+**Evidence binding and tests:**
+
+- The supplied pair receipt explicitly resolves `78d6d381489b63018eca839ece86e163349376c3`. The independent synthetic pair accepts **22/22**, with **40** passing controls, **88** clean endpoint fields, identical **40-module** import records and **zero** concurrency records. Both new raw event-file hashes match its receipt (`P/pair-computation.json`). The supplied receipt's raw files were not accessed in the prohibited external worktrees; their header/receipt is not a substitute for the fresh byte-equivalent run.
+- The supplied predicate header resolves that same code commit. Fixture SHA256 is **5c5748ec9b9a66da63e0f17a9fba1355ded0ed91d4f342756110b888e4b7226b**; producer SHA256 is **b56d72ebe0e57fb918dcd0145ce0d066df806a03ef3d57d19b7ac501ef2586db**. Both equal their pinned bytes. The fresh predicate rerun catches P1–P7 and F1–F2 and reaches both repair branches; it restores the files exactly (`P/predicate-verified.log`, `P/evidence-bindings.json`). The repair sketches are synthetic mutations, not proposed production edits.
+- The closure screen has a current-ref header but is the same historical body: removing the first header line gives SHA256 **fe2b524d576a932610fca6de7fe004cc05918ee9a9797832ca47f218ddf91121** at both `ee2489d` and `6096f11` (`P/evidence-bindings.json`). A screened closure is a review input, not proof of purity for arbitrary admitted synthetic shapes; L:111 already says its hits are not proof.
+- All **198** anchors are unique and compile (`P/mutants/anchors.json`). O1's new `elif matched` anchor at M:90 kills all **14** selected mock/keyword nodes. O73–O79 at M:260–266 each kill their intended single selected gate case. Every targeted baseline passes with identical inventory; mutant failures are assertions, with no error/skip; each edit is byte-restored (`P/mutants/summary.json`, individual JUnit files). O78 and O79 separately test the start and end gaps of the same daemon fixture. These are eight targeted mutants, not the full 198-mutant result.
+- The 365-node review baseline was independently rerun. The fast-suite **2789 passed / 6 skipped / 22 xfailed** number remains supplied evidence (L:57), not a fresh fast-suite measurement by this reviewer. Historical sweep output must retain its historical pin. L:59's promised full `78d6d38` sweep has not been confirmed: acceptance would require all 198 rows at this ref, clean 365-node shard baselines, matching exact inventories, no anchor errors, survivors, FAILED-OTHER, skipped/error kills or missing labels, plus restoration. Even that result would not remove blocker #1.
+
+The main tracked checkout and actual BTS history were not changed. All reviewer probes and synthetic Git fixtures remain under P. The prohibited production/evidence worktrees, other panes, network and BTS data corpus were not accessed.
+
+Cleanup verified: `git worktree remove --force /Users/eric/projects/bts/.codex-review/2026-09-29-incident-register/wt12` completed. Both the path and its Git worktree registration are gone; the main tracked checkout is clean (`P/cleanup.json`). This check preceded writing the final line.
+
+DONE
