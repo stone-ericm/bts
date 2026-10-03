@@ -144,6 +144,18 @@ COVERAGE = {
 }
 
 
+def same_json(a, b) -> bool:
+    """JSON value equality that never equates distinct JSON types: false is not 0 and 1 is not 1.0, at any depth
+    (fresh whole-range review F1: Python's == let a recorded False match a requested 0)."""
+    if type(a) is not type(b):
+        return False
+    if type(a) is list:
+        return len(a) == len(b) and all(same_json(x, y) for x, y in zip(a, b))
+    if type(a) is dict:
+        return a.keys() == b.keys() and all(same_json(a[k], b[k]) for k in a)
+    return a == b
+
+
 def _purity_errs(rec: dict, where: str) -> list[str]:
     p = rec.get("purity")
     if type(p) is not dict:
@@ -265,7 +277,7 @@ def certify(events: list[dict], *, node: str, kind: str, entry: dict, bad: dict)
         candidates = [x for x in body if x["kind"] == "return" and x["file"] == bad["file"]
                       and x["qualname"] == bad["qualname"] and _witness(x)
                       and (("category" in bad and x.get("category") == bad["category"])
-                           or ("value" in bad and x.get("value") == bad["value"]))]
+                           or ("value" in bad and "value" in x and same_json(x["value"], bad["value"])))]
     linked = None
     for x in candidates:
         live_x = {en["seq"] for en in entries if _live(en, x, body)}

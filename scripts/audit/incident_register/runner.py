@@ -58,7 +58,9 @@ import pytest
 sys.exit(pytest.main(sys.argv[3:], plugins=[module]))
 """
 _SCRUB = ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP", "VIRTUAL_ENV", "PYTEST_ADDOPTS", "PYTEST_PLUGINS",
-          "W15_OBS_CONFIG")
+          "W15_OBS_CONFIG", "PYTHONPYCACHEPREFIX")      # a relocated cache can hold valid stale bytecode (fresh review F5)
+# a spec's env may not set these: the runner owns them (fresh whole-range review F5)
+_RUNNER_OWNED = frozenset(_SCRUB) | {"PYTHONDONTWRITEBYTECODE"}
 MODES = ("green", "mutant", "expected_failure")
 
 
@@ -93,6 +95,9 @@ def run(worktree, args: list[str], out_dir, stage: str, *, observe: dict | None 
         quiesce: list[str] | None = None, env_extra: dict | None = None, timeout: int = 3600) -> Run:
     """``quiesce``: nodes whose call phase runs with automatic garbage collection off although nothing
     observes them (an observed run's twin; observed nodes are always quiesced)."""
+    owned_keys = sorted(_RUNNER_OWNED & set(env_extra or {}))
+    if owned_keys:
+        raise ValueError(f"the spec's environment may not set the runner-owned {owned_keys}")
     worktree = Path(worktree)
     owned.assert_owned(worktree)
     out_dir = Path(out_dir)
@@ -119,8 +124,8 @@ def run(worktree, args: list[str], out_dir, stage: str, *, observe: dict | None 
                                    "prod_root": os.path.join(wt, "src"), "observe": observe or {},
                                    "quiesce": list(quiesce or [])}))
         env = {k: v for k, v in os.environ.items() if k not in _SCRUB}
-        env.update({"W15_OBS_CONFIG": str(cfg), "PYTHONDONTWRITEBYTECODE": "1"})
         env.update(env_extra or {})
+        env.update({"W15_OBS_CONFIG": str(cfg), "PYTHONDONTWRITEBYTECODE": "1"})
         cmd = [str(python), str(boot), str(obs), name, "-p", "no:cacheprovider",
                "--rootdir", wt, "-c", str(_inifile(worktree)), *args]
         before = src_digest(os.path.join(wt, "src"))

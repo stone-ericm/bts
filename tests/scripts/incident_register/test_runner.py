@@ -387,8 +387,9 @@ def test_an_exceptional_exit_is_a_classified_return_event(scen, tmp_path):
 def test_a_same_size_edit_with_the_same_mtime_is_what_runs(project, tmp_path, monkeypatch):
     """Stale bytecode (seen in a manual scratch run, 2026-09-29): Python trusts a .pyc whose recorded
     source size and mtime match, so a mutant or a restore of the same size written within the same
-    second as the last compile would run the OLD code. Evidence runs write no bytecode, so the edited
-    source is what runs."""
+    second as the last compile would run the OLD code. Evidence runs write no bytecode, so with no cache
+    seeded beforehand the edited source is what runs. A cache seeded in a relocated prefix inherited from the
+    parent environment is the fresh review's F5 (test_fresh_counterexamples.py, scrubbed by the runner)."""
     monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)       # only the runner's own setting counts
     repo, wt = project
     mod = wt / "src/bts/mod.py"

@@ -2,21 +2,23 @@
 
     python mutation_sweep.py <build-worktree> [LABEL,LABEL,...]
 
+With ``$W15_SWEEP_KEEP`` set to a directory, every run's JUnit XML and identity records are kept there.
+
 1. BASELINE: the tooling tests must pass cleanly (exit 0, every node passed: no failure, error or skip);
    its exact node inventory is kept.
 2. For each mutant (one check disabled), rerun the WHOLE suite (no ``-x``) and classify from pytest's
    JUnit XML, never from free-text summary lines (Codex phase-1 r4 #10: ``RuntimeError("DID NOT RAISE")``
    passed a substring test). ``classify`` is the rule:
    * KILLED — exit code 1, the baseline's exact node inventory, no testcase error or skip, and at least one failure whose
-     message has an ASSERTION shape: a rewritten ``assert`` (pytest's message starts with ``assert ``;
-     ``assert`` is a keyword, so no exception class can print that prefix), an explicit builtin
-     ``AssertionError`` (exact prefix — a look-alike class prints its qualified name), or pytest.raises'
-     own ``Failed: DID NOT RAISE``;
+     exception, as recorded by the sweep's own pytest plugin (``sweep_kill_identity.py``, copied out of the build
+     worktree before any mutant runs), IS the builtin ``AssertionError`` or pytest.raises' own ``Failed: DID NOT
+     RAISE``. The failure message is not read: a class can claim the builtin's module and name, and a message
+     can start with ``assert `` (fresh whole-range review F4);
    * ERRORED — any testcase error (collection/setup/teardown) or an exit code other than 0/1;
    * INCOMPLETE — a node inventory different from the baseline's (not only its count; Codex phase-1 r5 #8);
    * SKIPPED — any skipped case (skip or xfail): that node's verdict is unknown, so it is neither a clean
      baseline nor a clean kill (Codex phase-1 r5 #8: an all-skipped run was a clean baseline);
-   * FAILED-OTHER — failures, none of an assertion shape;
+   * FAILED-OTHER — failures, none of them an assertion by recorded identity (or none recorded);
    * SURVIVED — exit 0, no failure.
    EVERY killing node id is printed, so a kill for the wrong reason is visible.
 Known equivalent guards (not listed):
@@ -52,6 +54,7 @@ Mutants whose file starts with ``../../../`` mutate the sweep's own classifier (
 is written during the sweep and none compiled before it is left to be read (a same-size mutant or restore
 written within the same second as the previous compile would otherwise run the stale .pyc).
 """
+import json
 import os
 import re
 import shutil
@@ -68,7 +71,10 @@ TESTS = ["tests/scripts/incident_register/"]
 ENV = {**os.environ, "UV_CACHE_DIR": "/tmp/uv-cache", "TZ": "America/New_York", "COLUMNS": "1000",
        "PYTHONDONTWRITEBYTECODE": "1"}
 # no -x: every mutant runs the WHOLE suite, so "no node errored" and the killer list cover every node
-CMD = ["uv", "run", "--with", "jsonschema==4.23.0", "pytest", *TESTS, "-q", "-p", "no:cacheprovider", "-rfE", "--tb=line"]
+CMD = ["uv", "run", "--with", "jsonschema==4.23.0", "pytest", *TESTS, "-q", "-p", "no:cacheprovider", "-p",
+       "sweep_kill_identity", "-rfE", "--tb=line"]
+PLUGIN = "sweep_kill_identity.py"
+_PLUGIN_DIR: Path | None = None        # main() copies the plugin here, so a mutant of it cannot judge its own run
 M = [
  ('runner.py', 'if s["observer_file"] != run.trusted["file"] or s["observer_sha256"] != run.trusted["sha256"]:', 'if False:', 'R1 observer identity'),
  ('runner.py', 'if s["prefix"] != os.path.join(wt, ".venv"):', 'if False:', 'R2 own-venv prefix'),
@@ -111,7 +117,7 @@ M = [
  ('replay.py', '            why += problems', '            pass', 'P1 audit problems'),
  ('replay.py', 'if not last or last[0] != s["_path"] or last[1] != s["_line"]:', 'if False:', 'P2 replay assertion location'),
  ('replay.py', 'why += [f"red: {r}" for r in runner.gate(red, worktree=worktree, mode="mutant", expected=inventory)]', 'pass', 'P3 red gate'),
- ('replay.py', 'if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):', 'if False:', 'P4 replay exception type'),
+ ('replay.py', '                if call.get("exc_is_assertion") is not True:', '                if False:', 'P4 replay exception type: the builtin AssertionError itself (re-anchored for fresh review F3)'),
  ('replay.py', '            elif not str(entry.get("reason", "")).strip():', '            elif False:', 'P5 reason required'),
  ('replay.py', '        why += _drift(worktree, m0, v0, "after green", src_too=True)       # before any swap or reset', '        pass', 'P6 drift after green'),
  ('replay.py', '        why.append(f"aborted: {type(e).__name__}: {e}")     # recorded, then surfaced to the caller', '        pass', 'P7 unexpected exception recorded'),
@@ -136,7 +142,7 @@ M = [
  ('observer.py', '            out.update(length=len(value), incomplete=True)', '            pass', 'O14 truncation is incomplete'),
  ('observer.py', '"category": _classify(spec.get("classify", []), safe) if _complete(safe) else "unavailable"}', '"category": _classify(spec.get("classify", []), safe)}', 'O15 incomplete identity unclassified'),
  ('observer.py', '            category = _classify(self.returns[key], safe) if _complete(safe) else "unavailable"', '            category = _classify(self.returns[key], safe)', 'O16 incomplete return unclassified'),
- ('acceptance.py', '        return ("value_match", []) if got == actual else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', '        return ("value_match", []) if True else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', 'A9 return value match'),
+ ('acceptance.py', '        return ("value_match", []) if certify.same_json(got, actual) else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', '        return ("value_match", []) if True else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', 'A9 return value match (re-anchored for fresh review F1)'),
  ('acceptance.py', '    if not str(conn.get("review", "")).strip():', '    if False:', 'A11 fixture review required'),
  ('acceptance.py', '    if t is not dict or safe.get("incomplete") or "unavailable" in safe:', '    if t is not dict or "unavailable" in safe:', 'A12 incomplete never equal'),
  ('acceptance.py', '            if len({len(v) for v in values}) != 1:', '            if False:', 'A13 zip cardinality'),
@@ -313,13 +319,41 @@ M = [
  ('observer.py', '    (re.compile(r"(\\bat 0x)[0-9a-fA-F]+(?=[>,])"), r"\\g<1>?"),\n', '    (re.compile(r"(0x)[0-9a-fA-F]+"), r"\\g<1>?"),\n', "O115 bare hex text in an application message is not blanked (Codex r19 #1)"),
  ('observer.py', '    (re.compile(r"(<\\w*Mock\\b[^<>]*\\bid=\')\\d+(?=\'>)"), r"\\g<1>?"),\n', '    (re.compile(r"(id=\')\\d+(?=\')"), r"\\g<1>?"),\n', "O116 id='N' text outside a mock's repr is not blanked (Codex r19 #1)"),
  ('observer.py', '    (re.compile(r"(/pytest-of-[^/\\s\'\\"]+/pytest-)\\d+(?=/)"), r"\\g<1>?"),\n', '    (re.compile(r"(/pytest-)\\d+(?=/)"), r"\\g<1>?"),\n', "O117 a /pytest-N/ component outside pytest's own directory is not blanked (Codex r19 #1)"),
+ ('certify.py', '                           or ("value" in bad and "value" in x and same_json(x["value"], bad["value"])))]', '                           or ("value" in bad and "value" in x and x["value"] == bad["value"]))]', 'C32 a return value matches the request as JSON, type included (fresh review F1)'),
+ ('certify.py', '    if type(a) is not type(b):\n        return False\n    if type(a) is list:', '    if False:\n        return False\n    if type(a) is list:', 'C33 distinct JSON types never compare equal (fresh review F1)'),
+ ('certify.py', '        return len(a) == len(b) and all(same_json(x, y) for x, y in zip(a, b))', '        return a == b', 'C34 list items compare as JSON, type included (fresh review F1)'),
+ ('certify.py', '        return a.keys() == b.keys() and all(same_json(a[k], b[k]) for k in a)', '        return a == b', 'C35 map values compare as JSON, type included (fresh review F1)'),
+ ('acceptance.py', '        return ("value_match", []) if certify.same_json(got, actual) else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', '        return ("value_match", []) if got == actual else \\\n            ("unmatched", [f"connection: {conn[\'qualname\']} returned', 'A17 a returned value matches the oracle as JSON (fresh review F1)'),
+ ('acceptance.py', '        return ("value_match", []) if certify.same_json(got, actual) else \\\n            ("unmatched", [f"connection: production read-back', '        return ("value_match", []) if got == actual else \\\n            ("unmatched", [f"connection: production read-back', 'A18 a read-back matches the oracle as JSON (fresh review F1)'),
+ ('acceptance.py', '    if "bad_json" in r and not certify.same_json(rec["bad"], r["bad_json"]):', '    if "bad_json" in r and rec["bad"] != r["bad_json"]:', "A19 the oracle's bad value matches the registry as JSON (fresh review F1)"),
+ ('acceptance.py', '    if "required_json" in r and not certify.same_json(rec["required"], r["required_json"]):', '    if "required_json" in r and rec["required"] != r["required_json"]:', "A20 the oracle's required value matches the registry as JSON (fresh review F1)"),
+ ('acceptance.py', '    if not certify.same_json(rec["actual"], rec["bad"]):', '    if rec["actual"] != rec["bad"]:', "A21 the oracle's actual is the declared bad value as JSON (fresh review F1)"),
+ ('defence.py', '        if not any(a <= line <= b for a, b in spans):', '        if False:', 'D20 the branch anchor lies inside a replacement the mutation made (fresh review F2)'),
+ ('defence.py', '            elif a >= end:\n                kept.append((a + delta, b + delta))', '            elif a >= end:\n                kept.append((a, b))', "D21 a later edit shifts an earlier replacement's span (fresh review F2)"),
+ ('defence.py', '                lo, hi = min(lo, a), max(hi, b + delta)', '                kept.append((a, b))', 'D22 an overlapping edit merges with the earlier span (fresh review F2)'),
+ ('defence.py', '    if call.get("exc_is_assertion") is not True:', '    if False:', 'D23 a kill is the builtin AssertionError itself, not a class named like it (fresh review F3)'),
+ ('observer.py', '                "exc_is_assertion": exc is not None and exc.type is AssertionError,', '                "exc_is_assertion": exc is not None and exc.type.__name__ == "AssertionError",', "O118 the observer records the exception's class identity, not its name (fresh review F3)"),
+ ('runner.py', '          "W15_OBS_CONFIG", "PYTHONPYCACHEPREFIX")', '          "W15_OBS_CONFIG")', 'R23 an inherited PYTHONPYCACHEPREFIX is scrubbed (fresh review F5)'),
+ ('runner.py', '    if owned_keys:\n', '    if False:\n', "R24 a spec's environment may not set a runner-owned variable (fresh review F5)"),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/mutation_sweep.py', '    ids = identities or {}\n    kills = [_node(c) for c, _ in failures if ids.get(_node(c)) in ("assertion", "did_not_raise")]', '    ids = identities or {}\n    kills = [_node(c) for c, _ in failures]', 'S4 a kill needs a recorded assertion identity (fresh review F4)'),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/sweep_kill_identity.py', '    if excinfo.type is AssertionError:', '    if excinfo.type.__name__ == "AssertionError":', 'S5 the plugin records the class itself, not its name (fresh review F4)'),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/sweep_kill_identity.py', '    if excinfo.type is pytest.fail.Exception and str(excinfo.value).startswith("DID NOT RAISE"):', '    if str(excinfo.value).startswith("DID NOT RAISE"):', "S6 only pytest's own failed expectation is a DID NOT RAISE kill (fresh review F4)"),
+ ('../../../docs/audit/2026-09-29-incident-register-evidence/tooling/sweep_kill_identity.py', '    if excinfo.type is pytest.fail.Exception and str(excinfo.value).startswith("DID NOT RAISE"):', '    if excinfo.type is pytest.fail.Exception:', 'S7 a pytest.fail that is not a failed expectation is not a kill (fresh review F4)'),
 ]
 
 
 
-def _assertion_shaped(message: str) -> bool:
-    return (message.startswith("assert ") or message == "AssertionError" or message.startswith("AssertionError:")
-            or message.startswith("Failed: DID NOT RAISE"))
+def identities_of(path) -> dict[str, str]:
+    """{JUnit ``classname::name``: assertion | did_not_raise | other} from the plugin's JSON lines."""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    out = {}
+    for line in p.read_text().splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            out[rec["node"]] = rec["kind"]
+    return out
 
 
 def _node(case) -> str:
@@ -331,13 +365,16 @@ def nodes_of(junit_xml: str) -> list[str]:
     return [_node(c) for c in ET.fromstring(junit_xml).iter("testcase")]
 
 
-def classify(junit_xml: str, returncode: int, expected_nodes: list[str] | None = None) -> tuple[str, list[str]]:
-    """(verdict, killing node ids) from a run's JUnit XML — see the module docstring."""
+def classify(junit_xml: str, returncode: int, expected_nodes: list[str] | None = None,
+             identities: dict[str, str] | None = None) -> tuple[str, list[str]]:
+    """(verdict, killing node ids) from a run's JUnit XML and its recorded exception identities — see the module
+    docstring. A failure with no identity record is never a kill."""
     root = ET.fromstring(junit_xml)
     cases = list(root.iter("testcase"))
     errors = [c for c in cases if c.find("error") is not None]
     failures = [(c, c.find("failure")) for c in cases if c.find("failure") is not None]
-    kills = [_node(c) for c, f in failures if _assertion_shaped(f.get("message") or "")]
+    ids = identities or {}
+    kills = [_node(c) for c, _ in failures if ids.get(_node(c)) in ("assertion", "did_not_raise")]
     if errors or returncode not in (0, 1):
         return "ERRORED", [_node(c) for c in errors]
     if expected_nodes is not None and sorted(_node(c) for c in cases) != sorted(expected_nodes):
@@ -352,15 +389,27 @@ def classify(junit_xml: str, returncode: int, expected_nodes: list[str] | None =
     return ("SURVIVED", []) if returncode == 0 else ("ERRORED", [])
 
 
-def run(build: Path) -> tuple[int, str, int, str]:
-    """(return code, JUnit XML, test count, last output line) of one whole-suite run (the node
-    inventory is ``nodes_of`` the XML)."""
+def run(build: Path, keep_as: str | None = None) -> tuple[int, str, int, str, dict[str, str]]:
+    """(return code, JUnit XML, test count, last output line, exception identities) of one whole-suite run (the
+    node inventory is ``nodes_of`` the XML). With ``$W15_SWEEP_KEEP`` set, the XML and identity records are kept
+    there as ``<keep_as>.xml`` and ``<keep_as>.identity.jsonl``."""
+    if _PLUGIN_DIR is None:
+        raise RuntimeError("the identity plugin was not copied out of the build worktree")
     with tempfile.TemporaryDirectory() as td:
-        xml = Path(td) / "junit.xml"
-        p = subprocess.run(CMD + [f"--junitxml={xml}"], cwd=build, capture_output=True, text=True, env=ENV)
+        xml, ids = Path(td) / "junit.xml", Path(td) / "identity.jsonl"
+        env = {**ENV, "W15_SWEEP_IDENTITY": str(ids),
+               "PYTHONPATH": os.pathsep.join(x for x in (str(_PLUGIN_DIR), ENV.get("PYTHONPATH", "")) if x)}
+        p = subprocess.run(CMD + [f"--junitxml={xml}"], cwd=build, capture_output=True, text=True, env=env)
         text = xml.read_text() if xml.exists() else "<testsuites/>"
+        identities = identities_of(ids)
+        keep = os.environ.get("W15_SWEEP_KEEP")
+        if keep and keep_as:
+            Path(keep).mkdir(parents=True, exist_ok=True)
+            (Path(keep) / f"{keep_as}.xml").write_text(text)
+            (Path(keep) / f"{keep_as}.identity.jsonl").write_text(ids.read_text() if ids.exists() else "")
     lines = p.stdout.splitlines()
-    return p.returncode, text, len(list(ET.fromstring(text).iter("testcase"))), (lines[-1] if lines else p.stderr[-200:])
+    return (p.returncode, text, len(list(ET.fromstring(text).iter("testcase"))), (lines[-1] if lines else p.stderr[-200:]),
+            identities)
 
 
 def mutant_error(text: str, old: str, new: str, filename: str) -> str | None:
@@ -391,8 +440,11 @@ def main(argv: list[str]) -> int:
     for cache in [*d.rglob("__pycache__"), *(build / "tests/scripts/incident_register").rglob("__pycache__"),
                   *tooling.rglob("__pycache__")]:
         shutil.rmtree(cache)           # no bytecode compiled before the sweep can be read during it
-    rc, xml, n_cases, tail = run(build)
-    verdict, _ = classify(xml, rc)
+    global _PLUGIN_DIR
+    _PLUGIN_DIR = Path(tempfile.mkdtemp(prefix="w15-sweep-plugin-"))
+    shutil.copyfile(tooling / PLUGIN, _PLUGIN_DIR / PLUGIN)        # before any mutant can touch the in-tree copy
+    rc, xml, n_cases, tail, ids = run(build, keep_as="BASELINE")
+    verdict, _ = classify(xml, rc, identities=ids)
     baseline_nodes = nodes_of(xml)
     print(f"BASELINE rc={rc} tests={n_cases} verdict={verdict} | {tail}", flush=True)
     if verdict != "SURVIVED":          # a clean baseline: every node passed (no failure, error or skip)
@@ -412,8 +464,8 @@ def main(argv: list[str]) -> int:
         bak.write_bytes(src)
         try:
             f.write_text(text.replace(old, new, 1))
-            rc, xml, _n, tail = run(build)
-            verdict, nodes = classify(xml, rc, expected_nodes=baseline_nodes)
+            rc, xml, _n, tail, ids = run(build, keep_as=label.split()[0])
+            verdict, nodes = classify(xml, rc, expected_nodes=baseline_nodes, identities=ids)
             print(f"{label}: {verdict} | rc={rc} | {tail[:80]} | {nodes}", flush=True)
         finally:
             f.write_bytes(src)

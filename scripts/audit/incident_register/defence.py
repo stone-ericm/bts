@@ -77,6 +77,31 @@ def _check_spec(spec: dict) -> None:
         raise SpecError("the branch anchor must be in a mutated file")
 
 
+def _edit_spans(before: str, edits: list) -> list[tuple[int, int]]:
+    """The 1-based inclusive line span of each ``(old, new)`` replacement in the text after all of ``edits``, applied
+    in order as ``owned.apply_edits`` applies them (each ``old`` occurs exactly once when its turn comes). A later
+    edit shifts an earlier span below it; one overlapping an earlier span merges with it; a deletion is the line
+    where its two sides join (fresh whole-range review F2)."""
+    text, spans = before, []
+    for old, new in edits:
+        i = text.index(old)
+        end, delta = i + len(old), len(new) - len(old)
+        kept, lo, hi = [], i, i + len(new)
+        for a, b in spans:
+            if b <= i:
+                kept.append((a, b))
+            elif a >= end:
+                kept.append((a + delta, b + delta))
+            else:                                          # overlaps the text this edit replaces: one changed region
+                lo, hi = min(lo, a), max(hi, b + delta)
+        text = text[:i] + new + text[end:]
+        spans = kept + [(lo, hi)]
+    order = []
+    for a, b in spans:
+        order.append((text.count("\n", 0, a) + 1, text.count("\n", 0, max(a, b - 1)) + 1))
+    return order
+
+
 def _drift(worktree, frozen: dict, untracked: dict, venv: str, exclude, where: str) -> list[str]:
     m = owned.manifest(worktree, exclude=exclude)
     why = []
@@ -149,7 +174,7 @@ def _assertion_ok(run: runner.Run, node: str, path: str, line: int, worktree: st
         return [f"{node}: {len(calls)} call reports"]
     call = calls[0]
     why = []
-    if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):
+    if call.get("exc_is_assertion") is not True:      # the class itself; its names are any class's to claim (F3)
         why.append(f"{node}: killed by {call.get('exc_module')}.{call.get('exc_qualname')}, not AssertionError")
     last = innermost_repo_frame(call.get("frames") or [], worktree)
     if not last or last[0] != path or last[1] != line:
@@ -206,6 +231,7 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         if why:
             return res
 
+        before = (worktree / spec["branch"]["path"]).read_text()
         touched = owned.apply_edits(worktree, spec["mutation_edits"], allowed)
         frozen = {k: v for k, v in m0["files"].items() if k not in touched}
         why += _drift(worktree, frozen, m0["untracked"], v0, touched, "after mutation")
@@ -216,6 +242,11 @@ def current_defence(worktree, spec: dict, out_dir) -> dict:
         res["touched"] = touched
         line = anchor_line(worktree / spec["branch"]["path"], spec["branch"]["text"])
         res["branch_line"] = line
+        spans = _edit_spans(before, [(o, n) for r, o, n in spec["mutation_edits"] if r == spec["branch"]["path"]])
+        if not any(a <= line <= b for a, b in spans):
+            why.append(f"the branch anchor (line {line}) is not inside any replacement the mutation made in "
+                       f"{spec['branch']['path']} (lines {spans}): a certificate would not link the mutated line "
+                       "(fresh whole-range review F2)")
         observe_m = {**observe, "branch": {"file": os.path.join(wt, spec["branch"]["path"]), "line": line}}
         mutant = runner.run(worktree, spec["tests"], out_dir, "mutant", observe=observe_m, env_extra=env)
         mg = runner.gate(mutant, worktree=worktree, mode="mutant", expected=inventory)

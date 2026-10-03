@@ -547,6 +547,8 @@ def pytest_runtest_makereport(item, call):
                 "exc_module": name.rsplit(".", 1)[0] if name else None,
                 "exc_qualname": _TYPE_QUALNAME.__get__(exc.type, type) if exc is not None else None,
                 "imperative_xfail": bool(exc is not None and issubclass(exc.type, pytest.xfail.Exception)),
+                # the class itself, not its writable names (fresh whole-range review F3)
+                "exc_is_assertion": exc is not None and exc.type is AssertionError,
                 "frames": frames, "message": message, "message_sha256": digest, "marker": _marker(item)})
     except Exception as e:  # noqa: BLE001
         _error("makereport", e)

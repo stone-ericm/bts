@@ -169,8 +169,8 @@ def historical_replay(repo, worktree, spec: dict, out_dir) -> dict:
                 bad.append(f"state {runner.node_state(red.events, n)} at the parent")
             else:
                 call = runner.phases(red.events, n)["call"][0]
-                if (call.get("exc_module"), call.get("exc_qualname")) != ("builtins", "AssertionError"):
-                    bad.append(f"raised {call.get('exc_module')}.{call.get('exc_qualname')}")
+                if call.get("exc_is_assertion") is not True:   # the class itself, not its names (fresh review F3)
+                    bad.append(f"raised {call.get('exc_module')}.{call.get('exc_qualname')}, not AssertionError")
                 last = innermost_repo_frame(call.get("frames") or [], wt)
                 if not last or last[0] != s["_path"] or last[1] != s["_line"]:
                     bad.append(f"raised at {last[:2] if last else None}, not {s['_path']}:{s['_line']}")

@@ -104,7 +104,7 @@ def connection(unmarked: runner.Run, node: str, reg: dict, actual, wt: str) -> t
         got = unwrap(rets[-1]["value"])
         if got is UNAVAILABLE:
             return "unmatched", [f"connection: {conn['qualname']}'s return was not observed completely"]
-        return ("value_match", []) if got == actual else \
+        return ("value_match", []) if certify.same_json(got, actual) else \
             ("unmatched", [f"connection: {conn['qualname']} returned {got!r}, the oracle saw {actual!r}"])
     if kind == "reads":
         if not entries:
@@ -126,9 +126,22 @@ def connection(unmarked: runner.Run, node: str, reg: dict, actual, wt: str) -> t
             got = [list(t) for t in zip(*values)]
         else:
             got = values
-        return ("value_match", []) if got == actual else \
+        return ("value_match", []) if certify.same_json(got, actual) else \
             ("unmatched", [f"connection: production read-back {got!r} != the oracle's actual {actual!r}"])
     return "unmatched", [f"unknown connection kind {kind!r}"]
+
+
+def _oracle_record_errs(r: dict, rec: dict) -> list[str]:
+    """The oracle record against the registry and itself, compared as JSON values (``certify.same_json``: a type
+    change is a difference; fresh whole-range review F1)."""
+    why = []
+    if "bad_json" in r and not certify.same_json(rec["bad"], r["bad_json"]):
+        why.append("oracle record: bad value differs from the registry")
+    if "required_json" in r and not certify.same_json(rec["required"], r["required_json"]):
+        why.append("oracle record: required value differs from the registry")
+    if not certify.same_json(rec["actual"], rec["bad"]):
+        why.append("oracle record: actual is not the declared bad value")
+    return why
 
 
 def load_oracle_records(path) -> dict[str, dict]:
@@ -208,12 +221,7 @@ def accept(marked: runner.Run, unmarked: runner.Run, *, worktree, registry: list
             why.append("--runxfail: no structured oracle record")
             out["_connections"][n] = "unmatched"
         else:
-            if "bad_json" in r and rec["bad"] != r["bad_json"]:
-                why.append("oracle record: bad value differs from the registry")
-            if "required_json" in r and rec["required"] != r["required_json"]:
-                why.append("oracle record: required value differs from the registry")
-            if rec["actual"] != rec["bad"]:
-                why.append("oracle record: actual is not the declared bad value")
+            why += _oracle_record_errs(r, rec)
             status, cwhy = connection(unmarked, n, r, rec["actual"], wt)
             out["_connections"][n] = status
             why += cwhy
