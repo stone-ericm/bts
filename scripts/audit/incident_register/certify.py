@@ -111,7 +111,7 @@ COVERAGE = {
                    "the r14 answer there is no function watcher, so no replacement-code operand is read; a held "
                    "function's swapped __code__ is compared by identity at its first start, only while alone.) The "
                    "sample is a point predicate: a Python-accessing native thread of the reviewed venv that "
-                   "attaches after it is not excluded (open: Codex phase-1 r13 #4)",
+                   "attaches after it is not excluded (open: Codex phase-1 r13 #4; kept open by Eric's decision, 2026-10-02)",
     "missed_not_false": "a call through anything the recorder does not observe (an unsupported namespace, lookup that "
                         "bypasses the raw namespace, a C-implemented callable, another process) is not recorded: it "
                         "can only fail to witness an event",
@@ -128,7 +128,7 @@ COVERAGE = {
                           "thread's frames; with elapsed time or resource use; or with object addresses. An in-process "
                           "observer holds every value a binding held, and its code, until the observation ends; it "
                           "occupies a monitoring tool and instruments the code it watches; and it takes time and memory "
-                          "(proposed ruling 13; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten "
+                          "(ruling 13, adopted by Eric 2026-10-02; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten "
                           "files and ordinary object identity relations are inputs; they are not elapsed observation cost "
                           "or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a "
                           "divergence when the twins' recorded failure-message digests differ after normalization, or "

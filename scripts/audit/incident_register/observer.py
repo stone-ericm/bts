@@ -507,7 +507,7 @@ _RUN_VARIANT = (
 
 def _message_digest(text) -> str | None:
     """sha256 of a failure message after that normalization, so an observed failure and its unobserved twin can be
-    required to fail with the same normalized message (``defence._conformance``; proposed ruling 13, Codex phase-1
+    required to fail with the same normalized message (``defence._conformance``; ruling 13, Codex phase-1
     r18, r19). Read after the call phase, from pytest's own report; None for anything but an exact str."""
     if type(text) is not str:
         return None

@@ -650,13 +650,23 @@ def test_an_unread_argument_never_becomes_a_witnessed_null(tmp_path, case):
         assert not any(b["identity"]["category"] == "null_argument" for b in bs), bs
 
 
-def test_duplicate_local_names_are_never_read():
-    """A slot's kind cannot be told by name when two locals share it (O87)."""
-    def probe(x, y):
-        def capture():
-            return x
-        frame = sys._getframe()
-        return observer._fast_local(frame, frame.f_code, 0, True), observer._fast_local(frame, frame.f_code, 1, True)
+@pytest.mark.parametrize("cell", [True, False], ids=["cell-name", "plain-names"])
+def test_duplicate_local_names_are_never_read(cell):
+    """A slot's kind cannot be told by name when two locals share it (O87). A repeated cell name is also refused by
+    the prologue check (since r14), so the cell case alone left O87 SURVIVED in the full sweep at b96d1e3; repeated
+    plain names are refused by O87 only. Reading them would misattribute keywords: the observer keys keyword values by
+    co_varnames, where a repeated name keeps the LAST slot, while CPython binds a keyword argument to the FIRST slot of
+    that name (measured: with names ("p", "text", "text"), m(1, text=2) reports the second "text" missing)."""
+    if cell:
+        def probe(x, y):
+            def capture():
+                return x
+            frame = sys._getframe()
+            return observer._fast_local(frame, frame.f_code, 0, True), observer._fast_local(frame, frame.f_code, 1, True)
+    else:
+        def probe(x, y):
+            frame = sys._getframe()
+            return observer._fast_local(frame, frame.f_code, 0, True), observer._fast_local(frame, frame.f_code, 1, True)
     old = probe.__code__
     probe.__code__ = old.replace(co_varnames=("x", "x") + old.co_varnames[2:])
     assert probe("left", "right") == (observer._UNREAD, observer._UNREAD)
@@ -1345,7 +1355,7 @@ def test_the_closure_screen_flags_code_that_can_see_the_observer(tmp_path, sourc
     so module and function aliases and a computed attribute name on an imported module are listed, and r18 #1-#2's
     instrumentation reads have their own category. A name generated without importing the module, and a dependency
     outside src/bts and tests, are still not flagged: the screen is a warning list, and each prepared closure has an
-    independent source review (proposed ruling 13)."""
+    independent source review (ruling 13)."""
     labels = _screen_labels(tmp_path, source)
     assert label in labels, labels
 
@@ -1377,7 +1387,7 @@ def test_an_alert_sent_only_when_observed_is_refused(tmp_path, helper):
     (the observer keeps a retired boundary's code, so its constant's finalizer runs only unobserved): the application
     sees the observer and sends the alert only when observed. Both twins failed the frozen assertion at the same line,
     so the certificate was accepted. The twins' failure messages must now agree too (D18), and here they differ, so
-    the interval is refused. These shapes stay outside the model (proposed ruling 13): the comparison is a backstop on
+    the interval is refused. These shapes stay outside the model (ruling 13): the comparison is a backstop on
     normalized message text, not semantic equality and not a proof that observation is invisible."""
     res = _defend(tmp_path, helper)
     observed = (tmp_path / "out/mutant.stdout.txt").read_text()

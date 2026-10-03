@@ -29,7 +29,7 @@ for i, sh in enumerate(shards):
                 seen[lab] += 1
 missing = [lab for lab in order if lab not in lines]
 dups = [lab for lab, n in seen.items() if n > 1]
-verdicts = Counter(lines[lab].split(": ", 1)[1].split(" |")[0] for lab in order if lab in lines)
+verdicts = Counter(lines[lab][len(lab) + 2:].split(" |")[0] for lab in order if lab in lines)   # a title may hold ": "
 out = [f"# strict mutation sweep at {commit} ({len(order)} mutants; whole suite per mutant; JUnit-XML classification;"
        " every killing node listed)",
        f"# run in {len(shards)} parallel shards, each in its own worktree at the same commit with its own clean baseline",

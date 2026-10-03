@@ -13,7 +13,7 @@ change what the recorder attributes:
 * audit hooks, signal handlers and timers, collector control, finalizers and exit hooks;
 * ``__class__`` assignment and ``sys.modules`` stores;
 * patches of the standard-library modules the observer itself calls;
-* and, under proposed ruling 13, code that can see the observer: lifetime introspection (weak references,
+* and, under ruling 13, code that can see the observer: lifetime introspection (weak references,
   reference counts, the collector's queries); instrumentation introspection (the ``sys.monitoring`` registry
   and event sets, adaptive or instrumented bytecode, another thread's frames); elapsed time or resource use;
   object addresses.
@@ -28,7 +28,7 @@ PATTERNS = {
     "signal handler or timer": r"\bsignal\.(?:signal|setitimer|alarm|siginterrupt|pthread_kill|raise_signal)\b|\bos\.kill\b",
     "collector control": r"\bgc\.(?:enable|disable|callbacks|set_threshold|freeze)\b",
     "finalizer or exit hook": r"\bdef __del__\b|\bweakref\.(?:finalize|ref)\b|\batexit\.register\b",
-    # proposed ruling 13 (Codex phase-1 r17 #1, r18 #1-#3): behaviour that can see the observer. A module is flagged
+    # ruling 13 (Codex phase-1 r17 #1, r18 #1-#3; adopted by Eric 2026-10-02): behaviour that can see the observer. A module is flagged
     # wherever its name appears, so an import alias is listed at its import
     "lifetime introspection": r"\bweakref\b|\bsys\.getrefcount\b|\bimport gc\b|\bfrom gc import\b|\bgc\.(?:get|is)_\w+",
     "instrumentation introspection": (r"\bsys\.monitoring\b|\bfrom sys import\b[^#\n]*\bmonitoring\b|\bget_tool\b|"

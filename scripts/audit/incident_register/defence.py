@@ -121,7 +121,7 @@ def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str
     fails both ways, the same failure: exception type and innermost worktree frame (design §9.3 as
     amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2) and the
     same normalized failure message (``observer._message_digest``). Code that inspects the interpreter can see the
-    observer (Codex phase-1 r18 #1, #2; r17 #1) and is outside the model (proposed ruling 13). This refuses a
+    observer (Codex phase-1 r18 #1, #2; r17 #1) and is outside the model (ruling 13). This refuses a
     divergence whose normalized messages differ, and a missing message is never agreement; equal normalized
     messages are a backstop, not semantic equality (Codex phase-1 r19)."""
     plain = runner.run(worktree, tests, out_dir, stage, observe=None, quiesce=quiet, env_extra=env)
@@ -139,7 +139,7 @@ def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str
             ma, mb = _message(observed, n), _message(plain, n)
             if ma is None or ma != mb:
                 why.append(f"{stage}: {n} failed with a different message observed and unobserved, or one not "
-                           "recorded: observation may have changed what the failing assertion saw (proposed ruling 13)")
+                           "recorded: observation may have changed what the failing assertion saw (ruling 13)")
     return plain, why
 
 
