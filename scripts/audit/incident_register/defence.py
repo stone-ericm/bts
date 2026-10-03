@@ -109,11 +109,20 @@ def _failure(run: runner.Run, node: str, worktree: str):
     return (f"{c.get('exc_module')}.{c.get('exc_qualname')}", last[:2] if last else None)
 
 
+def _message(run: runner.Run, node: str) -> str | None:
+    """The digest of a failed call phase's message, run-variant parts blanked (``observer._message_digest``)."""
+    calls = runner.phases(run.events, node).get("call", [])
+    return calls[0].get("message_sha256") if len(calls) == 1 else None
+
+
 def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str, mode: str,
                  inventory: list[str], quiet: list[str]) -> tuple[runner.Run, list[str]]:
     """Re-run ``tests`` with NO observation and require identical per-node states — and, for a node that
     fails both ways, the same failure: exception type and innermost worktree frame (design §9.3 as
-    amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2)."""
+    amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2) and the
+    same message, once what differs between any two runs is blanked. Code that inspects the interpreter can see
+    the observer (Codex phase-1 r18 #1, #2; r17 #1) and is outside the model (proposed ruling 13); this refuses
+    such a divergence when it reaches the failing assertion's message, and a missing message is never agreement."""
     plain = runner.run(worktree, tests, out_dir, stage, observe=None, quiesce=quiet, env_extra=env)
     why = [f"{stage}: {r}" for r in runner.gate(plain, worktree=worktree, mode=mode, expected=inventory)]
     wt = os.path.realpath(worktree)
@@ -125,6 +134,11 @@ def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str
             fa, fb = _failure(observed, n, wt), _failure(plain, n, wt)
             if fa != fb:
                 why.append(f"{stage}: {n} failed differently observed ({fa}) and unobserved ({fb})")
+                continue
+            ma, mb = _message(observed, n), _message(plain, n)
+            if ma is None or ma != mb:
+                why.append(f"{stage}: {n} failed with a different message observed and unobserved, or one not "
+                           "recorded: observation may have changed what the failing assertion saw (proposed ruling 13)")
     return plain, why
 
 

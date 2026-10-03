@@ -1300,10 +1300,8 @@ def test_observation_never_changes_an_application_code_weak_reference_count(tmp_
     assert res["verdict"] == "rejected" and not res["certificates"][NODE]["ok"], res
 
 
-def test_the_closure_screen_lists_lifetime_dependent_application_code(tmp_path):
-    """Proposed ruling 13 puts behaviour that depends on object lifetimes outside the model (Codex r17 #1: the
-    observer keeps a retired boundary's code, and a finalizer on its constant ran unobserved only). The closure
-    screen lists such code in a closure, so a prepared spec's reliance on it is visible."""
+def _screen_labels(tmp_path, source):
+    """The closure screen's categories for one helper file holding ``source``."""
     import importlib.util
     from pathlib import Path
     tool = Path(observer.__file__).parents[3] / "docs/audit/2026-09-29-incident-register-evidence/tooling/closure_screen.py"
@@ -1312,7 +1310,123 @@ def test_the_closure_screen_lists_lifetime_dependent_application_code(tmp_path):
     spec.loader.exec_module(screen)
     (tmp_path / "src/bts").mkdir(parents=True)
     (tmp_path / "tests").mkdir()
-    (tmp_path / "tests/helper.py").write_text("import weakref\nclass Payload:\n    def __del__(self):\n        pass\n"
-                                              "def count(code):\n    return weakref.getweakrefcount(code)\n")
-    labels = {hit[0] for hit in screen.screen(tmp_path)}
+    (tmp_path / "tests/helper.py").write_text(source)
+    return {hit[0] for hit in screen.screen(tmp_path)}
+
+
+def test_the_closure_screen_lists_lifetime_dependent_application_code(tmp_path):
+    """Proposed ruling 13 puts behaviour that depends on object lifetimes outside the model (Codex r17 #1: the
+    observer keeps a retired boundary's code, and a finalizer on its constant ran unobserved only). The closure
+    screen lists such code in a closure, so a prepared spec's reliance on it is visible."""
+    labels = _screen_labels(tmp_path, "import weakref\nclass Payload:\n    def __del__(self):\n        pass\n"
+                                      "def count(code):\n    return weakref.getweakrefcount(code)\n")
     assert {"finalizer or exit hook", "lifetime introspection"} <= labels, labels
+
+
+@pytest.mark.parametrize("source,label", [
+    ("import weakref\nvalue = weakref.proxy(object())\n", "lifetime introspection"),
+    ("import weakref as wr\nvalue = wr.getweakrefcount(object())\n", "lifetime introspection"),
+    ("from weakref import getweakrefcount as count\nvalue = count(object())\n", "lifetime introspection"),
+    ("import weakref\nvalue = getattr(weakref, 'getweak' + 'refcount')(object())\n", "lifetime introspection"),
+    ("import gc\nvalue = gc.is_finalized(object())\n", "lifetime introspection"),
+    ("import sys\nslots = [sys.monitoring.get_tool(i) for i in range(6)]\n", "instrumentation introspection"),
+    ("from sys import monitoring as m\nslots = m.get_events(0)\n", "instrumentation introspection"),
+    ("import dis as d\nops = list(d.get_instructions(f.__code__, adaptive=True))\n", "instrumentation introspection"),
+    ("raw = f.__code__._co_code_adaptive\n", "instrumentation introspection"),
+    ("import sys\nframes = sys._current_frames()\n", "instrumentation introspection"),
+    ("import time\nstarted = time.monotonic()\n", "elapsed time or resource use"),
+    ("from time import perf_counter as clock\nstarted = clock()\n", "elapsed time or resource use"),
+    ("key = id(object())\n", "object address"),
+], ids=["proxy", "module-alias", "function-alias", "computed-name", "gc-query", "monitoring-registry",
+        "monitoring-alias", "adaptive-code", "adaptive-bytes", "other-threads-frames", "elapsed", "elapsed-alias",
+        "address"])
+def test_the_closure_screen_flags_code_that_can_see_the_observer(tmp_path, source, label):
+    """Codex r18 #3 measured seven misses in nine of its sources; the screen now flags a named module at its import,
+    so module and function aliases and a computed attribute name on an imported module are listed, and r18 #1-#2's
+    instrumentation reads have their own category. A name generated without importing the module, and a dependency
+    outside src/bts and tests, are still not flagged: the screen is a warning list, and each prepared closure has an
+    independent source review (proposed ruling 13)."""
+    labels = _screen_labels(tmp_path, source)
+    assert label in labels, labels
+
+
+# --- Codex r18: code that inspects the interpreter can see the observer -----------------------------------------
+
+REGISTRY_HELPER = ("import sys\ndef invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n"
+                   "        return\n    occupied=any(sys.monitoring.get_tool(i) is not None for i in range(6))\n"
+                   "    print('observation_visible',occupied)\n    transport.send('eric',ALERT if occupied else None)\n")
+ADAPTIVE_HELPER = ("import dis\ndef invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n"
+                   "        return\n    code=transport.send.__code__\n    transport.send('eric','pick: Turner')\n"
+                   "    instrumented=any(i.opname.startswith('INSTRUMENTED_') for i in dis.get_instructions(code,adaptive=True))\n"
+                   "    print('observation_visible',instrumented)\n    transport.send('eric',ALERT if instrumented else None)\n")
+RETIRED_HELPER = ("import types\nreleased=[]\nclass Payload:\n    def __del__(self):\n        released.append(True)\n"
+                  "def invoke(transport,rebind):\n    if not rebind:\n        transport.send('eric','pick: Turner')\n        return\n"
+                  "    original=transport.send\n    payload=Payload()\n"
+                  "    code=original.__code__.replace(co_consts=original.__code__.co_consts+(payload,))\n"
+                  "    candidate=types.FunctionType(code,original.__globals__)\n    transport.send=candidate\n    del payload\n"
+                  "    candidate('eric','pick: Turner')\n"
+                  "    transport.send=types.FunctionType(original.__code__.replace(),original.__globals__)\n"
+                  "    del candidate,code\n    print('observation_visible',not released)\n"
+                  "    transport.send('eric',ALERT if not released else None)\n")
+
+
+@pytest.mark.parametrize("helper", [REGISTRY_HELPER, ADAPTIVE_HELPER, RETIRED_HELPER],
+                         ids=["monitoring-registry", "adaptive-code", "retired-boundary-constant"])
+def test_an_alert_sent_only_when_observed_is_refused(tmp_path, helper):
+    """Codex r18 #1 (the monitoring-tool registry), r18 #2 (adaptive disassembly of the boundary's own code) and r17 #1
+    (the observer keeps a retired boundary's code, so its constant's finalizer runs only unobserved): the application
+    sees the observer and sends the alert only when observed. Both twins failed the frozen assertion at the same line,
+    so the certificate was accepted. The twins' failure messages must now agree too (D18), and here they differ, so
+    the interval is refused. These shapes stay outside the model (proposed ruling 13): the comparison catches a
+    divergence that reaches the failing assertion's message, and is not a proof that observation is invisible."""
+    res = _defend(tmp_path, helper)
+    observed = (tmp_path / "out/mutant.stdout.txt").read_text()
+    plain = (tmp_path / "out/mutant_unobserved.stdout.txt").read_text()
+    assert "observation_visible True" in observed and "observation_visible False" in plain, (observed, plain)
+    assert res["verdict"] == "rejected", res
+    assert any("failed with a different message observed and unobserved" in r for r in res["reasons"]), res["reasons"]
+
+
+RUN_VARIANT_TEST = ("from unittest.mock import MagicMock\nfrom bts import mod,transport\ndef test_probe(tmp_path):\n"
+                    "    shown=(MagicMock(name='shown'),object(),str(tmp_path))\n    result=mod.deliver()\n"
+                    "    assert transport.sent==[('eric','pick: Turner')],shown\n    assert result=='done'  # ASSERT-RESULT\n")
+
+
+def test_a_real_alert_whose_message_shows_run_variant_values_is_still_certified(tmp_path):
+    """The cost side of D18. A genuine alert's failing assertion shows a mock's id, an object's address and the
+    tmp_path, whose directory pytest numbers per session: all three differ between ANY two runs, observed or not.
+    They are blanked before the twins' messages are compared (O111-O113), so the certificate is accepted. Measured on
+    Codex r18's prepared runs: without the blanking, I-0830-a (a tmp_path) and I-0830-c (a mock's id) are refused."""
+    res = _defend(tmp_path, "def invoke(transport,rebind):\n    transport.send('eric',ALERT if rebind else 'pick: Turner')\n",
+                  test=RUN_VARIANT_TEST)
+    assert res["verdict"] == "accepted", res
+
+
+def test_the_message_digest_blanks_only_what_varies_between_runs():
+    digest = observer._message_digest
+    assert digest("x <object object at 0x10a2f> id='4415867120' /pytest-of-u/pytest-2033/t0") == \
+        digest("x <object object at 0x2ffe0> id='4477438192' /pytest-of-u/pytest-2034/t0")
+    assert digest("send('eric', 'BTS health CRITICAL: x')") != digest("send('eric', None)")
+    assert digest(type("S", (str,), {})("x")) is None
+    assert digest(None) is None
+
+
+def _twin(digest):
+    base = {"kind": "report", "nodeid": "tests/t.py::n", "wasxfail": None}
+    return [dict(base, when="setup", outcome="passed"),
+            dict(base, when="call", outcome="failed", exc_module="builtins", exc_qualname="AssertionError",
+                 frames=[], message="AssertionError: x", message_sha256=digest),
+            dict(base, when="teardown", outcome="passed")]
+
+
+@pytest.mark.parametrize("observed,plain,refused", [("a", "a", False), ("a", "b", True), (None, None, True)],
+                         ids=["same", "different", "unrecorded"])
+def test_twins_must_fail_with_the_same_recorded_message(monkeypatch, tmp_path, observed, plain, refused):
+    """A failed node whose observed and unobserved messages differ is refused (D18); so is one whose message was not
+    recorded, which is never read as agreement (D19)."""
+    monkeypatch.setattr(runner, "run", lambda *a, **k: runner.Run("mutant_unobserved", 1, _twin(plain), {}, tmp_path / "e"))
+    monkeypatch.setattr(runner, "gate", lambda *a, **k: [])
+    seen = runner.Run("mutant", 1, _twin(observed), {}, tmp_path / "e")
+    _, why = defence._conformance(str(tmp_path), seen, tmp_path / "out", [], {}, "mutant_unobserved", "mutant",
+                                  ["tests/t.py::n"], [])
+    assert bool(why) is refused, why

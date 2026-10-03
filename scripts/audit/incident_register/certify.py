@@ -33,7 +33,9 @@ reserved category ``unavailable``, which no request may name (Codex phase-1 r8 #
 
 Each certificate states its coverage and model. A certificate is necessary, not sufficient: the
 defence runner also requires the killing failure at the declared assertion and the observer-on/off
-conformance runs, and the reviewer reads the patch, frames and linked events.
+conformance runs (the same node states and, for a node failing both ways, the same exception, innermost
+frame and message once what differs between any two runs is blanked), and the reviewer reads the patch,
+frames and linked events.
 """
 from __future__ import annotations
 
@@ -119,10 +121,18 @@ COVERAGE = {
                           "garbage collection or signal handlers switched on and off again inside the call phase",
                           "a test or helper that replaces a standard-library function the observer itself calls",
                           "a held mock's class changed and restored between the moments the recorder reads it",
-                          "application behaviour that depends on object lifetimes or reference bookkeeping (finalizers, "
-                          "weak references or their counts, reference counts, garbage-collector introspection): the "
-                          "observer holds every value a binding held, and its code, until the observation ends (proposed "
-                          "ruling 13, Codex phase-1 r17 #1; the closure screen lists any such use in src/bts and tests)"],
+                          "application behaviour that can see the observer: a boundary event or returned-value decision "
+                          "that changes with observable finalization, weak-reference liveness, callbacks or counts, "
+                          "reference counts, or garbage-collector introspection (Codex phase-1 r18's wording); with the "
+                          "sys.monitoring tool registry or event sets, instrumented or adaptive bytecode, or another "
+                          "thread's frames; with elapsed time or resource use; or with object addresses. An in-process "
+                          "observer holds every value a binding held, and its code, until the observation ends; it "
+                          "occupies a monitoring tool and instruments the code it watches; and it takes time and memory "
+                          "(proposed ruling 13; Codex phase-1 r17 #1, r18 #1-#3). The defence refuses such a divergence "
+                          "when it reaches the failing assertion's message (observer-on/off conformance). The closure "
+                          "screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, "
+                          "imports or generated code, so each prepared closure requires independent source review for "
+                          "this exclusion (Codex phase-1 r18 #3, verbatim)"],
 }
 
 

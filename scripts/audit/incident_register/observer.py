@@ -494,6 +494,19 @@ def pytest_collection_finish(session):
     _write({"kind": "collected", "nodeids": [item.nodeid for item in session.items], "files": files})
 
 
+# what differs between ANY two runs of the same failure: an address, a mock's id, pytest's per-session tmp_path number
+_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=')\d+(?=')|(?<=/pytest-)\d+(?=/)")
+
+
+def _message_digest(text) -> str | None:
+    """sha256 of a failure message with its run-variant parts blanked, so an observed failure and its unobserved twin
+    can be required to fail with the same message (``defence._conformance``; proposed ruling 13, Codex phase-1 r18).
+    Read after the call phase, from pytest's own report; None for anything but an exact str."""
+    if type(text) is not str:
+        return None
+    return hashlib.sha256(_RUN_VARIANT.sub("?", text).encode("utf-8", "surrogatepass")).hexdigest()
+
+
 def _marker(item) -> dict | None:
     mark = item.get_closest_marker("xfail")
     if mark is None:
@@ -511,20 +524,21 @@ def pytest_runtest_makereport(item, call):
     rep = yield
     try:
         exc = call.excinfo
-        frames, message = [], None
+        frames, message, digest = [], None, None
         if exc is not None:
             for entry in exc.traceback:
                 frames.append([os.path.realpath(str(entry.path)), entry.lineno + 1, entry.name])
             crash = getattr(getattr(rep, "longrepr", None), "reprcrash", None)
             text = getattr(crash, "message", None)
             message = text[:500] if type(text) is str else None
+            digest = _message_digest(text)
         name = type_name(exc.type) if exc is not None else None
         _write({"kind": "report", "nodeid": item.nodeid, "when": call.when, "outcome": rep.outcome,
                 "wasxfail": getattr(rep, "wasxfail", None),
                 "exc_module": name.rsplit(".", 1)[0] if name else None,
                 "exc_qualname": _TYPE_QUALNAME.__get__(exc.type, type) if exc is not None else None,
                 "imperative_xfail": bool(exc is not None and issubclass(exc.type, pytest.xfail.Exception)),
-                "frames": frames, "message": message, "marker": _marker(item)})
+                "frames": frames, "message": message, "message_sha256": digest, "marker": _marker(item)})
     except Exception as e:  # noqa: BLE001
         _error("makereport", e)
     return rep

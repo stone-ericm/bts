@@ -303,6 +303,13 @@ M = [
  ('observer.py', '        except StopIteration:\n            return True                        # a table that ends mid-entry is not read (Codex r16 probe)', '        except StopIteration:\n            return False                        # a table that ends mid-entry is not read (Codex r16 probe)', "O108 an exception table that ends mid-entry is not read (Codex r16 probe)"),
  ('observer.py', '        if not first & 128:\n            return True', '        if False:\n            return True', "O109 an exception-table entry without its start marker is not read (Codex r16 probe)"),
  ('certify.py', '    if installed[0] is not None and installed[0] > 0:', '    if False:', "C31 any trace, profile or monitoring install before the call phase refuses the interval (Codex r16)"),
+ ('defence.py', '            if ma is None or ma != mb:', '            if False:', "D18 a node failing both ways fails with the same message observed and unobserved (Codex r18 #1-#2, r17 #1)"),
+ ('defence.py', '            if ma is None or ma != mb:', '            if ma != mb:', "D19 a failure message not recorded is never agreement (Codex r18)"),
+ ('observer.py', '            digest = _message_digest(text)', '            digest = None', "O110 the failure message digest is recorded (Codex r18)"),
+ ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', "O111 an address is blanked before the twins' messages are compared (Codex r18 prepared cost)"),
+ ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=/pytest-)\\d+(?=/)")', "O112 a mock's id is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-c)"),
+ ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')")', "O113 pytest's per-session tmp_path number is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-a)"),
+ ('observer.py', '    if type(text) is not str:\n        return None\n    return hashlib.sha256(_RUN_VARIANT', '    if False:\n        return None\n    return hashlib.sha256(_RUN_VARIANT', "O114 only an exact str message is digested (Codex r18)"),
 ]
 
 

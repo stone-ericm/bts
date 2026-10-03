@@ -2,15 +2,21 @@
 
     python closure_screen.py <repo-root> > closure_screen.txt
 
-A conservative text screen, not a proof (Codex's consult: aliases, reflection, generated code and native
-packages can do the same things; the screen's hits are REVIEWED, and a certificate still needs its
-runtime checks). It lists, in ``src/bts`` and ``tests`` (the tooling's own tests excluded), every line
-that could put application code inside observation or change what the recorder attributes:
+A warning list, not a proof. It flags selected literal spellings in ``src/bts`` and ``tests`` (the tooling's
+own tests excluded), and does not resolve reflection (``getattr`` with a computed name), generated code or a
+dependency outside those two roots. Codex's consult and its phase-1 r18 #3 measured those misses. So every
+prepared closure also needs an independent source review for these exclusions, with the disposition recorded,
+and a certificate still needs its runtime checks. A module the screen names is flagged at its import, so an
+alias made there is listed too. The categories are lines that could put application code inside observation or
+change what the recorder attributes:
 
-* audit hooks, signal handlers and timers, collector control, finalizers and exit hooks, lifetime introspection
-  (weak-reference counts and collections, reference counts, collector referrer queries: proposed ruling 13);
+* audit hooks, signal handlers and timers, collector control, finalizers and exit hooks;
 * ``__class__`` assignment and ``sys.modules`` stores;
-* patches of the standard-library modules the observer itself calls.
+* patches of the standard-library modules the observer itself calls;
+* and, under proposed ruling 13, code that can see the observer: lifetime introspection (weak references,
+  reference counts, the collector's queries); instrumentation introspection (the ``sys.monitoring`` registry
+  and event sets, adaptive or instrumented bytecode, another thread's frames); elapsed time or resource use;
+  object addresses.
 """
 import re
 import sys
@@ -22,9 +28,16 @@ PATTERNS = {
     "signal handler or timer": r"\bsignal\.(?:signal|setitimer|alarm|siginterrupt|pthread_kill|raise_signal)\b|\bos\.kill\b",
     "collector control": r"\bgc\.(?:enable|disable|callbacks|set_threshold|freeze)\b",
     "finalizer or exit hook": r"\bdef __del__\b|\bweakref\.(?:finalize|ref)\b|\batexit\.register\b",
-    # proposed ruling 13 (Codex phase-1 r17): behaviour that depends on object lifetimes or reference bookkeeping
-    "lifetime introspection": (r"\bweakref\.(?:getweakrefcount|getweakrefs|WeakSet|WeakValueDictionary|WeakKeyDictionary|"
-                               r"WeakMethod)\b|\bsys\.getrefcount\b|\bgc\.get_(?:referrers|referents|objects)\b"),
+    # proposed ruling 13 (Codex phase-1 r17 #1, r18 #1-#3): behaviour that can see the observer. A module is flagged
+    # wherever its name appears, so an import alias is listed at its import
+    "lifetime introspection": r"\bweakref\b|\bsys\.getrefcount\b|\bimport gc\b|\bfrom gc import\b|\bgc\.(?:get|is)_\w+",
+    "instrumentation introspection": (r"\bsys\.monitoring\b|\bfrom sys import\b[^#\n]*\bmonitoring\b|\bget_tool\b|"
+                                      r"\bget_(?:local_)?events\b|\badaptive\s*=|\b_co_code_adaptive\b|\bINSTRUMENTED_|"
+                                      r"\bimport dis\b|\bfrom dis import\b|\b_current_frames\b"),
+    "elapsed time or resource use": (r"\b(?:monotonic|perf_counter|process_time|thread_time)(?:_ns)?\(|"
+                                     r"\btime\.time(?:_ns)?\(|^\s*from time import\b|^\s*import time as\b|"
+                                     r"\bresource\.getrusage\b|\btracemalloc\b|\bsys\.getallocatedblocks\b|\btimeit\b"),
+    "object address": r"(?<![\w.])id\(",
     "class assignment": r"\.__class__\s*=(?!=)",
     "sys.modules store": r"\bsys\.modules\s*(?:\[[^\]]*\]\s*=(?!=)|=(?!=))|\bsys\.modules\.(?:pop|update|setdefault|clear)\b",
     "stdlib patch": (r"\bpatch(?:\.object)?\(\s*['\"]?" + OBSERVER_STDLIB + r"[.,'\"]|\bmonkeypatch\.(?:setattr|delattr)\(\s*['\"]?"
