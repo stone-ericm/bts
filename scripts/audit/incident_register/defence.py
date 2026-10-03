@@ -110,7 +110,7 @@ def _failure(run: runner.Run, node: str, worktree: str):
 
 
 def _message(run: runner.Run, node: str) -> str | None:
-    """The digest of a failed call phase's message, run-variant parts blanked (``observer._message_digest``)."""
+    """The digest of a failed call phase's normalized message (``observer._message_digest``)."""
     calls = runner.phases(run.events, node).get("call", [])
     return calls[0].get("message_sha256") if len(calls) == 1 else None
 
@@ -120,9 +120,10 @@ def _conformance(worktree, observed: runner.Run, out_dir, tests, env, stage: str
     """Re-run ``tests`` with NO observation and require identical per-node states — and, for a node that
     fails both ways, the same failure: exception type and innermost worktree frame (design §9.3 as
     amended: observer-on behaviour is validated against an observer-off control; Codex phase-1 r4 #2) and the
-    same message, once what differs between any two runs is blanked. Code that inspects the interpreter can see
-    the observer (Codex phase-1 r18 #1, #2; r17 #1) and is outside the model (proposed ruling 13); this refuses
-    such a divergence when it reaches the failing assertion's message, and a missing message is never agreement."""
+    same normalized failure message (``observer._message_digest``). Code that inspects the interpreter can see the
+    observer (Codex phase-1 r18 #1, #2; r17 #1) and is outside the model (proposed ruling 13). This refuses a
+    divergence whose normalized messages differ, and a missing message is never agreement; equal normalized
+    messages are a backstop, not semantic equality (Codex phase-1 r19)."""
     plain = runner.run(worktree, tests, out_dir, stage, observe=None, quiesce=quiet, env_extra=env)
     why = [f"{stage}: {r}" for r in runner.gate(plain, worktree=worktree, mode=mode, expected=inventory)]
     wt = os.path.realpath(worktree)

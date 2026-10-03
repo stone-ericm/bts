@@ -34,7 +34,7 @@ reserved category ``unavailable``, which no request may name (Codex phase-1 r8 #
 Each certificate states its coverage and model. A certificate is necessary, not sufficient: the
 defence runner also requires the killing failure at the declared assertion and the observer-on/off
 conformance runs (the same node states and, for a node failing both ways, the same exception, innermost
-frame and message once what differs between any two runs is blanked), and the reviewer reads the patch,
+frame and normalized failure message: a backstop, not semantic equality), and the reviewer reads the patch,
 frames and linked events.
 """
 from __future__ import annotations
@@ -128,11 +128,19 @@ COVERAGE = {
                           "thread's frames; with elapsed time or resource use; or with object addresses. An in-process "
                           "observer holds every value a binding held, and its code, until the observation ends; it "
                           "occupies a monitoring tool and instruments the code it watches; and it takes time and memory "
-                          "(proposed ruling 13; Codex phase-1 r17 #1, r18 #1-#3). The defence refuses such a divergence "
-                          "when it reaches the failing assertion's message (observer-on/off conformance). The closure "
-                          "screen flags selected literal spellings in src/bts and tests; it does not resolve aliases, "
-                          "imports or generated code, so each prepared closure requires independent source review for "
-                          "this exclusion (Codex phase-1 r18 #3, verbatim)"],
+                          "(proposed ruling 13; Codex phase-1 r17 #1, r18 #1-#3). Fixed fixture clock values, prewritten "
+                          "files and ordinary object identity relations are inputs; they are not elapsed observation cost "
+                          "or numeric address-dependent choices (Codex phase-1 r19, verbatim). The defence refuses a "
+                          "divergence when the twins' recorded failure-message digests differ after normalization, or "
+                          "either digest is missing. Normalization replaces text shaped like a default repr's address, "
+                          "the id in a mock's repr and the number of pytest's /pytest-of-<user>/pytest-N/ directory "
+                          "without identifying its meaning; it can therefore erase meaningful application data. Equal "
+                          "normalized messages do not prove equal boundary events, equal returned values or observer "
+                          "invisibility. The exclusion requires the independent source review of each prepared closure "
+                          "(Codex phase-1 r19's wording, with the patterns as narrowed after it). The closure screen "
+                          "flags selected literal spellings in src/bts and tests; it does not resolve aliases, imports "
+                          "or generated code, so each prepared closure requires independent source review for this "
+                          "exclusion (Codex phase-1 r18 #3, verbatim)"],
 }
 
 

@@ -494,17 +494,26 @@ def pytest_collection_finish(session):
     _write({"kind": "collected", "nodeids": [item.nodeid for item in session.items], "files": files})
 
 
-# what differs between ANY two runs of the same failure: an address, a mock's id, pytest's per-session tmp_path number
-_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=')\d+(?=')|(?<=/pytest-)\d+(?=/)")
+# (Codex phase-1 r19, verbatim:) Failure-message normalization for common run metadata. These patterns also match
+# application text, so digest agreement is only a backstop, not semantic equality. Each is narrowed to its repr shape
+# (r19 #1: bare hex, id='N' and /pytest-N/ text matched application data): a default repr's address, the id in a
+# mock's repr, and the number of pytest's /pytest-of-<user>/pytest-N/ session directory.
+_RUN_VARIANT = (
+    (re.compile(r"(\bat 0x)[0-9a-fA-F]+(?=[>,])"), r"\g<1>?"),
+    (re.compile(r"(<\w*Mock\b[^<>]*\bid=')\d+(?='>)"), r"\g<1>?"),
+    (re.compile(r"(/pytest-of-[^/\s'\"]+/pytest-)\d+(?=/)"), r"\g<1>?"),
+)
 
 
 def _message_digest(text) -> str | None:
-    """sha256 of a failure message with its run-variant parts blanked, so an observed failure and its unobserved twin
-    can be required to fail with the same message (``defence._conformance``; proposed ruling 13, Codex phase-1 r18).
-    Read after the call phase, from pytest's own report; None for anything but an exact str."""
+    """sha256 of a failure message after that normalization, so an observed failure and its unobserved twin can be
+    required to fail with the same normalized message (``defence._conformance``; proposed ruling 13, Codex phase-1
+    r18, r19). Read after the call phase, from pytest's own report; None for anything but an exact str."""
     if type(text) is not str:
         return None
-    return hashlib.sha256(_RUN_VARIANT.sub("?", text).encode("utf-8", "surrogatepass")).hexdigest()
+    for pattern, blank in _RUN_VARIANT:
+        text = pattern.sub(blank, text)
+    return hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def _marker(item) -> dict | None:

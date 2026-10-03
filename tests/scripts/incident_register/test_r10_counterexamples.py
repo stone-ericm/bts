@@ -1377,8 +1377,8 @@ def test_an_alert_sent_only_when_observed_is_refused(tmp_path, helper):
     (the observer keeps a retired boundary's code, so its constant's finalizer runs only unobserved): the application
     sees the observer and sends the alert only when observed. Both twins failed the frozen assertion at the same line,
     so the certificate was accepted. The twins' failure messages must now agree too (D18), and here they differ, so
-    the interval is refused. These shapes stay outside the model (proposed ruling 13): the comparison catches a
-    divergence that reaches the failing assertion's message, and is not a proof that observation is invisible."""
+    the interval is refused. These shapes stay outside the model (proposed ruling 13): the comparison is a backstop on
+    normalized message text, not semantic equality and not a proof that observation is invisible."""
     res = _defend(tmp_path, helper)
     observed = (tmp_path / "out/mutant.stdout.txt").read_text()
     plain = (tmp_path / "out/mutant_unobserved.stdout.txt").read_text()
@@ -1395,17 +1395,42 @@ RUN_VARIANT_TEST = ("from unittest.mock import MagicMock\nfrom bts import mod,tr
 def test_a_real_alert_whose_message_shows_run_variant_values_is_still_certified(tmp_path):
     """The cost side of D18. A genuine alert's failing assertion shows a mock's id, an object's address and the
     tmp_path, whose directory pytest numbers per session: all three differ between ANY two runs, observed or not.
-    They are blanked before the twins' messages are compared (O111-O113), so the certificate is accepted. Measured on
+    Their repr-shaped forms are blanked before the twins' messages are compared (O111-O113), so the certificate is accepted. Measured on
     Codex r18's prepared runs: without the blanking, I-0830-a (a tmp_path) and I-0830-c (a mock's id) are refused."""
     res = _defend(tmp_path, "def invoke(transport,rebind):\n    transport.send('eric',ALERT if rebind else 'pick: Turner')\n",
                   test=RUN_VARIANT_TEST)
     assert res["verdict"] == "accepted", res
 
 
-def test_the_message_digest_blanks_only_what_varies_between_runs():
+@pytest.mark.parametrize("shown", [("'status=0x111'", "'status=0x222'"), ("\"business id='111'\"", "\"business id='222'\""),
+                                   ("'/business/pytest-111/item'", "'/business/pytest-222/item'")],
+                         ids=["hex-text", "id-text", "pytest-text"])
+def test_application_text_shaped_like_run_metadata_still_counts(tmp_path, shown):
+    """Codex r19 #1: the blanking matched ANY hex token, quoted decimal id or /pytest-N/ path component, so an alert sent
+    only when observed (the monitoring registry) was accepted when the frozen assertion's message showed application
+    text of those shapes that differed between the twins. Only repr-shaped run metadata is blanked now (O111-O113), so
+    the messages differ and the interval is refused."""
+    observed, plain = shown
+    test = ('"""PYTEST_DONT_REWRITE"""\nfrom bts import mod,transport\ndef test_probe():\n    result=mod.deliver()\n'
+            "    assert transport.sent==[('eric','pick: Turner')], (" + observed + " if transport.sent[-1][1] is not None else "
+            + plain + ")\n    assert result=='done'\n")
+    res = _defend(tmp_path, REGISTRY_HELPER, test=test)
+    assert "observation_visible True" in (tmp_path / "out/mutant.stdout.txt").read_text()
+    assert res["verdict"] == "rejected", res
+    assert any("failed with a different message observed and unobserved" in r for r in res["reasons"]), res["reasons"]
+
+
+def test_the_message_digest_blanks_run_metadata_shapes_not_application_text():
+    """Blanked: a default repr's address, the id in a mock's repr, pytest's /pytest-of-<user>/pytest-N/ number. Kept:
+    the same characters anywhere else (Codex r19 #1's three shapes), and any other difference."""
     digest = observer._message_digest
-    assert digest("x <object object at 0x10a2f> id='4415867120' /pytest-of-u/pytest-2033/t0") == \
-        digest("x <object object at 0x2ffe0> id='4477438192' /pytest-of-u/pytest-2034/t0")
+    assert digest("x <object object at 0x10a2f> <code object f at 0x1, file 'a', line 1> <MagicMock name='m' id='4415867120'>"
+                  " <NonCallableMagicMock spec='S' id='1'> /T/pytest-of-u/pytest-2033/t0") == \
+        digest("x <object object at 0x2ffe0> <code object f at 0x2, file 'a', line 1> <MagicMock name='m' id='4477438192'>"
+               " <NonCallableMagicMock spec='S' id='2'> /T/pytest-of-u/pytest-2034/t0")
+    for a, b in [("status=0x111", "status=0x222"), ("business id='111'", "business id='222'"),
+                 ("/business/pytest-111/item", "/business/pytest-222/item"), ("<thing at 0x1 here>", "<thing at 0x2 here>")]:
+        assert digest(a) != digest(b), (a, b)
     assert digest("send('eric', 'BTS health CRITICAL: x')") != digest("send('eric', None)")
     assert digest(type("S", (str,), {})("x")) is None
     assert digest(None) is None

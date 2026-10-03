@@ -306,10 +306,13 @@ M = [
  ('defence.py', '            if ma is None or ma != mb:', '            if False:', "D18 a node failing both ways fails with the same message observed and unobserved (Codex r18 #1-#2, r17 #1)"),
  ('defence.py', '            if ma is None or ma != mb:', '            if ma != mb:', "D19 a failure message not recorded is never agreement (Codex r18)"),
  ('observer.py', '            digest = _message_digest(text)', '            digest = None', "O110 the failure message digest is recorded (Codex r18)"),
- ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', "O111 an address is blanked before the twins' messages are compared (Codex r18 prepared cost)"),
- ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=/pytest-)\\d+(?=/)")', "O112 a mock's id is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-c)"),
- ('observer.py', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')|(?<=/pytest-)\\d+(?=/)")', '_RUN_VARIANT = re.compile(r"0x[0-9a-fA-F]+|(?<=id=\')\\d+(?=\')")', "O113 pytest's per-session tmp_path number is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-a)"),
- ('observer.py', '    if type(text) is not str:\n        return None\n    return hashlib.sha256(_RUN_VARIANT', '    if False:\n        return None\n    return hashlib.sha256(_RUN_VARIANT', "O114 only an exact str message is digested (Codex r18)"),
+ ('observer.py', '    (re.compile(r"(\\bat 0x)[0-9a-fA-F]+(?=[>,])"), r"\\g<1>?"),\n', '', "O111 a default repr's address is blanked before the twins' messages are compared (Codex r18 prepared cost; narrowed after r19)"),
+ ('observer.py', '    (re.compile(r"(<\\w*Mock\\b[^<>]*\\bid=\')\\d+(?=\'>)"), r"\\g<1>?"),\n', '', "O112 the id in a mock's repr is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-c; narrowed after r19)"),
+ ('observer.py', '    (re.compile(r"(/pytest-of-[^/\\s\'\\"]+/pytest-)\\d+(?=/)"), r"\\g<1>?"),\n', '', "O113 pytest's /pytest-of-<user>/pytest-N/ number is blanked before the twins' messages are compared (Codex r18 prepared cost: I-0830-a; narrowed after r19)"),
+ ('observer.py', '    if type(text) is not str:\n        return None\n    for pattern, blank in _RUN_VARIANT', '    if False:\n        return None\n    for pattern, blank in _RUN_VARIANT', "O114 only an exact str message is digested (Codex r18)"),
+ ('observer.py', '    (re.compile(r"(\\bat 0x)[0-9a-fA-F]+(?=[>,])"), r"\\g<1>?"),\n', '    (re.compile(r"(0x)[0-9a-fA-F]+"), r"\\g<1>?"),\n', "O115 bare hex text in an application message is not blanked (Codex r19 #1)"),
+ ('observer.py', '    (re.compile(r"(<\\w*Mock\\b[^<>]*\\bid=\')\\d+(?=\'>)"), r"\\g<1>?"),\n', '    (re.compile(r"(id=\')\\d+(?=\')"), r"\\g<1>?"),\n', "O116 id='N' text outside a mock's repr is not blanked (Codex r19 #1)"),
+ ('observer.py', '    (re.compile(r"(/pytest-of-[^/\\s\'\\"]+/pytest-)\\d+(?=/)"), r"\\g<1>?"),\n', '    (re.compile(r"(/pytest-)\\d+(?=/)"), r"\\g<1>?"),\n', "O117 a /pytest-N/ component outside pytest's own directory is not blanked (Codex r19 #1)"),
 ]
 
 
