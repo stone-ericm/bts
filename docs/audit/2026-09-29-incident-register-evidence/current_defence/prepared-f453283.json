@@ -1,0 +1,218 @@
+{
+  "tooling": "/Users/eric/projects/bts-w15-evidence/tool",
+  "synthetic": "6d0a5b8a92c6429202bd1054d0cd47e8d6970c4f",
+  "results": [
+    {
+      "label": "I-0811-a",
+      "spec_sha256": "13f86142345d8144a14ab57578c6b3ec5be7b69f0d6a8df0fa5c1e56ea8e8986",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 47,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retries_empty_200_then_succeeds",
+            "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error",
+            "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0811-b",
+      "spec_sha256": "f606ed6a5baeb847b0045617b0db55d4925fd9cfb4344117748815c0203e311b",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 42,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/test_contest_fetch.py::test_fetch_cli_transient_auth_failure_says_outage_not_cookies",
+            "tests/test_contest_fetch.py::test_transient_alert_does_not_suppress_later_actionable_alert"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0813-a",
+      "spec_sha256": "67e589dc81f8a294b69d80040bd4db95b029036c37c5aa0c9e532e7ec8c0c524",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 8,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked",
+            "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_statuscode_pw_recognized_without_detailed_text"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0813-b",
+      "spec_sha256": "c3e99be0cedcf32be5e254b2d1bee89105fd731fecad547c5d7cb39d71bf31b1",
+      "verdict": "rejected",
+      "reasons": [
+        "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+      ],
+      "stages": {}
+    },
+    {
+      "label": "I-0830-a",
+      "spec_sha256": "75f4101b83a57fd295af9f9e64af213b081e613f4cb60b8ebb931c039823835d",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 8,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts",
+            "tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff",
+            "tests/test_late_delivery_guard.py::test_private_mode_is_guarded_too",
+            "tests/test_late_delivery_guard.py::test_clock_crossing_cutoff_between_guard_and_send_refuses"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0830-b",
+      "spec_sha256": "a4d2ddc87f18ff09e1abe188874d5d99e803935c34f41af6d1165a9e7abf06ca",
+      "verdict": "rejected",
+      "reasons": [
+        "refused: SpecError: absence (a missing event) is not certifiable by the Phase 1 recorder (plan ruling 10): report this link unavailable with this reason and keep its regression evidence"
+      ],
+      "stages": {}
+    },
+    {
+      "label": "I-0830-c",
+      "spec_sha256": "5be4f3a330bda64de8278a86e3cdbd706bebf83abc16c3b8d818b7f257ace0b6",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 10,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits",
+            "tests/data/test_pull.py::test_pull_feeds_sleeps_only_after_real_downloads"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0830-d",
+      "spec_sha256": "d4df0154075f8dbd49df7e46cc2388a68f850ce17bb8eb8f094b544f008b0d7d",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 11,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/health/test_late_delivery.py::test_after_cutoff_is_critical",
+            "tests/health/test_late_delivery.py::test_at_cutoff_is_critical",
+            "tests/health/test_late_delivery.py::test_utc_timestamp_and_earlier_double_down",
+            "tests/health/test_late_delivery.py::test_falls_back_to_pick_locked_at"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    },
+    {
+      "label": "I-0903-a",
+      "spec_sha256": "e4494ec5957f8512312bb1134e93342077e75abecbf8fa0f04163e577aafb892",
+      "verdict": "accepted",
+      "reasons": [],
+      "stages": {
+        "green": {
+          "returncode": 0,
+          "nodes": 25,
+          "gate": []
+        },
+        "mutant": {
+          "returncode": 1,
+          "kills": [
+            "tests/test_tail_policy_strategy.py::test_tail_regime_uses_tail_table_and_records_provenance",
+            "tests/test_tail_policy_strategy.py::test_stop_rule_skip_has_a_human_reason",
+            "tests/test_tail_policy_strategy.py::test_untrusted_best_cannot_authorise_the_stop",
+            "tests/test_tail_policy_strategy.py::test_missing_best_means_best_equals_streak",
+            "tests/test_tail_policy_strategy.py::test_stale_low_best_is_clamped_up_to_streak",
+            "tests/test_tail_policy_strategy.py::test_whole_mdp_absent_in_tail_never_reaches_the_heuristic",
+            "tests/test_tail_policy_strategy.py::test_whole_mdp_absent_still_honours_the_stop_rule",
+            "tests/test_tail_policy_strategy.py::test_base_missing_makes_the_tail_unverifiable_and_forces_the_fallback",
+            "tests/test_tail_policy_strategy.py::test_tail_missing_carries_the_loader_error",
+            "tests/test_tail_policy_strategy.py::test_tail_lookup_exception_degrades_to_forced_action",
+            "tests/test_tail_policy_strategy.py::test_tail_double_downgrades_without_a_different_game",
+            "tests/test_tail_policy_strategy.py::test_tail_double_downgrades_when_allow_double_false",
+            "tests/test_tail_policy_strategy.py::test_pick_bar_in_tail_is_zero_for_play_and_none_at_the_stop",
+            "tests/test_tail_policy_strategy.py::test_select_pick_first_tail_day_is_a_double",
+            "tests/test_tail_policy_strategy.py::test_select_pick_with_no_artifacts_in_tail_picks_a_single",
+            "tests/test_tail_policy_strategy.py::test_select_pick_stop_rule_returns_skip_with_decision"
+          ],
+          "gate": []
+        },
+        "restored": {
+          "returncode": 0,
+          "gate": []
+        }
+      }
+    }
+  ]
+}
