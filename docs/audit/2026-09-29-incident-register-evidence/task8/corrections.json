@@ -1,0 +1,37 @@
+{
+ "about": "Reviewed corrections applied to the drafts at build time (Task 8, 2026-10-03). Each install-state correction states the draft value it replaces; the build refuses if the draft differs.",
+ "add_evidence": [
+  {"record": "I-056", "evidence": {"id": "ev90", "kind": "machine_observation", "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (2b752be) contains 68a35d3, created 2026-06-07T00:11:11Z; log retained: 2b752be deployed 2026-06-07T00:11:21Z, canary passed. Deploys never install the crontab, so the schedule's own activation on the box is not evidenced"}},
+  {"record": "I-056", "evidence": {"id": "ev91", "kind": "machine_observation", "strength": "primary",
+   "locator": "GitHub Actions deploy run 27100280736 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (a436827) contains 58c9adc, created 2026-06-07T17:55:03Z; log unavailable_expired"}}
+ ],
+ "fix_deployed": [
+  {"record": "I-056", "link": 1,
+   "why": "eaccaf8 (run 27072979769) does not contain 68a35d3, the link's second fix commit (git merge-base --is-ancestor 68a35d3 eaccaf8 fails); the first successful deploy containing it is run 27077693688 (head 2b752be)",
+   "was": {"basis": "candidate_ancestry", "sha": "eaccaf8", "live_by": "2026-06-06T20:25:30Z", "run_id": 27072979769, "evidence": ["ev3"]},
+   "now": {"basis": "candidate_ancestry", "sha": "2b752be", "live_by": "2026-06-07T00:11:11Z", "run_id": 27077693688, "evidence": ["ev90"]}},
+  {"record": "I-056", "link": 3,
+   "why": "eaccaf8 does not contain 58c9adc, the link's second fix commit; the first successful deploy containing it is run 27100280736 (head a436827)",
+   "was": {"basis": "candidate_ancestry", "sha": "eaccaf8", "live_by": "2026-06-06T20:25:30Z", "run_id": 27072979769, "evidence": ["ev3"]},
+   "now": {"basis": "candidate_ancestry", "sha": "a436827", "live_by": "2026-06-07T17:55:03Z", "run_id": 27100280736, "evidence": ["ev91"]}}
+ ],
+ "notes": [
+  {"record": "I-056", "note": "Task 8 (2026-10-03): links 1 and 3 install states corrected to the first deploys containing their complete fix sets (68a35d3: run 27077693688, 2b752be; 58c9adc: run 27100280736, a436827); the drafts cited eaccaf8, which contains neither. Link 1's cron schedule needs a crontab install that deploys never perform; its activation is not evidenced here."},
+  {"record": "I-056", "note": "Task 8: link 2 was fixed by 2b4ff1d, which is also I-063 link 1's first fix commit. It stays an I-056 link because the stale branch's frozen doubles and max(model, contest) are both I-056 mechanism[1]; R-I056-2 and D-I056-2 certify the doubles half, R-I063-1 and D-I063-1 the inflation."},
+  {"record": "I-061", "note": "Task 8: link 3's fix (4f13eb3, the past-noon WARN escalation) was deliberately reversed by 56f9726 (I-063 link 4). R-I061-2 certifies the historical fix; at the pin the contract is the reverse (a one-pick gap is INFO at any hour, certified by R-I063-4 and D-I063-4), so link 3 has no current defence (not_applicable)."},
+  {"record": "I-043", "note": "Task 8: links 1 and 4 are defended by the same code: D-I043-1 and D-I043-4 delete the same stale-status PickLockState return in picks.classify_pick_lock_state, entered through the committed-pick lock (run_single_check) and through candidate eligibility (pick_candidate_status_is_available) respectively."}
+ ],
+ "defence_notes": {
+  "D-I011-1": "the mutant removes both already-resolved checks (the pre-check and the in-lock re-check); the killing node kills it through the in-lock re-check, so the pre-check alone has no killing test (coverage note)",
+  "D-I043-1": "same deleted block as D-I043-4 (see the record note)",
+  "D-I043-3": "PARTIAL: the cap clause of link 3 only; the headline clause (a schedule-detailed postponed/cancelled game counts as final) has no certificate",
+  "D-I043-4": "same deleted block as D-I043-1 (see the record note)",
+  "D-I056-3": "the witness is check() returning [] where green returns the WARN, read as a wrong returned value under ruling 10's text (flagged for the results review; the same pattern as I-0830-d)",
+  "D-I071-1": "revision 2, narrowed to the uncommitted-pick node; in revision 1 the observer refused to identify the skip-day node's DM (the boundary's code was shared by two live closures, fail-closed), so the skip-day case stays uncertified",
+  "D-I075-1": "closure note: the killing test anchors to the real date by design, with _now_et patched to that date's 23:30; the decision depends on the wall-clock date, not elapsed time",
+  "I-0830-d": "the witness is check() returning [] (no_alert), a wrong returned value; reviewed in the earlier rounds as the worked example"
+ }
+}
