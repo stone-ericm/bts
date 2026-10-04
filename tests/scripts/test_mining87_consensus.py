@@ -123,6 +123,13 @@ def test_latest_observation_wins_and_conflicting_same_stamp_rows_are_ambiguous_n
     assert inv["ambiguous_user_slot_observations"] == 1
 
 
+def test_a_name_alias_for_the_same_id_at_the_same_stamp_is_not_an_ambiguity():
+    rows = [_obs("a", 1, 10, name="Jose Ramirez"), _obs("a", 1, 10, name="José Ramírez")]
+    latest, inv = c.latest_observations(pd.DataFrame(rows))
+    assert len(latest) == 1 and inv["ambiguous_user_slot_observations"] == 0
+    assert latest.iloc[0]["batter_name"] == "Jose Ramirez"
+
+
 # --- inputs ---------------------------------------------------------------------------------------------------------
 
 def _write_picks(path, rows):
@@ -148,12 +155,20 @@ def test_public_picks_are_bounded_by_the_window_and_the_capture_cutoff(tmp_path)
         _obs("x", 3, 12, date="2026-06-01"),                                            # invalid slot number
     ])
     _write_picks(d / "bob.parquet", [])
+    _write_picks(d / "carol.parquet", [_obs("x", 1, 10, date="2026-04-01", captured_at="2026-05-01T10:00:00"),
+                                       _obs("x", 1, 11, date="2026-04-01", captured_at="2026-05-02T10:00:00"),
+                                       _obs("x", 2, 12, date="2026-04-01", captured_at="2026-05-02T10:00:00"),
+                                       _obs("x", 2, 13, date="2026-04-01", captured_at="2026-05-02T10:00:00")])
     obs, inv = c.load_public_picks(d, window_start="2026-03-26", window_end="2026-07-03",
                                    capture_end_exclusive="2026-07-05T00:00:00")
-    assert sorted(obs["pick_date"]) == ["2026-03-26", "2026-07-03"] and set(obs["username"]) == {"alice"}
-    assert inv["user_pick_files"] == 2 and inv["empty_user_pick_files"] == 1
+    alice = obs[obs["username"] == "alice"]
+    assert sorted(alice["pick_date"]) == ["2026-03-26", "2026-07-03"] and set(obs["username"]) == {"alice", "carol"}
+    carol = obs[obs["username"] == "carol"]                      # reduced per file to the latest observation
+    assert list(carol["batter_id"]) == [11]
+    assert inv["user_pick_files"] == 3 and inv["empty_user_pick_files"] == 1
     assert inv["rows_outside_window"] == 2 and inv["rows_after_capture_cutoff"] == 1
-    assert inv["rows_invalid_pick_number"] == 1
+    assert inv["rows_invalid_pick_number"] == 1 and inv["ambiguous_user_slot_observations"] == 1
+    assert inv["user_slot_observations"] == 4
 
 
 def test_cohort_is_the_pinned_snapshots_active_streak_tab_through_the_scraper_sanitizer(tmp_path):

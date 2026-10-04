@@ -23,19 +23,22 @@ SNAPSHOT_COLUMNS = ["captured_at", "tab", "rank", "username", "streak"]
 PICK_NUMBERS = (1, 2)
 SETTLED = {"hit": "hit", "not_hit": "not_hit", "void": "void"}
 PENDING = {"", None}
-OBS_IDENTITY = ["batter_id", "unit_id", "result", "batter_name"]
+OBS_IDENTITY = ["batter_id", "unit_id", "result"]          # names are display fields, never an identity
 
 
 # --- inputs ----------------------------------------------------------------------------------------------------------
 
 def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: str,
                       capture_end_exclusive: str) -> tuple[pd.DataFrame, dict]:
-    """Every observation in the registered window captured before the cutoff; the user is the file stem (the
-    corpus is username-keyed and has no user column). Each excluded row is counted under its first failing rule."""
+    """The latest observation per (user, date, slot) in the registered window, captured before the cutoff; the user
+    is the file stem (the corpus is username-keyed and has no user column). Each scrape appends a user's whole
+    history, so every file is reduced before concatenation. Each excluded row is counted under its first failing
+    rule; ambiguous latest observations are counted and cast no vote."""
     files = sorted(Path(user_picks_dir).glob("*.parquet"))
     cutoff = pd.Timestamp(capture_end_exclusive)
     parts, empty = [], 0
-    counts = {"rows_read": 0, "rows_outside_window": 0, "rows_after_capture_cutoff": 0, "rows_invalid_pick_number": 0}
+    counts = {"rows_read": 0, "rows_outside_window": 0, "rows_after_capture_cutoff": 0, "rows_invalid_pick_number": 0,
+              "user_slot_observations": 0, "ambiguous_user_slot_observations": 0}
     for path in files:
         if pq.read_metadata(path).num_rows == 0:
             empty += 1
@@ -58,11 +61,14 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
         counts["rows_invalid_pick_number"] += int((~valid_slot).sum())
         frame = frame[valid_slot].copy()
         frame["username"] = path.stem
-        parts.append(frame)
+        latest, inv = latest_observations(frame)
+        for k in ("user_slot_observations", "ambiguous_user_slot_observations"):
+            counts[k] += inv[k]
+        parts.append(latest)
     obs = (pd.concat(parts, ignore_index=True) if parts
            else pd.DataFrame(columns=[*USER_PICK_COLUMNS, "username"]))
     return obs, {"user_pick_files": len(files), "empty_user_pick_files": empty, **counts,
-                 "rows_retained": int(len(obs)), "users_with_retained_rows": int(obs["username"].nunique())}
+                 "users_with_retained_rows": int(obs["username"].nunique())}
 
 
 def latest_observations(obs: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
@@ -76,7 +82,8 @@ def latest_observations(obs: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     ident = top[OBS_IDENTITY].astype("string").fillna("<null>").agg("\x1f".join, axis=1)
     n_variants = ident.groupby([top[k] for k in key]).transform("nunique")
     ambiguous = top[n_variants > 1].drop_duplicates(key)
-    kept = top[n_variants == 1].drop_duplicates(key).reset_index(drop=True)
+    kept = (top[n_variants == 1].sort_values([*key, "batter_name"], na_position="last")
+            .drop_duplicates(key).reset_index(drop=True))
     return kept, {"user_slot_observations": int(len(kept) + len(ambiguous)),
                   "ambiguous_user_slot_observations": int(len(ambiguous))}
 
