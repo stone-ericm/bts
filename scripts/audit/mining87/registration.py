@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
-X22_COMMIT: str | None = None          # the register commit that publishes X-22; set only when X-22 is published
+X22_COMMIT: str | None = "6425eda"          # the register commit that publishes X-22
 REGISTER_PATH = "docs/audit/2026-09-22-exposure-register.md"
 DOCUMENTS = {"protocol": "docs/sota_audit/2026-05-10-leaderboard-mechanism-mining-prereg.md",
              "amendment": "docs/sota_audit/2026-10-04-mechanism-mining-amendment.md",
