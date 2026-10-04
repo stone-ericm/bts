@@ -92,8 +92,8 @@ def test_recalibration_fit_clips_p_before_the_logit_and_reports_invalid_fits():
     assert not const["valid"] and const["reason"] == "rank_deficient"
     one_class = core.recalibration_fit(np.array([0.6, 0.7, 0.8]), np.array([1, 1, 1]))
     assert not one_class["valid"] and one_class["reason"] == "one_class"
-    edge = core.recalibration_fit(np.array([0.0, 1.0, 0.5, 0.6] * 50), np.array([0, 1, 0, 1] * 50))
-    assert edge["boundary_rows"] == 100
+    edge = core.recalibration_fit(np.array([0.0, 1.0, 1.0, 0.5, 0.6] * 50), np.array([0, 1, 1, 0, 1] * 50))
+    assert edge["clipped_low"] == 50 and edge["clipped_high"] == 100
 
 
 def test_drag_date_is_available_only_when_every_contributing_venue_has_an_exact_value():
@@ -153,3 +153,42 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert res["E6"]["dates_complete"] == 20
     for e in ("E1", "E4", "E5", "E6", "E7"):
         assert "flag" in res[e]
+
+
+def _e46_frame():
+    rows = []
+    for k, d in enumerate([f"2026-07-{x:02d}" for x in range(1, 9)]):
+        for j in range(4):
+            p = 0.6 + 0.05 * j
+            exact = j < 2                                   # rows 0-1 reproduce exactly; rows 2-3 are unexplained
+            rows.append({"date": d, "row_order": j, "batter_id": j, "game_pk": 100 * k + j,
+                         "D": core.serialized(p), "C_served": p if exact else p + 0.1, "C_served_wblank": p + 0.2,
+                         "C_frozen": p, "B26": p, "outcome": "hit" if (j + k) % 2 else "no_hit",
+                         "sel_state": "selection_consistent", "pool_verified": True, "projected": False})
+    return pd.DataFrame(rows)
+
+
+def test_e4_flag_uses_only_reproduced_rows_and_each_halfs_supported_dates():
+    from scripts.audit.w13_tests import run
+    df = _e46_frame()
+    df.loc[(df["date"] >= "2026-07-05") & (df["row_order"] >= 2), "outcome"] = "no_hit"   # change only unexplained rows
+    dates = sorted(df["date"].unique())
+    res = run.e4(df, df, dates, n=200)
+    assert res["reproduced_support"]["first"]["dates"] == 4 and res["reproduced_support"]["second"]["dates"] == 4
+    assert res["reproduced_support"]["first"]["classes"] == {"exact_final_feed": 8}
+    full = res["estimates"]["resid_C_frozen"]
+    repro = res["estimates"]["resid_C_frozen_reproduced"]
+    assert full != repro                     # the full-population contrast is a separate description
+    none = df.assign(C_served=df["C_served"] + 0.3)            # nothing reproduces
+    assert run.e4(none, none, dates, n=50)["flag"] == "unavailable"
+
+
+def test_e6_venue_membership_is_frozen_before_outcome_filtering():
+    from scripts.audit.w13_tests import run
+    df = _e46_frame()
+    venues = {pk: 1 + (pk % 100) for pk in df["game_pk"]}          # venue = row index + 1
+    df.loc[df["row_order"] == 3, "outcome"] = "unknown"             # venue 4 has no known outcome on any date
+    drag = pd.DataFrame([{"venue_id": v, "date": d, "park_drag_delta": 0.01 * v}
+                         for d in df["date"].unique() for v in (1, 2, 3)])   # venue 4 lacks drag
+    res = run.e6(df, venues, drag, n=50)
+    assert res["dates_complete"] == 0 and res["flag"] == "unavailable"   # venue 4 is in the pool, so no date is complete

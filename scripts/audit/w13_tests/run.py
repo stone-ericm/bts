@@ -142,30 +142,44 @@ def e3(prim: pd.DataFrame, n: int) -> dict:
 
 # --- E4 ----------------------------------------------------------------------------------------------------------
 def e4(prim: pd.DataFrame, tab: pd.DataFrame, dates: list[str], n: int) -> dict:
+    """Half contrasts (design E4). The flag comes only from the C-frozen residual contrast on reproduced support:
+    primary rows with finite C-frozen and an E2 class of exact or inferred-weather; each half resamples only its dates
+    with at least one known supported row, at that effective count. Full-primary contrasts are descriptions."""
     first, second = core.half_split(dates)
     sc = tab[tab["sel_state"] == "selection_consistent"]
     repro = {tuple(k): core.repro_class(r) for k, r in
-             zip(sc[["date", "batter_id", "game_pk"]].itertuples(index=False), sc[["C_served", "C_served_wblank", "D"]].to_dict("records"))}
-    keys = list(zip(prim["date"], prim["batter_id"], prim["game_pk"]))
-    rsup = prim[[repro.get(k) in ("exact_final_feed", "inferred_weather_absent_at_serve") for k in keys]]
+             zip(sc[["date", "batter_id", "game_pk"]].itertuples(index=False),
+                 sc[["C_served", "C_served_wblank", "D"]].to_dict("records"))}
+    cls = pd.Series([repro.get(k) for k in zip(prim["date"], prim["batter_id"], prim["game_pk"])], index=prim.index)
+    rsup = prim[cls.isin(["exact_final_feed", "inferred_weather_absent_at_serve"])
+                & np.isfinite(prim["C_frozen"].astype(float))]
     per = pd.DataFrame(index=sorted(dates))
     for s in ("C_frozen", "B26", "D"):
         per = per.join(_per_date(prim, s), how="left")
-    rs = _per_date(rsup, "C_frozen").rename(columns=lambda c: c + "_reproduced")
-    per = per.join(rs, how="left")
     stats = {f"{k}_{s}": (lambda a, b, c=f"{k}_{s}": _nanmean(b[c]) - _nanmean(a[c]))
              for s in ("C_frozen", "B26", "D") for k in ("resid", "auc")}
-    stats["resid_C_frozen_reproduced"] = lambda a, b: _nanmean(b["resid_C_frozen_reproduced"]) - _nanmean(a["resid_C_frozen_reproduced"])
     point = {k: f(per.loc[first], per.loc[second]) for k, f in stats.items()}
     boot = core.half_contrast_bootstrap(per, first, second, stats, n_resamples=n)
-    flag = core.directional_flag(boot["resid_C_frozen_reproduced"])
-    rep_cov = {h: pd.Series([repro.get(k) for k in keys if k[0] in set(hd)]).value_counts().to_dict()
-               for h, hd in (("first", first), ("second", second))}
-    return {"component": "second-half minus first-half residual on numerically reproduced support (C-frozen)",
+    rper = _per_date(rsup, "C_frozen")
+    f_r = [d for d in first if d in rper.index]
+    s_r = [d for d in second if d in rper.index]
+    support = {h: {"dates": len(hd), "rows": int(rsup["date"].isin(hd).sum()),
+                   "classes": cls[rsup.index][rsup["date"].isin(hd)].value_counts().to_dict()}
+               for h, hd in (("first", f_r), ("second", s_r))}
+    if f_r and s_r:
+        rstat = {"resid_C_frozen_reproduced": lambda a, b: _nanmean(b["resid_C_frozen"]) - _nanmean(a["resid_C_frozen"])}
+        point["resid_C_frozen_reproduced"] = rstat["resid_C_frozen_reproduced"](rper.loc[f_r], rper.loc[s_r])
+        boot.update(core.half_contrast_bootstrap(rper, f_r, s_r, rstat, n_resamples=n))
+        flag = core.directional_flag(boot["resid_C_frozen_reproduced"])
+    else:
+        point["resid_C_frozen_reproduced"] = None
+        flag = "unavailable"
+    return {"component": "second-half minus first-half C-frozen residual on numerically reproduced support",
             "flag": _label(flag, "increased_overprediction_conditional", "reduced_overprediction"),
             "halves": {"first": [first[0], first[-1], len(first)], "second": [second[0], second[-1], len(second)]},
-            "estimates": point, "intervals": boot, "reproduction_by_half": rep_cov,
-            "full_explanation": "conditional hit-model drift not identified (one evolving season; PA-level evidence unavailable)"}
+            "estimates": point, "intervals": boot, "reproduced_support": support,
+            "full_explanation": "conditional hit-model drift not identified (one evolving season; PA-level evidence unavailable)",
+            "limits": "conditional on numerical reproduction; does not establish historical input parity"}
 
 
 # --- E5 ----------------------------------------------------------------------------------------------------------
@@ -230,23 +244,25 @@ def _spearman(x: pd.Series, y: pd.Series) -> float:
 
 
 def e6(prim: pd.DataFrame, venues: dict, drag: pd.DataFrame, n: int) -> dict:
-    sup = prim[prim["outcome"].isin(core.KNOWN) & np.isfinite(prim["D"].astype(float))
-               & np.isfinite(prim["C_frozen"].astype(float))].copy()
-    sup["venue_id"] = sup["game_pk"].map(venues)
-    sd = core.slate_drag(sup[["date", "venue_id"]], drag)
-    per = sd.join(_per_date(sup, "D"), how="left").join(_per_date(sup, "C_frozen"), how="left")
+    """Registered-slate as-of drag (design E6). Venue membership is frozen from the primary pool's common finite
+    D/C-frozen rows before any outcome filtering; residuals use the known rows of that support. Only the D
+    all-candidate correlation supplies the flag; C-frozen and D rank-1 are companions."""
+    pool = prim[np.isfinite(prim["D"].astype(float)) & np.isfinite(prim["C_frozen"].astype(float))].copy()
+    pool["venue_id"] = pool["game_pk"].map(venues)
+    sd = core.slate_drag(pool[["date", "venue_id"]], drag)
+    per = sd.join(_per_date(pool, "D"), how="left").join(_per_date(pool, "C_frozen"), how="left")
     w = m.top1(prim[np.isfinite(prim["D"].astype(float))].assign(_block=lambda x: x["date"]), "D")
     wk = w[w["outcome"].isin(core.KNOWN)]
     per = per.join(pd.Series(wk["D"].values - (wk["outcome"] == "hit").astype(int).values,
                              index=wk["date"].values, name="resid_D_rank1"), how="left")
     comp = per[per["complete"]]
     stats = {"rho_D": lambda x: _spearman(x["drag_mean"], x["resid_D"]),
-             "rho_C_frozen": lambda x: _spearman(x["drag_mean"], x["resid_C_frozen"]),
-             "rho_D_rank1": lambda x: _spearman(x["drag_mean"], x["resid_D_rank1"])}
+             "rho_C_frozen_companion": lambda x: _spearman(x["drag_mean"], x["resid_C_frozen"]),
+             "rho_D_rank1_companion": lambda x: _spearman(x["drag_mean"], x["resid_D_rank1"])}
     est = {k: f(comp) for k, f in stats.items()}
     boot = m.summary_bootstrap(comp, stats, n_resamples=n) if len(comp) >= 3 else {}
     flag = core.directional_flag(boot["rho_D"]) if boot else "unavailable"
-    return {"component": "registered-slate as-of drag vs per-date residual (Spearman)",
+    return {"component": "registered-slate as-of drag vs D all-candidate per-date residual (Spearman)",
             "flag": _label(flag, "narrow_association_consistent", "contradicts_narrow_direction"),
             "dates_complete": int(sd["complete"].sum()), "dates_incomplete": int((~sd["complete"]).sum()),
             "estimates": est, "intervals": boot,

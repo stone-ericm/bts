@@ -138,18 +138,19 @@ def recalibration_fit(p, y) -> dict:
     fails to converge or has singular information; no penalty or alternative fit is substituted."""
     p = np.asarray(p, dtype=float)
     y = np.asarray(y, dtype=float)
-    boundary = int(((p <= EPS) | (p >= 1 - EPS)).sum())
+    lo_n, hi_n = int((p <= EPS).sum()), int((p >= 1 - EPS).sum())
+    boundary = {"boundary_rows": lo_n + hi_n, "clipped_low": lo_n, "clipped_high": hi_n}
     if len(np.unique(y)) < 2:
-        return {"valid": False, "reason": "one_class", "boundary_rows": boundary, "n": int(len(y))}
+        return {"valid": False, "reason": "one_class", **boundary, "n": int(len(y))}
     q = np.clip(p, EPS, 1 - EPS)
     X = np.column_stack([np.ones(len(q)), np.log(q / (1 - q))])
     if np.linalg.matrix_rank(X) < 2:
-        return {"valid": False, "reason": "rank_deficient", "boundary_rows": boundary, "n": int(len(y))}
+        return {"valid": False, "reason": "rank_deficient", **boundary, "n": int(len(y))}
     beta, why = m._fit(X, y, np.ones(len(y)))
     if beta is None:
-        return {"valid": False, "reason": why, "boundary_rows": boundary, "n": int(len(y))}
+        return {"valid": False, "reason": why, **boundary, "n": int(len(y))}
     return {"valid": True, "reason": None, "intercept": float(beta[0]), "slope": float(beta[1]),
-            "boundary_rows": boundary, "n": int(len(y))}
+            **boundary, "n": int(len(y))}
 
 
 def slate_drag(cands: pd.DataFrame, drag: pd.DataFrame) -> pd.DataFrame:
