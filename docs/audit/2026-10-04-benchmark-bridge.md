@@ -1,6 +1,6 @@
 # W1.2 benchmark bridge: results memo
 
-**Status:** draft for Codex review (analysis deliverable: at most two rounds, then freeze with the limits stated). Analytical values below come from the accepted run's `summary.json`; operational statements are acceptance-record attestations where identified.
+**Status:** rev 2, FROZEN: Codex memo r1 SIGN WITH EDITS (`docs/audit/2026-10-04-benchmark-bridge-memo-codex-r1.md`), edits E1–E6 applied verbatim by script. Analytical values come from the accepted run's `summary.json`; operational statements are acceptance-record attestations where identified.
 **Design:** `docs/superpowers/specs/2026-10-04-benchmark-bridge-design.md` rev 3, FROZEN. **Exposure:** X-21 (`e09a7b7`), predeclared before any outcome-bearing execution.
 **Use:** descriptive only, under D3 = RESERVE. Nothing here nominates or tests a candidate.
 
