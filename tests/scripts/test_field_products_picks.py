@@ -109,6 +109,18 @@ def test_a_settled_leg_that_disappears_makes_the_round_incomplete():
     assert not r["complete"] and r["incomplete_reason"] == "settled_leg_deleted"
 
 
+def test_round_missing_from_a_later_capture_is_kept_but_flagged_and_counted():
+    """A newer omission never erases the older observation (season_ledger contest.slot_history precedent), but it is
+    recorded: the later full-profile capture no longer shows the round."""
+    obs = _obs([_row(1, 1, cap=T1), _row(2, 1, cap=T1), _row(2, 1, cap=T2)])
+    res = P.resolve(obs)
+    r = res.rounds.set_index("round_id")
+    assert r.loc[1, "dropped_from_later_capture"] and not r.loc[2, "dropped_from_later_capture"]
+    assert r.loc[1, "complete"] and res.log["rounds_dropped_from_later_capture"] == 1
+    s = P.dd_summary(res.rounds, date(2026, 5, 1), date(2026, 5, 5))[7]
+    assert s["dropped_from_later_capture"] == 1
+
+
 def test_unknown_slot_two_is_not_a_known_single_pick_day():
     """A pending primary with no second slot may still gain a DD before lock: incomplete, not single."""
     obs = _obs([_row(1, 1, cap=T1, result="")])

@@ -4,7 +4,9 @@ Observations are read as appended (never through ``latest_per_pick_date``, which
 DD leg). The analytical identity is (user_id, round_id, pick_number); unit/player identity and provenance (source,
 file, file row, captured_at) are kept. Declared revision order: ``captured_at``, then file rank (files sorted by name),
 then the row's position in its file. A round's snapshot is its rows in the latest capture that holds the round;
-older legs absent from that snapshot are not retained. Only the exact labels ``hit`` / ``not_hit`` are graded; a
+older legs absent from that snapshot are not retained. A round that a later capture of the same user no longer shows
+is kept (a newer omission never erases the older observation, as in season_ledger contest.slot_history) and flagged
+``dropped_from_later_capture``. Only the exact labels ``hit`` / ``not_hit`` are graded; a
 settlement is never inferred from at_bats/hits, and a later unsettled label is never replaced by an older settled one.
 """
 from __future__ import annotations
@@ -108,7 +110,7 @@ def _slot(user_id: int, round_id: int, pn: int, hist: list[Obs], snap: list[Obs]
     }
 
 
-def _round(user_id: int, round_id: int, g: list[Obs], log: dict) -> tuple[dict, list[dict]]:
+def _round(user_id: int, round_id: int, g: list[Obs], log: dict, last_capture=None) -> tuple[dict, list[dict]]:
     snap_ts = max(o.captured_at for o in g)
     batches: dict[tuple, list[Obs]] = {}
     for o in g:
@@ -147,6 +149,7 @@ def _round(user_id: int, round_id: int, g: list[Obs], log: dict) -> tuple[dict, 
            else None, "streak_conflict": len({s["streak_after"] for s in slots}) > 1,
            "complete": reason is None, "incomplete_reason": reason, "is_dd": reason is None and len(slots) == 2,
            "deleted_legs": len(deleted), "settled_leg_deleted": deleted_settled,
+           "dropped_from_later_capture": last_capture is not None and snap_ts < last_capture,
            "all_hit": reason is None and all(s["label"] == "hit" for s in slots),
            "any_not_hit": any(s["label"] == "not_hit" for s in slots),
            "all_graded": all(s["label"] in GRADED for s in slots)}
@@ -164,8 +167,11 @@ def resolve(obs: pd.DataFrame) -> Resolution:
         for rec in zip(*(ordered[c].tolist() for c in REC_COLS)):
             o = Obs(*rec)
             groups.setdefault((int(o.user_id), int(o.round_id)), []).append(o)
+        last_capture: dict[int, object] = {}
+        for (uid, _rid), g in groups.items():
+            last_capture[uid] = max(last_capture.get(uid, g[-1].captured_at), g[-1].captured_at)
         for (uid, rid) in sorted(groups):
-            rnd, slots = _round(uid, rid, groups[(uid, rid)], log)
+            rnd, slots = _round(uid, rid, groups[(uid, rid)], log, last_capture[uid])
             round_rows.append(rnd)
             slot_rows += slots
         log["n_users"] = int(obs["user_id"].nunique())
@@ -181,6 +187,7 @@ def resolve(obs: pd.DataFrame) -> Resolution:
         "settled_label_changed": int(slots["settled_label_changed"].sum()) if len(slots) else 0,
         "deleted_legs": int(rounds["deleted_legs"].sum()) if len(rounds) else 0,
         "settled_legs_deleted_rounds": int(rounds["settled_leg_deleted"].sum()) if len(rounds) else 0,
+        "rounds_dropped_from_later_capture": int(rounds["dropped_from_later_capture"].sum()) if len(rounds) else 0,
         "label_counts": ok["label"].value_counts().to_dict() if len(ok) else {},
         "status_counts": slots["status"].value_counts().to_dict() if len(slots) else {},
         "incomplete_reasons": rounds["incomplete_reason"].value_counts().to_dict() if len(rounds) else {},
@@ -220,6 +227,7 @@ def dd_summary(rounds: pd.DataFrame, start: date, end: date) -> dict[int, dict]:
                          "incomplete_rounds": int((~g["complete"]).sum()),
                          "incomplete_reasons": g.loc[~g["complete"], "incomplete_reason"].value_counts().to_dict(),
                          "deleted_legs": int(g["deleted_legs"].sum()),
+                         "dropped_from_later_capture": int(g["dropped_from_later_capture"].sum()),
                          "calendar_dates": cal, "unobserved_calendar_dates": cal - days}
     return out
 
