@@ -1,27 +1,104 @@
-# C1 rank 2 registration: outcome / entry / restart watchdog and restore checks
+## Verdict
 
-**Status:** design rev 2, 2026-10-04: Codex design r1 BLOCK, edits 1–8 applied verbatim by script (review `docs/audit/2026-10-04-c1-r2-design-codex-r1.md`); for Codex design review round 2 of 2, then freeze or defer. Production code follows the deploy rules: reviewed until SIGN, and shipped only with Eric's D7 approval.
-**Cycle:** C1 (`docs/sota_audit/2026-10-04-c1-cycle-index.md`).
-**Plan row (rank 2):**
-- Fault fixtures come from the W1.5 incidents; detection and recovery cover the delivery, entry, restart, singleton-slate and private-vs-contest boundaries.
-- **Kill if** the watchdog adds state races or cannot tell private picks from entries.
-- No P(57) significance is required.
+**BLOCK.** Rev 1 cannot pass either kill condition on the evidence contract it specifies. Declared intent does not bind an entry confirmation to an account and selection; file hashes do not prove that the watchdog made no writes or read a consistent scoring transaction. Several promised detections also depend on observations the current producers do not emit.
 
-**Exposure:** none needed. This is an ops candidate with no outcome analysis; its gate is fault fixtures, not a 2026 read.
+The smallest fix is to keep detect-and-alert, but register the actual evidence contracts, unavailable dispositions, polling bounds, and producer prerequisites below. Do not repair the listed production defects in this review. Bring the revised registration back for the second and final design round; if it still lacks SIGN, defer under the approved cycle's pace rule. This review authorizes no implementation, deployment, configuration change, authenticated operation, or activation.
 
-## In plain words
-- **What it is.** A separate, read-only checker that runs on a timer, independent of the scheduler. It looks at what the system did each day and alerts Eric when something that should have happened didn't, or something that shouldn't have did:
-  - no pick delivered by the cutoff;
-  - a pick on a postponed game;
-  - an entry it can't confirm;
-  - a grade that disagrees with the contest;
-  - a streak file that disagrees with the graded history;
-  - a delivery setting that contradicts whether Eric is actually entering;
-  - a backup that can't be restored.
+Review pin: registration at `b12084dfcf5d2ad7bd099b4d260e77490fa685ca`, registration SHA-256 `c3a13525615a4f6c478f42c18cbb4f95e537bc19f27fe828f5153ad7aa4fa698`. During review main advanced to `cef34345daae06bbcbdecbd6a9d2b76def39625b`; the intervening commit changes only the calibration registration and cycle index. The rank-2 registration, authority documents, and reviewed runtime paths did not change. Findings are verified against checkout code and documentary authority, not production observations. No `data/` files, credentials, box, network, or GitHub were read. No tracked files were changed.
+
+Scope deviation: before the prompt's constraints returned, a memory-registry text search outside this checkout ran in parallel with reading the prompt. Its results were not used for the review; every subsequent review read and the sole report write stayed inside the checkout.
+
+## Findings
+
+1. **P1 — R4 declares intent but W-entry cannot prove the entry it calls confirmed.** Registration lines 33–38, 51, 55, 79–80.
+
+   `check-pick-entered` writes `{date,status,reason,checked_at}` for confirmation, without account identity, selected batter/game identities, a selection fingerprint, or fetched source evidence (`src/bts/cli.py:1731–1751`). It then treats `confirmed` for the date as terminal without rechecking (`:1685–1695`). The underlying matcher checks date and player inclusion, not game/unit identity (`src/bts/contest_fetch.py:126–162`). A different doubleheader game for the same batter can therefore be called `match`; a changed same-date recommendation can inherit an older marker. A watchdog fixture with a fully bound confirmation would test an artifact production does not produce.
+
+   An absent marker cannot distinguish auth failure, a missing cron run, an uncommitted/private pick skipped by the checker, or an unentered account. The failure paths do not write attempt receipts (`src/bts/cli.py:1661–1677,1712–1726`). Calling that absence “unverifiable” is sound; diagnosing its cause or claiming a positively verified absence is not. `entry_intent` is a declared operating policy, never evidence of entry.
+
+   R4 also leaves the TOML section and invalid-value behavior unspecified. The scheduler reads delivery controls from `[scheduler]`, normalizes aliases, gives `pick_delivery` precedence over `posting_mode`, and uses `private_mode` only if neither explicit control exists (`src/bts/scheduler.py:882–910`). The loader itself accepts unknown keys (`src/bts/orchestrator.py:13–16`). The watchdog must use those effective semantics, detect both directions of cron disagreement, and distinguish recommendation DMs from its own operational DMs. Refusing all work on missing intent would disable restore/state/liveness checks for a configuration error.
+
+   **Fix:** require a selection/account/game-bound receipt from the existing fetch, at unchanged authenticated cadence, as a separately reviewed producer prerequisite; classify current unbound markers as unverifiable. Validate `[scheduler].entry_intent` explicitly and keep independent checks alive on invalid intent. Preserve checklist C2's loader fix; a periodic warning cannot replace it.
+
+2. **P1 — W-grade is feasible only on qualified ledger slots; it cannot deliver the stated general grading coverage.** Registration lines 17, 30–31, 43, 53, 64, 95.
+
+   The existing job really does append raw per-round/per-slot predictions to `data/picks/account_state/contest_ledger.jsonl` (`src/bts/cli.py:1966–1975`). Thus comparison need not add contest requests. However, `contest_streak.json` contains aggregate streaks, source date, account identity, and a null saver field, not slot grades (`src/bts/contest_fetch.py:205–230`); the entry marker contains no grades. The raw ledger needs round/date, player/MLB, and unit/game bindings, conflict handling, and label normalization. The existing audit join refuses ambiguous games and doubleheaders (`scripts/audit/season_ledger/contest.py:106–158`). Do not transfer a round's label to each DD slot or match on slot number. The dashboard ledger parser explicitly calls two equal observations provisional stability, not official finality (`src/bts/contest_ledger.py:3–8,28–34`).
+
+   At 08:15 the latest scheduled account fetch can still be 02:10, before the 07:40 local reconcile; the next fetch is 10:30 (`scripts/cron-setup-hetzner.sh:55–59`). Both 01:10 and 02:10 may also precede completion of the grader. An old/provisional grade cannot establish the next-day settled agreement or disagreement the design promises.
+
+   More decisively, an entered-date comparison does not detect I-201 in private research, or an unresolved production date I-207: W-grade requires a local graded result and private picks have no corresponding contest entry. Replaying the locally stored wrong grade will not detect its wrong semantics. The declared public schedule/status API supplies no AB/SF or pre-suspension PA evidence. No per-date successful reconcile observation receipt exists: reconcile returns corrections and can print “No scoring changes” after skipping pending, absent, or unobserved dates (`src/bts/picks.py:1128–1141,1186`; `src/bts/cli.py:2395–2406`). That output is not I-207's coverage receipt.
+
+   **Fix:** specify the ledger/lookup join, require appropriately dated evidence, retry after existing fetch slots, and alert unavailable evidence. Add a pending-result check. For private Pass/suspension checks, either register a bounded public game-feed oracle with the correct rules or explicitly defer that semantic detection; rev 1 cannot claim it. Make per-date reconcile receipts a separate producer prerequisite or mark their coverage unavailable, never green.
+
+3. **P1 — W-state risks agreeing with the bug it is intended to detect.** Registration lines 18, 30–31, 54, 63, 74.
+
+   The obvious reusable replay is the defective production replay itself: it starts at `(0, True)`, enumerates only files that exist, and excludes all of today's files (`src/bts/picks.py:586–620`). It therefore reproduces I-202's same-day rollback; a missing date can disappear from the inventory entirely. An unresolved past preview returns `None` even if it was never committed. Using the live saver as the replay seed would likewise conceal saver corruption. Local model saver state and the operator's contest saver state are different streams; the account observation deliberately cannot infer availability (`src/bts/contest_fetch.py:229`; `src/bts/contest_ledger.py:84–91`).
+
+   A read-only in-memory probe of the actual replay, with twelve synthetic hits followed by a terminal current-day miss, returned `(12, True)`; applying the same terminal miss correctly gives `(12, False)`. The actual replay of an empty inventory returned `(0, True)` without a completeness witness. These are executed synthetic counterexamples, not 2026 outcome reads.
+
+   **Fix:** use an independent transition oracle, an independently declared season/seed and complete disposition inventory, eligibility-qualified terminal slots through the observation time including today, and explicit unavailable results for gaps. Handle DD partial voids and saver transitions. Treat stored-label consistency and independently verified grading as separate results. Never call `reconcile_results`, `update_streak`, or the defective production replay to establish correctness.
+
+4. **P1 — The cron contract neither observes the declared deadlines nor waits for its supposed predecessors.** Registration lines 49–54, 61–66, 94.
+
+   A 19:10 ET first pitch has a 19:05 cutoff; the first listed watchdog poll at/after it is 19:15. This was verified by independent clock arithmetic. There is no poll after 23:45, despite I-206's explicit 23:59 closure, and no intraday poll before 10:00 for international/early starts. The entry cron runs on the same 15-minute ticks, so the watchdog can read its previous marker before that tick's checker finishes. W-deliver must also distinguish a valid MDP skip and a later chosen game from a missed pick; the scheduler persists provisional skip state before writing its final skip decision (`src/bts/scheduler.py:2683–2697,759–783`). “Games today and no delivery” is not a sufficient fault predicate.
+
+   01:30 is not “after the grader”: its cron explicitly waits until 06:00, and an attempt's work can extend past its start-time deadline (`scripts/cron-setup-hetzner.sh:53`; `src/bts/cli.py:2353–2376`). Reconcile also runs at 02:00. Independent file reads can observe a new streak before its terminal pick save (`src/bts/cli.py:2313–2316`), or a delivery receipt before the best-effort decision write. That is a transient writer transaction, not proven I-204/I-209 damage. Merely moving W-state after 06:00 also misses same-day rollback that a later overnight replay can heal.
+
+   **Fix:** declare polling lag rather than exact-at-cutoff guarantees, cover all ET hours and the prior date across midnight, include pre-cutoff risk alerts, retry around active producers, and require closed/coherent evidence before reporting a consistency verdict. Run state observation during the day as well as after overnight jobs. Never send an actionable “enter now” after cutoff. The 07:40 and account-fetch times are attempt slots, not completion receipts.
+
+5. **P1 — The boundary list omits important failures while R2 promises to detect them.** Registration lines 28–31, 47–57.
+
+   The register has 119 records: 94 with a non-`none` watchdog field and 25 explicitly outside these boundaries. The declaration provides no disposition mapping. This is not a requirement to implement all 94 triggers, but it is a requirement not to silently equate the nine listed checks with the incident inventory.
+
+   A late confirmed delivery is a concrete missing alarm: W-deliver checks missing delivery, so a receipt at/after cutoff can silence it even though I-084/I-205 require an alert. `locked_unconfirmed` is still recorded scoreable (`src/bts/scheduler.py:971–984`); scoreability cannot substitute for confirmed delivery. Duplicate/wrong-selection delivery (I-017/I-094), score-bearing preview/skip (I-066/I-078), stale/wrong contest decision state or saver (I-056/I-063/I-111), and stalled result polling (I-033) also have no declared detection or explicit deferral.
+
+   W-decision and W-state do not detect restart churn, multiple scheduler instances, or startup failure after an already delivered pick. Credit the existing external `scripts/check_heartbeat.py`: it already samples NRestarts every five minutes and overrides a fresh heartbeat for churn. Its thresholds are +3/20 min, +3/60 min, +4/180 min (`:100–109,136–183,233–249`). This is an existing independent control, not proof of the new watchdog's coverage. Unavailable NRestarts currently skips churn (`:152–153`). Reusing its main entry point would also write shared `health_state/scheduler_churn.json` (`:239–247`). The registration must declare and test the dependency, or supply its own isolated observation path, including read failures and no-games days.
+
+   W-postponed's “suspended before first pitch” is not an observable normal suspension transition; suspension follows play. Include postponed/cancelled/missing/resume-day eligibility as distinct facts, and do not claim that a periodic current-status sample proves the status at send time.
+
+   **Fix:** expand the delivery/record predicates, register restart coverage or its prerequisite, and assign every watchdog trigger an implemented, explicitly dependent, or deferred disposition. Broader research preservation and deploy-history triggers can stay deferred. Add failure-to-recovery sequences, not just fault/no-fault snapshots.
+
+6. **P1 — R5 can avoid local writer races, but the hash gate does not establish it or reliable alert delivery.** Registration lines 21, 39–43, 70, 75–77, 86.
+
+   The raw `bts.dm.send_dm` path was inspected through its password resolver and HTTP helper: it does not persist a local token/session or health file (`src/bts/dm.py:29–88`; `src/bts/posting.py:60–104`). Do not invent a shared-token-file race here. It does perform authenticated Bluesky session/chat operations. The health dispatcher, in contrast, records status and returns true even on a failed DM attempt (`src/bts/health/alert.py:235–268`); `run_all_checks` also updates warning attention, restart checkpoint and optional memory history (`src/bts/health/runner.py:258–292`; `src/bts/health/restart_spike.py:104–109`; `src/bts/health/attention.py:97–135`). Giving only the DM dispatcher a new status path does not make the runner read-only.
+
+   Before/after hash equality can pass a write of the same bytes, a write later undone, or a create/delete. During a simulated scheduler loop, inequality does not attribute the change to the watchdog. A common long-held watchdog lock can let restore/DM I/O suppress all intraday checks; independent job locks alone do not serialize a shared dedup file. Neither retry-after-failure nor crash-after-send semantics is registered. A test asserting one patched call does not prove a confirmed alert or persistent retry.
+
+   **Fix:** whitelist application write destinations and trace/deny watchdog-origin mutations and subprocess/network write operations. Keep network/restore work outside short shared-state critical sections. Dedup only confirmed sends, preserve failures for retry, and bind dedup to incident/date/selection rather than just the source or today's date. A crash after remote acceptance can cause duplicate retry; declare this instead of promising exactly-once. Hashes remain supporting evidence. Re-certification exemption must depend on the actual implementation and any necessary producer changes.
+
+7. **P2 — W-restore can pass an incomplete backup or page on normal live drift.** Registration lines 20, 40, 56, 65, 90–91.
+
+   Downloading everything a manifest lists and comparing only those objects does not show that every required model exists in it. Live files may legitimately change during the nightly chain; Sunday 04:00 is not evidence that the 03:00 chain completed. The generic `sync_from_r2` downloads both parquets and models and defaults its CLI destinations to production (`src/bts/data/sync.py:340–374`; `src/bts/cli.py:1005–1018`). A model-only rehearsal needs a fixed independent inventory and contained destinations. Tail/base checksum pairing does not prove that a restored decision actually loads the intended policy rather than degrading. I-113's recovery assertion requires decision provenance.
+
+   The weekly model/policy subset cannot close A1, which explicitly includes parquets, or I-091's operational-state backup coverage. R6 also contradicts its own design: DM, Healthchecks and R2 are additional network operations, and R2 is authenticated. “No new authenticated contest traffic” is the defensible promise.
+
+   **Fix:** pin the manifest and matching live comparison inventory, verify required membership and every destination, exercise a restored fixture decision, and distinguish drift/unavailability from corruption. Leave full A1/ops restores separate. State the network exceptions and charge the declared research rehearsal through C1; routine operational cost is not measured by this review.
+
+8. **P2 — R2 is a scope choice, not an activation waiver; its damage claim is overstated.** Registration lines 28–31, 84, 94–97.
+
+   Separate repair of I-201/I-202/I-203/I-204/I-077/I-205/I-206/I-209 is consistent with detect-and-alert. It does not establish that the proposed B4 is an owner-approved change, or that playing with those defects is acceptable. I-207 is another open grading residual and must receive a disposition. A next-morning grade check, weekly restore, or unavailable entry oracle does not turn every listed defect into a same-day alert; a detection cannot undo a corrupted saver/streak. The decision memo requires the completed checklist, a named entry/state owner, D7 review/approval and separate A8 activation (`docs/audit/2026-10-04-2027-decisions.md:100–104,119–121`; exposure register §C, D6/D7).
+
+   W-self is absent from the fixture gate and remains optional until Eric creates it. An unconditional independent cron ping would stay green if only the checker stopped. The current generic five-minute cron ping is unconditional (`scripts/cron-setup-hetzner.sh:64`), so it cannot serve as this completion signal.
+
+   **Fix:** propose B4 as an inventory with per-defect repair/defer dispositions and explicitly retain activation gates. Require W-self commissioning before claiming an independently monitored watchdog; its success signal must follow completed due checks, with lock skips, failed branches and missing configuration visible. Receipt/check availability and notification delivery are separate health states.
+
+Executed verification: four assertions against source-extracted functions and fixed in-memory inputs passed: today's saver transition is omitted by the existing replay; empty replay lacks a completeness test; entry `match` has no required game/unit binding; 15-minute polling is late for a 19:05 cutoff. Full suites were not run: this is a read-only design review and those suites are not needed to establish these contract defects. Existing incident XFAILs and certificates were read as evidence of their stated scope, not treated as acceptance of a new watchdog.
+
+## Verbatim edits
+
+Apply these to the registration only. They are proposed design text, not new owner rulings. Checklist/producer changes named below remain separate reviewed changes. These edits contain all required design issues identified in round 1.
+
+**1. Replace the “What it never does” and “known defects” bullets in §In plain words with:**
+
+```markdown
 - **Its authority.** It observes and alerts; it never repairs, re-delivers or re-grades. Its application writes are confined to its own evidence and notification state. Read-only access prevents new application writer races; it does not itself guarantee a consistent multi-file snapshot.
 - **Evidence limits.** Declared intent is an operating policy, not proof of contest entry. A check reports agreement only on qualified evidence; missing, stale, ambiguous or unbound evidence reports unverifiable. Detection time is bounded by the registered polling schedule and producer availability, not guaranteed to be the same day.
 - **Known defects.** Repairs remain separate D7 changes. The watchdog's coverage matrix names which failure it detects, which relies on an existing control, and which remains deferred or unverifiable.
+```
 
+**2. Replace §1 in full with:**
+
+```markdown
 ## 1. Proposed rulings on scope
 - **R1, detect and alert only.** The watchdog never writes pick, decision, streak, saver, scheduler-state or shared health-state files. It never re-delivers, re-grades, reconciles or changes cron/configuration. Recovery is an operator action with its own authorization; tests verify observation of recovery.
 - **R2, repairs are separate.** I-201, I-202, I-203, I-204, I-077, I-205, I-206's no-games early return, I-207 and I-209 need individual dispositions. Propose checklist B4 as that inventory; adding it records neither repair approval nor permission to play with a residual defect. Before A8, each item must have its reviewed repair evidence or Eric's recorded deferral/residual decision. Alerting does not restore corrupted state. Evidence-producing prerequisites below are separate reviewed production changes, at unchanged authenticated fetch cadence.
@@ -31,7 +108,11 @@
   - A separately reviewed producer prerequisite records that receipt from the existing entry fetch, including failures and completed observation times, without extra authenticated requests. Until it lands, W-entry may alert unverifiable but cannot pass its positive-confirmation gate.
 - **R5, writer and notification rules.** All watchdog application writes, locks, logs, dedup, restore scratch and temporary files resolve beneath `data/watchdog/`; symlink/path escapes are refused. It never invokes the stateful health runner or scoring/reconcile writers. Shared notification state uses a short watchdog-owned critical section; slow HTTP/restore work does not hold that lock. Job singleton locks also live under this root. Every failed or uncertain send remains pending and retryable; only a returned message ID records confirmed delivery. Dedup binds the incident, affected ET date and selection plus escalation/recovery state, and survives process restart. A crash after remote send acceptance may produce a duplicate retry; exactly-once delivery is not claimed.
 - **R6, network contract.** No additional authenticated contest requests, cookie access or re-capture. Entry/contest evidence comes from existing jobs and existing public lookup captures. Allowed network operations are bounded unauthenticated MLB schedule/status requests, existing Bluesky DM authentication/chat operations, the dedicated Healthchecks signal, and read-only R2 downloads for W-restore. These operations do not authorize prediction, posting, upload, pruning or new spend. Public full-game grading evidence is not included in rev 1; private Pass/suspension semantic checks remain deferred until an independent oracle and its bounded public-feed inputs are registered.
+```
 
+**3. Replace §2 in full with:**
+
+```markdown
 ## 2. Boundaries and evidence
 
 Every check emits a dated status: verified agreement, detected fault, pending producer work, or unverifiable. Missing input never silently becomes a no-fault result. An unexpected exception is a checker failure and cannot suppress other checks.
@@ -52,7 +133,11 @@ Every check emits a dated status: verified agreement, detected fault, pending pr
 Before code acceptance, produce a matrix for all 119 incident records' watchdog fields: implemented predicate/fixture, explicit existing-control dependency/fixture, or deferred/unverifiable with reason. The 25 `none` records stay outside scope. Register concrete dispositions for duplicate/wrong-selection delivery, stranded results, wrong decision-state/saver provenance, reconciliation coverage and backup coverage; do not silently claim every register trigger is implemented.
 
 I-207's successful per-date reconcile coverage needs a separately reviewed producer receipt with the date/slots observed, observation time and source identity, including unchanged results, skips and failures. The current empty corrections list/“No scoring changes” message is insufficient. Until that prerequisite lands, coverage is unverifiable and cannot pass a no-fault gate. Broader research preservation and remote deploy-history checks remain deferred unless separately selected.
+```
 
+**4. Replace §3 in full with:**
+
+```markdown
 ## 3. Schedule and observation closure (ET)
 - Every five minutes, all ET hours and every day: W-deliver, W-postponed, W-entry, W-decision, W-mode and restart-dependency status. Carry unfinished prior-date incidents across midnight, including the end-of-day I-206 check. Polling detects a persistent crossed deadline at the next successful poll, up to five minutes plus the bounded check duration later; it does not promise an observation exactly at cutoff. Pre-cutoff warnings begin in the existing entry window; post-cutoff alerts report an incident and never say “enter now”.
 - Every fifteen minutes, including daytime and no-games days: W-state. A state comparison requires qualified stable input and a closed relevant writer interval; an in-progress or unclosed transaction is pending/unverifiable. Persistently missing completion becomes an alert, not indefinite silence. Do not turn a torn/mixed snapshot into verified agreement or corruption.
@@ -61,23 +146,33 @@ I-207's successful per-date reconcile coverage needs a separately reviewed produ
 - Sunday 04:00: attempt W-restore only outside active nightly writers/research work, with a fixed pinned manifest/live comparison and bounded resources; otherwise record the deferral and retry. A clock time alone does not prove the 03:00 chain is finished.
 - Each short job has a two-minute execution bound; overdue/skipped work is visible to W-self. Weekly restore has a separate bounded resource/runtime declaration before its rehearsal and cannot hold the short-job/shared-state lock.
 - Use timezone-aware clocks normalized to `America/New_York`, explicit ET target dates and UTC source timestamps. Pick `game_time` retains the existing UTC convention, including naive legacy values. Cutoff is the earlier selected leg minus `SUBMISSION_CUTOFF_MIN`; refreshed schedule changes must be accounted for. Test equality at cutoff, DD earlier legs, UTC/ET date disagreement, midnight, early/late games and DST.
+```
 
-## 4. Gate: what "done" means
+**5. Replace §4 items 1–4 with the following; retain item 5's D7/deploy/A8 requirements:**
+
+```markdown
 1. **Failure/recovery gate, red then green.** Drive the real watchdog CLI and registered cron selection against production-shaped synthetic inputs. Patch external HTTP/DM/R2/Healthchecks and process observations, not the predicate, parser, oracle or alert dispatcher being accepted. Each implemented predicate has a fault that produces the correct dated/selection-bound alert and confirmed fake transport ID, a no-fault control, an unavailable-input case, and a fault → repair → recovered → recurrence sequence. Existing incident XFAILs remain characterizations; they are not watchdog successes. Fix wall and monotonic/elapsed clocks, including dependent calls. No ambient credentials, real posting or contest requests may escape the harness.
 2. **No added application writer races.** Deny/trace watchdog-origin mutation outside the resolved owned root, including opens for write, rename/replace, unlink, mkdir, subprocess writers and remote uploads. Exercise success, parse/config failures, failed/uncertain DM, restore failures and cancellation. Include same-byte writes and write/undo/create/delete counterexamples that hashes cannot catch. Concurrent writer tests attribute each mutation to its actor and pause scoring/commit between its separate saves; require pending/unverifiable until qualified closure. Before/after hashes are supporting evidence only. Assert all watchdog locks and restore/temp paths are owned and that slow I/O cannot starve short checks.
 3. **Notification, scheduling and self-monitor gates.** Failed/missing-recipient/uncertain sends remain pending; a later successful ID suppresses only that incident and selection, while a different incident and recurrence remain visible. Test watchdog restart before/after remote acceptance and document duplicate uncertainty. Invoke actual cron/CLI date selection at off-grid cutoffs, before 10:00, after 23:45, across midnight, while entry/grading/reconcile producers run, and with moved-up/earlier-DD games. W-self must detect disabled/hung checker work, lock starvation and failed branches while generic cron and scheduler pings remain healthy; it must not mistake a detected business fault for missing checker execution. Before operational acceptance, Eric's dedicated check must be commissioned and a missed-completion rehearsal observed.
 4. **Intent and evidence prerequisites.** Checklist C1's private-mode posting-transport guard lands before delivery-mode tests; all such harnesses also patch DM/auth leaves. Test both intents across effective modes, aliases, conflicting legacy/explicit keys, both directions of entry-cron disagreement, invalid/missing intent, private locks, previews/skips and unknown sends. Test bound confirmation and wrong account/season/date/selection/game, missing DD leg and stale/ambiguous observations. Gate cannot pass by planting a receipt current producers never emit: the R4 entry and I-207 reconcile producer prerequisites must land and have production-shaped producer-to-consumer fixtures. Add independent replay cases for today's terminal hit/miss, saver consumption, partial/all void DD, missing history and in-progress scoring. Restore tests require a missing-required-artifact failure even when every manifest-listed hash matches, a bad tail/base pair, a degraded fixture decision, destination escape refusal and concurrent live drift.
-5. **Review:** deploy-gating Codex code review until SIGN, then Eric's D7 approval, then deploy.
-   - Activating it on the box needs `cron-setup-hetzner.sh install`, so it rides the same install as checklist A5.
-   - If Eric plays, it ships before activation (A8).
+```
 
+**6. Replace the re-certification paragraph with:**
+
+```markdown
 **Re-certification:** the observer alone may leave certified defence paths unchanged, but this is established from the final diff and call graph, not from its “read-only” name. Any entry/reconcile receipt, config-loader or other producer change is separately reviewed and requires disposition/re-run of affected current-defence certificates before claiming them current. Checklist C3/C4 remain prerequisites with their own evidence. Tooling stays frozen at `f453283`; changing it requires a new tooling review and re-running every certificate. No absence certificate is introduced.
+```
 
-## 5. Compute and cost
-- Unit tests run on the Mac and are not counted toward the cap.
+**7. Replace §5's last two bullets with:**
+
+```markdown
 - On-box research verification: one restore rehearsal declares a maximum 0.1 CPU-hours through the C1 launcher, with one-job-at-a-time/resource/cycle stop rules. Its required inventory, transfer size and separate runtime limit are recorded before launch; if it cannot fit, stop and revise the declaration within the approved cap before running. No runtime or transfer measurement is supplied by this design review.
 - Recurring watchdog execution, DM/Healthchecks operations and read-only R2 restores are production operations requiring their D7/configuration approval. Their bounded schedule/resources and cost assumptions must be documented from code validation; the research declaration does not independently authorize recurring operation or new spend.
+```
 
+**8. Replace §6 in full with:**
+
+```markdown
 ## 6. Limits and activation dependencies
 - Detection is not prevention or recovery. Report the actual observation/notification time and polling/producer delay. Some defects are detected next day or only in a weekly drill; unobserved transient events are not certified absent.
 - Contest comparisons are limited to qualified account/date/selection/game-bound settled evidence. Intent, aggregate streaks, date-only markers, two equal provisional snapshots and empty corrections are not substitutes. Private Pass/suspension semantics and missing reconcile receipts remain unavailable until their declared oracle/producer prerequisite exists.
@@ -85,3 +180,4 @@ I-207's successful per-date reconcile coverage needs a separately reviewed produ
 - The dedicated W-self monitor and producer prerequisites are operational acceptance requirements. Until commissioned, watchdog death cannot be described as independently monitored. Pending/failed alert delivery is separately visible and retryable.
 - Apply the new `[scheduler].entry_intent` and intent-aware cron configuration only through the recorded configuration/deploy approvals, with rollback restoring a compatible config and cron. Installing cron must preserve private research unless D6/A8 authorizes activation; it must not unconditionally re-enable entry nags for `research`.
 - Retain A1–A8, B1/B2, C1–C5, the proposed B4 dispositions and a named entry/official-state owner. A review signature, a shipped watchdog or a green fixture does not approve deployment, repair or activation.
+```
