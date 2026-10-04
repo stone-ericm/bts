@@ -22,7 +22,7 @@ from scripts.audit.mlb_benchmark import metrics as m
 from scripts.audit.w13_tests import core
 
 REPO = Path(__file__).resolve().parents[3]
-X29_COMMIT = None                     # the register commit that publishes X-29; None refuses to run
+X29_COMMIT = "8c47fb1"                # the register commit that publishes X-29
 SURFACES = ["A26", "A26_count", "B26", "C_frozen", "C_served", "D"]
 X12_WINDOW = ("2026-09-19", "2026-09-27")
 UNEXPLAINED_FLAG_SHARE = 0.05
