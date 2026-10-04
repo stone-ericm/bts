@@ -1,7 +1,7 @@
 {
  "schema": "w15_incident_register_v1",
  "pin": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
- "built_at_head": "58130c6c7cf21b1db9e709c27bcecddcd126cedc",
+ "built_at_head": "809134ce387d6e8a3ab171faf664deb2b9c55a29",
  "publication_pin_check": {
   "closure": [
    "src",
@@ -4401,9 +4401,14 @@
    "delivery_mode": "unknown",
    "authority": "not_applicable",
    "routes": {
-    "H": [],
+    "H": [
+     "dfcf655",
+     "f5de8ee"
+    ],
     "R": "pending_phase2",
-    "X": []
+    "X": [
+     "docs/audit/2026-06-09-fable5-full-audit.md"
+    ]
    },
    "related": [
     "I-059"
@@ -4598,9 +4603,14 @@
    "delivery_mode": "unknown",
    "authority": "not_applicable",
    "routes": {
-    "H": [],
+    "H": [
+     "88234ae",
+     "f5de8ee"
+    ],
     "R": "pending_phase2",
-    "X": []
+    "X": [
+     "docs/audit/2026-06-09-fable5-full-audit.md"
+    ]
    },
    "related": [
     "I-059",
@@ -22207,7 +22217,7 @@
      {
       "link": 2,
       "status": "unavailable",
-      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0813-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0813-b/acceptance.json"
+      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0813-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0813-b/acceptance.json; its regression tests: tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert"
      }
     ],
     "expected_failure": [],
@@ -22583,7 +22593,7 @@
      {
       "link": 1,
       "status": "unavailable",
-      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0830-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0830-b/acceptance.json"
+      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0830-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0830-b/acceptance.json; its regression tests: tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20"
      },
      {
       "link": 2,

@@ -97,9 +97,11 @@ def defence_entries(rid: str, manifest: list, dec: dict, notes: dict) -> list:
         if acc["verdict"] != "accepted":
             reason = "; ".join(acc.get("reasons", []))
             assert "absence" in reason, (spec, reason)
+            tests = [k["node"] for k in load(f"{EV}/current_defence/specs/{spec}.json")["killing"]]
             out.append({"link": n, "status": "unavailable",
                         "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec "
-                                  f"{spec} was refused before any run; refusal record {acc_path}"})
+                                  f"{spec} was refused before any run; refusal record {acc_path}; its regression "
+                                  f"tests: {', '.join(tests)}"})
             continue
         if dec.get(spec) != "accept":
             out.append({"link": n, "status": "unavailable", "reason": f"{spec}: reviewer decision {dec.get(spec)}"})
@@ -137,6 +139,10 @@ def main() -> int:
         f = next(f for f in by_id[c["record"]]["fix"] if f["link"] == c["link"])
         assert f["deployed"] == c["was"], (c["record"], c["link"], f["deployed"])
         f["deployed"] = c["now"]
+    for c in corr["routes"]:
+        r = by_id[c["record"]]
+        assert r["routes"] == c["was"], (c["record"], r["routes"])
+        r["routes"] = c["now"]
     for c in corr["notes"]:
         by_id[c["record"]].setdefault("notes", []).append(c["note"])
 
