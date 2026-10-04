@@ -229,7 +229,13 @@ def main(argv=None) -> int:
         elif not want or sha256_file(pkl) != want:
             served_status[d["date"]] = "sha_unbound"
         elif slots:
-            cs = core.score_c(d["date"], slots, df_feat, pm.load_blend(pkl)).rename(columns={"p_game_hit": "C_served"})
+            art = pm.load_blend(pkl)
+            cs = core.score_c(d["date"], slots, df_feat, art).rename(columns={"p_game_hit": "C_served"})
+            # reproduction sensitivity only (design §3, E1): the same artifact with the game's weather blanked, as a
+            # pre-game feed without weather would have served it; never a surface in the comparisons
+            blank = [{**s, "weather_temp": None, "weather_wind_dir": "", "weather_wind_speed": 0.0} for s in slots]
+            cw = core.score_c(d["date"], blank, df_feat, art).rename(columns={"p_game_hit": "C_served_wblank"})
+            cs = cs.merge(cw, on=["batter_id", "game_pk"], how="left")
             cs["date"] = d["date"]
             c_served_parts.append(cs)
             served_status[d["date"]] = "scored"
@@ -238,7 +244,7 @@ def main(argv=None) -> int:
     for parts in (c_frozen_parts, c_served_parts):
         if parts:
             tab = tab.merge(pd.concat(parts, ignore_index=True), on=key, how="left")
-    for col in ("C_frozen", "C_served"):
+    for col in ("C_frozen", "C_served", "C_served_wblank"):
         if col not in tab:
             tab[col] = float("nan")
 
@@ -278,8 +284,16 @@ def main(argv=None) -> int:
     # --- reproduction (C-served vs D) ---
     both = tab[tab["C_served"].notna() & tab["D"].notna() & (tab["sel_state"] == "selection_consistent")]
     resid = (both["C_served"].map(core.serialized_probability) - both["D"]).abs()
+    resid_w = (both["C_served_wblank"].map(core.serialized_probability) - both["D"]).abs()
+    klass = pd.Series("unexplained", index=both.index)
+    klass[resid_w <= REPRO_TOL] = "inferred_weather_absent_at_serve"
+    klass[resid <= REPRO_TOL] = "exact_final_feed"
+    by_pool = {pool: both.loc[both[pool]].assign(k=klass).groupby("k").size().to_dict() for pool in POOLS}
     repro = {"rows": int(len(both)), "dates": int(both["date"].nunique()),
              "within_tol": int((resid <= REPRO_TOL).sum()),
+             "classes": klass.value_counts().to_dict(), "classes_by_pool": by_pool,
+             "unexplained_resid_quantiles": ({q: float(resid[klass == "unexplained"].quantile(q)) for q in (0.5, 0.9, 1.0)}
+                                             if (klass == "unexplained").any() else {}),
              "resid_quantiles": {q: float(resid.quantile(q)) for q in (0.5, 0.9, 0.99, 1.0)} if len(both) else {},
              "served_status": served_status}
 
