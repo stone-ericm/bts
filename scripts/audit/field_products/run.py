@@ -274,7 +274,9 @@ def main(argv=None) -> int:
     census_gate = C.census_gate(rec)
     season_best = C.season_best_summary(census_gate["qualified"], census_gate, args.our_user_id)
     log(f"census gate: {census_gate['census']} {census_gate['failures']}")
-    a = L.case_series(grab, board=rec["board"], cohort_json=cohort_json, identity=identity, status=status, read=rd)
+    # R2-3: A's rank/name/best come from the qualified raw rows, never from the (possibly failed) output parquet
+    a = L.case_series(grab, board=census_gate["qualified"], cohort_json=cohort_json, identity=identity,
+                      status=status, read=rd)
 
     parts, obs_stats = [], {}
     for r in bound.itertuples():

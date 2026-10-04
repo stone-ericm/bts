@@ -345,3 +345,21 @@ def test_outcomes_are_parsed_from_the_frozen_bytes_not_the_disk(tmp_path, monkey
     assert run.main(_argv(tmp_path, led, "--n-resamples", "20")) == 0
     res = json.loads(next((tmp_path / "out").glob("fffffff-*/results.json")).read_text())
     assert res["w22"]["primary"]["tables"]["all_observed_dates"]["E"]["ratio"] == 0.8
+
+
+def test_review_probe_cohort_a_board_fields_come_from_qualified_raw_rows(tmp_path, monkeypatch):
+    """R2-3: only the output parquet is altered (id 1000: rank 99, best 40). The gate fails its integrity checks,
+    and Cohort A still reports id 1000's qualified raw row: rank 1, best 30 — never 99/40."""
+    _patch_gate(monkeypatch)
+    grab, led = _inputs(tmp_path)
+    status = json.loads((grab / "status.json").read_text())
+    path = grab / status["artifacts"]["leaderboard_snapshot"]["path"]
+    df = pd.read_parquet(path)
+    df.loc[df["user_id"] == 1000, ["rank", "season_best_streak"]] = [99, 40]
+    df.to_parquet(path)
+    assert run.main(_argv(tmp_path, led, "--n-resamples", "20")) == 0
+    out = next((tmp_path / "out").glob("fffffff-*"))
+    res = json.loads((out / "results.json").read_text())
+    assert {"board_output_hash", "board_rows_equal_raw"} <= set(res["w21"]["census_gate"]["failures"])
+    a = pd.read_parquet(out / "w21_case_series_A.parquet").set_index("user_id")
+    assert a.loc[1000, "board_rank"] == 1 and a.loc[1000, "board_season_best"] == 30
