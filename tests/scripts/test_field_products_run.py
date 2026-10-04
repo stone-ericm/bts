@@ -98,7 +98,7 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     res = json.loads((out / "results.json").read_text())
     assert res["w21"]["census_gate"]["census"] is True
     sb = res["w21"]["season_best"]
-    assert sb["basis"] == "census" and sb["own"]["stored_rank"] == 151 and sb["thresholds"]["ge_20"] == 110
+    assert sb["basis"] == "census" and sb["own"]["stored_rank"] == 151 and sb["thresholds"]["ge_20"] == {"known": 110, "upper_bound": 110}
     assert res["w21"]["case_series_A"]["n_A"] == 2 and res["w21"]["case_series_A"]["survivor_selected"] is True
     w22 = res["w22"]
     assert w22["manifest_E"]["n"] == 6 and w22["manifest_E"]["checks"]["manifest_sha_matches_grab"] is True

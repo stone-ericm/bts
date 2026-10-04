@@ -178,9 +178,8 @@ def main(argv=None) -> int:
 
     # ---- W2.1: census and Cohort A ----
     rec = C.load_board_receipts(grab)
-    inputs.update({f"leaderboard/{args.final_grab}/{k}": v for k, v in rec["files"].items()})
     census_gate = C.census_gate(rec)
-    season_best = C.season_best_summary(rec["board"], census_gate, args.our_user_id)
+    season_best = C.season_best_summary(census_gate["qualified"], census_gate, args.our_user_id)
     log(f"census gate: {census_gate['census']} {census_gate['failures']}")
     identity = json.loads(read(grab / "identity.json", f"leaderboard/{args.final_grab}/identity.json"))
     a = L.case_series(grab, board=rec["board"], cohort_json=cohort_json, identity=identity, status=rec["status"])
@@ -238,7 +237,8 @@ def main(argv=None) -> int:
         "inputs": {"data_root": str(data), "final_grab": args.final_grab, "ledger_dir": str(led),
                    "early_manifest": str(args.early_manifest), "our_user_id": args.our_user_id,
                    "n_resamples": args.n_resamples},
-        "w21": {"census_gate": census_gate, "season_best": season_best, "case_series_A": a["summary"]},
+        "w21": {"census_gate": {k: v for k, v in census_gate.items() if k != "qualified"},
+                "season_best": season_best, "case_series_A": a["summary"]},
         "w22": {
             "manifest_E": {"n": manifest["n"], "sha256": manifest["sha256"], "definition": manifest["definition"],
                            "frozen_at": manifest["frozen_at"], "source_fixture_sha256": manifest["source_fixture_sha256"],
