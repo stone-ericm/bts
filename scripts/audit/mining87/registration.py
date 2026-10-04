@@ -25,7 +25,9 @@ DOCUMENTS = {"protocol": "docs/sota_audit/2026-05-10-leaderboard-mechanism-minin
 REGISTRATION = {
     "schema": "mining87_registration_v1",
     "window": {"start": "2026-03-26", "end": "2026-07-03"},
-    "public_capture_end_exclusive_utc_naive": "2026-07-05T00:00:00",
+    # the corpus is "captured 5/01 → 7/04"; the scraper stamps naive UTC, so the end of 7/04 US Eastern (EDT) is
+    # 2026-07-05T04:00 — late-7/04 captures that settle 7/03 picks stay in; later appends are excluded and counted
+    "public_capture_end_exclusive_utc_naive": "2026-07-05T04:00:00",
     "excluded_public_sources": ["final_grab_*"],
     "cohort": {"snapshot_file": "2026-07-04.parquet", "tab": "active_streak"},
     "cohorts": ["fixed_cohort", "all_tracked"],
@@ -59,7 +61,7 @@ REGISTRATION = {
                          "missing_surface",
     "served_slate_diagnostic": "computed, labelled unproven, outside the family and nomination stream",
 }
-REGISTRATION_FINGERPRINT = "8a490d57c67082afc074b6cc33825939bb008e25e6070fcf9730b9595297333f"
+REGISTRATION_FINGERPRINT = "70a45bfd33defe56fedcad04cac1258f23cbb8acb9eb9135a74c243bc0116b2e"
 
 OVERRIDABLE = ("window_start", "window_end", "seed", "n_bootstrap", "expected_block_length", "snapshot_file")
 

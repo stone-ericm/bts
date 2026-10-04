@@ -39,6 +39,7 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
     parts, empty = [], 0
     counts = {"rows_read": 0, "rows_outside_window": 0, "rows_after_capture_cutoff": 0, "rows_invalid_pick_number": 0,
               "user_slot_observations": 0, "ambiguous_user_slot_observations": 0}
+    ranges = {"pick_date": [None, None], "captured_at": [None, None]}      # of every row read, before filters
     for path in files:
         if pq.read_metadata(path).num_rows == 0:
             empty += 1
@@ -51,6 +52,10 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
         counts["rows_read"] += len(frame)
         frame["pick_date"] = pd.to_datetime(frame["pick_date"]).dt.strftime("%Y-%m-%d")
         frame["captured_at"] = pd.to_datetime(frame["captured_at"])
+        for key, col in (("pick_date", "pick_date"), ("captured_at", "captured_at")):
+            lo, hi = frame[col].min(), frame[col].max()
+            ranges[key] = [lo if ranges[key][0] is None else min(lo, ranges[key][0]),
+                           hi if ranges[key][1] is None else max(hi, ranges[key][1])]
         in_window = (frame["pick_date"] >= window_start) & (frame["pick_date"] <= window_end)
         counts["rows_outside_window"] += int((~in_window).sum())
         frame = frame[in_window]
@@ -67,8 +72,11 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
         parts.append(latest)
     obs = (pd.concat(parts, ignore_index=True) if parts
            else pd.DataFrame(columns=[*USER_PICK_COLUMNS, "username"]))
+    stamp = lambda t: None if t is None else pd.Timestamp(t).isoformat()  # noqa: E731
     return obs, {"user_pick_files": len(files), "empty_user_pick_files": empty, **counts,
-                 "users_with_retained_rows": int(obs["username"].nunique())}
+                 "users_with_retained_rows": int(obs["username"].nunique()),
+                 "pick_date_range_read": ranges["pick_date"],
+                 "captured_at_range_read": [stamp(t) for t in ranges["captured_at"]]}
 
 
 def latest_observations(obs: pd.DataFrame) -> tuple[pd.DataFrame, dict]:

@@ -84,6 +84,15 @@ def test_admission_needs_every_original_rule_component_bound_to_this_file_and_be
     assert out["reason"] == reason and out["admitted"] is (reason == "witness_admitted")
 
 
+def test_the_admission_record_carries_the_witness_evidence_references():
+    raw = slate_bytes()
+    out = s.admit_surface(date=DATE, slate=s.parse_slate(raw, expected_date=DATE), slate_sha256=s.sha256(raw),
+                          witnesses=[witness(raw, lineup_assumptions="")], production_primary=PRIMARY)
+    assert out["witness_components"] == {"candidate_universe": "ref:universe", "lineup_assumptions": "",
+                                         "feature_computation": "ref:features",
+                                         "prediction_timestamp_utc": "2026-06-20T15:00:00+00:00"}
+
+
 def test_missing_or_invalid_slate_files_are_explicit_non_admissions():
     assert s.admit_surface(date=DATE, slate=None, slate_sha256=None, witnesses=[], production_primary=PRIMARY)[
         "reason"] == "no_served_slate"

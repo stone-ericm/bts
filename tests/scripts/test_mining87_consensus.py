@@ -169,6 +169,8 @@ def test_public_picks_are_bounded_by_the_window_and_the_capture_cutoff(tmp_path)
     assert inv["rows_outside_window"] == 2 and inv["rows_after_capture_cutoff"] == 1
     assert inv["rows_invalid_pick_number"] == 1 and inv["ambiguous_user_slot_observations"] == 1
     assert inv["user_slot_observations"] == 4
+    assert inv["pick_date_range_read"] == ["2026-03-25", "2026-07-04"]                # verifies the inventory claim
+    assert inv["captured_at_range_read"] == ["2026-05-01T10:00:00", "2026-07-05T00:00:00"]
 
 
 def test_cohort_is_the_pinned_snapshots_active_streak_tab_through_the_scraper_sanitizer(tmp_path):

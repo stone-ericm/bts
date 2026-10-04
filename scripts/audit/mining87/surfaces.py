@@ -119,6 +119,7 @@ def admit_surface(*, date: str, slate, slate_sha256: str | None, witnesses: list
         return {**out, "reason": "conflicting_witnesses"}
     w = witnesses[0]
     out["witness_source"] = w.get("source")
+    out["witness_components"] = {comp: w.get(comp) for comp in WITNESS_COMPONENTS}
     if w.get("surface_sha256") != slate_sha256:
         return {**out, "reason": "witness_surface_hash_mismatch"}
     for comp in WITNESS_COMPONENTS:

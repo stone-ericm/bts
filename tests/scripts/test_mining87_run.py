@@ -36,6 +36,7 @@ def test_registration_freezes_the_prescribed_values():
     r = reg.REGISTRATION
     assert r["window"] == {"start": "2026-03-26", "end": "2026-07-03"}
     assert r["cohort"] == {"snapshot_file": "2026-07-04.parquet", "tab": "active_streak"}
+    assert r["public_capture_end_exclusive_utc_naive"] == "2026-07-05T04:00:00"      # end of 7/04 ET, naive UTC
     assert r["bootstrap"]["expected_block_length"] == 7 and r["bootstrap"]["n_bootstrap"] == 2000
     assert r["bootstrap"]["seed"] == 20260510 and r["top_k"] == [1, 2, 5, 10]
     assert r["fdr"]["min_resolved_disagreement_units"] == 15 and r["fdr"]["q_threshold"] == 0.10
