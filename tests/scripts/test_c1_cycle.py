@@ -137,3 +137,14 @@ def test_plan_refusals(kw, reason):
     p = plan(**kw)
     assert p["ok"] is False and any(reason in r for r in p["reasons"]), p["reasons"]
     assert "argv" not in p
+
+
+def test_rate_limit_stop_markers_are_found_anywhere_under_c1_and_in_the_capture(tmp_path):
+    root = tmp_path / "data"
+    assert launch.rate_limit_stops(root) == []
+    (root / "hetzner_results" / "c1" / "r3").mkdir(parents=True)
+    (root / "hetzner_results" / "c1" / "r3" / "STOP_403_429.json").write_text("{}")
+    (root / "leaderboard" / "static_snapshots" / "_receipts").mkdir(parents=True)
+    (root / "leaderboard" / "static_snapshots" / "_receipts" / "STOP_403_429.json").write_text("{}")
+    assert launch.rate_limit_stops(root) == ["hetzner_results/c1/r3/STOP_403_429.json",
+                                             "leaderboard/static_snapshots/_receipts/STOP_403_429.json"]

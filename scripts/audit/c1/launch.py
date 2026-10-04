@@ -37,6 +37,14 @@ def c1_paths(data_root: Path) -> dict:
     return {"ledger": d / "compute_ledger.tsv", "ack": d / CHECKPOINT_ACK_NAME}
 
 
+def rate_limit_stops(data_root: Path) -> list[str]:
+    """Every 403/429 stop marker that pauses C1: any under the C1 results tree, plus the static capture's."""
+    found = sorted((data_root / "hetzner_results" / "c1").rglob("STOP_403_429.json"))
+    capture = data_root / "leaderboard" / "static_snapshots" / "_receipts" / "STOP_403_429.json"
+    found += [capture] if capture.exists() else []
+    return [str(p.relative_to(data_root)) for p in found]
+
+
 def _ts(d: dict) -> datetime:
     return datetime.fromtimestamp(int(d["__REALTIME_TIMESTAMP"]) / 1_000_000, tz=timezone.utc)
 
@@ -68,7 +76,8 @@ def season_guard(now: datetime, sched_lines: list[str], max_hours: float) -> tup
 
 def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dict], acked: bool,
                 active_units: list[str], sched_lines: list[str], now: datetime, cwd: str, command: list[str],
-                env_file: str = str(PROD_ENV), log_dir: Path | None = None) -> dict:
+                env_file: str = str(PROD_ENV), log_dir: Path | None = None,
+                rate_limit_stops: list[str] | None = None) -> dict:
     total = ledger.total_hours(rows)
     reasons = []
     if not NAME_RE.match(name):
@@ -77,6 +86,9 @@ def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dic
         reasons.append("no command given")
     if active_units:
         reasons.append(f"another C1 job is active: {', '.join(active_units)}")
+    if rate_limit_stops:
+        reasons.append("403/429 stop in force (C1 is paused until Eric records a decision): "
+                       + ", ".join(rate_limit_stops))
     g = ledger.gate(total, cpu_hours, acked)
     if g != "ok":
         reasons.append({"checkpoint": f"checkpoint: {total:.2f} CPU-h >= {ledger.CHECKPOINT_H}; stop and report "
@@ -133,6 +145,7 @@ def main(argv=None) -> int:
     if args.cmd == "status":
         total = ledger.total_hours(rows)
         print(json.dumps({"total_cpu_hours": round(total, 4), "jobs": len(rows), "checkpoint_acked": acked,
+                          "rate_limit_stops": rate_limit_stops(args.data_root),
                           "gate": ledger.gate(total, 0.0, acked), "ledger": str(paths["ledger"])}, indent=1))
         return 0
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -143,7 +156,8 @@ def main(argv=None) -> int:
                   "--output-fields=MESSAGE"]).splitlines()
     p = plan_launch(name=args.name, cpu_hours=args.cpu_hours, max_hours=args.max_hours, rows=rows, acked=acked,
                     active_units=active, sched_lines=sched, now=datetime.now(timezone.utc), cwd=args.cwd,
-                    env_file=str(args.data_root.parent / ".env"), command=command)
+                    env_file=str(args.data_root.parent / ".env"), command=command,
+                    rate_limit_stops=rate_limit_stops(args.data_root))
     print(json.dumps(p, indent=1))
     if not p["ok"]:
         return 2
