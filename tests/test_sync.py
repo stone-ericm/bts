@@ -394,6 +394,47 @@ def test_sync_to_r2_change_never_overwrites_old_object(mock_bucket, tmp_path):
     )
 
 
+def test_sync_to_r2_backs_up_both_policy_artifacts_and_restores_them(mock_bucket, tmp_path, monkeypatch):
+    """W1.5 I-113: a host restored from R2 must get the tail policy too. It is
+    sha-bound to the base policy (bts.simulate.tail_policy), so the two travel
+    together; before this fix only mdp_policy.npz was uploaded."""
+    from bts.data import sync as sync_mod
+    monkeypatch.setattr(sync_mod, "_current_git_branch", lambda: "main")
+    processed, models = _mk_dirs(tmp_path)
+    (processed / "pa_2026.parquet").write_bytes(b"pa")
+    (models / "mdp_policy.npz").write_bytes(b"base-policy-bytes")
+    (models / "mdp_tail_policy.npz").write_bytes(b"tail-policy-bytes")
+
+    manifest = sync_mod.sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    for key, data in (("models/mdp_policy.npz", b"base-policy-bytes"),
+                      ("models/mdp_tail_policy.npz", b"tail-policy-bytes")):
+        entry = manifest["files"][key]
+        assert entry["sha256"] == _sha(data)
+        obj = mock_bucket.get_object(Bucket="test-bucket", Key=entry["key"])
+        assert obj["Body"].read() == data
+
+    restore_p = tmp_path / "restore_p"; restore_m = tmp_path / "restore_m"
+    sync_mod.sync_from_r2(client=R2Client.from_env(), processed_dir=restore_p, models_dir=restore_m,
+                          expected_schema_version=None)
+    assert (restore_m / "mdp_policy.npz").read_bytes() == b"base-policy-bytes"
+    assert (restore_m / "mdp_tail_policy.npz").read_bytes() == b"tail-policy-bytes"
+
+
+def test_sync_to_r2_without_a_tail_policy_still_syncs(mock_bucket, tmp_path):
+    """The tail policy is optional like the base policy: a host without it
+    syncs the rest and publishes no tail entry."""
+    from bts.data.sync import sync_to_r2
+    processed, models = _mk_dirs(tmp_path)
+    (processed / "pa_2026.parquet").write_bytes(b"pa")
+    (models / "mdp_policy.npz").write_bytes(b"base-policy-bytes")
+
+    manifest = sync_to_r2(client=R2Client.from_env(), processed_dir=processed, models_dir=models)
+
+    assert "models/mdp_policy.npz" in manifest["files"]
+    assert "models/mdp_tail_policy.npz" not in manifest["files"]
+
+
 def test_interrupted_sync_leaves_old_manifest_fully_restorable(mock_bucket, tmp_path, monkeypatch):
     """THE F8 scenario: uploads succeed, manifest publish fails → a fresh
     restore from the surviving old manifest must still reproduce the old
