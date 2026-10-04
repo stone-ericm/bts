@@ -10,16 +10,31 @@ This project investigates whether it's possible to build a model that makes this
 
 ## Results
 
-Walk-forward backtested, provably leak-free, validated across 6 MLB seasons:
+### 2026 live record (production, contest-graded)
 
-| Metric | BTS v2 | SOTA (Garnett 2026) |
+| | Season (4/01 → 9/13) | Since 4/30 (current recipe) |
+|---|---|---|
+| Primary picks | **92/125 = 73.6%** (95% Wilson 65–81%) | 73/99 = 73.7% (64–81%) |
+| Double-down legs | 69/102 = 67.6% (58–76%) | 55/78 = 70.5% (60–79%) |
+
+These are committed recommendations with a contest slot grade, from the season ledger (`docs/audit/2026-09-28-season-ledger.md`; count read registered as X-30). Thirty-five committed selections had no linked contest grade and twelve selection rows lacked commit evidence; both are excluded and counted. "Current recipe" starts at the 4/30 inference fix, the last change to the production feature set. Best streak: **18**. The season was called over on 9/14.
+
+### What the backtest numbers below measure
+
+- **The 86.2% P@1 is an actual-PA walk-forward.** Each candidate's per-PA probability is compounded over the plate appearances it *actually* got, which is hindsight. On the 2026 served-slate window the same recipe scored 84.1% that way, 65.1% with expected rather than realized PA counts, and every serving-realistic surface landed at 66.7–71.4% (`docs/audit/2026-10-04-benchmark-bridge.md`). Most of the gap between the headline and the live record is that realized-count information.
+- **The MDP P(57) of 8.91% is superseded.** It was solved on those actual-PA profiles with an iid day-type model. Re-solved on serving-realistic estimated-PA profiles it is about 0.007%, and iid solvers misstate milestone probabilities because real hit sequences have run structure (`docs/audit/2026-07-06-strategy-model-lever-investigation.md`, `docs/audit/2026-07-13-dd-p-policy-value-sensitivity.md`).
+- **The "SOTA (Garnett 2026)" column is unverified.** The article blocks automated fetches, and a search snippet gives different figures (84% / 81%). See `docs/sota_audit/2026-10-04-literature-refresh.md`.
+
+### Historical backtest table (actual-PA basis, kept for the record)
+
+| Metric | BTS v2 | SOTA (Garnett 2026, unverified) |
 |--------|--------|---------------------|
-| P@1 (daily best pick) | **86.2% avg** (2024-2025) | ~85% |
+| P@1 (daily best pick) | 86.2% avg (2024-2025, actual-PA) | ~85% |
 | P@100 (top 100 picks) | 91.0% | 85% |
 | P@500 (depth of signal) | 87.2% | 77% |
-| MDP P(57) | **8.91%** (1 in 11.2 seasons) | — |
+| MDP P(57) | 8.91% (superseded; see above) | — |
 
-15-feature model with catcher framing + team bullpen composite, 12-model blend, MDP-optimal strategy with different-game doubling. Validated across 6 test seasons (2020-2025).
+15-feature model with catcher framing + team bullpen composite, 12-model blend, MDP-optimal strategy with different-game doubling. Validated across 6 test seasons (2020-2025) on the actual-PA basis.
 
 ### Multi-season validation
 
@@ -34,6 +49,8 @@ Season  Training data    P@1 (model)   P@1 (with strategy)
 ```
 
 ### What this means for BTS
+
+> **Superseded (2026-10-04):** the P(57) figures in this section come from the actual-PA profiles described above; on serving-realistic profiles the reach-57 probability is far smaller. The section is kept as the original design rationale.
 
 At ~86% P@1, raw prediction accuracy alone gives ~0.9% P(57) per season. But P(57) is dominated by **play strategy**, not model accuracy — the exponential nature of p^57 means small improvements in effective per-play accuracy compound massively.
 
