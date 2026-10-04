@@ -317,3 +317,53 @@ def test_encompassing_draw_failures_make_the_interval_unavailable(monkeypatch):
     out = run.score_encompassing(df, n_resamples=200)
     iv = out["intervals"]["coef_mlb"]
     assert iv["n_failed"] > 0 and iv["lo"] is None and iv["failure_reasons"] == {"one_class": iv["n_failed"]}
+
+
+# --- code review r2 (N1) --------------------------------------------------------------------------------------------
+
+def test_wrong_typed_unit_identities_invalidate_the_capture():
+    from scripts.audit.mlb_benchmark import run
+    ok = {"units": [{"id": 99, "feedId": 9000, "roundId": 100, "homeSquadId": 1, "awaySquadId": 2}]}
+    assert run.validate_sheet(ok, "units") == ok["units"]
+    assert run.validate_sheet({"units": [{"id": 99, "feedId": None, "roundId": 100}]}, "units") is not None
+    for bad in ({"feedId": 9000.9}, {"roundId": "100"}, {"homeSquadId": True}, {"id": "99"}):
+        doc = {"units": [{**ok["units"][0], **bad}]}
+        assert run.validate_sheet(doc, "units") is None, bad
+
+
+def test_a_unit_id_contradiction_in_another_round_still_conflicts_with_the_target_round():
+    units = [{"id": 99, "feedId": 9000, "roundId": 100, "homeSquadId": 1, "awaySquadId": 2},
+             {"id": 99, "feedId": 9001, "roundId": 101, "homeSquadId": 3, "awaySquadId": 4}]
+    assert core.unit_conflicts(units, 100) == 1
+    unrelated = [{"id": 5, "feedId": 7000, "roundId": 101, "homeSquadId": 3, "awaySquadId": 4},
+                 {"id": 5, "feedId": 7001, "roundId": 102, "homeSquadId": 3, "awaySquadId": 4}]
+    assert core.unit_conflicts(units[:1] + unrelated, 100) == 0
+
+
+def test_helpers_never_coerce_unvalidated_identities_into_a_game_edge():
+    fc = {701: {"player_id": 1}}
+    base = {"id": 1, "feedId": 9000, "roundId": 100, "homeSquadId": 1, "awaySquadId": 2}
+    assert core.games_by_batter(fc, {1: 1}, [base], round_id=100) == {701: {9000}}
+    assert core.games_by_batter(fc, {1: 1}, [{**base, "feedId": 9000.9}], round_id=100) == {701: None}
+    assert core.games_by_batter(fc, {1: 1}, [base, {**base, "id": 2, "roundId": "100"}], round_id=100) == {701: None}
+    assert core.games_by_batter(fc, {1: 1}, [{**base, "homeSquadId": True, "awaySquadId": 5}], round_id=100) == {701: None}
+    assert core.units_complete([{**base, "feedId": 9000.9}], 100, {9000}) is False
+
+
+def test_a_fractional_feed_id_never_reaches_the_scored_pool_through_the_driver(tmp_path, monkeypatch):
+    import gzip
+    import json as _json
+    w12, data, sched = _synthetic_inputs(tmp_path)
+    ufile = next((data / "leaderboard" / "static_snapshots" / "units").glob("*.json.gz"))
+    doc = _json.loads(gzip.decompress(ufile.read_bytes()))
+    doc["units"][0]["feedId"] = 9000.9
+    ufile.write_bytes(gzip.compress(_json.dumps(doc).encode()))
+    from scripts.audit.mlb_benchmark import run
+    monkeypatch.setattr(run, "x23_gate", lambda: "f" * 40)
+    assert run.main(["--w12-run", str(w12), "--data-root", str(data), "--schedules", str(sched),
+                     "--out", str(tmp_path / "out"), "--n-resamples", "10"]) == 0
+    out = next((tmp_path / "out").glob("*"))
+    man = _json.loads((out / "manifest.json").read_text())
+    assert man["feeds"]["units"][ufile.name]["schema_valid"] is False
+    joined = pd.read_parquet(out / "joined.parquet")
+    assert not joined["in_pool_base"].fillna(False).astype(bool).any()

@@ -341,6 +341,18 @@ def e6(prim: pd.DataFrame, venues: dict, drag: pd.DataFrame | None, n: int, prim
             "estimates": est, "intervals": boot}
 
 
+def _mean_p(g: pd.DataFrame) -> tuple:
+    """Mean of valid D over all rows of ``g`` whatever their outcome (code review r2 N2), with valid/missing/invalid
+    counts; None when no valid D remains."""
+    if not len(g):
+        return None, {"valid": 0, "missing": 0, "invalid": 0}
+    d = pd.to_numeric(g["D"], errors="coerce")
+    ok = core.valid(d).values
+    miss = d.isna().values
+    counts_ = {"valid": int(ok.sum()), "missing": int(miss.sum()), "invalid": int((~ok & ~miss).sum())}
+    return (float(d[ok].mean()) if ok.any() else None), counts_
+
+
 # --- E7 ----------------------------------------------------------------------------------------------------------
 def e7(prim: pd.DataFrame, tab: pd.DataFrame, day_meta: list, n: int) -> dict:
     k = _known(prim, "D")
@@ -358,9 +370,10 @@ def e7(prim: pd.DataFrame, tab: pd.DataFrame, day_meta: list, n: int) -> dict:
     by_action = {}
     for (act, x12), g in allv.groupby(["action", "x12_window"]):
         kk = _known(g, "D")
+        mp, pc = _mean_p(g)
         by_action[f"{act}{'/x12_window' if x12 else ''}"] = {
             "dates": int(g["date"].nunique()), "rows": int(len(g)), "known": int(len(kk)),
-            "outcomes": g["outcome"].value_counts().to_dict(), "mean_p": float(g["D"].mean()),
+            "outcomes": g["outcome"].value_counts().to_dict(), "mean_p": mp, "p_counts": pc,
             "resid": float(kk["D"].mean() - kk["y"].mean()) if len(kk) else None}
     med = float(meta["n_rows"].median()) if len(meta) else float("nan")
     size = (prim["date"].map(meta["n_rows"]) > med) if len(prim) else pd.Series(dtype=bool)
@@ -370,7 +383,8 @@ def e7(prim: pd.DataFrame, tab: pd.DataFrame, day_meta: list, n: int) -> dict:
                        ("slate_at_or_below_median", ~size)):
         sub = prim[mask.values] if len(prim) else prim
         kk = _known(sub, "D")
-        strata[name] = {**counts(sub), "known": int(len(kk)), "mean_p": float(sub["D"].mean()) if len(sub) else None,
+        mp, pc = _mean_p(sub)
+        strata[name] = {**counts(sub), "known": int(len(kk)), "mean_p": mp, "p_counts": pc,
                         "resid": float(kk["D"].mean() - kk["y"].mean()) if len(kk) else None}
     return {"component": "selection/composition descriptives (no automatic label)", "flag": "descriptive",
             "support": counts(prim),
@@ -488,6 +502,33 @@ def load_selections(data: Path, dates: list[str], manifest: dict) -> tuple[dict,
     return out, files
 
 
+def selection_records(selections: dict, day_meta: list) -> list[dict]:
+    """Per-date selection dispositions next to the frozen W1.2 selection metadata, with explicit discrepancy reasons
+    (code review r2 N3). An audit only: the accepted table's primary mask is never changed by it."""
+    meta = {m["date"]: m for m in day_meta}
+    out = []
+    for d in sorted(selections):
+        s, fm = selections[d], meta.get(d, {})
+        disc = []
+        if fm.get("sel_state") == "selection_consistent" and s.get("selected") is None:
+            disc.append("frozen_consistent_but_no_genuine_selection")
+        if fm.get("sel_state") != "selection_consistent" and s.get("selected") is not None:
+            disc.append("genuine_selection_but_frozen_not_consistent")
+        if {"decision_missing", "decision_unmanifested"} & set(s.get("evidence_status", [])):
+            disc.append("decision_evidence_unavailable")
+        if fm.get("sel_source") is not None and s.get("source") is not None and fm.get("sel_source") != s.get("source"):
+            disc.append("source_differs")
+        if bool(fm.get("sel_conflict")) != bool(s.get("decision_pick_conflict")):
+            disc.append("conflict_flag_differs")
+        out.append({"date": d, "selected": list(s["selected"]) if s.get("selected") else None,
+                    "declined": list(s["declined"]) if s.get("declined") else None, "action": s.get("action"),
+                    "source": s.get("source"), "evidence_status": s.get("evidence_status", []),
+                    "decision_pick_conflict": bool(s.get("decision_pick_conflict")),
+                    "frozen_sel_state": fm.get("sel_state"), "frozen_sel_source": fm.get("sel_source"),
+                    "frozen_sel_conflict": fm.get("sel_conflict"), "discrepancies": disc})
+    return out
+
+
 def per_test_table(results: dict) -> pd.DataFrame:
     """One row per reported interval (design §5 ``per_test.parquet``)."""
     rows = []
@@ -559,7 +600,8 @@ def main(argv=None) -> int:
                "interpretation": "pointwise unadjusted exploratory diagnostics; sensitivities never carry a flag",
                "selections": {"actions": dict(Counter(s["action"] for s in selections.values())),
                               "evidence_status": dict(Counter(x for s in selections.values() for x in s["evidence_status"])),
-                              "decision_pick_conflicts": int(sum(s["decision_pick_conflict"] for s in selections.values()))}}
+                              "decision_pick_conflicts": int(sum(s["decision_pick_conflict"] for s in selections.values())),
+                              "per_date": selection_records(selections, summary["day_meta"])}}
     steps = (("E2", lambda: e2(tab, summary)),
              ("E1", lambda: e1(prim, "pool_verified", summary, n, selected_rows=sel_prim)),
              ("E3", lambda: e3(prim, "pool_verified", n)), ("E4", lambda: e4(prim, tab, dates, n)),

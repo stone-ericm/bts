@@ -311,3 +311,43 @@ def test_empty_primary_support_reports_unavailable_components_instead_of_crashin
     assert run.e8(prim, {"d1": {"selected": (1, 1), "p": 0.7, "action": "single"}}, n=20)["flag"] == "not_testable"
     assert run.e5(prim, {}, n=20)["flag"] == "not_testable"
     assert run.e1(prim, "pool_verified", {}, n=20)["flag"] == "unavailable"
+
+
+# --- code review r2 (N2, N3) -----------------------------------------------------------------------------------------
+
+def test_e7_probability_means_use_only_valid_scores_with_counts():
+    from scripts.audit.w13_tests import run
+    tab = _tab([{"date": "d1", "batter_id": 1, "game_pk": 1, "D": 1.2, "C_served": 0.7, "C_served_wblank": 0.7,
+                 "outcome": "hit"},
+                {"date": "d2", "batter_id": 2, "game_pk": 2, "D": 0.8, "C_served": 0.7, "C_served_wblank": 0.7,
+                 "outcome": "no_hit"},
+                {"date": "d2", "batter_id": 3, "game_pk": 3, "D": 0.6, "C_served": 0.7, "C_served_wblank": 0.7,
+                 "outcome": "no_pa"}])
+    meta = [{"date": "d1", "action": "single", "n_rows": 1}, {"date": "d2", "action": "single", "n_rows": 2}]
+    res = run.e7(run.stratum(tab, *run.PRIMARY), tab, meta, n=20)
+    conf = res["strata_primary"]["confirmed"]
+    assert math.isclose(conf["mean_p"], 0.7) and conf["p_counts"] == {"valid": 2, "missing": 0, "invalid": 1}
+    act = res["by_action_all_dates"]["single"]
+    assert math.isclose(act["mean_p"], 0.7) and act["p_counts"]["invalid"] == 1
+    bad = tab.assign(D=1.5)
+    assert run.e7(run.stratum(bad, *run.PRIMARY), bad, meta, n=20)["strata_primary"]["confirmed"]["mean_p"] is None
+
+
+def test_per_date_selection_dispositions_are_saved_with_the_frozen_metadata_and_discrepancies():
+    from scripts.audit.w13_tests import run
+    sels = {"d1": {"selected": None, "declined": (1, 10), "action": "skip", "source": "decision", "p": None,
+                   "evidence_status": [], "decision_pick_conflict": False},
+            "d2": {"selected": (2, 20), "declined": None, "action": "single", "source": "decision", "p": 0.8,
+                   "evidence_status": [], "decision_pick_conflict": False},
+            "d3": {"selected": None, "declined": None, "action": "unavailable", "source": None, "p": None,
+                   "evidence_status": ["decision_missing"], "decision_pick_conflict": False}}
+    meta = [{"date": "d1", "sel_state": "selection_consistent", "sel_source": "decision", "sel_conflict": False},
+            {"date": "d2", "sel_state": "selection_consistent", "sel_source": "decision", "sel_conflict": False},
+            {"date": "d3", "sel_state": "selection_consistent", "sel_source": "decision", "sel_conflict": False}]
+    recs = run.selection_records(sels, meta)
+    by = {r["date"]: r for r in recs}
+    assert by["d1"]["declined"] == [1, 10] and "frozen_consistent_but_no_genuine_selection" in by["d1"]["discrepancies"]
+    assert by["d2"]["discrepancies"] == [] and by["d2"]["frozen_sel_state"] == "selection_consistent"
+    assert "decision_evidence_unavailable" in by["d3"]["discrepancies"]
+    import json
+    assert json.loads(json.dumps(recs))[0]["declined"] == [1, 10]

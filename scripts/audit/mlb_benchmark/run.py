@@ -27,6 +27,9 @@ WINDOW_START = "2026-07-04"
 COHORTS = ("selection_consistent", "inconsistent", "no_selection")
 POOLS = ("pool_verified", "pool_surrogate", "pool_all")
 FEEDS = {"most_selected_players": "mostSelectedPlayers", "rounds": "rounds", "players": "players", "units": "units"}
+IDENTITY_FIELDS = {"units": ("id", "roundId", "feedId", "homeSquadId", "awaySquadId"),
+                   "players": ("id", "feedId", "squadId"), "rounds": ("id",),
+                   "mostSelectedPlayers": ("roundId", "playerId")}
 LIMITS = {"target_semantics": "unresolved: association / target sensitivity only (gate 2)",
           "timing": "capture stamps are run-start stamps, not receipt times; written_at is the slate's last write",
           "linkage": "every accepted link is inferred_unique_game, never witnessed"}
@@ -57,7 +60,14 @@ def validate_sheet(doc, key: str):
     if not isinstance(doc, dict) or not isinstance(doc.get(key), list):
         return None
     items = doc[key]
-    return items if all(isinstance(i, dict) for i in items) else None
+    if not all(isinstance(i, dict) for i in items):
+        return None
+    for item in items:                       # typed identities (code review r2 N1): exact int or null, never coerced
+        for f in IDENTITY_FIELDS.get(key, ()):
+            v = item.get(f)
+            if v is not None and not core._int(v):
+                return None
+    return items
 
 
 def latest_at(sheets: dict, stamp) -> tuple:

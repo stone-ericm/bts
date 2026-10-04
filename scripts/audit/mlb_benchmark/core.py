@@ -81,9 +81,9 @@ def games_by_batter(fc: dict, player_squads: dict, units: list[dict], round_id: 
     consulted. ``None`` means multiplicity unknown: a unit of the round (or of no resolved round) with an unresolved
     squad could be anyone's game, and a squad's unit with an unresolved feedId is a possible second game; neither is
     discarded to manufacture a singleton. A player without a squad gets an empty set."""
-    unresolved_round = any(u.get("roundId") is None for u in units)
+    unresolved_round = any(not _int(u.get("roundId")) for u in units)
     todays = [u for u in units if u.get("roundId") == round_id]
-    unresolved_squad = any(u.get("homeSquadId") is None or u.get("awaySquadId") is None for u in todays)
+    unresolved_squad = any(not _int(u.get("homeSquadId")) or not _int(u.get("awaySquadId")) for u in todays)
     out = {}
     for bid, f in fc.items():
         squad = player_squads.get(f.get("player_id"))
@@ -94,7 +94,7 @@ def games_by_batter(fc: dict, player_squads: dict, units: list[dict], round_id: 
             out[bid] = None
             continue
         mine = [u for u in todays if squad in (u.get("homeSquadId"), u.get("awaySquadId"))]
-        out[bid] = None if any(u.get("feedId") is None for u in mine) else {int(u["feedId"]) for u in mine}
+        out[bid] = None if any(not _int(u.get("feedId")) for u in mine) else {u["feedId"] for u in mine}
     return out
 
 
@@ -145,17 +145,19 @@ def round_for_date(rounds: list[dict], date: str) -> tuple[int | None, str | Non
 
 
 def unit_conflicts(units: list[dict], round_id: int) -> int:
-    """Contradictions among a units sheet's rows for ``round_id``: one unit id with two different mappings, or one
-    game (feedId) listed with two different squad pairs. Any contradiction makes the round's unit universe unusable."""
-    by_unit, by_game, n = {}, {}, 0
+    """Contradictions touching ``round_id`` (code review r1 F1, r2 N1): one unit id carrying two different
+    (feedId, roundId, home, away) mappings anywhere in the sheet, when any of them is in the target round, counted
+    BEFORE round filtering; and, within the round, one game (feedId) listed with two different squad pairs."""
+    by_unit: dict = {}
     for u in units:
-        if u.get("roundId") != round_id:
+        if _int(u.get("id")):
+            by_unit.setdefault(u["id"], set()).add((u.get("feedId"), u.get("roundId"), u.get("homeSquadId"),
+                                                    u.get("awaySquadId")))
+    n = sum(1 for keys in by_unit.values() if len(keys) > 1 and any(k[1] == round_id for k in keys))
+    by_game = {}
+    for u in units:
+        if u.get("roundId") != round_id or not _int(u.get("roundId")):
             continue
-        key = (u.get("feedId"), u.get("roundId"), u.get("homeSquadId"), u.get("awaySquadId"))
-        if _int(u.get("id")):                 # rows without a unit id cannot be compared by id
-            if u["id"] in by_unit and by_unit[u["id"]] != key:
-                n += 1
-            by_unit.setdefault(u["id"], key)
         pair = (u.get("homeSquadId"), u.get("awaySquadId"))
         if u.get("feedId") in by_game and by_game[u.get("feedId")] != pair:
             n += 1
@@ -186,7 +188,7 @@ def units_complete(units: list[dict], round_id: int, scheduled_game_pks: set) ->
     evidence the unit universe is not established complete, so no unique-game inference is made from it."""
     if not scheduled_game_pks:
         return False
-    have = {int(u["feedId"]) for u in units if u.get("roundId") == round_id and u.get("feedId") is not None}
+    have = {u["feedId"] for u in units if _int(u.get("roundId")) and u["roundId"] == round_id and _int(u.get("feedId"))}
     return set(scheduled_game_pks) <= have
 
 
