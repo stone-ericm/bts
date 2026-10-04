@@ -19,11 +19,11 @@
 
 | Candidate | Registration | Exposure row | Gate before picks change | Status |
 |---|---|---|---|---|
-| 2: outcome / entry / restart watchdog | `docs/sota_audit/<date>-prereg-c1-watchdog.md` | — (ops: no outcome read) | failure/recovery fixtures red→green; deploy-gating review SIGN; D7 | not started |
-| 4a: calibration map | `…-prereg-c1-calibration.md` | to publish before any 2027 outcome | held-out proper-score improvement on the registered 2027 split; independent acceptance; D7; a separate boundary check before it changes play | not started |
-| 3: plate-appearance count model | `…-prereg-c1-pa-count.md` | to publish before any 2027 outcome | earlier-fit / later-untouched proper scores; independent acceptance; D7 | not started |
-| 4b: longest-streak policy (D1 Option 2) | `…-prereg-c1-longest-streak-policy.md` | to publish before any outcome-bearing replay | Eric's trade table (chance of 57 given up against expected longest streak gained, realized-sequence replay) approved under D7; tail/base pairing (checklist A2) | not started |
-| Rank-1 prerequisites (no blend) | `…-prereg-c1-mlb-capture.md` | — (capture only) | receipts bound to response bytes from the first 2027 capture; the all-player binding decided before any 2027 outcome | not started |
+| 2: outcome / entry / restart watchdog | `docs/sota_audit/2026-10-04-prereg-c1-watchdog.md` | — (ops: no outcome read) | failure/recovery fixtures red→green; deploy-gating review SIGN; D7 | design rev 1 (`b12084d`) in Codex design review r1 |
+| 4a: calibration map | `docs/sota_audit/2026-10-04-prereg-c1-calibration.md` | to publish before any 2027 outcome | held-out proper-score improvement on the registered 2027 split; independent acceptance; D7; a separate boundary check before it changes play | design rev 1 drafted; Codex review next |
+| 3: plate-appearance count model | `…-prereg-c1-pa-count.md` | to publish before any 2027 outcome | earlier-fit / later-untouched proper scores; independent acceptance; D7 | research for the design in progress |
+| 4b: longest-streak policy (D1 Option 2) | `docs/sota_audit/2026-10-04-prereg-c1-longest-streak-policy.md` | to publish before any outcome-bearing replay | Eric's trade table (chance of 57 given up against expected longest streak gained, realized-sequence replay) approved under D7; tail/base pairing (checklist A2) | design rev 1 (`12ac1c4`) in Codex design review r1 |
+| Rank-1 prerequisites (no blend) | `…-prereg-c1-mlb-capture.md` | — (capture only) | receipts bound to response bytes from the first 2027 capture; the all-player binding decided before any 2027 outcome | research for the design in progress |
 
 ## Compute ledger
 | Date | CPU-hours used (cumulative) | Note |
