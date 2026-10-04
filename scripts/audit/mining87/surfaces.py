@@ -81,6 +81,16 @@ def batter_table(rows: list[dict]) -> dict[int, dict]:
 
 
 def load_witnesses(path: Path | None) -> tuple[dict[str, list[dict]], dict]:
+    """Witness file (an input; hashed and pinned like every other)::
+
+        {"schema": "mining87_surface_witness_v1",
+         "witnesses": [{"date": "YYYY-MM-DD", "surface_sha256": "<sha256 of picks/slates/<date>.json>",
+                        "independent_of_served_slate": true, "source": "<the independent record>",
+                        "candidate_universe": "<evidence ref>", "lineup_assumptions": "<evidence ref>",
+                        "feature_computation": "<evidence ref>",
+                        "prediction_timestamp_utc": "<ISO-8601 with offset>"}]}
+
+    One record per date; two records for a date are a conflict and admit nothing."""
     if path is None:
         return {}, {"source": "none_supplied", "n_records": 0}
     doc = json.loads(Path(path).read_text())

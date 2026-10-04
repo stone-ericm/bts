@@ -110,6 +110,16 @@ def cell_inventory(units: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_mechanism_records(path: Path | None) -> tuple[list[dict], dict]:
+    """Mechanism-record file (an input; hashed and pinned, so it must be frozen before the registered run)::
+
+        {"schema": "mining87_mechanism_records_v1",
+         "records": [{"cell": {<all 14 decomposition variables, cohort included: value>},
+                      "mechanism": "<the stated feature mechanism>",
+                      "operational_variables": ["<variable the mechanism would use at lock>", ...],
+                      "lock_evidence": {"<variable>": {"status": "available_at_lock" | "not_available_at_lock",
+                                                       "evidence": "<reference>"}}}]}
+
+    A record matches a cell only when its ``cell`` names every axis with the cell's exact value."""
     if path is None:
         return [], {"source": "none_supplied", "n_records": 0}
     doc = json.loads(Path(path).read_text())
