@@ -517,7 +517,11 @@ The plan's rulings 1–14 govern this phase; their text, with the cost if wrong,
 - **Ruling 14 (Eric, 2026-10-03):** the tooling is frozen at `f453283` after F1, F2 and F4 (and F3, F5), one final sweep whatever it shows, and no further tooling rounds. The review of these results still happens.
 
 Phase 1 Task 8 decisions (mine, each recorded in `task8/corrections.json` or the run ledger, with the cost if wrong):
-- **I-056 links 1 and 3 install states** are moved to the first deploys containing their complete fix sets. The drafts cited `eaccaf8`, which contains neither 68a35d3 nor 58c9adc. If wrong, two install times are about 4 h and 21 h late; no fixture depends on them.
+- **Install states that cited a deploy missing part of the link's fix set are corrected** to the first successful deploy containing every fix commit:
+  - I-056 links 1 and 3: `eaccaf8` contains neither 68a35d3 nor 58c9adc;
+  - I-052 link 2: `67543ca` lacks a3df746, which the record's own ev4 had placed in `a1dea18`.
+
+  The build now checks this for all 166 cited installs and fails on any miss. If a correction is wrong, an install time is late by about 4 h (I-056 link 1), 21 h (I-056 link 3) or 22 h (I-052 link 2). No fixture depends on them.
 - **I-061 link 3 is `not_applicable` for current defence,** because its contract was deliberately reversed. If wrong, one link is reported superseded instead of uncovered.
 - **The empty-alert-list witnesses (D-I056-3, I-0830-d) count as wrong returned values.** If wrong, two certificates become absences, and two links lose their defence.
 - **I-114's and I-115's route fields are filled from their own evidence** (they were split from I-059 with empty fields). If wrong, two reconciliation cells move.

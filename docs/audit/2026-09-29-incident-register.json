@@ -1,7 +1,7 @@
 {
  "schema": "w15_incident_register_v1",
  "pin": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
- "built_at_head": "809134ce387d6e8a3ab171faf664deb2b9c55a29",
+ "built_at_head": "72195b06a2a767ce3268171518fb6ec5309a4d3a",
  "publication_pin_check": {
   "closure": [
    "src",
@@ -13279,9 +13279,9 @@
      },
      "deployed": {
       "basis": "candidate_ancestry",
-      "sha": "67543ca",
-      "live_by": "2026-05-22T16:16:48Z",
-      "run_id": 26299067685,
+      "sha": "a1dea18",
+      "live_by": "2026-05-23T14:06:53Z",
+      "run_id": 26334797353,
       "evidence": [
        "ev4"
       ]
@@ -13462,7 +13462,8 @@
     "link 2 deploy: 3a8d1bd went out with run 26299067685, a3df746 with run 26334797353 (a1dea18, 2026-05-23T14:06:53Z)",
     "the RSS values quoted in link 3's verification are operational measurements, not pick outcomes",
     "log bounds: all fixes live by 2026-06-07T00:11:19Z (run 27077693688)",
-    "fixtures: filled from Task 5/6 acceptance objects at build time"
+    "fixtures: filled from Task 5/6 acceptance objects at build time",
+    "Task 8 (2026-10-03): link 2's install state corrected to a1dea18 (run 26334797353), the first deploy containing a3df746, as the record's ev4 already stated; the draft cited 67543ca, which contains 3a8d1bd only."
    ]
   },
   {

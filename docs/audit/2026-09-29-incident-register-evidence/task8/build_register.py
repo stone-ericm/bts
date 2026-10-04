@@ -14,6 +14,8 @@ filled as follows:
 - expected_failure / characterization: bound to the pair accepted at the pin (file + sha256). I-077's controls are
   every E77 control that pair passed; I-203 (L03) and I-204 (L04) get their characterization entries.
 
+The install-ancestry check: every cited deploy SHA must contain every fix commit of its link.
+
 The publication pin check: the pair, the replays and the defences ran at ``f453283``. The published build must have the
 same ``src/``, ``tests/``, ``scripts/``, ``pyproject.toml``, ``uv.lock`` and expected-failure registry bytes; any
 difference is printed and fails the build.
@@ -176,6 +178,16 @@ def main() -> int:
         "controls": [n for n in passed if n.startswith(T + "test_l04_")], "acceptance": PAIR,
         "acceptance_sha256": pair_sha}]
 
+    ancestry = []                                         # every cited install contains its link's fix commits
+    for r in recs:
+        for f in r["fix"]:
+            d, imp = f["deployed"], f["implemented"]
+            if isinstance(d, dict) and isinstance(imp, dict) and d.get("sha"):
+                for c in imp["commits"]:
+                    if subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", c, d["sha"]],
+                                      capture_output=True).returncode != 0:
+                        ancestry.append(f"{r['id']} link {f['link']}: deployed {d['sha']} does not contain {c}")
+
     head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True,
                           check=True).stdout.strip()
     drift = subprocess.run(["git", "-C", str(REPO), "diff", "--name-only", PIN, "HEAD", "--", *CLOSURE],
@@ -195,10 +207,11 @@ def main() -> int:
         print("  ", e)
     print(f"publication pin check against {PIN[:7]} at {head[:7]}: "
           + ("closure identical" if not (drift or dirty) else f"DIFFERS: {drift + dirty}"))
+    print(f"install ancestry: {'every cited deploy contains its fix commits' if not ancestry else ancestry}")
     cert_r = sum(h["status"] == "certified" for r in recs for h in r["fixtures"]["historical_replay"])
     cert_d = sum(d["status"] == "certified" for r in recs for d in r["fixtures"]["current_defence"])
     print(f"certified replay entries {cert_r}, certified defence entries {cert_d}")
-    return 1 if errs or drift or dirty else 0
+    return 1 if errs or drift or dirty or ancestry else 0
 
 
 if __name__ == "__main__":

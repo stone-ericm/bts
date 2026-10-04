@@ -68,6 +68,29 @@
      "ev91"
     ]
    }
+  },
+  {
+   "record": "I-052",
+   "link": 2,
+   "why": "67543ca (run 26299067685) does not contain a3df746, the link's second fix commit; the record's own ev4 names the first successful deploy containing it: a1dea18, run 26334797353, 2026-05-23T14:06:53Z",
+   "was": {
+    "basis": "candidate_ancestry",
+    "sha": "67543ca",
+    "live_by": "2026-05-22T16:16:48Z",
+    "run_id": 26299067685,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "now": {
+    "basis": "candidate_ancestry",
+    "sha": "a1dea18",
+    "live_by": "2026-05-23T14:06:53Z",
+    "run_id": 26334797353,
+    "evidence": [
+     "ev4"
+    ]
+   }
   }
  ],
  "routes": [
@@ -126,6 +149,10 @@
   {
    "record": "I-043",
    "note": "Task 8: links 1 and 4 are defended by the same code: D-I043-1 and D-I043-4 delete the same stale-status PickLockState return in picks.classify_pick_lock_state, entered through the committed-pick lock (run_single_check) and through candidate eligibility (pick_candidate_status_is_available) respectively."
+  },
+  {
+   "record": "I-052",
+   "note": "Task 8 (2026-10-03): link 2's install state corrected to a1dea18 (run 26334797353), the first deploy containing a3df746, as the record's ev4 already stated; the draft cited 67543ca, which contains 3a8d1bd only."
   }
  ],
  "defence_notes": {
