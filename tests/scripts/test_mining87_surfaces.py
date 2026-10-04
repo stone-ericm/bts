@@ -93,6 +93,19 @@ def test_the_admission_record_carries_the_witness_evidence_references():
                                          "prediction_timestamp_utc": "2026-06-20T15:00:00+00:00"}
 
 
+@pytest.mark.parametrize("missing", ["batter_id", "game_pk", "p_game_hit"])
+def test_an_incomplete_production_selection_identity_is_an_explicit_non_admission_never_a_match(missing):
+    """R2 finding 3: a committed primary may have no recorded game; even a complete witness cannot admit it."""
+    raw = slate_bytes()
+    out = s.admit_surface(date=DATE, slate=s.parse_slate(raw, expected_date=DATE), slate_sha256=s.sha256(raw),
+                          witnesses=[witness(raw)], production_primary={**PRIMARY, missing: None})
+    assert out["admitted"] is False and out["reason"] == "incomplete_production_selection_identity"
+    assert out["selection_consistency"] == "incomplete_selection_identity"
+    no_slate = s.admit_surface(date=DATE, slate=None, slate_sha256=None, witnesses=[],
+                               production_primary={**PRIMARY, missing: None})
+    assert no_slate["admitted"] is False and no_slate["reason"] == "no_served_slate"
+
+
 def test_missing_or_invalid_slate_files_are_explicit_non_admissions():
     assert s.admit_surface(date=DATE, slate=None, slate_sha256=None, witnesses=[], production_primary=PRIMARY)[
         "reason"] == "no_served_slate"

@@ -82,26 +82,30 @@ def _p(i):
     return round(0.70 + (i % 9) * 0.015, 3)
 
 
-def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=()):
+def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=(), null_game_dates=(),
+                  write_slates=True):
     data, ledger_dir = root / "data", root / "ledger"
     rows, contest, slates = [], [], {}
     for i, d in enumerate(DATES):
         picks = [("primary", 100 + i, 9000 + i)] + ([("double_down", 200 + i, 9500 + i)] if i % 2 == 0 else [])
         for slot, b, g in picks:
+            null_game = slot == "primary" and d in null_game_dates     # committed, but no recorded game (R2 #3)
+            g = None if null_game else g
             sid = f"{d}|{slot}|{b}|{g}"
             grade = "void" if i == 3 and slot == "primary" else ("hit" if (i + len(slot)) % 3 else "not_hit")
-            status = "unknown" if i == 5 else "graded"
+            status = "unknown" if (i == 5 or null_game) else "graded"
+            unlinked = i == 5 or null_game
             row = {"row_id": sid, "row_kind": "selection", "date": d, "slot": slot, "selection_id": sid,
                    "batter_id": b, "batter_name": f"P{b}", "game_pk": g, "p_stated": _p(i),
                    "projected_lineup": i % 4 == 0, "finalization": "decision", "commit_status": "committed_evidenced",
                    "predicted_at": f"{d}T15:00:00.000000Z", "locked_at": f"{d}T17:00:00.000000Z",
-                   "entry_status": "unknown" if i == 5 else "confirmed",
-                   "match": None if i == 5 else "evidenced", "match_reason": None if i == 5 else "unit_capture",
-                   "round_id": 1000 + i, "unit_id": g * 10, "player_id": b + 5000,
-                   "bts_outcome": None if i == 5 else grade, "bts_outcome_status": status,
+                   "entry_status": "unknown" if unlinked else "confirmed",
+                   "match": None if unlinked else "evidenced", "match_reason": None if unlinked else "unit_capture",
+                   "round_id": 1000 + i, "unit_id": None if unlinked else g * 10, "player_id": b + 5000,
+                   "bts_outcome": None if unlinked else grade, "bts_outcome_status": status,
                    "game_eligibility": "unknown"}
             rows.append(row)
-            if i != 5:
+            if not unlinked:
                 contest.append({"round_id": 1000 + i, "unit_id": g * 10, "player_id": b + 5000, "date": d,
                                 "batter_id": b, "game_pk": g, "selection_id": sid, "match": "evidenced",
                                 "match_reason": "unit_capture", "slot_result": grade})
@@ -110,7 +114,7 @@ def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=())
                          "selection_id": f"{d}|preview", "batter_id": 1, "game_pk": 1, "finalization": "decision",
                          "commit_status": "unconfirmed", "entry_status": "unknown",
                          "bts_outcome_status": "unknown"})
-        if d >= "2026-06-11":
+        if write_slates and d >= "2026-06-11":
             slate_rows = [{"batter_id": 100 + i, "batter_name": "x", "game_pk": 9000 + i, "p_game_hit": _p(i)},
                           {"batter_id": 300 + i, "batter_name": "y", "game_pk": 9300 + i, "p_game_hit": 0.69},
                           {"batter_id": 400 + i, "batter_name": "z", "game_pk": 9400 + i, "p_game_hit": 0.6}]
@@ -167,8 +171,32 @@ def _main(root, data, ledger_dir, *extra):
 
 @pytest.fixture
 def gated(monkeypatch):
+    """A mock exposure gate, and the real relevant-code identity marked clean: this checkout may be dirty while the
+    tests run; the dirty/unverifiable refusal has its own tests."""
     monkeypatch.setattr(reg, "x22_gate", lambda: "f" * 40)
     monkeypatch.setattr(run, "x22_gate", lambda: "f" * 40)
+    clean = {**run.code_identity(), "worktree_dirty": False}
+    monkeypatch.setattr(run, "code_identity", lambda: copy.deepcopy(clean))
+    return clean
+
+
+def _attempts(root):
+    return sorted(p for p in (root / "out").iterdir() if p.is_dir()) if (root / "out").exists() else []
+
+
+def _completed(root):
+    return [p for p in _attempts(root) if (p / "COMPLETE.json").exists()]
+
+
+def _fail_first_loader(monkeypatch):
+    def fail(_source):
+        raise RuntimeError("synthetic technical failure at the first loader")
+    monkeypatch.setattr(run, "load_accepted_ledger", fail)
+
+
+def _sha(raw: bytes) -> str:
+    import hashlib
+    return hashlib.sha256(raw).hexdigest()
 
 
 FORBIDDEN_IN_STREAMS = ("hit_rate", "mean_delta", "q_BH", "p_one_sided", "nominat", "actionable", "delta", "lift")
@@ -192,6 +220,11 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, gated, capsys):
         assert hashlib.sha256((run_dir / name).read_bytes()).hexdigest() == sha
     assert complete["input_manifest_sha256"] == hashlib.sha256((run_dir / "input_manifest.json").read_bytes()).hexdigest()
     assert len(manifest["inputs"]["user_picks"]) == len(COHORT + OTHERS)
+    optional = manifest["inputs"]["optional_inputs"]                  # absence is frozen, never assumed
+    assert optional["surface_witness"] == {"status": "absent"} and optional["mechanism_records"] == {"status": "absent"}
+    assert optional["production_context"] == {"status": "absent"} and optional["ledger_build_manifest"] == {
+        "status": "absent"}
+    assert optional["unit_captures"] == {"status": "absent", "reason": "no surface witness supplied"}
     assert set(manifest["inputs"]["ledger"]) == {"ACCEPTED.json", "season_2026_ledger.parquet",
                                                  "season_2026_ledger_contest_slots.parquet"}
     assert set(manifest["documents"]) >= {"protocol", "amendment", "review_r1", "exposure_register"}
@@ -235,6 +268,42 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, gated, capsys):
     assert units["consensus_model_rank"].isna().all()
 
 
+def _null_game_units(run_dir, dates):
+    units = pd.read_parquet(run_dir / "units.parquet")
+    return units[units["date"].isin(dates) & (units["pick_number"] == 1)]
+
+
+def test_a_committed_null_game_primary_completes_without_slates_or_witnesses_and_keeps_its_unit(tmp_path, gated):
+    """R2 finding 3: a compiler-valid committed primary with no recorded game must reach units.parquet."""
+    dates = ("2026-06-08", "2026-06-15")
+    data, ledger_dir, _ = _write_inputs(tmp_path, null_game_dates=dates, write_slates=False)
+    assert _main(tmp_path, data, ledger_dir) == 0
+    run_dir = next(p for p in (tmp_path / "out").iterdir() if (p / "COMPLETE.json").exists())
+    kept = _null_game_units(run_dir, dates)
+    assert len(kept) == 4 and kept["production_game_pk"].isna().all()          # 2 dates x 2 cohorts
+    assert not kept["production_resolved"].any() and set(kept["production_settlement"]) == {"unknown"}
+    assert set(kept["consensus_model_rank_bin"]) == {"missing_surface"} and not kept["surface_admitted"].any()
+    report = json.loads((run_dir / "report.json").read_text())
+    per_date = {a["date"]: a for a in report["coverage_and_denominators"]["surfaces"]["per_date"]}
+    assert all(per_date[d]["reason"] == "no_served_slate" and not per_date[d]["admitted"] for d in dates)
+    assert report["coverage_and_denominators"]["production"]["locked_units"] == len(DATES) + len(DATES[::2])
+
+
+def test_a_committed_null_game_primary_with_a_candidate_slate_and_witness_is_never_admitted(tmp_path, gated):
+    data, ledger_dir, witness = _write_inputs(tmp_path, null_game_dates=("2026-06-15",),
+                                              witness_dates=("2026-06-12", "2026-06-15"))
+    assert _main(tmp_path, data, ledger_dir, "--surface-witness", str(witness)) == 0
+    run_dir = next(p for p in (tmp_path / "out").iterdir() if (p / "COMPLETE.json").exists())
+    report = json.loads((run_dir / "report.json").read_text())
+    per_date = {a["date"]: a for a in report["coverage_and_denominators"]["surfaces"]["per_date"]}
+    assert per_date["2026-06-15"]["admitted"] is False
+    assert per_date["2026-06-15"]["reason"] == "incomplete_production_selection_identity"
+    assert per_date["2026-06-15"]["selection_consistency"] == "incomplete_selection_identity"
+    assert per_date["2026-06-12"]["admitted"] is True                              # the other witnessed date still is
+    kept = _null_game_units(run_dir, ("2026-06-15",))
+    assert len(kept) == 2 and not kept["surface_admitted"].any() and kept["consensus_model_rank"].isna().all()
+
+
 def test_witnessed_dates_are_admitted_and_an_exploratory_run_is_labelled_and_cannot_nominate(tmp_path, gated):
     data, ledger_dir, witness = _write_inputs(tmp_path, witness_dates=("2026-06-12", "2026-06-14"))
     assert _main(tmp_path, data, ledger_dir, "--surface-witness", str(witness), "--exploratory",
@@ -269,7 +338,9 @@ def test_context_and_mechanism_inputs_are_hashed_and_only_named_context_columns_
     assert report["run"]["mechanism_records"]["n_records"] == 0
     manifest = json.loads((run_dir / "input_manifest.json").read_text())
     import hashlib
-    assert manifest["inputs"]["production_context"] == hashlib.sha256(ctx_path.read_bytes()).hexdigest()
+    assert manifest["inputs"]["optional_inputs"]["production_context"] == {
+        "status": "supplied", "sha256": hashlib.sha256(ctx_path.read_bytes()).hexdigest()}
+    assert manifest["inputs"]["optional_inputs"]["mechanism_records"]["status"] == "supplied"
     units = pd.read_parquet(run_dir / "units.parquet")
     primaries = units[units["pick_number"] == 1]
     assert (primaries["production_batter_skill_prior_pa_bin"] != "missing").all()
@@ -304,22 +375,148 @@ def test_the_cohort_snapshot_is_pinned_never_the_latest_file(tmp_path, gated):
     assert not list(tmp_path.glob("out/*/COMPLETE.json"))
 
 
-def test_a_retry_with_changed_inputs_is_refused_against_the_pinned_manifest(tmp_path, gated):
+def test_pins_are_persisted_before_loaders_and_a_failed_attempt_keeps_them_for_its_retry(tmp_path, gated,
+                                                                                         monkeypatch):
+    """R2 finding 5: a technical failure at the first loader leaves the attempt's manifest; the retry must use it."""
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    original = run.load_accepted_ledger
+    _fail_first_loader(monkeypatch)
+    with pytest.raises(RuntimeError, match="synthetic technical failure"):
+        _main(tmp_path, data, ledger_dir)
+    [partial] = _attempts(tmp_path)
+    pins = partial / "input_manifest.json"
+    assert partial.name.endswith(".partial") and pins.exists() and not (partial / "COMPLETE.json").exists()
+    frozen = pins.read_bytes()
+    assert json.loads(frozen)["inputs"]["optional_inputs"]["surface_witness"] == {"status": "absent"}
+    monkeypatch.setattr(run, "load_accepted_ledger", original)
+    with pytest.raises(SystemExit, match="prior registered attempt"):
+        _main(tmp_path, data, ledger_dir)                                  # a fresh attempt may not skip the pins
+    outside = tmp_path / "copy_of_pins.json"
+    outside.write_bytes(frozen.replace(b'"run_mode"', b' "run_mode"'))
+    with pytest.raises(SystemExit, match="not the manifest of a prior registered attempt"):
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", str(outside))
+    assert _main(tmp_path, data, ledger_dir, "--expect-inputs", str(pins)) == 0
+    assert pins.read_bytes() == frozen                                     # the failed attempt's pins are unchanged
+    [done] = _completed(tmp_path)
+    retry = json.loads((done / "input_manifest.json").read_text())["retry_of"]
+    assert retry == {"pinned_manifest_sha256": _sha(frozen), "code_identical": True}
+
+
+def test_a_completed_registered_run_is_not_a_technical_failure_eligible_for_retry(tmp_path, gated):
     data, ledger_dir, _ = _write_inputs(tmp_path)
     assert _main(tmp_path, data, ledger_dir) == 0
-    first = next(p for p in (tmp_path / "out").iterdir() if p.is_dir())
-    pins = first / "input_manifest.json"
-    assert _main(tmp_path, data, ledger_dir, "--expect-inputs", str(pins)) == 0      # identical inputs: allowed
-    retry = max((p for p in (tmp_path / "out").iterdir() if p.is_dir() and p != first), key=lambda p: p.name)
-    retry_manifest = json.loads((retry / "input_manifest.json").read_text())
-    assert retry_manifest["retry_of"]["code_identical"] is True
-    with pytest.raises(SystemExit, match="registration or run mode"):                 # methods must match too
-        _main(tmp_path, data, ledger_dir, "--expect-inputs", str(pins), "--exploratory")
+    [first] = _completed(tmp_path)
+    n = len(_attempts(tmp_path))
+    with pytest.raises(SystemExit, match="completed registered run"):
+        _main(tmp_path, data, ledger_dir)
+    with pytest.raises(SystemExit, match="completed registered run"):
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", str(first / "input_manifest.json"))
+    assert len(_attempts(tmp_path)) == n and _completed(tmp_path) == [first]
+    assert _main(tmp_path, data, ledger_dir, "--exploratory") == 0            # labelled exploration stays possible
+
+
+def test_a_retry_with_changed_inputs_documents_code_or_mode_is_refused(tmp_path, gated, monkeypatch):
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    original = run.load_accepted_ledger
+    _fail_first_loader(monkeypatch)
+    with pytest.raises(RuntimeError):
+        _main(tmp_path, data, ledger_dir)
+    [partial] = _attempts(tmp_path)
+    pins = str(partial / "input_manifest.json")
+    monkeypatch.setattr(run, "load_accepted_ledger", original)
+
+    real_docs = run.document_hashes
+    monkeypatch.setattr(run, "document_hashes",
+                        lambda: {**real_docs(), "amendment": {"path": "x", "sha256": "0" * 64}})
+    with pytest.raises(SystemExit, match="documents"):
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", pins)
+    monkeypatch.setattr(run, "document_hashes", real_docs)
+
+    changed = copy.deepcopy(gated)
+    changed["files"]["scripts/audit/mining87/inference.py"] = "0" * 64
+    monkeypatch.setattr(run, "code_identity", lambda: copy.deepcopy(changed))
+    with pytest.raises(SystemExit, match="code_identity"):
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", pins)
+    monkeypatch.setattr(run, "code_identity", lambda: copy.deepcopy(gated))
+
+    with pytest.raises(SystemExit, match="run_mode"):
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", pins, "--exploratory")
+
     victim = data / "leaderboard" / "user_picks" / "other0.parquet"
     frame = pd.read_parquet(victim)
     frame.loc[0, "result"] = "not_hit" if frame.loc[0, "result"] == "hit" else "hit"
     frame.to_parquet(victim, index=False)
-    n_before = len([p for p in (tmp_path / "out").iterdir()])
     with pytest.raises(SystemExit, match="user_picks"):
-        _main(tmp_path, data, ledger_dir, "--expect-inputs", str(pins))
-    assert len([p for p in (tmp_path / "out").iterdir()]) == n_before
+        _main(tmp_path, data, ledger_dir, "--expect-inputs", pins)
+    assert _attempts(tmp_path) == [partial] and not _completed(tmp_path)
+
+
+def test_registered_mode_refuses_dirty_or_unverifiable_relevant_code(tmp_path, gated, monkeypatch):
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    for dirty in (True, None):
+        monkeypatch.setattr(run, "code_identity", lambda d=dirty: {**copy.deepcopy(gated), "worktree_dirty": d})
+        with pytest.raises(SystemExit, match="dirty or unverifiable"):
+            _main(tmp_path, data, ledger_dir)
+    assert _attempts(tmp_path) == []
+    assert _main(tmp_path, data, ledger_dir, "--exploratory") == 0            # exploratory: recorded only
+    [done] = _completed(tmp_path)
+    assert json.loads((done / "input_manifest.json").read_text())["code_identity"]["worktree_dirty"] is None
+
+
+def test_an_exploratory_retry_records_a_code_change_as_diagnostic_metadata(tmp_path, gated, monkeypatch):
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    original = run.load_accepted_ledger
+    _fail_first_loader(monkeypatch)
+    with pytest.raises(RuntimeError):
+        _main(tmp_path, data, ledger_dir, "--exploratory")
+    [partial] = _attempts(tmp_path)
+    monkeypatch.setattr(run, "load_accepted_ledger", original)
+    changed = copy.deepcopy(gated)
+    changed["files"]["scripts/audit/mining87/inference.py"] = "0" * 64
+    monkeypatch.setattr(run, "code_identity", lambda: copy.deepcopy(changed))
+    assert _main(tmp_path, data, ledger_dir, "--exploratory", "--expect-inputs",
+                 str(partial / "input_manifest.json")) == 0
+    [done] = _completed(tmp_path)
+    assert json.loads((done / "input_manifest.json").read_text())["retry_of"]["code_identical"] is False
+
+
+def test_the_analysis_uses_the_pinned_bytes_even_if_an_input_file_is_replaced_mid_run(tmp_path, gated, monkeypatch):
+    """R2 finding 4: replacing other0.parquet after pinning must not reach the analysis under the old hash."""
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    victim = data / "leaderboard" / "user_picks" / "other0.parquet"
+    old_sha = _sha(victim.read_bytes())
+    original = run.load_accepted_ledger
+
+    def replace_then_load(source):
+        frame = pd.read_parquet(victim)
+        frame.loc[0, "batter_id"] = 987654
+        frame.to_parquet(victim, index=False)
+        return original(source)
+
+    monkeypatch.setattr(run, "load_accepted_ledger", replace_then_load)
+    assert _main(tmp_path, data, ledger_dir) == 0
+    [done] = _completed(tmp_path)
+    manifest = json.loads((done / "input_manifest.json").read_text())
+    votes = pd.read_parquet(done / "consensus_votes.parquet")
+    assert manifest["inputs"]["user_picks"][victim.name] == old_sha
+    assert _sha(victim.read_bytes()) != old_sha                              # the file did change on disk ...
+    assert not (votes["batter_id"] == 987654).any()                         # ... the analysis used the pinned bytes
+
+
+def test_completion_is_refused_when_the_bytes_a_loader_consumed_differ_from_the_manifest(tmp_path, gated,
+                                                                                        monkeypatch):
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    original = run.load_public_picks
+
+    def swap_then_load(files, **kw):
+        files = dict(files)
+        assert files["other0.parquet"] != files["user_0.parquet"]
+        files["other0.parquet"] = files["user_0.parquet"]                   # a parseable file with other bytes
+        return original(files, **kw)
+
+    monkeypatch.setattr(run, "load_public_picks", swap_then_load)
+    with pytest.raises(SystemExit, match="consumed"):
+        _main(tmp_path, data, ledger_dir)
+    [partial] = _attempts(tmp_path)
+    assert partial.name.endswith(".partial") and not _completed(tmp_path)
+    assert (partial / "input_manifest.json").exists()

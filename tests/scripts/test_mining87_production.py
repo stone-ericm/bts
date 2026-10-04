@@ -21,7 +21,8 @@ def sel(date, slot, batter, game, **kw):
            "projected_lineup": False, "finalization": "decision", "commit_status": "committed_evidenced",
            "commit_basis": "decision:delivered", "predicted_at": f"{date}T15:00:00.000000Z",
            "locked_at": f"{date}T16:00:00.000000Z", "delivery_confirmed": True, "entry_status": "confirmed",
-           "match": "evidenced", "match_reason": "unit_capture", "round_id": 1, "unit_id": game * 10 + batter,
+           "match": "evidenced", "match_reason": "unit_capture", "round_id": 1,
+           "unit_id": None if game is None else game * 10 + batter,
            "player_id": batter + 9000, "bts_outcome": "hit", "bts_outcome_status": "graded",
            "contest_slot_grade_raw": "hit", "game_eligibility": "unknown"}
     row.update(kw)
@@ -155,6 +156,13 @@ def test_context_attaches_only_on_the_exact_selection_identity_and_duplicates_ra
     assert "actual_hit" not in out.columns
     with pytest.raises(ValueError, match="duplicate"):
         p.attach_production_context(locked, pd.concat([ctx, ctx]))
+    null_game, _ = project([sel("2026-04-01", "primary", 1, None, selection_id="2026-04-01|primary|1|None",
+                                entry_status="unknown", match=None, match_reason=None, bts_outcome=None,
+                                bts_outcome_status="unknown")])
+    ctx_null = ctx.iloc[:1].assign(game_pk=None)
+    joined, meta3 = p.attach_production_context(null_game, ctx_null)            # a null key is not an identity
+    assert meta3["rows_matched"] == 0 and meta3["rows_dropped_incomplete_key"] == 1
+    assert pd.isna(joined.iloc[0]["production_batter_skill_prior_pa"])
     bare, meta2 = p.attach_production_context(locked, None)
     assert bare["production_batter_skill_quartile"].isna().all() and meta2["source"] == "unavailable"
 

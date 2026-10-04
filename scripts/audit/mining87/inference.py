@@ -18,6 +18,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from fractions import Fraction
 from pathlib import Path
@@ -119,13 +120,16 @@ def load_mechanism_records(path: Path | None) -> tuple[list[dict], dict]:
                       "lock_evidence": {"<variable>": {"status": "available_at_lock" | "not_available_at_lock",
                                                        "evidence": "<reference>"}}}]}
 
-    A record matches a cell only when its ``cell`` names every axis with the cell's exact value."""
+    A record matches a cell only when its ``cell`` names every axis with the cell's exact value. ``path`` may be
+    the driver's pinned bytes."""
     if path is None:
         return [], {"source": "none_supplied", "n_records": 0}
-    doc = json.loads(Path(path).read_text())
+    raw = bytes(path) if isinstance(path, (bytes, bytearray)) else Path(path).read_bytes()
+    doc = json.loads(raw)
     if not isinstance(doc, dict) or doc.get("schema") != MECHANISM_SCHEMA or not isinstance(doc.get("records"), list):
         raise ValueError(f"mechanism record file schema is not {MECHANISM_SCHEMA}")
-    return doc["records"], {"source": str(path), "n_records": len(doc["records"])}
+    return doc["records"], {"source": "pinned_bytes" if isinstance(path, (bytes, bytearray)) else str(path),
+                            "n_records": len(doc["records"]), "sha256": hashlib.sha256(raw).hexdigest()}
 
 
 def _norm_cell(cell) -> dict | None:

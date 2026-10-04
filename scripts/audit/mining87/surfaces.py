@@ -25,6 +25,7 @@ from scripts.audit.benchmark_bridge.core import selection_consistency
 
 SLATE_SCHEMA = "bts_slate_v1"
 WITNESS_SCHEMA = "mining87_surface_witness_v1"
+SELECTION_IDENTITY = ("batter_id", "game_pk", "p_game_hit")   # needed for the exact serialized consistency join
 WITNESS_COMPONENTS = ("candidate_universe", "lineup_assumptions", "feature_computation", "prediction_timestamp_utc")
 
 
@@ -90,16 +91,19 @@ def load_witnesses(path: Path | None) -> tuple[dict[str, list[dict]], dict]:
                         "feature_computation": "<evidence ref>",
                         "prediction_timestamp_utc": "<ISO-8601 with offset>"}]}
 
-    One record per date; two records for a date are a conflict and admit nothing."""
+    One record per date; two records for a date are a conflict and admit nothing. ``path`` may be the driver's
+    pinned bytes."""
     if path is None:
         return {}, {"source": "none_supplied", "n_records": 0}
-    doc = json.loads(Path(path).read_text())
+    raw = bytes(path) if isinstance(path, (bytes, bytearray)) else Path(path).read_bytes()
+    doc = json.loads(raw)
     if not isinstance(doc, dict) or doc.get("schema") != WITNESS_SCHEMA or not isinstance(doc.get("witnesses"), list):
         raise ValueError(f"witness file schema is not {WITNESS_SCHEMA}")
     out: dict[str, list[dict]] = {}
     for w in doc["witnesses"]:
         out.setdefault(str(w.get("date")), []).append(w)
-    return out, {"source": str(path), "n_records": len(doc["witnesses"])}
+    return out, {"source": "pinned_bytes" if isinstance(path, (bytes, bytearray)) else str(path),
+                 "n_records": len(doc["witnesses"]), "sha256": sha256(raw)}
 
 
 def _utc(raw) -> pd.Timestamp | None:
@@ -122,6 +126,11 @@ def admit_surface(*, date: str, slate, slate_sha256: str | None, witnesses: list
     if isinstance(slate, Exception):
         return {**out, "reason": f"slate_format_invalid:{slate}"}
     if production_primary is not None:
+        if any(production_primary.get(k) is None for k in SELECTION_IDENTITY):
+            # R2 finding 3: a committed primary without a recorded game (or batter / stated probability) cannot be
+            # bound to any slate row; missing identity is never read as a match, and no witness can admit it.
+            return {**out, "selection_consistency": "incomplete_selection_identity",
+                    "reason": "incomplete_production_selection_identity"}
         out["selection_consistency"] = selection_consistency(slate["rows"], production_primary, None)["state"]
     if not witnesses:
         return {**out, "reason": "no_independent_witness"}
