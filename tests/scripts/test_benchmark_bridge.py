@@ -290,3 +290,16 @@ def test_capture_files_lists_plain_and_gzipped_captures_in_stamp_order(tmp_path)
     (tmp_path / "notes.txt").write_text("x")
     names = [p.name for p in core.capture_files(tmp_path)]
     assert names == ["20260709T120000Z.json", "20260710T153000Z.json", "20260710T160001Z.json.gz"]
+
+
+def test_history_slice_on_a_date_sorted_frame_equals_the_masked_copy(monkeypatch):
+    import bts.model.predict as pm
+    monkeypatch.setattr(pm, "_build_feature_lookups", lambda df: {"n": len(df), "last": df["x"].iloc[-1]})
+    df = pd.DataFrame({"date": pd.to_datetime(["2026-06-01", "2026-06-01", "2026-06-02", "2026-06-03"]),
+                       "x": [1, 2, 3, 4]})
+    hist, lookups, cache = core.history_and_lookups("2026-06-03", df)
+    pd.testing.assert_frame_equal(hist, df[df["date"] < pd.Timestamp("2026-06-03")])
+    assert lookups == {"n": 3, "last": 3} and cache == {}
+    shuffled = df.iloc[[2, 0, 3, 1]]                 # not date-sorted: the masked copy path, same rows in frame order
+    h2, _, _ = core.history_and_lookups("2026-06-03", shuffled)
+    pd.testing.assert_frame_equal(h2, shuffled[shuffled["date"] < pd.Timestamp("2026-06-03")])

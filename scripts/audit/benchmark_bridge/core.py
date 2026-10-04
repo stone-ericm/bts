@@ -193,7 +193,11 @@ def history_and_lookups(date: str, df_feat: pd.DataFrame) -> tuple[pd.DataFrame,
     scoring that day. ``_check_opener`` depends only on (pitcher_id, the pre-date frame) and its result is read only,
     so caching it per date changes no score."""
     import bts.model.predict as pm
-    hist = df_feat[df_feat["date"] < pd.Timestamp(date)]
+    dates = df_feat["date"]
+    if dates.is_monotonic_increasing:      # a contiguous prefix: a row slice (no copy of the whole feature frame)
+        hist = df_feat.iloc[: int(dates.searchsorted(pd.Timestamp(date), side="left"))]
+    else:
+        hist = df_feat[dates < pd.Timestamp(date)]
     return hist, pm._build_feature_lookups(hist), {}
 
 
