@@ -3,11 +3,11 @@
 The board is a census only when the retained receipts verify it. Two kinds of failure are kept apart:
 - INTEGRITY (the evidence itself is wrong): a raw page archive that does not hash to its recorded
   ``archived_sha256``, an unexpected page set, a board parquet that does not hash to its recorded sha, is not unique
-  by user id, is not all ``all_season`` or differs from the rows re-parsed from the raw pages, and conflicting
-  duplicate rows for one user id in the raw walk;
+  by user id, is not all ``all_season`` or differs from the rows re-parsed from the raw pages, conflicting duplicate
+  rows for one user id in the raw walk, and any id excluded by qualification (review r2 R2-2: a name-only duplicate);
 - COVERAGE (the evidence is sound but incomplete): the grab's own status not census, a failed request, a walk not
   exhausted, an unstable/invalid participant count or ``updatedAt`` (``final_leaderboard_grab._population``, reused),
-  listed != reported.
+  listed != reported for the board or for the QUALIFIED rows actually summarised.
 Summaries are always computed from QUALIFIED raw rows — rows of hash-verified raw pages, exact duplicates collapsed,
 user ids with conflicting duplicates excluded and counted — never from the board parquet, which is only checked.
 Basis: ``census`` (no failure: N, percentile interval, exact threshold counts); ``observed_lower_bound`` (coverage
@@ -32,9 +32,9 @@ from scripts.final_leaderboard_grab import _population, _validate_page_meta
 
 THRESHOLDS = (20, 30, 40)
 INTEGRITY = ("raw_page_hashes", "raw_page_set", "board_output_hash", "board_unique_ids", "board_tab_all_season",
-             "board_rows_equal_raw", "recomputed_conflict_free")
+             "board_rows_equal_raw", "recomputed_conflict_free", "qualified_conflict_free")
 COVERAGE = ("retained_status_census", "board_requests_ok", "recomputed_walk_exhausted", "recomputed_population",
-            "board_rows_equal_reported")
+            "board_rows_equal_reported", "qualified_rows_equal_reported")
 CITATIONS = {
     "C-01": "docs/audit/2026-09-corrections-index.md C-01: historical all_season/all_time snapshot rows held the "
             "ACTIVE streak; the 9/27 walk was parsed after the fix (season_best_streak tab-semantic).",
@@ -172,9 +172,12 @@ def census_gate(rec: dict) -> dict:
                 for r in board.itertuples()} if checks["board_unique_ids"] else {}
     checks["board_rows_equal_raw"] = bool(out_rows) and out_rows == raw_first
     checks["board_rows_equal_reported"] = pop.get("reported") is not None and len(board) == pop.get("reported")
+    # R2-2: the census must cover the qualified rows actually summarised (an excluded id is never silently certified)
+    qualified, qstats = qualified_rows(pages)
+    checks["qualified_conflict_free"] = qstats["conflicting_ids_excluded"] == 0
+    checks["qualified_rows_equal_reported"] = pop.get("reported") is not None and len(qualified) == pop["reported"]
     failures = [k if k != "recomputed_population" else f"recomputed_population:{pop['status']}"
                 for k, v in checks.items() if not v]
-    qualified, qstats = qualified_rows(pages)
     integrity_ok = all(checks[k] for k in INTEGRITY)
     coverage_ok = all(checks[k] for k in COVERAGE)
     return {"census": integrity_ok and coverage_ok, "integrity_ok": integrity_ok, "coverage_ok": coverage_ok,

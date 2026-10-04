@@ -135,3 +135,21 @@ def test_own_rank_requires_the_stable_user_id():
     s = C.season_best_summary(rows, {"census": True, "reported": 2, "listed": 2, "integrity_ok": True}, our_user_id=99)
     assert s["own"]["matched_by_user_id"] is False and s["own"]["stored_rank"] is None
     assert s["own"]["percentile_interval"] is None
+
+
+def test_review_probe_a_name_only_duplicate_never_certifies_an_excluded_subset(tmp_path):
+    """R2-2: the real producer keeps two unique ids (1000 'alice' rank 1/best 30 repeated as 'alice2'; 1001 'bob'
+    rank 2/best 18); qualification conservatively excludes 1000. One qualified row is not a census of N=2: no N,
+    upper bounds, percentile or field maximum."""
+    from tests.scripts.test_final_leaderboard_grab import _rank_row
+    rows = [_rank_row(1000, 1, 30, username="alice"), _rank_row(1001, 2, 18, username="bob"),
+            _rank_row(1000, 1, 30, username="alice2")]
+    grab = B.make_grab(tmp_path, board_pages=B.pages(rows, participants=2), early=[(1001, "a")], cohort_a=1,
+                       cohort_b=0)
+    gate, s = _summary(grab, our=1001)
+    assert gate["census"] is False and gate["listed"] == 1 and gate["reported"] == 2
+    assert {"qualified_conflict_free", "qualified_rows_equal_reported"} <= set(gate["failures"])
+    assert gate["checks"]["board_rows_equal_raw"] and gate["checks"]["recomputed_population"]   # producer side ok
+    assert s["basis"] == "qualified_raw_lower_bound" and s["N"] is None and s["field_max"] is None
+    assert s["thresholds"]["ge_30"] == {"known": 0, "upper_bound": None}
+    assert s["own"]["percentile_interval"] is None
