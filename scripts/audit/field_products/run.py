@@ -48,8 +48,8 @@ from scripts.audit.field_products.sources import Stage
 
 REPO = Path(__file__).resolve().parents[3]
 REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
-X24_COMMIT: str | None = None        # the register commit that publishes X-24 (unset: the run refuses)
-X25_COMMIT: str | None = None        # the register commit that publishes X-25 (unset: the run refuses)
+X24_COMMIT: str | None = "b972cd9"        # the register commit that publishes X-24
+X25_COMMIT: str | None = "b972cd9"        # the register commit that publishes X-25
 FINAL_GRAB = "final_grab_20260927"
 EARLY_MANIFEST = REPO / "docs/audit/2026-09-22-early-cohort-2026-05-01.json"
 PER_BATCH_IDENTITY = (    # code review r2 F2, verbatim
