@@ -90,6 +90,46 @@ def make_grab(root: Path, *, board_pages, early: list[tuple[int, str]], profiles
     return cfg.run_root
 
 
+def make_ledger(root: Path, rows: list[dict], contest_rows: list[dict]) -> Path:
+    """A synthetic accepted W1.1 build directory in the compiler's exact formats: the six build files (schemas from
+    season_ledger.compile), build.json counts computed like the compiler's, and the accept step's ACCEPTED.json."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from collections import Counter
+
+    from scripts.audit.field_products import ledger as LG
+    from scripts.audit.season_ledger.compile import CONTEST_SCHEMA, LEDGER_SCHEMA
+
+    d = root / LG.ACCEPTED_BUILD
+    d.mkdir(parents=True)
+    full = lambda rs, schema: pa.Table.from_pylist([{f.name: r.get(f.name) for f in schema} for r in rs],
+                                                   schema=schema)
+    pq.write_table(full(rows, LEDGER_SCHEMA), d / "season_2026_ledger.parquet")
+    pq.write_table(full(contest_rows, CONTEST_SCHEMA), d / "season_2026_ledger_contest_slots.parquet")
+    for name in ("season_2026_ledger_occurrences.parquet", "season_2026_ledger_reconciliation.parquet",
+                 "season_2026_ledger_summary.md"):
+        (d / name).write_bytes(b"synthetic")
+    counts = lambda rs, k: dict(sorted(Counter(str(r.get(k)) for r in rs).items()))
+    sels = [r for r in rows if r.get("row_kind") == "selection"]
+    build = {"code_sha": LG.ACCEPTED_CODE_SHA, "rules_fingerprint": LG.EXPECTED_RULES_FINGERPRINT,
+             "builder_version": "season-ledger-phase1/3", "row_kinds": counts(rows, "row_kind"),
+             "commit_status": counts(sels, "commit_status"), "entry_status": counts(sels, "entry_status"),
+             "match": counts(contest_rows, "match")}
+    (d / "season_2026_ledger_build.json").write_text(json.dumps(build, indent=1, sort_keys=True) + "\n")
+    receipt = {"run": LG.ACCEPTED_RUN, "accepted_at_utc": "2026-09-29T02:29:08+00:00",
+               "files": sorted(LG.BUILD_FILES), "compared_with": "/tmp/ledger_check", "rules_fingerprint":
+               LG.EXPECTED_RULES_FINGERPRINT}
+    (d / "ACCEPTED.json").write_text(json.dumps(receipt, indent=1, sort_keys=True) + "\n")
+    return d
+
+
+def ledger_selection(sid, d, slot, grade, *, match="evidenced", round_id=1, unit=1) -> dict:
+    return {"row_id": sid, "row_kind": "selection", "date": d, "round_id": round_id, "slot": slot,
+            "selection_id": sid, "batter_id": 5, "game_pk": 9, "commit_status": "committed_evidenced",
+            "entry_status": "confirmed", "match": match, "match_reason": "unit_capture", "unit_id": unit,
+            "contest_slot_grade_raw": grade}
+
+
 def daily_pick(round_id, pick_number, *, cap, pick_date, result="hit", unit=10, player=20, streak=1,
                team="NYM", ha="home") -> PickRow:
     return PickRow(captured_at=cap, round_id=round_id, pick_date=pick_date, pick_number=pick_number, unit_id=unit,
