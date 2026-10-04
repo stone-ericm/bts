@@ -6,10 +6,12 @@ entered-round history (a hidden round can always sit between two observations or
 within-window maximum, and the start/end dates of a run, are UNAVAILABLE here; only defensible lower bounds are
 reported, with their coverage.
 
-Round kinds (from ``picks.resolve``; round completeness is not required): ``H`` every observed slot exactly ``hit``,
-no slot conflict or competing batch, and a reported streak at least the slot count; ``M`` every observed slot exactly
-graded with at least one ``not_hit`` (a single miss or a mixed DD); ``A`` anything else (pending, Pass/void or other
-labels, conflicts, an all-hit round whose streak is null-coerced).
+Round kinds (from ``picks.resolve``; code review r2 R2-1: only COMPLETE rounds qualify, because an observed hit slot
+is not a winning-round increment — a retained hit with an unretained missed leg and a saver can carry a streak with no
+increment at all): ``H`` a complete round whose every slot is exactly ``hit``, no slot conflict or competing batch,
+and a reported streak at least the slot count; ``M`` a complete round whose every slot is exactly graded with at least
+one ``not_hit`` (a single miss or a mixed DD); ``A`` anything else (incomplete — including every unwitnessed daily
+round —, pending, Pass/void or other labels, conflicts, an all-hit round whose streak is null-coerced).
 
 An OBSERVED SEGMENT is a run of retained rounds, each H, where every round's reported streak equals the previous
 round's plus its own slot count. A segment never crosses an M or A round and never joins inconsistent values (no
@@ -35,7 +37,7 @@ def annotate(rounds: pd.DataFrame) -> pd.DataFrame:
     (H rounds only) and ``split`` (why an H round starts a new segment)."""
     r = rounds.sort_values(["pick_date", "round_id"], kind="mergesort").reset_index(drop=True).copy()
     streak = pd.to_numeric(r["streak_after"], errors="coerce")
-    usable = r["slots_ok"] & ~r["competing_batches"] & (r["incomplete_reason"] != "pick_date_conflict")
+    usable = r["complete"] & r["slots_ok"] & ~r["competing_batches"] & (r["incomplete_reason"] != "pick_date_conflict")
     is_h = usable & r["all_hit"] & streak.notna() & (streak >= r["n_slots"])
     is_m = usable & r["any_not_hit"] & r["all_graded"]
     r["kind"] = ["H" if h else ("M" if m else "A") for h, m in zip(is_h, is_m)]
@@ -68,11 +70,16 @@ def window_summary(rounds: pd.DataFrame, start: date, end: date) -> dict:
     out = {"rounds": int(len(w)), "incomplete_rounds": int((~w["complete"]).sum()) if len(w) else 0,
            "longest_exact": None, "reasons": [NO_WITNESS]}
     if not len(w):
-        return {**out, "status": "no_window_rounds", "lower_bound": None, "kinds": {}, "segments": 0, "splits": {}}
+        return {**out, "status": "no_window_rounds", "lower_bound": None, "kinds": {}, "segments": 0, "splits": {},
+                "ambiguous_rounds": 0}
     a = annotate(w)
+    kinds = dict(Counter(a["kind"]))
+    if not w["complete"].any():           # R2-1: without a complete round nothing can be claimed, not even 0
+        return {**out, "status": "no_complete_rounds", "lower_bound": None, "kinds": kinds, "segments": 0,
+                "splits": {}, "ambiguous_rounds": int(kinds.get("A", 0))}
     hs = a[a["kind"] == "H"]
     sums = hs.groupby("segment")["n"].sum()
-    return {**out, "status": "lower_bound_only", "kinds": dict(Counter(a["kind"])),
+    return {**out, "status": "lower_bound_only", "kinds": kinds, "ambiguous_rounds": int(kinds.get("A", 0)),
             "lower_bound": int(sums.max()) if len(sums) else 0, "segments": int(len(sums)),
             "splits": dict(Counter(s for s in hs["split"] if s not in (None, "first")))}
 

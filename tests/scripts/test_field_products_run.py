@@ -194,7 +194,13 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert a["coverage"]["E_members"] == 6 and a["coverage"]["window_calendar_dates"] == 64
     av = pd.read_parquet(out / "w22_availability.parquet").set_index("user_id")
     assert av.loc[1001, "allocation"] == "E_in_A" and av.loc[1001, "window_graded_slots"] == 3
-    assert av.loc[1001, "window_streak_status"] == "lower_bound_only" and av.loc[1001, "window_longest_exact"] is None
+    # R2-1: daily rounds have no completeness witness, so no positive streak bound is claimed for E
+    assert av.loc[1001, "window_streak_status"] == "no_complete_rounds"
+    assert pd.isna(av.loc[1001, "window_longest_lower_bound"]) and av.loc[1001, "window_longest_exact"] is None
+    ws = prim["window_streaks"]
+    assert ws["status"] == {"no_complete_rounds": 2}
+    assert ws["rule"].startswith("qualified complete all-hit rounds only; daily positive streak bounds unavailable "
+                                 "without a completeness witness")
     ext = w22["extension"]
     assert ext["coverage"]["usable"] == 2 and ext["coverage"]["budget_omissions"] == 2
     assert ext["pooled"] == {"users": 2, "dates": 3, "rounds": 6, "slots": 8, "hits": 6, "ratio": 0.75}

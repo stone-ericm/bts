@@ -65,7 +65,8 @@ LIMITS = [
     "Round completeness (DD frequency) needs a verified raw response: only final-grab rounds have one; daily-corpus "
     "rounds are incomplete for DD/streak denominators while their exact slot grades stay usable.",
     "No exact within-window streak maximum or run dates: no stored record establishes a complete entered-round "
-    "history; observed-segment lower bounds only.",
+    "history; observed-segment lower bounds from qualified complete all-hit rounds only; daily positive streak "
+    "bounds unavailable without a completeness witness.",
     "Composition (team, home/away) is unknown: stored context comes from capture-time lookups and no independent "
     "historical pick-time witness exists.",
     "'void' is the settled Pass label (W1.1 HOLD normalisation): it settles a round's slot set but is never graded.",
@@ -343,8 +344,10 @@ def main(argv=None) -> int:
                                                   "median": float(per_user.median()) if len(per_user) else None,
                                                   "max": int(per_user.max()) if len(per_user) else None},
                         "window_streaks": {"status": status_counts,
-                                           "rule": "observed-segment lower bounds only (carried-in streak excluded); "
-                                                   "exact maxima unavailable without a completeness witness"}},
+                                           "rule": "qualified complete all-hit rounds only; daily positive streak "
+                                                   "bounds unavailable without a completeness witness (observed-"
+                                                   "segment lower bounds; carried-in streak excluded; exact maxima "
+                                                   "unavailable)"}},
             "extension": ext},
         "data_contract": {"daily": res.log, "final_grab_A": a["summary"]["revision_log"],
                           "final_grab_E_extension": ext_res.log},

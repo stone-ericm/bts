@@ -1,6 +1,8 @@
-"""W2.1 item 2 / W2.2 streak rules (design B-E3; code review r1 F3): no exact window maximum or run dates without an
-entered-round completeness witness (none is stored); observed-segment lower bounds only, never merged through a miss,
-an ambiguous round or inconsistent reported values; carried-in streak excluded; max(streak_after) never used."""
+"""W2.1 item 2 / W2.2 streak rules (design B-E3; code review r1 F3, r2 R2-1): no exact window maximum or run dates
+without an entered-round completeness witness (none is stored); observed-segment lower bounds only, from qualified
+COMPLETE rounds only, never merged through a miss, an ambiguous round or inconsistent reported values; carried-in
+streak excluded; max(streak_after) never used. Informative tests give each round a synthetic validated slot-set
+witness (as a verified final-grab raw response would); without one no round contributes."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -15,16 +17,27 @@ D0 = date(2026, 4, 25)
 CAP = datetime(2026, 7, 5, 12)
 
 
-def _rounds(spec, user_id=7):
-    """spec: list of (day offset from D0, labels tuple, streak_after) -> resolved rounds (no completeness witness)."""
+def _witness(obs):
+    """A synthetic validated slot-set witness for each round's (single) batch."""
+    return {(int(u), int(r)): {"file": g["file"].iloc[-1], "captured_at": g["captured_at"].iloc[-1],
+                               "slot_numbers": frozenset(int(x) for x in g["pick_number"])}
+            for (u, r), g in obs.groupby(["user_id", "round_id"])}
+
+
+def _resolve(rows, witness=True, user_id=7):
+    obs = P.with_provenance(pd.DataFrame(rows), user_id=user_id, source="daily", file="x.parquet", file_rank=0)
+    return P.resolve(obs, witness=_witness(obs) if witness else None).rounds
+
+
+def _rounds(spec, user_id=7, witness=True):
+    """spec: list of (day offset from D0, labels tuple, streak_after) -> resolved rounds (witnessed by default)."""
     rows = []
     for k, (off, labels, streak) in enumerate(spec):
         for pn, lab in enumerate(labels, start=1):
             rows.append(PickRow(captured_at=CAP, round_id=100 + k, pick_date=D0 + timedelta(days=off), pick_number=pn,
                                 unit_id=10 + pn, bts_player_id=20 + pn, result=lab, at_bats=4, hits=1,
                                 streak_after=streak).model_dump())
-    obs = P.with_provenance(pd.DataFrame(rows), user_id=user_id, source="daily", file="x.parquet", file_rank=0)
-    return P.resolve(obs).rounds
+    return _resolve(rows, witness=witness, user_id=user_id)
 
 
 H, HH, M, MIX, V, PEND = ("hit",), ("hit", "hit"), ("not_hit",), ("hit", "not_hit"), ("void",), ("",)
@@ -91,7 +104,7 @@ def test_mixed_dd_is_a_miss_round():
 
 def test_all_miss_window_has_a_zero_lower_bound_and_no_rounds_is_unavailable():
     w = _win([(6, M, 0), (7, PEND, 0)])
-    assert w["lower_bound"] == 0 and w["longest_exact"] is None and w["incomplete_rounds"] == 2
+    assert w["lower_bound"] == 0 and w["longest_exact"] is None and w["incomplete_rounds"] == 1
     assert S.window_summary(_rounds([(70, H, 1)]), W0, W1)["status"] == "no_window_rounds"
 
 
@@ -101,9 +114,10 @@ def test_a_conflicting_slot_makes_the_round_ambiguous():
     rows += [PickRow(captured_at=CAP, round_id=101, pick_date=date(2026, 5, 3), pick_number=pn, unit_id=u,
                      bts_player_id=u, result="hit", at_bats=4, hits=1, streak_after=2).model_dump()
              for pn, u in ((1, 30), (2, 0))]             # a DD whose second leg's identity is null-coerced
-    obs = P.with_provenance(pd.DataFrame(rows), user_id=7, source="daily", file="x.parquet", file_rank=0)
-    w = S.window_summary(P.resolve(obs).rounds, W0, W1)
-    assert w["kinds"] == {"A": 2} and w["lower_bound"] == 0       # conflict; unresolved (null-coerced) identity
+    rows.append(PickRow(captured_at=CAP, round_id=102, pick_date=date(2026, 5, 4), pick_number=1, unit_id=40,
+                        bts_player_id=40, result="not_hit", at_bats=4, hits=0, streak_after=0).model_dump())
+    w = S.window_summary(_resolve(rows), W0, W1)
+    assert w["kinds"] == {"A": 2, "M": 1} and w["lower_bound"] == 0   # conflict; unresolved (null-coerced) identity
 
 
 def test_attaining_run_reports_attainment_and_a_lower_bound_but_never_dates():
@@ -129,3 +143,36 @@ def test_no_round_reports_the_best_gives_only_the_longest_observed_segment():
 def test_missing_or_zero_best():
     assert S.attaining_runs(_rounds([(0, H, 1)]), best=None)["status"] == "best_unavailable"
     assert S.attaining_runs(_rounds([(0, M, 0)]), best=0)["status"] == "best_is_zero"
+
+
+def _one_slot(pick_number, streak=10):
+    return [PickRow(captured_at=CAP, round_id=100, pick_date=date(2026, 5, 1), pick_number=pick_number, unit_id=11,
+                    bts_player_id=21, result="hit", at_bats=4, hits=1, streak_after=streak).model_dump()]
+
+
+def test_review_probe_primary_only_hit_without_a_witness_contributes_nothing():
+    """R2-1: a retained May 1 hit at reported streak 10 is compatible with a mixed DD whose unretained leg missed
+    while a saver kept a carried-in 10 — no winning-round increment at all. No positive contribution."""
+    rounds = _resolve(_one_slot(1), witness=False)
+    assert not rounds.iloc[0]["complete"]
+    w = S.window_summary(rounds, W0, W1)
+    assert w["status"] == "no_complete_rounds" and w["lower_bound"] is None and w["longest_exact"] is None
+    assert w["segments"] == 0 and w["splits"] == {} and w["kinds"] == {"A": 1} and w["ambiguous_rounds"] == 1
+    r = S.attaining_runs(rounds, best=10)
+    assert r["runs"] == [] and r["longest_observed_segment"] is None
+
+
+def test_review_probe_secondary_only_hit_contributes_nothing_even_with_a_slot_set_witness():
+    rounds = _resolve(_one_slot(2), witness=True)
+    assert rounds.iloc[0]["incomplete_reason"] == "missing_primary_slot"
+    w = S.window_summary(rounds, W0, W1)
+    assert w["status"] == "no_complete_rounds" and w["lower_bound"] is None
+    assert S.attaining_runs(rounds, best=10)["runs"] == []
+
+
+def test_unwitnessed_daily_rounds_give_no_positive_bound_or_dd_count():
+    rounds = _rounds([(6, H, 1), (7, H, 2), (8, HH, 4)], witness=False)
+    w = S.window_summary(rounds, W0, W1)
+    assert w["status"] == "no_complete_rounds" and w["lower_bound"] is None and w["incomplete_rounds"] == 3
+    r = S.attaining_runs(rounds, best=4)
+    assert r["status"] == "no_settled_round_reports_best" and r["runs"] == []
