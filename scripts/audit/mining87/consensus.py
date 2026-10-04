@@ -177,6 +177,9 @@ def _display_name(names: pd.Series) -> str | None:
 
 def consensus_table(latest: pd.DataFrame, *, users: set[str] | None, cohort: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """One row per (date, slot) with any valid vote in this cohort, plus the frozen vote table (counts only)."""
+    vote_cols = ["cohort", "date", "pick_number", "batter_id", "n_users", "display_name"]
+    if latest.empty:
+        return pd.DataFrame(columns=CONSENSUS_COLUMNS), pd.DataFrame(columns=vote_cols)
     frame = latest if users is None else latest[latest["username"].isin(users)]
     frame = frame[frame["batter_id"].notna()].copy()
     frame["batter_id"] = frame["batter_id"].astype("int64")
@@ -223,7 +226,7 @@ def consensus_table(latest: pd.DataFrame, *, users: set[str] | None, cohort: str
         table["consensus_batter_id"] = table["consensus_batter_id"].astype("Int64")
         table["consensus_unconstrained_batter_id"] = table["consensus_unconstrained_batter_id"].astype("Int64")
         table["consensus_unit_id"] = table["consensus_unit_id"].astype("Int64")
-    votes = pd.DataFrame(vote_rows, columns=["cohort", "date", "pick_number", "batter_id", "n_users", "display_name"])
+    votes = pd.DataFrame(vote_rows, columns=vote_cols)
     return table, votes
 
 
