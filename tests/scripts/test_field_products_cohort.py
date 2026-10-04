@@ -86,7 +86,7 @@ def test_unique_sanitized_name_binds_both_the_raw_and_sanitized_files(tmp_path):
     m = _members(tmp_path, [(1, "joe smith"), (2, "ann")])
     b, counts = K.bind_daily_files(m, ["joe smith", "joe_smith", "ann", "stranger"])
     b = b.set_index("user_id")
-    assert b.loc[1, "binding"] == "bound" and b.loc[1, "files"] == "joe smith;joe_smith"
+    assert b.loc[1, "binding"] == "bound" and b.loc[1, "files"] == ["joe smith", "joe_smith"]
     assert b.loc[2, "binding"] == "bound" and counts["files_not_E"] == 1 and counts["files_bound"] == 3
 
 
@@ -112,3 +112,11 @@ def test_member_without_a_file_is_listed_not_dropped(tmp_path):
     m = _members(tmp_path, [(1, "x"), (2, "y")])
     b, counts = K.bind_daily_files(m, ["x"])
     assert len(b) == 2 and b.set_index("user_id").loc[2, "binding"] == "no_daily_file"
+
+
+def test_a_pre_sanitizer_name_containing_the_old_delimiter_stays_one_path(tmp_path):
+    """Review F9 probe: manifest name a;b with only its legitimate old a;b.parquet file binds to ONE path."""
+    m = _members(tmp_path, [(1, "a;b")])
+    b, _ = K.bind_daily_files(m, ["a;b"])
+    row = b.set_index("user_id").loc[1]
+    assert row["binding"] == "bound" and row["files"] == ["a;b"] and row["n_files"] == 1

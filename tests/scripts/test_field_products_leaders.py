@@ -1,5 +1,9 @@
-"""W2.1 item 2-3: the survivor-selected Cohort A case series from the real final-grab formats."""
+"""W2.1 item 2-3: the survivor-selected Cohort A case series from the real final-grab formats (code review r1 F3, F4,
+F7): round completeness from the verified raw profile response, run dates unavailable, composition unknown."""
 from __future__ import annotations
+
+import gzip
+import json
 
 import pandas as pd
 
@@ -19,28 +23,41 @@ def _grab(tmp_path):
                        profiles={1000: (200, p1000), 1001: (200, p1001), 1002: (200, B.profile([]))})
 
 
-def test_case_series_reports_pick_days_dd_runs_and_witnessed_composition_with_survivor_labels(tmp_path):
+def test_case_series_reports_pick_days_dd_runs_and_unknown_composition_with_survivor_labels(tmp_path):
     grab = _grab(tmp_path)
     out = L.case_series(grab)
     users = out["users"].set_index("user_id")
     assert list(out["users"]["user_id"]) == [1001, 1000, 1002]          # A's own (rank, id) order
     u = users.loc[1000]
     assert u["board_rank"] == 2 and u["board_season_best"] == 4 and u["history"] == "usable"
+    assert u["raw_witness"] == "verified"
     assert u["pick_days"] == 5 and u["complete_rounds"] == 5 and u["dd_rounds"] == 1 and u["dd_frequency"] == 0.2
     assert u["unobserved_calendar_dates"] == 187 - 5
-    assert u["runs_status"] == "recoverable" and u["runs_recoverable"] == 1
-    # only the 9/27 round was captured on its own New York date; older rows' lookup context is not evidence
-    assert u["composition_witnessed"] == 1 and u["composition_unknown"] == 5 and u["composition_away"] == 1
+    assert u["runs_status"] == "dates_unavailable" and u["runs_reported_attainments"] == 1
+    assert u["runs_longest_observed_segment"] == 4
+    assert u["composition_witnessed"] == 0 and u["composition_unknown"] == 6
     v = users.loc[1001]
-    assert v["runs_status"] == "dates_unavailable" and v["runs_longest_evidenced_segment"] == 2
+    assert v["runs_status"] == "dates_unavailable" and v["runs_longest_observed_segment"] == 2
     w = users.loc[1002]
     assert w["history"] == "no_history" and w["pick_days"] == 0 and pd.isna(w["dd_frequency"])
     assert w["runs_status"] == "history_unavailable"
-    runs = out["runs"]
-    r = runs[runs["user_id"] == 1000].iloc[0]
-    assert r["recoverable"] and r["start_date"] == "2026-09-18" and r["end_date"] == "2026-09-20"
+    r = out["runs"][out["runs"]["user_id"] == 1000].iloc[0]
+    assert not r["recoverable"] and r["start_date"] is None and r["reported_attainment_date"] == "2026-09-20"
+    assert r["observed_segment_lower_bound"] == 4
     s = out["summary"]
     assert s["survivor_selected"] is True and "not an awarded prize" in s["labels"]["listing"]
     assert s["n_A"] == 3 and s["history"] == {"usable": 2, "no_history": 1}
     assert s["pooled_dd"] == {"complete_rounds": 7, "dd_rounds": 1, "dd_frequency": 1 / 7, "users": 2}
-    assert s["composition"] == {"slots": 8, "witnessed": 1, "unknown": 7}
+    assert s["composition"]["witnessed"] == 0 and s["composition"]["unknown"] == 8
+    assert s["raw_witness"] == {"verified": 2, "not_applicable": 1}
+
+
+def test_raw_profile_that_fails_its_receipt_hash_gives_no_completeness(tmp_path):
+    grab = _grab(tmp_path)
+    raw = grab / "raw" / "profiles" / "1000.json.gz"
+    body = json.loads(gzip.decompress(raw.read_bytes()))
+    body["success"]["predictions"][2]["roundPredictions"].pop()          # the DD leg vanishes from the archive
+    raw.write_bytes(gzip.compress(json.dumps(body).encode()))
+    u = L.case_series(grab)["users"].set_index("user_id").loc[1000]
+    assert u["raw_witness"] == "archive_hash_mismatch" and u["complete_rounds"] == 0 and pd.isna(u["dd_frequency"])
+    assert u["pick_days"] == 5
