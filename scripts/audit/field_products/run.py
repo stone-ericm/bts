@@ -183,9 +183,7 @@ def main(argv=None) -> int:
     season_best = C.season_best_summary(rec["board"], census_gate, args.our_user_id)
     log(f"census gate: {census_gate['census']} {census_gate['failures']}")
     identity = json.loads(read(grab / "identity.json", f"leaderboard/{args.final_grab}/identity.json"))
-    grab_hashes: dict[str, str] = {}
-    a = L.case_series(grab, board=rec["board"], cohort_json=cohort_json, identity=identity, hashes=grab_hashes)
-    inputs.update({f"leaderboard/{args.final_grab}/{k}": v for k, v in grab_hashes.items()})
+    a = L.case_series(grab, board=rec["board"], cohort_json=cohort_json, identity=identity, status=rec["status"])
 
     # ---- W2.2: daily corpus for bound members ----
     bound = binding[binding["binding"] == "bound"]

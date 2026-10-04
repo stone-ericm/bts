@@ -1,21 +1,23 @@
-"""Streak/run rules (design W2.1 item 2, r1 edit B-E3). Pick rows carry the SEASONAL reported ``streak_after``
-(repeated on DD legs, null-coerced to 0 by the parser) and no round result, streakIncrease or saver state, so runs are
-reconstructed only where the reported values themselves evidence each transition.
+"""Streak/run rules (design W2.1 item 2, r1 edit B-E3; code review r1 F3).
 
-Round kinds (complete snapshots from ``picks.resolve``): ``H`` every slot exactly ``hit`` and a reported streak at least
-the slot count; ``M`` every slot exactly graded with at least one ``not_hit`` (a single miss or a mixed DD); ``A``
-anything else (incomplete, Pass/void or other labels, an all-hit round whose streak is unreported/null-coerced).
+Pick rows carry the SEASONAL reported ``streak_after`` (repeated on DD legs, null-coerced to 0 by the parser) and no
+round result, streakIncrease or saver state; no stored record witnesses that the retained rounds are a user's complete
+entered-round history (a hidden round can always sit between two observations or before the first). So an exact
+within-window maximum, and the start/end dates of a run, are UNAVAILABLE here; only defensible lower bounds are
+reported, with their coverage.
 
-Each ``H`` round b is linked to the previous ``H`` round a (rounds in between are M/A, or unobserved):
-- ``continuation*``: streak(b) == streak(a) + n(b) — no reset between (``_through_miss`` when an M lies between: the
-  saver-consistent case; ``_absorbing`` when only A rounds lie between: they changed nothing);
-- ``new_run_*``: streak(b) == n(b) — the streak before b was 0 (entry evidence). ``_after_miss`` when an observed M
-  lies between; ``_unexplained`` when none does (the reset happened in unobserved rounds: missing data);
-  ``_first`` for the first H round;
-- ``carried_unknown`` (first H, start unknown) / ``unresolved`` (neither identity holds).
-A miss's own reported 0 is never read as a reset (it may be a null-coerced value). ``max(streak_after)`` is never a
-within-window run. Residual assumption: a continuation identity is not produced by an exactly compensating hidden
-reset-and-rebuild in unobserved rounds."""
+Round kinds (from ``picks.resolve``; round completeness is not required): ``H`` every observed slot exactly ``hit``,
+no slot conflict or competing batch, and a reported streak at least the slot count; ``M`` every observed slot exactly
+graded with at least one ``not_hit`` (a single miss or a mixed DD); ``A`` anything else (pending, Pass/void or other
+labels, conflicts, an all-hit round whose streak is null-coerced).
+
+An OBSERVED SEGMENT is a run of retained rounds, each H, where every round's reported streak equals the previous
+round's plus its own slot count. A segment never crosses an M or A round and never joins inconsistent values (no
+saver or absorption is inferred from endpoints). Its slot sum is a lower bound on the in-window length of the run
+reported at its last round, whatever the hidden history: each reported value is the contest's own count of hits since
+the last reset, so a hidden reset between two linked rounds must be followed by a hidden rebuild at least as long as
+the hits it cut off. The window bound uses in-window rounds only (carried-in streak excluded); ``max(streak_after)``
+is never used."""
 from __future__ import annotations
 
 from collections import Counter
@@ -23,47 +25,35 @@ from datetime import date
 
 import pandas as pd
 
-LINK_CONT = frozenset({"continuation", "continuation_through_miss", "continuation_absorbing"})
-LINK_NEW = frozenset({"new_run_first", "new_run_after_miss", "new_run_unexplained"})
+NO_WITNESS = "no_entered_round_completeness_witness"
+NO_WITNESS_TEXT = (f"{NO_WITNESS}: exact maxima and run dates need a complete entered-round history and supported "
+                   "transitions; no stored record establishes either")
 
 
 def annotate(rounds: pd.DataFrame) -> pd.DataFrame:
-    """One user's resolved rounds in (pick_date, round_id) order with ``kind``, ``n``, ``link``, ``chain`` (H rounds
-    joined by continuation links) and ``absorbed`` (an A round spanned by a continuation link)."""
+    """One user's resolved rounds in (pick_date, round_id) order with ``kind``, ``n``, ``streak``, ``segment``
+    (H rounds only) and ``split`` (why an H round starts a new segment)."""
     r = rounds.sort_values(["pick_date", "round_id"], kind="mergesort").reset_index(drop=True).copy()
     streak = pd.to_numeric(r["streak_after"], errors="coerce")
-    is_h = r["complete"] & r["all_hit"] & streak.notna() & (streak >= r["n_slots"])
-    is_m = r["complete"] & r["any_not_hit"] & r["all_graded"]
+    usable = r["slots_ok"] & ~r["competing_batches"] & (r["incomplete_reason"] != "pick_date_conflict")
+    is_h = usable & r["all_hit"] & streak.notna() & (streak >= r["n_slots"])
+    is_m = usable & r["any_not_hit"] & r["all_graded"]
     r["kind"] = ["H" if h else ("M" if m else "A") for h, m in zip(is_h, is_m)]
     r["n"] = r["n_slots"].astype(int)
     r["streak"] = streak
-    links, chains = [None] * len(r), [None] * len(r)
-    prev, between, chain_id = None, [], -1
+    segs, splits, seg = [None] * len(r), [None] * len(r), -1
     for i in range(len(r)):
         if r.at[i, "kind"] != "H":
-            between.append(i)
             continue
-        n, s = int(r.at[i, "n"]), int(r.at[i, "streak"])
-        kinds_between = {r.at[j, "kind"] for j in between}
-        if prev is not None and s == int(r.at[prev, "streak"]) + n:
-            link = ("continuation_through_miss" if "M" in kinds_between
-                    else "continuation_absorbing" if kinds_between else "continuation")
-        elif s == n:
-            link = ("new_run_first" if prev is None
-                    else "new_run_after_miss" if "M" in kinds_between else "new_run_unexplained")
-        else:
-            link = "carried_unknown" if prev is None else "unresolved"
-        if link not in LINK_CONT:
-            chain_id += 1
-        links[i], chains[i] = link, chain_id
-        prev, between = i, []
-    r["link"], r["chain"] = links, chains
-    absorbed = [False] * len(r)
-    for i in range(len(r)):
-        if r.at[i, "kind"] == "A":
-            nxt = next((j for j in range(i + 1, len(r)) if r.at[j, "kind"] == "H"), None)
-            absorbed[i] = nxt is not None and links[nxt] in LINK_CONT
-    r["absorbed"] = absorbed
+        prev_kind = r.at[i - 1, "kind"] if i else None
+        if prev_kind == "H" and int(r.at[i, "streak"]) == int(r.at[i - 1, "streak"]) + int(r.at[i, "n"]):
+            segs[i] = seg
+            continue
+        seg += 1
+        segs[i] = seg
+        splits[i] = ("first" if prev_kind is None else "after_miss" if prev_kind == "M"
+                     else "after_ambiguous" if prev_kind == "A" else "inconsistent_values")
+    r["segment"], r["split"] = segs, splits
     return r
 
 
@@ -72,73 +62,40 @@ def _dates(df: pd.DataFrame) -> pd.Series:
 
 
 def window_summary(rounds: pd.DataFrame, start: date, end: date) -> dict:
-    """Within [start, end] for one user: the longest run built INSIDE the window (carried-in streak excluded: the
-    count starts at the first in-window H round), exact only when every in-window transition is evidenced, else the
-    longest evidenced in-window chain as a lower bound. Coverage and every unavailability reason are reported."""
-    a = annotate(rounds) if len(rounds) else rounds
-    w = a[(_dates(a) >= start) & (_dates(a) <= end)] if len(a) else a
-    out = {"rounds": int(len(w)), "kinds": dict(Counter(w["kind"])) if len(w) else {},
-           "incomplete_rounds": int((~w["complete"]).sum()) if len(w) else 0, "links": {}, "reasons": []}
+    """One user's [start, end]: the longest observed in-window segment as a lower bound on the longest streak built
+    inside the window (exact value unavailable), with coverage and segment splits."""
+    w = rounds[(_dates(rounds) >= start) & (_dates(rounds) <= end)] if len(rounds) else rounds
+    out = {"rounds": int(len(w)), "incomplete_rounds": int((~w["complete"]).sum()) if len(w) else 0,
+           "longest_exact": None, "reasons": [NO_WITNESS]}
     if not len(w):
-        return {**out, "status": "no_window_rounds", "longest_exact": None, "lower_bound": None}
-    reasons: set[str] = set()
-    if ((w["kind"] == "A") & ~w["absorbed"]).any():
-        reasons.add("unabsorbed_ambiguous_round")
-    hs = w[w["kind"] == "H"]
-    links: Counter = Counter()
-    count = longest = 0
-    for k, row in enumerate(hs.itertuples()):
-        if k == 0:
-            count = row.n
-        else:
-            links[row.link] += 1
-            if row.link in LINK_CONT:
-                count += row.n
-            else:
-                if row.link != "new_run_after_miss":
-                    reasons.add(row.link)
-                count = row.n
-        longest = max(longest, count)
-    lower = int(hs.groupby("chain")["n"].sum().max()) if len(hs) else 0
-    return {**out, "links": dict(links), "reasons": sorted(reasons),
-            "status": "lower_bound_only" if reasons else "exact",
-            "longest_exact": None if reasons else int(longest), "lower_bound": lower}
+        return {**out, "status": "no_window_rounds", "lower_bound": None, "kinds": {}, "segments": 0, "splits": {}}
+    a = annotate(w)
+    hs = a[a["kind"] == "H"]
+    sums = hs.groupby("segment")["n"].sum()
+    return {**out, "status": "lower_bound_only", "kinds": dict(Counter(a["kind"])),
+            "lower_bound": int(sums.max()) if len(sums) else 0, "segments": int(len(sums)),
+            "splits": dict(Counter(s for s in hs["split"] if s not in (None, "first")))}
 
 
 def attaining_runs(rounds: pd.DataFrame, best: int | None) -> dict:
-    """Every run attaining the board/profile season best ``best`` (kept separate from reconstruction): a run is
-    recoverable when it ends on an H round reporting ``best``, its chain reaches back through evidenced links to entry
-    evidence, and its slot hits sum to ``best``; otherwise its dates are unavailable and the evidenced chain gives an
-    observed-segment lower bound."""
+    """The board/profile season best ``best`` (kept separate from reconstruction): every H round reporting it, with
+    the observed segment ending there as a lower bound. Run start/end dates are unavailable (no completeness or
+    transition witness); the reported attainment date is the date of the round whose reported streak equals best."""
     a = annotate(rounds) if len(rounds) else rounds
     hs = a[a["kind"] == "H"] if len(a) else a
-    segments = hs.groupby("chain")["n"].sum() if len(hs) else pd.Series(dtype=int)
+    sums = hs.groupby("segment")["n"].sum() if len(hs) else pd.Series(dtype=int)
     base = {"best": best, "rounds": int(len(a)), "kinds": dict(Counter(a["kind"])) if len(a) else {},
             "incomplete_rounds": int((~a["complete"]).sum()) if len(a) else 0,
-            "longest_evidenced_segment": int(segments.max()) if len(segments) else None, "runs": []}
+            "longest_observed_segment": int(sums.max()) if len(sums) else None, "runs": [], "reason": NO_WITNESS_TEXT}
     if best is None:
         return {**base, "status": "best_unavailable"}
     if best == 0:
         return {**base, "status": "best_is_zero"}
     runs = []
     for e in hs[hs["streak"] == best].itertuples():
-        chain = hs[(hs["chain"] == e.chain) & (hs.index <= e.Index)]
-        first = chain.iloc[0]
-        total = int(chain["n"].sum())
-        rec = first["link"] in LINK_NEW and total == best
-        runs.append({"recoverable": bool(rec),
-                     "start_date": str(first["pick_date"]) if rec else None,
-                     "end_date": str(e.pick_date) if rec else None,
+        seg = hs[(hs["segment"] == e.segment) & (hs.index <= e.Index)]
+        runs.append({"recoverable": False, "start_date": None, "end_date": None,
                      "reported_attainment_date": str(e.pick_date),
-                     "observed_segment_lower_bound": total, "n_rounds": int(len(chain)),
-                     "n_dd_rounds": int((chain["n"] == 2).sum()), "start_link": first["link"],
-                     "links": dict(Counter(chain["link"].iloc[1:]))})
-    if not runs:
-        status = "no_settled_round_reports_best"
-    elif all(x["recoverable"] for x in runs):
-        status = "recoverable"
-    elif any(x["recoverable"] for x in runs):
-        status = "partially_recoverable"
-    else:
-        status = "dates_unavailable"
-    return {**base, "status": status, "runs": runs}
+                     "observed_segment_lower_bound": int(seg["n"].sum()), "n_rounds": int(len(seg)),
+                     "n_dd_rounds": int((seg["n"] == 2).sum())})
+    return {**base, "status": "dates_unavailable" if runs else "no_settled_round_reports_best", "runs": runs}

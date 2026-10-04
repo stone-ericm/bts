@@ -65,13 +65,22 @@ def allocation(manifest: dict, cohort_json: dict) -> tuple[pd.DataFrame, dict]:
     return labels, checks
 
 
-def _file_sha(p: Path) -> str:
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+def _disk(p: Path) -> bytes:
+    return Path(p).read_bytes()
 
 
-def final_grab_status(labels: pd.DataFrame, identity: dict, grab_dir: Path) -> pd.DataFrame:
-    """Per E member: fetched or budget-omitted, the grab's profile status, history depth, and whether the id-keyed
-    pick file is usable (a usable status, the file present and hashing to identity.json's parsed_sha256)."""
+def _sha_of(read, p: Path) -> str | None:
+    try:
+        return hashlib.sha256(read(p)).hexdigest()
+    except FileNotFoundError:
+        return None
+
+
+def final_grab_status(labels: pd.DataFrame, identity: dict, grab_dir: Path, read=None) -> pd.DataFrame:
+    """Per member: fetched or budget-omitted, the grab's profile status, history depth, and whether the id-keyed
+    pick file is usable (a usable status, the file present and its bytes — ``read``, default the disk — hashing to
+    identity.json's parsed_sha256)."""
+    read = read or _disk
     rows = []
     for r in labels.itertuples():
         rec = identity.get(str(r.user_id))
@@ -95,7 +104,7 @@ def final_grab_status(labels: pd.DataFrame, identity: dict, grab_dir: Path) -> p
                 history = "no_history"
             elif status in USABLE_STATUSES and rec.get("parsed_path"):
                 p = Path(grab_dir) / rec["parsed_path"]
-                if p.exists() and _file_sha(p) == rec.get("parsed_sha256"):
+                if _sha_of(read, p) == rec.get("parsed_sha256"):
                     history, row["usable"] = ("usable_partial_lookup" if status == "success_partial_lookup"
                                               else "usable"), True
                 else:
@@ -144,3 +153,33 @@ def bind_daily_files(manifest: dict, stems: list[str]) -> tuple[pd.DataFrame, di
     counts = {"files_total": len(stems), "files_bound": states["bound"], "files_quarantined": states["quarantined"],
               "files_not_E": states["not_E"], "members": dict(Counter(row["binding"] for row in rows))}
     return pd.DataFrame(rows), counts
+
+
+def raw_witness(grab_dir: Path, status: dict, user_id: int, obs_user: pd.DataFrame, read=None) -> tuple[dict, str]:
+    """Round-completeness witnesses for one final-grab user (``picks.raw_profile_witness``), only from the archived
+    raw profile response whose bytes hash to the grab's recorded ``archived_sha256`` for that user's single
+    successful profile request, bound to the parsed file's single capture instant. Otherwise ({}, reason)."""
+    import gzip
+
+    from scripts.audit.field_products import picks as P
+    read = read or _disk
+    entries = [e for e in status.get("requests", []) if e.get("class") == "profile" and e.get("name") == str(user_id)]
+    if len(entries) != 1:
+        return {}, "no_unique_profile_request"
+    e = entries[0]
+    if e.get("http_status") != 200 or e.get("outcome") != "success":
+        return {}, "request_not_success"
+    try:
+        raw = read(Path(grab_dir) / e["raw_path"])
+    except FileNotFoundError:
+        return {}, "archive_missing"
+    try:
+        body = gzip.decompress(raw)
+    except OSError:
+        return {}, "archive_not_gzip"
+    if hashlib.sha256(body).hexdigest() != e.get("archived_sha256"):
+        return {}, "archive_hash_mismatch"
+    caps, files = obs_user["captured_at"].unique(), obs_user["file"].unique()
+    if len(caps) != 1 or len(files) != 1:
+        return {}, "parsed_capture_not_unique"
+    return P.raw_profile_witness(body, user_id=user_id, file=str(files[0]), captured_at=caps[0]), "verified"
