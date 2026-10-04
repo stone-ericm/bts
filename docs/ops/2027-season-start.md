@@ -20,7 +20,7 @@
 | # | Item | Executor | Acceptance evidence |
 |---|---|---|---|
 | B1 | **Deploy main's undeployed runtime code**, including the C-03 reconcile cutoff `ce6676d` (`src/bts/picks.py`, `src/bts/cli.py`). It needs the 07:40 cron line from A5. Use a deploy-gating review per the deploy rules. | Claude | the deploy run; the canary |
-| B2 | **I-113 R2 tail-policy backup**: hotfix `3577e8b` (shipped 2026-10, if the deploy completed). Confirm the 2027 R2 manifest still lists `models/mdp_tail_policy.npz`. | Claude | manifest listing |
+| B2 | **I-113 R2 tail-policy backup**: hotfix `3577e8b`, deployed 2026-10-03 and **verified 2026-10-04 03:07 ET**. That night's sync uploaded `models/mdp_tail_policy.npz` (sha `dc5d0c99…`; manifest 12 → 13 files); the R2 object exists and its downloaded bytes match; the restored tail validates against the restored base `66d15471`. The same verifier failed before the fix, so the check was shown in both directions. For 2027: confirm the R2 manifest still lists the tail policy. | Claude | manifest listing |
 | B3 | **`BTS_LGBM_DETERMINISTIC`**: decide whether to flip it, only after a deliberate re-baseline cycle (CLAUDE.md). | Eric decides; Claude measures | paired-seed memo |
 
 ## C. Added by Eric after W1.5 (2026-10-03)
