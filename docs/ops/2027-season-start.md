@@ -36,14 +36,15 @@
 - **E107:** record the outcome of Eric's Healthchecks step (`docs/audit/2026-10-03-e107-healthchecks-ping-rotation.md`).
 - **Phase 2 of the incident register** (Route R over box data) only if the decision memo needs it: register row X-20 and Eric's go-ahead.
 - **Eric's rulings, 2026-10-04** (register §C; decision memo, last section):
-  - **D1 = Option 2** (a better expected longest streak at a stated cost in the chance of 57). Any 2027 policy built on it needs a measured trade table approved under D7 before it affects picks. Building one is rank 4b, outside the approved D4 scope unless Eric adds it.
+  - **D1 = Option 2** (a better expected longest streak at a stated cost in the chance of 57). Any 2027 policy built on it needs a measured trade table approved under D7 before it affects picks. Building one is rank 4b, which Eric added to C1 on 10/04.
   - **D6:** no activation decided. Activation needs his explicit A8 approval and a named owner for entry and official-state checks.
   - **D7:** B1 is put to him after its gating review signs and before activation; B3 only after the paired-seed memo.
-  - **D4:** cycle C1 covers ranks 2, 4a and 3 plus the rank-1 prerequisites. Its name, cap and stop rules await approval (`docs/audit/2026-10-04-d4-cycle-proposal.md`). **Nothing below in C1 starts before that approval.** Once approved, set these up before the first 2027 capture:
+  - **D4: C1 APPROVED 10/04** (`docs/audit/2026-10-04-d4-cycle-proposal.md`): ranks 2, 4a, 3 and **4b**, plus the rank-1 prerequisites; tracked in `docs/sota_audit/2026-10-04-c1-cycle-index.md`. Set these up before the first 2027 capture:
     - rank 2's watchdog, reviewed and approved under D7 before activation if Eric plays;
     - rank 3's pre-lock plate-appearance count-forecast archive;
     - the rank-1 receipt log (the instrumentation item above);
     - the 4a and 3 registrations, with their 2027 fit/test splits, published as exposure rows before any 2027 outcome.
+    - rank 4b: Eric's trade table (chance of 57 given up against expected longest streak gained) approved under D7 before any 4b policy affects picks; any 4b artifact must also pass the tail/base pairing check (A2).
   - The stable-user-id and witnessed-served-slate items stay conditional: their studies (cohort, consensus contexts) were not selected.
 - **MLB's forecast for every player (found 2026-10-04 while building W2.3).** The static `players` sheet, captured every 30 minutes since 7/04, also carries `probabilityStarter` and `numberSelections` for all ~2,900 players, not only the ~27 most-selected per round. It has no round id, so which game a value refers to is unresolved. The frozen W2.3 design reads only the most-selected sheet. If W4 rank 1 is selected for 2027, its registration should decide, before any 2027 outcome, whether this field can be bound to a round (for example by capture time against the units' lock times) and whether to capture it at a stated cadence.
 - **Instrumentation gaps named by the frozen wrap memos** (each only if the matching W4 candidate or field study is selected for 2027; set up before the first 2027 capture, since none can be repaired afterwards):

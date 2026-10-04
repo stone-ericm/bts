@@ -1,6 +1,6 @@
 # D4 cycle proposal: name, cap and stop rules for 2027 Cycle 1 (for Eric's approval)
 
-**Status:** PROPOSAL, 2026-10-04. Nothing here runs until Eric approves it (his D4 ruling, exposure register §C). Not Codex-reviewed: each candidate's registration gets its own Codex review before it runs.
+**Status:** **APPROVED by Eric 2026-10-04 as written, with rank 4b added** (exposure register §C, D4). C1 started 10/04. The proposal text below is unchanged except §7, which now records his choice. Not Codex-reviewed: each candidate's registration gets its own Codex review before it runs.
 
 ## What Eric has already decided (10/04)
 - **Scope:** ranks 2, 4a and 3 first, on the existing box. Rank 1 gets its prerequisites only, with no blend.
@@ -74,4 +74,4 @@ One cycle, called **C1**. It spends **no new money** and uses at most **100 CPU-
 - **Two options for Eric:**
   - **(a)** add 4b to C1 by a recorded scope decision. Its registration would size its compute and might raise the cap. Its gate is his D1 condition: a measured table of the chance of 57 given up against the expected longest streak gained, on realized-sequence replay, put to him under D7 before it affects picks.
   - **(b)** leave it for a later cycle.
-- **Not decided here.**
+- **Decided (Eric, 10/04): option (a).** Rank 4b, the longest-streak policy serving D1 Option 2, is part of C1. Its gate is his trade table: no 4b change affects picks until he has seen the measured trade between the chance of 57 given up and the expected longest streak gained, and approved it under D7. It shares C1's caps and stop rules; its registration sizes its compute within the 100 CPU-hours.
