@@ -9,6 +9,7 @@ settlement is never inferred from at_bats/hits, and a later unsettled label is n
 """
 from __future__ import annotations
 
+from collections import namedtuple
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -19,7 +20,6 @@ GRADED = frozenset({"hit", "not_hit"})
 # Labels that settle a slot. "void" is the contest's Pass/void slot label (season_ledger/outcomes.py
 # CONTEST_NORMALIZATION); it settles the slot SET of a round but is never a graded slot.
 TERMINAL = frozenset({"hit", "not_hit", "void"})
-CONTENT = ["pick_date", "unit_id", "bts_player_id", "result", "at_bats", "hits", "streak_after"]
 ORDER = ["user_id", "captured_at", "file_rank", "file_row"]
 ET = "America/New_York"
 INCOMPLETE_PRECEDENCE = ("equal_time_conflict", "identity_unresolved", "pick_date_conflict", "missing_primary_slot",
@@ -51,6 +51,11 @@ def read_observations(paths: list[Path], *, user_id: int, source: str) -> pd.Dat
     return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
+REC_COLS = ["user_id", "round_id", "pick_number", "captured_at", "pick_date", "unit_id", "bts_player_id", "result",
+            "at_bats", "hits", "streak_after", "batter_id", "source", "file"]
+Obs = namedtuple("Obs", REC_COLS)
+
+
 def _identity(r) -> tuple:
     return int(r.unit_id), int(r.bts_player_id)
 
@@ -59,66 +64,74 @@ def _label(v) -> str:
     return "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v)
 
 
-def _slot(user_id: int, round_id: int, pn: int, hist: pd.DataFrame, snap: pd.DataFrame, log: dict) -> dict:
-    """One snapshot slot: the latest observation plus its revision history over every capture."""
-    distinct = snap[CONTENT].astype(str).drop_duplicates()
-    rep = snap.iloc[-1]
+def _content(o: Obs) -> tuple:
+    """Identity and outcome fields compared for equal-time conflicts (lookup enrichment excluded)."""
+    return (str(o.pick_date), int(o.unit_id), int(o.bts_player_id), _label(o.result), int(o.at_bats), int(o.hits),
+            int(o.streak_after))
+
+
+def _int_or_none(v):
+    return None if v is None or (isinstance(v, float) and pd.isna(v)) else int(v)
+
+
+def _slot(user_id: int, round_id: int, pn: int, hist: list[Obs], snap: list[Obs]) -> dict:
+    """One snapshot slot: the latest observation plus its revision history over every capture (``hist`` is in
+    declared order; ``snap`` its rows at the round's snapshot capture)."""
+    rep = snap[-1]
     status = "ok"
-    if len(distinct) > 1:
+    if len({_content(o) for o in snap}) > 1:
         status = "equal_time_conflict"
     elif int(rep.unit_id) == 0 or int(rep.bts_player_id) == 0:
         status = "identity_unresolved"
     label = _label(rep.result) if status != "equal_time_conflict" else None
-    snap_ts = snap["captured_at"].iloc[0]
-    earlier = hist[hist["captured_at"] < snap_ts]
-    earlier_labels = [_label(v) for v in earlier["result"]]
-    settled_ident_changed = False
-    for i, r in enumerate(hist.itertuples()):
-        if _label(r.result) in TERMINAL:
-            later = hist.iloc[i + 1:]
-            later = later[later["captured_at"] > r.captured_at]
-            if any(_identity(x) != _identity(r) for x in later.itertuples()):
-                settled_ident_changed = True
-                break
+    snap_ts = rep.captured_at
+    earlier_labels = [_label(o.result) for o in hist if o.captured_at < snap_ts]
+    first_settled: dict[tuple, object] = {}          # identity -> its first settled capture
+    for o in hist:
+        if _label(o.result) in TERMINAL:
+            first_settled.setdefault(_identity(o), o.captured_at)
+    settled_ident_changed = any(t < o.captured_at and ident != _identity(o)
+                                for o in hist for ident, t in first_settled.items())
     return {
         "user_id": user_id, "round_id": round_id, "pick_number": pn, "pick_date": rep.pick_date,
-        "unit_id": int(rep.unit_id), "bts_player_id": int(rep.bts_player_id),
-        "batter_id": None if pd.isna(rep.batter_id) else int(rep.batter_id),
+        "unit_id": int(rep.unit_id), "bts_player_id": int(rep.bts_player_id), "batter_id": _int_or_none(rep.batter_id),
         "label": label, "status": status, "graded": label in GRADED, "usable": status == "ok" and label in GRADED,
         "hit": status == "ok" and label == "hit", "streak_after": int(rep.streak_after),
         "at_bats": int(rep.at_bats), "hits": int(rep.hits),
-        "n_obs": int(len(hist)), "first_captured_at": hist["captured_at"].min(), "captured_at": snap_ts,
-        "identity_changed": len({_identity(x) for x in hist.itertuples()}) > 1,
+        "n_obs": len(hist), "first_captured_at": min(o.captured_at for o in hist), "captured_at": snap_ts,
+        "identity_changed": len({_identity(o) for o in hist}) > 1,
         "settled_identity_changed": settled_ident_changed,
         "later_unsettled_over_settled": label is not None and label not in GRADED
         and any(x in GRADED for x in earlier_labels),
         "settled_label_changed": label in GRADED and any(x in GRADED and x != label for x in earlier_labels),
-        "source": ";".join(sorted(set(hist["source"]))), "files": ";".join(sorted(set(hist["file"]))),
+        "source": ";".join(sorted({o.source for o in hist})), "files": ";".join(sorted({o.file for o in hist})),
     }
 
 
-def _round(user_id: int, round_id: int, g: pd.DataFrame, log: dict) -> tuple[dict, list[dict]]:
-    for (_pn, _ts), b in g.groupby(["pick_number", "captured_at"], sort=False):
-        n_distinct = len(b[CONTENT].astype(str).drop_duplicates())
+def _round(user_id: int, round_id: int, g: list[Obs], log: dict) -> tuple[dict, list[dict]]:
+    snap_ts = max(o.captured_at for o in g)
+    batches: dict[tuple, list[Obs]] = {}
+    for o in g:
+        batches.setdefault((int(o.pick_number), o.captured_at), []).append(o)
+    for (_pn, ts), b in batches.items():
+        n_distinct = len({_content(o) for o in b})
         if n_distinct == 1:
             log["exact_duplicate_rows"] += len(b) - 1
-    snap_ts = g["captured_at"].max()
-    snap = g[g["captured_at"] == snap_ts]
-    earlier = g[g["captured_at"] < snap_ts]
-    for (_pn, _ts), b in earlier.groupby(["pick_number", "captured_at"], sort=False):
-        if len(b[CONTENT].astype(str).drop_duplicates()) > 1:
+        elif ts != snap_ts:
             log["equal_time_conflicts_superseded"] += 1
-    slots = [_slot(user_id, round_id, int(pn), g[g["pick_number"] == pn], s, log)
-             for pn, s in snap.groupby("pick_number", sort=True)]
-    numbers = {s["pick_number"] for s in slots}
-    deleted = set(int(x) for x in earlier["pick_number"]) - numbers
-    deleted_settled = any(_label(r.result) in TERMINAL for r in earlier.itertuples() if int(r.pick_number) in deleted)
+    snap = [o for o in g if o.captured_at == snap_ts]
+    numbers = sorted({int(o.pick_number) for o in snap})
+    slots = [_slot(user_id, round_id, pn, [o for o in g if int(o.pick_number) == pn], batches[(pn, snap_ts)])
+             for pn in numbers]
+    earlier = [o for o in g if o.captured_at < snap_ts]
+    deleted = {int(o.pick_number) for o in earlier} - set(numbers)
+    deleted_settled = any(_label(o.result) in TERMINAL for o in earlier if int(o.pick_number) in deleted)
     reasons = set()
     if any(s["status"] == "equal_time_conflict" for s in slots):
         reasons.add("equal_time_conflict")
     if any(s["status"] == "identity_unresolved" for s in slots):
         reasons.add("identity_unresolved")
-    if snap["pick_date"].nunique() > 1:
+    if len({str(o.pick_date) for o in snap}) > 1:
         reasons.add("pick_date_conflict")
     if 1 not in numbers:
         reasons.add("missing_primary_slot")
@@ -128,8 +141,8 @@ def _round(user_id: int, round_id: int, g: pd.DataFrame, log: dict) -> tuple[dic
         reasons.add("unsettled_slot")
     reason = next((r for r in INCOMPLETE_PRECEDENCE if r in reasons), None)
     ok_streaks = {s["streak_after"] for s in slots if s["status"] == "ok"}
-    rnd = {"user_id": user_id, "round_id": round_id, "pick_date": snap["pick_date"].iloc[-1],
-           "captured_at": snap_ts, "n_slots": len(slots), "slot_numbers": ",".join(str(n) for n in sorted(numbers)),
+    rnd = {"user_id": user_id, "round_id": round_id, "pick_date": snap[-1].pick_date,
+           "captured_at": snap_ts, "n_slots": len(slots), "slot_numbers": ",".join(str(n) for n in numbers),
            "labels": ",".join(str(s["label"]) for s in slots), "streak_after": ok_streaks.pop() if len(ok_streaks) == 1
            else None, "streak_conflict": len({s["streak_after"] for s in slots}) > 1,
            "complete": reason is None, "incomplete_reason": reason, "is_dd": reason is None and len(slots) == 2,
@@ -147,8 +160,12 @@ def resolve(obs: pd.DataFrame) -> Resolution:
     round_rows: list[dict] = []
     if len(obs):
         ordered = obs.sort_values(ORDER, kind="mergesort")
-        for (uid, rid), g in ordered.groupby(["user_id", "round_id"], sort=True):
-            rnd, slots = _round(int(uid), int(rid), g, log)
+        groups: dict[tuple, list[Obs]] = {}
+        for rec in zip(*(ordered[c].tolist() for c in REC_COLS)):
+            o = Obs(*rec)
+            groups.setdefault((int(o.user_id), int(o.round_id)), []).append(o)
+        for (uid, rid) in sorted(groups):
+            rnd, slots = _round(uid, rid, groups[(uid, rid)], log)
             round_rows.append(rnd)
             slot_rows += slots
         log["n_users"] = int(obs["user_id"].nunique())
