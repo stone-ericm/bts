@@ -16,6 +16,16 @@ KNOWN = {"hit", "no_hit"}
 EPS = 1e-15
 
 
+def valid(s) -> pd.Series:
+    """The one probability-validity mask (code review r1 F10): finite and within [0, 1]."""
+    v = pd.to_numeric(pd.Series(s), errors="coerce").astype(float)
+    return np.isfinite(v) & (v >= 0.0) & (v <= 1.0)
+
+
+def _valid1(x) -> bool:
+    return x is not None and isinstance(x, (int, float)) and math.isfinite(x) and 0.0 <= x <= 1.0
+
+
 def _key(row: dict | None):
     try:
         return int(row["batter_id"]), int(row["game_pk"])
@@ -49,11 +59,11 @@ def repro_class(row: dict) -> str:
     """The runner's precedence on serialized scores: exact_final_feed, then inferred_weather_absent_at_serve, else
     unexplained; rows without a C-served or D score are not reproducible (kept out of the numeric denominator)."""
     cs, d, wb = row.get("C_served"), row.get("D"), row.get("C_served_wblank")
-    if cs is None or d is None or not math.isfinite(cs) or not math.isfinite(d):
+    if not _valid1(cs) or not _valid1(d):
         return "not_reproducible"
     if abs(serialized(cs) - d) <= REPRO_TOL:
         return "exact_final_feed"
-    if wb is not None and math.isfinite(wb) and abs(serialized(wb) - d) <= REPRO_TOL:
+    if _valid1(wb) and abs(serialized(wb) - d) <= REPRO_TOL:
         return "inferred_weather_absent_at_serve"
     return "unexplained"
 
@@ -72,9 +82,12 @@ def paired_reduction(df: pd.DataFrame, a: str, b: str, pool: str, n_resamples: i
                      seed: int = 20261004) -> dict:
     """G(a, b) = top-1 hit rate of a minus that of b, both ranked on the same frozen pool (rows with finite scores in
     both arms), evaluated on dates where both previously chosen winners are known; unilateral exclusions counted."""
-    common = df[df[pool].fillna(False).astype(bool) & np.isfinite(df[a]) & np.isfinite(df[b])]
+    inpool = df[pool].fillna(False).astype(bool)
+    invalid = {a: int((inpool & df[a].notna() & ~valid(df[a]).values).sum()),
+               b: int((inpool & df[b].notna() & ~valid(df[b]).values).sum())}
+    common = df[inpool & valid(df[a]).values & valid(df[b]).values]
     if common.empty:
-        return {"available": False, "reason": "empty_common_pool"}
+        return {"available": False, "reason": "empty_common_pool", "invalid_scores": invalid}
     wa, wb = _winners(common, a), _winners(common, b)
     per = wa[["date", "outcome"]].merge(wb[["date", "outcome"]], on="date", suffixes=("_a", "_b")).set_index("date")
     both = per["outcome_a"].isin(KNOWN) & per["outcome_b"].isin(KNOWN)
@@ -87,6 +100,7 @@ def paired_reduction(df: pd.DataFrame, a: str, b: str, pool: str, n_resamples: i
     g = lambda s: float(s["ha"].mean() - s["hb"].mean()) if len(s) else float("nan")
     boot = m.summary_bootstrap(k, {"G": g}, n_resamples=n_resamples, seed=seed)["G"]
     return {"available": True, "estimate": g(k), "interval": boot, "n_common_dates": int(len(k)),
+            "invalid_scores": invalid, "n_common_rows": int(len(common)),
             "n_pool_dates": int(per.shape[0]), "excluded": excluded,
             "discordant_dates": int((k["ha"] != k["hb"]).sum())}
 
@@ -152,11 +166,20 @@ def slate_drag(cands: pd.DataFrame, drag: pd.DataFrame) -> pd.DataFrame:
     distinct venues in that date's declared support. Available only when every contributing venue has a finite exact
     value; no zero imputation and no forward or back fill."""
     venues = cands[["date", "venue_id"]].drop_duplicates()
-    j = venues.merge(drag[["venue_id", "date", "park_drag_delta"]], on=["venue_id", "date"], how="left")
+    venues = venues.assign(venue_id=pd.to_numeric(venues["venue_id"], errors="coerce").astype(float))
+    dg = drag[["venue_id", "date", "park_drag_delta"]]
+    dg = dg.assign(venue_id=pd.to_numeric(dg["venue_id"], errors="coerce").astype(float))
+    nuniq = dg.groupby(["venue_id", "date"])["park_drag_delta"].nunique(dropna=False)
+    conflicts = set(nuniq[nuniq > 1].index)             # conflicting duplicate keys void that venue/date
+    dg = dg.drop_duplicates(["venue_id", "date"])        # identical duplicates collapse to one value
+    dg = dg.loc[np.array([(v, d) not in conflicts for v, d in zip(dg["venue_id"], dg["date"])], dtype=bool)]
+    j = venues.merge(dg, on=["venue_id", "date"], how="left", validate="many_to_one")
     rows = []
     for d, g in j.groupby("date", sort=True):
         ok = g["venue_id"].notna() & np.isfinite(g["park_drag_delta"].astype(float))
         complete = bool(ok.all())
         rows.append({"date": d, "n_venues": int(len(g)), "missing_venues": int((~ok).sum()), "complete": complete,
+                     "conflicting_keys": int(sum((v, d) in conflicts for v in g["venue_id"])),
                      "drag_mean": float(g["park_drag_delta"].mean()) if complete else float("nan")})
-    return pd.DataFrame(rows).set_index("date")
+    cols = ["n_venues", "missing_venues", "complete", "conflicting_keys", "drag_mean"]
+    return pd.DataFrame(rows).set_index("date") if rows else pd.DataFrame(columns=cols, index=pd.Index([], name="date"))
