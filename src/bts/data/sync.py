@@ -193,6 +193,7 @@ def sync_to_r2(
     - data/processed/pa_*.parquet
     - data/models/probable_pitcher_lookup.json (if present)
     - data/models/mdp_policy.npz (if present)
+    - data/models/mdp_tail_policy.npz (if present)
 
     Returns the new manifest (the exact one written to R2).
     """
@@ -236,10 +237,13 @@ def sync_to_r2(
     if lookup.exists():
         process_file(lookup, "models/probable_pitcher_lookup.json")
 
-    # MDP policy (optional — strategy falls back to heuristic without it)
-    mdp_policy = models_dir / "mdp_policy.npz"
-    if mdp_policy.exists():
-        process_file(mdp_policy, "models/mdp_policy.npz")
+    # MDP policies (optional — strategy falls back to heuristic without them).
+    # The tail policy is sha-bound to the base policy (bts.simulate.tail_policy),
+    # so a restored host needs both; before W1.5 I-113 only the base was synced.
+    for name in ("mdp_policy.npz", "mdp_tail_policy.npz"):
+        policy = models_dir / name
+        if policy.exists():
+            process_file(policy, f"models/{name}")
 
     # Safety guard: never silently wipe the manifest. If the new manifest
     # has fewer than half the files the prior manifest had, something is
