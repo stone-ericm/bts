@@ -19,25 +19,7 @@
 | W1.2 bridge A–D | memo | not started | |
 | W1.3 distinguishing tests | in bridge memo | not started | |
 | W1.4b due reads (P-02…P-05) | one memo each | **P-04 (#16) inventoried 9/22 → INSUFFICIENT** (113/114 eligible < 120, stream frozen at 9/18); P-02 skip shadow = `insufficient_n` (15 resolved < 30, cannot grow); P-03 context shadow + P-05 tail audit deferred to the W0.7 final snapshot (season ends 9/27) → **W0.7 done 9/28; both read 9/28 from `final-20260928/`: P-03 = no-promote stands** (recorded 32/59 vs 32/59, gap 0.0 pp, paired 95 % ±10.2 pp; discordant 4–4, sign p = 1.00; primary agreement 43/60; recompute cross-check found C-03); **P-05 = mechanism validated** (0 violations, 25 dates × 191 checks; stop on 9/19 exactly as the rule requires; delivered+entered 9/03–9/13, private 9/14–9/18, stopped 9/19–9/27) | register X-11, X-07, X-06, X-16; `docs/audit/2026-09-28-p03-context-shadow-closeout.md`, `docs/audit/2026-09-28-p05-tail-policy-audit.md` |
-| W1.5 incident register | memo | **Phase 1 (repo-only) completed 2026-10-03, merged `9b2b375`.**
-- **Register:** `docs/audit/2026-09-29-incident-register.json`, 119 records:
-  - 61 observed (30 Tier A, 27 Tier B, 4 tier pending);
-  - 28 latent;
-  - 4 near misses;
-  - 24 unresolved;
-  - 2 pre-ship.
-- **Fixtures for the 30 fixed Tier-A incidents** (62 link entries):
-  - 28 certified historical replays;
-  - 28 certified current defences (17 production path, 11 component);
-  - 19 links with both, 23 fixed links with neither.
-- **Unfixed defects:** I-201 and I-202 carry strict expected failures, and I-077, I-203 and I-204 carry characterizations.
-- **The tooling:** frozen at `f453283` (ruling 14); the final strict sweep was 263/263 KILLED.
-- **Review:** the results review, round 1 BLOCK then answered; round 2 register SIGN, memo SIGN WITH EDITS.
-- **Memo:** `docs/audit/2026-09-29-incident-register.md`.
-- **Phase 2** (Route R, box data) needs X-20 and Eric's go-ahead.
-- **C-03 candidates:** I-089 (the two overwritten hits, unresolved pending Phase 2), I-207 (the fix's residuals), I-202 (the same-day rollback, strict expected failure).
-
-Earlier notes: **new candidate 9/28: `bts reconcile` flipped two true Simpson hits to misses (5/10, 8/20) → C-03; mechanism found: MLB's late in-place re-scoring (single → fielding error, days later) applied by reconcile past the BTS 08:00-next-day cutoff; fix = cutoff guard in `reconcile_results` + failure-path fixture** → **built 9/28 (Codex r2 SIGN), deploys 2027; follow-ups in C-03.** **Second candidate 9/28 (Codex r1 #3, pre-existing):** a daytime or late-night reconcile's season replay excludes today's already-settled result, so it can roll the LOCAL streak/saver back (contest-backed decisions do not use the local replay streak; callers allowing model-state fallback — e.g. `preview` without a contest observation — can be affected); the midnight-crossing variant introduced and fixed within the same change | C-03, C-04 |
+| W1.5 incident register | memo | **Phase 1 (repo-only) completed 2026-10-03, merged `9b2b375`.** Register `docs/audit/2026-09-29-incident-register.json`: 119 records (61 observed: 30 A, 27 B, 4 tier pending; 28 latent; 4 near misses; 24 unresolved; 2 pre-ship). Fixtures for the 30 fixed Tier-A incidents (62 link entries): 28 certified historical replays and 28 certified current defences (17 production path, 11 component); 19 links with both, 23 fixed links with neither. Unfixed defects: strict expected failures for I-201 and I-202; characterizations for I-077, I-203 and I-204. Tooling frozen at `f453283` (ruling 14); the final strict sweep was 263/263 KILLED. Results review: round 1 BLOCK, then answered; round 2 register SIGN, memo SIGN WITH EDITS. Memo `docs/audit/2026-09-29-incident-register.md`. Phase 2 (Route R, box data) needs X-20 and Eric's go-ahead. C-03 candidates: I-089 (the two overwritten hits, unresolved pending Phase 2), I-207 (the fix's residuals), I-202 (the same-day rollback, strict expected failure). Earlier notes: **new candidate 9/28: `bts reconcile` flipped two true Simpson hits to misses (5/10, 8/20) → C-03; mechanism found: MLB's late in-place re-scoring (single → fielding error, days later) applied by reconcile past the BTS 08:00-next-day cutoff; fix = cutoff guard in `reconcile_results` + failure-path fixture** → **built 9/28 (Codex r2 SIGN), deploys 2027; follow-ups in C-03.** **Second candidate 9/28 (Codex r1 #3, pre-existing):** a daytime or late-night reconcile's season replay excludes today's already-settled result, so it can roll the LOCAL streak/saver back (contest-backed decisions do not use the local replay streak; callers allowing model-state fallback — e.g. `preview` without a contest observation — can be affected); the midnight-crossing variant introduced and fixed within the same change | C-03, C-04 |
 | W1.6 corrections index + README | `docs/audit/2026-09-corrections-index.md`, README | index started 9/22 (C-01 parser bug, C-02 README) | file |
 | W2.1 final-leader case series | memo | not started (needs W0.6) | |
 | W2.2 as-of cohort comparison | memo | not started | |
