@@ -88,3 +88,22 @@ def test_encompassing_fits_share_rows_and_equal_date_weights_and_report_unavaila
                         "y": [0, 0, 1, 1]}).assign(_block=lambda x: x["date"])
     bad = m.encompassing(sep)
     assert bad["available"] is False and bad["reason"]
+
+
+def test_many_stat_bootstrap_matches_single_stat_bootstrap_draw_for_draw():
+    df = pd.DataFrame({"date": ["a", "a", "b", "c"], "v": [1.0, 3.0, 10.0, 4.0]})
+    f = lambda x: x.groupby("_block")["v"].mean().mean()
+    one = m.block_bootstrap(df, f, n_resamples=300, seed=7)
+    many = m.block_bootstrap_many(df, {"v": f, "nan": lambda x: float("nan")}, n_resamples=300, seed=7)
+    assert many["v"] == one
+    assert many["nan"]["n_failed"] == 300
+
+
+def test_summary_bootstrap_equals_the_copy_block_bootstrap_for_equal_date_means():
+    rng = np.random.default_rng(3)
+    df = pd.DataFrame({"date": np.repeat([f"d{i}" for i in range(12)], 5), "ours": rng.uniform(0.5, 0.9, 60),
+                       "y": rng.integers(0, 2, 60)})
+    rows = m.block_bootstrap(df, lambda x: m.equal_date_mean(x, "ours", m.brier_rows), n_resamples=500, seed=11)
+    per_date = df.groupby("date").apply(lambda g: m.brier_rows(g["ours"], g["y"])).rename("b").to_frame()
+    summ = m.summary_bootstrap(per_date, {"b": lambda s: s["b"].mean()}, n_resamples=500, seed=11)["b"]
+    assert math.isclose(rows["lo"], summ["lo"]) and math.isclose(rows["hi"], summ["hi"])

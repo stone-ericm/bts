@@ -1,4 +1,5 @@
 """W2.3 MLB forecast benchmark: as-of join core (design rev 2, gate 1)."""
+import numpy as np
 import pandas as pd
 
 from scripts.audit.mlb_benchmark import core
@@ -110,3 +111,87 @@ def test_unchanged_since_walks_back_through_stored_sheets_while_the_value_is_ide
     assert core.unchanged_since(caps, "2026-07-05T16:00:00Z", 10, 1) == "2026-07-05T12:00:00Z"
     gap = caps[:2] + [("2026-07-05T14:00:00Z", [])] + caps[3:]   # absent in between: the run stops there
     assert core.unchanged_since(gap, "2026-07-05T16:00:00Z", 10, 1) == "2026-07-05T16:00:00Z"
+
+
+def test_prepare_date_links_through_the_sheets_at_the_forecast_stamp_and_counts_every_exclusion():
+    from scripts.audit.mlb_benchmark import run
+    msp = [("2026-07-05T14:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.70, "numberSelections": 9},
+                                     {"roundId": 10, "playerId": 2, "probabilityStarter": 1.70, "numberSelections": 1},
+                                     {"roundId": 10, "playerId": 3, "probabilityStarter": 0.60, "numberSelections": 2}])]
+    rounds = {"2026-07-05T13:00:00Z": [{"id": 10, "date": "2026-07-05T00:00:00Z"}]}
+    players = {"2026-07-05T13:30:00Z": [{"id": 1, "feedId": 701, "squadId": 11}, {"id": 2, "feedId": 702, "squadId": 12},
+                                        {"id": 3, "feedId": 703, "squadId": 13}],
+               "2026-07-05T15:00:00Z": [{"id": 1, "feedId": 701, "squadId": 99}]}   # after the stamp: never used
+    units = {"2026-07-05T13:45:00Z": [{"feedId": 100, "roundId": 10, "homeSquadId": 11, "awaySquadId": 21},
+                                      {"feedId": 300, "roundId": 10, "homeSquadId": 13, "awaySquadId": 23}]}
+    slate = pd.DataFrame({"date": ["2026-07-05"] * 3, "row_order": [0, 1, 2], "batter_id": [701, 703, 704],
+                          "game_pk": [100, 300, 400], "D": [0.8, 0.7, 0.6]})
+    out, cov = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T16:00:00Z"), slate, msp,
+                                lambda feed, stamp: run.latest_at(
+                                    {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                sched_pks={100, 300})
+    assert list(out["link_status"]) == ["inferred_unique_game", "inferred_unique_game", "not_listed"]
+    assert cov["invalid_probability"] == 1 and cov["forecast_stamp"] == "2026-07-05T14:00:00Z"
+    assert list(out["mlb_n_sel"].fillna(-1)) == [9, 2, -1]
+    assert out.loc[0, "mlb_unchanged_since"] == "2026-07-05T14:00:00Z"
+    incomplete, cov2 = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T16:00:00Z"), slate, msp,
+                                        lambda feed, stamp: run.latest_at(
+                                            {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                        sched_pks={100, 300, 500})
+    assert set(incomplete["link_status"]) == {"multiplicity_unknown", "not_listed"} and cov2["units_complete"] is False
+    none, cov3 = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T13:00:00Z"), slate, msp,
+                                  lambda feed, stamp: run.latest_at(
+                                      {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                  sched_pks={100, 300})
+    assert cov3["excluded"] == "no_forecast_sheet" and none.empty
+
+
+def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
+    import gzip
+    import json as _json
+    from scripts.audit.mlb_benchmark import run
+    monkeypatch.setattr(run, "x23_gate", lambda: "f" * 40)
+    rng = np.random.default_rng(5)
+    dates = [f"2026-07-{d:02d}" for d in range(5, 15)]
+    rows, day_meta, msp, units, players = [], [], {}, {}, []
+    for k, d in enumerate(dates):
+        rid, stamp = 100 + k, f"{d.replace('-', '')}T150000Z"
+        day_meta.append({"date": d, "written_at": f"{d}T16:00:00+00:00"})
+        sheet = []
+        for j in range(6):
+            bid, pid, gpk = 700 + j, j + 1, 9000 + 10 * k + j
+            rows.append({"date": d, "row_order": j, "batter_id": bid, "game_pk": gpk, "D": float(rng.uniform(0.6, 0.85)),
+                         "sel_state": "selection_consistent", "pool_verified": True, "pool_surrogate": True,
+                         "pool_all": True, "outcome": ["hit", "no_hit", "no_pa", "hit", "hit", "no_hit"][(j + k) % 6]})
+            sheet.append({"roundId": rid, "playerId": pid, "probabilityStarter": float(rng.uniform(0.5, 0.8)),
+                          "numberSelections": 10 + j})
+        msp[stamp] = sheet
+        units[stamp] = [{"feedId": 9000 + 10 * k + j, "roundId": rid, "homeSquadId": j + 1, "awaySquadId": 50 + j}
+                        for j in range(6)]
+        sched = {"dates": [{"date": d, "games": [{"gamePk": 9000 + 10 * k + j, "status": {},
+                                                   "teams": {"home": {"team": {"abbreviation": f"H{j}"}},
+                                                             "away": {"team": {"abbreviation": f"A{j}"}}}}
+                                                  for j in range(6)]}]}
+        (tmp_path / "sched").mkdir(exist_ok=True)
+        (tmp_path / "sched" / f"{d}.json").write_text(_json.dumps(sched))
+    w12 = tmp_path / "w12"; w12.mkdir()
+    pd.DataFrame(rows).to_parquet(w12 / "table.parquet")
+    (w12 / "summary.json").write_text(_json.dumps({"day_meta": day_meta}))
+    snaps = tmp_path / "data" / "leaderboard" / "static_snapshots"
+    feeds = {"most_selected_players": ("mostSelectedPlayers", msp), "units": ("units", units),
+             "rounds": ("rounds", {"20260701T000000Z": [{"id": 100 + k, "date": f"{d}T00:00:00Z"}
+                                                         for k, d in enumerate(dates)]}),
+             "players": ("players", {"20260701T000000Z": [{"id": j + 1, "feedId": 700 + j, "squadId": j + 1}
+                                                          for j in range(6)]})}
+    for feed, (key, sheets) in feeds.items():
+        (snaps / feed).mkdir(parents=True)
+        for stamp, items in sheets.items():
+            (snaps / feed / f"{stamp}.json.gz").write_bytes(gzip.compress(_json.dumps({key: items}).encode()))
+    assert run.main(["--w12-run", str(w12), "--data-root", str(tmp_path / "data"), "--schedules",
+                     str(tmp_path / "sched"), "--out", str(tmp_path / "out"), "--n-resamples", "50"]) == 0
+    res = _json.loads(next((tmp_path / "out").glob("*/results.json")).read_text())
+    prim = res["strata"]["selection_consistent/pool_verified"]
+    assert prim["T2"]["available"] and prim["T2"]["n_dates"] == 10
+    assert res["coverage"]["link_status"] == {"inferred_unique_game": 60}
+    assert prim["encompassing_T2"]["point"]["available"] in (True, False)
+    assert res["recency"]["sheet_to_written_at_minutes"]["mean"] == 60.0
