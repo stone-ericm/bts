@@ -31,7 +31,7 @@ The highest quality bin (Q4, p ≥ 0.841) held one primary pick all season.
 
 ## Reading it
 - **The reach-57 policy's quality dimension was nearly inert in 2026.** Almost every decision was taken in Q0, so the same transition row applied regardless of the stated probability, and the action depended mainly on streak, days left and the saver.
-- **This repeats, at season scale, an already documented mechanism.** The saved bins were built on actual-PA hindsight profiles: their median was 0.817 against a live median of about 0.765 (CLAUDE.md "PROFILE BASIS"; `docs/audit/2026-06-29-skip-threshold-and-discrimination.md`). That memo also found the 0.796 threshold cosmetic on the estimated-PA backtest.
+- **This repeats, at season scale, an already documented mechanism.** The saved bins were built on actual-PA hindsight profiles: their median was 0.817 against a live median of about 0.765 (CLAUDE.md "PROFILE BASIS"; `docs/audit/2026-06-29-skip-threshold-and-discrimination.md`). That memo also found the 0.796 threshold cosmetic on the estimated-PA backtest. The 6/10 estimated-PA A/B memo measured the same collapse on its window: 79.7% of live rank-1 picks in bin 0 (`docs/audit/2026-06-10-mdp-estpa-ab-methodology.md`).
 - **What this read does not show:** it does not show that finer bins would have chosen better, or that the stated probabilities discriminate within Q0. Those are outcome questions. Under D3 they belong to a registered 2027 design (W4 rank 4b, policy-only changes, with independent state and eligibility replay).
 
 ## Limits
