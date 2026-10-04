@@ -11,6 +11,8 @@ import pytest
 from scripts.audit.field_products import ledger as LG
 from tests.scripts import test_field_products_builders as B
 
+DECL = 'The production denominator is read from frozen current files in the named W1.1 accepted-build directory. The reader validates acceptance metadata, published build identity, compiler schemas and selected marginal counts. It does not independently verify equality of outcome bytes to those accepted earlier. Production rates and comparisons are therefore conditional on those current files remaining unchanged from the accepted build; a current input hash is run provenance, not proof of earlier acceptance-byte identity.'
+
 
 def _build(tmp_path):
     rows = [B.ledger_selection("s1", "2026-05-01", "primary", "hit"),
@@ -30,7 +32,9 @@ def _load(d):
 def test_a_valid_accepted_build_is_read_and_bound(tmp_path):
     ledger, contest, info = _load(_build(tmp_path))
     assert len(ledger) == 3 and len(contest) == 2 and info["receipt"]["run"] == LG.ACCEPTED_RUN
-    assert info["bound_counts"]["row_kinds"] == {"selection": 2, "skip_day": 1}
+    assert info["marginal_counts_checked"]["row_kinds"] == {"selection": 2, "skip_day": 1}
+    assert info["acceptance_byte_identity_established"] is False
+    assert info["acceptance_byte_identity_declaration"] == DECL
 
 
 def test_review_probe_an_arbitrary_acceptance_file_is_refused(tmp_path):
@@ -84,3 +88,20 @@ def test_parsed_rows_must_match_the_builds_published_counts(tmp_path):
     pq.write_table(t.slice(0, 2), d / "season_2026_ledger.parquet")
     with pytest.raises(SystemExit, match="row_kinds"):
         _load(d)
+
+
+def test_review_probe_count_preserving_grade_change_is_a_declared_limit_not_certified(tmp_path):
+    """R2-4: flipping s2 not_hit -> hit in both tables keeps every checked count, so the reader accepts — which is
+    why it reports acceptance_byte_identity_established=False (owner disposition: the declaration alternative)."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    d = _build(tmp_path)
+    for name, col in (("season_2026_ledger.parquet", "contest_slot_grade_raw"),
+                      ("season_2026_ledger_contest_slots.parquet", "slot_result")):
+        t = pq.read_table(d / name)
+        vals = ["hit" if v == "not_hit" else v for v in t.column(col).to_pylist()]
+        t = t.set_column(t.schema.get_field_index(col), t.schema.field(col), pa.array(vals, type=pa.string()))
+        pq.write_table(t, d / name)
+    ledger, contest, info = _load(d)
+    assert set(ledger["contest_slot_grade_raw"].dropna()) == {"hit"}
+    assert info["acceptance_byte_identity_established"] is False

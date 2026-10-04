@@ -176,6 +176,8 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert w22["identity"]["ownership_quarantined"] == [2004]
     assert w22["identity"]["attribution_basis"] == "stable_5_01_username_unwitnessed"
     assert w22["identity"]["per_batch_identity_established"] is False
+    assert w22["identity"]["per_batch_identity"] == 'Batch-specific identity for all May 1-July 3 daily observations has not been established. Daily pick parquet omits user ID; the normal daily writer provides no general durable batch-ID receipt. Particular retained backfill logs or later ID-bearing snapshots/stats may supply partial evidence, but coverage has not been verified. Primary attribution uses the unwitnessed stable May 1 name assumption.'
+    assert res["limits"][0].startswith(w22["identity"]["per_batch_identity"])
     assert w22["availability"]["daily_history"] == {"available": 2, "quarantined_manifest_collision": 2,
                                                     "quarantined_ownership_conflict": 1, "no_daily_file": 1}
     prim = w22["primary"]
@@ -189,12 +191,19 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert s["intervals"]["diff_ours_minus_E"]["n_resamples"] == 60
     assert prim["ours"]["included_by_slot"] == {"primary": 3, "double_down": 1}
     assert prim["ledger"]["receipt"]["run"] == run.LG.ACCEPTED_RUN
+    assert prim["ledger"]["acceptance_byte_identity_established"] is False
     assert prim["E_exclusions"] == {"window_slots": 5, "usable_graded": 5, "excluded_by_label": {},
                                     "excluded_by_status": {}}
     assert a["coverage"]["E_members"] == 6 and a["coverage"]["window_calendar_dates"] == 64
     av = pd.read_parquet(out / "w22_availability.parquet").set_index("user_id")
     assert av.loc[1001, "allocation"] == "E_in_A" and av.loc[1001, "window_graded_slots"] == 3
-    assert av.loc[1001, "window_streak_status"] == "lower_bound_only" and av.loc[1001, "window_longest_exact"] is None
+    # R2-1: daily rounds have no completeness witness, so no positive streak bound is claimed for E
+    assert av.loc[1001, "window_streak_status"] == "no_complete_rounds"
+    assert pd.isna(av.loc[1001, "window_longest_lower_bound"]) and av.loc[1001, "window_longest_exact"] is None
+    ws = prim["window_streaks"]
+    assert ws["status"] == {"no_complete_rounds": 2}
+    assert ws["rule"].startswith("qualified complete all-hit rounds only; daily positive streak bounds unavailable "
+                                 "without a completeness witness")
     ext = w22["extension"]
     assert ext["coverage"]["usable"] == 2 and ext["coverage"]["budget_omissions"] == 2
     assert ext["pooled"] == {"users": 2, "dates": 3, "rounds": 6, "slots": 8, "hits": 6, "ratio": 0.75}
@@ -339,3 +348,21 @@ def test_outcomes_are_parsed_from_the_frozen_bytes_not_the_disk(tmp_path, monkey
     assert run.main(_argv(tmp_path, led, "--n-resamples", "20")) == 0
     res = json.loads(next((tmp_path / "out").glob("fffffff-*/results.json")).read_text())
     assert res["w22"]["primary"]["tables"]["all_observed_dates"]["E"]["ratio"] == 0.8
+
+
+def test_review_probe_cohort_a_board_fields_come_from_qualified_raw_rows(tmp_path, monkeypatch):
+    """R2-3: only the output parquet is altered (id 1000: rank 99, best 40). The gate fails its integrity checks,
+    and Cohort A still reports id 1000's qualified raw row: rank 1, best 30 — never 99/40."""
+    _patch_gate(monkeypatch)
+    grab, led = _inputs(tmp_path)
+    status = json.loads((grab / "status.json").read_text())
+    path = grab / status["artifacts"]["leaderboard_snapshot"]["path"]
+    df = pd.read_parquet(path)
+    df.loc[df["user_id"] == 1000, ["rank", "season_best_streak"]] = [99, 40]
+    df.to_parquet(path)
+    assert run.main(_argv(tmp_path, led, "--n-resamples", "20")) == 0
+    out = next((tmp_path / "out").glob("fffffff-*"))
+    res = json.loads((out / "results.json").read_text())
+    assert {"board_output_hash", "board_rows_equal_raw"} <= set(res["w21"]["census_gate"]["failures"])
+    a = pd.read_parquet(out / "w21_case_series_A.parquet").set_index("user_id")
+    assert a.loc[1000, "board_rank"] == 1 and a.loc[1000, "board_season_best"] == 30

@@ -61,3 +61,13 @@ def test_raw_profile_that_fails_its_receipt_hash_gives_no_completeness(tmp_path)
     u = L.case_series(grab)["users"].set_index("user_id").loc[1000]
     assert u["raw_witness"] == "archive_hash_mismatch" and u["complete_rounds"] == 0 and pd.isna(u["dd_frequency"])
     assert u["pick_days"] == 5
+
+
+def test_an_a_member_without_a_qualified_board_row_has_unavailable_board_fields(tmp_path):
+    from scripts.audit.field_products import census as C
+    grab = _grab(tmp_path)
+    qualified = C.census_gate(C.load_board_receipts(grab))["qualified"]
+    u = L.case_series(grab, board=qualified[qualified["user_id"] != 1000])["users"].set_index("user_id").loc[1000]
+    assert pd.isna(u["board_rank"]) and pd.isna(u["board_username"]) and pd.isna(u["board_season_best"])
+    assert u["runs_status"] == "best_unavailable" and u["runs_reported_attainments"] == 0
+    assert u["history"] == "usable" and u["pick_days"] == 5            # membership/profile coverage preserved

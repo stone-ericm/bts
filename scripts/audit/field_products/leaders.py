@@ -1,6 +1,10 @@
 """W2.1 items 2–3: the final-leader case series (Cohort A = the top of the final all_season board, from the grab's
 cohort.json). Survivor-selected by construction; a capture-as-of listing is not an awarded prize.
 
+Board fields (rank, username, season best) come only from the census gate's QUALIFIED raw rows (code review r2
+R2-3), never from the board parquet; an A member without a qualified row has them unavailable, and so is every
+best-dependent attainment. Recorded A membership and profile coverage are unchanged.
+
 Per user, from the id-keyed final-grab pick file under the data contract: observed pick days; DD frequency over
 rounds completed by the verified raw profile response (``cohort.raw_witness``; incomplete rounds and unobserved
 calendar dates reported separately, never as skips); the board season best by stable user id, kept separate from
@@ -15,6 +19,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.audit.field_products import census as C
 from scripts.audit.field_products import cohort as K
 from scripts.audit.field_products import picks as P
 from scripts.audit.field_products import streaks as S
@@ -33,14 +38,14 @@ LABELS = {"survivor": "Cohort A is selected on the FINAL board: every statistic 
 
 def case_series(grab_dir: Path, *, board: pd.DataFrame | None = None, cohort_json: dict | None = None,
                 identity: dict | None = None, status: dict | None = None, read=None) -> dict:
+    """``board``: the census gate's qualified raw rows (user_id, rank, season_best_streak, username)."""
     grab_dir = Path(grab_dir)
     read = read or (lambda p: Path(p).read_bytes())
     cohort_json = cohort_json or json.loads(read(grab_dir / "cohort.json"))
     identity = identity or json.loads(read(grab_dir / "identity.json"))
     status = status or json.loads(read(grab_dir / "status.json"))
     if board is None:
-        import io
-        board = pd.read_parquet(io.BytesIO(read(grab_dir / status["artifacts"]["leaderboard_snapshot"]["path"])))
+        board = C.census_gate(C.load_board_receipts(grab_dir, read=read))["qualified"]
     a_ids = [int(x) for x in cohort_json["A"]]
     labels = pd.DataFrame({"order": range(1, len(a_ids) + 1), "user_id": a_ids, "allocation": "A"})
     fg = K.final_grab_status(labels, identity, grab_dir, read=read).set_index("user_id")
