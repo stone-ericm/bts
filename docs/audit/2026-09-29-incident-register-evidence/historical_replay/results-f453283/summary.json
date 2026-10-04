@@ -60,14 +60,6 @@
       "seconds": 16
     },
     {
-      "label": "R-I047-1",
-      "spec_sha256": "1b1481c0fac96d7788eff4b60ae027ec31de0b9da3b6b90a67391a2cf4c21c2c",
-      "verdict": "accepted",
-      "reasons": [],
-      "acceptance_sha256": "819d10e2a2f0852e81918abeb0265b74a81e1b98fae22bc759da66ca6407e6c6",
-      "seconds": 16
-    },
-    {
       "label": "R-I056-2",
       "spec_sha256": "a295f96f22f34b1a765aa45bccedb4460da64a9efef3c8134ab8c816f0477102",
       "verdict": "accepted",
@@ -226,6 +218,27 @@
       "reasons": [],
       "acceptance_sha256": "eeefeeb839a86b9007588498017c47a2c953fd1c9bf08270a34c0ef1a7daeb0a",
       "seconds": 7
+    },
+    {
+      "label": "R-I047-1",
+      "spec_sha256": "91164d11d6a4f158270c7205a2d7c4ddd6d3b6ce5ccaaf02c15217446d3dc206",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "28f7121941d88f299269bd2800b0d8b4d3cd65dc0c68ce6f4436e4f756fdd665",
+      "seconds": 22
+    }
+  ],
+  "superseded": [
+    {
+      "label": "R-I047-1",
+      "spec_sha256": "1b1481c0fac96d7788eff4b60ae027ec31de0b9da3b6b90a67391a2cf4c21c2c",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "819d10e2a2f0852e81918abeb0265b74a81e1b98fae22bc759da66ca6407e6c6",
+      "seconds": 16,
+      "outputs": "out-replay/R-I047-1.r1-superseded",
+      "spec": "replay-specs-superseded/R-I047-1.r1.json",
+      "superseded_because": "results review r1 B1: link 1's symptom counts a null-context watchdog helper's construction (design \u00a79.2 diagnostic_only); re-run narrowed to link 2"
     }
   ]
 }

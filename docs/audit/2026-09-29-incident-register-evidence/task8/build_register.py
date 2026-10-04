@@ -62,7 +62,7 @@ def decisions() -> dict[str, str]:
     return out
 
 
-def replay_entries(rid: str, manifest: list, dec: dict) -> list:
+def replay_entries(rid: str, manifest: list, dec: dict, corr: dict) -> list:
     out = []
     for e in (x for x in manifest if x["incident"] == rid):
         links = ", ".join(map(str, e["links"]))
@@ -74,24 +74,28 @@ def replay_entries(rid: str, manifest: list, dec: dict) -> list:
         acc = load(acc_path)
         assert acc["spec"]["label"] == e["spec"] and acc["spec"]["links"] == e["links"], e["spec"]
         if acc["verdict"] != "accepted" or dec.get(e["spec"]) != "accept":
-            out.append({"status": "unavailable", "reason": f"link(s) {links}: {e['spec']} runner verdict "
-                        f"{acc['verdict']}, reviewer decision {dec.get(e['spec'])}"})
+            why = corr["withdrawn"].get(e["spec"], f"runner verdict {acc['verdict']}, reviewer decision {dec.get(e['spec'])}")
+            out.append({"status": "unavailable", "reason": f"link(s) {links}: {e['spec']} withdrawn after review: {why}; "
+                        f"its run is kept at {acc_path}"})
             continue
         out.append({"status": "certified", "label": acc["label_kind"], "fix_set": acc["spec"]["fix_set"],
                     "symptom_nodes": [s["node"] for s in acc["spec"]["symptom_nodes"]],
                     "acceptance": acc_path, "acceptance_sha256": sha(acc_path), "reviewer_decision": "accept",
-                    "reason": f"link(s) {links}: {e['spec']}"})
+                    "reason": f"link(s) {links}: {e['spec']}"
+                              + (f": {corr['reason_notes']['replay'][e['spec']]}" if e["spec"] in corr["reason_notes"]["replay"] else "")})
     return out
 
 
-def defence_entries(rid: str, manifest: list, dec: dict, notes: dict) -> list:
+def defence_entries(rid: str, manifest: list, dec: dict, notes: dict, corr: dict) -> list:
     out = []
     for e in (x for x in manifest if x["incident"] == rid):
         n, spec = e["link"], e["spec"]
         if spec is None:
             r = e["reason"]
             status = "not_applicable" if r.startswith(("not_applicable:", "not a fixed link:")) else "unavailable"
-            out.append({"link": n, "status": status, "reason": r})
+            extra = corr["reason_notes"]["defence"].get(f"{rid} {n}")
+            sep = " " if r.rstrip().endswith((".", ")")) else ". "
+            out.append({"link": n, "status": status, "reason": r + (sep + extra if extra else "")})
             continue
         base = f"{EV}/current_defence/results-f453283/{spec}"
         acc_path = f"{base}/acceptance.json"
@@ -103,10 +107,13 @@ def defence_entries(rid: str, manifest: list, dec: dict, notes: dict) -> list:
             out.append({"link": n, "status": "unavailable",
                         "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec "
                                   f"{spec} was refused before any run; refusal record {acc_path}; its regression "
-                                  f"tests: {', '.join(tests)}"})
+                                  f"tests: {', '.join(tests)}"
+                                  + (f". {corr['reason_notes']['defence'][f'{rid} {n}']}" if f"{rid} {n}" in corr["reason_notes"]["defence"] else "")})
             continue
         if dec.get(spec) != "accept":
-            out.append({"link": n, "status": "unavailable", "reason": f"{spec}: reviewer decision {dec.get(spec)}"})
+            why = corr["withdrawn"].get(spec, f"reviewer decision {dec.get(spec)}")
+            out.append({"link": n, "status": "unavailable",
+                        "reason": f"{spec} withdrawn after review: {why}; its accepted run is kept at {acc_path}"})
             continue
         assert sha(f"{base}/mutant.patch") == acc["patch_sha256"], spec
         spec_doc = acc["spec"]                              # the spec as it ran (baseline substituted)
@@ -145,6 +152,10 @@ def main() -> int:
         r = by_id[c["record"]]
         assert r["routes"] == c["was"], (c["record"], r["routes"])
         r["routes"] = c["now"]
+    for c in corr["replace_notes"]:
+        notes = by_id[c["record"]]["notes"]
+        assert notes.count(c["was"]) == 1, (c["record"], c["was"][:60])
+        notes[notes.index(c["was"])] = c["now"]
     for c in corr["notes"]:
         by_id[c["record"]].setdefault("notes", []).append(c["note"])
 
@@ -154,10 +165,10 @@ def main() -> int:
         fx = r["fixtures"]
         if r["id"] in replay_ids:
             assert not fx["historical_replay"], r["id"]
-            fx["historical_replay"] = replay_entries(r["id"], rm, dec)
+            fx["historical_replay"] = replay_entries(r["id"], rm, dec, corr)
         if r["id"] in defence_ids:
             assert not fx["current_defence"], r["id"]
-            fx["current_defence"] = defence_entries(r["id"], dm, dec, corr["defence_notes"])
+            fx["current_defence"] = defence_entries(r["id"], dm, dec, corr["defence_notes"], corr)
         for kind in ("expected_failure", "characterization"):
             for x in fx[kind]:
                 x["acceptance"], x["acceptance_sha256"] = PAIR, pair_sha

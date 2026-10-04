@@ -1,13 +1,12 @@
 {
   "audit_problems": [],
   "classes": {
-    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick": "symptom_candidate",
-    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog": "symptom_candidate"
+    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick": "symptom_candidate"
   },
   "closure": "src_swap",
   "events_sha256": {
-    "green": "f0a991764e2f2192b6b1b3abe17fcf82d53134fc08501ee2f4fe667fa90cad45",
-    "red": "2d67f9c9cb3fc8681d400d7f4032d1af825324b2823780837ac1914ce1fabc93"
+    "green": "8d56e3a5219e7e0e785411587f3b3d097ce8c06a861b4d7ee538dacd43bf9a6f",
+    "red": "f3a8618b18b49eb3b860c0b1ce69c2afa62a66c03a6f0e0474c188676a1b6a5f"
   },
   "fix": "150ed4c97d84a65ce7977c48ce52698598645abc",
   "harness_changes": [
@@ -40,20 +39,10 @@
     "incident": "I-047",
     "label": "R-I047-1",
     "links": [
-      1,
       2
     ],
-    "notes": "Link 1: at the parent (77b36f5), _run_shadow_prediction calls predict_local_shadow without heartbeat_watchdog, so the patched watchdog is never called and mock_watchdog.assert_called_once_with(...) raises AssertionError (line 48 at 150ed4c, unique). Link 2: the parent never checks for an existing shadow pick, so it calls the patched predict_local_shadow, and mock_predict.assert_not_called() raises AssertionError (line 72, unique). In that test the MagicMock predictions make the parent's real select_pick return None at `if predictions.empty`, and the function returns normally. Both AssertionErrors come from unittest.mock; the runner's innermost repo frame (venv excluded) is the test line. All other work in the parent's function runs inside its broad `except Exception`, so no other exception can surface. Static checks: _run_shadow_prediction(config, date, production_pick_name) keeps its signature at the parent; the module's autouse fixture patches bts.strategy._load_mdp, which exists there. In the first test the parent also runs the real attach_provenance on the MagicMock daily, exactly as F does.",
+    "notes": "Revision 2 (2026-10-03, results review r1 B1): narrowed to link 2. Revision 1 also declared link 1 through test_wraps_prediction_with_heartbeat_watchdog, whose assertion counts a call of the watchdog helper the test replaces with nullcontext(): a call count that observes no heartbeat or watchdog output, diagnostic_only under design \u00a79.2. Link 2: at the parent (77b36f5) _run_shadow_prediction never checks for an existing shadow pick, so it dispatches the patched predict_local_shadow and mock_predict.assert_not_called() raises AssertionError (line 72, unique). This witnesses the no-repeat dispatch decision, not the training cost itself. Revision 1 and its outputs are kept (historical_replay/specs-superseded/R-I047-1.r1.json, results-f453283/R-I047-1.r1-superseded). Revision 1's notes: Link 1: at the parent (77b36f5), _run_shadow_prediction calls predict_local_shadow without heartbeat_watchdog, so the patched watchdog is never called and mock_watchdog.assert_called_once_with(...) raises AssertionError (line 48 at 150ed4c, unique). Link 2: the parent never checks for an existing shadow pick, so it calls the patched predict_local_shadow, and mock_predict.assert_not_called() raises AssertionError (line 72, unique). In that test the MagicMock predictions make the parent's real select_pick return None at `if predictions.empty`, and the function returns normally. Both AssertionErrors come from unittest.mock; the runner's innermost repo frame (venv excluded) is the test line. All other work in the parent's function runs inside its broad `except Exception`, so no other exception can surface. Static checks: _run_shadow_prediction(config, date, production_pick_name) keeps its signature at the parent; the module's autouse fixture patches bts.strategy._load_mdp, which exists there. In the first test the parent also runs the real attach_provenance on the MagicMock daily, exactly as F does.",
     "symptom_nodes": [
-      {
-        "_line": 48,
-        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1/tests/test_shadow_scheduler.py",
-        "assertion": {
-          "path": "tests/test_shadow_scheduler.py",
-          "text": "mock_watchdog.assert_called_once_with(heartbeat_path, interval_sec=60)"
-        },
-        "node": "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog"
-      },
       {
         "_line": 72,
         "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1/tests/test_shadow_scheduler.py",
@@ -65,19 +54,17 @@
       }
     ],
     "tests": [
-      "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog",
       "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick",
       "-q"
     ]
   },
-  "spec_sha256": "c19666fd26cf8ab31ae447ff0209db1e15511ce30200843d8bf0641aae2a7026",
+  "spec_sha256": "3825f9e8bc43ad0f3e2a8b7f6f55a9a4dcdd4f56b044936425ea9de2b0fb6bae",
   "src_tree": {
     "fix": "815d71353a11e332eff7dffa2e57a746346ce27e",
     "parent": "e86ef1f1908d571d74f3f60a324f0f613ee7cd30"
   },
   "symptoms": {
-    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick": [],
-    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog": []
+    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick": []
   },
   "verdict": "accepted"
 }

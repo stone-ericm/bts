@@ -1,7 +1,7 @@
 {
  "schema": "w15_incident_register_v1",
  "pin": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
- "built_at_head": "72195b06a2a767ce3268171518fb6ec5309a4d3a",
+ "built_at_head": "7de2de8a39e50d60e18ba0981c8dd15d2b799e90",
  "publication_pin_check": {
   "closure": [
    "src",
@@ -11310,7 +11310,7 @@
       "acceptance": "docs/audit/2026-09-29-incident-register-evidence/historical_replay/results-f453283/R-I043-3/acceptance.json",
       "acceptance_sha256": "a2265cb4e67969b80ff2274494a63911b48708b9395eeff248b34a862065f9a5",
       "reviewer_decision": "accept",
-      "reason": "link(s) 3: R-I043-3"
+      "reason": "link(s) 3: R-I043-3: PARTIAL: the resolved-at-cap rule only; the schedule-void overlay is not replayed (results review r1 S3)"
      },
      {
       "status": "certified",
@@ -11405,7 +11405,7 @@
      {
       "link": 5,
       "status": "unavailable",
-      "reason": "the strict-mode guard it mutates is disabled on the production path (abbfdc5 runs with require_detailed_statuses=False); the production protection's pre-fix restoration needs added code (lead's ruling)"
+      "reason": "the strict-mode guard it mutates is disabled on the production path (abbfdc5 runs with require_detailed_statuses=False); the production protection's pre-fix restoration needs added code (lead's ruling) The withdrawn strict-mode spec did not exercise production's fail-closed lock decision. A faithful coarse-status-fallback restoration with a positive wrong-lock return is a candidate; it has not been certified (results review r1 S1)."
      }
     ],
     "expected_failure": [],
@@ -12032,19 +12032,22 @@
    "fixtures": {
     "historical_replay": [
      {
+      "status": "unavailable",
+      "reason": "link(s) 1: diagnostic_only: the fix's only test for link 1 (tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog) replaces heartbeat_watchdog with nullcontext() and asserts that the helper was called once; neither run observes a heartbeat write or watchdog ping, so the failure at the parent is a call count, not the link's consequence (design §9.2; results review r1 B1)"
+     },
+     {
       "status": "certified",
       "label": "semantic_regression_replay",
       "fix_set": [
        "150ed4c"
       ],
       "symptom_nodes": [
-       "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog",
        "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick"
       ],
       "acceptance": "docs/audit/2026-09-29-incident-register-evidence/historical_replay/results-f453283/R-I047-1/acceptance.json",
-      "acceptance_sha256": "819d10e2a2f0852e81918abeb0265b74a81e1b98fae22bc759da66ca6407e6c6",
+      "acceptance_sha256": "28f7121941d88f299269bd2800b0d8b4d3cd65dc0c68ce6f4436e4f756fdd665",
       "reviewer_decision": "accept",
-      "reason": "link(s) 1, 2: R-I047-1"
+      "reason": "link(s) 2: R-I047-1"
      }
     ],
     "current_defence": [
@@ -14383,7 +14386,7 @@
     "link 1 fix: fetch-contest-streak (fa30ecb) plus its cron schedule (68a35d3, box crontab install not evidenced here); complete_fix_set false because of 4bdfdb8 (E63)",
     "link 2 was fixed by E63's 2b4ff1d (other batch) - consider moving it there",
     "defective refs follow the parent-of-fix rule: f5b60af and fa30ecb are PR #142 branch commits that were never deployed themselves; the code live during the freeze was the 2890b2c-era main (e.g. ad6c301 via run 26673084651), whose contest_state/health code the cited symbols match",
-    "log bounds: links 1 and 3 live by 2026-06-07T00:11:19Z (run 27077693688); link 2 by 2026-07-02T15:28:10Z (run 28601525167)",
+    "Retained-log install bounds: link 1's code (including 68a35d3) is observed between 2026-06-07T00:11:19Z and 2026-06-07T00:11:22Z in run 27077693688; the cron schedule's activation is not evidenced. Link 3's complete fix set is first observed in retained logs between 2026-06-07T00:11:21Z and 2026-07-02T15:28:11Z (run 28601525167), with an earlier candidate deploy at 2026-06-07T17:55:03Z (run 27100280736). Link 2's retained-log live_by is 2026-07-02T15:28:11Z.",
     "regression tests named in the fix: tests/health/test_contest_state.py test_stale_contest_state_is_critical, test_legacy_manual_present_warns",
     "fixtures: filled from Task 5/6 acceptance objects at build time",
     "Task 8 (2026-10-03): links 1 and 3 install states corrected to the first deploys containing their complete fix sets (68a35d3: run 27077693688, 2b752be; 58c9adc: run 27100280736, a436827); the drafts cited eaccaf8, which contains neither. Link 1's cron schedule needs a crontab install that deploys never perform; its activation is not evidenced here.",
@@ -16480,7 +16483,7 @@
     "later hardening of the same entry check belongs to I-071 (deferred-DD premature DM), I-072 (alerted-terminal, F1) and I-110 (present_unverified)",
     "delivery_mode unknown (5/20–7/05 window); authority contest (entry)",
     "fixtures: filled from Task 5/6 acceptance objects at build time; 4f13eb3 adds tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn (link 3) and the check-pick-entered class in tests/test_cli_integration.py incl. test_missing_entry_in_window_dms_and_exits_nonzero (link 2, v1 semantics — the v1 settled-only source was later replaced) — none replays the 6/11 day end-to-end",
-    "Task 8: link 3's fix (4f13eb3, the past-noon WARN escalation) was deliberately reversed by 56f9726 (I-063 link 4). R-I061-2 certifies the historical fix; at the pin the contract is the reverse (a one-pick gap is INFO at any hour, certified by R-I063-4 and D-I063-4), so link 3 has no current defence (not_applicable)."
+    "Task 8: link 3's fix (4f13eb3, the past-noon WARN escalation) was deliberately reversed by 56f9726 (I-063 link 4). R-I061-2 certifies the historical fix; at the pin the contract is the reverse (a one-pick gap is INFO at any hour, certified by R-I063-4 and D-I063-4), so link 3 has no current defence (unavailable: fix superseded)."
    ]
   },
   {
@@ -16969,7 +16972,7 @@
       "acceptance": "docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I063-2/acceptance.json",
       "acceptance_sha256": "806ed15a5d6bc5208f5bafea6d9102b5caeebb9226b6ddcd428a4c0c1a045af2",
       "reviewer_decision": "accept",
-      "reason": "D-I063-2"
+      "reason": "D-I063-2: PARTIAL: the two-or-more-pick refusal only; the silent one-pick discard and no-source-date branch are not certified (results review r1 S3)"
      },
      {
       "link": 3,
@@ -18939,31 +18942,13 @@
     "current_defence": [
      {
       "link": 1,
-      "status": "certified",
-      "level": "component",
-      "patch": "docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-1/mutant.patch",
-      "patch_sha256": "62ea3a795d4cdd710d8547ccbe9b1a110bb7fe13dad389d0ff88fa67cbdf0b7b",
-      "killing_nodes": [
-       "tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm"
-      ],
-      "acceptance": "docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-1/acceptance.json",
-      "acceptance_sha256": "66ce2c923cbbcde26548e0d4b979bf4ac1d7efc41a368fa1d63cdc37421359a2",
-      "reviewer_decision": "accept",
-      "reason": "D-I071-1: revision 2, narrowed to the uncommitted-pick node; in revision 1 the observer refused to identify the skip-day node's DM (the boundary's code was shared by two live closures, fail-closed), so the skip-day case stays uncertified"
+      "status": "unavailable",
+      "reason": "D-I071-1 withdrawn after review: elapsed-time-dependent boundary decision, outside adopted ruling 13 at this pin: check_pick_entered subtracts real time.monotonic() elapsed time from the countdown and suppresses the DM once it reaches the cutoff (src/bts/cli.py 1706, 1774-1776, 1811 at f453283), and the killing closure fixes only the wall clock (--now-et). Recertification needs a reviewed fixed-elapsed fixture closure and fresh accepted runs (results review r1 B2); its accepted run is kept at docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-1/acceptance.json"
      },
      {
       "link": 2,
-      "status": "certified",
-      "level": "component",
-      "patch": "docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-2/mutant.patch",
-      "patch_sha256": "4d4259a522a7942a1aaf80bc35016b87543de35c188f70b46dc59fc0c806647f",
-      "killing_nodes": [
-       "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff"
-      ],
-      "acceptance": "docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-2/acceptance.json",
-      "acceptance_sha256": "2b16b3467acef609437e68533441db0056d59496624188087d4c2d62ecbb4ecd",
-      "reviewer_decision": "accept",
-      "reason": "D-I071-2"
+      "status": "unavailable",
+      "reason": "D-I071-2 withdrawn after review: elapsed-time-dependent boundary decision, outside adopted ruling 13 at this pin: the DM's countdown is minutes_to_pitch - 5 - real time.monotonic() elapsed time (src/bts/cli.py 1706, 1774-1776, 1811 at f453283), and the killing closure fixes only the wall clock (--now-et). Recertification needs a reviewed fixed-elapsed fixture closure and fresh accepted runs (results review r1 B2); its accepted run is kept at docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/D-I071-2/acceptance.json"
      }
     ],
     "expected_failure": [],
@@ -22594,7 +22579,7 @@
      {
       "link": 1,
       "status": "unavailable",
-      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0830-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0830-b/acceptance.json; its regression tests: tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20"
+      "reason": "absence not certifiable by the Phase 1 recorder (plan ruling 10): the spec I-0830-b was refused before any run; refusal record docs/audit/2026-09-29-incident-register-evidence/current_defence/results-f453283/I-0830-b/acceptance.json; its regression tests: tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20. Missing delivery remains uncertifiable in Phase 1; a positive wrong-deferral-return planner spec is a separate, unrun candidate (results review r1 S2)."
      },
      {
       "link": 2,

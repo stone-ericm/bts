@@ -31,7 +31,7 @@ def replay_cat(reason: str) -> str:
                      ("new API only", "new API only"), ("no fix:", "no fix (manual step)"),
                      ("no test in the fix witnesses", "no symptom test in the fix"),
                      ("asserts the fix's new", "the fix's own message only"),
-                     ("new log line", "log line only")):
+                     ("new log line", "log line only"), ("diagnostic_only", "diagnostic only (a call count)")):
         if r.startswith(key) or key in r[:120]:
             return cat
     return cell(r, 50)
@@ -43,7 +43,8 @@ def defence_cat(reason: str) -> str:
                      ("not_applicable:", "no fix (manual step)"), ("not a fixed link", "no fix (manual step)"),
                      ("disabled on the production path", "guarded mode off in production"),
                      ("live MLB", "test reaches the live MLB API"),
-                     ("no recordable positive witness", "no recordable witness")):
+                     ("no recordable positive witness", "no recordable witness"),
+                     ("withdrawn after review: elapsed-time", "withdrawn: elapsed-time decision (ruling 13)")):
         if key in reason[:200]:
             return cat
     return cell(reason, 50)

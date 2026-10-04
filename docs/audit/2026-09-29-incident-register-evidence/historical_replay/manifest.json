@@ -1,650 +1,660 @@
 [
-  {
-    "incident": "I-004",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: 1929f5a changes only src/bts/data/pull.py (pull_feeds' SKIP and 'games failed' prints to stderr) and src/bts/model/predict.py (_refresh_season_data's prints to stderr), and adds or changes no test. git diff b6b1865 1929f5a outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
-    "confidence": "high",
-    "open_questions": "None for the replay. The only predict-json tests at the time (tests/test_predict_json.py, 2bb3234) patch bts.model.predict.run_pipeline, so they never reach pull_feeds; the fix leaves them unchanged and they cannot be symptoms.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-004",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: cb4c1cc changes only src/bts/model/predict.py (_fetch_game_slots' projected-lineup NOTE to stderr), and adds or changes no test. git diff 1929f5a cb4c1cc outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
-    "confidence": "high",
-    "open_questions": "None for the replay. As with link 1, tests/test_predict_json.py patches run_pipeline and never reaches _fetch_game_slots.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-004",
-    "links": [
-      3
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: 64ae365 changes only src/bts/data/build.py (build_season) and src/bts/data/pull.py (enrich_weather), adding explicit encoding=\"utf-8\" to their feed reads and writes, and adds or changes no test. git diff cb4c1cc 64ae365 outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
-    "confidence": "high",
-    "open_questions": "None for the replay. Reasoning only, not tested: even with a test, the defect is the Windows cp1252 default text encoding, so a replay on this macOS host (default UTF-8) would not reproduce it unless the test forced a non-UTF-8 encoding.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-011",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix's test asserts the fix's new 'Already resolved' message; at the parent the streak contract is not asserted, and the red run would reach the live MLB API (lead's ruling)",
-    "confidence": "medium",
-    "open_questions": "(1) Live network in the red run. The symptom test does not patch bts.picks.check_hit. At the parent (4cf7b1e), check-results therefore calls retry_urlopen against statsapi.mlb.com: game feed 778899, and if that game is final but the batter is missing, the 2026-04-01 schedule and each of its final games. The replay runner has no network isolation, and no conftest blocks sockets. I traced every outcome: an exception (swallowed by check_results' `except Exception`), None, True or False. Each one exits 0 without 'Already resolved', so the failing line should be the same (227). But the red run's duration and outbound traffic depend on the host: up to about 60 s on a blackholed network (three 15 s timeouts plus 5 s and 10 s retry sleeps), and possibly a dozen feed fetches if the network is up. Is a red run that may call the real MLB API acceptable? The only way to avoid it would be to patch check_hit in the test, which is a test edit (an adapter), not something a spec can do. (2) Which assertion fires. The assertion that fires at the parent is the skip-message check (line 227, a string the fix introduced), not the streak check (line 230, assert load_streak(picks_dir) == 2), which is never reached at the parent. Without network, the streak check would even pass at the parent, because the error branch returns before update_streak. So the red run demonstrates the missing skip of an already-resolved date (the contract's second clause), not the double-count itself. The runner will accept it (a builtin AssertionError at the declared line), but whether a message-text check counts as the contract assertion is your call. The alternative is to mark the link unavailable.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-017",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: 5075fba changes only src/bts/scheduler.py (run_day reads [scheduler] shadow_mode and skips the three post_to_bluesky call sites, at the normal lock, the in-loop fallback and the final fallback), and adds or changes no test. git diff 0e6b598 5075fba outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
-    "confidence": "high",
-    "open_questions": "None for the replay. The earlier tests/test_shadow_mode.py (d5e0d7b, before the parent) covers only bts.picks.save_pick_shadow, not run_day's posting; the fix leaves it unchanged. The other half of the mechanism, scripts/fly-entrypoint.sh writing shadow_mode = true, is outside src/ in any case.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-018",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): 870cede changes only .github/workflows/deploy.yml (adds `git config --global --add safe.directory /home/bts/projects/bts` before git pull) and touches no src/ file or test.",
-    "confidence": "high",
-    "open_questions": "None for the replay. The draft marks this link's fix set incomplete (complete_fix_set false). The run still reported success on a failed pull; failure propagation (`set -e`) first appears in deploy.yml at 6bffd63 (I-028's fix), which is also workflow-only. So completing the set would not make a replay possible.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-018",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): cda8c1c changes only .github/workflows/deploy.yml (restarts the bts user's units with user-level systemctl instead of root's system manager) and touches no src/ file or test.",
-    "confidence": "high",
-    "open_questions": "None.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-019",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): d5c466c only adds scripts/cron-setup-hetzner.sh (a reproducible crontab installer whose job prefix is `set -a && . ./.env && set +a`, not `source .env`, which /bin/sh lacks) and touches no src/ file or test.",
-    "confidence": "high",
-    "open_questions": "None for the replay. The draft marks the set incomplete (complete_fix_set false), because the crontab had to be reinstalled on the box by the operator. That step is outside the repository.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-020",
-    "links": [
-      1,
-      2
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): 8193909 changes only .github/workflows/deploy.yml (when /etc/systemd/system/bts-scheduler.service exists, each deploy runs disable --now on the legacy system-level bts-scheduler/bts-dashboard units, deletes their unit files, reloads systemd and pkills stray `uv run bts schedule` processes; it also adds deploy.yml to the workflow's paths filter) and touches no src/ file or test. Links 1 and 2 share this one fix commit, so they share one entry.",
-    "confidence": "high",
-    "open_questions": "None. Mechanism 1 (the system-level units installed by hand during the 4/11 01:08 setup) has no repository code at all.",
-    "batch": "b1"
-  },
-  {
-    "incident": "I-023",
-    "links": [
-      1
-    ],
-    "spec": "R-I023-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "The spec also selects tests/test_strategy.py::TestSelectPick::test_for_shadow_ignores_locked_production, the fix's unit test, which fails at the parent with TypeError (for_shadow is new) and should classify new_api; it is kept because it is part of the fix's tests and passes at F. Drop it if the reviewer wants only nodes that can reach an assertion at P.",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-023",
-    "links": [
-      2
-    ],
-    "spec": "R-I023-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-025",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: every test in tests/test_scheduler.py::TestRefreshPickAtFallback (5 tests) fails at P with ImportError because _refresh_pick_at_fallback was added by the fix (dd25664); the tests also patch bts.scheduler.run_and_pick, which at the parent 1e4859d is only a function-local import inside run_single_check (line 259), not a module attribute",
-    "confidence": "high",
-    "open_questions": "The fix set has no test that drives run_day's in-loop or final fallback, so the contract (re-predict at the fallback) has no assertion-level test that predates the helper; a replay would need a test outside the fix set.",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-027",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2)",
-    "confidence": "high",
-    "open_questions": "none (28732c2 changes only scripts/cron-setup-hetzner.sh and touches no test)",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-028",
-    "links": [
-      1,
-      2
-    ],
-    "spec": null,
-    "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2)",
-    "confidence": "high",
-    "open_questions": "none (6bffd63, shared by both links, changes only .github/workflows/deploy.yml, pyproject.toml and uv.lock and touches no test)",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-029",
-    "links": [
-      1
-    ],
-    "spec": "R-I029-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Both symptom tests derive their dates from date.today(), as reconcile_results does; only a run straddling local midnight (TZ=America/New_York) could split them. Both anchors are the first line of a multi-line assert with a message; the raise line follows pytest's rewriter (checked statically in pytest 9.0.2), so confirm the replay worktree's venv runs the same pytest.",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-032",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_heartbeat.py::test_heartbeat_watchdog_refreshes_during_block and ::test_heartbeat_watchdog_stops_writing_after_exit fail at P with ImportError because heartbeat_watchdog was added by the fix (0830ef4); the file imports it at module level, so at the parent d4dae2c the whole module fails to collect",
-    "confidence": "high",
-    "open_questions": "No test in the fix drives run_single_check or _refresh_pick_at_fallback under a slow run_and_pick, so the scheduler-level contract has no test that could fail by assertion at the parent.",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-032",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_scheduler.py::TestPollIntervalSleep::test_no_heartbeat_path_still_sleeps and ::test_heartbeat_path_refreshes_during_sleep fail at P with ImportError because _poll_interval_sleep was added by the fix (c43869d); it is absent at the parent 55bb1df",
-    "confidence": "high",
-    "open_questions": "No test in the fix drives run_result_polling's inter-iteration sleep, so the contract has no test that could fail by assertion at the parent.",
-    "batch": "b2"
-  },
-  {
-    "incident": "I-034",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_scheduler.py::TestWatchdogPingSleep::test_watchdog_ping_sleep_does_not_touch_heartbeat_file and ::test_watchdog_ping_sleep_actually_sleeps fail at P (c43869d) with ImportError because bts.scheduler._watchdog_ping_sleep was added by the fix (684c160); no test in the fix drives run_day's SLEEPING-state waits",
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-035",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: the three TestIdleUntilNextWakeup tests in tests/test_scheduler.py fail at P (684c160) with ImportError because bts.scheduler._idle_until_next_wakeup was added by the fix (ddee3db); they cover only its no-op branches (None, past and malformed wake time), and no test drives run_day's end-of-day return",
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-040",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: ee4190f changes only src/bts/model/predict.py, so the fix set has no test that can fail at the parent",
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-040",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_e3_missed_pick_alert.py (added by bb7ccc1) imports _maybe_alert_missed_pick and _alert_missed_pick from bts.scheduler at module level; both were added by the fix (at P, 8e867fc, scheduler.py only reads missed_pick_alert_min), so at P the module fails at collection with ImportError",
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-042",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "no test in the fix witnesses the defect: no test passes data_dir, so the per-slot PA-frame attribution (the fix for the double-down attribution bias) is never exercised. The one node that fails at P (88c8582) by assertion, tests/health/test_realized_calibration.py::TestRealizedCalibration::test_warn_at_15pp_overconfidence (assert alerts[0].level == \"WARN\", line 73), fails only because the same commit retuned the severity thresholds (WARN 10 to 15pp, CRITICAL 15 to 25pp) on the unchanged streak-proxy path: 12/20 hits is an 18pp gap, CRITICAL at P and WARN at F. tests/model/test_calibrate.py imports bts.model.calibrate, a module the fix added (ImportError at P)",
-    "confidence": "medium",
-    "open_questions": "Judgement call. If you rule that the threshold retune is part of link 1's contract (the contract reads 'pages CRITICAL only on a genuine miscalibration', and the commit says the retune is what stops the false daily CRITICAL), the spec is as follows. fix_set [b08769d]. tests: TestRealizedCalibration::test_warn_at_15pp_overconfidence, optionally with test_info_at_8pp_overconfidence, test_critical_at_25pp_overconfidence and test_threshold_overrides, which pass under both ladders (8pp INFO, 28pp CRITICAL, 3pp no alert). Symptom anchor: assert alerts[0].level == \"WARN\", unique at line 73 of b08769d. Audit: scripts/validate_calibration.py irrelevant (a script the tests never load); tests/health/test_realized_calibration.py neutral (renames and retunes the threshold tests; imports check and SOURCE, both present at P); tests/model/test_calibrate.py irrelevant (not loaded). deployed_ref b08769d, candidate_ancestry. Such a replay would certify the retune, not the attribution fix, which is mechanism 1.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-042",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "new API only: every test the fix adds (tests/health/test_realized_calibration.py::TestSinceDeployFilter, 5 nodes) calls check(..., since_deploy_iso=...), a keyword added by c5256e6, so at P (b4cafe7, where check takes picks_dir, today, thresholds, data_dir) each fails with TypeError",
-    "confidence": "high",
-    "open_questions": "none",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-043",
-    "links": [
-      1
-    ],
-    "spec": "R-I043-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Green is statically traced, not run. Two added nodes are left out because at P they call the live MLB schedule API (test_bluesky_posted_locks_even_if_postponed; test_existing_status_lookup_failure_locks); see the spec notes.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-043",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "no test in the fix witnesses the grading contract at the parent. The void-grading tests (tests/test_cli_integration.py::TestBtsCheckResults::test_check_results_voids_primary_and_scores_double_once, ::test_check_results_voids_double_and_scores_primary_once, ::test_check_results_all_void_keeps_streak) first assert the fix's new 'VOID: ...' report line, which any pre-fix code lacks, so at P (9424db7) they fail whether or not the slot is graded wrongly; the streak assertions that witness the contract are never reached (the I-011 ruling). run_result_polling's void test reaches the live MLB feed at P (_check_hits_midgame calls retry_urlopen unpatched) and then raises AttributeError on slot_results, a field the fix added. tests/test_picks.py imports names the fix added at module level. The remaining parent-failing nodes test either consumers of the new slot_results field or the polling gate, which is mechanism 3 (link 3), not the grading defect",
-    "confidence": "medium",
-    "open_questions": "Applied by analogy with the lead's I-011 ruling; please confirm. Alternatives if you disagree: (a) A spec declaring the three CLI void nodes, with anchors in tests/test_cli_integration.py at a142c14: assert \"VOID: Jacob Wilson.\" in result.output (unique, line 246), assert \"VOID: Carlos Cortes.\" in result.output (285) and assert \"VOID: Jacob Wilson, Carlos Cortes.\" in result.output (323). I traced each at P: the CLI exits 0, grades the postponed slot through the patched check_hit as a hit (streak 3 to 5, not 4), then fails at the VOID line; every patched name (bts.picks.check_hit, get_game_statuses_detailed) exists at P. The genuine contract violation (streak 5) is present at P but is asserted only after the VOID line. (b) tests/test_scheduler.py::TestPollResults::test_returns_final_for_postponed_preview fails at P by assertion on a pre-existing return value (assert status == \"final\", line 618; P maps a Postponed feed to 'preview'). It encodes the polling gate, though, which the record assigns to mechanism 3, and the record still places that defect at a142c14. Audit for either: the docs runbook and the seven unselected test files are irrelevant; tests/test_cli_integration.py is neutral (its added get_game_statuses_detailed patches are present at P and unused by P's check_results); tests/test_scheduler.py is neutral.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-043",
-    "links": [
-      3
-    ],
-    "spec": "R-I043-3",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "The replay covers only the cap-overwrite half of mechanism 3 (a resolved pick rewritten to 'unresolved' at the 05:00 cap). The schedule-void overlay test, the main half, is not replayable without an adapter: at P it would loop on 15-minute real sleeps and live-feed calls until 05:00 ET, and at F it is time-of-day sensitive (it fails between 05:00 and 10:00 ET). Decide whether a partial-mechanism replay is acceptable for link 3.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-043",
-    "links": [
-      4
-    ],
-    "spec": "R-I043-4",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "The symptom is a pre-existing test (the I-009 contract test) whose fixture this fix rewrote to the abstract-Preview / detailed-Postponed shape. I audited that rewrite as neutral, since the test now carries mechanism 4's contract and its patches are inert at P.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-043",
-    "links": [
-      5
-    ],
-    "spec": "R-I043-5",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "test_lock_decision_fails_closed_when_detailed_status_unavailable is selected but not declared: at P its should_post assertion passes by fixture coincidence, and it fails only at assert best_projected is None (line 553). Promote it to a symptom if a coarse-derived return value counts as the contract.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-047",
-    "links": [
-      1,
-      2
-    ],
-    "spec": "R-I047-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Both symptom assertions are unittest.mock helpers (assert_called_once_with, assert_not_called). The runner's innermost_repo_frame is documented to resolve these to the test line; no other anchor style is available in this fix.",
-    "batch": "b3"
-  },
-  {
-    "incident": "I-056",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_cli_integration.py::TestFetchContestStreak::test_happy_path_writes_auto (and test_stale_profile_no_write, test_malformed_profile_alerts_not_silent, test_prior_auto_identity_mismatch_no_overwrite) fail at P (f5b60af) with AttributeError because monkeypatch.setattr(bts.cli, '_fetch_rounds', ...) targets a helper fa30ecb added; the other fetch tests invoke the fetch-contest-streak command, which fa30ecb added (CliRunner turns the missing command into exit code 2, so test_identity_mismatch_no_write_and_alerts and test_auth_failure_dm_throttled would fail on a DM-count assertion that reflects the missing command, not the defect); 68a35d3 is the cron schedule, outside src",
-    "confidence": "high",
-    "open_questions": "TestSetContestStreak::test_set_contest_streak_writes_manual_state (the 5/29 manual entry: 7, manual_screenshot) does fail at P by assertion (line 268: manual schema v2 vs the parent's v1), but it encodes the expiring-override schema bump, not the missing refresh writer, so I did not use it. Draft issue: the deployed sha eaccaf8 does not contain 68a35d3 (its child commit).",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-056",
-    "links": [
-      2
-    ],
-    "spec": "R-I056-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "The draft suggests moving link 2 to I-063 (2b4ff1d is I-063's fix; R-I063-1 replays 2b4ff1d+a9522a4). Note that after 2b4ff1d the decision streak would still be a stale contest 7: the fix removes the max() and the doubles freeze, not the staleness (links 1 and 3).",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-056",
-    "links": [
-      3
-    ],
-    "spec": "R-I056-3",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "deployed_ref copies the draft (candidate_ancestry eaccaf8), but eaccaf8 does not contain 58c9adc, the last fix commit (2026-06-07 13:54 ET); it contains only 365ea40. The draft's log bound (live by 2026-06-07T00:11:19Z) also predates 58c9adc. The draft needs the first deploy containing 58c9adc, or a note. Optional extra symptoms, all failing at P by assertion: test_two_day_gap_is_critical (line 103), test_missing_source_date_is_critical (line 134), test_legacy_manual_present_warns (named in the draft, but a WARN, not the stale CRITICAL).",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-061",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "no fix: link 1 is not_applicable (the operator's manual entry step; the draft records implemented not_applicable), so there is nothing to replay",
-    "confidence": "high",
-    "open_questions": "",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-061",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "new API only: the TestCheckPickEntered tests at 720651a patch bts.contest_fetch.fetch_pending_predictions, which a6ec548 added, so they fail at P (1ba01c4) with AttributeError, and they invoke check-pick-entered, which 4f13eb3 added; TestHasPredictionFor imports has_prediction_for (added by 4f13eb3; ImportError) and a6ec548's fetch_pending_predictions tests import that new function; 720651a is the cron wiring, outside src",
-    "confidence": "high",
-    "open_questions": "Unpatched nodes such as test_no_pick_today_is_silent would fail at P by assertion only because the command does not exist (CliRunner exit 2); not a symptom.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-061",
-    "links": [
-      3
-    ],
-    "spec": "R-I061-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Label is R-I061-2 because link 2's fix set (unavailable) is the incident's first. The contract this replay certifies (a gap of one past noon ET -> WARN) was reversed on 6/17 by 56f9726, which is I-063 link 4's fix (R-I063-4). Both replays can be accepted at their own commits, but the register should not present I-061 link 3's defence as current.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-063",
-    "links": [
-      1
-    ],
-    "spec": "R-I063-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "a9522a4 changes test_lagged_contest_uses_contest_value_keeps_doubles (model 5 -> 9), so its first failing line at P is 83 here and 84 in R-I056-2.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-063",
-    "links": [
-      2
-    ],
-    "spec": "R-I063-2",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "(1) Both anchors are exit-code assertions: the parent's refusal exits 2 before the persistence assertion. Please confirm the reviewer accepts them as contract assertions. (2) The observed 6/16-6/17 case (a one-pick lag) cannot be a symptom: at P the gate exits 0 without writing, so test_fetch_cli_persists_current_activestreak_despite_lag and test_expected_settlement_lag_writes_snapshot_no_alert fail with FileNotFoundError. The declared symptoms are the same gate's None-source_date and >=2-pick refusals.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-063",
-    "links": [
-      3
-    ],
-    "spec": "R-I063-3",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-063",
-    "links": [
-      4
-    ],
-    "spec": "R-I063-4",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Only the noon WARN is declared. test_two_day_gap_is_warn_not_critical (line 171) and test_gap2_coverage_lag_is_warn (line 74) also fail at P by assertion and encode the mechanism's second half (gap >= 2 CRITICAL -> WARN). Add them if that downgrade counts as link 4's contract, but note it reverses I-056 link 3's 'stale -> CRITICAL' contract (R-I056-3). test_offday_gap_with_one_new_pick_is_not_critical (line 150) is the same noon WARN at 19:00 ET and could be a second symptom. The draft itself notes the daily false WARN may have been anticipated rather than observed.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-071",
-    "links": [
-      1
-    ],
-    "spec": "R-I071-1",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "The anchor is the exit-code line (1049): the parent takes the alert path and exits 1, so the dms == [] contract assertion on the next line is never reached. Please confirm this is acceptable as the contract assertion.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-071",
-    "links": [
-      2
-    ],
-    "spec": "R-I071-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Verifier (2026-10-03): test_dm_countdown_uses_submission_cutoff was removed from the declared symptoms. Its failing line at the parent (1084, '35 min to submit' in msg) asserts the fix's new wording together with the number, so it fails on any pre-fix code; the discriminating line 1085 ('(40 min' not in msg) is never reached (I-011 rule). The replay now certifies only the window half of link 2 (no DM inside the final 5 minutes); the countdown half has no assertion-level witness. The node stays selected as a reviewer-visible candidate.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-072",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "no fix: link 1 is not_applicable (the operator did not enter the second double-down slot, a manual step; the draft records implemented not_applicable), so there is nothing to replay",
-    "confidence": "high",
-    "open_questions": "",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-072",
-    "links": [
-      2
-    ],
-    "spec": "R-I072-1",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "This contradicts the guide's lesson that 8bceda1's red is new-API-only. By static trace, the CLI re-verification tests fail at P by assertion: the parent returns on an 'alerted' marker. The new-API red I can confirm is tests/health/test_pick_entry_source.py, whose module-level import of bts.health.pick_entry causes a collection error; I left it out of the selection. If the pilot's finding came from a run that included that file (or rests on something I cannot see statically), please check before trusting this spec. e5ef7ca is a batch commit: 95 data/validation park-drag JSON files (names only, not read), docs/.DS_Store and six unrelated test or script files are audited irrelevant.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-075",
-    "links": [
-      1
-    ],
-    "spec": "R-I075-1",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "(1) The step-7 symptom is wall-clock based by design (date.today(), and the parent's datetime.now(ET) for the empty schedule). It should fail at P on any day, but it is the one timing-dependent symptom. (2) Its anchor is a multi-line assert starting at line 62. Under pytest's rewrite the generated raise takes the statement's first line (checked in the installed _pytest/assertion/rewrite.py, not run); if not, the anchor check fails closed. (3) Verifier: link 2 was split out of this spec (R-I082-1 precedent), see the next entry.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-075",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "unavailable": "the fix's only change for this link is a new log line: 9551818 keeps _idle_until_next_wakeup's past-wakeup no-op (complete_fix_set false) and only makes it print a WARNING; its test (TestIdleGuardLoud::test_past_wakeup_logs_reason) asserts that new message, which fails on any pre-fix code, and no test witnesses the re-walk or the restart",
-    "confidence": "high",
-    "open_questions": "Shares fix set 9551818 with link 1 (R-I075-1); split per the R-I082-1 ruling. The TestIdleGuardLoud nodes stay selected in R-I075-1 as undeclared candidates.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-075",
-    "links": [
-      3
-    ],
-    "spec": null,
-    "unavailable": "new API only: every TestHealthDmDedup test in tests/health/test_alert.py passes now_et_date=, a keyword ec242da added to dispatch_dm_for_health_alerts, so it fails at the parent 9551818 with TypeError; test_with_streak_preserves_incident_key builds Alert(incident_key=), a field ec242da added (TypeError); test_dispatch_receives_processed_date_for_dedup fails at the parent by assertion only because run_all_checks there cannot pass the new now_et_date keyword",
-    "confidence": "high",
-    "open_questions": "Shares fix set ec242da with link 4 (R-I075-2); split per the R-I082-1 ruling, and link 3's nodes were dropped from R-I075-2's selection (R-I023-1 ruling: new-API-only nodes add nothing).",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-075",
-    "links": [
-      4
-    ],
-    "spec": "R-I075-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Verifier: narrowed from links [3, 4] to [4]. Both declared symptoms witness the per-run checkpoint advance through state (the checkpoint value) and the missing CRITICAL.",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-075",
-    "links": [
-      5
-    ],
-    "spec": "R-I075-3",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "",
-    "batch": "b4"
-  },
-  {
-    "incident": "I-082",
-    "links": [
-      1
-    ],
-    "spec": "R-I082-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "Both links share 404358d, so one spec covers both, but both declared symptoms are in fetch_login_session (link 1's mechanism). Link 2 (the cron DM advising cookie re-capture) has no assertion-level symptom of its own: every fix test of the fetch-contest-streak / scrape messages imports TransientAuthError or RateLimitedLoginError, which the fix added (ImportError at the parent 0e4aaa8). Link 2 is witnessed only through the chain: the parent's fetch_login_session raises plain AuthError on the exhausted outage shape (symptom 1), and the parent's CLI maps every AuthError to the capture_bts_cookies advice. Decide whether that indirect coverage is enough to list link 2 in this spec. Two fix tests that do fail by assertion at the parent were rejected as non-witnesses: test_profile_5xx_categorized_transient_not_cookie_shaped fails on the fix's new 'upstream/network' wording at the profile stage, where the parent never gave cookie advice; test_cli_integration.py::test_auth_uses_bounded_attempts asserts that the caller passes the fix's new attempts=2 keyword. Both fall under the I-011 rule. The spec also selects test_retries_empty_200_then_succeeds, the literal 8/11 shape (one blank 200, then success), which at the parent raises the incident's own AuthError rather than an assertion and will classify symptom_candidate. Drop it if undeclared reds are unwanted.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-082",
-    "links": [
-      2
-    ],
-    "spec": null,
-    "batch": "b5",
-    "unavailable": "new API only: every test of the cron's message imports TransientAuthError, which the fix added (lead's ruling)"
-  },
-  {
-    "incident": "I-083",
-    "links": [
-      1
-    ],
-    "spec": "R-I083-1",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_statuscode_pw_recognized_without_detailed_text is left out on purpose. It would fail by assertion at the parent (line 71), but its status dict carries the 'code' key that only the fix's fetcher produces; the parent's get_game_statuses_detailed drops statusCode. Add it as a declared symptom if the reviewer counts it as a witness.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-083",
-    "links": [
-      2
-    ],
-    "spec": "R-I083-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "The symptom's AssertionError is raised inside unittest.mock (assert_called_once). The runner takes the innermost frame inside the worktree (excluding .venv), which is the test line 267, as long as the interpreter's stdlib lives outside the worktree; uv's managed Python does.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-084",
-    "links": [
-      1
-    ],
-    "spec": "R-I084-1",
-    "unavailable": null,
-    "confidence": "medium",
-    "open_questions": "Needs your judgement. The direct 8/30 replay (tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20) and the flipped gap-block test are new API only at the parent 0c8ed32: they build FallbackRefreshResult(block_reason=..., contender_game_pk=...) or import LockDecision / plan_fallback_action, all added by a681e89/32057b7, so they fail with TypeError/ImportError and are not selected. The only fix test that fails by assertion at the parent on the deferral contract is test_fallback_delivers_when_future_checks_have_no_pending_lineups. Its red comes from the confirmation-sync facet of the stale plan: the parent decides on its pre-refresh in-memory confirmed_sides, while the fix re-syncs after the refresh. It does not come from the gap-feasibility policy change: with no block_reason, F uses its legacy rule. The red is also enabled by a harness change in the same fix: the test used to patch the parent's own predicate _has_pending_future_confirmation_window to False, and now patches check_confirmed_lineups instead, so the parent's real predicate runs. I audited that change as neutral (both targets exist at the parent; the scenario 'lineups posted after the last scheduled check' is realizable in production) and added a control (one game, no future run) that delivers at both. If you read the harness change as producing the red, rule this link unavailable: 'new API only: test_kwan_delivered_at_13_20 fails at P with TypeError because FallbackRefreshResult.block_reason/contender_game_pk were added by the fix (a681e89)'. Also: 3697512 (in this link's fix set) carries link-2 fixes whose tests fail by assertion at 0c8ed32 (the r2 F1 pre-send cutoff re-check, the r2 F8 naive-UTC cutoff). They encode the cutoff contract, not the fallback deferral, so they are not declared here. On the guide's 2ff2db9 lesson: 2ff2db9's src diff is only a reorder in run_single_check. The return-shape change in this incident is a681e89's (_lock_decision_from_predictions: 3-tuple to LockDecision), and its tests read attributes, which raise AttributeError at the parent. None is selected.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-084",
-    "links": [
-      2
-    ],
-    "spec": "R-I084-2",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "F is 2ff2db9, so the replay's F src includes every I-084 commit (links 1, 3 and 4 interleave in this range); P is ad17b3a, before any of them. Two more fix tests fail by assertion at the parent and could be declared if wanted: test_private_mode_is_guarded_too (line 120; the private-mode branch, while 8/30 was dm) and test_clock_crossing_cutoff_between_guard_and_send_refuses (line 158; 3697512's pre-send re-check, which at the parent fails because there is no guard at all).",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-084",
-    "links": [
-      3
-    ],
-    "spec": "R-I084-3",
-    "unavailable": null,
-    "confidence": "high",
-    "open_questions": "tests/test_refresh_memo.py imports bts.model.predict, which imports lightgbm at module level. The replay worktree's venv must have the model extra (the bts-w15 and bts-w15-evidence/ev venvs do), or green and red both fail with ImportError.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-084",
-    "links": [
-      4
-    ],
-    "spec": null,
-    "unavailable": "new API only: every test in tests/health/test_late_delivery.py (e.g. test_after_cutoff_is_critical) fails at P (67338cd) with ImportError because bts.health.late_delivery was added by the fix (314154d)",
-    "confidence": "high",
-    "open_questions": "Two fix tests fail by assertion at the parent but do not witness the contract (a late delivery must be reported). tests/health/test_fallback_defer.py::test_same_primary_but_different_double_down_is_not_same_pick covers same_pick now comparing the double-down (Codex review #10, an 8/29 shape); fallback_defer's never-miss check, which read the 13:36 delivery as healthy, is unchanged by it. test_late_delivery.py::test_registered_in_runner only asserts that the string 'late_delivery' appears in the runner's source, i.e. that the new module is registered.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-085",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "new API only: tests/test_tail_policy_strategy.py::test_tail_regime_uses_tail_table_and_records_provenance fails at P (3ec2fc5) with ImportError at collection because bts.simulate.tail_policy and strategy.PolicyDecision/resolve_policy_decision were added by the fix (0abf503); eb010fd adds only the data/models/mdp_tail_policy.npz artifact",
-    "confidence": "high",
-    "open_questions": "No fix test reaches an assertion at the parent on the keep-picking contract. Most fix test modules import bts.simulate.tail_policy, bts.health.tail_policy or strategy.PolicyDecision at module level, so they fail at collection: test_tail_policy_strategy, test_scheduler_tail_objective, test_tail_policy_r3_fixes, simulate/test_tail_policy, test_tail_policy_artifact_contract and health/test_tail_policy_health. The rest assert fields or keywords the fix added (DecisionStreakState.best_status, compute_provenance tail_path / tail_policy_sha256, write_decision objective=, the v3 DECISION_SCHEMA). None drives the parent's decide_action/select_pick in a tail state. Witnessing the 9/03 all-skip red would take a test outside the fix set, which is a current-defence or expected-failure question, not a historical replay.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-113",
-    "links": [
-      1
-    ],
-    "spec": null,
-    "unavailable": "the fix touches no test: 947fce8 adds models/mdp_policy.npz to sync_to_r2 (src/bts/data/sync.py) and also changes src/bts/features/compute.py and fly.toml, but adds or changes no test, so there is no fix-set test to replay (design §9.2)",
-    "confidence": "high",
-    "open_questions": "The fix is in src/, so this is not the 'outside src/' case: there is simply no test. The draft also marks complete_fix_set false and deployed unknown.",
-    "batch": "b5"
-  },
-  {
-    "incident": "I-009",
-    "links": [
-      1
-    ],
-    "spec": "R-I009-1",
-    "unavailable": null,
-    "batch": "pilot"
-  }
+ {
+  "incident": "I-004",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: 1929f5a changes only src/bts/data/pull.py (pull_feeds' SKIP and 'games failed' prints to stderr) and src/bts/model/predict.py (_refresh_season_data's prints to stderr), and adds or changes no test. git diff b6b1865 1929f5a outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
+  "confidence": "high",
+  "open_questions": "None for the replay. The only predict-json tests at the time (tests/test_predict_json.py, 2bb3234) patch bts.model.predict.run_pipeline, so they never reach pull_feeds; the fix leaves them unchanged and they cannot be symptoms.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-004",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: cb4c1cc changes only src/bts/model/predict.py (_fetch_game_slots' projected-lineup NOTE to stderr), and adds or changes no test. git diff 1929f5a cb4c1cc outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
+  "confidence": "high",
+  "open_questions": "None for the replay. As with link 1, tests/test_predict_json.py patches run_pipeline and never reaches _fetch_game_slots.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-004",
+  "links": [
+   3
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: 64ae365 changes only src/bts/data/build.py (build_season) and src/bts/data/pull.py (enrich_weather), adding explicit encoding=\"utf-8\" to their feed reads and writes, and adds or changes no test. git diff cb4c1cc 64ae365 outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
+  "confidence": "high",
+  "open_questions": "None for the replay. Reasoning only, not tested: even with a test, the defect is the Windows cp1252 default text encoding, so a replay on this macOS host (default UTF-8) would not reproduce it unless the test forced a non-UTF-8 encoding.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-011",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix's test asserts the fix's new 'Already resolved' message; at the parent the streak contract is not asserted, and the red run would reach the live MLB API (lead's ruling)",
+  "confidence": "medium",
+  "open_questions": "(1) Live network in the red run. The symptom test does not patch bts.picks.check_hit. At the parent (4cf7b1e), check-results therefore calls retry_urlopen against statsapi.mlb.com: game feed 778899, and if that game is final but the batter is missing, the 2026-04-01 schedule and each of its final games. The replay runner has no network isolation, and no conftest blocks sockets. I traced every outcome: an exception (swallowed by check_results' `except Exception`), None, True or False. Each one exits 0 without 'Already resolved', so the failing line should be the same (227). But the red run's duration and outbound traffic depend on the host: up to about 60 s on a blackholed network (three 15 s timeouts plus 5 s and 10 s retry sleeps), and possibly a dozen feed fetches if the network is up. Is a red run that may call the real MLB API acceptable? The only way to avoid it would be to patch check_hit in the test, which is a test edit (an adapter), not something a spec can do. (2) Which assertion fires. The assertion that fires at the parent is the skip-message check (line 227, a string the fix introduced), not the streak check (line 230, assert load_streak(picks_dir) == 2), which is never reached at the parent. Without network, the streak check would even pass at the parent, because the error branch returns before update_streak. So the red run demonstrates the missing skip of an already-resolved date (the contract's second clause), not the double-count itself. The runner will accept it (a builtin AssertionError at the declared line), but whether a message-text check counts as the contract assertion is your call. The alternative is to mark the link unavailable.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-017",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: 5075fba changes only src/bts/scheduler.py (run_day reads [scheduler] shadow_mode and skips the three post_to_bluesky call sites, at the normal lock, the in-loop fallback and the final fallback), and adds or changes no test. git diff 0e6b598 5075fba outside src/ is empty, so the fix set has no test of its own to run at the parent and no symptom node.",
+  "confidence": "high",
+  "open_questions": "None for the replay. The earlier tests/test_shadow_mode.py (d5e0d7b, before the parent) covers only bts.picks.save_pick_shadow, not run_day's posting; the fix leaves it unchanged. The other half of the mechanism, scripts/fly-entrypoint.sh writing shadow_mode = true, is outside src/ in any case.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-018",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): 870cede changes only .github/workflows/deploy.yml (adds `git config --global --add safe.directory /home/bts/projects/bts` before git pull) and touches no src/ file or test.",
+  "confidence": "high",
+  "open_questions": "None for the replay. The draft marks this link's fix set incomplete (complete_fix_set false). The run still reported success on a failed pull; failure propagation (`set -e`) first appears in deploy.yml at 6bffd63 (I-028's fix), which is also workflow-only. So completing the set would not make a replay possible.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-018",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): cda8c1c changes only .github/workflows/deploy.yml (restarts the bts user's units with user-level systemctl instead of root's system manager) and touches no src/ file or test.",
+  "confidence": "high",
+  "open_questions": "None.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-019",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): d5c466c only adds scripts/cron-setup-hetzner.sh (a reproducible crontab installer whose job prefix is `set -a && . ./.env && set +a`, not `source .env`, which /bin/sh lacks) and touches no src/ file or test.",
+  "confidence": "high",
+  "open_questions": "None for the replay. The draft marks the set incomplete (complete_fix_set false), because the crontab had to be reinstalled on the box by the operator. That step is outside the repository.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-020",
+  "links": [
+   1,
+   2
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2): 8193909 changes only .github/workflows/deploy.yml (when /etc/systemd/system/bts-scheduler.service exists, each deploy runs disable --now on the legacy system-level bts-scheduler/bts-dashboard units, deletes their unit files, reloads systemd and pkills stray `uv run bts schedule` processes; it also adds deploy.yml to the workflow's paths filter) and touches no src/ file or test. Links 1 and 2 share this one fix commit, so they share one entry.",
+  "confidence": "high",
+  "open_questions": "None. Mechanism 1 (the system-level units installed by hand during the 4/11 01:08 setup) has no repository code at all.",
+  "batch": "b1"
+ },
+ {
+  "incident": "I-023",
+  "links": [
+   1
+  ],
+  "spec": "R-I023-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "The spec also selects tests/test_strategy.py::TestSelectPick::test_for_shadow_ignores_locked_production, the fix's unit test, which fails at the parent with TypeError (for_shadow is new) and should classify new_api; it is kept because it is part of the fix's tests and passes at F. Drop it if the reviewer wants only nodes that can reach an assertion at P.",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-023",
+  "links": [
+   2
+  ],
+  "spec": "R-I023-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-025",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: every test in tests/test_scheduler.py::TestRefreshPickAtFallback (5 tests) fails at P with ImportError because _refresh_pick_at_fallback was added by the fix (dd25664); the tests also patch bts.scheduler.run_and_pick, which at the parent 1e4859d is only a function-local import inside run_single_check (line 259), not a module attribute",
+  "confidence": "high",
+  "open_questions": "The fix set has no test that drives run_day's in-loop or final fallback, so the contract (re-predict at the fallback) has no assertion-level test that predates the helper; a replay would need a test outside the fix set.",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-027",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2)",
+  "confidence": "high",
+  "open_questions": "none (28732c2 changes only scripts/cron-setup-hetzner.sh and touches no test)",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-028",
+  "links": [
+   1,
+   2
+  ],
+  "spec": null,
+  "unavailable": "the fix is outside src/; a semantic replay covers src only (design §9.2)",
+  "confidence": "high",
+  "open_questions": "none (6bffd63, shared by both links, changes only .github/workflows/deploy.yml, pyproject.toml and uv.lock and touches no test)",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-029",
+  "links": [
+   1
+  ],
+  "spec": "R-I029-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Both symptom tests derive their dates from date.today(), as reconcile_results does; only a run straddling local midnight (TZ=America/New_York) could split them. Both anchors are the first line of a multi-line assert with a message; the raise line follows pytest's rewriter (checked statically in pytest 9.0.2), so confirm the replay worktree's venv runs the same pytest.",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-032",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_heartbeat.py::test_heartbeat_watchdog_refreshes_during_block and ::test_heartbeat_watchdog_stops_writing_after_exit fail at P with ImportError because heartbeat_watchdog was added by the fix (0830ef4); the file imports it at module level, so at the parent d4dae2c the whole module fails to collect",
+  "confidence": "high",
+  "open_questions": "No test in the fix drives run_single_check or _refresh_pick_at_fallback under a slow run_and_pick, so the scheduler-level contract has no test that could fail by assertion at the parent.",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-032",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_scheduler.py::TestPollIntervalSleep::test_no_heartbeat_path_still_sleeps and ::test_heartbeat_path_refreshes_during_sleep fail at P with ImportError because _poll_interval_sleep was added by the fix (c43869d); it is absent at the parent 55bb1df",
+  "confidence": "high",
+  "open_questions": "No test in the fix drives run_result_polling's inter-iteration sleep, so the contract has no test that could fail by assertion at the parent.",
+  "batch": "b2"
+ },
+ {
+  "incident": "I-034",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_scheduler.py::TestWatchdogPingSleep::test_watchdog_ping_sleep_does_not_touch_heartbeat_file and ::test_watchdog_ping_sleep_actually_sleeps fail at P (c43869d) with ImportError because bts.scheduler._watchdog_ping_sleep was added by the fix (684c160); no test in the fix drives run_day's SLEEPING-state waits",
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-035",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: the three TestIdleUntilNextWakeup tests in tests/test_scheduler.py fail at P (684c160) with ImportError because bts.scheduler._idle_until_next_wakeup was added by the fix (ddee3db); they cover only its no-op branches (None, past and malformed wake time), and no test drives run_day's end-of-day return",
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-040",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: ee4190f changes only src/bts/model/predict.py, so the fix set has no test that can fail at the parent",
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-040",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_e3_missed_pick_alert.py (added by bb7ccc1) imports _maybe_alert_missed_pick and _alert_missed_pick from bts.scheduler at module level; both were added by the fix (at P, 8e867fc, scheduler.py only reads missed_pick_alert_min), so at P the module fails at collection with ImportError",
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-042",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "no test in the fix witnesses the defect: no test passes data_dir, so the per-slot PA-frame attribution (the fix for the double-down attribution bias) is never exercised. The one node that fails at P (88c8582) by assertion, tests/health/test_realized_calibration.py::TestRealizedCalibration::test_warn_at_15pp_overconfidence (assert alerts[0].level == \"WARN\", line 73), fails only because the same commit retuned the severity thresholds (WARN 10 to 15pp, CRITICAL 15 to 25pp) on the unchanged streak-proxy path: 12/20 hits is an 18pp gap, CRITICAL at P and WARN at F. tests/model/test_calibrate.py imports bts.model.calibrate, a module the fix added (ImportError at P)",
+  "confidence": "medium",
+  "open_questions": "Judgement call. If you rule that the threshold retune is part of link 1's contract (the contract reads 'pages CRITICAL only on a genuine miscalibration', and the commit says the retune is what stops the false daily CRITICAL), the spec is as follows. fix_set [b08769d]. tests: TestRealizedCalibration::test_warn_at_15pp_overconfidence, optionally with test_info_at_8pp_overconfidence, test_critical_at_25pp_overconfidence and test_threshold_overrides, which pass under both ladders (8pp INFO, 28pp CRITICAL, 3pp no alert). Symptom anchor: assert alerts[0].level == \"WARN\", unique at line 73 of b08769d. Audit: scripts/validate_calibration.py irrelevant (a script the tests never load); tests/health/test_realized_calibration.py neutral (renames and retunes the threshold tests; imports check and SOURCE, both present at P); tests/model/test_calibrate.py irrelevant (not loaded). deployed_ref b08769d, candidate_ancestry. Such a replay would certify the retune, not the attribution fix, which is mechanism 1.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-042",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "new API only: every test the fix adds (tests/health/test_realized_calibration.py::TestSinceDeployFilter, 5 nodes) calls check(..., since_deploy_iso=...), a keyword added by c5256e6, so at P (b4cafe7, where check takes picks_dir, today, thresholds, data_dir) each fails with TypeError",
+  "confidence": "high",
+  "open_questions": "none",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-043",
+  "links": [
+   1
+  ],
+  "spec": "R-I043-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Green is statically traced, not run. Two added nodes are left out because at P they call the live MLB schedule API (test_bluesky_posted_locks_even_if_postponed; test_existing_status_lookup_failure_locks); see the spec notes.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-043",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "no test in the fix witnesses the grading contract at the parent. The void-grading tests (tests/test_cli_integration.py::TestBtsCheckResults::test_check_results_voids_primary_and_scores_double_once, ::test_check_results_voids_double_and_scores_primary_once, ::test_check_results_all_void_keeps_streak) first assert the fix's new 'VOID: ...' report line, which any pre-fix code lacks, so at P (9424db7) they fail whether or not the slot is graded wrongly; the streak assertions that witness the contract are never reached (the I-011 ruling). run_result_polling's void test reaches the live MLB feed at P (_check_hits_midgame calls retry_urlopen unpatched) and then raises AttributeError on slot_results, a field the fix added. tests/test_picks.py imports names the fix added at module level. The remaining parent-failing nodes test either consumers of the new slot_results field or the polling gate, which is mechanism 3 (link 3), not the grading defect",
+  "confidence": "medium",
+  "open_questions": "Applied by analogy with the lead's I-011 ruling; please confirm. Alternatives if you disagree: (a) A spec declaring the three CLI void nodes, with anchors in tests/test_cli_integration.py at a142c14: assert \"VOID: Jacob Wilson.\" in result.output (unique, line 246), assert \"VOID: Carlos Cortes.\" in result.output (285) and assert \"VOID: Jacob Wilson, Carlos Cortes.\" in result.output (323). I traced each at P: the CLI exits 0, grades the postponed slot through the patched check_hit as a hit (streak 3 to 5, not 4), then fails at the VOID line; every patched name (bts.picks.check_hit, get_game_statuses_detailed) exists at P. The genuine contract violation (streak 5) is present at P but is asserted only after the VOID line. (b) tests/test_scheduler.py::TestPollResults::test_returns_final_for_postponed_preview fails at P by assertion on a pre-existing return value (assert status == \"final\", line 618; P maps a Postponed feed to 'preview'). It encodes the polling gate, though, which the record assigns to mechanism 3, and the record still places that defect at a142c14. Audit for either: the docs runbook and the seven unselected test files are irrelevant; tests/test_cli_integration.py is neutral (its added get_game_statuses_detailed patches are present at P and unused by P's check_results); tests/test_scheduler.py is neutral.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-043",
+  "links": [
+   3
+  ],
+  "spec": "R-I043-3",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "The replay covers only the cap-overwrite half of mechanism 3 (a resolved pick rewritten to 'unresolved' at the 05:00 cap). The schedule-void overlay test, the main half, is not replayable without an adapter: at P it would loop on 15-minute real sleeps and live-feed calls until 05:00 ET, and at F it is time-of-day sensitive (it fails between 05:00 and 10:00 ET). Decide whether a partial-mechanism replay is acceptable for link 3.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-043",
+  "links": [
+   4
+  ],
+  "spec": "R-I043-4",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "The symptom is a pre-existing test (the I-009 contract test) whose fixture this fix rewrote to the abstract-Preview / detailed-Postponed shape. I audited that rewrite as neutral, since the test now carries mechanism 4's contract and its patches are inert at P.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-043",
+  "links": [
+   5
+  ],
+  "spec": "R-I043-5",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "test_lock_decision_fails_closed_when_detailed_status_unavailable is selected but not declared: at P its should_post assertion passes by fixture coincidence, and it fails only at assert best_projected is None (line 553). Promote it to a symptom if a coarse-derived return value counts as the contract.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-047",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "diagnostic_only: the fix's only test for link 1 (tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog) replaces heartbeat_watchdog with nullcontext() and asserts that the helper was called once; neither run observes a heartbeat write or watchdog ping, so the failure at the parent is a call count, not the link's consequence (design §9.2; results review r1 B1)",
+  "confidence": "high",
+  "open_questions": "R-I047-1 revision 1 declared this link; its run is kept as superseded evidence.",
+  "batch": "review-r1"
+ },
+ {
+  "incident": "I-047",
+  "links": [
+   2
+  ],
+  "spec": "R-I047-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Both symptom assertions are unittest.mock helpers (assert_called_once_with, assert_not_called). The runner's innermost_repo_frame is documented to resolve these to the test line; no other anchor style is available in this fix.",
+  "batch": "b3"
+ },
+ {
+  "incident": "I-056",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_cli_integration.py::TestFetchContestStreak::test_happy_path_writes_auto (and test_stale_profile_no_write, test_malformed_profile_alerts_not_silent, test_prior_auto_identity_mismatch_no_overwrite) fail at P (f5b60af) with AttributeError because monkeypatch.setattr(bts.cli, '_fetch_rounds', ...) targets a helper fa30ecb added; the other fetch tests invoke the fetch-contest-streak command, which fa30ecb added (CliRunner turns the missing command into exit code 2, so test_identity_mismatch_no_write_and_alerts and test_auth_failure_dm_throttled would fail on a DM-count assertion that reflects the missing command, not the defect); 68a35d3 is the cron schedule, outside src",
+  "confidence": "high",
+  "open_questions": "TestSetContestStreak::test_set_contest_streak_writes_manual_state (the 5/29 manual entry: 7, manual_screenshot) does fail at P by assertion (line 268: manual schema v2 vs the parent's v1), but it encodes the expiring-override schema bump, not the missing refresh writer, so I did not use it. Draft issue: the deployed sha eaccaf8 does not contain 68a35d3 (its child commit).",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-056",
+  "links": [
+   2
+  ],
+  "spec": "R-I056-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "The draft suggests moving link 2 to I-063 (2b4ff1d is I-063's fix; R-I063-1 replays 2b4ff1d+a9522a4). Note that after 2b4ff1d the decision streak would still be a stale contest 7: the fix removes the max() and the doubles freeze, not the staleness (links 1 and 3).",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-056",
+  "links": [
+   3
+  ],
+  "spec": "R-I056-3",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "deployed_ref copies the draft (candidate_ancestry eaccaf8), but eaccaf8 does not contain 58c9adc, the last fix commit (2026-06-07 13:54 ET); it contains only 365ea40. The draft's log bound (live by 2026-06-07T00:11:19Z) also predates 58c9adc. The draft needs the first deploy containing 58c9adc, or a note. Optional extra symptoms, all failing at P by assertion: test_two_day_gap_is_critical (line 103), test_missing_source_date_is_critical (line 134), test_legacy_manual_present_warns (named in the draft, but a WARN, not the stale CRITICAL).",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-061",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "no fix: link 1 is not_applicable (the operator's manual entry step; the draft records implemented not_applicable), so there is nothing to replay",
+  "confidence": "high",
+  "open_questions": "",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-061",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "new API only: the TestCheckPickEntered tests at 720651a patch bts.contest_fetch.fetch_pending_predictions, which a6ec548 added, so they fail at P (1ba01c4) with AttributeError, and they invoke check-pick-entered, which 4f13eb3 added; TestHasPredictionFor imports has_prediction_for (added by 4f13eb3; ImportError) and a6ec548's fetch_pending_predictions tests import that new function; 720651a is the cron wiring, outside src",
+  "confidence": "high",
+  "open_questions": "Unpatched nodes such as test_no_pick_today_is_silent would fail at P by assertion only because the command does not exist (CliRunner exit 2); not a symptom.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-061",
+  "links": [
+   3
+  ],
+  "spec": "R-I061-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Label is R-I061-2 because link 2's fix set (unavailable) is the incident's first. The contract this replay certifies (a gap of one past noon ET -> WARN) was reversed on 6/17 by 56f9726, which is I-063 link 4's fix (R-I063-4). Both replays can be accepted at their own commits, but the register should not present I-061 link 3's defence as current.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-063",
+  "links": [
+   1
+  ],
+  "spec": "R-I063-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "a9522a4 changes test_lagged_contest_uses_contest_value_keeps_doubles (model 5 -> 9), so its first failing line at P is 83 here and 84 in R-I056-2.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-063",
+  "links": [
+   2
+  ],
+  "spec": "R-I063-2",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "(1) Both anchors are exit-code assertions: the parent's refusal exits 2 before the persistence assertion. Please confirm the reviewer accepts them as contract assertions. (2) The observed 6/16-6/17 case (a one-pick lag) cannot be a symptom: at P the gate exits 0 without writing, so test_fetch_cli_persists_current_activestreak_despite_lag and test_expected_settlement_lag_writes_snapshot_no_alert fail with FileNotFoundError. The declared symptoms are the same gate's None-source_date and >=2-pick refusals.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-063",
+  "links": [
+   3
+  ],
+  "spec": "R-I063-3",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-063",
+  "links": [
+   4
+  ],
+  "spec": "R-I063-4",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Only the noon WARN is declared. test_two_day_gap_is_warn_not_critical (line 171) and test_gap2_coverage_lag_is_warn (line 74) also fail at P by assertion and encode the mechanism's second half (gap >= 2 CRITICAL -> WARN). Add them if that downgrade counts as link 4's contract, but note it reverses I-056 link 3's 'stale -> CRITICAL' contract (R-I056-3). test_offday_gap_with_one_new_pick_is_not_critical (line 150) is the same noon WARN at 19:00 ET and could be a second symptom. The draft itself notes the daily false WARN may have been anticipated rather than observed.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-071",
+  "links": [
+   1
+  ],
+  "spec": "R-I071-1",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "The anchor is the exit-code line (1049): the parent takes the alert path and exits 1, so the dms == [] contract assertion on the next line is never reached. Please confirm this is acceptable as the contract assertion.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-071",
+  "links": [
+   2
+  ],
+  "spec": "R-I071-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Verifier (2026-10-03): test_dm_countdown_uses_submission_cutoff was removed from the declared symptoms. Its failing line at the parent (1084, '35 min to submit' in msg) asserts the fix's new wording together with the number, so it fails on any pre-fix code; the discriminating line 1085 ('(40 min' not in msg) is never reached (I-011 rule). The replay now certifies only the window half of link 2 (no DM inside the final 5 minutes); the countdown half has no assertion-level witness. The node stays selected as a reviewer-visible candidate.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-072",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "no fix: link 1 is not_applicable (the operator did not enter the second double-down slot, a manual step; the draft records implemented not_applicable), so there is nothing to replay",
+  "confidence": "high",
+  "open_questions": "",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-072",
+  "links": [
+   2
+  ],
+  "spec": "R-I072-1",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "This contradicts the guide's lesson that 8bceda1's red is new-API-only. By static trace, the CLI re-verification tests fail at P by assertion: the parent returns on an 'alerted' marker. The new-API red I can confirm is tests/health/test_pick_entry_source.py, whose module-level import of bts.health.pick_entry causes a collection error; I left it out of the selection. If the pilot's finding came from a run that included that file (or rests on something I cannot see statically), please check before trusting this spec. e5ef7ca is a batch commit: 95 data/validation park-drag JSON files (names only, not read), docs/.DS_Store and six unrelated test or script files are audited irrelevant.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-075",
+  "links": [
+   1
+  ],
+  "spec": "R-I075-1",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "(1) The step-7 symptom is wall-clock based by design (date.today(), and the parent's datetime.now(ET) for the empty schedule). It should fail at P on any day, but it is the one timing-dependent symptom. (2) Its anchor is a multi-line assert starting at line 62. Under pytest's rewrite the generated raise takes the statement's first line (checked in the installed _pytest/assertion/rewrite.py, not run); if not, the anchor check fails closed. (3) Verifier: link 2 was split out of this spec (R-I082-1 precedent), see the next entry.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-075",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "unavailable": "the fix's only change for this link is a new log line: 9551818 keeps _idle_until_next_wakeup's past-wakeup no-op (complete_fix_set false) and only makes it print a WARNING; its test (TestIdleGuardLoud::test_past_wakeup_logs_reason) asserts that new message, which fails on any pre-fix code, and no test witnesses the re-walk or the restart",
+  "confidence": "high",
+  "open_questions": "Shares fix set 9551818 with link 1 (R-I075-1); split per the R-I082-1 ruling. The TestIdleGuardLoud nodes stay selected in R-I075-1 as undeclared candidates.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-075",
+  "links": [
+   3
+  ],
+  "spec": null,
+  "unavailable": "new API only: every TestHealthDmDedup test in tests/health/test_alert.py passes now_et_date=, a keyword ec242da added to dispatch_dm_for_health_alerts, so it fails at the parent 9551818 with TypeError; test_with_streak_preserves_incident_key builds Alert(incident_key=), a field ec242da added (TypeError); test_dispatch_receives_processed_date_for_dedup fails at the parent by assertion only because run_all_checks there cannot pass the new now_et_date keyword",
+  "confidence": "high",
+  "open_questions": "Shares fix set ec242da with link 4 (R-I075-2); split per the R-I082-1 ruling, and link 3's nodes were dropped from R-I075-2's selection (R-I023-1 ruling: new-API-only nodes add nothing).",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-075",
+  "links": [
+   4
+  ],
+  "spec": "R-I075-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Verifier: narrowed from links [3, 4] to [4]. Both declared symptoms witness the per-run checkpoint advance through state (the checkpoint value) and the missing CRITICAL.",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-075",
+  "links": [
+   5
+  ],
+  "spec": "R-I075-3",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "",
+  "batch": "b4"
+ },
+ {
+  "incident": "I-082",
+  "links": [
+   1
+  ],
+  "spec": "R-I082-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "Both links share 404358d, so one spec covers both, but both declared symptoms are in fetch_login_session (link 1's mechanism). Link 2 (the cron DM advising cookie re-capture) has no assertion-level symptom of its own: every fix test of the fetch-contest-streak / scrape messages imports TransientAuthError or RateLimitedLoginError, which the fix added (ImportError at the parent 0e4aaa8). Link 2 is witnessed only through the chain: the parent's fetch_login_session raises plain AuthError on the exhausted outage shape (symptom 1), and the parent's CLI maps every AuthError to the capture_bts_cookies advice. Decide whether that indirect coverage is enough to list link 2 in this spec. Two fix tests that do fail by assertion at the parent were rejected as non-witnesses: test_profile_5xx_categorized_transient_not_cookie_shaped fails on the fix's new 'upstream/network' wording at the profile stage, where the parent never gave cookie advice; test_cli_integration.py::test_auth_uses_bounded_attempts asserts that the caller passes the fix's new attempts=2 keyword. Both fall under the I-011 rule. The spec also selects test_retries_empty_200_then_succeeds, the literal 8/11 shape (one blank 200, then success), which at the parent raises the incident's own AuthError rather than an assertion and will classify symptom_candidate. Drop it if undeclared reds are unwanted.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-082",
+  "links": [
+   2
+  ],
+  "spec": null,
+  "batch": "b5",
+  "unavailable": "new API only: every test of the cron's message imports TransientAuthError, which the fix added (lead's ruling)"
+ },
+ {
+  "incident": "I-083",
+  "links": [
+   1
+  ],
+  "spec": "R-I083-1",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_statuscode_pw_recognized_without_detailed_text is left out on purpose. It would fail by assertion at the parent (line 71), but its status dict carries the 'code' key that only the fix's fetcher produces; the parent's get_game_statuses_detailed drops statusCode. Add it as a declared symptom if the reviewer counts it as a witness.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-083",
+  "links": [
+   2
+  ],
+  "spec": "R-I083-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "The symptom's AssertionError is raised inside unittest.mock (assert_called_once). The runner takes the innermost frame inside the worktree (excluding .venv), which is the test line 267, as long as the interpreter's stdlib lives outside the worktree; uv's managed Python does.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-084",
+  "links": [
+   1
+  ],
+  "spec": "R-I084-1",
+  "unavailable": null,
+  "confidence": "medium",
+  "open_questions": "Needs your judgement. The direct 8/30 replay (tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20) and the flipped gap-block test are new API only at the parent 0c8ed32: they build FallbackRefreshResult(block_reason=..., contender_game_pk=...) or import LockDecision / plan_fallback_action, all added by a681e89/32057b7, so they fail with TypeError/ImportError and are not selected. The only fix test that fails by assertion at the parent on the deferral contract is test_fallback_delivers_when_future_checks_have_no_pending_lineups. Its red comes from the confirmation-sync facet of the stale plan: the parent decides on its pre-refresh in-memory confirmed_sides, while the fix re-syncs after the refresh. It does not come from the gap-feasibility policy change: with no block_reason, F uses its legacy rule. The red is also enabled by a harness change in the same fix: the test used to patch the parent's own predicate _has_pending_future_confirmation_window to False, and now patches check_confirmed_lineups instead, so the parent's real predicate runs. I audited that change as neutral (both targets exist at the parent; the scenario 'lineups posted after the last scheduled check' is realizable in production) and added a control (one game, no future run) that delivers at both. If you read the harness change as producing the red, rule this link unavailable: 'new API only: test_kwan_delivered_at_13_20 fails at P with TypeError because FallbackRefreshResult.block_reason/contender_game_pk were added by the fix (a681e89)'. Also: 3697512 (in this link's fix set) carries link-2 fixes whose tests fail by assertion at 0c8ed32 (the r2 F1 pre-send cutoff re-check, the r2 F8 naive-UTC cutoff). They encode the cutoff contract, not the fallback deferral, so they are not declared here. On the guide's 2ff2db9 lesson: 2ff2db9's src diff is only a reorder in run_single_check. The return-shape change in this incident is a681e89's (_lock_decision_from_predictions: 3-tuple to LockDecision), and its tests read attributes, which raise AttributeError at the parent. None is selected.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-084",
+  "links": [
+   2
+  ],
+  "spec": "R-I084-2",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "F is 2ff2db9, so the replay's F src includes every I-084 commit (links 1, 3 and 4 interleave in this range); P is ad17b3a, before any of them. Two more fix tests fail by assertion at the parent and could be declared if wanted: test_private_mode_is_guarded_too (line 120; the private-mode branch, while 8/30 was dm) and test_clock_crossing_cutoff_between_guard_and_send_refuses (line 158; 3697512's pre-send re-check, which at the parent fails because there is no guard at all).",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-084",
+  "links": [
+   3
+  ],
+  "spec": "R-I084-3",
+  "unavailable": null,
+  "confidence": "high",
+  "open_questions": "tests/test_refresh_memo.py imports bts.model.predict, which imports lightgbm at module level. The replay worktree's venv must have the model extra (the bts-w15 and bts-w15-evidence/ev venvs do), or green and red both fail with ImportError.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-084",
+  "links": [
+   4
+  ],
+  "spec": null,
+  "unavailable": "new API only: every test in tests/health/test_late_delivery.py (e.g. test_after_cutoff_is_critical) fails at P (67338cd) with ImportError because bts.health.late_delivery was added by the fix (314154d)",
+  "confidence": "high",
+  "open_questions": "Two fix tests fail by assertion at the parent but do not witness the contract (a late delivery must be reported). tests/health/test_fallback_defer.py::test_same_primary_but_different_double_down_is_not_same_pick covers same_pick now comparing the double-down (Codex review #10, an 8/29 shape); fallback_defer's never-miss check, which read the 13:36 delivery as healthy, is unchanged by it. test_late_delivery.py::test_registered_in_runner only asserts that the string 'late_delivery' appears in the runner's source, i.e. that the new module is registered.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-085",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "new API only: tests/test_tail_policy_strategy.py::test_tail_regime_uses_tail_table_and_records_provenance fails at P (3ec2fc5) with ImportError at collection because bts.simulate.tail_policy and strategy.PolicyDecision/resolve_policy_decision were added by the fix (0abf503); eb010fd adds only the data/models/mdp_tail_policy.npz artifact",
+  "confidence": "high",
+  "open_questions": "No fix test reaches an assertion at the parent on the keep-picking contract. Most fix test modules import bts.simulate.tail_policy, bts.health.tail_policy or strategy.PolicyDecision at module level, so they fail at collection: test_tail_policy_strategy, test_scheduler_tail_objective, test_tail_policy_r3_fixes, simulate/test_tail_policy, test_tail_policy_artifact_contract and health/test_tail_policy_health. The rest assert fields or keywords the fix added (DecisionStreakState.best_status, compute_provenance tail_path / tail_policy_sha256, write_decision objective=, the v3 DECISION_SCHEMA). None drives the parent's decide_action/select_pick in a tail state. Witnessing the 9/03 all-skip red would take a test outside the fix set, which is a current-defence or expected-failure question, not a historical replay.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-113",
+  "links": [
+   1
+  ],
+  "spec": null,
+  "unavailable": "the fix touches no test: 947fce8 adds models/mdp_policy.npz to sync_to_r2 (src/bts/data/sync.py) and also changes src/bts/features/compute.py and fly.toml, but adds or changes no test, so there is no fix-set test to replay (design §9.2)",
+  "confidence": "high",
+  "open_questions": "The fix is in src/, so this is not the 'outside src/' case: there is simply no test. The draft also marks complete_fix_set false and deployed unknown.",
+  "batch": "b5"
+ },
+ {
+  "incident": "I-009",
+  "links": [
+   1
+  ],
+  "spec": "R-I009-1",
+  "unavailable": null,
+  "batch": "pilot"
+ }
 ]

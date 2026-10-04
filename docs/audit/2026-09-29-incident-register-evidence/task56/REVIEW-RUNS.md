@@ -75,3 +75,11 @@ frames and the linked events.
 | R-I084-2 | accepted | **accept** | at the parent _deliver_and_lock_pick never compares the clock with the entry cutoff: it sends at the cutoff (13:35 for 13:40) and when the earlier double-down game sets the cutoff |
 | R-I084-3 | accepted | **accept** | at the parent pull_feeds sleeps after every game, cached or not, and an intraday cascade re-pulls the season again (pull and build twice): both halves of the cascade-delay mechanism |
 | R-I009-1 | accepted | **accept** | at the parent the projected batter in a postponed game (0.80) stays a contender within the gap of the confirmed pick (0.82), so should_post is False (the worked example) |
+
+## After the results review, round 1 (Codex, fresh session, 2026-10-03; `codex-findings-results-r1.md`)
+| Run | Runner | Decision | Reason |
+|---|---|---|---|
+| R-I047-1 (rev 1) | accepted | **superseded** | B1: link 1's symptom (`mock_watchdog.assert_called_once_with`) counts a call of a helper the test replaces with `nullcontext()`; no heartbeat write or watchdog ping is observed. That is a call count, diagnostic_only under design §9.2; my rev-1 note called it "structural" and should have rejected it. Link 1 is now unavailable (replay manifest) |
+| R-I047-1 (rev 2) | accepted | **accept** | narrowed to link 2: at the parent an existing shadow pick is predicted again (`predict_local_shadow` dispatched). It witnesses the no-repeat dispatch decision, not the training cost |
+| D-I071-1 (rev 2) | accepted | **withdrawn** | B2: `check_pick_entered` subtracts real `time.monotonic()` elapsed time from the countdown and suppresses the DM when it reaches the cutoff (cli.py 1706, 1774–1776, 1811 at the pin). The killing closure fixes the wall clock (`--now-et`) but not elapsed time, so the boundary decision changes with elapsed time, which adopted ruling 13 excludes. The drafter flagged it; I accepted it as "fails closed", which no ruling allows |
+| D-I071-2 | accepted | **withdrawn** | B2: the same elapsed-time dependence (the countdown text itself) |

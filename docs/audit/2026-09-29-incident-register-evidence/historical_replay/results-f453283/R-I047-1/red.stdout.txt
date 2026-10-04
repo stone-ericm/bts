@@ -3,70 +3,16 @@ platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
 rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1
 configfile: pyproject.toml
 plugins: anyio-4.13.0
-collected 2 items
+collected 1 item
 
-tests/test_shadow_scheduler.py FF                                        [100%]
+tests/test_shadow_scheduler.py F                                         [100%]
 
 =================================== FAILURES ===================================
-____ TestRunShadowPrediction.test_wraps_prediction_with_heartbeat_watchdog _____
-
-self = <tests.test_shadow_scheduler.TestRunShadowPrediction object at 0x10b4b0620>
-tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8000/test_wraps_prediction_with_hea0')
-
-    def test_wraps_prediction_with_heartbeat_watchdog(self, tmp_path):
-        mock_predictions = MagicMock()
-        mock_result = MagicMock()
-        mock_result.daily.date = "2026-04-10"
-        mock_result.daily.pick.batter_name = "Luis Arraez"
-        mock_result.daily.pick.p_game_hit = 0.767
-        heartbeat_path = tmp_path / "heartbeat.json"
-    
-        with (
-            patch("bts.scheduler.heartbeat_watchdog", return_value=nullcontext()) as mock_watchdog,
-            patch("bts.scheduler.predict_local_shadow", return_value=mock_predictions),
-            patch("bts.scheduler.select_pick", return_value=mock_result),
-            patch("bts.scheduler.save_shadow_pick"),
-        ):
-            _run_shadow_prediction(
-                config={
-                    "orchestrator": {
-                        "picks_dir": str(tmp_path),
-                        "heartbeat_path": str(heartbeat_path),
-                    }
-                },
-                date="2026-04-10",
-                production_pick_name="Luis Arraez",
-            )
-    
->       mock_watchdog.assert_called_once_with(heartbeat_path, interval_sec=60)
-
-tests/test_shadow_scheduler.py:48: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <MagicMock name='heartbeat_watchdog' id='4487281312'>
-args = (PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8000/test_wraps_prediction_with_hea0/heartbeat.json'),)
-kwargs = {'interval_sec': 60}
-msg = "Expected 'heartbeat_watchdog' to be called once. Called 0 times."
-
-    def assert_called_once_with(self, /, *args, **kwargs):
-        """assert that the mock was called exactly once and that that call was
-        with the specified arguments."""
-        if not self.call_count == 1:
-            msg = ("Expected '%s' to be called once. Called %s times.%s"
-                   % (self._mock_name or 'mock',
-                      self.call_count,
-                      self._calls_repr()))
->           raise AssertionError(msg)
-E           AssertionError: Expected 'heartbeat_watchdog' to be called once. Called 0 times.
-
-/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:960: AssertionError
------------------------------ Captured stderr call -----------------------------
-  [SHADOW MODEL] Luis Arraez (<MagicMock name='mock.daily.pick.team' id='4461201840'>) 76.7% — AGREES
 ___________ TestRunShadowPrediction.test_skips_existing_shadow_pick ____________
 
-self = <tests.test_shadow_scheduler.TestRunShadowPrediction object at 0x10b739bb0>
-tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8000/test_skips_existing_shadow_pic0')
-capsys = <_pytest.capture.CaptureFixture object at 0x10b786ff0>
+self = <tests.test_shadow_scheduler.TestRunShadowPrediction object at 0x10b97a900>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8464/test_skips_existing_shadow_pic0')
+capsys = <_pytest.capture.CaptureFixture object at 0x10bf7c5f0>
 
     def test_skips_existing_shadow_pick(self, tmp_path, capsys):
         existing = DailyPick(
@@ -95,7 +41,7 @@ capsys = <_pytest.capture.CaptureFixture object at 0x10b786ff0>
 tests/test_shadow_scheduler.py:72: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = <MagicMock name='predict_local_shadow' id='4487410896'>
+self = <MagicMock name='predict_local_shadow' id='4495816752'>
 
     def assert_not_called(self):
         """assert that the mock was never called.
@@ -114,6 +60,5 @@ E            call().empty.__bool__()].
 ----------------------------- Captured stderr call -----------------------------
   [SHADOW MODEL] Skip (below threshold).
 =========================== short test summary info ============================
-FAILED tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_wraps_prediction_with_heartbeat_watchdog
 FAILED tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_skips_existing_shadow_pick
-============================== 2 failed in 0.78s ===============================
+============================== 1 failed in 0.84s ===============================

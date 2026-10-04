@@ -3,8 +3,8 @@ platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
 rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1
 configfile: pyproject.toml
 plugins: anyio-4.13.0
-collected 1 item
+collected 2 items
 
-tests/test_shadow_scheduler.py .                                         [100%]
+tests/test_shadow_scheduler.py ..                                        [100%]
 
-============================== 1 passed in 3.62s ===============================
+============================== 2 passed in 2.67s ===============================

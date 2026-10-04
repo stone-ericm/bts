@@ -1,6 +1,6 @@
 # W1.5 incident register, Phase 1 — memo (2026-10-03)
 
-**Status:** draft for the results review (plan Task 9, item 2). The register, its fixtures and this memo have not been reviewed yet. Nothing is deployed.
+**Status:** draft under the results review (plan Task 9, item 2). Round 1 (a fresh Codex session, `docs/audit/2026-09-29-incident-register-codex-results-r1.md`) found five blockers and four SHOULDs; this revision answers all of them (§12). Nothing is deployed.
 
 **Authority:**
 - design `docs/superpowers/specs/2026-09-29-incident-register-design.md` v3.4;
@@ -27,9 +27,10 @@
 Eight more episodes are excluded with reasons (§5). The claim is "every candidate within the evidenced coverage" (design ruling 1). Phase 1 coverage is the repository and the deploy-run table (§2). The runtime route, Route R over the box data, is Phase 2, so every record carries `R: pending_phase2`.
 
 **What the fixtures show for the 30 fixed Tier-A observed incidents.** They have 62 link entries: 60 fixed links, plus 2 links that were manual operator steps with no fix.
-- **Historical replay** (the fix's tests fail by assertion on the pre-fix code and pass on the fix): certified for 29 links, from 28 specs.
-- **Current defence** (a small mutant restoring the pre-fix decision in today's code is killed by today's tests, with an observed causal witness): certified for 30 links. 17 are at the `production_path` level, where only external I/O is mocked. 13 are at `component` level, where some internal collaborator is mocked.
-- Both certificates hold for 21 links. 22 fixed links have neither (§8).
+- **Historical replay** (the fix's tests fail by assertion on the pre-fix code and pass on the fix): certified for 28 links, from 28 specs.
+- **Current defence** (a small mutant restoring the pre-fix decision in today's code is killed by today's tests, with an observed causal witness): certified for 28 links. 17 are at the `production_path` level, where only external I/O is mocked. 11 are at `component` level, where some internal collaborator is mocked.
+- Both certificates hold for 19 links. 23 fixed links have neither (§8).
+- After the results review, two defences (I-071 links 1 and 2) were withdrawn, because their boundary decision depends on real elapsed time, which ruling 13 puts outside the model. One replay (I-047 link 1) was dropped, because its only symptom is a call count (§12).
 
 **Unfixed defects whose contracts are fixed** carry strict expected-failure fixtures:
 - I-201: the BTS Pass graded as a miss, 15 nodes;
@@ -49,16 +50,16 @@ All are bound to the pair accepted at the pin (§8.3).
 | 7/16 singleton-slate gap | I-077 (unresolved: the only repo account was written 11 days later) | characterization (strict expected failure, component level) with 20 passing controls |
 | 8/11 MLB auth flap | I-082 | replay certified for link 1; defence certified for links 1 and 2 |
 | 8/13 silent pass (Warmup) | I-083 | replay certified for links 1 and 2; defence certified for link 1; link 2 (no missed-pick alert) is an absence |
-| 8/30 late pick (Kwan) | I-084 | replay certified for links 1–3; defence certified for links 2–4; link 1 (the deferral) is an absence |
+| 8/30 late pick (Kwan) | I-084 | replay certified for links 1–3; defence certified for links 2–4; link 1 (the deferral) is an absence. A positive wrong-deferral-return planner spec is a separate, unrun candidate |
 | 9/03 idle (all-skip table) | I-085 | replay unavailable (its only test needs the fix's new API); defence certified, production path |
-| 9/14 private mode | I-086 (near miss) | config fixture (§9.9): a private-locked commit still nags, which is why the cron was also disabled |
+| 9/14 private mode | I-086 (near miss) | config fixture (design §9.9; §8.3 here): a private-locked commit still nags, which is why the cron was also disabled |
 | 9/16 private-mode recaptures | I-087 (unresolved) | deferred: no contract fixes a recapture frequency; Phase 2 reads the official root |
 
 **What matters most for W4 rank 2.** The largest gap is missing events. Twelve fixed links are defects whose visible effect was something that did NOT happen: no heartbeat, no alert, no delivery, no state refresh. The Phase 1 recorder cannot certify an absence (ruling 10), so these links have no current-defence certificate. Some have a certified historical replay; today they are protected only by their named regression tests, uncertified. They are the natural first targets for watchdogs.
 
 Other gaps:
 - 8 fixed links live outside `src/` (the deploy workflow, cron, `pyproject.toml`) and cannot be replayed or mutated in Phase 1;
-- 5 fixed links have no current test at all (§9).
+- 5 fixed links lack a current runtime test suitable for a defence certificate (§9); I-040 link 1 has a static source guard.
 
 Two hazards are for Eric (§9.2).
 
@@ -69,7 +70,7 @@ Two hazards are for Eric (§9.2).
 | Source (design §4) | Phase 1 | What was read |
 |---|---|---|
 | R1 repo documents | read | through the sweep of the 366 docs-only commits for recorded observations, and every document a commit or episode cites (`docs/audit/**`, `INCIDENT.md`, `ARCHITECTURE.md`, `docs/optimization-ideas.md`, plans and specs). Records cite them as Route X evidence or as contemporaneous operator reports (ruling 6) |
-| R2 git commits | read | the 1,172 commits since 3/29 that Route H classified (806 code/config, 366 docs-only; `…-evidence/route_h/commit_classification.tsv`). All 372 runtime-closure negatives were diff-reviewed by two readers. The lead adjudicated 169 sensitive-path rows and 28 possible-fix rows; a seeded 10 % QC sample confirmed 20 of 20 exclusions (`…-evidence/negatives/`) |
+| R2 git commits | read | Route H inventoried 1,172 commits (806 code/config and 366 docs-only). The code/config classification is in `commit_classification.tsv`; the two commit inventories are `commits_code.txt` and `commits_docs_only.txt`. The 372 runtime-closure negatives were split between two readers (186 each). The lead adjudicated 169 sensitive-path rows and 28 possible-fix rows, and a seeded 10 % QC sample confirmed 20 of 20 exclusions (`…-evidence/negatives/`) |
 | R3 GitHub issues and PRs | **not swept** | issue and PR numbers enter only where commit text or documents cite them (for example GH #144). A sweep of all states is open for Phase 2 or a follow-up |
 | R4 GitHub Actions deploy runs | read | 192 runs (`…-evidence/deploy/deploy_runs.json`), with retained logs where GitHub kept them. Expired logs are `unavailable_expired`; install times then rest on candidate ancestry (the first successful run whose head contains the fix) |
 | B1–B3 box sources, W1.1 ledger | not read (Phase 2) | needs register row X-20 and Eric's go-ahead before any read |
@@ -390,7 +391,7 @@ All runs, accepted or not, are kept under `historical_replay/results-f453283/` a
 | I-043 | 3 | **certified** (R-I043-3) | **certified, production_path** (D-I043-3) |
 | I-043 | 4 | **certified** (R-I043-4) | **certified, component** (D-I043-4) |
 | I-043 | 5 | **certified** (R-I043-5) | unavailable: guarded mode off in production |
-| I-047 | 1 | **certified** (R-I047-1) | unavailable: absence (ruling 10) |
+| I-047 | 1 | unavailable: diagnostic only (a call count) | unavailable: absence (ruling 10) |
 | I-047 | 2 | **certified** (R-I047-1) | unavailable: test reaches the live MLB API |
 | I-056 | 1 | unavailable: new API only | unavailable: absence (ruling 10) |
 | I-056 | 2 | **certified** (R-I056-2) | **certified, production_path** (D-I056-2) |
@@ -402,8 +403,8 @@ All runs, accepted or not, are kept under `historical_replay/results-f453283/` a
 | I-063 | 2 | **certified** (R-I063-2) | **certified, component** (D-I063-2) |
 | I-063 | 3 | **certified** (R-I063-3) | unavailable: no recordable witness |
 | I-063 | 4 | **certified** (R-I063-4) | **certified, production_path** (D-I063-4) |
-| I-071 | 1 | **certified** (R-I071-1) | **certified, component** (D-I071-1) |
-| I-071 | 2 | **certified** (R-I071-2) | **certified, component** (D-I071-2) |
+| I-071 | 1 | **certified** (R-I071-1) | unavailable: withdrawn: elapsed-time decision (ruling 13) |
+| I-071 | 2 | **certified** (R-I071-2) | unavailable: withdrawn: elapsed-time decision (ruling 13) |
 | I-072 | 1 | not_applicable: no fix (manual step) | not_applicable: no fix (manual step) |
 | I-072 | 2 | **certified** (R-I072-1) | unavailable: absence (ruling 10) |
 | I-075 | 1 | **certified** (R-I075-1) | **certified, component** (D-I075-1) |
@@ -425,13 +426,13 @@ All runs, accepted or not, are kept under `historical_replay/results-f453283/` a
 <!-- GENERATED:fixture-totals -->
 | Over the 62 link entries | certified | unavailable | not_applicable |
 |---|---|---|---|
-| Historical replay | 29 | 31 | 2 |
-| Current defence | 30 (17 production_path, 13 component) | 30 | 2 |
-| Links: both certified / replay only / defence only / neither | 21 / 8 / 9 / 24 | | |
+| Historical replay | 28 | 32 | 2 |
+| Current defence | 28 (17 production_path, 11 component) | 32 | 2 |
+| Links: both certified / replay only / defence only / neither | 19 / 9 / 9 / 25 | | |
 
-Why a replay is not certified: new API only 13; outside src/ 8; fix adds no test 6; no symptom test in the fix 2; no fix (manual step) 2; the fix's own message only 1; log line only 1.
+Why a replay is not certified: new API only 13; outside src/ 8; fix adds no test 6; no symptom test in the fix 2; no fix (manual step) 2; the fix's own message only 1; diagnostic only (a call count) 1; log line only 1.
 
-Why a defence is not certified: absence (ruling 10) 12; outside src/ 8; no current test 5; fix superseded 2; no fix (manual step) 2; guarded mode off in production 1; test reaches the live MLB API 1; no recordable witness 1.
+Why a defence is not certified: absence (ruling 10) 12; outside src/ 8; no current test 5; fix superseded 2; no fix (manual step) 2; withdrawn: elapsed-time decision (ruling 13) 2; guarded mode off in production 1; test reaches the live MLB API 1; no recordable witness 1.
 
 <!-- /GENERATED:fixture-totals -->
 
@@ -442,24 +443,29 @@ Reading the "not certified" reasons:
 - **Fix superseded:**
   - I-017's `shadow_mode` gate was renamed and then folded into `pick_delivery`;
   - I-061 link 3's past-noon WARN was deliberately reversed by 56f9726 (I-063 link 4), so its replay is history only and its current contract is the reverse.
-- **Guarded mode off in production (I-043 link 5):** the strict-mode guard the fix added is not on the production path. The production protection is the fail-closed branch, a candidate for a later spec.
+- **Guarded mode off in production (I-043 link 5):** the strict-mode guard the fix added is not on the production path. The withdrawn strict-mode spec did not exercise production's fail-closed lock decision. A faithful coarse-status-fallback restoration with a positive wrong-lock return is a candidate; it has not been certified.
+- **Diagnostic only (I-047 link 1):** the fix's only test replaces the watchdog helper with `nullcontext()` and counts its construction. It observes no heartbeat or watchdog output, so it is a call count (design §9.2).
+- **Withdrawn: elapsed-time decision (I-071 links 1 and 2):** `check_pick_entered` subtracts real `time.monotonic()` elapsed time from its countdown and suppresses the DM at the cutoff. The killing closures fix only the wall clock, so the boundary decision changes with elapsed time, which adopted ruling 13 excludes. Their accepted runs are kept; recertification needs a reviewed fixed-elapsed fixture closure and fresh runs.
 - **Test reaches the live MLB API (I-047 link 2):** under the mutant the killing test makes an unmocked statsapi request and starts a real watchdog thread, so it was not run.
 - **No recordable witness (I-063 link 3):** the only killing test asserts a computed date with no recordable boundary or return between the branch and the assertion.
 
 Run-level notes the results review should check (each recorded in its entry's `reason`):
 - **D-I056-3 and I-0830-d** certify a health check RETURNING `[]` where green returns the alert. I read that as a wrong returned value under ruling 10's text, not an absence at a dispatch boundary.
-- **D-I071-1** was narrowed after one rejected run. In revision 1 the skip-day node's DM could not be classified: the boundary's code was shared by two live closures, which the observer refuses by design. Revision 1 is kept.
+- **D-I071-1** was first narrowed after a rejected run: in revision 1 the skip-day node's DM could not be classified, because the boundary's code was shared by two live closures, which the observer refuses by design. Revision 2 was accepted. After the results review, both I-071 defences were withdrawn for the elapsed-time dependence above. All three runs are kept.
+- **R-I047-1** was narrowed to link 2 after the results review. The narrowed run is accepted: at the parent an existing shadow pick is predicted again. It witnesses the no-repeat dispatch decision, not the training cost. Revision 1 is kept.
 - **D-I075-1 and R-I075-1:** the killing test anchors to the real date by design. The decision depends on the wall-clock date, not on elapsed time.
 - **Witness contrast.** Four certificates' bad categories also occur on the correct path: D-I043-2, D-I043-4, D-I075-3 and D-I075-4. Their wrongness rests on the link to the mutant's marker line, which executes only on the defective path.
 - **D-I043-1 and D-I043-4** delete the same code block, entered by two production paths, so their certificates are not independent.
-- **D-I043-3** is partial (the cap clause only).
+- **Partial certificates:**
+  - D-I043-3 and R-I043-3 cover the cap clause of I-043 link 3 only;
+  - D-I063-2 covers the two-or-more-pick refusal of I-063 link 2 only. The silent one-pick discard and the no-source-date branch are not certified.
 - **D-I011-1** removes both already-resolved checks at once.
 
 ### 8.2 The final strict mutation sweep of the tooling
 SWEEP_SECTION_PENDING
 
 ### 8.3 Expected-failure, characterization and config fixtures
-Each is bound to `expected_failures_runs/acceptance-f453283.json` (sha256 in the record): the marked and `--runxfail` pair, run over one frozen closure at the pin, 22 strict XFAIL nodes accepted. The publication check confirms the pair's closure is byte-identical between the pin and the build head: `src/`, `tests/`, `scripts/`, `pyproject.toml`, `uv.lock` and the registry. The validator refuses a node the pair did not accept, a control that did not pass, or an exception other than the registered `module.qualname`.
+Each expected-failure and characterization entry is bound to `expected_failures_runs/acceptance-f453283.json` (sha256 in the record): the marked and `--runxfail` pair, run over one frozen closure at the pin, with 22 strict XFAIL nodes accepted. I-086's config node passed at the pin in `current_defence/results-f453283/D-I071-2/green.events.jsonl`; it is not part of that pair. The publication check confirms the pair's closure is byte-identical between the pin and the build head: `src/`, `tests/`, `scripts/`, `pyproject.toml`, `uv.lock` and the registry. The validator refuses a node the pair did not accept, a control that did not pass, or an exception other than the registered `module.qualname`.
 <!-- GENERATED:expected -->
 | Record | Kind | Nodes | Exception | Controls |
 |---|---|---|---|---|
@@ -484,7 +490,10 @@ Each is bound to `expected_failures_runs/acceptance-f453283.json` (sha256 in the
 - **I-029:** the incident's own regression test pre-saves the expected streak, so it does not kill the guard's removal; only the direct replay test does.
 - **I-032 link 1, I-034, I-035, I-040 link 2:** absence. No test asserts the heartbeat-watchdog wrap in `run_single_check` or the fallback refresh. I-034's only guard is a static scan. Deleting I-035's final idle call likely passes the suite (reasoned).
 - **I-040 link 1:** no test calls `predict()` or `_build_feature_lookups`.
-- **I-043 link 3's main clause** (a schedule-detailed postponement while the live feed still says Preview): with the overlay removed, its only test HANGS (real 900 s sleeps, no pytest timeout). This is a test hazard as well.
+- **I-043 link 3's main clause** (a schedule-detailed postponement while the live feed still says Preview): with the overlay removed, its only test HANGS (real 900 s sleeps, no pytest timeout). This is a test hazard as well. Both R-I043-3 and D-I043-3 cover only the cap clause.
+- **I-047 link 1:** the historical test counts watchdog-helper construction with a null context; it does not establish heartbeat or watchdog output. Link 1 lacks a certified replay and a current defence. Link 2's replay checks the no-repeat prediction dispatch decision, not the actual training cost.
+- **I-063 link 2:** D-I063-2 covers the two-or-more-pick refusal only; the one-pick discard and the no-source-date branch remain uncovered.
+- **I-071 links 1 and 2:** the current entry-check killing closures leave monotonic elapsed time unfixed, so their DM suppression and countdown decisions are outside ruling 13. The recorded semantic regressions remain evidence, but the current certificates are unavailable at this pin.
 - **I-113:** no test writes `mdp_policy.npz` through `sync_to_r2`. The queued tail-artifact fix's test could also assert the base policy in the returned manifest, giving this link a return-kind defence.
 
 ### 9.2 Hazards (for Eric)
@@ -522,9 +531,10 @@ Phase 1 Task 8 decisions (mine, each recorded in `task8/corrections.json` or the
   - I-052 link 2: `67543ca` lacks a3df746, which the record's own ev4 had placed in `a1dea18`.
 
   The build now checks this for all 166 cited installs and fails on any miss. If a correction is wrong, an install time is late by about 4 h (I-056 link 1), 21 h (I-056 link 3) or 22 h (I-052 link 2). No fixture depends on them.
-- **I-061 link 3 is `not_applicable` for current defence,** because its contract was deliberately reversed. If wrong, one link is reported superseded instead of uncovered.
+- **I-061 link 3 is unavailable (fix superseded) for current defence,** because its past-noon WARN contract was deliberately reversed by 56f9726. Its replay remains historical evidence.
 - **The empty-alert-list witnesses (D-I056-3, I-0830-d) count as wrong returned values.** If wrong, two certificates become absences, and two links lose their defence.
 - **I-114's and I-115's route fields are filled from their own evidence** (they were split from I-059 with empty fields). If wrong, two reconciliation cells move.
+- **After the results review, two defences are withdrawn and one replay link dropped** (§12). If the withdrawals are too strict, the register under-reports two defended links and one replayed link. Their runs are kept, so either can be reinstated from a fixed-elapsed rerun or a new symptom node.
 
 ## 11. Known limits
 At the freeze (ruling 14):
@@ -536,13 +546,31 @@ At the freeze (ruling 14):
 - **F1–F5** were fixed after the last full review round. They are covered by the regressions and the final sweep, not by another Codex round.
 
 In the results:
-- **The observer refuses a boundary whose code is shared by two live functions.** A second test in one run that rebuilds the same fake can lose its witness, as with D-I071-1. This fails closed and costs coverage, never a false certificate.
+- **The observer refuses a boundary whose code is shared by two live functions.** A second test in one run that rebuilds the same fake can lose its witness, as with D-I071-1's first revision. This fails closed and costs coverage, never a false certificate.
 - **A certificate defends one decision point** with the declared tests. It does not say the whole incident cannot recur.
 - **Current-defence certificates are at the pin `f453283`.** A later code change needs new runs.
 - **Replays use F's tests on P's `src/`** (a semantic regression replay). The defective deployed closure itself was not rebuilt (design §9.2).
 - **R3 (issues and PRs) was not swept.**
 
-## 12. Reproduce
+## 12. Results review, round 1 (answered)
+The review was a fresh Codex session at `0b7f681`. Its report is archived at `docs/audit/2026-09-29-incident-register-codex-results-r1.md`, and its probes are under `.codex-review/2026-09-29-incident-register/r8-probes/results/`. Its verdicts: (a) the register, BLOCK; (b) the memo, BLOCK. All 58 certificates were mechanically sound; 55 held at their stated decision-point scope.
+
+| Finding | Answer |
+|---|---|
+| B1: R-I047-1's link-1 symptom is a call count (diagnostic_only) | link 1 is unavailable (replay manifest); R-I047-1 narrowed to link 2 and re-run at the frozen tooling: accepted, reviewed accept; revision 1 kept |
+| B2: D-I071-1 and D-I071-2 depend on elapsed time (ruling 13) | both withdrawn (`task8/corrections.json` `withdrawn`); their runs kept; §9.1 records the gap |
+| B3: I-056's inherited log-bound note contradicted the corrected installs | replaced verbatim with the review's retained-log bounds, checked against `deploy_runs.json` (`replace_notes`) |
+| B4: §8.3 bound the config fixture to the pair | sentence replaced verbatim |
+| B5: §10 and the Task 8 note gave I-061 link 3 the wrong status | both say unavailable (fix superseded) |
+| S1: I-043 link 5 candidate | reason extended; not certified |
+| S2: I-084 link 1 candidate | reason and the plan-named row extended; not certified |
+| S3: partial qualifiers | R-I043-3 and D-I063-2 reasons; §8.1 and §9.1 |
+| S4: "no current test at all" | replaced verbatim |
+| NOTE: §9.9 cross-reference; the negatives were split between readers | fixed |
+
+My own review should have caught B1 and B2. The B1 symptom is a mock-call count, which design §9.2 classifies as diagnostic only; I accepted it as "structural". For B2, the drafter flagged the elapsed-time dependence and I accepted it as "fails closed", which no ruling allows.
+
+## 13. Reproduce
 ```bash
 # the register and its publication validation (repo root of the branch)
 UV_CACHE_DIR=/tmp/uv-cache uv run --with jsonschema==4.23.0 python docs/audit/2026-09-29-incident-register-evidence/task8/build_register.py

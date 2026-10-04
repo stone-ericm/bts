@@ -3,8 +3,8 @@ Creating virtual environment at: .venv
 Resolved 81 packages in 4ms
    Building bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1
       Built bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I047-1
-Prepared 1 package in 208ms
-Installed 79 packages in 497ms
+Prepared 1 package in 310ms
+Installed 79 packages in 2.43s
  + annotated-types==0.7.0
  + anyio==4.13.0
  + atproto==0.0.65
