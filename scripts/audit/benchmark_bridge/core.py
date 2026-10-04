@@ -135,6 +135,14 @@ def date_block_bootstrap(df: pd.DataFrame, stat: Callable[[pd.DataFrame], float]
     return float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))
 
 
+def capture_files(directory) -> list:
+    """Every static capture in ``directory``, plain ``.json`` and gzipped ``.json.gz`` alike, in stamp order. The
+    capture writer switched to gzip on 2026-07-10, so a plain-only glob silently drops every later capture."""
+    from pathlib import Path
+    d = Path(directory)
+    return sorted([*d.glob("*.json"), *d.glob("*.json.gz")], key=lambda p: p.name)
+
+
 def slim_feed(feed: dict | None) -> dict | None:
     """The archived feed reduced to ``gameData`` without its ``players`` map: every field the bridge reads (teams,
     weather, officials, venue, datetime, status) and none of ``liveData``. A full v1.1 feed costs about 4 MB in

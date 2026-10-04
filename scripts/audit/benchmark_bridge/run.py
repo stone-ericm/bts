@@ -97,10 +97,11 @@ def decision_primary(dec: dict | None) -> dict | None:
 
 
 def unit_status_by_game(data: Path) -> tuple[dict, dict]:
+    from scripts.audit.benchmark_bridge import core
     from scripts.audit.season_ledger.sources.static import parse_units
     hist: dict[int, list[tuple]] = {}
     vocab: dict[str, int] = {}
-    for f in sorted((data / "leaderboard" / "static_snapshots" / "units").glob("*.json")):
+    for f in core.capture_files(data / "leaderboard" / "static_snapshots" / "units"):
         parsed = parse_units(f"units/{f.name}", f.read_bytes())
         for r in parsed.rows:
             if r["feed_id"] is None:

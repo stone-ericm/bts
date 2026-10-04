@@ -280,3 +280,13 @@ def test_the_opener_check_runs_once_per_pitcher_per_date_across_scorings(monkeyp
     core.score_c("2026-07-02", slots, hist, {"_model": "m"}, prepared=prepared)
     core.score_c("2026-07-02", slots, hist, {"_model": "m"}, prepared=prepared)
     assert sorted(calls) == [8, 9]
+
+
+def test_capture_files_lists_plain_and_gzipped_captures_in_stamp_order(tmp_path):
+    import gzip
+    (tmp_path / "20260709T120000Z.json").write_text('{"units": []}')
+    (tmp_path / "20260710T160001Z.json.gz").write_bytes(gzip.compress(b'{"units": []}'))
+    (tmp_path / "20260710T153000Z.json").write_text('{"units": []}')
+    (tmp_path / "notes.txt").write_text("x")
+    names = [p.name for p in core.capture_files(tmp_path)]
+    assert names == ["20260709T120000Z.json", "20260710T153000Z.json", "20260710T160001Z.json.gz"]
