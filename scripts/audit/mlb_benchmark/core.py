@@ -1,40 +1,61 @@
-"""W2.3 MLB forecast benchmark, pure core: the as-of join of MLB's probabilityStarter to our served slate."""
+"""W2.3 MLB forecast benchmark, pure core: the as-of join of MLB's probabilityStarter to our served slate
+(design docs/superpowers/specs/2026-10-04-mlb-forecast-benchmark-design.md rev 2, gate 1)."""
 from __future__ import annotations
 
 import pandas as pd
 
 
+def latest_sheet(captures: list[tuple], round_dates: dict, date: str, cutoff: pd.Timestamp):
+    """The single latest stored whole sheet at or before ``cutoff`` that lists a round dated ``date``.
+
+    A stored newer sheet is a full new observation, so players absent from it are absent; earlier sheets are never
+    unioned in. Returns ``(stamp, rows for that date's round)`` or ``(None, [])``. The stamp is the capture run's
+    start time, not a per-feed receipt time (timing uncertain)."""
+    best = None
+    for stamp, rows in captures:
+        if pd.Timestamp(stamp) > cutoff:
+            continue
+        dated = [r for r in rows if round_dates.get(r.get("roundId")) == date]
+        if dated and (best is None or pd.Timestamp(stamp) > pd.Timestamp(best[0])):
+            best = (stamp, dated)
+    return best if best is not None else (None, [])
+
+
 def forecasts_asof(captures: list[tuple], round_dates: dict, players: dict, date: str, cutoff: pd.Timestamp) -> dict:
-    """batter_id → {p, n_sel, captured_at, round_id} from the latest capture at or before ``cutoff`` listing a round
-    dated ``date`` (design gate i). Captures are content-deduped, so a player absent from a later capture keeps the
-    value of the last earlier capture listing them; tomorrow's round never supplies today's forecast."""
+    """batter_id → {p, n_sel, captured_at, round_id} from ``latest_sheet`` only."""
+    stamp, rows = latest_sheet(captures, round_dates, date, cutoff)
     out: dict = {}
-    for captured_at, rows in sorted(captures, key=lambda c: pd.Timestamp(c[0])):
-        if pd.Timestamp(captured_at) > cutoff:
-            break
-        for r in rows:
-            if round_dates.get(r.get("roundId")) != date:
-                continue
-            bid = players.get(r.get("playerId"))
-            if bid is None or r.get("probabilityStarter") is None:
-                continue
-            out[int(bid)] = {"p": float(r["probabilityStarter"]), "n_sel": r.get("numberSelections"),
-                             "captured_at": captured_at, "round_id": r.get("roundId")}
-    return out
+    for r in rows:
+        bid = players.get(r.get("playerId"))
+        if bid is None or r.get("probabilityStarter") is None:
+            continue
+        if int(bid) in out:                       # one player listed twice in one sheet: conflicting, excluded
+            out[int(bid)] = None
+            continue
+        out[int(bid)] = {"p": float(r["probabilityStarter"]), "n_sel": r.get("numberSelections"),
+                         "captured_at": stamp, "round_id": r.get("roundId")}
+    return {k: v for k, v in out.items() if v is not None}
 
 
-def join_to_slate(slate: pd.DataFrame, fc: dict) -> tuple[pd.DataFrame, dict]:
-    """Attach mlb_p to the slate rows by batter; a batter with more than one slate row that day (a doubleheader) is
-    ambiguous and stays unmatched. Coverage is reported both ways."""
-    counts = slate["batter_id"].value_counts()
-    dh = set(counts[counts > 1].index)
+def join_to_slate(slate: pd.DataFrame, fc: dict, team_games: dict) -> tuple[pd.DataFrame, dict]:
+    """Attach mlb_p to slate rows. A forecast row has no unit, so its game is linked only by inference: the batter's
+    slate team must have exactly one game that date in the independent schedule (``team_games``: team → set of
+    game_pks), and the slate row must be that game. Anything else stays unmatched and is counted. The link is
+    labelled ``inferred_unique_game``, never witnessed."""
     joined = slate.copy()
-    joined["mlb_p"] = [fc[b]["p"] if (b in fc and b not in dh) else float("nan") for b in joined["batter_id"]]
-    joined["mlb_captured_at"] = [fc[b]["captured_at"] if (b in fc and b not in dh) else None for b in joined["batter_id"]]
-    slate_ids = set(slate["batter_id"])
+    status, mlb_p, stamps = [], [], []
+    for b, team, g in zip(joined["batter_id"], joined["team"], joined["game_pk"]):
+        games = team_games.get(team, set())
+        if b not in fc:
+            status.append("not_listed"); mlb_p.append(float("nan")); stamps.append(None)
+        elif len(games) != 1:
+            status.append("multi_or_no_game"); mlb_p.append(float("nan")); stamps.append(None)
+        elif int(g) not in games:
+            status.append("game_mismatch"); mlb_p.append(float("nan")); stamps.append(None)
+        else:
+            status.append("inferred_unique_game"); mlb_p.append(fc[b]["p"]); stamps.append(fc[b]["captured_at"])
+    joined["link_status"], joined["mlb_p"], joined["mlb_captured_at"] = status, mlb_p, stamps
     cov = {"slate_rows": int(len(slate)), "mlb_listed": len(fc),
-           "matched_unique": int(joined["mlb_p"].notna().sum()),
-           "ambiguous_doubleheader": len(dh & set(fc)),
-           "mlb_not_in_slate": len(set(fc) - slate_ids),
-           "slate_not_listed": len(slate_ids - set(fc))}
+           **{k: int(v) for k, v in joined["link_status"].value_counts().items()},
+           "mlb_not_in_slate": len(set(fc) - set(slate["batter_id"]))}
     return joined, cov

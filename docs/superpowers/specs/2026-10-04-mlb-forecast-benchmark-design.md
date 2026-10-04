@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-04.
 **Plan:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md`, W2 product 3 (gates i–vi) and W4 rank 1.
-**Status:** draft for Codex review (analysis deliverable: at most two rounds, then freeze with the limits stated).
+**Status:** rev 2: Codex design r1 BLOCK (`docs/audit/2026-10-04-w2-designs-codex-r1.md`) with its verbatim edits A-E1–A-E6 applied by script; round 2 is the last.
 
 ## 1. Question
 Does MLB's own "% chance to hit" (`probabilityStarter`, published in the BTS app's `most_selected_players` sheet) carry information about the outcome beyond our served probability, on the same candidates? The answer is descriptive. The plan forbids a blend or gate search on this window: at most one combination rule is nominated afterwards as W4 rank 1, to be validated on later untouched dates (2027).
@@ -16,18 +16,14 @@ Does MLB's own "% chance to hit" (`probabilityStarter`, published in the BTS app
 - **Outcomes:** the W1.2 definition (§4) — baseball-event hit / no_hit / no_pa / unknown, resumed portion excluded, no_pa only from a complete source.
 
 ## 3. Gates (the plan's i–vi)
-1. **As-of join.**
-   - Key: `(date, batter_id, game_pk, captured_at, probabilityStarter)`.
-   - For each slate, use the last capture at or before the slate's `written_at`.
-   - `roundId` fixes the date, so today's and tomorrow's rounds are never conflated.
-   - A batter with two games that day (a doubleheader) maps through the unit (`feedId` = game). If the unit is unresolved, the row is ambiguous and excluded, and counted.
-   - Rows MLB lists that are not in our slate, and slate rows MLB does not list, are coverage, reported both ways.
-2. **Target semantics.** No published definition exists; the FAQ says only "our unique prediction model". Two targets are compared by calibration on shared rows:
-   - **T1:** P(hit) unconditionally, with no_pa counted as no hit;
-   - **T2:** P(hit | at least one PA), excluding no_pa.
+1. **Identity and as-of join.** Retain round_id, player_id, unit_id when evidenced, batter_id, game_pk, observation stamp, raw source/hash/locator and linkage status. Forecast rows as currently inventoried lack unitId. Before outcomes, freeze the exact raw-field rule that binds a forecast's player and round to a game; the ledger's slot matcher does not supply this missing edge. Reject conflicting round/date or player/feed mappings, missing links and multiply linked games. If only a complete unique-game relationship can be inferred, publish it in a separately labelled inferred-link diagnostic; do not infer uniqueness from our reduced slate, filter away a second scheduled game, duplicate the forecast across games or choose using participation/results. Resolve independently deduped lookup sheets at the declared observation boundary, retaining raw fields needed beyond the ledger parsers; do not silently use later current-team lookups.
 
-   Both are reported. If neither fits clearly better (the date-block bootstrap interval of the calibration-in-the-large difference contains 0), the read is **association only**, not a certified forecaster. Our served p targets T2-like game probabilities, which is a stated asymmetry.
-3. **Freshness.** Report the distribution of each forecast's age at the slate's `written_at`. Captures are content-deduped, so an unchanged sheet leaves no capture, and age is an upper bound. No fetch log is retained; stated.
+   Select one latest qualifying whole-sheet capture at or before the slate's written_at and use only that sheet's rows for the relevant round. Do not resurrect a player missing from a newer changed sheet by unioning old listings. Content deduplication carries the last whole sheet when there is no new stored sheet; it does not carry deleted rows through a stored replacement. Static snapshot filenames are shared run-start stamps, not per-feed receive times. Use existing receipt witnesses where available; otherwise label boundary timing uncertain and the join reconstructed. written_at is the daily slate's last write, not a verified prediction or lock timestamp. Preserve the frozen bridge's selection-consistent, inconsistent and research-only strata and its verified-eligibility versus surrogate/all-row tables. Unwitnessed game linkage, cutoff availability or eligibility cannot be relabelled verified by this join. Report MLB-only and slate-only rows, dates with no qualifying capture, conflicts and all exclusions before scoring. Missing support is an acceptable limit and does not require new acquisition.
+
+2. **Target semantics remain unresolved unless independent documentation or archival evidence defines what probabilityStarter conditions on, including starting, a PA or an AB.** Compare two declared evaluation sensitivities: T1 counts known no_pa as no hit; T2 uses known hit/no_hit rows and excludes no_pa. Unknown sources are excluded and counted in both. Report both populations and scores without selecting a target by its observed fit. Differences in calibration-in-the-large do not identify semantics or certify a forecaster. Our served p is evaluated on the same T2 population without asserting that its mathematical target has been proved to be P(hit | PA). In the absence of independent target evidence, every result is association/target sensitivity only; W4 rank 1's target/availability kill condition remains open.
+
+3. **Observation recency.** Report the interval from the stored sheet's run-start stamp to written_at, separately stating receipt-time uncertainty and, where reconstructable, how long each row's probability has been observed unchanged. These are observation measures, not bounds on model-generation age. A changed popularity count can store a new sheet without refreshing a forecast. Content-dedup gaps with no retained fetch history cannot distinguish unchanged successful fetches, failures or unobserved intervening changes. No missing gap is assumed fresh, and no forecast-generation-age bound is claimed.
+
 4. **`numberSelections`** is global popularity. It is reported descriptively and never used as a weight or a forecast.
 5. **Scoring on identical shared candidates, date-weighted.** For MLB p and our served p on the same rows:
    - Brier, log loss and calibration-in-the-large, by target T1 and T2;
@@ -36,16 +32,15 @@ Does MLB's own "% chance to hit" (`probabilityStarter`, published in the BTS app
    - **disagreement-only outcomes:** dates where the two argmaxes differ, with each side's hit rate;
    - coverage and denominators.
    - Intervals: whole-date bootstrap, 10,000 resamples, fixed seed (as W1.2 §6).
-6. **Residual information, descriptive.** A single logistic regression of the outcome (T2 rows) on `logit(p_ours)` and `logit(p_MLB)`, i.e. a forecast-encompassing check. Report the MLB coefficient with a date-block bootstrap interval, plus the in-sample log-loss change.
-   - No model selection, no weights fitted for use, no gate.
-   - The combination rule for W4 rank 1 is chosen afterwards from the literature (W3 §5: beta-transformed or logit pool), not from these numbers.
+
+   Freeze a common identity-resolved candidate pool with valid finite probabilities in [0,1] in both arms and the same declared eligibility/provenance stratum before outcome inspection. Invalid scores are excluded and counted, not repaired by scaling. Rank both arms on that pool before labels, breaking exact ties by archived slate row order. Never replace no_pa or unknown winners. T1 proper scores use known hit/no_hit/no_pa rows; T2 uses identical known hit/no_hit rows in both arms. For each target, proper scores and mean stated-minus-realized residual are equal-date means of within-date row means, overriding the bridge's row-weighted proper-score aggregation. AUC is the equal-date mean of tie-aware within-date AUCs, with single-class dates omitted and counted.
+
+   Top-1 rates and paired differences use the identical dates on which both previously chosen winners have target-known labels. Disagreement dates are defined by differing chosen (batter_id, game_pk), and their paired rates use the same common-known-date rule. Report native coverage and each side's unilateral no_pa/unknown exclusions separately. Bootstrap whole dates jointly for both arms, 10,000 draws at seed 20261004, reporting 95% percentile intervals and effective dates. Each drawn copy of a date is a separate block when computing equal-date means; do not collapse repeated copies by original date. Empty/undefined statistics and failed draws are reported as unavailable with counts. Intervals condition on archived support and exchangeable dates, excluding cross-date dependence, selection bias and historical-availability uncertainty.
+
+6. **Residual information, descriptive.** On the frozen T2 paired population, compare an intercept-plus-logit(p_ours) logistic fit with one intercept-plus-logit(p_ours)-plus-logit(p_MLB) fit, using equal-date weights, no interactions and no model selection. Clip valid probabilities only for logarithms to [1e-15, 1−1e-15], documenting boundary counts. Use unpenalized MLE; nonidentifiability, separation or nonconvergence makes the affected coefficient/interval unavailable rather than triggering an adaptive penalty or alternative model. Report the MLB coefficient and the in-sample log-loss change against the ours-only recalibration fit. Refit both models in each joint date-bootstrap draw, preserving date-copy weights and reporting failed draws; do not publish a nominal interval by silently dropping failed fits. This check estimates an in-sample conditional association, supplies no deployed weights and establishes no prospective gain or promotion gate. Any later literature-based single combination rule requires its own frozen registration and untouched 2027 validation, conditional on independently resolved target and availability.
 
 ## 4. Exposure
-A new exposure-register row, **X-23**, is predeclared and pushed before any outcome-bearing execution. It covers:
-- the candidate-level outcomes of the shared rows, for exactly the §3 metrics;
-- descriptive use only.
-
-The slate candidates' outcomes are also registered under X-21 (W1.2), but comparing them with MLB forecasts is a new read. Under D3 = RESERVE, no candidate is tested on 2026. W4 rank 1 validates on 2027.
+Before any outcome-bearing inspection or execution, including outcome preparation, joins, metric computation, fitting and bootstrap refitting, verify that X-23 is published with the frozen code/design, hashed input manifest, exact dates/candidate populations, identity/timing/eligibility strata, both target sensitivities and all §3 outputs. X-23 discloses X-21's candidate-outcome overlap, applicable X-01/X-09 production exposure and the X-12 research-only stratum. It explicitly records this bounded W2.3 descriptive read under D3 and reconciles the register's older restriction on unread late-season windows. X-21 is not blanket permission for this new comparison. No 2026 candidate is tested; any resulting W4 idea needs its own registration and prospective 2027 validation.
 
 ## 5. Build and run
 - **Code:** `scripts/audit/mlb_benchmark/`, written test-first. It reuses `scripts/audit/benchmark_bridge/core.py` (selection consistency, eligibility, outcomes, AUC, bootstrap) and the ledger's static parsers.
@@ -55,7 +50,7 @@ The slate candidates' outcomes are also registered under X-21 (W1.2), but compar
 ## 6. Limits stated up front
 - Only the most-selected players have MLB forecasts, a popularity-selected subset.
 - The window is 7/04–9/27.
-- Forecast age is an upper bound.
+- Observation recency is not forecast-generation age (§3 gate 3).
 - The target semantics may be unresolvable.
 - Shared-set top-1 is not the production decision.
 - The encompassing check is in-sample and descriptive.
