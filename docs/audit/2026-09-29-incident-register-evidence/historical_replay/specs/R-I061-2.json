@@ -1,0 +1,51 @@
+{
+  "label": "R-I061-2",
+  "incident": "I-061",
+  "links": [
+    3
+  ],
+  "fix_set": [
+    "4f13eb3"
+  ],
+  "tests": [
+    "tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical",
+    "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn",
+    "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn",
+      "assertion": {
+        "path": "tests/health/test_contest_state.py",
+        "text": "assert warns, alerts"
+      }
+    }
+  ],
+  "audit": {
+    "scripts/cron-setup-hetzner.sh": {
+      "decision": "irrelevant",
+      "reason": "adds the check-pick-entered cron line (link 2's job); a cron script the selected tests never load"
+    },
+    "tests/health/test_contest_state.py": {
+      "decision": "neutral",
+      "reason": "4f13eb3 pins now= (02:00 ET) in the overnight-lag test, adds the past-noon WARN test and widens the off-day test to accept INFO or WARN; the module imports SOURCE and check, both at the parent 1ba01c4, whose check already accepts expected= and now="
+    },
+    "tests/test_cli_integration.py": {
+      "decision": "irrelevant",
+      "reason": "adds TestCheckPickEntered for the check-pick-entered command 4f13eb3 introduces (link 2, unavailable: the command does not exist at the parent); not selected for link 3, never loaded"
+    },
+    "tests/test_contest_fetch.py": {
+      "decision": "irrelevant",
+      "reason": "adds TestHasPredictionFor for has_prediction_for, which 4f13eb3 adds (link 2; ImportError at the parent); not selected, never loaded"
+    }
+  },
+  "deployed_ref": {
+    "sha": "83a5cad",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptom: at the parent 1ba01c4, contest_state health treats a one-settled-pick gap as INFO at any time of day; test_gap1_persisting_past_noon_et_escalates_to_warn checks at 2026-06-08 19:00Z (15:00 ET) with source_date 06-06 and picks resolved 06-06 and 06-07 (gap 1), gets only the INFO alert, so warns is empty and line 117 fails ('assert warns, alerts'). The comprehension also requires 'persist' in the message (wording 4f13eb3 introduced), but the parent emits no WARN at all here, so the failure is the alert level (the link's consequence), not only the wording. Static checks: the module imports SOURCE and check at 1ba01c4; check accepts expected= and now=; the test reads only alert level/source/message. Anchor unique at 4f13eb3 (line 117). The other two selected nodes (pinned to 02:00 ET; the off-day one accepts INFO) pass at the parent. Only the health half of 4f13eb3 is selected: its check-pick-entered and has_prediction_for tests belong to link 2."
+}

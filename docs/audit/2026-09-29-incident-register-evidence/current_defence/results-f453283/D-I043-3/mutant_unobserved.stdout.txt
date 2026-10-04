@@ -1,0 +1,45 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_scheduler.py F                                                [100%]
+
+=================================== FAILURES ===================================
+_ TestPollResults.test_run_result_polling_cap_does_not_overwrite_resolved_result _
+
+self = <tests.test_scheduler.TestPollResults object at 0x10716b6b0>
+mock_now = <MagicMock name='_now_et' id='4488910400'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8023/test_run_result_polling_cap_do0')
+
+    @patch("bts.scheduler._now_et")
+    def test_run_result_polling_cap_does_not_overwrite_resolved_result(
+        self, mock_now, tmp_path,
+    ):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from bts.picks import load_pick, save_pick
+        from bts.scheduler import run_result_polling
+    
+        daily = _daily_pick(100)
+        daily.result = "hit"
+        daily.slot_results = {"pick": "hit"}
+        save_pick(daily, tmp_path)
+        mock_now.return_value = datetime(2026, 4, 4, 5, 1, tzinfo=ZoneInfo("America/New_York"))
+    
+        status = run_result_polling(100, "2026-04-04", tmp_path)
+    
+>       assert status == "final"
+E       AssertionError: assert 'unresolved' == 'final'
+E         
+E         - final
+E         + unresolved
+
+tests/test_scheduler.py:1053: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Result polling capped at 5am ET. Flagging as unresolved.
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result
+============================== 1 failed in 0.87s ===============================

@@ -1,0 +1,72 @@
+{
+ "label": "D-I075-5",
+ "link": "I-075 link 5",
+ "tests": [
+  "tests/health/test_predicted_vs_realized.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/predicted_vs_realized.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/predicted_vs_realized.py",
+   "            if outcome in (\"hit\", \"miss\"):\n                slots.append((float(predicted), 1 if outcome == \"hit\" else 0))\n",
+   "            if outcome in (\"hit\", \"miss\"):\n                pass  # W1.5 mutant: pre-230f65c \u2014 the slot's p is graded against the DAY-level result, not its own outcome\n                slots.append((float(predicted), 1 if result == \"hit\" else 0))\n"
+  ],
+  [
+   "src/bts/health/predicted_vs_realized.py",
+   "        _grade(\"pick\", data.get(\"pick\") or {})\n        _grade(\"double_down\", dd)\n",
+   "        _grade(\"pick\", data.get(\"pick\") or {})\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/predicted_vs_realized.py",
+  "text": "W1.5 mutant: pre-230f65c \u2014 the slot's p is graded against the DAY-level result, not its own outcome"
+ },
+ "entry": {
+  "path": "src/bts/health/predicted_vs_realized.py",
+  "qualname": "compute_metrics"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/predicted_vs_realized.py",
+   "qualname": "compute_metrics.<locals>.gap_over",
+   "classify": [
+    [
+     "primary_vs_day_result",
+     "^0\\.78$"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/predicted_vs_realized.py",
+  "qualname": "compute_metrics.<locals>.gap_over",
+  "category": "primary_vs_day_result"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_grades_each_slot_against_its_own_p",
+   "assertion": {
+    "path": "tests/health/test_predicted_vs_realized.py",
+    "text": "assert abs(m.rolling_14d_gap - expected) < 1e-9",
+    "line": 104
+   }
+  }
+ ],
+ "contract": {
+  "text": "On a double-down day each graded slot is scored against its own outcome: the primary's p is never compared with the day-level (both-legs) result.",
+  "entry_mode": "direct call of compute_metrics",
+  "trigger": "a DD day with slot_results primary hit / DD miss (day result miss)",
+  "symptom_kind": "wrong value (window gap 0.78 = primary p 0.78 against the day-level miss, instead of the per-slot 0.26)"
+ },
+ "level": "production_path",
+ "level_justification": "nothing is replaced: the check reads pick files written to a temporary directory, with the processed day passed explicitly",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

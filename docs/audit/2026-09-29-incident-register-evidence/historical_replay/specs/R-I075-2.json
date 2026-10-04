@@ -1,0 +1,61 @@
+{
+  "label": "R-I075-2",
+  "incident": "I-075",
+  "links": [
+    4
+  ],
+  "fix_set": [
+    "ec242da"
+  ],
+  "tests": [
+    "tests/health/test_restart_spike.py::TestRestartSpike::test_checkpoint_anchored_within_a_day",
+    "tests/health/test_restart_spike.py::TestRestartSpike::test_same_day_creep_accumulates_to_critical",
+    "tests/health/test_restart_spike.py::TestRestartSpike::test_multiday_gap_budgets_planned_restarts",
+    "tests/health/test_restart_spike.py::TestRestartSpike::test_multiday_gap_still_catches_real_loops",
+    "tests/health/test_restart_spike.py::TestRestartSpike::test_legacy_checkpoint_without_day_still_compares",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/health/test_restart_spike.py::TestRestartSpike::test_same_day_creep_accumulates_to_critical",
+      "assertion": {
+        "path": "tests/health/test_restart_spike.py",
+        "text": "assert len(alerts) == 1 and alerts[0].level == \"CRITICAL\"",
+        "line": 71
+      }
+    },
+    {
+      "node": "tests/health/test_restart_spike.py::TestRestartSpike::test_checkpoint_anchored_within_a_day",
+      "assertion": {
+        "path": "tests/health/test_restart_spike.py",
+        "text": "assert cp[\"nrestarts\"] == 52, \"same-day runs must not advance the anchor\""
+      }
+    }
+  ],
+  "audit": {
+    "tests/health/test_alert.py": {
+      "decision": "irrelevant",
+      "reason": "adds TestHealthDmDedup (link 3: per-day DM dedup); not selected and never loaded: every node passes now_et_date=, a keyword ec242da adds to dispatch_dm_for_health_alerts, so at the parent 9551818 they fail with TypeError (new API only, see the manifest's I-075 link 3 entry)"
+    },
+    "tests/health/test_attention.py": {
+      "decision": "irrelevant",
+      "reason": "adds test_with_streak_preserves_incident_key, which builds Alert(incident_key=), a field ec242da adds (TypeError at the parent; link 3, new API only); not selected, never loaded"
+    },
+    "tests/health/test_restart_spike.py": {
+      "decision": "neutral",
+      "reason": "rewrites test_checkpoint_advances_after_run as test_checkpoint_anchored_within_a_day and adds the same-day, new-day, multi-day and legacy-checkpoint tests (link 4); they call check(picks_dir, current_nrestarts=, today=), whose today= keyword already exists at the parent (ignored there), so the parent's src runs them unchanged"
+    },
+    "tests/health/test_runner.py": {
+      "decision": "irrelevant",
+      "reason": "adds test_dispatch_receives_processed_date_for_dedup (round-2 review #5 date keying of link 3's dedup); not selected, never loaded: at the parent it fails by assertion only because run_all_checks cannot pass the new now_et_date keyword (new API in substance)"
+    }
+  },
+  "deployed_ref": {
+    "sha": "230f65c",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptoms (link 4): the parent 9551818's restart_spike.check rewrites the checkpoint on every run (today= is accepted but unused), so same-day runs diff against the previous run. (1) test_same_day_creep_accumulates_to_critical: 52, 53, 54, 55 on one day give deltas of +1 and no alert, so line 71 fails (alerts == [] makes the and short-circuit, no IndexError). (2) test_checkpoint_anchored_within_a_day: after 52 then 53 the checkpoint holds 53, so line 61 fails. Static checks: test_restart_spike imports check and SOURCE (at 9551818; check(picks_dir, current_nrestarts, spike_threshold=3, today=None)). Anchors at ec242da: the line-71 text also occurs at line 96 (test_multiday_gap_still_catches_real_loops), so line 71 is given; the line-61 text is unique. Other restart_spike nodes at the parent: test_new_day_advances_anchor fails with KeyError ('day' is not written by the parent), test_multiday_gap_budgets_planned_restarts fails by assertion (round-2 planned-restart budget, not declared), the other two pass. Narrowed by the verifier (2026-10-03, following the R-I082-1 and R-I023-1 rulings): link 3 (per-day DM dedup) has no assertion symptom, since all TestHealthDmDedup nodes pass now_et_date= (TypeError at the parent), test_with_streak_preserves_incident_key builds Alert(incident_key=) (TypeError) and test_dispatch_receives_processed_date_for_dedup fails by assertion only because the keyword is new. Link 3 has its own unavailable manifest entry, and its ten nodes are dropped from the selection (new API only; they add nothing to link 4, and the runner test would run the whole health suite). Lead's review: dropped test_new_day_advances_anchor from the selection: each fails at the parent only because of a name, field or keyword the fix added (new API), never by assertion, and adds nothing to the replay."
+}

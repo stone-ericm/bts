@@ -1,0 +1,99 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_scheduler.py FF                                               [100%]
+
+=================================== FAILURES ===================================
+_ TestPollResults.test_run_result_polling_voids_primary_and_scores_double_once _
+
+self = <tests.test_scheduler.TestPollResults object at 0x109a2fcb0>
+mock_check = <MagicMock name='check_hit' id='4510423600'>
+mock_statuses = <MagicMock name='get_game_statuses_detailed' id='4531461520'>
+_mock_poll = <MagicMock name='poll_game_result' id='4533422752'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8015/test_run_result_polling_voids_0')
+
+    @patch("bts.scheduler.poll_game_result", return_value="final")
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_run_result_polling_voids_primary_and_scores_double_once(
+        self, mock_check, mock_statuses, _mock_poll, tmp_path,
+    ):
+        from bts.picks import load_pick, load_streak, save_pick, save_streak
+        from bts.scheduler import run_result_polling
+    
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        save_streak(3, tmp_path)
+        mock_statuses.return_value = {
+            100: {"abstract": "F", "detailed": "Postponed"},
+            200: {"abstract": "F", "detailed": "Final"},
+        }
+        mock_check.return_value = True
+    
+        status = run_result_polling(100, "2026-04-04", tmp_path, cap_hour_et=10)
+    
+        assert status == "final"
+        daily = load_pick("2026-04-04", tmp_path)
+        assert daily.result == "hit"
+>       assert daily.slot_results == {"pick": "void", "double_down": "hit"}
+E       AssertionError: assert {'double_down...'pick': 'hit'} == {'double_down...pick': 'void'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'pick': 'hit'} != {'pick': 'void'}
+E         Use -v to get more diff
+
+tests/test_scheduler.py:1005: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [20:05 ET] Games: 200: final, 100: final
+  Result: hit. Streak: 5.
+_ TestPollResults.test_run_result_polling_uses_schedule_void_when_live_feed_preview _
+
+self = <tests.test_scheduler.TestPollResults object at 0x109a2c260>
+mock_check = <MagicMock name='check_hit' id='4533596336'>
+mock_statuses = <MagicMock name='get_game_statuses_detailed' id='4533609744'>
+mock_poll = <MagicMock name='poll_game_result' id='4533603744'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8015/test_run_result_polling_uses_s0')
+
+    @patch("bts.scheduler.poll_game_result")
+    @patch("bts.picks.get_game_statuses_detailed")
+    @patch("bts.picks.check_hit")
+    def test_run_result_polling_uses_schedule_void_when_live_feed_preview(
+        self, mock_check, mock_statuses, mock_poll, tmp_path,
+    ):
+        from bts.picks import load_pick, load_streak, save_pick, save_streak
+        from bts.scheduler import run_result_polling
+    
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        save_streak(3, tmp_path)
+        mock_poll.side_effect = lambda game_pk: "preview" if game_pk == 100 else "final"
+        mock_statuses.return_value = {
+            100: {"abstract": "F", "detailed": "Postponed"},
+            200: {"abstract": "F", "detailed": "Final"},
+        }
+        mock_check.return_value = True
+    
+        status = run_result_polling(100, "2026-04-04", tmp_path, cap_hour_et=10)
+    
+        assert status == "final"
+        daily = load_pick("2026-04-04", tmp_path)
+        assert daily.result == "hit"
+>       assert daily.slot_results == {"pick": "void", "double_down": "hit"}
+E       AssertionError: assert {'double_down...'pick': 'hit'} == {'double_down...pick': 'void'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'pick': 'hit'} != {'pick': 'void'}
+E         Use -v to get more diff
+
+tests/test_scheduler.py:1032: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [20:05 ET] Games: 200: final, 100: final
+  Result: hit. Streak: 5.
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestPollResults::test_run_result_polling_voids_primary_and_scores_double_once
+FAILED tests/test_scheduler.py::TestPollResults::test_run_result_polling_uses_schedule_void_when_live_feed_preview
+============================== 2 failed in 0.85s ===============================

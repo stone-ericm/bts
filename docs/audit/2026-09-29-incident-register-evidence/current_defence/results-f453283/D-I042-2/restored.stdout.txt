@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 32 items
+
+tests/health/test_realized_calibration.py .............................. [ 93%]
+..                                                                       [100%]
+
+============================== 32 passed in 0.85s ==============================

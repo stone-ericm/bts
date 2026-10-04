@@ -1,0 +1,131 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I056-3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+tests/health/test_contest_state.py .FFFFF                                [100%]
+
+=================================== FAILURES ===================================
+_____________________ test_stale_contest_state_is_critical _____________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8014/test_stale_contest_state_is_cr0')
+
+    def test_stale_contest_state_is_critical(tmp_path):
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 0, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-01",
+        }))
+        (tmp_path / "2026-06-05.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_stale_contest_state_is_critical.<locals>.<genexpr> at 0x10b3f2740>)
+
+tests/health/test_contest_state.py:68: AssertionError
+_________________ test_expected_overnight_lag_is_not_critical __________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8014/test_expected_overnight_lag_is0')
+
+    def test_expected_overnight_lag_is_not_critical(tmp_path):
+        """End-of-day: our scheduler settled D=2026-06-07, but the contest account's
+        source_date still = D-1 (next-day fetch hasn't run). gap==1 is the EXPECTED
+        overnight lag, not genuine staleness — must NOT fire a CRITICAL (alert fatigue
+        here could mask a real stale event). Surfaced as INFO for visibility instead."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-06",
+        }))
+        (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+        assert not any(a.level == "CRITICAL" for a in alerts), alerts
+>       assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_expected_overnight_lag_is_not_critical.<locals>.<genexpr> at 0x10b893100>)
+
+tests/health/test_contest_state.py:88: AssertionError
+_________________________ test_two_day_gap_is_critical _________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8014/test_two_day_gap_is_critical0')
+
+    def test_two_day_gap_is_critical(tmp_path):
+        """gap >= 2 is genuine staleness (the week-long-freeze incident class) -> CRITICAL."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-05",
+        }))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))  # gap = 2
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "CRITICAL" and "STALE" in a.message for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_two_day_gap_is_critical.<locals>.<genexpr> at 0x10b4df2a0>)
+
+tests/health/test_contest_state.py:103: AssertionError
+_____________________ test_missing_source_date_is_critical _____________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8014/test_missing_source_date_is_cr0')
+
+    def test_missing_source_date_is_critical(tmp_path):
+        """A contest file with no source_date cannot be freshness-verified -> CRITICAL."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9, "source": "mlb_bts_profile",
+        }))  # no source_date
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "CRITICAL" for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_missing_source_date_is_critical.<locals>.<genexpr> at 0x10b411be0>)
+
+tests/health/test_contest_state.py:134: AssertionError
+_______________________ test_legacy_manual_present_warns _______________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8014/test_legacy_manual_present_war0')
+
+    def test_legacy_manual_present_warns(tmp_path):
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 0, "best_streak": 9, "source": "manual", "source_date": "2026-06-06",
+        }))
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 0, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-06",
+        }))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "WARN" and "legacy" in a.message.lower() for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_legacy_manual_present_warns.<locals>.<genexpr> at 0x10b3153c0>)
+
+tests/health/test_contest_state.py:150: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_contest_state.py::test_stale_contest_state_is_critical
+FAILED tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical
+FAILED tests/health/test_contest_state.py::test_two_day_gap_is_critical - Ass...
+FAILED tests/health/test_contest_state.py::test_missing_source_date_is_critical
+FAILED tests/health/test_contest_state.py::test_legacy_manual_present_warns
+========================= 5 failed, 1 passed in 0.06s ==========================

@@ -1,0 +1,65 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_scheduler_decision_record_integration.py F.                   [100%]
+
+=================================== FAILURES ===================================
+____ test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert _____
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8137/test_nondelivered_classified_l0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fc0f5c0>
+
+    def test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert(tmp_path, monkeypatch):
+        """The 2026-08-13 incident: a real pick candidate (no MDP skip standing) hit a
+        NON-delivered classification lock. pick_locked=True suppressed the E3
+        missed-pick alert, check-pick-entered keyed off committed_pick_written, and
+        the day passed with zero notification. The E3 alert must fire whenever no
+        scoreable commit was written and the on-disk pick is undelivered."""
+        from bts.picks import save_pick
+    
+        alert = Mock()
+        monkeypatch.setattr(sch, "_alert_missed_pick", alert)
+        save_pick(_daily(delivered=False), tmp_path)  # the undelivered candidate on disk
+    
+        classified = _result(pick_result=PickResult(daily=_daily(delivered=False), locked=True),
+                             pick_name="Hoerner", pick_p=0.73,
+                             selection=_sel("single", "mdp", primary=_cand()))
+        _drive_run_day(monkeypatch, tmp_path, classified)
+    
+>       alert.assert_called_once()
+
+tests/test_scheduler_decision_record_integration.py:267: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='4494806480'>
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:928: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[23:30 ET] Fetching schedule for 2026-04-06...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+
+[23:30 ET] Running lineup check...
+  Pick already locked (game started or previously delivered).
+  Pick locked. Stopping lineup checks.
+  Tomorrow's wake-up: Tue 04-07 10:00 ET
+  WARNING: not idling — next_wakeup '2026-04-07T10:00:00-04:00' is in the past (now 2026-10-04T00:08:50+00:00). run_day will return and systemd will relaunch in ~30s (2026-07-12 incident class; see _next_day_wakeup).
+=========================== short test summary info ============================
+FAILED tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert
+========================= 1 failed, 1 passed in 0.82s ==========================

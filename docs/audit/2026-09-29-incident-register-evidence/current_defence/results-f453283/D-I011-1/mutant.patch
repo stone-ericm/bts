@@ -1,0 +1,26 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index ff0e0b5..afb5ecf 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -2239,7 +2239,7 @@ def check_results(
+             return settled
+ 
+         # Skip if scheduler already resolved this pick (avoid double-counting streak)
+-        if daily.result in ("hit", "miss", "void"):
++        if False:  # W1.5 mutant: pre-5e02676 — no already-resolved pre-check
+             settled = _reconcile_shadow_and_status()
+             click.echo(f"Already resolved: {daily.pick.batter_name} — {daily.result}. Skipping.")
+             return settled
+@@ -2305,10 +2305,11 @@ def check_results(
+                 vanished = True
+                 skip_reason = ("Pick file disappeared during scoring; failing "
+                                "closed (no streak update).")
+-            elif fresh.result in ("hit", "miss", "void"):
++            elif False:
+                 skip_reason = (f"Already resolved by another scorer: {fresh.result}. "
+                                f"Skipping streak update.")
+             else:
++                pass  # W1.5 mutant: pre-5e02676 — an already-resolved pick is scored again
+                 daily = fresh
+                 new_streak = update_streak(results, picks_path) if results else load_streak(picks_path)
+                 daily.slot_results = slot_results

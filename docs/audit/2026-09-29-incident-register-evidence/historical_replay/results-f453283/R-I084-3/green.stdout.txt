@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 7 items
+
+tests/data/test_pull.py ..                                               [ 28%]
+tests/test_refresh_memo.py .....                                         [100%]
+
+============================== 7 passed in 7.23s ===============================

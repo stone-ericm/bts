@@ -1,0 +1,31 @@
+{
+  "label": "R-I043-1",
+  "incident": "I-043",
+  "links": [1],
+  "fix_set": ["7b701c9"],
+  "tests": ["tests/test_scheduler.py::TestSchedulerRun::test_short_circuits_when_pick_locked",
+            "tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates",
+            "tests/test_scheduler.py::TestSchedulerRun::test_double_down_postponed_regenerates_whole_pick",
+            "tests/test_scheduler.py::TestSchedulerRun::test_missing_primary_game_regenerates",
+            "tests/test_strategy.py::TestSelectPick::test_locked_when_game_started",
+            "tests/test_strategy.py::TestSelectPick::test_existing_postponed_unposted_reselects_fresh_candidate",
+            "tests/test_strategy.py::TestSelectPick::test_existing_preview_unposted_does_not_lock",
+            "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock", "-q"],
+  "symptom_nodes": [
+    {"node": "tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates",
+     "assertion": {"path": "tests/test_scheduler.py", "text": "assert result[\"pick_result\"].locked is False", "line": 444}},
+    {"node": "tests/test_scheduler.py::TestSchedulerRun::test_missing_primary_game_regenerates",
+     "assertion": {"path": "tests/test_scheduler.py", "text": "assert result[\"pick_result\"].locked is False", "line": 530}},
+    {"node": "tests/test_strategy.py::TestSelectPick::test_existing_postponed_unposted_reselects_fresh_candidate",
+     "assertion": {"path": "tests/test_strategy.py", "text": "assert result.locked is False", "line": 139}}
+  ],
+  "audit": {
+    "tests/test_scheduler.py": {"decision": "neutral",
+      "reason": "adds the _daily_pick helper and the contract tests (postponed primary, postponed double-down, primary missing from the schedule, posted pick with a postponed game); in test_short_circuits_when_pick_locked it swaps the inline DailyPick for the helper and adds a patch of bts.picks.get_game_statuses_detailed, which exists at the parent (38fc0e0) and which the parent's run_single_check never calls, so the parent's src runs that test unchanged"},
+    "tests/test_strategy.py": {"decision": "neutral",
+      "reason": "adds the select_pick contract tests and, in test_locked_when_game_started, a patch of bts.picks.get_game_statuses_detailed, which exists at the parent (38fc0e0) and which the parent's select_pick never calls; the module's autouse _disable_mdp patches bts.strategy._load_mdp, which exists at the parent"}
+  },
+  "deployed_ref": {"sha": "293ce51", "basis": "candidate_ancestry"},
+  "env": {"TZ": "America/New_York"},
+  "notes": "Symptoms: at the parent (38fc0e0), run_single_check treats an existing unposted pick as locked whenever get_game_statuses(date).get(primary game) != 'P'. A postponed primary (abstract 'F') and a primary missing from the schedule (None) therefore both short-circuit with PickResult(locked=True), and the stale pick is kept, so `assert result[\"pick_result\"].locked is False` fails (lines 444 and 530). The parent's select_pick has the same abstract-status lock (statuses.get(current.pick.game_pk) != 'P' returns locked=True), so test_existing_postponed_unposted_reselects_fresh_candidate fails at `assert result.locked is False` (line 139; the `assert result is not None` before it passes). Static checks, all against git show 38fc0e0:src/bts/...: bts.scheduler.check_confirmed_lineups, bts.orchestrator.run_cascade, bts.picks.get_game_statuses, bts.picks.get_game_statuses_detailed, bts.strategy.get_game_statuses and bts.strategy._load_mdp exist; run_single_check(date, all_game_pks, confirmed_sides, config, early_lock_gap) and select_pick(predictions, date, picks_dir, ...) keep their signatures; the module-level imports are stdlib, pandas, or bts.picks Pick/DailyPick/save_pick; the Pick/DailyPick fields that _daily_pick sets (bluesky_posted, bluesky_uri) exist at the parent. Both scheduler symptoms short-circuit at the parent before any unpatched call. The anchors repeat, so each carries its line at 7b701c9: test_scheduler.py has the text at 444, 488 and 530 (488 belongs to the non-symptom double-down test); test_strategy.py has it at 139, 168 and 292. Non-symptom nodes: test_double_down_postponed_regenerates_whole_pick passes at the parent too, because its primary is Preview, so the parent never short-circuits and select_pick re-picks from game 300. test_short_circuits_when_pick_locked, test_locked_when_game_started, test_existing_preview_unposted_does_not_lock and the five test_existing_started_or_final_statuses_lock cases pass at both. Excluded, because at the parent each calls the live MLB schedule API: test_bluesky_posted_locks_even_if_postponed (the parent's run_single_check calls bts.picks.get_game_statuses, which that test does not patch); test_existing_status_lookup_failure_locks (the parent's select_pick calls bts.strategy.get_game_statuses, bound at import, which that test's patch of bts.picks.get_game_statuses does not reach). The heartbeat_watchdog writes from the cascade path go to data/.heartbeat, which .gitignore covers (data/.heartbeat*), so the manifest's untracked set does not see them."
+}

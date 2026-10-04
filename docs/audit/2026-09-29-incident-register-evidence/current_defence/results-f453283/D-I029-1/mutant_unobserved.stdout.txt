@@ -1,0 +1,72 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 81 items
+
+tests/test_streak_replay.py ........F                                    [ 11%]
+tests/test_picks.py .................................................... [ 75%]
+...................F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________ test_replay_skips_today_and_later _______________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7988/test_replay_skips_today_and_la0')
+
+    def test_replay_skips_today_and_later(tmp_path):
+        _save_hit(tmp_path, "2026-05-01")
+        # a future preview pick (result None) dated >= today must NOT fail-close the replay
+        (tmp_path / "2026-06-11.json").write_text(json.dumps({"date": "2026-06-11", "result": None}))
+>       assert _replay_season_streak(tmp_path, 2026, "2026-06-10") == (1, True)
+E       AssertionError: assert None == (1, True)
+E        +  where None = _replay_season_streak(PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7988/test_replay_skips_today_and_la0'), 2026, '2026-06-10')
+
+tests/test_streak_replay.py:81: AssertionError
+____ TestReconcileResults.test_shadow_pick_files_are_ignored_in_streak_walk ____
+
+self = <tests.test_picks.TestReconcileResults object at 0x109345760>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7988/test_shadow_pick_files_are_ign0')
+
+    def test_shadow_pick_files_are_ignored_in_streak_walk(self, tmp_path):
+        """Shadow pick files (stem like '2026-04-14.shadow') should not
+        participate in streak counting — they're a separate evaluation track.
+        """
+        from datetime import date as date_cls, timedelta
+        from bts.picks import reconcile_results, save_streak, load_streak
+    
+        yesterday_iso = "2026-08-20"
+    
+        # Main pick file — hit
+        main = {
+            "date": yesterday_iso, "run_time": f"{yesterday_iso}T20:00:00Z",
+            "pick": {"batter_name": "M", "batter_id": 1, "team": "T", "lineup_position": 1,
+                     "pitcher_name": "P", "pitcher_id": 2, "p_game_hit": 0.8,
+                     "flags": [], "projected_lineup": False, "game_pk": 1,
+                     "game_time": f"{yesterday_iso}T23:00:00Z"},
+            "double_down": None, "runner_up": None, "result": "hit",
+        }
+        (tmp_path / f"{yesterday_iso}.json").write_text(json.dumps(main))
+    
+        # Shadow pick file with result=None (would previously break the walk)
+        shadow = {**main, "result": None}
+        (tmp_path / f"{yesterday_iso}.shadow.json").write_text(json.dumps(shadow))
+    
+        save_streak(0, tmp_path)
+    
+        with patch("bts.picks.get_game_statuses_detailed", return_value={}), \
+             patch("bts.picks.check_hit", return_value=True):
+            reconcile_results(tmp_path, lookback_days=8, clock=_cron_clock(yesterday_iso))
+    
+>       assert load_streak(tmp_path) == 1, (
+            f"Shadow file broke the walk. Expected 1, got {load_streak(tmp_path)}."
+        )
+E       AssertionError: Shadow file broke the walk. Expected 1, got 0.
+E       assert 0 == 1
+E        +  where 0 = <function load_streak at 0x10985ca40>(PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7988/test_shadow_pick_files_are_ign0'))
+
+tests/test_picks.py:833: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_streak_replay.py::test_replay_skips_today_and_later - Asser...
+FAILED tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk
+========================= 2 failed, 79 passed in 0.95s =========================

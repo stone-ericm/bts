@@ -1,0 +1,70 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_shadow_picks.py::TestLoadShadowPick::test_load_preserves_bluesky_posted": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "d2ff885ac31b21eea755d2040ba10c107bceb6b9a1593f520a8774a93a165324",
+    "red": "0880d2bc43f8123601b242fcab2b24d99030c40899f57293035a0b54b361403d"
+  },
+  "fix": "80fd31f784b978fb146cf0c0a9a2c65c6f399759",
+  "harness_changes": [
+    {
+      "path": "tests/test_shadow_picks.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I023-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "634768e916b4d58c1cf86acfafe3f4a1a9b705da",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_shadow_picks.py": {
+        "decision": "neutral",
+        "reason": "appends the contract's test (a shadow file whose on-disk bluesky_posted is true, the trace of the 634768e corruption, must load as true rather than be reset on load); it uses only the file's existing module imports (json; load_shadow_pick from bts.picks), all present at the parent 634768e, and the rest of the file is unchanged"
+      }
+    },
+    "deployed_ref": {
+      "basis": "candidate_ancestry",
+      "sha": "80fd31f"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "80fd31f"
+    ],
+    "incident": "I-023",
+    "label": "R-I023-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptom: at the parent (634768e), load_shadow_pick builds the DailyPick with bluesky_posted=False and bluesky_uri=None whatever the file says, so the planted corrupted shadow file (bluesky_posted true) loads as False and the assertion at line 82 fails; the next save-back would erase the evidence, which is the masking this link fixes. Static checks at 634768e: load_shadow_pick(date, picks_dir) exists (src/bts/picks.py line 77) with the same signature; every key of the planted pick dict, pitcher_team included, is a Pick field there; double_down is None, so the double-down branch is skipped and nothing before the assertion can raise (assert loaded is not None passes because the file exists). The anchor occurs once in tests/test_shadow_picks.py at 80fd31f (line 82).",
+    "symptom_nodes": [
+      {
+        "_line": 82,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-2/tests/test_shadow_picks.py",
+        "assertion": {
+          "path": "tests/test_shadow_picks.py",
+          "text": "assert loaded.bluesky_posted is True"
+        },
+        "node": "tests/test_shadow_picks.py::TestLoadShadowPick::test_load_preserves_bluesky_posted"
+      }
+    ],
+    "tests": [
+      "tests/test_shadow_picks.py::TestLoadShadowPick::test_load_preserves_bluesky_posted",
+      "-q"
+    ]
+  },
+  "spec_sha256": "7841fb027109630e7ffe19549120e6f5613fb17d0566189d402750d4c1533bb3",
+  "src_tree": {
+    "fix": "ce33b4bafcb6b2b72cf2220e45ff6f4447cf90fd",
+    "parent": "0334478c06f9205adfb933161d1059fcfed2bcc6"
+  },
+  "symptoms": {
+    "tests/test_shadow_picks.py::TestLoadShadowPick::test_load_preserves_bluesky_posted": []
+  },
+  "verdict": "accepted"
+}

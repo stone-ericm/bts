@@ -1,0 +1,14 @@
+diff --git a/src/bts/health/realized_calibration.py b/src/bts/health/realized_calibration.py
+index fe2ef40..1fdbafe 100644
+--- a/src/bts/health/realized_calibration.py
++++ b/src/bts/health/realized_calibration.py
+@@ -318,7 +318,8 @@ def check(
+             if p is None:
+                 continue
+             if outcome in ("hit", "miss"):
+-                day_hit = 1 if outcome == "hit" else 0
++                pass  # W1.5 mutant: pre-b08769d — a slot's outcome is read from the day's streak result
++                day_hit = 1 if result == "hit" else 0
+                 attribution_counts["slot_results"] += 1
+             elif using_pa_attribution:
+                 bid = slot.get("batter_id")

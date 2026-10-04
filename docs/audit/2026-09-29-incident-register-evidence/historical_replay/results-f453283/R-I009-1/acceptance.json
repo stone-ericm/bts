@@ -1,0 +1,72 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games": "symptom_candidate",
+    "tests/test_scheduler.py::TestSchedulerRun::test_triggers_prediction_on_new_lineup": "passes_at_parent"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "5789360219b20f63c66019baadc7d8c7b23834e98b85ad42df528b61ace1519e",
+    "red": "29ce0f5a2e977aef6b3508050297c5352d7b3656717989edcc55441aa294a295"
+  },
+  "fix": "7638af7a70acf5e274344575458eec08a79b3781",
+  "harness_changes": [
+    {
+      "path": "tests/test_scheduler.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I009-1",
+  "label_kind": "semantic_regression_replay",
+  "parent": "739839bf7bc11f827142d15eb5270e6de1b91763",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_scheduler.py": {
+        "decision": "neutral",
+        "reason": "adds the contract's test (a postponed game's projected batter must not hold the lock gap open) and, in an existing test, patches bts.picks.get_game_statuses, which already exists at the parent (739839b), so the parent's src runs the same test unchanged"
+      }
+    },
+    "deployed_ref": {
+      "basis": "unknown",
+      "sha": "unknown"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "7638af7"
+    ],
+    "incident": "I-009",
+    "label": "R-I009-1",
+    "links": [
+      1
+    ],
+    "notes": "Symptom: at the parent, run_single_check compares the confirmed pick (0.82) with the postponed game's projected batter (0.80); the 0.02 gap is under early_lock_gap 0.03, so should_post is False and the assertion fails. bts.picks.get_game_statuses exists at the parent (checked with git show 739839b:src/bts/picks.py), so the patch decorator cannot fail first. The anchor occurs once in tests/test_scheduler.py at 7638af7 (line 289).",
+    "symptom_nodes": [
+      {
+        "_line": 289,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I009-1/tests/test_scheduler.py",
+        "assertion": {
+          "path": "tests/test_scheduler.py",
+          "text": "assert result[\"should_post\"] is True"
+        },
+        "node": "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games",
+      "tests/test_scheduler.py::TestSchedulerRun::test_triggers_prediction_on_new_lineup",
+      "-q"
+    ]
+  },
+  "spec_sha256": "c1b38bc1b49ea758b49e86b61e1ba9e3380b71dc92fde718930b28db44e54e1d",
+  "src_tree": {
+    "fix": "6a3ffe7ec1109dbc62cd4511a5c16f5a91de9f98",
+    "parent": "277ed5432e1c55c21b303eac2d3ce87fcb0ef3d8"
+  },
+  "symptoms": {
+    "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games": []
+  },
+  "verdict": "accepted"
+}

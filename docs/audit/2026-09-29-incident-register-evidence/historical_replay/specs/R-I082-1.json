@@ -1,0 +1,60 @@
+{
+  "label": "R-I082-1",
+  "incident": "I-082",
+  "links": [
+    1
+  ],
+  "fix_set": [
+    "404358d"
+  ],
+  "tests": [
+    "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error",
+    "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence",
+    "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retries_empty_200_then_succeeds",
+    "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_4xx_fails_immediately_without_retry",
+    "tests/test_contest_fetch.py::test_fetch_cli_plain_auth_failure_keeps_cookie_advice",
+    "-q"
+  ],
+  "symptom_nodes": [
+    {
+      "node": "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error",
+      "assertion": {
+        "path": "tests/leaderboard/test_auth.py",
+        "text": "assert ei.value.__class__.__name__ == \"TransientAuthError\""
+      }
+    },
+    {
+      "node": "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence",
+      "assertion": {
+        "path": "tests/leaderboard/test_auth.py",
+        "text": "assert sleeps == [2.0, 4.0]"
+      }
+    }
+  ],
+  "audit": {
+    "tests/leaderboard/test_auth.py": {
+      "decision": "neutral",
+      "reason": "adds two response helpers (_ok_login_response, _blank_200_response: the observed 8/11 zero-length HTTP 200) and TestFetchLoginSessionTransientRetry, the contract's tests; the module-level imports are unchanged (load_session_cookies, extract_uid, fetch_xsid, is_session_valid, AuthError, all present in bts.leaderboard.auth at the parent 0e4aaa8); the selected tests import fetch_login_session (present at the parent, signature (uid, cookies, timeout=30.0)), patch bts.leaderboard.auth.httpx.post (present) and set bts.leaderboard.auth.time with monkeypatch raising=False, which the parent's single-shot fetch_login_session never reads, so the parent's src runs the same tests unchanged"
+    },
+    "tests/test_contest_fetch.py": {
+      "decision": "neutral",
+      "reason": "appends fetch-contest-streak failure-message tests and the _mock_auth_failure/_mock_auth_success helpers; the module-level imports (bts.contest_fetch: ContestFetchError, build_observation, derive_source_date, fetch_profile, validate_fetch) are unchanged and present at the parent; the one selected test (credential-shaped AuthError keeps the cookie advice) imports only AuthError and monkeypatches load_session_cookies, extract_uid and fetch_login_session, all present at the parent, and passes there unchanged (a control: the credential path is not altered by the fix)"
+    },
+    "tests/leaderboard/test_cli.py": {
+      "decision": "irrelevant",
+      "reason": "not selected and never loaded by the selected tests; adds two scrape-path message tests that import TransientAuthError and RateLimitedLoginError inside the test body (both added by the fix, so ImportError at the parent: new API only)"
+    },
+    "tests/test_cli_integration.py": {
+      "decision": "irrelevant",
+      "reason": "not selected and never loaded by the selected tests; adds three check-pick-entered tests (bounded attempts=2, transient outage quiet skip, cutoff passing during the fetch) that assert the fix's new attempts keyword, import TransientAuthError, or pin a monotonic-clock guard; none encodes the incident contract through the parent's API"
+    }
+  },
+  "deployed_ref": {
+    "sha": "404358d",
+    "basis": "log"
+  },
+  "env": {
+    "TZ": "America/New_York"
+  },
+  "notes": "Symptoms (both on the 8/11 shape, three zero-length HTTP 200 bodies): at the parent 0e4aaa8, fetch_login_session makes a single httpx.post, response.json() raises JSONDecodeError and it raises plain AuthError('auth/login response not JSON') with no retry. Node 1: pytest.raises(AuthError) catches it, then the class name is 'AuthError', not 'TransientAuthError', so the assertion at line 244 fails; that plain AuthError is exactly what fetch-contest-streak at the parent routes to the 'refresh via capture_bts_cookies.py' message (cli.py: except AuthError -> _fail('auth/cookie error ...')), the link-2 misdiagnosis. Node 2: no retry means time.sleep is never called, so sleeps is [], not [2.0, 4.0] (line 400). Other selected nodes: test_retries_empty_200_then_succeeds raises the incident's own AuthError at the parent (one blank 200 fails the login); it is not declared because it fails by a raised AuthError, not an assertion, and will classify symptom_candidate. test_4xx_fails_immediately_without_retry[401|403] and test_fetch_cli_plain_auth_failure_keeps_cookie_advice pass at both (credential-shaped failures keep the cookie path). Static checks at 0e4aaa8: fetch_login_session(uid, cookies, timeout=30.0), AuthError, httpx imported in bts.leaderboard.auth, fetch-contest-streak's options --picks-dir/--expected-username; tests/conftest.py has no autouse fixtures and is unchanged in the range. Anchors are each unique in tests/leaderboard/test_auth.py at 404358d (lines 244 and 400), single-line asserts. Lead's review: covers link 1 only. Link 2's contract (the cron's DM message) is asserted only by tests that import TransientAuthError, which the fix added (new API only); the chain through AuthError witnesses link 1's retry defect, not the message."
+}

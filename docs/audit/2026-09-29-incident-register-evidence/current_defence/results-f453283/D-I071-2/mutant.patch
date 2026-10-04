@@ -1,0 +1,16 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index ff0e0b5..e61edab 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -1806,9 +1806,9 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
+     if tier == "initial":
+         lead = ("BTS pick NOT entered" if reason == "no_pick"
+                 else "BTS entry does NOT match the recommended pick")
++        pass  # W1.5 mutant: pre-af6329f — the DM countdown reports minutes to first pitch, not to the cutoff
+         msg = (f"\u26a0\ufe0f {lead} in MLB app: {names} — first pitch "
+-               f"{first_pitch.strftime('%-I:%M %p ET')} "
+-               f"({minutes_to_cutoff:.0f} min to submit). Fix it now!")
++               f"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Fix it now!")
+     else:
+         msg = (f"\u23f0 STILL NOT entered ({reason}): {names} — "
+                f"{minutes_to_cutoff:.0f} min left to submit!")

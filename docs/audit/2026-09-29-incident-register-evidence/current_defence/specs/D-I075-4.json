@@ -1,0 +1,78 @@
+{
+ "label": "D-I075-4",
+ "link": "I-075 link 4",
+ "tests": [
+  "tests/health/test_restart_spike.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/restart_spike.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/restart_spike.py",
+   "    if prior is None or prior_day != today.isoformat():\n        checkpoint_path.write_text(json.dumps({\n",
+   "    if not (prior is None or prior_day != today.isoformat()):\n        pass  # W1.5 mutant: pre-ec242da \u2014 a same-day re-run advances the checkpoint (pre-fix: every run did)\n    if True:\n        checkpoint_path.write_text(json.dumps({\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/restart_spike.py",
+  "text": "W1.5 mutant: pre-ec242da \u2014 a same-day re-run advances the checkpoint (pre-fix: every run did)"
+ },
+ "entry": {
+  "path": "src/bts/health/restart_spike.py",
+  "qualname": "check"
+ },
+ "boundaries": [
+  {
+   "name": "checkpoint_write",
+   "binding": "pathlib:Path.write_text",
+   "value": [
+    "args[1]",
+    "kw:data"
+   ],
+   "classify": [
+    [
+     "checkpoint_write",
+     "^\\{\"nrestarts\": "
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "checkpoint_write",
+  "category": "checkpoint_write"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_restart_spike.py::TestRestartSpike::test_checkpoint_anchored_within_a_day",
+   "assertion": {
+    "path": "tests/health/test_restart_spike.py",
+    "text": "assert cp[\"nrestarts\"] == 52, \"same-day runs must not advance the anchor\"",
+    "line": 61
+   }
+  },
+  {
+   "node": "tests/health/test_restart_spike.py::TestRestartSpike::test_same_day_creep_accumulates_to_critical",
+   "assertion": {
+    "path": "tests/health/test_restart_spike.py",
+    "text": "assert len(alerts) == 1 and alerts[0].level == \"CRITICAL\"",
+    "line": 71
+   }
+  }
+ ],
+ "contract": {
+  "text": "The NRestarts checkpoint is day-anchored: a same-day re-run of the check keeps the day's first observation as the baseline, so same-day restart churn accumulates to the CRITICAL threshold.",
+  "entry_mode": "direct call of restart_spike.check",
+  "trigger": "a second run on the same processed day with a prior same-day checkpoint",
+  "symptom_kind": "extra event (checkpoint rewritten on a same-day re-run; the storm then aliases below the threshold)"
+ },
+ "level": "production_path",
+ "level_justification": "nothing is replaced: the checkpoint file is real, in a temporary directory, and the processed day is passed explicitly",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

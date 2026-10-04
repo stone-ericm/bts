@@ -1,0 +1,88 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler_decision_record_integration.py::test_delivered_commit_does_not_fire_missed_pick_alert": "passes_at_parent",
+    "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "46127a2421798345f8e2aec61327a632ee403bad683399be502621093fd9b1f3",
+    "red": "64841e3614756fb298daa37db1bb4f0ca58bad44afbcac0a9104c23619602250"
+  },
+  "fix": "224ddce2c29cb68f554695d9eef5a7cb8a1902bc",
+  "harness_changes": [
+    {
+      "path": "tests/test_e3_missed_pick_alert.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_decision_record.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler_decision_record_integration.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I083-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "1b50b78ecbf1c0fcba4676e1f9c82fa3426dc63c",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_e3_missed_pick_alert.py": {
+        "decision": "irrelevant",
+        "reason": "not selected and never loaded by the selected tests; adds a test that a scoreable on-disk decision suppresses the alert (the Codex r2 #3 refinement, not the incident contract)"
+      },
+      "tests/test_scheduler_decision_record.py": {
+        "decision": "irrelevant",
+        "reason": "not selected and never loaded by the selected tests; adds two helper tests, one passing attempted=True to _write_classification_decision, a keyword the fix added (TypeError at the parent)"
+      },
+      "tests/test_scheduler_decision_record_integration.py": {
+        "decision": "neutral",
+        "reason": "appends five run_day/run_single_check tests; the module-level imports and builders (_cand, _sel, _daily, _result, _game, _seq, _drive_run_day) are unchanged from the parent 1b50b78; the two selected tests drive the real run_day through _drive_run_day, which monkeypatches bts.scheduler.fetch_schedule, _now_et, time.sleep, run_result_polling, _trigger_live_forward_capture_on_lock and run_single_check (all present at the parent, setattr default raising=True), plus bts.scheduler._alert_missed_pick (present, line 63) and, for the control, bts.posting.post_to_bluesky and bts.contest_state.load_decision_streak_state (present)"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "3e1791c"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "224ddce"
+    ],
+    "incident": "I-083",
+    "label": "R-I083-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptom: at the parent 1b50b78, run_day sets state.pick_locked=True on any locked pick_result, including the non-delivered classification lock of the 8/13 incident; _write_classification_decision writes nothing for an undelivered pick, and step 5b is gated 'if not state.pick_locked', so _maybe_alert_missed_pick (and the mocked _alert_missed_pick) is never called and alert.assert_called_once() raises AssertionError at line 267 (mock's AssertionError is raised in the stdlib; the innermost worktree frame is the test line). At F the gate is committed_pick_written (still False), the undelivered pick is on disk, the clock (23:30) is past alert_at (18:55 for the 19:05 game), so the alert fires once. The control test_delivered_commit_does_not_fire_missed_pick_alert passes at both (a public delivery locks the day at the parent and writes a scoreable commit at F). Not selected: the r2/r3 refinements in the same commit (committed-means-immutable pre-cascade check, locked_unconfirmed finalization, no clobbering of an existing scoreable decision), which fail at the parent on rules other than the missed-pick alert. Static checks at 1b50b78: SchedulerState fields used by _state(); SelectionResult accepts pick_result/action/source/primary_candidate/double_candidate/no_pick_reason/streak/saver_available; run_day(date, config, dry_run); health_checks disabled in the harness; tests/conftest.py has no autouse fixtures. The anchor occurs once in the file at 224ddce (line 267).",
+    "symptom_nodes": [
+      {
+        "_line": 267,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-2/tests/test_scheduler_decision_record_integration.py",
+        "assertion": {
+          "path": "tests/test_scheduler_decision_record_integration.py",
+          "text": "alert.assert_called_once()"
+        },
+        "node": "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert",
+      "tests/test_scheduler_decision_record_integration.py::test_delivered_commit_does_not_fire_missed_pick_alert",
+      "-q"
+    ]
+  },
+  "spec_sha256": "c11f2db6ac85e59a365f042c132ad4b95567bbdd2b5c5f126a217790f0ac4df8",
+  "src_tree": {
+    "fix": "afab32e3c83dd56c334c72a7643833d5bab85bde",
+    "parent": "b29526aac71ce953d9a90cb17686361a3a00ab2b"
+  },
+  "symptoms": {
+    "tests/test_scheduler_decision_record_integration.py::test_nondelivered_classified_lock_on_pick_day_fires_missed_pick_alert": []
+  },
+  "verdict": "accepted"
+}

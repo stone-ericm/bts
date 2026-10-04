@@ -1,0 +1,239 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I075-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 10 items
+
+tests/test_scheduler_eve_of_break.py FFFFFFFFF.                          [100%]
+
+=================================== FAILURES ===================================
+___ TestStep7NextWakeup.test_games_today_empty_tomorrow_stores_future_wakeup ___
+
+self = <tests.test_scheduler_eve_of_break.TestStep7NextWakeup object at 0x10952cb90>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8096/test_games_today_empty_tomorro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10952be30>
+
+    def test_games_today_empty_tomorrow_stores_future_wakeup(self, tmp_path, monkeypatch):
+        """Eve-of-break: the stored next_wakeup must be tz-aware and in the
+        FUTURE, or the post-EOD idle no-ops and the daemon thrash-restarts.
+    
+        The date is REAL today (not a fixed past date): compute_wakeup_time's
+        empty-schedule branch anchors to the real wall clock, so a fixed past
+        date would make "today 10:00" look future and hide the bug.
+        """
+        run_date = date.today().isoformat()
+        now = datetime.strptime(f"{run_date} 23:30", "%Y-%m-%d %H:%M").replace(tzinfo=ET)
+    
+        # Games today, [] for every later fetch (tomorrow) — eve-of-break.
+        monkeypatch.setattr(sch, "fetch_schedule",
+                            _seq([[_game(100, "19:05", date=run_date)], []]))
+        monkeypatch.setattr(sch, "_now_et", lambda: now)
+        monkeypatch.setattr(sch.time, "sleep", lambda *a, **k: None)
+        monkeypatch.setattr(sch, "run_result_polling", lambda *a, **k: "final")
+        monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
+        monkeypatch.setattr(sch, "run_single_check", lambda *a, **k: _result(skipped=True))
+        config = {
+            "orchestrator": {"picks_dir": str(tmp_path), "heartbeat_path": str(tmp_path / ".hb")},
+            "tiers": [],
+            "scheduler": {"pick_delivery": "private", "early_lock_gap": 0.03,
+                          "lineup_check_offset_min": 45, "cluster_min": 10,
+                          "doubleheader_recheck_min": 15, "missed_pick_alert_min": 10,
+                          "results_poll_interval_min": 15, "results_cap_hour_et": 5},
+            "health_checks": {"enabled": False},
+        }
+        sch.run_day(date=run_date, config=config, dry_run=False)
+    
+        state = load_state(run_date, tmp_path)
+        assert state is not None and state.next_wakeup, "step 7 must store next_wakeup"
+        wakeup = datetime.fromisoformat(state.next_wakeup)
+        assert wakeup.tzinfo is not None, "next_wakeup must be tz-aware"
+>       assert wakeup > now, (
+            f"next_wakeup {wakeup} is not in the future of {now}: "
+            "_idle_until_next_wakeup will no-op and Restart=always will thrash"
+        )
+E       AssertionError: next_wakeup 2026-10-03 10:00:00-04:00 is not in the future of 2026-10-03 23:30:00-04:00: _idle_until_next_wakeup will no-op and Restart=always will thrash
+E       assert datetime.datetime(2026, 10, 3, 10, 0, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))) > datetime.datetime(2026, 10, 3, 23, 30, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))
+
+tests/test_scheduler_eve_of_break.py:62: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[23:30 ET] Fetching schedule for 2026-10-03...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+
+[23:30 ET] Running lineup check...
+  Tomorrow's wake-up: 10:00 ET
+________________ TestIdleGuardLoud.test_past_wakeup_logs_reason ________________
+
+self = <tests.test_scheduler_eve_of_break.TestIdleGuardLoud object at 0x10da2c380>
+capsys = <_pytest.capture.CaptureFixture object at 0x10dfd0110>
+
+    def test_past_wakeup_logs_reason(self, capsys):
+        past = datetime(2026, 7, 12, 10, 0, tzinfo=ET)
+        _idle_until_next_wakeup(past.isoformat(), None)
+        err = capsys.readouterr().err
+>       assert "not idling" in err and "past" in err
+E       AssertionError: assert ('not idling' in '')
+
+tests/test_scheduler_eve_of_break.py:81: AssertionError
+_______________ TestIdleGuardLoud.test_naive_wakeup_logs_reason ________________
+
+self = <tests.test_scheduler_eve_of_break.TestIdleGuardLoud object at 0x10dfc4fb0>
+capsys = <_pytest.capture.CaptureFixture object at 0x109533da0>
+
+    def test_naive_wakeup_logs_reason(self, capsys):
+        _idle_until_next_wakeup("2026-07-13T10:00:00", None)
+        err = capsys.readouterr().err
+>       assert "not idling" in err and "naive" in err
+E       AssertionError: assert ('not idling' in '')
+
+tests/test_scheduler_eve_of_break.py:86: AssertionError
+_____________ TestIdleGuardLoud.test_malformed_wakeup_logs_reason ______________
+
+self = <tests.test_scheduler_eve_of_break.TestIdleGuardLoud object at 0x1088e14f0>
+capsys = <_pytest.capture.CaptureFixture object at 0x10e0e60c0>
+
+    def test_malformed_wakeup_logs_reason(self, capsys):
+        _idle_until_next_wakeup("garbage-not-a-date", None)
+        err = capsys.readouterr().err
+>       assert "not idling" in err
+E       AssertionError: assert 'not idling' in ''
+
+tests/test_scheduler_eve_of_break.py:91: AssertionError
+_______________ TestIdleGuardLoud.test_empty_wakeup_logs_reason ________________
+
+self = <tests.test_scheduler_eve_of_break.TestIdleGuardLoud object at 0x10c2c7c20>
+capsys = <_pytest.capture.CaptureFixture object at 0x10e0fc500>
+
+    def test_empty_wakeup_logs_reason(self, capsys):
+        _idle_until_next_wakeup(None, None)
+        err = capsys.readouterr().err
+>       assert "not idling" in err
+E       AssertionError: assert 'not idling' in ''
+
+tests/test_scheduler_eve_of_break.py:96: AssertionError
+_ TestNextDayWakeupEarlySlate.test_nonempty_tomorrow_past_wake_hands_off_soon __
+
+self = <tests.test_scheduler_eve_of_break.TestNextDayWakeupEarlySlate object at 0x10dfc62d0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e0fe060>
+
+    def test_nonempty_tomorrow_past_wake_hands_off_soon(self, monkeypatch):
+        """Post-midnight EOD (result polling caps 05:00) before an early-start
+        day (London Series 06:10 ET, wake 05:10): bumping a calendar day would
+        sleep through the entire real slate. Must hand off within minutes."""
+        from bts.scheduler import _next_day_wakeup
+        # It is 05:20 ET on D+1; run_day is still processing date D.
+        now = datetime(2026, 6, 14, 5, 20, tzinfo=ET)
+        monkeypatch.setattr(sch, "_now_et", lambda: now)
+        london = {"gamePk": 1, "gameType": "R",
+                  "gameDate": "2026-06-14T10:10:00Z"}  # 06:10 ET
+        monkeypatch.setattr(sch, "fetch_schedule", lambda d: [london])
+    
+        wakeup = _next_day_wakeup("2026-06-13", {})
+    
+        assert wakeup > now
+>       assert (wakeup - now).total_seconds() <= 5 * 60, (
+            f"wakeup {wakeup} skips the 06:10 slate instead of handing off"
+        )
+E       AssertionError: wakeup 2026-06-15 10:00:00-04:00 skips the 06:10 slate instead of handing off
+E       assert 103200.0 <= (5 * 60)
+E        +  where 103200.0 = <built-in method total_seconds of datetime.timedelta object at 0x10e0fc300>()
+E        +    where <built-in method total_seconds of datetime.timedelta object at 0x10e0fc300> = (datetime.datetime(2026, 6, 15, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) - datetime.datetime(2026, 6, 14, 5, 20, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))).total_seconds
+
+tests/test_scheduler_eve_of_break.py:118: AssertionError
+_ TestNextDayWakeupEarlySlate.test_malformed_schedule_entry_hands_off_not_raises _
+
+self = <tests.test_scheduler_eve_of_break.TestNextDayWakeupEarlySlate object at 0x10dfdf860>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e0fd370>
+
+    def test_malformed_schedule_entry_hands_off_not_raises(self, monkeypatch):
+        """Round-3 fix of round-2 #1: a SUCCESSFUL fetch with a malformed game
+        (no gameDate) must not raise through step 7 — that would recreate a
+        bare 30s churn loop with no handoff pacing."""
+        from bts.scheduler import _next_day_wakeup
+        now = datetime(2026, 6, 13, 22, 0, tzinfo=ET)
+        monkeypatch.setattr(sch, "_now_et", lambda: now)
+        monkeypatch.setattr(sch, "fetch_schedule",
+                            lambda d: [{"gamePk": 1, "gameType": "R"}])
+        wakeup = _next_day_wakeup("2026-06-13", {})
+        assert wakeup > now
+>       assert (wakeup - now).total_seconds() <= 30 * 60
+E       AssertionError: assert 43200.0 <= (30 * 60)
+E        +  where 43200.0 = <built-in method total_seconds of datetime.timedelta object at 0x10e0fc420>()
+E        +    where <built-in method total_seconds of datetime.timedelta object at 0x10e0fc420> = (datetime.datetime(2026, 6, 14, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) - datetime.datetime(2026, 6, 13, 22, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))).total_seconds
+
+tests/test_scheduler_eve_of_break.py:133: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Failed to fetch tomorrow's schedule: 'gameDate'
+_ TestNextDayWakeupEarlySlate.test_fetch_failure_retries_soon_not_next_morning _
+
+self = <tests.test_scheduler_eve_of_break.TestNextDayWakeupEarlySlate object at 0x10dfd0170>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e0fe870>
+
+    def test_fetch_failure_retries_soon_not_next_morning(self, monkeypatch):
+        """A transient schedule-fetch failure must not commit to 'tomorrow
+        10:00 is safe' — with a 09:05 game that oversleeps first pitch. A
+        short handoff lets the exit→restart cycle re-fetch."""
+        from bts.scheduler import _next_day_wakeup
+    
+        def _boom(d):
+            raise OSError("statsapi down")
+    
+        now = datetime(2026, 6, 13, 22, 0, tzinfo=ET)
+        monkeypatch.setattr(sch, "_now_et", lambda: now)
+        monkeypatch.setattr(sch, "fetch_schedule", _boom)
+    
+        wakeup = _next_day_wakeup("2026-06-13", {})
+    
+        assert wakeup > now
+>       assert (wakeup - now).total_seconds() <= 30 * 60, (
+            f"wakeup {wakeup} accepts an unverified morning instead of retrying"
+        )
+E       AssertionError: wakeup 2026-06-14 10:00:00-04:00 accepts an unverified morning instead of retrying
+E       assert 43200.0 <= (30 * 60)
+E        +  where 43200.0 = <built-in method total_seconds of datetime.timedelta object at 0x10e0fc210>()
+E        +    where <built-in method total_seconds of datetime.timedelta object at 0x10e0fc210> = (datetime.datetime(2026, 6, 14, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) - datetime.datetime(2026, 6, 13, 22, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))).total_seconds
+
+tests/test_scheduler_eve_of_break.py:151: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Failed to fetch tomorrow's schedule: statsapi down
+_______ TestFetchScheduleGameType.test_non_regular_season_games_filtered _______
+
+self = <tests.test_scheduler_eve_of_break.TestFetchScheduleGameType object at 0x10dfd1df0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e11b110>
+
+    def test_non_regular_season_games_filtered(self, monkeypatch):
+        """The All-Star Game (gameType A) must not look like a pickable slate:
+        BTS is a regular-season contest, and an unfiltered 7/14 would run the
+        full lineup-check/pick pipeline against All-Star rosters."""
+        payload = {"dates": [{"games": [
+            {"gamePk": 1, "gameType": "R", "gameDate": "2026-07-16T23:05:00Z"},
+            {"gamePk": 2, "gameType": "A", "gameDate": "2026-07-14T00:00:00Z"},
+            {"gamePk": 3, "gameType": "E", "gameDate": "2026-07-14T22:00:00Z"},
+        ]}]}
+    
+        class _Resp:
+            def read(self):
+                return json.dumps(payload).encode()
+    
+        monkeypatch.setattr(sch, "retry_urlopen", lambda *a, **k: _Resp())
+        games = sch.fetch_schedule("2026-07-14")
+>       assert [g["gamePk"] for g in games] == [1]
+E       assert [1, 2, 3] == [1]
+E         
+E         Left contains 2 more items, first extra item: 2
+E         Use -v to get more diff
+
+tests/test_scheduler_eve_of_break.py:173: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup
+FAILED tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_past_wakeup_logs_reason
+FAILED tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_naive_wakeup_logs_reason
+FAILED tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_malformed_wakeup_logs_reason
+FAILED tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_empty_wakeup_logs_reason
+FAILED tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_nonempty_tomorrow_past_wake_hands_off_soon
+FAILED tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_malformed_schedule_entry_hands_off_not_raises
+FAILED tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_fetch_failure_retries_soon_not_next_morning
+FAILED tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_non_regular_season_games_filtered
+========================= 9 failed, 1 passed in 0.91s ==========================

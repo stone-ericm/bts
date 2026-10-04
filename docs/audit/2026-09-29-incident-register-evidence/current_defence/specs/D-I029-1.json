@@ -1,0 +1,83 @@
+{
+ "label": "D-I029-1",
+ "link": "I-029 link 1",
+ "tests": [
+  "tests/test_streak_replay.py",
+  "tests/test_picks.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/picks.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/picks.py",
+   "        if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso:\n            continue  # skip non-date files and today/future (unplayed) previews\n",
+   "        pass  # W1.5 mutant: pre-1d61908 \u2014 the streak walk reads shadow and today/future (preview) pick files\n        if False:\n            continue  # skip non-date files and today/future (unplayed) previews\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/picks.py",
+  "text": "W1.5 mutant: pre-1d61908 \u2014 the streak walk reads shadow and today/future (preview) pick files"
+ },
+ "entry": {
+  "path": "src/bts/picks.py",
+  "qualname": "_replay_season_streak"
+ },
+ "returns": [
+  {
+   "path": "src/bts/picks.py",
+   "qualname": "_replay_season_streak",
+   "classify": [
+    [
+     "replay_abandoned",
+     "^null$"
+    ],
+    [
+     "replayed",
+     "^\\{\"seq\": \\["
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/picks.py",
+  "qualname": "_replay_season_streak",
+  "category": "replay_abandoned"
+ },
+ "killing": [
+  {
+   "node": "tests/test_streak_replay.py::test_replay_skips_today_and_later",
+   "assertion": {
+    "path": "tests/test_streak_replay.py",
+    "text": "assert _replay_season_streak(tmp_path, 2026, \"2026-06-10\") == (1, True)",
+    "line": 81
+   }
+  },
+  {
+   "node": "tests/test_picks.py::TestReconcileResults::test_shadow_pick_files_are_ignored_in_streak_walk",
+   "assertion": {
+    "path": "tests/test_picks.py",
+    "text": "assert load_streak(tmp_path) == 1, (",
+    "line": 833
+   }
+  }
+ ],
+ "contract": {
+  "text": "Reconciliation recomputes the local streak from resolved past pick files only: a shadow pick file or a today/future (preview) pick file is not played, never enters the streak walk, and cannot end or abandon it.",
+  "entry_mode": "_replay_season_streak, called directly (test_streak_replay) and through reconcile_results with a fixed 02:00 ET clock (test_picks)",
+  "trigger": "a {date}.shadow.json beside a resolved hit (result None), or a future-dated preview pick file with result None",
+  "symptom_kind": "wrong value (the replay returns None, history unreconstructible, instead of the (streak, saver) of the resolved picks; reconcile then keeps the stale streak.json)"
+ },
+ "level": "production_path",
+ "level_justification": "only the MLB lookups on the reconcile path are replaced (get_game_statuses_detailed, check_hit); the direct replay test replaces nothing; pick files are prewritten in tmp_path and the reconcile clock is a fixed fixture value",
+ "allowed_mocks": [
+  "bts.picks.get_game_statuses_detailed",
+  "bts.picks.check_hit"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

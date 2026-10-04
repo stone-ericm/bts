@@ -1,0 +1,71 @@
+{
+ "label": "D-I056-2",
+ "link": "I-056 link 2",
+ "tests": [
+  "tests/test_contest_state.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/contest_state.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/contest_state.py",
+   "    return DecisionStreakState(\n        streak=contest.streak,\n        saver_available=contest_saver,\n        allow_double=True,\n        source=\"contest\",\n",
+   "    allow_double = True\n    if status != \"fresh\":\n        pass  # W1.5 mutant: pre-2b4ff1d \u2014 a non-fresh contest observation freezes doubles\n        allow_double = False\n    return DecisionStreakState(\n        streak=contest.streak,\n        saver_available=contest_saver,\n        allow_double=allow_double,\n        source=\"contest\",\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/contest_state.py",
+  "text": "W1.5 mutant: pre-2b4ff1d \u2014 a non-fresh contest observation freezes doubles"
+ },
+ "entry": {
+  "path": "src/bts/contest_state.py",
+  "qualname": "load_decision_streak_state"
+ },
+ "returns": [
+  {
+   "path": "src/bts/contest_state.py",
+   "qualname": "load_decision_streak_state",
+   "classify": [
+    [
+     "doubles_frozen",
+     "\"allow_double\": false"
+    ],
+    [
+     "doubles_on",
+     "\"allow_double\": true"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/contest_state.py",
+  "qualname": "load_decision_streak_state",
+  "category": "doubles_frozen"
+ },
+ "killing": [
+  {
+   "node": "tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles",
+   "assertion": {
+    "path": "tests/test_contest_state.py",
+    "text": "assert state.allow_double is True",
+    "line": 201
+   }
+  }
+ ],
+ "contract": {
+  "text": "A stale contest observation does not freeze the live decision state: doubles stay allowed (status 'stale' only labels it).",
+  "entry_mode": "direct call of load_decision_streak_state",
+  "trigger": "a contest observation with no source_date (stale)",
+  "symptom_kind": "wrong decision state (allow_double false on a stale observation)"
+ },
+ "level": "production_path",
+ "level_justification": "the decision state is computed from files written to a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

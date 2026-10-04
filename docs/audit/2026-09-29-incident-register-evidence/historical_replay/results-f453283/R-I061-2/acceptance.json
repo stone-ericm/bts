@@ -1,0 +1,98 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical": "passes_at_parent",
+    "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn": "symptom_candidate",
+    "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical": "passes_at_parent"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "04f0563325a640e9b28dff1891fb118cce37e5e34123c007f3265780a2fd40ef",
+    "red": "cd86d0ffff0f4631de0772db97cc0f1741a1c8303d550af76b5180c83bed09e7"
+  },
+  "fix": "4f13eb3658b4a0c87b260c3d8c9f36f615c00518",
+  "harness_changes": [
+    {
+      "path": "scripts/cron-setup-hetzner.sh",
+      "status": "M"
+    },
+    {
+      "path": "tests/health/test_contest_state.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_cli_integration.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_contest_fetch.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I061-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "1ba01c468193398fda25004386531c676158d8ec",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "scripts/cron-setup-hetzner.sh": {
+        "decision": "irrelevant",
+        "reason": "adds the check-pick-entered cron line (link 2's job); a cron script the selected tests never load"
+      },
+      "tests/health/test_contest_state.py": {
+        "decision": "neutral",
+        "reason": "4f13eb3 pins now= (02:00 ET) in the overnight-lag test, adds the past-noon WARN test and widens the off-day test to accept INFO or WARN; the module imports SOURCE and check, both at the parent 1ba01c4, whose check already accepts expected= and now="
+      },
+      "tests/test_cli_integration.py": {
+        "decision": "irrelevant",
+        "reason": "adds TestCheckPickEntered for the check-pick-entered command 4f13eb3 introduces (link 2, unavailable: the command does not exist at the parent); not selected for link 3, never loaded"
+      },
+      "tests/test_contest_fetch.py": {
+        "decision": "irrelevant",
+        "reason": "adds TestHasPredictionFor for has_prediction_for, which 4f13eb3 adds (link 2; ImportError at the parent); not selected, never loaded"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "83a5cad"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "4f13eb3"
+    ],
+    "incident": "I-061",
+    "label": "R-I061-2",
+    "links": [
+      3
+    ],
+    "notes": "Symptom: at the parent 1ba01c4, contest_state health treats a one-settled-pick gap as INFO at any time of day; test_gap1_persisting_past_noon_et_escalates_to_warn checks at 2026-06-08 19:00Z (15:00 ET) with source_date 06-06 and picks resolved 06-06 and 06-07 (gap 1), gets only the INFO alert, so warns is empty and line 117 fails ('assert warns, alerts'). The comprehension also requires 'persist' in the message (wording 4f13eb3 introduced), but the parent emits no WARN at all here, so the failure is the alert level (the link's consequence), not only the wording. Static checks: the module imports SOURCE and check at 1ba01c4; check accepts expected= and now=; the test reads only alert level/source/message. Anchor unique at 4f13eb3 (line 117). The other two selected nodes (pinned to 02:00 ET; the off-day one accepts INFO) pass at the parent. Only the health half of 4f13eb3 is selected: its check-pick-entered and has_prediction_for tests belong to link 2.",
+    "symptom_nodes": [
+      {
+        "_line": 117,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I061-2/tests/health/test_contest_state.py",
+        "assertion": {
+          "path": "tests/health/test_contest_state.py",
+          "text": "assert warns, alerts"
+        },
+        "node": "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn"
+      }
+    ],
+    "tests": [
+      "tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical",
+      "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn",
+      "tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical",
+      "-q"
+    ]
+  },
+  "spec_sha256": "b6996b4635147ad06a1e21ecf2b1fae789abb36edd1afa3ba70f0d65e7de7e4b",
+  "src_tree": {
+    "fix": "5cb504dd6f453e5dfa06c9d0cb3c623ed1deb417",
+    "parent": "e057c23a1134f92183e00eaa9a5792b51052b6c7"
+  },
+  "symptoms": {
+    "tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn": []
+  },
+  "verdict": "accepted"
+}

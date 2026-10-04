@@ -1,0 +1,130 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I075-3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/health/test_predicted_vs_realized.py F.FFF.F.                      [100%]
+
+=================================== FAILURES ===================================
+_______ TestComputeMetrics.test_void_primary_still_counts_graded_dd_slot _______
+
+self = <tests.health.test_predicted_vs_realized.TestComputeMetrics object at 0x10926dcd0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8113/test_void_primary_still_counts0')
+
+    def test_void_primary_still_counts_graded_dd_slot(self, tmp_path):
+        # Per-slot basis: a void primary is skipped, but the DD leg was a real
+        # delivered prediction with a real outcome — it must still be graded.
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.75},
+            "double_down": {"p_game_hit": 0.72},
+            "result": "hit",
+            "slot_results": {"pick": "void", "double_down": "hit"},
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+>       assert list(m.daily) == ["2026-04-27"]
+E       AssertionError: assert [] == ['2026-04-27']
+E         
+E         Right contains one more item: '2026-04-27'
+E         Use -v to get more diff
+
+tests/health/test_predicted_vs_realized.py:47: AssertionError
+_______ TestPerSlotBasis.test_dd_day_grades_each_slot_against_its_own_p ________
+
+self = <tests.health.test_predicted_vs_realized.TestPerSlotBasis object at 0x10926e450>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8113/test_dd_day_grades_each_slot_a0')
+
+    def test_dd_day_grades_each_slot_against_its_own_p(self, tmp_path):
+        # Primary hit, DD leg missed → day-level result is "miss", but the
+        # slots are (0.78→1) and (0.74→0): gap = mean(p) - mean(realized).
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.78},
+            "double_down": {"p_game_hit": 0.74},
+            "result": "miss",
+            "slot_results": {"pick": "hit", "double_down": "miss"},
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+        assert list(m.daily) == ["2026-04-27"]
+        expected = (0.78 + 0.74) / 2 - 0.5
+>       assert abs(m.rolling_14d_gap - expected) < 1e-9
+E       AssertionError: assert 0.52 < 1e-09
+E        +  where 0.52 = abs((0.78 - 0.26))
+E        +    where 0.78 = PredRealMetrics(daily={'2026-04-27': {'predicted': 0.78, 'realized': 0, 'result': 'miss'}}, rolling_14d_gap=0.78, baseline_28d_gap=0.78, drift=0.0).rolling_14d_gap
+
+tests/health/test_predicted_vs_realized.py:104: AssertionError
+_ TestPerSlotBasis.test_dd_day_without_slot_results_miss_is_ambiguous_and_skipped _
+
+self = <tests.health.test_predicted_vs_realized.TestPerSlotBasis object at 0x10926e780>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8113/test_dd_day_without_slot_resul0')
+
+    def test_dd_day_without_slot_results_miss_is_ambiguous_and_skipped(self, tmp_path):
+        # A day-level "miss" on a DD day without slot_results can't be
+        # attributed to a leg — excluding it beats poisoning the series.
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.78},
+            "double_down": {"p_game_hit": 0.74},
+            "result": "miss",
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+>       assert m.daily == {}
+E       AssertionError: assert {'2026-04-27'...ult': 'miss'}} == {}
+E         
+E         Left contains 1 more item:
+E         {'2026-04-27': {'predicted': 0.78, 'realized': 0, 'result': 'miss'}}
+E         Use -v to get more diff
+
+tests/health/test_predicted_vs_realized.py:116: AssertionError
+____ TestPerSlotBasis.test_dd_day_without_slot_results_excluded_even_on_hit ____
+
+self = <tests.health.test_predicted_vs_realized.TestPerSlotBasis object at 0x10926eab0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8113/test_dd_day_without_slot_resul1')
+
+    def test_dd_day_without_slot_results_excluded_even_on_hit(self, tmp_path):
+        # Round-2 review #7: including legacy-DD hit days while skipping the
+        # unattributable miss days is outcome-dependent censoring — it
+        # inflates realized and can MASK degradation. Legacy DD days are
+        # excluded symmetrically.
+        (tmp_path / "2026-04-27.json").write_text(json.dumps({
+            "date": "2026-04-27",
+            "pick": {"p_game_hit": 0.78},
+            "double_down": {"p_game_hit": 0.74},
+            "result": "hit",
+        }))
+        m = compute_metrics(tmp_path, today=date(2026, 4, 27))
+>       assert m.daily == {}
+E       AssertionError: assert {'2026-04-27'...sult': 'hit'}} == {}
+E         
+E         Left contains 1 more item:
+E         {'2026-04-27': {'predicted': 0.78, 'realized': 1, 'result': 'hit'}}
+E         Use -v to get more diff
+
+tests/health/test_predicted_vs_realized.py:130: AssertionError
+____________ TestEvaluate.test_moderate_drift_is_warn_not_critical _____________
+
+self = <tests.health.test_predicted_vs_realized.TestEvaluate object at 0x10926f8f0>
+
+    def test_moderate_drift_is_warn_not_critical(self):
+        # Round-2 review #9: the drift of overlapping 14d/28d windows has
+        # SE ≈ 0.094 at day level — 0.12-0.14 is ~1.3σ, not CRITICAL signal.
+        # CRITICAL is reserved for catastrophic/pipeline-scale drift (≥0.25)
+        # pending a day-block bootstrap recalibration.
+        alerts = evaluate(self._m(28, 0.22, 0.08))  # drift 0.14
+>       assert len(alerts) == 1 and alerts[0].level == "WARN"
+E       AssertionError: assert (1 == 1 and 'CRITICAL' == 'WARN'
+E        +  where 1 = len([Alert(level='CRITICAL', source='predicted_vs_realized', message='acute predicted-vs-realized drift +0.1400: 14d gap +0.2200 vs 28d baseline +0.0800', incident_key=None)])
+E         
+E         - WARN
+E         + CRITICAL)
+
+tests/health/test_predicted_vs_realized.py:169: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_predicted_vs_realized.py::TestComputeMetrics::test_void_primary_still_counts_graded_dd_slot
+FAILED tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_grades_each_slot_against_its_own_p
+FAILED tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_without_slot_results_miss_is_ambiguous_and_skipped
+FAILED tests/health/test_predicted_vs_realized.py::TestPerSlotBasis::test_dd_day_without_slot_results_excluded_even_on_hit
+FAILED tests/health/test_predicted_vs_realized.py::TestEvaluate::test_moderate_drift_is_warn_not_critical
+========================= 5 failed, 3 passed in 0.07s ==========================
