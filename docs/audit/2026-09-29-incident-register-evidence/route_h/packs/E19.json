@@ -1,0 +1,36 @@
+{
+ "id": "E19",
+ "episode_row": [
+  "E19",
+  "4/11\u20134/12",
+  "every Hetzner cron job dead since cutover (dash, no `source`)",
+  "L",
+  "OI",
+  "A",
+  "d5c466c"
+ ],
+ "commits": [
+  {
+   "sha": "d5c466c",
+   "authored": "2026-04-12T11:46:14-04:00",
+   "subject": "feat(cron): add reproducible Hetzner cron setup script",
+   "body": "The Hetzner crontab was installed manually and used `source .env`,\nbut cron's default shell is /bin/sh (dash on Debian) which has no\n`source` builtin. Every cron job died on the first line with\n\"source: not found\" before reaching the bts CLI. Result: yesterday's\nresult-checking, the 2am reconcile, the 3am preview pick generation,\nand the 5-min lineup time collector were all silently broken since\nthe Hetzner cutover on April 11.\n\nThis script mirrors the cron-setup-pi5.sh pattern with the correct\nPOSIX dot-source (`. ./.env`), uses BTS-HETZNER markers for\nidempotent install/remove, and documents the dash gotcha at the top.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24310493193,
+    "created_at": "2026-04-12T15:52:42Z",
+    "head_sha": "d5c466c",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

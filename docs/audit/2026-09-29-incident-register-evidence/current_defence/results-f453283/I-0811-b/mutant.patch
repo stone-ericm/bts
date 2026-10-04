@@ -1,0 +1,19 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index ff0e0b5..dcc1d9a 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -1888,12 +1888,8 @@ def fetch_contest_streak(picks_dir, expected_username, dm_recipient, dry_run):
+               f"not re-capture cookies; investigate request volume if it persists. "
+               f"({exc})", category="rate_limited")
+     except TransientAuthError as exc:
+-        # Upstream flap/outage (or a rejection-lookalike page, deliberately NOT
+-        # retried) — cookies are not implicated; the next scheduled run usually
+-        # clears it. (2026-08-11 incident: the cookie-refresh advice below
+-        # misdiagnosed a plain MLB outage.)
+-        _fail(f"auth/login transient upstream failure — cookie refresh NOT indicated "
+-              f"unless this persists across runs. ({exc})", category="transient")
++        pass  # W1.5 mutant: pre-404358d — every auth failure advises cookie re-capture
++        _fail(f"auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({exc})")
+     except AuthError as exc:
+         _fail(f"auth/cookie error — refresh via capture_bts_cookies.py on Mac. ({exc})")
+     except httpx.HTTPError as exc:

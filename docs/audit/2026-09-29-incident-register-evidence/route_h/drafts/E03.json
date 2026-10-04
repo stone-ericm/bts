@@ -1,0 +1,159 @@
+{
+ "id": "I-003",
+ "working_id": "E03",
+ "title": "Live predictions read a season parquet that nothing rebuilt after new games (3/29\u20134/01)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "for each pick delivered before b6b1865 reached its prediction host, the build time (or last game date) of the pa_2026.parquet it read versus the last completed MLB game: Mac automation.log / Pi5 orchestrator.log (retention unknown; Pi5 decommissioned 4/14) \u2014 Phase 2",
+  "the 3/29\u20134/01 pick files (B1) and any retained prediction output with feature values such as days_rest"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if live picks were computed on a parquet missing recent games, their features (days_rest, rolling hit rates) were stale and the pick could differ; whether any delivered pick was affected is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "unknown",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Live predictions use features computed from every game completed through the previous day.",
+  "source": "b6b1865 body ('Fixes stale features (days_rest, rolling hit rates) caused by parquets not being rebuilt after new games'); src/bts/model/predict.py _refresh_season_data docstring (b6b1865)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_pipeline read the processed pa_*.parquet files as they stood; neither the prediction path nor the automation (cron lines at 2ab861e run only bts run / bts orchestrate) pulled new feeds or rebuilt the current season before predicting",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "2ab861e",
+     "symbol": "run_pipeline",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/cron-setup-pi5.sh",
+     "ref": "2ab861e",
+     "symbol": "CRON_LINES",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/cron-setup.sh",
+     "ref": "2ab861e",
+     "symbol": "CRON_LINES",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "b6b1865"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "b6b1865's in-pipeline refresh broke predict-json on both worker tiers (pull_feeds printed to stdout; Windows cp1252 crash in build_season) until 1929f5a/cb4c1cc/64ae365 later on 4/01 (I-004)",
+   "reaches_production": false,
+   "source": "1929f5a and 64ae365 bodies"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "at each pick commit, the season parquet read by the prediction run lacks Final games from the previous MLB day (its last game date is older than yesterday's last Final)",
+  "recovery_assertion": "the next prediction run reads a parquet containing every Final game through the previous day"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit b6b1865 message body (authored 2026-04-01T01:44:05-04:00)",
+   "what": "run_pipeline now pulls recent feeds and rebuilds the current season before predicting; 'fixes stale features (days_rest, rolling hit rates) caused by parquets not being rebuilt after new games' \u2014 no date or pick is named"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/model/predict.py run_pipeline and scripts/cron-setup.sh, scripts/cron-setup-pi5.sh at 2ab861e",
+   "what": "no pull/build step existed in the prediction path or in any cron line before b6b1865"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains b6b1865; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate window: live predictions from the first manual pick to the fix",
+   "onset": {
+    "not_before": "2026-03-29",
+    "not_after": "2026-04-01T01:44:05-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-01T01:44:05-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "b6b1865"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-004"
+ ],
+ "notes": [
+  "alternative reading: 'fixes stale features' may report staleness seen in a live run; if the lead reads it so, the disposition becomes observed_incident with tier pending",
+  "the fix introduced I-004 (both worker tiers failed on the new refresh path)",
+  "delivery_mode and policy_objective unknown: the window spans the operator-run days (3/29\u20133/30, no posting code), public posting from 3/31, and the pre-MDP strategy (MDP deployed 4/01 17:15, 68a87a7)",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; production install time on the worker tiers is not evidenced (workers auto-pulled only from 5207a09, 4/04)",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

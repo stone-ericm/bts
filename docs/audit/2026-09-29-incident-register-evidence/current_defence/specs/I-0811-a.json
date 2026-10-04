@@ -1,0 +1,78 @@
+{
+ "label": "I-0811-a",
+ "link": "I-082 link 1",
+ "tests": [
+  "tests/leaderboard/test_auth.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/leaderboard/auth.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/leaderboard/auth.py",
+   "            if text == \"\":       # ONLY a zero-length body licenses a retry (r2 #1);\n                last_transient = f\"response not JSON ({e}); body empty\"\n                last_exc = e     # whitespace is already a non-empty response.\n                continue\n",
+   "            if text == \"\":       # ONLY a zero-length body licenses a retry (r2 #1);\n                pass  # W1.5 mutant: pre-404358d \u2014 the observed blank 200 is a hard AuthError\n                raise AuthError(f\"auth/login response not JSON: {e}\")\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/leaderboard/auth.py",
+  "text": "W1.5 mutant: pre-404358d \u2014 the observed blank 200 is a hard AuthError"
+ },
+ "entry": {
+  "path": "src/bts/leaderboard/auth.py",
+  "qualname": "fetch_login_session"
+ },
+ "returns": [
+  {
+   "path": "src/bts/leaderboard/auth.py",
+   "qualname": "fetch_login_session",
+   "classify": [
+    [
+     "hard_auth_error",
+     "\"raised\": \"bts.leaderboard.auth.AuthError\""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/leaderboard/auth.py",
+  "qualname": "fetch_login_session",
+  "category": "hard_auth_error"
+ },
+ "killing": [
+  {
+   "node": "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_transient_exhaustion_raises_transient_auth_error",
+   "assertion": {
+    "path": "tests/leaderboard/test_auth.py",
+    "text": "assert ei.value.__class__.__name__ == \"TransientAuthError\"",
+    "line": 244
+   }
+  },
+  {
+   "node": "tests/leaderboard/test_auth.py::TestFetchLoginSessionTransientRetry::test_retry_backoff_sequence",
+   "assertion": {
+    "path": "tests/leaderboard/test_auth.py",
+    "text": "assert sleeps == [2.0, 4.0]",
+    "line": 400
+   }
+  }
+ ],
+ "contract": {
+  "text": "An outage-shaped auth/login response (empty 200, 5xx, transport error) is retried and, if it persists, reported as transient, never as a hard credential error.",
+  "entry_mode": "direct call of fetch_login_session",
+  "trigger": "blank HTTP 200 bodies from auth/login",
+  "symptom_kind": "wrong error (hard AuthError instead of retry / TransientAuthError)"
+ },
+ "level": "production_path",
+ "level_justification": "the killing tests replace only the external HTTP call (httpx.post) and the time module's sleep",
+ "allowed_mocks": [
+  "bts.leaderboard.auth.httpx.post",
+  "bts.leaderboard.auth.time"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

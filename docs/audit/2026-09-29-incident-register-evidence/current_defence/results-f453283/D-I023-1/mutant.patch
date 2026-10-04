@@ -1,0 +1,14 @@
+diff --git a/src/bts/strategy.py b/src/bts/strategy.py
+index c2dadde..226597d 100644
+--- a/src/bts/strategy.py
++++ b/src/bts/strategy.py
+@@ -477,7 +477,8 @@ def select_pick(
+             game_statuses_detailed = None
+ 
+     current = None
+-    if not for_shadow:
++    pass  # W1.5 mutant: pre-634768e — the shadow selection reuses production's saved pick
++    if True:
+         current = load_pick(date, picks_dir)
+         if current and unavailable_game_pks:
+             committed = {current.pick.game_pk} | (

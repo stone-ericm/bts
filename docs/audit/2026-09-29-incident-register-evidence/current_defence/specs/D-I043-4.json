@@ -1,0 +1,85 @@
+{
+ "label": "D-I043-4",
+ "link": "I-043 link 4",
+ "tests": [
+  "tests/test_strategy.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/picks.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/picks.py",
+   "    if _is_void_detailed_state(detailed):\n        return PickLockState(\n            stale=True,\n            locked=False,\n            reason=\"stale_game_status\",\n            game_pk=game_pk,\n            abstract=abstract,\n            detailed=detailed,\n        )\n",
+   "    if _is_void_detailed_state(detailed):\n        pass  # W1.5 mutant: pre-0799bf2 \u2014 a postponed/cancelled candidate is judged by its abstract status alone (abstract Preview stays eligible)\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/picks.py",
+  "text": "W1.5 mutant: pre-0799bf2 \u2014 a postponed/cancelled candidate is judged by its abstract status alone (abstract Preview stays eligible)"
+ },
+ "entry": {
+  "path": "src/bts/picks.py",
+  "qualname": "pick_candidate_status_is_available"
+ },
+ "returns": [
+  {
+   "path": "src/bts/picks.py",
+   "qualname": "pick_candidate_status_is_available",
+   "classify": [
+    [
+     "eligible",
+     "^true$"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/picks.py",
+  "qualname": "pick_candidate_status_is_available",
+  "category": "eligible"
+ },
+ "killing": [
+  {
+   "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Postponed]",
+   "assertion": {
+    "path": "tests/test_strategy.py",
+    "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\"",
+    "line": 529
+   }
+  },
+  {
+   "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Cancelled]",
+   "assertion": {
+    "path": "tests/test_strategy.py",
+    "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\"",
+    "line": 529
+   }
+  },
+  {
+   "node": "tests/test_strategy.py::TestSelectPick::test_detailed_void_candidate_excluded_even_when_abstract_preview[Canceled]",
+   "assertion": {
+    "path": "tests/test_strategy.py",
+    "text": "assert result.pick_result.daily.pick.batter_name == \"Fresh Pick\"",
+    "line": 529
+   }
+  }
+ ],
+ "contract": {
+  "text": "A prediction row whose game is detailed Postponed/Cancelled is not an eligible candidate even when the game's abstract status is still Preview.",
+  "entry_mode": "direct call of strategy.select_pick with injected detailed statuses",
+  "trigger": "top candidate's game: abstract P, detailed Postponed / Cancelled / Canceled",
+  "symptom_kind": "wrong return (the void-status game reads as an eligible candidate)"
+ },
+ "level": "component",
+ "level_justification": "the detailed statuses are passed in as an argument (no lookup); the file's autouse fixture replaces the internal policy loader bts.strategy._load_mdp",
+ "allowed_mocks": [
+  "bts.strategy._load_mdp"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

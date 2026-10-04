@@ -1,0 +1,67 @@
+{
+ "label": "D-I023-2",
+ "link": "I-023 link 2",
+ "tests": [
+  "tests/test_shadow_picks.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/picks.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/picks.py",
+   "    return DailyPick(\n        date=data[\"date\"], run_time=data[\"run_time\"], pick=pick,\n        double_down=dd, runner_up=data.get(\"runner_up\"),\n        bluesky_posted=data.get(\"bluesky_posted\", False),\n        bluesky_uri=data.get(\"bluesky_uri\"),\n",
+   "    pass  # W1.5 mutant: pre-80fd31f \u2014 the shadow load forces bluesky_posted False and bluesky_uri None\n    return DailyPick(\n        date=data[\"date\"], run_time=data[\"run_time\"], pick=pick,\n        double_down=dd, runner_up=data.get(\"runner_up\"),\n        bluesky_posted=False,\n        bluesky_uri=None,\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/picks.py",
+  "text": "W1.5 mutant: pre-80fd31f \u2014 the shadow load forces bluesky_posted False and bluesky_uri None"
+ },
+ "entry": {
+  "path": "src/bts/picks.py",
+  "qualname": "load_shadow_pick"
+ },
+ "returns": [
+  {
+   "path": "src/bts/picks.py",
+   "qualname": "load_shadow_pick",
+   "classify": [
+    [
+     "posted_masked",
+     "\"bluesky_posted\": false, \"bluesky_uri\": null"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/picks.py",
+  "qualname": "load_shadow_pick",
+  "category": "posted_masked"
+ },
+ "killing": [
+  {
+   "node": "tests/test_shadow_picks.py::TestLoadShadowPick::test_load_preserves_bluesky_posted",
+   "assertion": {
+    "path": "tests/test_shadow_picks.py",
+    "text": "assert loaded.bluesky_posted is True",
+    "line": 82
+   }
+  }
+ ],
+ "contract": {
+  "text": "load_shadow_pick returns the file's bluesky_posted and bluesky_uri verbatim, so a corrupted shadow file (production's delivered pick) stays visible on disk across a save-back.",
+  "entry_mode": "direct call of load_shadow_pick",
+  "trigger": "a {date}.shadow.json on disk with bluesky_posted=true and a bluesky_uri",
+  "symptom_kind": "wrong value (bluesky_posted false and bluesky_uri null returned for a posted shadow file)"
+ },
+ "level": "production_path",
+ "level_justification": "nothing is replaced: the test prewrites the shadow file in tmp_path and calls the loader",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

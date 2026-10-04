@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_exact_store_never_revives_a_binding_while_its_namespace_holds_a_non_string_key[module]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_exact_store_never_revives_a_binding_while_its_namespace_holds_a_non_string_key[class]", "kind": "assertion"}

@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_application_text_shaped_like_run_metadata_still_counts[pytest-text]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_the_message_digest_blanks_run_metadata_shapes_not_application_text", "kind": "assertion"}

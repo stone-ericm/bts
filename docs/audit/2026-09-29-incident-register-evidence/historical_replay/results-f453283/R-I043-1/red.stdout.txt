@@ -1,0 +1,172 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I043-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items
+
+tests/test_scheduler.py .F.F                                             [ 33%]
+tests/test_strategy.py .F......                                          [100%]
+
+=================================== FAILURES ===================================
+_____________ TestSchedulerRun.test_primary_postponed_regenerates ______________
+
+self = <tests.test_scheduler.TestSchedulerRun object at 0x10b96ef90>
+_mdp = <MagicMock name='_load_mdp' id='4488213472'>
+_pick_statuses = <MagicMock name='get_game_statuses' id='4566738576'>
+_strategy_statuses = <MagicMock name='get_game_statuses' id='4566742896'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4566781536'>
+mock_cascade = <MagicMock name='run_cascade' id='4566786000'>
+mock_lineups = <MagicMock name='check_confirmed_lineups' id='4566857296'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7965/test_primary_postponed_regener0')
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "F", "detailed": "Postponed"},
+        200: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_primary_postponed_regenerates(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+    
+        save_pick(_daily_pick(100, batter_name="Stale"), tmp_path)
+        mock_lineups.return_value = {200: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Fresh", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 200, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+    
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[200],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+    
+>       assert result["pick_result"].locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-04', run_time='2026-04-04T22:00:00+00:00', pick=Pick(batter_name='Stale', bat...lse, bluesky_uri=None, result=None, model_git_sha=None, model_pickle_sha256=None, policy_npz_sha256=None), locked=True).locked
+
+tests/test_scheduler.py:444: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Pick already locked — skipping cascade.
+____________ TestSchedulerRun.test_missing_primary_game_regenerates ____________
+
+self = <tests.test_scheduler.TestSchedulerRun object at 0x10b96f650>
+_mdp = <MagicMock name='_load_mdp' id='4566919616'>
+_pick_statuses = <MagicMock name='get_game_statuses' id='4569147648'>
+_strategy_statuses = <MagicMock name='get_game_statuses' id='4566306640'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4566310960'>
+mock_cascade = <MagicMock name='run_cascade' id='4566315184'>
+mock_lineups = <MagicMock name='check_confirmed_lineups' id='4565238320'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7965/test_missing_primary_game_rege0')
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        200: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={200: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_missing_primary_game_regenerates(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+    
+        save_pick(_daily_pick(100, batter_name="Missing"), tmp_path)
+        mock_lineups.return_value = {200: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Fresh Missing Replacement", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 200, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+    
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[200],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+    
+>       assert result["pick_result"].locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-04', run_time='2026-04-04T22:00:00+00:00', pick=Pick(batter_name='Missing', b...lse, bluesky_uri=None, result=None, model_git_sha=None, model_pickle_sha256=None, policy_npz_sha256=None), locked=True).locked
+
+tests/test_scheduler.py:530: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Pick already locked — skipping cascade.
+__ TestSelectPick.test_existing_postponed_unposted_reselects_fresh_candidate ___
+
+self = <tests.test_strategy.TestSelectPick object at 0x1102fa4b0>
+mock_statuses = <MagicMock name='get_game_statuses' id='4573436032'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4573440448'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7965/test_existing_postponed_unpost0')
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        778899: {"abstract": "F", "detailed": "Postponed"},
+        778900: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={778899: "F", 778900: "P"})
+    def test_existing_postponed_unposted_reselects_fresh_candidate(
+        self, mock_statuses, _detailed_statuses, tmp_path
+    ):
+        from bts.strategy import select_pick
+    
+        existing = DailyPick(
+            date="2026-04-01",
+            run_time="2026-04-01T15:00:00+00:00",
+            pick=Pick(
+                batter_name="Stale Pick", batter_id=100001, team="ATH",
+                lineup_position=1, pitcher_name="Suarez", pitcher_id=200001,
+                p_game_hit=0.76, flags=[], projected_lineup=False,
+                game_pk=778899, game_time="2026-04-01T23:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(existing, tmp_path)
+    
+        preds = _predictions([
+            {"batter_name": "Fresh Pick", "p_game_hit": 0.84, "game_pk": 778900},
+        ])
+        result = select_pick(preds, "2026-04-01", tmp_path)
+    
+        assert result is not None
+>       assert result.locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-01', run_time='2026-04-01T15:00:00+00:00', pick=Pick(batter_name='Stale Pick'...lse, bluesky_uri=None, result=None, model_git_sha=None, model_pickle_sha256=None, policy_npz_sha256=None), locked=True).locked
+
+tests/test_strategy.py:139: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates
+FAILED tests/test_scheduler.py::TestSchedulerRun::test_missing_primary_game_regenerates
+FAILED tests/test_strategy.py::TestSelectPick::test_existing_postponed_unposted_reselects_fresh_candidate
+========================= 3 failed, 9 passed in 0.85s ==========================

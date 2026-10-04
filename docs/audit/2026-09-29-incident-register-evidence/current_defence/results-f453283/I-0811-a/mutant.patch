@@ -1,0 +1,16 @@
+diff --git a/src/bts/leaderboard/auth.py b/src/bts/leaderboard/auth.py
+index 6163e5c..e46e56d 100644
+--- a/src/bts/leaderboard/auth.py
++++ b/src/bts/leaderboard/auth.py
+@@ -239,9 +239,8 @@ def fetch_login_session(
+             except Exception:
+                 text = None
+             if text == "":       # ONLY a zero-length body licenses a retry (r2 #1);
+-                last_transient = f"response not JSON ({e}); body empty"
+-                last_exc = e     # whitespace is already a non-empty response.
+-                continue
++                pass  # W1.5 mutant: pre-404358d — the observed blank 200 is a hard AuthError
++                raise AuthError(f"auth/login response not JSON: {e}")
+             snippet = text[:200] if text is not None else "<undecodable bytes>"
+             raise TransientAuthError(
+                 f"auth/login 200 with a non-empty non-JSON body — NOT retrying "

@@ -1,0 +1,36 @@
+{
+ "id": "E30",
+ "episode_row": [
+  "E30",
+  "4/15",
+  "shadow-report mislabelled DD-aware rate as \"Production P@1\"",
+  "U",
+  "UC",
+  "B",
+  "f5e51dc"
+ ],
+ "commits": [
+  {
+   "sha": "f5e51dc",
+   "authored": "2026-04-15T18:54:02-04:00",
+   "subject": "fix(shadow-report): rename \"Production P@1\" label to accurate \"day hit rate\"",
+   "body": "The shadow_report CLI was displaying \"Production P@1\" but the underlying\ncomputation counts days where prod.result == \"hit\", which is the\ndouble-down-aware DAY-LEVEL result \u2014 not top-1 P@1. On 2026-04-11 both\nmodels picked the same batters (Arraez + Kwan), Arraez hit and Kwan\nmissed, so true top-1 P@1 = 1 but day result = miss. The display read\n\"Production P@1: 1/5\" when it actually meant \"1 of 5 days had both\npicks hit\" (real top-1 P@1 over that window is 2/5).\n\nRenames the label to \"Production day hit rate (DD-aware)\" and updates\nthe docstring. Math unchanged.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24490273852,
+    "created_at": "2026-04-16T03:22:41Z",
+    "head_sha": "e1ebde9",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

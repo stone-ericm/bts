@@ -1,0 +1,206 @@
+{
+ "id": "I-205",
+ "working_id": "L05",
+ "title": "8/30 review deferrals: unconfirmed send attempts scored as commits (no delivery_unknown); cached feeds unvalidated and non-atomic; no cutoff inside the DM transport",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": [
+   "G",
+   "X"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "unfixed residuals of the 8/30 late-pick incident on the delivery and scoring path (a post-cutoff send, a scored pick whose delivery is unknown, a corrupt cached feed); B -> A",
+ "residual_reaches_production": true,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "No pick send lands at or after its cutoff (earliest slot first pitch - 5, picks.SUBMISSION_CUTOFF_MIN); a send whose outcome is unknown is not scored as a delivered commit; cached MLB feed files used by the pipeline are complete.",
+  "source": "docs/audit/2026-08-30-late-pick-delivery.md 'Round 2' and 'Deferred, recorded here'; picks.SUBMISSION_CUTOFF_MIN"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "after an uncaught crash between send and record, the restart finds delivery_attempted and locks the day as locked_unconfirmed, a scoreable commit: the day is polled and graded as delivered although delivery (and entry) are unknown",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "_deliver_and_lock_pick (delivery_attempted branch)",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "_write_classification_decision (attempted)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "download_game_feed returns any existing feed file without validation and writes new ones with write_bytes (no temp file + rename), so a truncated feed would persist in the cache",
+   "code": [
+    {
+     "path": "src/bts/data/pull.py",
+     "ref": "4490aee",
+     "symbol": "download_game_feed",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "_deliver_and_lock_pick re-checks the cutoff immediately before calling send_dm, but send_dm makes four sequential HTTP calls (session, handle, conversation, sendMessage) with 15 s timeouts and no overall deadline, so a send that starts just before the cutoff can land after it",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4490aee",
+     "symbol": "_deliver_and_lock_pick (pre-send cutoff re-check)",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/dm.py",
+     "ref": "4490aee",
+     "symbol": "send_dm",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 1
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 2
+  },
+  {
+   "implemented": "unfixed",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable",
+   "link": 3
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "F2: no delivery_unknown non-scoreable terminal state; partial since 8/30: the locked_unconfirmed branch pages CRITICAL (3697512)",
+   "reaches_production": true,
+   "source": "docs/audit/2026-08-30-late-pick-delivery.md 'Deferred, recorded here'; 3697512 body"
+  },
+  {
+   "text": "F10: no feed-file validation, atomic temp-file downloads or memo manifest",
+   "reaches_production": true,
+   "source": "docs/audit/2026-08-30-late-pick-delivery.md 'Deferred, recorded here'"
+  },
+  {
+   "text": "F1 residual: the deadline is not enforced inside the Bluesky transport; partial since 8/30: a pre-send cutoff re-check 'at the last responsible moment' (residual race = the transport's own duration)",
+   "reaches_production": true,
+   "source": "docs/audit/2026-08-30-late-pick-delivery.md 'Round 2'; 3697512 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a delivered pick's first confirmed receipt (delivered_at / delivery_confirmed) is at or after its cutoff, or a locked_unconfirmed commit is scored without a confirmed receipt",
+  "recovery_assertion": "every scored commit has a confirmed pre-cutoff receipt, or is recorded as delivery_unknown and excluded from scoring"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-08-30-late-pick-delivery.md 'Round 2' + 'Deferred, recorded here' (1cd5da8, amended by 3697512)",
+   "written_at": "2026-08-30T15:21:25-04:00",
+   "what": "deferred: the full delivery_unknown non-scoreable terminal state for unconfirmed attempts (F2); feed-file validation / atomic temp-file downloads and a memo manifest (F10); enforcing the deadline inside the Bluesky transport (F1 residual)"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 3697512 message body",
+   "written_at": "2026-08-30T15:21:25-04:00",
+   "what": "F1 (partial) pre-send cutoff re-check, 'residual race = the transport's own seconds'; F2 (partial) the locked_unconfirmed branch now pages CRITICAL; deferred: F2 full redesign, F10 feed-file validation, F1 in-transport deadline"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py _deliver_and_lock_pick, src/bts/dm.py send_dm, src/bts/data/pull.py download_game_feed at 4490aee",
+   "what": "locked_unconfirmed is recorded as a scoreable commit; send_dm has no overall deadline; download_game_feed trusts any existing file and writes non-atomically"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 28601525167 ... 35753849145 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "every install in the continuous logged chain 7/02 -> 9/22 (last: 4490aee) carries the three deferred paths; no fix exists"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-30T15:21:25-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "3697512",
+   "2ff2db9"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-08-30-late-pick-delivery.md"
+  ]
+ },
+ "related": [
+  "I-059",
+  "I-073",
+  "I-084"
+ ],
+ "notes": [
+  "split? three independent deferrals: (a) delivery_unknown scoring (G/E), (b) feed-file integrity (X/S), (c) in-transport deadline (D); one record per the guide",
+  "the partial fixes (CRITICAL page, pre-send re-check) were installed with 2ff2db9 (run 33335535999, 2026-08-30T21:10:22Z)",
+  "the 8/30 memo also names the day's picks; not repeated",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

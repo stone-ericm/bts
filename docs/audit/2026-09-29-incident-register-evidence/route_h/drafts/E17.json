@@ -1,0 +1,189 @@
+{
+ "id": "I-017",
+ "working_id": "E17",
+ "title": "4/10 the Fly migration instance posted picks to the public Bluesky feed as a second production bot (shadow_mode never read)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "a non-production instance delivered picks on the public delivery channel alongside the Pi5 production scheduler (delivery-contract impact); whether its picks differed from production's is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "During the migration's parallel run only the production instance posts; an instance configured with shadow_mode = true saves picks locally and never posts.",
+  "source": "d5e0d7b 'add shadow_mode to scheduler for parallel-run validation'; scripts/fly-entrypoint.sh (0e6b598) writes shadow_mode = true; 5075fba body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the Fly entrypoint wrote shadow_mode = true into the [scheduler] config and ran bts schedule, but run_day never read shadow_mode, so all three post_to_bluesky call sites (lock, in-loop fallback, final fallback) posted",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "0e6b598",
+     "symbol": "run_day",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "scripts/fly-entrypoint.sh",
+     "ref": "0e6b598",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "5075fba"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": {
+    "how": "634768e body: on 4/11 Fly ran with shadow_mode=true and save_pick wrote bluesky_posted=False (no post)",
+    "at": {
+     "not_after": "2026-04-12T14:32:08-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "result replies were suppressed only indirectly (a shadow-mode pick has no bluesky_uri); the flag was renamed private_mode on 4/12 (0cc7f23); the Fly deploy workflow and artifacts were removed (ecab05c 4/11, e997155 4/12) \u2014 whether the Fly machine itself was stopped is not evidenced",
+   "reaches_production": false,
+   "source": "5075fba diff; 0cc7f23, ecab05c, e997155 subjects"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "more than one pick post (or pick DM) for the same date from the bot account, or a delivery written by a host other than the production host",
+  "recovery_assertion": "exactly one delivered pick per date, written by the production host"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 5075fba message body",
+   "written_at": "2026-04-10T17:05:15-04:00",
+   "what": "'CRITICAL FIX: shadow_mode config was set but never read by the scheduler. The Fly machine was posting to Bluesky as a second production instance'; all three post_to_bluesky call sites now check shadow_mode"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "scripts/fly-entrypoint.sh at 0e6b598",
+   "what": "writes shadow_mode = true under [scheduler] and runs `uv run bts schedule` as the foreground daemon"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 634768e message body ('Why 4/10 and 4/11 escaped')",
+   "written_at": "2026-04-12T14:32:08-04:00",
+   "what": "on 4/10 production was the pre-shadow-wiring scheduler (Pi5); on 4/11 Fly ran in shadow_mode=true and save_pick wrote bluesky_posted=False"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24264137959 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "'Deploy BTS to Fly' run with head 5075fba, created 2026-04-10T21:05:18Z, concluded success; log expired"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 24253126060 \u2026 24261432499 and 24263667886 (deploy_runs.json)",
+   "what": "Fly deploys on 4/10 from 16:29Z succeeded before the fix; 24263667886 (head 0e6b598) failed, so the instance ran pre-fix code until run 24264137959"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-10",
+   "onset": {
+    "not_before": "2026-04-10",
+    "not_after": "2026-04-10T17:05:15-04:00",
+    "evidence": [
+     "ev1",
+     "ev5"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-10T17:05:15-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-10T17:05:15-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": {
+    "not_after": "2026-04-12T14:32:08-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "5075fba",
+   "d5e0d7b",
+   "0cc7f23",
+   "634768e"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/fly-operations.md at 0e6b598 (removed in e997155)",
+   "docs/superpowers/plans/2026-04-09-bts-cloud-migration-05-fly.md"
+  ]
+ },
+ "related": [
+  "I-023"
+ ],
+ "notes": [
+  "disposition confirmed (lead row OI?): the body states the Fly machine was posting as a second production instance, written the same day",
+  "the Fly posts themselves (count, times, content) would come from the bot's public feed, which is not an inventoried source (design \u00a74); onset is bounded by the day (Fly container files first committed 4/10 11:30 ET, 884d45b) and the fix",
+  "stream production: the affected channel was the public production delivery; the offending writer was the Fly migration instance",
+  "deployed: candidate run 24264137959 deployed to Fly, the affected host itself",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 5075fba added no test (d5e0d7b's tests/test_shadow_mode.py covers save_pick_shadow only)",
+  "deployed unknown: candidate run 24264137959 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

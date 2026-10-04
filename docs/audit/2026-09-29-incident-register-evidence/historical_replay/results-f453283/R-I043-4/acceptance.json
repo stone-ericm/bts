@@ -1,0 +1,112 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games": "symptom_candidate",
+    "tests/test_strategy.py::TestSelectPick::test_default_coarse_path_does_not_lookup_detailed_status": "passes_at_parent"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "34565cb3ec879d948b26872ce3d0ffe277efd33c1472d047435e7b7f1bb3fb3d",
+    "red": "a4b43cf1e375cd63391c3e84d801aab1a1a7ebe676e9e1c367b62135192d816f"
+  },
+  "fix": "0799bf2ece0ddcf17afa426206a56f968e390a3e",
+  "harness_changes": [
+    {
+      "path": "tests/test_cli_integration.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_orchestrator.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_picks.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_scheduler.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_shadow_scheduler.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_strategy.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I043-4",
+  "label_kind": "semantic_regression_replay",
+  "parent": "2eff8f9f03f9f5266d8c52e57d657559b8669916",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_cli_integration.py": {
+        "decision": "irrelevant",
+        "reason": "not loaded by the selected tests; adds a bts.picks.get_game_statuses_detailed patch to TestBtsRun::test_run_saves_pick_and_posts"
+      },
+      "tests/test_orchestrator.py": {
+        "decision": "irrelevant",
+        "reason": "not loaded by the selected tests; adds a bts.picks.get_game_statuses_detailed patch to TestRunAndPick::test_returns_predictions_and_result"
+      },
+      "tests/test_picks.py": {
+        "decision": "irrelevant",
+        "reason": "not loaded by the selected tests; adds TestPickCandidateStatus and imports pick_candidate_status_is_available (added by this fix) at module level"
+      },
+      "tests/test_scheduler.py": {
+        "decision": "neutral",
+        "reason": "adds a module-wide autouse fixture that patches bts.picks.get_game_statuses_detailed (present at the parent, 2eff8f9) to raise, and rewrites test_should_lock_excludes_postponed_games' fixture to the abstract-Preview / detailed-Postponed shape with its own detailed-status patch. On this path the parent's run_single_check, run_and_pick, select_pick and _lock_decision_from_predictions never call get_game_statuses_detailed (there is no existing pick), so both patches are inert at the parent and its src runs the test unchanged"
+      },
+      "tests/test_shadow_scheduler.py": {
+        "decision": "irrelevant",
+        "reason": "not loaded by the selected tests; adds a bts.picks.get_game_statuses_detailed patch to one shadow test"
+      },
+      "tests/test_strategy.py": {
+        "decision": "neutral",
+        "reason": "adds select_pick tests. The selected test_default_coarse_path_does_not_lookup_detailed_status calls select_pick(preds, date, picks_dir) and patches bts.picks.get_game_statuses_detailed and bts.strategy.get_game_statuses, all present at the parent. The other added tests pass game_statuses_detailed=, a keyword this fix adds, and are not selected"
+      }
+    },
+    "deployed_ref": {
+      "basis": "candidate_ancestry",
+      "sha": "0799bf2"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "0799bf2"
+    ],
+    "incident": "I-043",
+    "label": "R-I043-4",
+    "links": [
+      4
+    ],
+    "notes": "Symptom: at the parent (2eff8f9), candidate filtering and the lock gap use abstract statuses only. Game 200 is abstract 'P' but detailed 'Postponed', so the parent's select_pick keeps Kwan as a candidate, and _lock_decision_from_predictions (bts.picks.get_game_statuses, patched {100: 'P', 200: 'P'}) counts Kwan's projected 0.80 against the confirmed D\u00edaz 0.82. The 0.02 gap is under early_lock_gap 0.03, so should_lock returns False and `assert result[\"should_post\"] is True` fails (line 515 at 0799bf2, unique). Static checks against git show 2eff8f9:src/bts/...: bts.scheduler.check_confirmed_lineups, bts.orchestrator.run_cascade, bts.picks.get_game_statuses_detailed, bts.picks.get_game_statuses, bts.strategy.get_game_statuses and bts.strategy._load_mdp exist, and run_single_check keeps its signature. tmp_path holds no pick, so the parent's classify_pick_lock_state is never reached. should_lock at the parent is the confirmed-versus-best-projected gap rule. test_default_coarse_path_does_not_lookup_detailed_status passes at both (no existing pick, so the detailed lookup is never made). Not selected: the three new detailed-filter select_pick tests (they pass game_statuses_detailed=, added by this fix, so TypeError at the parent) and tests/test_picks.py (a module-level import of pick_candidate_status_is_available, added by this fix, so a collection error at the parent).",
+    "symptom_nodes": [
+      {
+        "_line": 515,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I043-4/tests/test_scheduler.py",
+        "assertion": {
+          "path": "tests/test_scheduler.py",
+          "text": "assert result[\"should_post\"] is True"
+        },
+        "node": "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games",
+      "tests/test_strategy.py::TestSelectPick::test_default_coarse_path_does_not_lookup_detailed_status",
+      "-q"
+    ]
+  },
+  "spec_sha256": "4710f1b8719810d683c265b5ab4d71f73227501757f5397e074a3dd3e6990b33",
+  "src_tree": {
+    "fix": "e4b7bfc94a6a3df3c59b125b8da8fa493e74718f",
+    "parent": "22d8de6c81f0f3b29dda224dd7d357c279241ecf"
+  },
+  "symptoms": {
+    "tests/test_scheduler.py::TestSchedulerRun::test_should_lock_excludes_postponed_games": []
+  },
+  "verdict": "accepted"
+}

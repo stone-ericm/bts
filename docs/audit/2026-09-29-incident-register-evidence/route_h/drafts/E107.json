@@ -1,0 +1,156 @@
+{
+ "id": "I-107",
+ "working_id": "E107",
+ "title": "Healthchecks ping URL hardcoded as a fallback in the public repo's cron script (4/12-6/06); check rotated 6/06",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "S"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "exposed alerting credential with no evidenced misuse (a spoofed success ping could have masked an outage, a spoofed /fail could have raised a false alarm); rotated and the box cut over on 6/06",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "No live alerting credential is committed to the public repository; only the box can ping its Healthchecks check.",
+  "source": "681eb8c body; CLAUDE.md ('cron-setup now REQUIRES HEALTHCHECKS_PING_URL (no hardcoded default)')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "scripts/cron-setup-hetzner.sh set HC_PING_URL to ${HEALTHCHECKS_PING_URL:-<hardcoded hc-ping URL>}, publishing the live check's ping UUID in the public repo from d5c466c (2026-04-12)",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "e2e40f2",
+     "symbol": "HC_PING_URL",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "681eb8c"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "2b752be",
+    "live_by": "2026-06-07T00:11:22Z",
+    "not_live_before": "2026-06-07T00:11:19Z",
+    "run_id": 27077693688,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "leaked check rotated to a new UUID and the box's cron cut over to it",
+    "at": {
+     "not_after": "2026-06-06T18:26:15-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The old ping URL stays in public git history (inert after the rotation)",
+   "reaches_production": false,
+   "source": "681eb8c body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "credential hygiene (a secret scan of the public repo), not a W4 rank-2 boundary",
+  "recovery_assertion": "n/a"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 681eb8c message body",
+   "written_at": "2026-06-06T18:26:15-04:00",
+   "what": "the hardcoded hc-ping fallback 'was leaked in this public repo'; the variable is now required; the leaked check was rotated to a new UUID and the box cut over"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d5c466c diff (scripts/cron-setup-hetzner.sh)",
+   "written_at": "2026-04-12T11:46:14-04:00",
+   "what": "the hardcoded fallback URL is present from the script's first version"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "deploy run 27077693688 (deploy_runs.json, log retained)",
+   "what": "pre-deploy eaccaf8 -> deployed 2b752be (contains 681eb8c) at 2026-06-07T00:11:21Z, canary passed"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "latent (no evidenced firing in Phase 1)",
+   "onset": "not_applicable",
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-06T18:26:15-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "d5c466c",
+   "681eb8c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md (HEALTHCHECKS_PING_URL required)"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "deployed (log) records the script change reaching the box checkout; it only matters at the next crontab install. The effective fix was the rotation (mitigated)",
+  "the repo's visibility on 4/12 and when the leak was noticed are not recorded; the ping UUID is deliberately not reproduced here",
+  "not on the W4 path; the lead may keep it as a hygiene item or drop it",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_return_while_another_thread_is_alive_is_not_read", "kind": "assertion"}

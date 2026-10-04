@@ -1,0 +1,65 @@
+{
+ "id": "E83",
+ "episode_row": [
+  "E83",
+  "8/13",
+  "silent pass: Warmup classification-locked the undelivered pick; no missed-pick alert",
+  "D/A",
+  "OI",
+  "A",
+  "1b50b78 224ddce"
+ ],
+ "commits": [
+  {
+   "sha": "1b50b78",
+   "authored": "2026-08-14T12:57:05-04:00",
+   "subject": "fix(picks): Warmup no longer terminally locks an undelivered pick",
+   "body": "2026-08-13 incident: the 12:35 lineup check finished at 12:49, by which\npoint the double-down game (13:10 start) had entered MLB's Warmup state.\nWarmup (statusCode PW) is abstract-Live but pre-first-pitch \u2014 the only\nsuch state (all \"Delayed Start:*\" remain abstract-Preview) \u2014 so\nclassify_pick_lock_state marked the undelivered candidate\ngame_started_or_final, delivery was skipped, and the day passed silently\nwith both would-be legs hitting (Arraez 3-for-5, Meidroth 2-for-3).\n\n- _classify_unposted_game_status: Warmup -> not locked\n  (warmup_not_started). Matches statusCode \"PW\" first (now plumbed\n  through get_game_statuses_detailed as \"code\"); exact detailed-string\n  \"warmup\" kept as compatibility fallback for cached shapes.\n- pick_candidate_status_is_available deliberately still EXCLUDES warmup:\n  contest entry closes T-5 before scheduled first pitch, so the fresh\n  pool stays conservative while an already-chosen candidate remains\n  deliverable (Codex review: separate predicates, not one).\n- classify_pick_lock_state: an undelivered pick with\n  delivery_attempted=True now locks on that durable marker BEFORE any\n  status lookup. Without this, the warmup carve-out (and the\n  pre-existing Preview path) let select_pick reselect and overwrite the\n  marker with delivery_attempted=False \u2014 erasing the crash-gap\n  idempotency guard and re-sending (duplicate-delivery path).\n- select_pick: when the fresh pool is empty but the existing pick itself\n  classified deliverable, return it UNLOCKED so the fallback-deadline\n  path can deliver it \u2014 returning it locked recreates the silent pass\n  when the pick's own games are merely in warmup.\n- The abstract-only fallback path (detailed lookup failed) still treats\n  Warmup as locked: it cannot distinguish PW from in-progress, and\n  fail-closed is deliberate there.\n\n3 Codex review rounds (gpt-5.6-sol high); scheduler-side alert fixes in\nthe follow-up commit.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01N3Q9WzTiX4H2RrGU52XK9j",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/strategy.py",
+    "tests/test_picks.py",
+    "tests/test_strategy.py",
+    "tests/test_warmup_lock_classification.py"
+   ],
+   "first_live_log": {
+    "sha": "3e1791c",
+    "live_by": "2026-08-14T19:04:35Z",
+    "not_live_before": "2026-08-14T19:04:35Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31831299733,
+    "created_at": "2026-08-14T19:00:24Z",
+    "head_sha": "3e1791c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "224ddce",
+   "authored": "2026-08-14T12:57:21-04:00",
+   "subject": "fix(scheduler): undelivered locked days must alert; commits must be durable",
+   "body": "Companion to the Warmup classifier fix \u2014 the alerting half of the\n2026-08-13 silent pass. Every safety net keyed off the wrong flag: E3\nwas gated on state.pick_locked, which a NON-delivered classification\nlock sets without any delivery, so the alert never fired;\ncheck-pick-entered correctly keys on scoreable commits and said\n\"nothing to check\" all day.\n\n- Step 5b now gates on committed_pick_written, and\n  _maybe_alert_missed_pick additionally consults the on-disk\n  decision.json (the authority \u2014 the in-memory flag can be stale after\n  a crash between decision write and state save). Private mode still\n  alerts on an UNCOMMITTED day by design (test-pinned D6 behavior; the\n  operator enters manually, so silence is the incident class); a\n  successful private lock is suppressed via its scoreable record.\n- run_single_check pre-cascade: any scoreable decision on disk locks\n  the day regardless of game status \u2014 a same-day restart must not\n  reselect over a private/unconfirmed commit whose pick file carries no\n  delivery flags (committed means immutable).\n- _write_classification_decision: an undelivered pick classified locked\n  on its delivery_attempted marker now finalizes as a scoreable\n  locked_unconfirmed commit \u2014 the classifier locks on the durable\n  marker before _deliver_and_lock_pick can run its unconfirmed-attempt\n  branch after a restart, so finalization has to happen at the\n  chokepoint (restores result polling + E3 suppression). Also never\n  clobbers an existing scoreable decision with a source=\"unknown\"\n  recovery record; it resyncs the flag instead.\n- _write_commit_decision: committed_pick_written is set only when\n  write_decision actually returned a record \u2014 a flag with no record\n  behind it suppressed E3 while leaving nothing for polling.\n\n3 Codex review rounds; rejected finding recorded: blanket private-mode\nE3 suppression (contradicts pinned D6 flip test; alert-on-ambiguity is\nthe safe direction after a silent pass \u2014 Codex withdrew on this).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01N3Q9WzTiX4H2RrGU52XK9j",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_e3_missed_pick_alert.py",
+    "tests/test_scheduler_decision_record.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "3e1791c",
+    "live_by": "2026-08-14T19:04:35Z",
+    "not_live_before": "2026-08-14T19:04:35Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 31831299733,
+    "created_at": "2026-08-14T19:00:24Z",
+    "head_sha": "3e1791c",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

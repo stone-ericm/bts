@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_records::test_publication_binds_expected_failure_fixtures", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_record_exception_must_be_the_registered_one_exactly", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_record_controls_are_bound_to_the_pairs_passing_nodes", "kind": "assertion"}

@@ -1,0 +1,123 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock[F-Final]": "passes_at_parent",
+    "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock[F-Game Over]": "passes_at_parent",
+    "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock[L-Delayed: Rain]": "passes_at_parent",
+    "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock[L-In Progress]": "passes_at_parent",
+    "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock[L-Suspended]": "passes_at_parent",
+    "tests/test_strategy.py::TestSelectPick::test_existing_warmup_pick_stays_deliverable_when_pool_empty": "symptom_candidate",
+    "tests/test_strategy.py::TestSelectPick::test_existing_warmup_unposted_does_not_lock": "symptom_candidate",
+    "tests/test_warmup_lock_classification.py::TestCandidateAvailability::test_preview_game_available": "passes_at_parent",
+    "tests/test_warmup_lock_classification.py::TestCandidateAvailability::test_started_game_not_available": "passes_at_parent",
+    "tests/test_warmup_lock_classification.py::TestCandidateAvailability::test_warmup_game_not_available_for_fresh_candidates": "passes_at_parent",
+    "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "7abaf4b893a1e8511bdf176fb3ae1ad5ecab1de10db265db70c10f58a19a5213",
+    "red": "aa877f21a06d75e84fd7c008d595b77c956b61a27e1f1efbcc9a058398876720"
+  },
+  "fix": "1b50b78ecbf1c0fcba4676e1f9c82fa3426dc63c",
+  "harness_changes": [
+    {
+      "path": "tests/test_picks.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_strategy.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_warmup_lock_classification.py",
+      "status": "A"
+    }
+  ],
+  "label": "R-I083-1",
+  "label_kind": "semantic_regression_replay",
+  "parent": "e5354bf5067b6e6876197daaec76d58d88a9fdea",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_picks.py": {
+        "decision": "irrelevant",
+        "reason": "not selected and never loaded by the selected tests; updates two expected get_game_statuses_detailed dicts for the fix's new 'code' key (a return-shape change, not the contract)"
+      },
+      "tests/test_strategy.py": {
+        "decision": "neutral",
+        "reason": "adds the two warmup select_pick tests and edits the test_existing_started_or_final_statuses_lock parametrization: drops ('L', 'Warmup'), the case that pinned the defect (Warmup must lock), and adds ('L', 'Delayed: Rain'); the new tests call select_pick with game_statuses_detailed and require_detailed_statuses, both parameters of select_pick at the parent, and patch bts.picks.get_game_statuses_detailed and bts.strategy.get_game_statuses (both present); the module's autouse _disable_mdp fixture patches bts.strategy._load_mdp (present) and is unchanged"
+      },
+      "tests/test_warmup_lock_classification.py": {
+        "decision": "neutral",
+        "reason": "new file with the contract's tests; its module-level imports (DailyPick, Pick, classify_pick_lock_state, get_game_statuses_detailed, pick_candidate_status_is_available, save_pick) all exist in bts.picks at the parent e5354bf; the selected tests patch bts.picks.get_game_statuses_detailed (present) and call classify_pick_lock_state(daily, date) and pick_candidate_status_is_available(status) with the parent's signatures"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "3e1791c"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "1b50b78"
+    ],
+    "incident": "I-083",
+    "label": "R-I083-1",
+    "links": [
+      1
+    ],
+    "notes": "Symptoms: at the parent e5354bf, _classify_unposted_game_status has no Warmup carve-out, so an undelivered pick whose game is {'abstract': 'L', 'detailed': 'Warmup'} (the 8/13 status) falls to 'abstract != P' and is classified locked (reason game_started_or_final). Node 1: classify_pick_lock_state returns locked=True, so 'assert state.locked is False' fails (line 44; the same text is on line 71, hence the line number). Node 2: select_pick classifies the saved pick before any candidate filtering and returns it as PickResult(locked=True), so the assertion on line 243 fails. Node 3: same path (the classifier locks before the empty-pool branch is reached), so the assertion on line 279 fails; at F the pick is classified warmup_not_started and returned unlocked because warmup games stay out of the fresh pool. Controls passing at both: TestCandidateAvailability (warmup, preview, started) and the five started/final statuses that must still lock. Not selected: test_statuscode_pw_recognized_without_detailed_text (it would fail by assertion at the parent, but its input carries the 'code' key that only the fix's fetcher produces, so it witnesses the statusCode plumbing rather than the 8/13 shape), the two delivery_attempted tests (a separate crash-idempotency rule added in the same commit; at the parent they fail on the new reason label or on Preview), and TestDetailedStatusFetchShape (KeyError at the parent: the 'code' key is new). Static checks at e5354bf: DailyPick has delivery_attempted (default False); PickLockState has locked/stale/reason; select_pick(predictions, date, picks_dir, ..., game_statuses_detailed=None, require_detailed_statuses=False); tests/conftest.py has no autouse fixtures. Anchors at 1b50b78: 'assert state.locked is False' on lines 44 and 71 of tests/test_warmup_lock_classification.py; 'assert result.pick_result.locked is False' on lines 168, 197, 243, 279, 430, 528 and 548 of tests/test_strategy.py, so each symptom carries its line.",
+    "symptom_nodes": [
+      {
+        "_line": 44,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-1/tests/test_warmup_lock_classification.py",
+        "assertion": {
+          "line": 44,
+          "path": "tests/test_warmup_lock_classification.py",
+          "text": "assert state.locked is False"
+        },
+        "node": "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked"
+      },
+      {
+        "_line": 243,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-1/tests/test_strategy.py",
+        "assertion": {
+          "line": 243,
+          "path": "tests/test_strategy.py",
+          "text": "assert result.pick_result.locked is False"
+        },
+        "node": "tests/test_strategy.py::TestSelectPick::test_existing_warmup_unposted_does_not_lock"
+      },
+      {
+        "_line": 279,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I083-1/tests/test_strategy.py",
+        "assertion": {
+          "line": 279,
+          "path": "tests/test_strategy.py",
+          "text": "assert result.pick_result.locked is False"
+        },
+        "node": "tests/test_strategy.py::TestSelectPick::test_existing_warmup_pick_stays_deliverable_when_pool_empty"
+      }
+    ],
+    "tests": [
+      "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked",
+      "tests/test_strategy.py::TestSelectPick::test_existing_warmup_unposted_does_not_lock",
+      "tests/test_strategy.py::TestSelectPick::test_existing_warmup_pick_stays_deliverable_when_pool_empty",
+      "tests/test_warmup_lock_classification.py::TestCandidateAvailability",
+      "tests/test_strategy.py::TestSelectPick::test_existing_started_or_final_statuses_lock",
+      "-q"
+    ]
+  },
+  "spec_sha256": "d331a35f1cbedecf57478dd6a6304fd77ac80acd065588463e6afac6f219c615",
+  "src_tree": {
+    "fix": "b29526aac71ce953d9a90cb17686361a3a00ab2b",
+    "parent": "5563d03f3ea71442c9af4bde49ba25105e71f5c5"
+  },
+  "symptoms": {
+    "tests/test_strategy.py::TestSelectPick::test_existing_warmup_pick_stays_deliverable_when_pool_empty": [],
+    "tests/test_strategy.py::TestSelectPick::test_existing_warmup_unposted_does_not_lock": [],
+    "tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked": []
+  },
+  "verdict": "accepted"
+}

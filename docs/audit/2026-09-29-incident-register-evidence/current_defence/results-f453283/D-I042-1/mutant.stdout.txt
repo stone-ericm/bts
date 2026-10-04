@@ -1,0 +1,91 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 32 items
+
+tests/health/test_realized_calibration.py ..........F.F....F............ [ 93%]
+..                                                                       [100%]
+
+=================================== FAILURES ===================================
+___________ TestDDLegBucket.test_dd_leg_70_75_overconfidence_alerts ____________
+
+self = <tests.health.test_realized_calibration.TestDDLegBucket object at 0x10743ffe0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7994/test_dd_leg_70_75_overconfiden0')
+
+    def test_dd_leg_70_75_overconfidence_alerts(self, tmp_path):
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        # 10 DD days: primaries at 0.79 all hit (calibrated); DD legs at 0.73
+        # realize 5/10 → +23pp → WARN.
+        for i in range(10):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.79, pdd=0.73,
+                          slot_pick="hit", slot_dd="hit" if i < 5 else "miss")
+        alerts = check(picks_dir, today=today)
+>       assert len(alerts) == 1, alerts
+E       AssertionError: [Alert(level='WARN', source='realized_calibration', message='75-80% bucket overconfident by +29.0pp over last 30d (n=1...sults:20/pa:0/proxy:0, filter=ALL-PICKS (iteration-contaminated))', incident_key='realized_calibration:70-75% DD-leg')]
+E       assert 2 == 1
+E        +  where 2 = len([Alert(level='WARN', source='realized_calibration', message='75-80% bucket overconfident by +29.0pp over last 30d (n=1...sults:20/pa:0/proxy:0, filter=ALL-PICKS (iteration-contaminated))', incident_key='realized_calibration:70-75% DD-leg')])
+
+tests/health/test_realized_calibration.py:172: AssertionError
+_____ TestDDLegBucket.test_both_buckets_alert_with_distinct_incident_keys ______
+
+self = <tests.health.test_realized_calibration.TestDDLegBucket object at 0x10743d2b0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7994/test_both_buckets_alert_with_d0')
+
+    def test_both_buckets_alert_with_distinct_incident_keys(self, tmp_path):
+        # 20 DD days carrying BOTH an overconfident 75-80 primary (0.78
+        # stated, 12/20 realized → +18pp WARN) AND a collapsed DD leg (0.73
+        # stated, 2/20 realized → +63pp, n=20 → CRITICAL).
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(20):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.78, pdd=0.73,
+                          slot_pick="hit" if i < 12 else "miss",
+                          slot_dd="hit" if i < 2 else "miss")
+        alerts = check(picks_dir, today=today)
+        assert len(alerts) == 2, alerts
+        keys = {a.incident_key for a in alerts}
+        assert len(keys) == 2
+        levels = {a.level for a in alerts}
+>       assert levels == {"WARN", "CRITICAL"}
+E       AssertionError: assert {'CRITICAL'} == {'CRITICAL', 'WARN'}
+E         
+E         Extra items in the right set:
+E         'WARN'
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:206: AssertionError
+________ TestDDLegBucket.test_dd_slot_results_grading_beats_day_result _________
+
+self = <tests.health.test_realized_calibration.TestDDLegBucket object at 0x10774c260>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7994/test_dd_slot_results_grading_b0')
+
+    def test_dd_slot_results_grading_beats_day_result(self, tmp_path):
+        # A DD day where the primary missed (day result "miss") but the DD
+        # leg HIT must count the DD leg as a hit — day-level attribution was
+        # the exact bias the 2026-05-01 fix documented. Primary p sits at
+        # 0.82 (outside every bucket) so only the DD-leg grading is under
+        # test.
+        picks_dir = tmp_path / "picks"
+        today = date(2026, 7, 12)
+        for i in range(8):
+            _write_dd_day(picks_dir, today - timedelta(days=i + 1),
+                          p1=0.82, pdd=0.73,
+                          slot_pick="miss", slot_dd="hit")
+        # All 8 DD legs hit at 0.73 stated → under-confident, no alert.
+>       assert check(picks_dir, today=today) == []
+E       AssertionError: assert [Alert(level=...-75% DD-leg')] == []
+E         
+E         Left contains one more item: Alert(level='CRITICAL', source='realized_calibration', message='70-75% DD-leg bucket overconfident by +73.0pp over las...rent-model overconfidence signal — investigate distribution shift.', incident_key='realized_calibration:70-75% DD-leg')
+E         Use -v to get more diff
+
+tests/health/test_realized_calibration.py:296: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_realized_calibration.py::TestDDLegBucket::test_dd_leg_70_75_overconfidence_alerts
+FAILED tests/health/test_realized_calibration.py::TestDDLegBucket::test_both_buckets_alert_with_distinct_incident_keys
+FAILED tests/health/test_realized_calibration.py::TestDDLegBucket::test_dd_slot_results_grading_beats_day_result
+========================= 3 failed, 29 passed in 0.95s =========================

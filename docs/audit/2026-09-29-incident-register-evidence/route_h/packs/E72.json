@@ -1,0 +1,66 @@
+{
+ "id": "E72",
+ "episode_row": [
+  "E72",
+  "7/08",
+  "DD leg never entered after a single alert (cost +1)",
+  "E",
+  "OI",
+  "A",
+  "8bceda1 a6ec548"
+ ],
+ "commits": [
+  {
+   "sha": "8bceda1",
+   "authored": "2026-07-09T22:32:26-04:00",
+   "subject": "fix(cli): check-pick-entered closes the loop \u2014 alerted is non-terminal (audit F1)",
+   "body": "One DM then blindness let 7/08's DD leg go unentered past a single 18:00\nalert, and 7/09's entry landed only after an out-of-band warning. v3: after\nalerting, every */15 run RE-VERIFIES the account until confirmed or cutoff;\nthrottled escalations at T-30/T-15 minutes-to-cutoff (each tier at most once,\nan alert at/below a threshold consumes it); a one-time all-clear DM on the\nalerted->confirmed transition; failed DMs stay retryable at every tier;\nlegacy markers (no escalation ledger) treated as initial-fired. New\npick_entry health source backstops the audit trail at EOD: alerted past\ncutoff = WARN, dm_failed past cutoff = CRITICAL, quiet while a late game's\nwindow is still open.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/health/pick_entry.py",
+    "src/bts/health/runner.py",
+    "tests/health/test_pick_entry_source.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "49f2538",
+    "live_by": "2026-07-10T15:20:05Z",
+    "not_live_before": "2026-07-10T15:20:05Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29103040814,
+    "created_at": "2026-07-10T15:16:31Z",
+    "head_sha": "49f2538",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "a6ec548",
+   "authored": "2026-07-03T22:59:28-04:00",
+   "subject": "feat(cli): check-pick-entered v2 \u2014 pending entries via GET api/predictions",
+   "body": "v1 (2026-06-12) was disabled the night it shipped: its only source, the\nuser-profile predictions array, is SETTLED-only, so the pre-pitch check\nfalse-alarmed every day. The app JS bundle revealed Api.Prediction.get ->\nGET api/predictions, which exposes the OWN pending same-day row (verified\nlive tonight: the in-flight pick with result null). v2 detects entry from\nthe UNION of the profile and pending sources; any fetch failure skips\nquietly WITHOUT consuming the once-per-day marker, so a transient error\ncannot reproduce the v1 false-alarm class \u2014 the next 15-min cron run\nretries. Closes the 2026-06-11 missed-entry incident class.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_017ZFmfr3ec31457x8k6qxFg",
+   "files": [
+    "src/bts/cli.py",
+    "src/bts/contest_fetch.py",
+    "src/bts/leaderboard/endpoints.py",
+    "tests/test_cli_integration.py",
+    "tests/test_contest_fetch.py"
+   ],
+   "first_live_log": {
+    "sha": "720651a",
+    "live_by": "2026-07-04T03:07:46Z",
+    "not_live_before": "2026-07-04T03:07:46Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28692943534,
+    "created_at": "2026-07-04T03:03:16Z",
+    "head_sha": "720651a",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

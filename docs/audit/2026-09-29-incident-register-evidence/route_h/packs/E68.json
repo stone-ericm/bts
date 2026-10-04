@@ -1,0 +1,36 @@
+{
+ "id": "E68",
+ "episode_row": [
+  "E68",
+  "6/30",
+  "3am cron could publish the R2 manifest over a failed rebuild",
+  "S",
+  "DL",
+  "P",
+  "b0420a0"
+ ],
+ "commits": [
+  {
+   "sha": "b0420a0",
+   "authored": "2026-06-30T14:44:45-04:00",
+   "subject": "fix(cron): gate the 3am R2 sync on a successful build",
+   "body": "The nightly `pull && build && preview ; sync-to-r2` used `;` before sync, so\nsync-to-r2 ran even if pull/build failed. With the is_resumed_portion SCHEMA_VERSION\nbump, a failed 2026 rebuild could then publish a new-schema R2 manifest over stale\n(old-schema) parquets -- a silent manifest/physical-schema mismatch. Group preview +\nsync after `&& build` so neither runs unless pull+build succeed, keeping the `;`\nbetween them so a preview error doesn't block the R2 backup and a sync failure (R2\noutage) doesn't block preview. Surfaced by the post-deploy Codex review.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_018G8K9AtnrzJzgUu4B41rQ5",
+   "files": [
+    "scripts/cron-setup-hetzner.sh"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 28468207448,
+    "created_at": "2026-06-30T18:49:07Z",
+    "head_sha": "b0420a0",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_jump_back_to_the_entry_is_never_a_second_start[revisit-import]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_jump_back_to_the_entry_is_never_a_second_start[revisit-swap]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_jump_back_to_the_entry_is_never_a_second_start[direct-constructor]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_jump_back_to_the_entry_is_never_a_second_start[noncell-revisit]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_plain_function_that_jumps_back_to_its_entry_is_never_read", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_entry_that_a_jump_or_handler_targets_is_unreadable", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_frame_started_before_observation_never_becomes_a_witness", "kind": "assertion"}

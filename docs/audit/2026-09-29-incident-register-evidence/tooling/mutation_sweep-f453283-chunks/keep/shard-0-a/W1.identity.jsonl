@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_defence::test_primary_checkout_is_never_used", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_owned::test_primary_checkout_is_refused_untouched", "kind": "assertion"}

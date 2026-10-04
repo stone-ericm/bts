@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I061-2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 3 items
+
+tests/health/test_contest_state.py .F.                                   [100%]
+
+=================================== FAILURES ===================================
+_____________ test_gap1_persisting_past_noon_et_escalates_to_warn ______________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8021/test_gap1_persisting_past_noon0')
+
+    def test_gap1_persisting_past_noon_et_escalates_to_warn(tmp_path):
+        """2026-06-12 incident: gap==1 at 7pm ET stayed INFO all day while the
+        real cause was a never-entered pick. Overnight lag is only 'expected'
+        overnight — past noon ET it becomes a WARN (still not CRITICAL: the pick
+        path is already conservative)."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-06",
+        }))
+        (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        from datetime import datetime, timezone
+        afternoon = datetime(2026, 6, 8, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
+        alerts = check(tmp_path, expected=True, now=afternoon)
+        assert not any(a.level == "CRITICAL" for a in alerts), alerts
+        warns = [a for a in alerts if a.level == "WARN" and a.source == SOURCE
+                 and "persist" in a.message]
+>       assert warns, alerts
+E       AssertionError: [Alert(level='INFO', source='contest_state', message='contest state lags 1 settled pick (expected overnight window): source_date=2026-06-06, latest resolved 2026-06-07; refreshes on the next scheduled fetch')]
+E       assert []
+
+tests/health/test_contest_state.py:117: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_contest_state.py::test_gap1_persisting_past_noon_et_escalates_to_warn
+========================= 1 failed, 2 passed in 0.05s ==========================

@@ -1,0 +1,38 @@
+{
+ "id": "E14",
+ "episode_row": [
+  "E14",
+  "4/06",
+  "dashboard \"Final \u2014 pick missed\" early on a cross-game double",
+  "U",
+  "UC",
+  "B",
+  "0ba01e1"
+ ],
+ "commits": [
+  {
+   "sha": "0ba01e1",
+   "authored": "2026-04-06T19:32:31-04:00",
+   "subject": "fix: debut flag for limited-data pitchers + dashboard double-pick status",
+   "body": "1. Pitchers with <10 career starts (like Bubba Chandler, 8 games) were\n   flagged as \"DEBUT\" because pitcher_hr_30g requires min_periods=10.\n   Now checks if pitcher_id exists in historical data \u2014 shows \"LIMITED\n   pitcher data\" instead of \"DEBUT\" when they have some history.\n\n2. Dashboard merge_scorecards used most-advanced status (Final > Live),\n   so a double-pick with one Final + one Live game showed \"Final \u2014 pick\n   missed\" prematurely. Now uses least-advanced status \u2014 only Final when\n   ALL games are done.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/model/predict.py",
+    "src/bts/scorecard.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

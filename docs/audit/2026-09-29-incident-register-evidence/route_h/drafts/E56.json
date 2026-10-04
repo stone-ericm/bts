@@ -1,0 +1,302 @@
+{
+ "id": "I-056",
+ "working_id": "E56",
+ "title": "5/29-6/06 contest state silently froze at a stale manual value (7) while the real streak was 0: decisions ran on the frozen streak with doubles disabled, no alert",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "G",
+  "secondary": [
+   "A",
+   "P"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "contest/state impact: for about a week live decisions used a frozen streak (max(model, 7)) with doubles disabled while the real account streak was 0, and nothing alerted",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "Live decisions use the real MLB contest streak; a stale contest observation (source_date earlier than the latest resolved pick) while contest state is expected raises a CRITICAL instead of silently freezing the decision state.",
+  "source": "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md (goal 'never silently freeze again'); commit 365ea40; commit 2b4ff1d subject ('decision streak = real MLB streak')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "since 2890b2c (5/29) live picks were driven by contest state, but the only writer of that state was a manual screenshot entry (source_date 2026-05-29); nothing refreshed it, so it went stale with the next resolved pick",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "f5b60af",
+     "symbol": "set-contest-streak (manual only; no fetch-contest-streak)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "f5b60af",
+     "symbol": "load_contest_streak_state",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "on a stale observation load_decision_streak_state returned streak = max(model_streak, contest.streak), saver False and allow_double False, so the decision state stayed at the stale 7 with doubles disabled",
+   "code": [
+    {
+     "path": "src/bts/contest_state.py",
+     "ref": "aba6f41",
+     "symbol": "load_decision_streak_state (stale branch)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "the contest_state health check flagged only missing or invalid state, never stale, so no alert fired",
+   "code": [
+    {
+     "path": "src/bts/health/contest_state.py",
+     "ref": "fa30ecb",
+     "symbol": "check",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "fa30ecb",
+     "68a35d3"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-06T20:25:30Z",
+    "run_id": 27072979769,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "hotfix `bts set-contest-streak --streak 0 --best-streak 9`",
+    "at": {
+     "not_after": "2026-06-06T15:22:21-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "2b4ff1d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "9958874",
+    "live_by": "2026-06-17T21:09:18Z",
+    "run_id": 27719946982,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "365ea40",
+     "58c9adc"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "eaccaf8",
+    "live_by": "2026-06-06T20:25:30Z",
+    "run_id": 27072979769,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "365ea40's stale check fired a CRITICAL most nights on the expected one-day settlement lag (alert fatigue that could mask a real freeze) until the gap-aware 58c9adc (6/07, E57/I-057); fetch-contest-streak also DM'd 'failed' on the expected lag until 8cd7207 (6/10, E58/I-058).",
+   "reaches_production": false,
+   "source": "commit 58c9adc message body; commit 8cd7207"
+  },
+  {
+   "text": "The first auto-fetch discarded the current activeStreak / not_hit rows (fixed 4bdfdb8, 6/17), and the max(model, contest) freeze stayed in the decision path until 2b4ff1d (6/17) - the 6/11-6/17 streak mismatch (E63/I-063).",
+   "reaches_production": false,
+   "source": "commits 4bdfdb8, 2b4ff1d; working table E63"
+  },
+  {
+   "text": "Cookie expiry for the contest fetch still needs interactive re-capture; on failure the design is alert + manual re-capture.",
+   "reaches_production": true,
+   "source": "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md 'Out of scope'"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "contest state source_date is more than one day older than the latest resolved pick date while contest state is expected (checked each morning after the scheduled fetch), or the decision streak differs from the latest current contest observation",
+  "recovery_assertion": "a fresh auto-fetch with source_date >= the latest resolved pick date is on disk and the decision streak equals the contest streak"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md §Context (commit d383db5)",
+   "exposure_row": "X-01",
+   "what": "the contest observation was a manual screenshot from 2026-05-29 (streak 7) that nothing refreshed; it froze the dashboard at 7 for a week while the real streak was 0 (best 9); the health check only flagged missing/invalid state, never stale; hotfixed 2026-06-06 via set-contest-streak --streak 0 --best-streak 9",
+   "written_at": "2026-06-06T15:22:21-04:00"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/contest_state.py load_decision_streak_state at fa30ecb; commit 2890b2c",
+   "what": "stale branch returns streak=max(model_streak, contest.streak), saver_available=False, allow_double=False, message 'contest streak is stale; freezing at conservative effective streak and disabling doubles'; 2890b2c (5/29) made live picks use this state"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27072979769 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head eaccaf8 (PR #142: fa30ecb, 365ea40) created 2026-06-06T20:25:30Z; log unavailable_expired; the first retained log (run 27077693688) shows eaccaf8 installed at 2026-06-07T00:11:19Z"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27719946982 (deploy_runs.json)",
+   "what": "first successful deploy whose head (9958874) contains 2b4ff1d, created 2026-06-17T21:09:18Z; log bound live by 2026-07-02T15:28:10Z (run 28601525167)"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 26673084651 (deploy_runs.json)",
+   "what": "first successful deploy containing 2890b2c (contest-driven live picks), head ad6c301, created 2026-05-30T03:19:53Z (5/29 23:19 ET)"
+  },
+  {
+   "id": "ev6",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 365ea40 message body",
+   "written_at": "2026-06-06T16:03:06-04:00",
+   "what": "closes the alert gap 'that hid the silent freeze': stale (source_date < latest resolved pick) now alarms when contest state is expected"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-30 to 2026-06-06",
+   "onset": {
+    "not_before": "2026-05-29T23:19:53-04:00",
+    "not_after": "2026-06-06T15:22:21-04:00",
+    "evidence": [
+     "ev1",
+     "ev5"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-05-29T23:19:53-04:00",
+    "not_after": "2026-06-06T15:22:21-04:00",
+    "evidence": [
+     "ev1",
+     "ev5"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-06T15:22:21-04:00",
+    "evidence": [
+     "ev1",
+     "ev6"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-06T15:22:21-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": {
+    "not_after": "2026-06-06T15:22:21-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "365ea40",
+   "d383db5",
+   "fa30ecb",
+   "68a35d3",
+   "2890b2c",
+   "2b4ff1d",
+   "58c9adc"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #142",
+   "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md",
+   "docs/superpowers/plans/2026-06-06-contest-streak-automation.md"
+  ]
+ },
+ "related": [
+  "I-057",
+  "I-058",
+  "I-063"
+ ],
+ "notes": [
+  "prelim OI/A kept: the 6/06 spec and 365ea40 body report the frozen state while it was present and are contemporaneous with its 6/06 hotfix under the 9/29 continuing-condition ruling; B1 pick files/journal 5/30-6/06 (decision streak-state fields, 'contest streak is stale' lines) are the machine artifacts for Route R",
+  "the streak values are what the incident is about, so ev1 carries exposure row X-01",
+  "onset lower bound = the deploy that made live picks depend on contest state (2890b2c via run 26673084651); the freeze needs a resolved pick dated after 5/29, so the true onset is 5/30 or later",
+  "link 1 fix: fetch-contest-streak (fa30ecb) plus its cron schedule (68a35d3, box crontab install not evidenced here); complete_fix_set false because of 4bdfdb8 (E63)",
+  "link 2 was fixed by E63's 2b4ff1d (other batch) - consider moving it there",
+  "defective refs follow the parent-of-fix rule: f5b60af and fa30ecb are PR #142 branch commits that were never deployed themselves; the code live during the freeze was the 2890b2c-era main (e.g. ad6c301 via run 26673084651), whose contest_state/health code the cited symbols match",
+  "log bounds: links 1 and 3 live by 2026-06-07T00:11:19Z (run 27077693688); link 2 by 2026-07-02T15:28:10Z (run 28601525167)",
+  "regression tests named in the fix: tests/health/test_contest_state.py test_stale_contest_state_is_critical, test_legacy_manual_present_warns",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

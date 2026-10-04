@@ -1,0 +1,59 @@
+{
+ "id": "E15",
+ "episode_row": [
+  "E15",
+  "4/06\u20134/08",
+  "cross-game double graded on one game (+1 not +2); NameError in polling after the fix",
+  "G",
+  "UC",
+  "P",
+  "1d9c199 c7c2f73"
+ ],
+ "commits": [
+  {
+   "sha": "1d9c199",
+   "authored": "2026-04-07T10:22:38-04:00",
+   "subject": "fix: cross-game double-down streak counting",
+   "body": "When double-down picks are in different games, the scheduler was only\npolling the primary pick's game. When that game went Final first, it\nwould check the second pick's game which might still be in progress \u2014\nif check_hit returned None, the result list had only 1 element instead\nof 2, so streak incremented by 1 instead of 2.\n\nTwo fixes:\n1. scheduler: track all game PKs, wait for ALL games to be Final\n   before recording results. If double check_hit returns None, mark\n   as unresolved instead of silently dropping.\n2. reconciliation: always recalculate streak from scratch, not just\n   when result corrections are found. Catches streak increment bugs.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "c7c2f73",
+   "authored": "2026-04-08T16:08:54-04:00",
+   "subject": "fix: NameError in result polling after multi-game status change",
+   "body": "The variable was renamed from status to statuses for multi-game\ndouble-down tracking, but the suspended check still used the old name.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

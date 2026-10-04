@@ -1,0 +1,86 @@
+{
+ "label": "D-I063-2",
+ "link": "I-063 link 2",
+ "tests": [
+  "tests/test_cli_integration.py::TestFetchContestStreak",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/cli.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/cli.py",
+   "        source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags\n",
+   "        source_date = derive_source_date(predictions, rounds)  # may be None when the ledger lags\n        if source_date is None:  # W1.5 mutant (pre-4bdfdb8): no settled profile date refuses the write\n            _fail(\"profile proves no settled result date; refusing to claim freshness\")\n"
+  ],
+  [
+   "src/bts/cli.py",
+   "    # write (atomic) or dry-run \u2014 a current activeStreak is written even when the\n",
+   "    from bts.contest_state import latest_resolved_pick_date, resolved_pick_settlement_gap\n    latest = latest_resolved_pick_date(picks)\n    if latest is not None and source_date < latest:\n        pass  # W1.5 mutant: pre-4bdfdb8 \u2014 the currentness gate refuses a lagging snapshot\n        gap = resolved_pick_settlement_gap(picks, source_date)\n        msg = (f\"profile source_date {source_date} < latest resolved pick {latest} \"\n               f\"({gap} settled pick(s) newer); not current, refusing to overwrite\")\n        if gap <= 1:\n            click.echo(f\"fetch-contest-streak: {msg}; expected overnight settlement \"\n                       \"lag, no alert\", err=True)\n            sys.exit(0)\n        _fail(msg)\n\n    # write (atomic) or dry-run \u2014 a current activeStreak is written even when the\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/cli.py",
+  "text": "W1.5 mutant: pre-4bdfdb8 \u2014 the currentness gate refuses a lagging snapshot"
+ },
+ "entry": {
+  "path": "src/bts/cli.py",
+  "qualname": "fetch_contest_streak"
+ },
+ "boundaries": [
+  {
+   "name": "fetch_alert",
+   "binding": "bts.cli:_contest_fetch_alert",
+   "value": [
+    "args[2]",
+    "kw:msg"
+   ],
+   "classify": [
+    [
+     "currentness_refusal",
+     "not current, refusing to overwrite"
+    ],
+    [
+     "no_date_refusal",
+     "refusing to claim freshness"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "fetch_alert",
+  "category": "currentness_refusal"
+ },
+ "killing": [
+  {
+   "node": "tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot",
+   "assertion": {
+    "path": "tests/test_cli_integration.py",
+    "text": "assert r.exit_code == 0, r.output",
+    "line": 878
+   }
+  }
+ ],
+ "contract": {
+  "text": "fetch-contest-streak persists a current activeStreak even when the per-round predictions array lags the latest settled local pick; staleness is labelled downstream, never a refusal to write.",
+  "entry_mode": "real `bts fetch-contest-streak` via CliRunner",
+  "trigger": "profile source_date 2026-06-01 with four newer settled local picks",
+  "symptom_kind": "extra event (a 'refusing to overwrite' failure alert/DM; the snapshot is discarded)"
+ },
+ "level": "component",
+ "level_justification": "the test replaces the auth internals (load_session_cookies, extract_uid, fetch_login_session) besides the external profile and rounds fetches and the DM transport",
+ "allowed_mocks": [
+  "bts.leaderboard.auth.load_session_cookies",
+  "bts.leaderboard.auth.extract_uid",
+  "bts.leaderboard.auth.fetch_login_session",
+  "bts.contest_fetch.fetch_profile",
+  "bts.cli._fetch_rounds",
+  "bts.dm.send_dm"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

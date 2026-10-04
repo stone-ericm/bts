@@ -1,0 +1,28 @@
+Using CPython 3.12.13
+Creating virtual environment at: .venv
+Resolving despite existing lockfile due to removal of global exclude newer
+Resolved 22 packages in 10ms
+   Building bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I009-1
+      Built bts @ file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I009-1
+Prepared 1 package in 207ms
+Installed 20 packages in 109ms
+ + bts==0.1.0 (from file:///Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I009-1)
+ + click==8.3.1
+ + iniconfig==2.3.0
+ + joblib==1.5.3
+ + lightgbm==4.6.0
+ + markdown-it-py==4.0.0
+ + mdurl==0.1.2
+ + numpy==2.4.3
+ + packaging==26.0
+ + pandas==3.0.1
+ + pluggy==1.6.0
+ + pyarrow==23.0.1
+ + pygments==2.19.2
+ + pytest==9.0.2
+ + python-dateutil==2.9.0.post0
+ + rich==14.3.3
+ + scikit-learn==1.8.0
+ + scipy==1.17.1
+ + six==1.17.0
+ + threadpoolctl==3.6.0

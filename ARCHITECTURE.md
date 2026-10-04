@@ -544,6 +544,27 @@ src/bts/leaderboard/
   - The recipe rules are frozen by `rules_fingerprint()`, a closure over the evaluator's reachable code and configuration.
 - **Documents:** spec `docs/superpowers/specs/2026-09-28-season-ledger-design.md`, plan `docs/superpowers/plans/2026-09-28-season-ledger-phase1.md`, build memo `docs/audit/2026-09-28-season-ledger.md` (exposure register X-19).
 
+**2026-10 incident register (season wrap W1.5, Phase 1, repo-only; audit tooling, not part of the production pipeline):**
+- **Package:** `scripts/audit/incident_register/` (repo-only; reads no box data and nothing under `data/`). Frozen at `f453283` (plan ruling 14), and changed only with a new review.
+  - `owned.py`: owned worktrees. Every reset, swap or edit is refused outside one.
+  - `runner.py`: a pytest run under a trusted in-process `sys.monitoring` observer (`observer.py`), with a session gate.
+  - `replay.py`: the historical replay. The fix's tests at F run against the parent's `src/`, with the harness-change audit.
+  - `defence.py` and `certify.py`: the current defence. A semantic mutant at the pin, killing nodes, and a positive witness linked to the mutated line through a live entry invocation, plus the observed/unobserved twin. `certify.COVERAGE` states the bounded model; absence is never certified (ruling 10).
+  - `acceptance.py` and `run_expected_failures.py`: the strict expected-failure pair.
+  - `records.py` with `record_schema.json`: the register's record schema and publication validation, which binds every certified entry to its acceptance artifact.
+  - `deploy_runs.py`: the deploy-run timeline.
+- **Tests:**
+  - `tests/scripts/incident_register/` covers the tooling, including the review rounds' counterexamples and a sweep-classifier unit.
+  - `tests/test_incident_register_2026.py` holds the strict expected-failure and characterization fixtures for unfixed defects (L01–L04, E77), each with its own exception class and controls.
+- **Evidence:** `docs/audit/2026-09-29-incident-register-evidence/`:
+  - Route H drafts;
+  - the deploy timeline;
+  - the replay and defence specs, with every run's outputs;
+  - the expected-failure pair;
+  - the strict mutation sweeps of the tooling;
+  - `task8/build_register.py`, which builds the register `docs/audit/2026-09-29-incident-register.json` and checks publication, install ancestry and the pin closure.
+- **Documents:** design `docs/superpowers/specs/2026-09-29-incident-register-design.md`, plan `docs/superpowers/plans/2026-09-29-incident-register-phase1.md`, memo `docs/audit/2026-09-29-incident-register.md`. Phase 2 (Route R over box data) needs register row X-20 and the owner's go-ahead.
+
 ## Pipeline
 
 ```

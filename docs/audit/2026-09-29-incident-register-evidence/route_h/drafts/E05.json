@@ -1,0 +1,190 @@
+{
+ "id": "I-005",
+ "working_id": "E05",
+ "title": "First scheduler day (4/03): a check skipped re-prediction when the picked team's lineup posted after its opponent's",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "Pi5 scheduler output for 2026-04-03 (journal or redirected stderr; Pi5 decommissioned 4/14, retention unknown) showing a check returned 'skipped' with 0 new confirmations after the picked team's lineup posted \u2014 Phase 2 Route R",
+  "the 2026-04-03 scheduler state (runs_completed skipped flags) and pick file (lock/post time vs game time) in B1, if retained"
+ ],
+ "classes": {
+  "primary": "D",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if it fired, the pick was locked or fallback-posted without re-predicting on the picked team's confirmed lineup; no effect on the 4/03 delivery is evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "When new lineups are confirmed, the scheduler re-runs predictions and re-evaluates the lock before any post.",
+  "source": "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md 'Daily lifecycle' step 3 (b\u2013d) and step 4"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_confirmed_lineups marked a game confirmed as soon as either side's batting order appeared and count_new_confirmations tracked game_pks, so the picked team's later lineup produced no new confirmation",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "7e1b667",
+     "symbol": "check_confirmed_lineups / count_new_confirmations",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "run_single_check returned skipped (no predictions, no lock evaluation) whenever count_new_confirmations was 0",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "7e1b667",
+     "symbol": "run_single_check",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "bd8bcd3"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "bd8bcd3",
+    "live_by": "2026-04-12T17:40:40Z",
+    "run_id": 24312504594,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "f5ce1ed"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "a pick is committed while the prediction run it came from predates a lineup confirmation for the picked team's game",
+  "recovery_assertion": "every committed pick comes from a prediction run after the last lineup confirmation for its game that preceded the commit"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit f5ce1ed message body (authored 2026-04-03T13:37:16-04:00)",
+   "what": "the skip-if-no-new-confirmations gate 'had a bug: a game marked confirmed because the opposing team posted a lineup would not re-trigger when the picked team's lineup posted later'; the gate was removed so every check runs the cascade"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py at 7e1b667 (check_confirmed_lineups, count_new_confirmations, run_single_check)",
+   "what": "game-level confirmation (either side) plus an early return when no game was newly confirmed"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git history: 5f73a59 and 5d9b803 (4/03 01:01\u201301:13 ET) added the user-level systemd scheduler unit",
+   "what": "the scheduler daemon went live on 4/03, the day of the fix"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains f5ce1ed; a Fly.io deploy, log expired"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24312504594 (deploy_runs.json)",
+   "what": "first successful Hetzner deploy run whose head (bd8bcd3) contains the side-level confirmation fix, 2026-04-12T17:40:40Z; log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate: 2026-04-03",
+   "onset": {
+    "not_before": "2026-04-03T01:13:25-04:00",
+    "not_after": "2026-04-03T13:37:16-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-03T13:37:16-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "f5ce1ed",
+   "bd8bcd3"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-04-03-dynamic-lineup-scheduler-design.md",
+   "ARCHITECTURE.md (0e23c0f) 'no skip optimization'"
+  ]
+ },
+ "related": [
+  "I-022"
+ ],
+ "notes": [
+  "alternative reading: 'the picked team's lineup' and the timing (13:37 on the scheduler's first day) suggest a live observation; if the lead reads the body as a live report this becomes observed_incident with tier pending",
+  "link 2 (the gate) was the operative defect; after f5ce1ed link 1 only affected logging and state.confirmed_game_pks, which bd8bcd3 fixed on 4/12 (I-022)",
+  "deployed (link 2): candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install; the Pi5 install time is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

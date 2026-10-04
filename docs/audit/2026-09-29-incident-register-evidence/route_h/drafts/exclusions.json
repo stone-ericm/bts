@@ -1,0 +1,50 @@
+[
+ {
+  "working_id": "E26",
+  "former_id": "I-026",
+  "title": "In-place sort in the hard-contact feature reordered the training frame and changed LightGBM's bagging sample (4/10\u20134/13)",
+  "reason": "model-behaviour change (training-frame order) evidenced only by a single-seed backtest delta: model quality, out of scope (design \u00a71)"
+ },
+ {
+  "working_id": "E76",
+  "former_id": "I-076",
+  "title": "Calibration monitors could not see a chronic double-down-leg shortfall: no absolute-level check covered the DD band, and realized_calibration WARNs never reached the DM digest",
+  "reason": "the DD-leg shortfall statistic and the new DD-bucket calibration coverage in a275399 \u2014 a model-quality monitoring question (design \u00a71). a275399's operational pieces are disposed separately: I-116 (WARN-attention routing), I-117 (drift-threshold noise), the authoritative slot readback as a note on I-115, and the per-bucket attention identity as pre-ship support for the new bucket (below)"
+ },
+ {
+  "working_id": "L08",
+  "former_id": "I-208",
+  "title": "Open-Meteo weather enrichment uses a bare urlopen with no retry and swallows every error (silent skip); the command is in no cron or unit",
+  "reason": "unretried Open-Meteo fetch on a path no cron, unit or production job runs; the cited 8/03 note is not in the repo: not a deployed path"
+ },
+ {
+  "working_id": "E70",
+  "former_id": null,
+  "title": null,
+  "reason": "7/04 deep authenticated scrape disabled: an owner decision on terms of use, not a service failure"
+ },
+ {
+  "working_id": "E81",
+  "former_id": null,
+  "title": null,
+  "reason": "mdp_policy_alignment bin-collapse WARN: model/policy quality, belongs to the W1.4b bin-collapse read"
+ },
+ {
+  "working_id": "EX2",
+  "former_id": null,
+  "title": null,
+  "reason": "MDP policy maps live picks to Q0 (bin collapse): belongs to the W1.4b bin-collapse read"
+ },
+ {
+  "working_id": "EX3",
+  "former_id": null,
+  "title": null,
+  "reason": "4/14 research-audit cloud fleet (silent retrieve failure, zombie boxes): not the production service"
+ },
+ {
+  "working_id": "a275399-bucket-identity",
+  "former_id": null,
+  "title": null,
+  "reason": "per-bucket attention identity (incident_key per bucket) in a275399: pre-ship support for the new second realized_calibration bucket added in the same change (Codex phase-1 r4: 'may be pre-ship support for a new feature'); not a previously deployed failure"
+ }
+]

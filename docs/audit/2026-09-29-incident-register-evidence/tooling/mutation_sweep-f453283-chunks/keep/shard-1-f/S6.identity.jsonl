@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_sweep_classifier::test_each_failure_shape_is_classified[def test_a():\\n    raise RuntimeError('DID NOT RAISE')\\n-FAILED-OTHER]", "kind": "assertion"}

@@ -1,0 +1,194 @@
+{
+ "id": "E84",
+ "episode_row": [
+  "E84",
+  "8/27, 8/29, 8/30",
+  "deferral abandoned enterable picks; 8/30 DM after cutoff; 10.6-min cached-feed sleeps; health read it healthy",
+  "D/L/A",
+  "OI",
+  "A",
+  "ac0ce8d 67338cd c0c0a97 0c8ed32 3697512 2ff2db9 314154d"
+ ],
+ "commits": [
+  {
+   "sha": "ac0ce8d",
+   "authored": "2026-08-30T14:38:32-04:00",
+   "subject": "fix(scheduler): fail-closed submission-cutoff guard at the delivery chokepoint",
+   "body": "_deliver_and_lock_pick refuses to send at/after first pitch \u2212 5 min for the\nearliest committed slot, archives the dead candidate (refused_delivery_*.json,\n<date>.json removed so later cycles re-pick), records the refusal on\nscheduler state and DMs a CRITICAL. Also stamps DailyPick.delivered_at \u2014\nrun_time is selection time, and the EOD audit needs the send time.\n\nTwo existing test files drove deliveries with a clock hours past their\npick's cutoff (a real clock against a 2026-04-06 pick; a 23:30 harness\ndefault); they now pin the clock inside the window.",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "tests/test_e2_delivery_idempotency.py",
+    "tests/test_late_delivery_guard.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "67338cd",
+   "authored": "2026-08-30T14:50:50-04:00",
+   "subject": "feat(scheduler): deadline-aware in-loop fallback",
+   "body": "After the fallback refresh the loop now re-syncs lineup confirmations,\nre-reads the clock and asks plan_fallback_action whether a window that can\nchange THIS decision can still finish before this pick's deliver-by time\n(cutoff \u2212 operator_reserve). A gap-rule block with no such window now\nDELIVERS the enterable pick (policy change, approved 2026-08-30; previously\nit was abandoned whenever any pending window existed \u2014 8/27, 8/29, 8/30).\nA projected PRIMARY still defers (2026-07-06 product choice). Overrun\nscheduled checks the refresh already covered are coalesced instead of\nre-cascading into the cutoff. Cascade durations are measured\n(runs_completed.duration_sec, state.fallback_refreshes) and feed a\nself-calibrating budget that also floors the fallback deadline at\ncutoff + reserve + budget.\n\nTests: the 16:10/19:05 deferral test flips to delivery under the new policy\n(sibling added for the primary-projected case that still defers); the\nincident is replayed with an advancing clock (Kwan delivered at 13:20, the\noverdue check never runs) and a second replay proves the chokepoint guard\nrefuses a cascade that overran the cutoff. run_day tests now fail the live\nMLB lookup \u2014 game_pks 100/200 are real 1999 games with posted lineups.",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_incident_2026_08_30.py",
+    "tests/test_scheduler.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "c0c0a97",
+   "authored": "2026-08-30T14:40:20-04:00",
+   "subject": "perf(pull): do not sleep between cached feeds",
+   "body": "pull_feeds slept delay (0.3 s) after every discovered game even when\ndownload_game_feed returned a cached file without a request: 2,112 cached\nfeeds = ~10.6 min of pure sleep on every intraday prediction cascade\n(2026-08-30 late-pick incident). Throttle only between real requests.",
+   "files": [
+    "src/bts/data/pull.py",
+    "tests/data/test_pull.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "0c8ed32",
+   "authored": "2026-08-30T14:40:20-04:00",
+   "subject": "perf(predict): refresh season data once per day, not per cascade",
+   "body": "_refresh_season_data memoizes a successful pull+rebuild per (season,\nyesterday) via data/processed/.refreshed_<season>_through_<yesterday>;\nlater cascades the same day skip the ~12-min no-op re-pull. The skip also\nrequires the season parquet to exist so a marker can never hide a missing\nfile. BTS_REFRESH_ALWAYS=1 forces a refresh. Known limitation: a game from\nyesterday that finalizes later today is picked up by tomorrow's first refresh.",
+   "files": [
+    "src/bts/model/predict.py",
+    "tests/test_refresh_memo.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "3697512",
+   "authored": "2026-08-30T15:21:25-04:00",
+   "subject": "fix(scheduler): round-2 adversarial review \u2014 11 findings addressed",
+   "body": "Codex (gpt-5.6-sol, repo access) reviewed the patch assuming defects; the\nreal ones, fixed here:\n- F8 naive game_time was read in the HOST timezone (a naive intended-UTC\n  17:40 made the cutoff four hours late under TZ=America/New_York) \u2014 naive\n  values are now assumed UTC.\n- F7 only the TOP projected contender gated deferral; every in-gap\n  contender's game now counts (LockDecision.contender_game_pks).\n- F3 a scheduled check overrunning the fallback deadline launched a SECOND\n  full cascade; its fresh LockDecision is now reused (the floor budgets one).\n- F4 the pre/post confirmation syncs fetched the whole slate (worst case\n  ~minute/game in retries, twice); bounded to the remaining runs' games and\n  skipped on the reuse path.\n- F5 an undelivered preview whose game started classified as locked and\n  stranded the day; it is archived (stale_pick_*) and re-selected.\n- F6 delivery_refusals + fallback_refreshes now survive same-day restarts.\n- F9 measured durations merged chronologically (reused entries excluded).\n- F1 (partial) pre-send cutoff re-check at the last responsible moment;\n  residual race = the transport's own seconds, documented.\n- F2 (partial) the crash-idempotency locked_unconfirmed branch now pages\n  CRITICAL; the delivery_unknown/non-scoreable redesign is a recorded\n  follow-up (streak-scoring semantics out of scope).\n- F11 the late_delivery WARN threshold tracks the configured reserve.\n- F13 doc corrections (undelivered days do NOT surface via late_delivery;\n  ~5-min cascades labeled as expected-pending-verification).\n\nDeferred with reasons in the audit doc: F2 full redesign, F10 feed-file\nvalidation, F1 in-transport deadline. Disagreed: splitting the pair-\ncorrelation audit off the branch (docs-only, zero runtime surface).",
+   "files": [
+    "ARCHITECTURE.md",
+    "docs/audit/2026-08-30-late-pick-delivery.md",
+    "docs/optimization-ideas.md",
+    "src/bts/health/runner.py",
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "tests/test_cutoff_candidate_exclusion.py",
+    "tests/test_fallback_plan.py",
+    "tests/test_incident_2026_08_30.py",
+    "tests/test_late_delivery_guard.py",
+    "tests/test_lock_decision.py",
+    "tests/test_scheduler_skip_visibility.py",
+    "tests/test_submission_cutoff.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "2ff2db9",
+   "authored": "2026-08-30T15:25:12-04:00",
+   "subject": "fix(scheduler): rebase reconciliation \u2014 commit immutability beats past-cutoff archive",
+   "body": "The branch was built on a base predating the 2026-08-14 silent-pass fixes\n(Warmup classification, committed-means-immutable, delivery_attempted\ndurable marker). The rebase auto-merged with no textual conflicts but the\nwrong ORDER in run_single_check: the past-cutoff archive (Codex r2 F5) ran\nbefore the scoreable-decision check, so a same-day restart could archive a\nprivate_locked commit or erase the delivery_attempted crash marker.\n\nReordered: scoreable decision on disk wins first; the archive additionally\nrefuses to touch a delivery_attempted pick. Both pinned with tests.",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_cutoff_candidate_exclusion.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "314154d",
+   "authored": "2026-08-30T14:52:08-04:00",
+   "subject": "feat(health): late_delivery source; fallback_defer compares both slots",
+   "body": "late_delivery is the EOD backstop for the delivery-cutoff guard: CRITICAL\nwhen the day's pick was sent at/after first pitch \u2212 5 (DailyPick.delivered_at,\nfalling back to scheduler_state.pick_locked_at) or when the scheduler\nrefused a late delivery; WARN inside the operator reserve. fallback_defer's\nnever-miss check only asked whether a delivered pick file exists \u2014 which is\nexactly how the 13:36 DM for a 13:35 cutoff read as healthy \u2014 and its\nsame_pick now also compares the double-down (Codex review #10).",
+   "files": [
+    "src/bts/health/fallback_defer.py",
+    "src/bts/health/late_delivery.py",
+    "src/bts/health/runner.py",
+    "tests/health/test_fallback_defer.py",
+    "tests/health/test_late_delivery.py"
+   ],
+   "first_live_log": {
+    "sha": "2ff2db9",
+    "live_by": "2026-08-30T21:10:22Z",
+    "not_live_before": "2026-08-30T21:10:22Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33335535999,
+    "created_at": "2026-08-30T21:07:26Z",
+    "head_sha": "2ff2db9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

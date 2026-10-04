@@ -1,0 +1,66 @@
+{
+ "id": "I-068",
+ "working_id": "E68",
+ "title": "3am cron ran sync-to-r2 even after a failed pull/build; after the 6/30 schema bump it could publish a new-schema R2 manifest over stale parquets",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {"primary": "S", "secondary": []},
+ "tier": "B",
+ "tier_reason": "latent, no evidenced firing: the harmful combination (new SCHEMA_VERSION + ungated sync) never ran a 3am chain, because the gated line was installed and exercised by the 7/01 3am run; before the bump an ungated sync after a failed build re-uploaded the prior consistent data. Kept for restore coverage (R2 is a restore source)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The 3am chain publishes an R2 manifest only after a successful pull and build, so the manifest's schema_version always describes the parquets actually uploaded.",
+  "source": "scripts/cron-setup-hetzner.sh 3am-chain comment (b0420a0); src/bts/data/schema.py SCHEMA_VERSION comment (loaders compare it with the R2 manifest.json and refuse a mismatch)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the installed 3am line was `(pull && build && preview ; sync-to-r2)`, so sync-to-r2 ran whenever the chain reached it, including after a failed pull or build; once 793a093 added the is_resumed_portion column (changing SCHEMA_VERSION, the hash of PA_COLUMNS), a failed 2026 rebuild would have uploaded a manifest stamped with the new schema_version over the stale old-schema parquets",
+   "code": [
+    {"path": "scripts/cron-setup-hetzner.sh", "ref": "63fd1d0", "symbol": "CRON_LINES '0 3 * * *' chain", "ref_basis": "candidate"},
+    {"path": "src/bts/data/sync.py", "ref": "63fd1d0", "symbol": "manifest schema_version = SCHEMA_VERSION", "ref_basis": "candidate"}
+   ]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["b0420a0"], "complete_fix_set": true},
+   "deployed": {"basis": "operator_report", "sha": "b0420a0", "live_by": "2026-07-01T03:00:00-04:00", "not_live_before": "2026-06-30T18:49:07Z", "evidence": ["ev4", "ev6"]},
+   "mitigated": "none", "verified_recovered": "not_applicable"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "A crash or R2 outage part-way through sync could still leave the manifest and uploaded objects inconsistent until content-addressed keys made the manifest flip the only commit point (7/10).", "reaches_production": false, "source": "ede5c28 (audit F8, I-073)"}
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "after each 3am chain, cron.log shows sync-to-r2 running in a chain whose pull or build exited nonzero, or the R2 manifest's schema_version differs from the SCHEMA_VERSION of the parquets uploaded in that run",
+  "recovery_assertion": "a restore read of the R2 manifest and parquets loads with matching schema_version and row counts equal to the local 2026 build"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "inference", "strength": "primary", "locator": "commit b0420a0 message body and diff (scripts/cron-setup-hetzner.sh)",
+   "what": "the `;` before sync-to-r2 let it run after a failed pull/build; with the is_resumed_portion SCHEMA_VERSION bump a failed rebuild could publish a new-schema manifest over stale parquets; surfaced by the post-deploy Codex review (no firing reported)"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "commit 715c932 (2026-04-12) diff (scripts/cron-setup-hetzner.sh)",
+   "what": "introduced the `preview ; sync-to-r2` ordering so preview survives an R2 outage; the ungated sync dates from here"},
+  {"id": "ev3", "kind": "inference", "strength": "primary", "locator": "commit 793a093 diff (src/bts/data/schema.py PA_COLUMNS); schema.py SCHEMA_VERSION definition at 63fd1d0",
+   "what": "SCHEMA_VERSION is a hash of PA_COLUMNS, so adding is_resumed_portion (2026-06-30 13:54 ET) changed it"},
+  {"id": "ev4", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "docs/audit/2026-07-01-production-state-audit.md, 'Production ops' table, Cron row (commit 7636c11)", "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "verified live on the box: 'full set installed + firing; 3am pipeline ran clean today (pull → build → preview → R2 sync gated on build success per b0420a0 — gate exercised, 12 files synced)'"},
+  {"id": "ev5", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 28466759515 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (63fd1d0) contains the schema bump 793a093, created 2026-06-30T18:24:09Z; log expired"},
+  {"id": "ev6", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 28468207448 (deploy_runs.json)",
+   "what": "first successful deploy whose head (b0420a0) contains the fix, created 2026-06-30T18:49:07Z; log expired"}
+ ],
+ "occurrences": [],
+ "routes": {"H": ["b0420a0", "715c932", "793a093"], "R": "pending_phase2",
+            "X": ["docs/audit/2026-07-01-production-state-audit.md", "scripts/cron-setup-hetzner.sh 3am chain"]},
+ "related": ["I-067", "I-073", "I-093"],
+ "notes": [
+  "exposure: ungated sync installed since the 4/12 chain (715c932) until the gated line was installed from the b0420a0 tree, which the 7/01 audit shows exercised at the 7/01 03:00 ET run; the schema-mismatch consequence needed the 6/30 schema bump (candidate deploy 18:24Z), so no 3am run fell in the harmful window (6/30 3am ran before the bump)",
+  "old-schema era (4/12–6/30): whether any 3am chain synced after a failed pull/build is unknown — Route R (cron.log 3am lines); such a sync would have re-uploaded the prior consistent parquets + manifest",
+  "deployed basis operator_report: deploys never touch crontab, so the pack's log bound (83a5cad by 7/02) only dates the script on the box; the 7/01 audit dates the installed, exercised gate (live_by = the 7/01 03:00 ET run it describes; not_live_before = the b0420a0 deploy run creation)",
+  "kept (not dropped) because R2 is a restore dependency: a manifest/physical-schema mismatch would corrupt restores silently",
+  "verified_recovered not_applicable: nothing fired to recover from",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; no test covers the cron line (b0420a0 changes only the setup script)"
+ ]
+}

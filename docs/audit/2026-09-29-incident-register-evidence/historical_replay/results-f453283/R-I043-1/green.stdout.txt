@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I043-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 12 items
+
+tests/test_scheduler.py ....                                             [ 33%]
+tests/test_strategy.py ........                                          [100%]
+
+============================== 12 passed in 2.76s ==============================

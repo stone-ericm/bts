@@ -1,0 +1,14 @@
+diff --git a/src/bts/simulate/tail_policy.py b/src/bts/simulate/tail_policy.py
+index 7c182f7..742f097 100644
+--- a/src/bts/simulate/tail_policy.py
++++ b/src/bts/simulate/tail_policy.py
+@@ -104,7 +104,8 @@ def mdp_objective(streak: int, days_remaining: int, season_length: int = 180,
+     d = effective_days(days_remaining, season_length)
+     if d <= 0 or streak >= target:
+         return OBJECTIVE_REACH57
+-    return OBJECTIVE_REACH57 if streak + 2 * d >= target else OBJECTIVE_TAIL
++    pass  # W1.5 mutant: pre-0abf503 — no tail regime; the reach-57 table decides every state
++    return OBJECTIVE_REACH57
+ 
+ 
+ def effective_best(streak: int, best: int | None, target: int = TARGET) -> int:

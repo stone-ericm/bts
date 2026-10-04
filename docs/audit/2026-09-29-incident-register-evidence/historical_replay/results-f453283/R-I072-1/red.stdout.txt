@@ -1,0 +1,243 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I072-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 11 items
+
+tests/test_cli_integration.py FFFFFFFF.FF                                [100%]
+
+=================================== FAILURES ===================================
+____________ TestCheckPickEntered.test_marker_dedupes_second_alert _____________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x10cfe6c60>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1073d6300>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_marker_dedupes_second_ale0')
+
+    def test_marker_dedupes_second_alert(self, monkeypatch, tmp_path):
+        # v3 (audit F1): "alerted" is re-verified, not terminal — a second run
+        # in the SAME escalation tier re-checks the account but sends no
+        # duplicate DM, and exits nonzero while the entry is still missing.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        assert self._run(picks, "2026-06-12T18:30:00").exit_code != 0  # 35 to cutoff
+        r2 = self._run(picks, "2026-06-12T18:32:00")  # 33 to cutoff: same tier zone
+>       assert r2.exit_code != 0  # still unentered — problem persists
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert 0 != 0
+E        +  where 0 = <Result okay>.exit_code
+
+tests/test_cli_integration.py:1242: AssertionError
+_ TestCheckPickEnteredEscalation.test_alerted_reverifies_and_confirms_when_entry_appears _
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe5730>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cec12e0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_alerted_reverifies_and_co0')
+
+    def test_alerted_reverifies_and_confirms_when_entry_appears(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch,
+                          pending=[self.H._pending(100)], crosswalk={100: 1})
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min to pitch
+    
+        assert r.exit_code == 0, r.output
+>       assert self._status(tmp_path)["status"] == "confirmed"
+E       AssertionError: assert 'alerted' == 'confirmed'
+E         
+E         - confirmed
+E         + alerted
+
+tests/test_cli_integration.py:1375: AssertionError
+_ TestCheckPickEnteredEscalation.test_alerted_before_thresholds_reverifies_without_dm _
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe4fb0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cfef770>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_alerted_before_thresholds0')
+
+    def test_alerted_before_thresholds_reverifies_without_dm(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+    
+        r = self._run(picks, "2026-06-12T18:10:00")  # 55 to cutoff
+    
+>       assert r.exit_code != 0
+E       assert 0 != 0
+E        +  where 0 = <Result okay>.exit_code
+
+tests/test_cli_integration.py:1386: AssertionError
+________ TestCheckPickEnteredEscalation.test_t30_escalation_fires_once _________
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe49b0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cfff6b0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_t30_escalation_fires_once0')
+
+    def test_t30_escalation_fires_once(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+    
+        r1 = self._run(picks, "2026-06-12T18:35:00")  # 30 to cutoff
+>       assert r1.exit_code != 0
+E       assert 0 != 0
+E        +  where 0 = <Result okay>.exit_code
+
+tests/test_cli_integration.py:1396: AssertionError
+_________ TestCheckPickEnteredEscalation.test_t15_escalation_after_t30 _________
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe43b0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d00ec60>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_t15_escalation_after_t300')
+
+    def test_t15_escalation_after_t30(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path, escalations=("initial", "t30"))
+    
+        self._run(picks, "2026-06-12T18:50:00")  # 15 to cutoff
+    
+>       assert len(dms) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_cli_integration.py:1410: AssertionError
+__ TestCheckPickEnteredEscalation.test_escalation_dm_failure_retries_next_run __
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe7350>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d013290>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_escalation_dm_failure_ret0')
+
+    def test_escalation_dm_failure_retries_next_run(self, monkeypatch, tmp_path):
+        import bts.dm
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path)
+    
+        monkeypatch.setattr(bts.dm, "send_dm",
+                            lambda h, m: (_ for _ in ()).throw(RuntimeError("bsky down")))
+        self._run(picks, "2026-06-12T18:35:00")
+        assert "t30" not in self._status(tmp_path)["escalations"], (
+            "a failed escalation DM must stay retryable"
+        )
+    
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        self._run(picks, "2026-06-12T18:40:00")  # still <=30 to cutoff
+>       assert len(dms) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_cli_integration.py:1439: AssertionError
+_ TestCheckPickEnteredEscalation.test_legacy_marker_without_escalations_treated_as_initial _
+
+self = <tests.test_cli_integration.TestCheckPickEnteredEscalation object at 0x10cfe76e0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d064c20>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_legacy_marker_without_esc0')
+
+    def test_legacy_marker_without_escalations_treated_as_initial(self, monkeypatch, tmp_path):
+        dms = self._setup(monkeypatch, pending=[])
+        picks = self._pick(tmp_path)
+        self._marker(tmp_path, escalations=None)  # pre-F1 marker schema
+    
+        self._run(picks, "2026-06-12T18:10:00")  # 55 to cutoff
+        assert dms == [], "legacy alerted marker must not re-fire the initial DM"
+    
+        self._run(picks, "2026-06-12T18:35:00")  # 30 to cutoff
+>       assert len(dms) == 1, "escalations still apply to a legacy marker"
+E       AssertionError: escalations still apply to a legacy marker
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_cli_integration.py:1451: AssertionError
+____ TestCheckPickEnteredUnverified.test_unverified_presence_is_nonterminal ____
+
+self = <tests.test_cli_integration.TestCheckPickEnteredUnverified object at 0x10cfe7a40>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cf4aea0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_unverified_presence_is_no0')
+
+    def test_unverified_presence_is_nonterminal(self, monkeypatch, tmp_path):
+        # Entry present but the entered player is absent from the crosswalk.
+        dms = self._setup(monkeypatch, pending=[self.H._pending(999)], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")
+    
+        assert r.exit_code == 0, r.output
+        assert dms == []  # ok-ish state: no alarm, no all-clear
+>       assert self._status(tmp_path)["status"] == "present_unverified"
+E       AssertionError: assert 'confirmed' == 'present_unverified'
+E         
+E         - present_unverified
+E         + confirmed
+
+tests/test_cli_integration.py:1496: AssertionError
+_ TestCheckPickEnteredUnverified.test_missing_slot_count_is_mismatch_despite_crosswalk_gap _
+
+self = <tests.test_cli_integration.TestCheckPickEnteredUnverified object at 0x10cfec170>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d149a00>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_missing_slot_count_is_mis0')
+
+    def test_missing_slot_count_is_mismatch_despite_crosswalk_gap(self, monkeypatch, tmp_path):
+        # DD requires 2 players; only ONE row entered, and it is unmapped.
+        # Unverifiable identity must not mask a missing slot.
+        dms = self._setup(monkeypatch, pending=[self.H._pending(999)], crosswalk={})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                          batter_id=1, dd_batter_id=2)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")
+    
+>       assert r.exit_code != 0
+E       assert 0 != 0
+E        +  where 0 = <Result okay>.exit_code
+
+tests/test_cli_integration.py:1523: AssertionError
+_ TestCheckPickEnteredCutoffBoundary.test_exactly_five_minutes_is_outside_window _
+
+self = <tests.test_cli_integration.TestCheckPickEnteredCutoffBoundary object at 0x10cfec620>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d1490d0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8084/test_exactly_five_minutes_is_o0')
+
+    def test_exactly_five_minutes_is_outside_window(self, monkeypatch, tmp_path):
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self.H._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {"predictions": []})
+        monkeypatch.setattr(cf, "fetch_pending_predictions", lambda *a, **k: [])
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {7: dt.date(2026, 6, 12)})
+        self.H._patch_crosswalk(monkeypatch, {100: 1})
+        dms = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dms.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        self.H._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        r = CliRunner().invoke(cli, [
+            "check-pick-entered", "--picks-dir", str(picks),
+            "--dm-recipient", "x.bsky.social", "--now-et", "2026-06-12T19:05:00",
+        ])
+    
+>       assert r.exit_code == 0, r.output
+E       AssertionError: check-pick-entered: DM sent to x.bsky.social
+E         
+E       assert 1 == 0
+E        +  where 1 = <Result SystemExit(1)>.exit_code
+
+tests/test_cli_integration.py:1553: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_marker_dedupes_second_alert
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_alerted_reverifies_and_confirms_when_entry_appears
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_alerted_before_thresholds_reverifies_without_dm
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_t30_escalation_fires_once
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_t15_escalation_after_t30
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_escalation_dm_failure_retries_next_run
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredEscalation::test_legacy_marker_without_escalations_treated_as_initial
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_unverified_presence_is_nonterminal
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredUnverified::test_missing_slot_count_is_mismatch_despite_crosswalk_gap
+FAILED tests/test_cli_integration.py::TestCheckPickEnteredCutoffBoundary::test_exactly_five_minutes_is_outside_window
+========================= 10 failed, 1 passed in 1.29s =========================

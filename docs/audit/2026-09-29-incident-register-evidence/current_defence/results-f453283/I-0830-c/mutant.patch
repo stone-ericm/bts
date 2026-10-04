@@ -1,0 +1,13 @@
+diff --git a/src/bts/data/pull.py b/src/bts/data/pull.py
+index 0e50059..af677a1 100644
+--- a/src/bts/data/pull.py
++++ b/src/bts/data/pull.py
+@@ -114,7 +114,7 @@ def pull_feeds(
+ 
+         # Throttle only between REAL requests: 2,100 cached feeds × 0.3 s was
+         # ~10.6 min of sleep per intraday prediction run (2026-08-30 incident).
+-        if not cached and delay > 0 and i < len(games) - 1:
++        if delay > 0 and i < len(games) - 1:  # W1.5 mutant: pre-c0c0a97 — sleep even on cache hits
+             time.sleep(delay)
+ 
+     if failed:

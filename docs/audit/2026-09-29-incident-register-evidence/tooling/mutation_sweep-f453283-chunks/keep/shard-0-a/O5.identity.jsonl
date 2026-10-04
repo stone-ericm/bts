@@ -1,0 +1,6 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_composite_serialization_runs_no_member_code", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_nested_incomplete_identity_is_unavailable[unsupported]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_nested_incomplete_return_is_not_certified[unsupported]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_an_unsupported_class_namespace_never_falls_through_to_a_base", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_ordinary_classes_still_read_completely", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_observing_a_return_runs_no_application_code", "kind": "assertion"}

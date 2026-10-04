@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-3
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 1 item
+
+tests/test_contest_fetch.py F                                            [100%]
+
+=================================== FAILURES ===================================
+________________ test_derive_source_date_counts_not_hit_rounds _________________
+
+    def test_derive_source_date_counts_not_hit_rounds():
+        """MLB profiles use 'not_hit' for a settled miss; derive_source_date must treat it
+        as settled, else freshness is biased against reset days (the RESOLVED vocab bug)."""
+        rounds = {1: dt.date(2026, 6, 8), 2: dt.date(2026, 6, 9)}
+        preds = [{"roundId": 1, "result": "hit"}, {"roundId": 2, "result": "not_hit"}]
+>       assert derive_source_date(preds, rounds) == dt.date(2026, 6, 9)
+E       AssertionError: assert datetime.date(2026, 6, 8) == datetime.date(2026, 6, 9)
+E        +  where datetime.date(2026, 6, 8) = derive_source_date([{'result': 'hit', 'roundId': 1}, {'result': 'not_hit', 'roundId': 2}], {1: datetime.date(2026, 6, 8), 2: datetime.date(2026, 6, 9)})
+E        +  and   datetime.date(2026, 6, 9) = <class 'datetime.date'>(2026, 6, 9)
+E        +    where <class 'datetime.date'> = dt.date
+
+tests/test_contest_fetch.py:161: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_contest_fetch.py::test_derive_source_date_counts_not_hit_rounds
+============================== 1 failed in 0.22s ===============================

@@ -1,0 +1,578 @@
+{
+ "id": "E59",
+ "episode_row": [
+  "E59",
+  "6/09\u20136/11",
+  "fable5 audit latent batch (incl. E3 missed-pick alert never implemented; platoon_hr NaN in live inference; leaky shadow feature; no-games thrash)",
+  "many",
+  "DL",
+  "P",
+  "925db1d ce5f51d aa6b7b1 0f2bc3c b302935 af08426 082e5b0 dfcf655 86ff4f1 c27480e 8550b80 63fcb67 736ea8f 6d929f8 0794116 e1594e3 a7663ca 3a6e48b 40a091c 8e867fc bb7ccc1 6471f40 d94a51f 88234ae"
+ ],
+ "commits": [
+  {
+   "sha": "925db1d",
+   "authored": "2026-06-09T22:03:01-04:00",
+   "subject": "fix(cli): default `bts schedule` date to Eastern, not UTC",
+   "body": "UTC rolls over 4-5h ahead of ET, so a scheduler restart (deploy/OOM/watchdog)\nbetween ~8pm and midnight ET initialized run_day for tomorrow and abandoned\ntonight's result polling + late-slate delivery. Adds a patchable module-level\n_today_et() seam and points schedule at it. (audit O2)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_schedule_date.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "ce5f51d",
+   "authored": "2026-06-09T22:21:08-04:00",
+   "subject": "fix(scheduler): watchdog-feed the doubleheader game-2 recheck sleep",
+   "body": "The DH game-2 recheck loop used a bare time.sleep(dh_recheck_min*60) (15min\ndefault, up to 10x): two un-pinged sleeps hit WatchdogSec=1800 \u2192 SIGABRT\ncrash-loop on any unlocked-pick day with a doubleheader. Now mirrors the\nresult-poll wait: SLEEPING heartbeat + sleeping_until + _watchdog_ping_sleep,\nrestoring RUNNING after. Adds an AST guard test that fails on ANY unwrapped\ntime.sleep in scheduler.py (this bug class shipped 5 times). (audit O1)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_watchdog_discipline.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "aa6b7b1",
+   "authored": "2026-06-09T22:39:04-04:00",
+   "subject": "fix(health): measure contest staleness in settled picks, not calendar days",
+   "body": "contest_state.check used gap = (latest_resolved - source_date).days, so any\nmulti-day off-day stretch (All-Star break, league off-days) inflated the gap and\nfired a deterministic false CRITICAL on the first day back \u2014 though the contest\nwas only one settlement behind. Now counts settled production picks newer than\nsource_date (off-days have no picks): exactly 1 == expected overnight lag (INFO),\n>= 2 == genuine week-long-freeze staleness (CRITICAL). Pick path still freezes\nconservatively on any gap. Updated two tests whose single-pick fixtures encoded\nthe old calendar-day behavior. (audit H2)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_state.py",
+    "src/bts/health/contest_state.py",
+    "tests/health/test_contest_state.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "0f2bc3c",
+   "authored": "2026-06-09T22:41:27-04:00",
+   "subject": "fix(health): surface a crashing check as CRITICAL, not silence",
+   "body": "_safe_run swallowed any check exception and returned [] \u2014 a check that raised\nevery run produced no alert, no DM, only a journalctl line nobody reads (a dead\nsmoke detector). It now emits a CRITICAL from source 'health_runner' naming the\ncheck and exception, so the runner itself can't go quietly blind. (audit H3)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/runner.py",
+    "tests/health/test_runner.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "b302935",
+   "authored": "2026-06-09T22:44:15-04:00",
+   "subject": "fix(health): enforce predicted_vs_realized stat-power gates over the windows",
+   "body": "n14 counted the whole 35-day lookback (not the 14d window) and min_days_28d was\nnever enforced anywhere, so early-season drift could fire CRITICAL on ~15 days\nwhere the 14d and 28d windows overlap and the baseline isn't a real baseline.\nNow both gates are measured over their windows: 14d >= min_days_14d AND 28d >=\nmin_days_28d. (audit)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/predicted_vs_realized.py",
+    "tests/health/test_predicted_vs_realized.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "af08426",
+   "authored": "2026-06-09T22:45:31-04:00",
+   "subject": "fix(health): streak_validation rejects boolean streak values",
+   "body": "isinstance(True, int) is True, so a corrupt `\"streak\": true` validated as a\nstreak of 1. Reject bools explicitly (matches contest_state's type-is-int\ndiscipline). (audit P3)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/streak_validation.py",
+    "tests/health/test_streak_validation.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "082e5b0",
+   "authored": "2026-06-09T22:54:18-04:00",
+   "subject": "fix(picks): atomic writes for pick + streak JSON (no torn-file crash-loop)",
+   "body": "save_pick/save_shadow_pick/save_streak/save_pick_shadow used bare write_text: a\ncrash mid-write (deploy restarts are routine) could leave a truncated file that\nthen crashes every loader (check-results, reconcile, scheduler polling,\nload_decision_streak_state) into a silent crash-loop the heartbeat monitor can't\nsee. New bts.util.atomic_write_text (tmp + fsync + os.replace) preserves each\ncaller's exact serialization; only the write is now atomic. (audit D1)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "src/bts/util.py",
+    "tests/test_atomic_write.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "dfcf655",
+   "authored": "2026-06-09T23:03:21-04:00",
+   "subject": "fix(model): resolve platoon_hr pitcher hand at inference (was always NaN)",
+   "body": "At the game_time-45min pick the live feed has no plays and the MLB schedule's\nprobablePitcher hydrate returns only {id,fullName,link} \u2014 no pitchHand (verified\nagainst the live API; the audit's assumption that the hydrate carried it was\nwrong). So slot['pitcher_hand'] was None for every production pick and platoon_hr\n(a production FEATURE_COL) was silently NaN at inference while fully populated in\ntraining/backtest. Now falls back to the pitcher's static handedness from history\n(no leakage, no extra API call). (audit M1)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/model/predict.py",
+    "tests/model/test_pitcher_hand_resolution.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "86ff4f1",
+   "authored": "2026-06-09T23:05:09-04:00",
+   "subject": "fix(model): derive _fetch_prior_lineup schedule window from prediction year",
+   "body": "The projected-lineup fallback hardcoded startDate=2026-03-20&endDate=2026-12-31,\nso in 2027+ it would return the team's last 2026 regular-season lineup as the\n'projected' lineup. Now takes season and scopes the window to int(date[:4]).\n(audit M6)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/model/predict.py",
+    "tests/model/test_prior_lineup_fallback.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "c27480e",
+   "authored": "2026-06-09T23:07:45-04:00",
+   "subject": "fix(model): average blend scores per slot, not per batter (doubleheaders)",
+   "body": "blend_game_scores was keyed by batter_id only, so a batter playing both games of\na doubleheader had both game-rows' 12-model scores pooled into one mean and\nmapped back to both rows \u2014 averaging two unrelated pitcher matchups and making\nthe DH pick selection tie on a wrong probability. Extracted _blend_average_by_slot\nkeyed by row; non-DH output is unchanged. (audit M5)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/model/predict.py",
+    "tests/model/test_blend_scoring.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "8550b80",
+   "authored": "2026-06-09T23:19:51-04:00",
+   "subject": "fix(features): batter_hard_contact_30g leak-free (shadow CONTEXT col)",
+   "body": "The feature rolled over PA rows (window=120, contradicting the _30g name) and\napplied one .shift(1) across the whole batter-sorted series, so each batter's\nfirst row inherited the previous batter's last value (cross-batter bleed) and\nthe post-shift window still held same-date PAs. Now date-aggregates then does\nper-batter shift(1).rolling(30) and order-preserving left-merge, like every\nother rolling feature. Shadow/CONTEXT only, but it contaminated the context-stack\npromotion eval. (audit M4)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/features/compute.py",
+    "tests/test_context_features.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "63fcb67",
+   "authored": "2026-06-09T23:26:40-04:00",
+   "subject": "fix(web): bind dashboard to the tailnet, never 0.0.0.0 by default (S2)",
+   "body": "The dashboard bound 0.0.0.0:3003 with no app-layer auth; :3003 is firewalled\nexternally but a firewall change would silently expose pre-publication picks.\nmain() now binds the discovered Tailscale IPv4 (keeps http://bts-hetzner:3003\nworking), falling back to loopback \u2014 never 0.0.0.0. BTS_DASHBOARD_HOST overrides\n(set it on the box to pin the tailnet IP, or 0.0.0.0 to deliberately expose).\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/web.py",
+    "tests/test_dashboard_bind.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "736ea8f",
+   "authored": "2026-06-09T23:33:39-04:00",
+   "subject": "fix(scheduler): idle through no-games days instead of restart-thrashing",
+   "body": "run_day returned immediately on an off-day; systemd Restart=always then\nrelaunched within ~30s and cycled all day (the All-Star break is ~4 days),\nspiking NRestarts into a false restart_spike CRITICAL. Now computes a\nguaranteed-future tomorrow wake (bumped past today on a multi-day break, which\ncompute_wakeup_time can't express) and idles via the existing\n_idle_until_next_wakeup. (audit E1)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_no_games.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "6d929f8",
+   "authored": "2026-06-09T23:38:34-04:00",
+   "subject": "harden(leaderboard): scrape resilience, username sanitize, drop UA email",
+   "body": "- Schema drift (JSON/key/pydantic) on one tab or one user no longer aborts the\n  whole scrape: parse moved inside the try and except broadened to log+continue\n  (matches the 'one bad user won't abort' docstring it previously violated).\n- Sanitize the arbitrary public username before using it as {username}.parquet\n  (path-traversal write guard).\n- Drop the real email from the outbound User-Agent (public repo); use the repo\n  URL instead. (audit G)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/leaderboard/endpoints.py",
+    "src/bts/leaderboard/scraper.py",
+    "src/bts/leaderboard/storage.py",
+    "tests/leaderboard/test_safe_filename.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "0794116",
+   "authored": "2026-06-09T23:42:57-04:00",
+   "subject": "fix(contest_state): use model saver on fresh contest state when streaks agree",
+   "body": "The MLB profile API can't observe the mulligan (contest saver always None),\nwhich was pinned to False \u2014 making the saver-aware (higher-EV) MDP line at\nstreak 10-15 unreachable on the normal 4x/day fresh-contest path. Now falls back\nto the locally-tracked model saver when the model streak agrees with the contest\nstreak (so it's a reliable proxy); stays conservative on divergence (e.g. a\nmanual override with a different streak). (audit D3)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_state.py",
+    "tests/test_decision_saver_fallback.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "e1594e3",
+   "authored": "2026-06-10T09:56:26-04:00",
+   "subject": "fix(contest_state): corrupt auto file can't block the manual override (D2)",
+   "body": "load_contest_streak_state parsed BOTH contest files eagerly, so a corrupt auto\nfile raised before the precedence check and blocked a valid unexpired manual\noverride \u2014 the exact emergency the override exists to rescue. Now the override is\nreturned before the auto file is parsed. A corrupt manual file, or a corrupt auto\nfile with no active override, still fails closed (raises -> CRITICAL malformed).\n(audit D2)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/contest_state.py",
+    "tests/test_contest_state_corrupt_precedence.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "a7663ca",
+   "authored": "2026-06-10T10:03:41-04:00",
+   "subject": "harden(web,ci): audit-progress traversal guards + pin deploy action SHA",
+   "body": "- /api/audit-progress confines dir to data/{provider}_results (rejects\n  ..-/absolute traversal \u2014 it gates a root-SSH fan-out, not just an info leak)\n  and seeds_file to the project root (rejects absolute/.. probing).\n- Pin appleboy/ssh-action to its v1.2.5 commit SHA (it receives the root\n  HETZNER_SSH_KEY; a moved floating tag could exfiltrate it). (audit G)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    "src/bts/web.py",
+    "tests/test_audit_progress_traversal.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "3a6e48b",
+   "authored": "2026-06-10T11:12:44-04:00",
+   "subject": "fix(picks): reconcile recomputes streak by forward replay with saver (D4)",
+   "body": "The nightly reconcile recomputed the streak with a BACKWARD walk that broke at\nthe first miss \u2014 it couldn't replay the saver (forgiveness depends on the forward\nstreak AT the miss being in [10,15] and whether the saver was already consumed),\nso a saver-preserved streak was under-counted. Now forward-replays the season\nvia a saver state machine matching update_streak, and fails closed (keeps the\nlive streak.json) on incomplete/unreadable history rather than risk an\nover-count. Validated against Codex's overcount traps. (audit D4)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/picks.py",
+    "tests/test_streak_replay.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27286303593,
+    "created_at": "2026-06-10T15:15:17Z",
+    "head_sha": "3a6e48b",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "40a091c",
+   "authored": "2026-06-10T22:11:39-04:00",
+   "subject": "E2: make pick delivery idempotent (no double-post)",
+   "body": "- retry_urlopen(idempotent=False): the 3 create-POSTs (post/reply/DM send) no\n  longer retry on a lost response, which could re-send a committed request\n- DailyPick.delivery_attempted: persisted before the network call, cleared on a\n  caught failure; an uncaught crash leaves it set \u2192 _deliver_and_lock_pick\n  refuses to re-send (a public-feed duplicate is worse than a missed post the\n  EOD check surfaces). TDD: tests/test_e2_delivery_idempotency.py + test_util.py\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/dm.py",
+    "src/bts/picks.py",
+    "src/bts/posting.py",
+    "src/bts/scheduler.py",
+    "src/bts/util.py",
+    "tests/test_e2_delivery_idempotency.py",
+    "tests/test_util.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27354604212,
+    "created_at": "2026-06-11T14:36:14Z",
+    "head_sha": "df01882",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "8e867fc",
+   "authored": "2026-06-10T22:23:01-04:00",
+   "subject": "Fix since_deploy_iso pick filter: compare instants, not ISO strings",
+   "body": "run_time (+00:00) vs git %cI (committer-local offset) lexicographic compare\nmisclassifies picks across offsets. New _iso_before() compares tz-aware datetimes.\nTDD: tests/health/test_since_deploy_iso_compare.py\n\nNOTE (not fixed here \u2014 deeper, need deploy-time tracking): %cI is commit-time not\ndeploy-time, and a canary rollback moves HEAD's date backward so the rolled-back\nmodel's picks pass the filter. Flagged for Eric.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/realized_calibration.py",
+    "tests/health/test_since_deploy_iso_compare.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27354604212,
+    "created_at": "2026-06-11T14:36:14Z",
+    "head_sha": "df01882",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "bb7ccc1",
+   "authored": "2026-06-10T22:39:21-04:00",
+   "subject": "E3: implement the missed-pick early alert (was dead config)",
+   "body": "If no pick is delivered by missed_pick_alert_min minutes before the earliest\nfirst pitch, DM a one-shot warning (watchdog-fed wait to the alert window, then\nre-check so a late delivery suppresses it) \u2014 the operator can post manually,\nvs the hours-late EOD post_failure DM. Wired after the fallback section.\nTDD: tests/test_e3_missed_pick_alert.py\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_e3_missed_pick_alert.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27354604212,
+    "created_at": "2026-06-11T14:36:14Z",
+    "head_sha": "df01882",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "6471f40",
+   "authored": "2026-06-10T23:01:59-04:00",
+   "subject": "H6: resurface a failed health DM on the next dispatch",
+   "body": "When the prior health DM failed to send with CRITICALs, prepend a note to the\nnext DM so day-keyed one-shot CRITICALs aren't lost on a transient Bluesky\noutage. Resurfaces even on an otherwise-clean day; cleared once it sends.\nGated on critical_count>0 (WARN-only failures don't resurface).\nTDD: tests/health/test_h6_resurface.py\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/alert.py",
+    "tests/health/test_h6_resurface.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27354604212,
+    "created_at": "2026-06-11T14:36:14Z",
+    "head_sha": "df01882",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d94a51f",
+   "authored": "2026-06-11T11:07:58-04:00",
+   "subject": "since_deploy_iso (2)+(3): use a real deploy-time stamp, not git commit-time",
+   "body": "_current_deploy_iso now prefers data/.last_deploy_iso (wall-clock, monotonic) over\nHEAD's %cI, fixing: (2) commit-time != deploy-time (picks made between commit and\ndeploy wrongly passed the filter), and (3) a canary rollback moving HEAD's date\nbackward (cutoff regressed \u2192 old-model picks re-included). deploy.yml writes the\nstamp on a passed canary AND on rollback (forward-only). Falls back to %cI when the\nstamp is absent \u2014 no regression. TDD: tests/health/test_deploy_iso_stamp.py\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    ".github/workflows/deploy.yml",
+    ".gitignore",
+    "src/bts/health/realized_calibration.py",
+    "tests/health/test_deploy_iso_stamp.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27357156686,
+    "created_at": "2026-06-11T15:14:31Z",
+    "head_sha": "d94a51f",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "88234ae",
+   "authored": "2026-06-09T21:59:55-04:00",
+   "subject": "fix(health): EOD checks use run-day date + PA-frame attribution",
+   "body": "scheduler's run_all_checks call omitted today and data_dir:\n- today fell back to date.today() \u2192 day-keyed Tier-1 checks (post_failure,\n  postponed_pick, fallback_defer, analytics_artifacts_missing) no-op on\n  post-midnight / early-finish EOD runs.\n- realized_calibration ran on the biased streak-proxy attribution path the\n  project diagnosed as wrong (+6.6\u2192+14pp), inflating the daily CRITICAL DMs,\n  despite pa_<season>.parquet being available on the box.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27283866776,
+    "created_at": "2026-06-10T14:35:51Z",
+    "head_sha": "279d423",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

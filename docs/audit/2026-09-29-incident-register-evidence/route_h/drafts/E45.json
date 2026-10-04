@@ -1,0 +1,67 @@
+{
+ "id": "I-045",
+ "working_id": "E45",
+ "title": "dashboard live section could show a wrong state: polling stopped at any 'FINAL', void-day banner ignored the pick result, a final+preview double showed Final",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {"primary": "U", "secondary": []},
+ "tier": "B",
+ "tier_reason": "dashboard display only; picks, delivery and grading were unaffected",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The dashboard's live game section keeps refreshing until every pick game is final, and its resolved banner reflects the pick's recorded result, including void slots.",
+  "source": "tests added by 96b6e4f, 5a1beb7 and 425f62f (test_live_game_section_*, test_scorecard_banner_uses_pick_result_*, test_merge_partial_final_preview_is_not_final)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "the dashboard's polling script stopped its refresh timer as soon as the fetched HTML contained 'FINAL' anywhere, so on a cross-game double the section could freeze while the other game was still live",
+   "code": [{"path": "src/bts/web.py", "ref": "84b8e06", "symbol": "dashboard live polling script (clearInterval on 'FINAL')", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "the resolved scorecard banner did not use the pick file's result for partial or full void days (void slot results introduced the same evening by a142c14)",
+   "code": [{"path": "src/bts/web.py", "ref": "f526b69", "symbol": "scorecard banner rendering", "ref_basis": "candidate"}]},
+  {"n": 3, "text": "merge_scorecards ranked Final above Preview, so a double whose first game was final and second not started was shown as Final; a null slot_results key also broke the banner lookup",
+   "code": [{"path": "src/bts/scorecard.py", "ref": "da9b5df", "symbol": "merge_scorecards", "ref_basis": "candidate"},
+            {"path": "src/bts/web.py", "ref": "da9b5df", "symbol": "banner slot_results lookup", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["96b6e4f"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "293ce51", "live_by": "2026-05-09T03:34:05Z", "run_id": 25590588217, "evidence": ["ev1"]},
+   "mitigated": "not_applicable", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["5a1beb7"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "5a1beb7", "live_by": "2026-05-10T00:07:14Z", "run_id": 25615172718, "evidence": ["ev2"]},
+   "mitigated": "not_applicable", "verified_recovered": "unknown"},
+  {"link": 3, "implemented": {"commits": ["425f62f"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "1d438f5", "live_by": "2026-05-12T00:32:46Z", "run_id": 25705717558, "evidence": ["ev3"]},
+   "mitigated": "not_applicable", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only dashboard rendering; no delivery, entry, grading, restart or preservation boundary is involved",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25590588217 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of head 293ce51 (contains 96b6e4f) created 2026-05-09T03:34:05Z, conclusion success"},
+  {"id": "ev2", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25615172718 (deploy_runs.json)",
+   "what": "deploy of head 5a1beb7 created 2026-05-10T00:07:14Z, conclusion success"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25705717558 (deploy_runs.json)",
+   "what": "deploy of head 1d438f5 (contains 425f62f) created 2026-05-12T00:32:46Z, conclusion success"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "diffs of 96b6e4f (web.py), 5a1beb7 (web.py), 425f62f (scorecard.py, web.py)",
+   "what": "the removed code shows the pre-fix behaviour in each link; all three commits have empty bodies and none records a live observation"}
+ ],
+ "occurrences": [],
+ "routes": {"H": ["96b6e4f", "5a1beb7", "425f62f"], "R": "pending_phase2", "X": ["PR #80"]},
+ "related": ["I-014", "I-024"],
+ "notes": [
+  "prelim UC/B; drafted as deployed_latent_defect because each defect is established by its diff and was deployed, with no evidenced firing",
+  "display-only: does not matter to watchdog or restore coverage - candidate for listing without counting",
+  "split? three independent display defects (links 1-3); link 3's 'Final early on a split double' resembles the 4/06 E14 display class (I-014)",
+  "link 2's void-day case could only arise after void results went live with a142c14 (5/09 23:02Z) and was fixed at 5/10 00:07Z; whether the banner mis-stated non-void resolved days before that is not established",
+  "log bounds: all live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

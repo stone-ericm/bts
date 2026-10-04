@@ -1,0 +1,172 @@
+{
+ "id": "I-086",
+ "working_id": "E86",
+ "title": "9/14 private mode: pick_delivery = private alone would not have silenced the entry-check nags; the operator also disabled the cron",
+ "disposition": "near_miss_control_held",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "E"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "unwanted entry nags after the owner stopped entering (DM noise); the operator's crontab edit held; next season's cron install re-enables the nag as intended",
+ "plan_named": true,
+ "delivery_mode": "private",
+ "policy_objective": "emax_season_best",
+ "stream": "cron_job",
+ "authority": "contest",
+ "contract": {
+  "text": "When the owner stops entering picks (season over; 'silence' = keep collecting, stop DMs), the service stops entry-check nags while still computing and grading picks.",
+  "source": "docs/superpowers/plans/2026-09-14-season-wrap-plan.md (box state row); operator instruction recorded in the 9/14 memory note"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check-pick-entered gates on daily_decision.is_scoreable_commit, which is true for private_locked commits (by design: in manual-entry private mode silence is the incident class), so private mode alone keeps the */15 nag and the EOD pick_entry WARN",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "eb010fd",
+     "symbol": "check_pick_entered",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/daily_decision.py",
+     "ref": "eb010fd",
+     "symbol": "is_scoreable_commit",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "config_only",
+   "deployed": "not_applicable",
+   "mitigated": {
+    "action": "set pick_delivery = private and commented the */15 check-pick-entered crontab line (snapshots *.bak-20260914-season-over)",
+    "at": {
+     "at": "2026-09-14T15:45:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": [],
+  "config": [
+   {
+    "nodes": [
+     "tests/test_cli_integration.py::TestCheckPickEntered::test_committed_via_decision_record_alerts"
+    ],
+    "pins": "a private_locked scoreable commit with no contest entry makes check-pick-entered DM 'NOT entered' \u2014 private mode alone does not silence the entry check"
+   }
+  ]
+ },
+ "residual": [
+  {
+   "text": "There is no single 'season over / research-only' operating mode: silencing needs both the TOML and a crontab edit, and cron-setup-hetzner.sh install re-enables the nag (intended for next season; a 2027 checklist item). Nagging in private mode is the designed behaviour for manual entry; what remains is procedural (the checklist), not a code path that misbehaves.",
+   "reaches_production": false,
+   "source": "CLAUDE.md 'Season 2026 wrap'; season-wrap plan 2027 checklist"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "the configured delivery mode, the entry-check cron and the operator's declared entry intent disagree (e.g. private mode + no entries + nag cron enabled, or dm mode + nag cron disabled)",
+  "recovery_assertion": "config matches the declared operating mode per the season-start checklist"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/superpowers/plans/2026-09-14-season-wrap-plan.md 'Box state' row (db7289f)",
+   "written_at": "2026-09-14T20:09:37-04:00",
+   "what": "box state: private mode, DMs off, nag cron disabled; picks still computed and graded"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "reported",
+   "locator": "operator memory note (claude-shared bts_index 'Season 2026 final'; not in the repo)",
+   "written_at": "2026-09-14",
+   "what": "left as-is the box would DM ~3 check-pick-entered nags a day because is_scoreable_commit covers private_locked; silence applied ~15:45 ET: TOML pick_delivery = private + the cron line commented"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "tests/test_cli_integration.py::TestCheckPickEntered::test_committed_via_decision_record_alerts",
+   "what": "a private_locked scoreable commit with no entry alerts"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-09-14 (hazard window opens with private mode)",
+   "onset": {
+    "at": "2026-09-14T15:45:00-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "first_detectable": "not_applicable",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-09-14T15:45:00-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-09-14T15:45:00-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-09-14T15:45:00-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "db7289f"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md 'Season 2026 wrap'",
+   "operator memory note 2026-09-14 (reported)"
+  ]
+ },
+ "related": [
+  "I-087"
+ ],
+ "notes": [
+  "the control that held is the operator's two-part config change, applied before any nag; Route R (cron.log, crontab snapshots in B1) can verify no nag DM followed",
+  "policy_objective emax_season_best: the tail regime was active from 9/03"
+ ]
+}

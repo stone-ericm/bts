@@ -1,0 +1,36 @@
+{
+ "id": "E07",
+ "episode_row": [
+  "E07",
+  "4/04",
+  "duplicate public \"Streak reset to 0\" reply",
+  "A",
+  "OI?",
+  "B",
+  "619d109"
+ ],
+ "commits": [
+  {
+   "sha": "619d109",
+   "authored": "2026-04-04T01:10:28-04:00",
+   "subject": "fix(check-results): remove duplicate Bluesky posting from safety-net cron",
+   "body": "Scheduler's result polling already posts the \u274c/\u2705 reply. The 1am\ncheck-results cron had no guard, causing a second \"Streak reset to 0\"\nreply on miss days. Cron now only updates the local pick file.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

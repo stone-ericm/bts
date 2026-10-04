@@ -1,0 +1,14 @@
+diff --git a/src/bts/cli.py b/src/bts/cli.py
+index ff0e0b5..c7bbf3e 100644
+--- a/src/bts/cli.py
++++ b/src/bts/cli.py
+@@ -1660,8 +1660,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
+     # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
+     from bts.daily_decision import is_scoreable_commit
+     if not is_scoreable_commit(today, picks, daily):
+-        click.echo(f"check-pick-entered: pick for {today} not committed/locked; nothing to check")
+-        return
++        pass  # W1.5 mutant: pre-af6329f — an uncommitted pick file is checked like a committed pick
+ 
+     first_pitch = _earliest_pick_game_et(daily)
+     minutes_to_pitch = (first_pitch - now).total_seconds() / 60

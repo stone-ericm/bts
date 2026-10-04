@@ -1,0 +1,132 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I084-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_scheduler.py F.                                               [100%]
+
+=================================== FAILURES ===================================
+_ TestRunDay.test_fallback_delivers_when_future_checks_have_no_pending_lineups _
+
+self = <tests.test_scheduler.TestRunDay object at 0x106d47290>
+mock_refresh = <MagicMock name='_refresh_pick_at_fallback_decision' id='4464111216'>
+mock_capture = <MagicMock name='_trigger_live_forward_capture_on_lock' id='4409899824'>
+mock_post = <MagicMock name='post_to_bluesky' id='4412314144'>
+mock_poll = <MagicMock name='run_result_polling' id='4485819536'>
+mock_check = <MagicMock name='run_single_check' id='4486910064'>
+mock_sleep = <MagicMock name='sleep' id='4484258928'>
+mock_now = <MagicMock name='_now_et' id='4486937344'>
+mock_schedule = <MagicMock name='fetch_schedule' id='4482905440'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8144/test_fallback_delivers_when_fu0')
+
+    @patch("bts.scheduler.fetch_schedule")
+    @patch("bts.scheduler._now_et")
+    @patch("bts.scheduler.time.sleep")
+    @patch("bts.scheduler.run_single_check")
+    @patch("bts.scheduler.run_result_polling")
+    @patch("bts.posting.post_to_bluesky")
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._refresh_pick_at_fallback_decision")
+    def test_fallback_delivers_when_future_checks_have_no_pending_lineups(
+        self, mock_refresh, mock_capture, mock_post, mock_poll, mock_check,
+        mock_sleep, mock_now, mock_schedule, tmp_path,
+    ):
+        from bts.scheduler import FallbackRefreshResult, run_day
+        from bts.picks import Pick, DailyPick, save_pick
+        from bts.strategy import PickResult
+    
+        mock_schedule.side_effect = [
+            [_game(100, "16:10", date="2026-04-06"),
+             _game(200, "19:05", date="2026-04-06")],
+            [],
+        ]
+        daily = DailyPick(
+            date="2026-04-06",
+            run_time="2026-04-06T19:29:00+00:00",
+            pick=Pick(
+                batter_name="Hoerner", batter_id=1, team="CHC",
+                lineup_position=1, pitcher_name="Baz", pitcher_id=2,
+                p_game_hit=0.73, flags=[], projected_lineup=False,
+                game_pk=100, game_time="2026-04-06T20:10:00Z",
+            ),
+            double_down=None, runner_up=None,
+        )
+        save_pick(daily, tmp_path)
+        mock_check.return_value = {
+            "skipped": False, "new_lineups": 7, "should_post": False,
+            "pick_result": PickResult(daily=daily, locked=False),
+            "pick_name": "Hoerner", "pick_p": 0.73,
+        }
+        mock_refresh.return_value = FallbackRefreshResult(daily=daily, should_post=False)
+        mock_now.return_value = datetime(2026, 4, 6, 15, 29, tzinfo=ET)
+        mock_post.return_value = "at://did:example/post/1"
+        mock_poll.return_value = "final"
+    
+        # "No pending lineups" is now a property of the synced confirmation
+        # state (2026-08-30), not a patched predicate: every side confirmed.
+        with patch(
+            "bts.scheduler.check_confirmed_lineups",
+            side_effect=lambda pks: {pk: {"away", "home"} for pk in pks},
+        ):
+            run_day(
+                date="2026-04-06",
+                config={
+                    "orchestrator": {"picks_dir": str(tmp_path)},
+                    "tiers": [],
+                    "scheduler": {
+                        "early_lock_gap": 0.03,
+                        "lineup_check_offset_min": 45,
+                        "cluster_min": 10,
+                        "doubleheader_recheck_min": 15,
+                        "fallback_deadline_min": 15, "cascade_budget_min": 5, "operator_reserve_min": 5,
+                        "fallback_deadline_min_morning": 15,
+                        "results_poll_interval_min": 15,
+                        "results_cap_hour_et": 5,
+                    },
+                },
+            )
+    
+>       mock_post.assert_called_once()
+
+tests/test_scheduler.py:1540: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='post_to_bluesky' id='4412314144'>
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'post_to_bluesky' to have been called once. Called 0 times.
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py:928: AssertionError
+----------------------------- Captured stderr call -----------------------------
+[15:29 ET] Fetching schedule for 2026-04-06...
+  2 games, 2 scheduled checks:
+    15:25 ET — 1 game(s)
+    18:20 ET — 1 game(s)
+  Doubleheader game 2s (fluid time): {200}
+
+[15:29 ET] Running lineup check...
+  Earliest pick game at 16:10 ET, no check before then — fallback at 15:55 ET (26 min)...
+  FALLBACK DEFERRED — should_lock=False and 1 future check(s) with pending lineup data remain; archived deferred_fallback_20260406T152900-0400.json.
+  Sleeping until 18:20 ET (171 min)...
+  DH game 2 (200): re-checking every 15min...
+  DH game 2 (200): lineup confirmed.
+  Tomorrow's wake-up: Tue 04-07 10:00 ET
+  WARNING: not idling — next_wakeup '2026-04-07T10:00:00-04:00' is in the past (now 2026-10-04T00:09:07+00:00). run_day will return and systemd will relaunch in ~30s (2026-07-12 incident class; see _next_day_wakeup).
+------------------------------ Captured log call -------------------------------
+ERROR    bts.health.alert:alert.py:43 [blend_training CRITICAL] missing tomorrow's blend pkl: blend_2026-04-07.pkl not found in data/models. 3 AM cron on 2026-04-06 likely failed; predictions on 2026-04-07 will fall back to stale blend.
+ERROR    bts.health.alert:alert.py:43 [fallback_defer CRITICAL] fallback defer fired for 2026-04-06 but never-miss validation failed: final pick file missing or unreadable: 2026-04-06.json. deferred_archives=1, latest=deferred_fallback_20260406T152900-0400.json
+ERROR    bts.health.alert:alert.py:43 [streak_validation CRITICAL] streak.json missing at /private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8144/test_fallback_delivers_when_fu0/streak.json
+ERROR    bts.health.alert:alert.py:232 [health_dm_delivery CRITICAL] health alert DM skipped: no recipient
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestRunDay::test_fallback_delivers_when_future_checks_have_no_pending_lineups
+========================= 1 failed, 1 passed in 0.91s ==========================

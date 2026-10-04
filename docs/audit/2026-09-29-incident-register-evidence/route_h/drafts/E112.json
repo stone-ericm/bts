@@ -1,0 +1,41 @@
+{
+ "id": "I-112", "working_id": "E112",
+ "title": "8/11 park_drag refresh ingested no new games (Savant search lag); table one day stale until an operator re-run",
+ "disposition": "unresolved_candidate", "counted": true,
+ "missing_evidence": ["~/logs/park_drag.log and the external table manifest for 2026-08-10/11 on the box (Phase 2, B2)", "whether the park_drag_freshness health source alerted (health state / journal, Phase 2)"],
+ "classes": {"primary": "R", "secondary": ["X"]},
+ "tier": "B", "tier_reason": "freshness of a shadow-model feature input; no production decision reads park_drag_delta (shadow CONTEXT_COLS only)",
+ "plan_named": false,
+ "delivery_mode": "dm", "policy_objective": "none", "stream": "shadow_v2", "authority": "not_applicable",
+ "contract": {"text": "The external park_drag table is current through the previous completed day before the day's shadow predictions.",
+              "source": "CLAUDE.md 'park_drag external table' (cron 45 7 * * *, Savant lag note); health source park_drag_freshness (115c0cf)"},
+ "mechanism": [{"n": 1, "text": "the 07:45 refresh found nothing for the previous day because Savant's search index lags same-night games; the once-daily cron has no later retry",
+                "code": [{"path": "src/bts/features/park_drag_producer.py", "ref": "0e4aaa8", "symbol": "park-drag-refresh", "ref_basis": "log"}]}],
+ "fix": [{"link": 1, "implemented": "unfixed", "deployed": "not_applicable",
+          "mitigated": {"action": "operator session re-ran park-drag-refresh on the box", "at": {"at": "2026-08-11T13:44:00-04:00", "evidence": ["ev1"]}},
+          "verified_recovered": "unknown"}],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [{"text": "A single daily refresh cannot catch up a lagging Savant index the same day; recovery depends on a manual re-run or the next day's cron.", "reaches_production": false, "source": "CLAUDE.md park_drag note"}],
+ "watchdog": {"boundary": "none", "trigger": "research-stream input freshness; covered by the park_drag_freshness health source, not a W4 rank-2 boundary", "recovery_assertion": "table current through the previous day before the first shadow prediction"},
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "reported", "locator": "operator memory note (claude-shared bts_index, '2026-08-11 MLB auth/login flap'; not in the repo)", "written_at": "2026-08-11",
+   "what": "the 07:45 park_drag refresh ingested 0 new games (Savant lag), leaving the table at 8/09; an operator session re-ran it on the box at 13:44 (current through 8/10 before the 17:40 pick)"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "CLAUDE.md 'park_drag external table' (Savant's search index lags same-night games)",
+   "what": "a late run correctly finds nothing for a game Savant has not indexed"}
+ ],
+ "occurrences": [{
+  "label": "2026-08-11",
+  "onset": {"at": "2026-08-11T07:45:00-04:00", "evidence": ["ev1"]},
+  "first_detectable": {"at": "2026-08-11T07:45:00-04:00", "evidence": ["ev1"]},
+  "first_machine_detection": "unknown",
+  "alert": {"attempted": "unknown", "confirmed": "unknown", "failed": "unknown"},
+  "operator_awareness": {"not_after": "2026-08-11T13:44:00-04:00", "evidence": ["ev1"]},
+  "operator_action": {"at": "2026-08-11T13:44:00-04:00", "evidence": ["ev1"]},
+  "mitigation": {"at": "2026-08-11T13:44:00-04:00", "evidence": ["ev1"]},
+  "restored_verification": "unknown",
+  "latencies": {"detection": "unknown", "notification": "unknown", "recovery": "unknown"}
+ }],
+ "routes": {"H": [], "R": "pending_phase2", "X": ["operator memory note 2026-08-11 (reported)"]},
+ "related": ["I-082"],
+ "notes": ["reported evidence only: cannot be an observed incident until Route R reads the park_drag log", "found while reading the 8/11 sources; not in the commit sweep"]
+}

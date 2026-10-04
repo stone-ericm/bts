@@ -1,0 +1,37 @@
+{
+ "id": "E36",
+ "episode_row": [
+  "E36",
+  "4/24",
+  "lineup-status cell blank while the picked team fielded",
+  "U",
+  "OI?",
+  "B",
+  "140940b"
+ ],
+ "commits": [
+  {
+   "sha": "140940b",
+   "authored": "2026-04-24T20:40:18-04:00",
+   "subject": "fix(scorecard): compute lineup_status when picked team is fielding",
+   "body": "Bug: when the picked batter's team is currently in the field (e.g.\nYoshida just made the 3rd out and BAL is now batting bottom 5), the\nlinescore's current_batter is on the opponent. The old logic looked\nthat ID up in the picked team's players dict, didn't find them, and\nfell back to pre_game \u2192 blank cell on the dashboard.\n\nFix: when current_batter is on the opponent, switch the reference for\ndistance computation to the picked team's 'next leadoff' \u2014 the player\nin the slot AFTER the picked team's last batter (mod 9). Yoshida (slot 3)\njust batted \u2192 next BOS leadoff = slot 4 \u2192 distance = (3-4) % 9 = 8 \u2192\nrenders '8 batters away'.\n\nNew helper: _next_leadoff_id_for_team(team, last_team_batter_id).\nFalls back to slot 1 leadoff when team hasn't batted yet. Correctly\nfinds substitutes at the target slot via the current battingOrder array.\n\nextract_batter_pas walks allPlays in reverse once to track the most-\nrecent batter per side; the per-batter loop picks current_batter or\nnext-leadoff as the reference based on whether picked team is batting.\n\n5 new tests (4 helper + 1 integration); full suite 655 passing.",
+   "files": [
+    "src/bts/scorecard.py",
+    "tests/test_scorecard.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24918263920,
+    "created_at": "2026-04-25T00:40:22Z",
+    "head_sha": "140940b",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

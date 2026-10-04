@@ -1,0 +1,88 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_missing_gametype_included": "passes_at_parent",
+    "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_non_regular_season_games_filtered": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_empty_wakeup_logs_reason": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_malformed_wakeup_logs_reason": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_naive_wakeup_logs_reason": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_past_wakeup_logs_reason": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_fetch_failure_retries_soon_not_next_morning": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_malformed_schedule_entry_hands_off_not_raises": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_nonempty_tomorrow_past_wake_hands_off_soon": "symptom_candidate",
+    "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "5b072868a7b8c981d892ca014baac55a412563cbb09cf6486382cf15c069e80b",
+    "red": "85a8ef3db23f34233156777f8c18e23602f5033018627defde1577d4d0504fbd"
+  },
+  "fix": "955181835722dece9299a533091860796fb22479",
+  "harness_changes": [
+    {
+      "path": "tests/test_scheduler_eve_of_break.py",
+      "status": "A"
+    }
+  ],
+  "label": "R-I075-1",
+  "label_kind": "semantic_regression_replay",
+  "parent": "733d3d66dc940afed9d7f5a049a0c2b58f0b6b04",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_scheduler_eve_of_break.py": {
+        "decision": "neutral",
+        "reason": "new file holding the fix's tests; it imports bts.scheduler (_idle_until_next_wakeup, load_state, and patches fetch_schedule, _now_et, time.sleep, run_result_polling, _trigger_live_forward_capture_on_lock, run_single_check, retry_urlopen), all present at the parent 733d3d6 with the same signatures, and the helpers _game/_result/_seq from tests/test_scheduler_decision_record_integration.py, which is unchanged between the parent and 9551818"
+      }
+    },
+    "deployed_ref": {
+      "basis": "log",
+      "sha": "230f65c"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "9551818"
+    ],
+    "incident": "I-075",
+    "label": "R-I075-1",
+    "links": [
+      1
+    ],
+    "notes": "Symptom (link 1): at the parent 733d3d6, run_day step 7 stores compute_wakeup_time(fetch_schedule(tomorrow)); for the empty tomorrow that is datetime.now(ET) at 10:00, i.e. today, hours before the mocked 23:30 run time, so TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup passes lines 59 and 61 and fails at line 62 (a multi-line assert; pytest's rewrite gives the generated raise the statement's first line, see _pytest/assertion/rewrite.py 'Fix locations'; if the runner places it elsewhere the anchor check fails closed, as ruled for R-I029-1). Static checks: every patched or imported name exists at 733d3d6 (run_day(date, config, dry_run), _idle_until_next_wakeup(next_wakeup_iso, heartbeat_path), _next_day_wakeup(date, sched_config), load_state(date, picks_dir), _now_et, time, run_result_polling, _trigger_live_forward_capture_on_lock, run_single_check, retry_urlopen); run_day differs P..F only in step 7, so the flow up to step 7 and its single tomorrow fetch are identical (the _seq mock returns [] from the second call on), and step 7 is the only writer of next_wakeup. Verifier trace of the rest of the parent's run_day on this input: the one 18:20 check runs (run_single_check mocked, skipped), no pick file so steps 5/5b/8 are no-ops, health checks are disabled, _write_endofday_skip has nothing to record, and the final _idle_until_next_wakeup returns on the past wakeup, so run_day returns normally with no network or data/ access; at F the final idle sleeps through the patched time.sleep (one call, no loop). The step-7 test uses date.today() and the parent's real clock by design; TZ=America/New_York keeps date.today() and datetime.now(ET) on the same date, so it fails at P on any day. Anchor unique at 9551818 (line 62). Link 2 is not covered (verifier, 2026-10-03, following the R-I082-1 precedent): 9551818's only change for link 2 is a WARNING line in _idle_until_next_wakeup (the past-wakeup no-op still returns; the draft records complete_fix_set false). TestIdleGuardLoud::test_past_wakeup_logs_reason fails at the parent only because that new message is absent (line 81, 'not idling' and 'past' in stderr), which any pre-fix code fails; no test witnesses the re-walk. Link 2 has its own unavailable manifest entry. Other nodes at the parent, all undeclared: the four TestIdleGuardLoud nodes (the new log line), the three TestNextDayWakeupEarlySlate nodes (review-round hand-off rules) and test_non_regular_season_games_filtered (All-Star filter, a different change in the same commit) fail by assertion; test_missing_gametype_included passes.",
+    "symptom_nodes": [
+      {
+        "_line": 62,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I075-1/tests/test_scheduler_eve_of_break.py",
+        "assertion": {
+          "path": "tests/test_scheduler_eve_of_break.py",
+          "text": "assert wakeup > now, ("
+        },
+        "node": "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup"
+      }
+    ],
+    "tests": [
+      "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup",
+      "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_past_wakeup_logs_reason",
+      "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_naive_wakeup_logs_reason",
+      "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_malformed_wakeup_logs_reason",
+      "tests/test_scheduler_eve_of_break.py::TestIdleGuardLoud::test_empty_wakeup_logs_reason",
+      "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_nonempty_tomorrow_past_wake_hands_off_soon",
+      "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_malformed_schedule_entry_hands_off_not_raises",
+      "tests/test_scheduler_eve_of_break.py::TestNextDayWakeupEarlySlate::test_fetch_failure_retries_soon_not_next_morning",
+      "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_non_regular_season_games_filtered",
+      "tests/test_scheduler_eve_of_break.py::TestFetchScheduleGameType::test_missing_gametype_included",
+      "-q"
+    ]
+  },
+  "spec_sha256": "034389c5e2d6a74fea7353d655429b890c82949d2505442bd09758d132ed7eae",
+  "src_tree": {
+    "fix": "de644f5863ae625696d96ea31c53f02597dfc60f",
+    "parent": "db7302e785d515eb5050e875f1c399d8faf82290"
+  },
+  "symptoms": {
+    "tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup": []
+  },
+  "verdict": "accepted"
+}

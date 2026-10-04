@@ -1,0 +1,85 @@
+{
+ "label": "I-0830-b",
+ "link": "I-084 link 1",
+ "tests": [
+  "tests/test_incident_2026_08_30.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/scheduler.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/scheduler.py",
+   "    if block_reason == \"gap\":\n        relevant_pks = set(contender_game_pks) or (\n",
+   "    if block_reason == \"gap\":\n        pass  # W1.5 mutant: pre-2026-08-30 \u2014 any pending window defers, feasibility ignored\n        if pending:\n            return FallbackPlan(\"defer\", \"gap_contender_window_feasible\", pending[0][\"time_et\"])\n        relevant_pks = set(contender_game_pks) or (\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/scheduler.py",
+  "text": "W1.5 mutant: pre-2026-08-30 \u2014 any pending window defers, feasibility ignored"
+ },
+ "entry": {
+  "path": "src/bts/scheduler.py",
+  "qualname": "run_day"
+ },
+ "boundaries": [
+  {
+   "name": "dm",
+   "binding": "bts.dm:send_dm",
+   "value": [
+    "args[1]",
+    "kw:text"
+   ],
+   "classify": [
+    [
+     "alert",
+     "^BTS health"
+    ],
+    [
+     "pick",
+     ".*"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "absence",
+  "boundary": "dm",
+  "category": "pick"
+ },
+ "killing": [
+  {
+   "node": "tests/test_incident_2026_08_30.py::test_kwan_delivered_at_13_20",
+   "assertion": {
+    "path": "tests/test_incident_2026_08_30.py",
+    "text": "mock_dm.assert_called_once()",
+    "line": 110
+   }
+  }
+ ],
+ "contract": {
+  "text": "After the fallback refresh, an enterable pick is delivered when the contender's confirmation window cannot finish before the cutoff.",
+  "entry_mode": "run_day with an advancing controlled clock",
+  "trigger": "a gap block against a contender whose window cannot finish in time",
+  "symptom_kind": "missing pick DM"
+ },
+ "level": "component",
+ "level_justification": "the incident test replaces run_single_check, the fallback refresh, polling, the live-forward trigger and the DM transport",
+ "allowed_mocks": [
+  "bts.scheduler.fetch_schedule",
+  "bts.scheduler._now_et",
+  "bts.scheduler.time.sleep",
+  "bts.scheduler.run_single_check",
+  "bts.scheduler._refresh_pick_at_fallback_decision",
+  "bts.scheduler.count_new_confirmations",
+  "bts.scheduler.run_result_polling",
+  "bts.scheduler._trigger_live_forward_capture_on_lock",
+  "bts.dm.send_dm",
+  "bts.contest_state.load_decision_streak_state"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

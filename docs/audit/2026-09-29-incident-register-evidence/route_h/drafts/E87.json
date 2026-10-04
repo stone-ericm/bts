@@ -1,0 +1,131 @@
+{
+ "id": "I-087",
+ "working_id": "E87",
+ "title": "9/16 private mode: seven stale_pick_snapshot recapture directories in the official live-forward root in one day",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "the official live-forward root listing and capture_status history for 2026-09-14..09-18 (Phase 2) to tell normal provisional-pick drift from excess recapture under private mode",
+  "a contract for recapture frequency (none is fixed)"
+ ],
+ "classes": {
+  "primary": "R",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "research-stream artifact churn; recapture keeps the stale snapshot as a side directory (no data loss); the stream froze at 9/18",
+ "plan_named": true,
+ "delivery_mode": "private",
+ "policy_objective": "emax_season_best",
+ "stream": "live_forward",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The live-forward capture recaptures only on a genuine provisional-pick change and keeps the superseded snapshot as a side directory (design of PR #97).",
+  "source": "scripts/live_forward_capture_once.py (stale_pick_snapshot / recaptured_due_to_snapshot_drift); docs/superpowers/runbooks/2026-05-09-live-forward-daily-ops.md"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "each change of the private-mode provisional pick during the day triggers a drift recapture that keeps the old snapshot as <name>.stale_pick_snapshot.<sha>",
+   "code": [
+    {
+     "path": "scripts/live_forward_capture_once.py",
+     "ref": "f1b07e9",
+     "symbol": "snapshot drift / recapture",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": "not_applicable",
+   "deployed": "not_applicable",
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": [],
+  "deferred": "no contract fixes a recapture frequency, so no failing fixture can be specified; Phase 2 reads the 9/14-9/18 official root before deciding whether this is an anomaly"
+ },
+ "residual": [
+  {
+   "text": "Local streak.json counts private picks' results (a private double hit took the local replay to 2) while the contest streak stayed 0; P-05 verified the policy used the contest streak throughout.",
+   "reaches_production": false,
+   "source": "operator memory note; docs/audit/2026-09-28-p05-tail-policy-audit.md (X-16)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "research-stream hygiene, not a W4 rank-2 boundary",
+  "recovery_assertion": "n/a"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "reported",
+   "locator": "operator memory note (claude-shared bts_index, D8 verification 9/22; not in the repo)",
+   "written_at": "2026-09-22",
+   "what": "later note (written 9/22, six days after): 9/16 shows 7 stale_pick_snapshot.* recapture dirs in the official root (provisional-pick drift in private mode), pre-existing behaviour, not D8"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-22-exposure-register.md row X-11 (inventory 9/22)",
+   "exposure_row": "X-11",
+   "what": "255 stale_pick_snapshot.* recapture side-dirs exist across the season's live-forward stream"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-09-16",
+   "onset": {
+    "at": "2026-09-16",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-09-22",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "not_applicable",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "not_applicable",
+    "recovery": "not_applicable"
+   }
+  }
+ ],
+ "routes": {
+  "H": [],
+  "R": "pending_phase2",
+  "X": [
+   "operator memory note 2026-09-22 (reported)",
+   "exposure register X-11"
+  ]
+ },
+ "related": [
+  "I-086"
+ ],
+ "notes": [
+  "reported evidence only; the season-wide count (X-11) says recapture is routine, so this may close as a non-incident"
+ ]
+}

@@ -1,0 +1,215 @@
+{
+ "id": "I-085",
+ "working_id": "E85",
+ "title": "9/03 idle: the reach-57 policy table was all-skip once 57 became unreachable, so production stopped picking",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "P",
+  "secondary": [
+   "D"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "no production pick would have been made for the rest of the season (delivery impact) although the season best could still be beaten",
+ "plan_named": true,
+ "delivery_mode": "dm",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "contest",
+ "contract": {
+  "text": "Production keeps picking while the account's season best can still be beaten; it may stop only when the best streak can no longer be improved (owner requirement).",
+  "source": "docs/audit/2026-09-03-emax-tail-policy.md §Incident (owner requirement quoted verbatim); CLAUDE.md 'Tail policy (2026-09-03)'"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "solve_mdp maximises P(reach 57) and values every action at exactly 0 when streak + 2*days_left < 57; np.argmax falls to index 0 = skip, so the shipped table was all-skip for days_left <= 28 and every cycle logged SKIP",
+   "code": [
+    {
+     "path": "src/bts/simulate/mdp.py",
+     "ref": "2ff2db9",
+     "symbol": "solve_mdp / lookup_action",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/strategy.py",
+     "ref": "2ff2db9",
+     "symbol": "decide_action / _mdp_action_from",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "0abf503",
+     "eb010fd"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "eb010fd",
+    "live_by": "2026-09-03T19:20:51Z",
+    "not_live_before": "2026-09-03T19:20:48Z",
+    "run_id": 33795430396,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "first tail-regime Policy: journal line at 15:24 ET; that day's pick delivered at 18:18 ET; P-05 audit: regime, trust, provenance and stop rule correct on all 25 dates 9/03-9/27 (0 violations / 191 checks)",
+    "at": {
+     "at": "2026-09-03T15:24:00-04:00",
+     "evidence": [
+      "ev4"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The tail policy uses one late-season quality bin (a variance-reduction trade chosen by the owner); an exact two-bin solve disagrees on 12% of tail cells.",
+   "reaches_production": true,
+   "source": "docs/audit/2026-09-03-emax-tail-policy.md §Design 5"
+  },
+  {
+   "text": "The shipped reach-57 policy's own profiles are lost, so the base policy cannot be re-solved, only extended; the tail artifact is sha-bound to it and must be rebuilt after any base rebuild.",
+   "reaches_production": true,
+   "source": "CLAUDE.md 'Strategy Simulation' profile-basis note (I-090)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "the decision policy returns skip on a date where the stop rule (min(57, s + 2d) <= trusted best) does not hold, or every cycle of a games day ends in skip with a trusted best still beatable",
+  "recovery_assertion": "decision.json records the expected objective (reach57 iff s + 2d >= 57, else emax_season_best), a trusted best, the paired tail sha and no degraded_reason, and a pick is delivered unless the stop rule holds"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-03-emax-tail-policy.md §Incident (committed in 0abf503)",
+   "written_at": "2026-09-03T15:14:46-04:00",
+   "exposure_row": "X-01",
+   "what": "on 9/03, with 25 game dates left and the streak at 0, the scheduler logged SKIP ('below the pick bar') on every cycle; the reach-57 table values every action at 0 once 57 is unreachable and argmax picks skip"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 0abf503 and eb010fd message bodies",
+   "written_at": "2026-09-03T15:15:08-04:00",
+   "what": "exact E[season-best] tail regime resolved from state alone, a trusted-best contract, forced fallbacks on every artifact failure, and the sha-bound tail artifact dc5d0c99"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 33795430396 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 2ff2db9 -> deployed eb010fd at 2026-09-03T19:20:50Z, canary passed 19:21:20Z"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "docs/audit/2026-09-28-p05-tail-policy-audit.md 'First live day' + docs/audit/2026-09-28-p05-tail-policy-audit.json (reviewed reader over the frozen W0.7 snapshot, manifest e3dce024)",
+   "exposure_row": "X-16",
+   "what": "the tail policy went live mid-afternoon on 9/03: first Policy: line 15:24 ET, the day's double delivered 18:18 ET; objective/trust/provenance/stop rule correct on all 25 dates"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 33335535999 (deploy_runs.json)",
+   "what": "2ff2db9 installed 2026-08-30T21:10:22Z and not replaced until run 33795430396: the reach-57-only policy path was live on 9/03"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-09-03",
+   "onset": {
+    "at": "2026-09-03",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-09-03",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-09-03T15:14:46-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-09-03T15:15:08-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-09-03T15:20:50-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "restored_verification": {
+    "at": "2026-09-03T15:24:00-04:00",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": {
+     "min_minutes": 0,
+     "max_minutes": 924
+    }
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0abf503",
+   "eb010fd"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-09-03-emax-tail-policy.md",
+   "docs/audit/2026-09-28-p05-tail-policy-audit.md (X-16)"
+  ]
+ },
+ "related": [
+  "I-090"
+ ],
+ "notes": [
+  "first_machine_detection none: the SKIP was logged (and surfaced as an ordinary skip day) but no detector flagged a degenerate policy; the operator recognised it",
+  "recovery max = 00:00 ET to 15:24 ET, the onset being known only to the date; Route R can place the first SKIP cycle",
+  "the incident's own contract is the owner requirement quoted in the memo; the stop rule later fired as designed on 9/19 (P-05)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

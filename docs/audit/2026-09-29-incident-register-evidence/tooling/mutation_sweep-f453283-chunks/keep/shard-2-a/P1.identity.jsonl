@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_replay::test_decision_without_reason_is_unaudited", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_replay::test_unaudited_change_is_rejected", "kind": "assertion"}

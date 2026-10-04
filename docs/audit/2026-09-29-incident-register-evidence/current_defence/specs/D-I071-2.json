@@ -1,0 +1,87 @@
+{
+ "label": "D-I071-2",
+ "link": "I-071 link 2",
+ "tests": [
+  "tests/test_cli_integration.py::TestCheckPickEntered",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/cli.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/cli.py",
+   "        msg = (f\"\\u26a0\\ufe0f {lead} in MLB app: {names} \u2014 first pitch \"\n               f\"{first_pitch.strftime('%-I:%M %p ET')} \"\n               f\"({minutes_to_cutoff:.0f} min to submit). Fix it now!\")\n",
+   "        pass  # W1.5 mutant: pre-af6329f \u2014 the DM countdown reports minutes to first pitch, not to the cutoff\n        msg = (f\"\\u26a0\\ufe0f {lead} in MLB app: {names} \u2014 first pitch \"\n               f\"{first_pitch.strftime('%-I:%M %p ET')} ({minutes_to_pitch:.0f} min). Fix it now!\")\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/cli.py",
+  "text": "W1.5 mutant: pre-af6329f \u2014 the DM countdown reports minutes to first pitch, not to the cutoff"
+ },
+ "entry": {
+  "path": "src/bts/cli.py",
+  "qualname": "check_pick_entered"
+ },
+ "boundaries": [
+  {
+   "name": "dm",
+   "binding": "bts.dm:send_dm",
+   "value": [
+    "args[1]",
+    "kw:text"
+   ],
+   "classify": [
+    [
+     "first_pitch_countdown",
+     "\\(-?\\d+ min\\)\\. Fix it now!"
+    ],
+    [
+     "cutoff_countdown",
+     "min to submit\\)\\. Fix it now!"
+    ],
+    [
+     "other_dm",
+     "."
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "dm",
+  "category": "first_pitch_countdown"
+ },
+ "killing": [
+  {
+   "node": "tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff",
+   "assertion": {
+    "path": "tests/test_cli_integration.py",
+    "text": "assert \"35 min to submit\" in msg, msg",
+    "line": 1152
+   }
+  }
+ ],
+ "contract": {
+  "text": "The 'not entered' DM counts down to the submission cutoff (first pitch - 5 min), not to first pitch.",
+  "entry_mode": "real `bts check-pick-entered` via CliRunner with --now-et",
+  "trigger": "a committed, unentered pick 40 min before first pitch",
+  "symptom_kind": "wrong event content (DM countdown in minutes to first pitch)"
+ },
+ "level": "component",
+ "level_justification": "the tests replace the auth internals (load_session_cookies, extract_uid, fetch_login_session) besides the external contest fetches, the crosswalk fetch and the DM transport",
+ "allowed_mocks": [
+  "bts.leaderboard.auth.load_session_cookies",
+  "bts.leaderboard.auth.extract_uid",
+  "bts.leaderboard.auth.fetch_login_session",
+  "bts.contest_fetch.fetch_profile",
+  "bts.contest_fetch.fetch_pending_predictions",
+  "bts.cli._fetch_rounds",
+  "bts.cli._fetch_bts_to_mlb",
+  "bts.dm.send_dm"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

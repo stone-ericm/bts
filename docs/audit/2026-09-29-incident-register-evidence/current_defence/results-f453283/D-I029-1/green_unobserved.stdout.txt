@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 81 items
+
+tests/test_streak_replay.py .........                                    [ 11%]
+tests/test_picks.py .................................................... [ 75%]
+....................                                                     [100%]
+
+============================== 81 passed in 0.94s ==============================

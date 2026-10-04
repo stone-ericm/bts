@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_binding_through_an_instance_namespace_is_a_coverage_gap", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_module_with_overridden_attribute_dispatch_is_a_coverage_gap", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_class_with_a_custom_metaclass_is_a_coverage_gap", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_binding_path_namespace_with_a_non_string_key_is_unsupported[class]", "kind": "assertion"}

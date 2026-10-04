@@ -1,0 +1,98 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 5 items
+
+tests/test_scheduler.py FFF..                                            [100%]
+
+=================================== FAILURES ===================================
+_ TestRefreshPickAtFallback.test_swaps_to_fresh_pick_when_refresh_returns_different_batter _
+
+self = <tests.test_scheduler.TestRefreshPickAtFallback object at 0x107499c40>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7981/test_swaps_to_fresh_pick_when_0')
+
+    def test_swaps_to_fresh_pick_when_refresh_returns_different_batter(self, tmp_path):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult, SelectionResult
+    
+        cached = self._daily(batter_name="Old Batter", batter_id=1001, p=0.70)
+        fresh_daily = self._daily(batter_name="Trea Turner", batter_id=2002, p=0.74)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
+    
+        config = {"orchestrator": {"picks_dir": str(tmp_path)}}
+    
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_sel, "local")):
+            result = _refresh_pick_at_fallback(config, "2026-04-12", cached)
+    
+>       assert result.pick.batter_name == "Trea Turner"
+E       AssertionError: assert 'Old Batter' == 'Trea Turner'
+E         
+E         - Trea Turner
+E         + Old Batter
+
+tests/test_scheduler.py:1976: AssertionError
+____________ TestRefreshPickAtFallback.test_logs_when_pick_changes _____________
+
+self = <tests.test_scheduler.TestRefreshPickAtFallback object at 0x10778b860>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7981/test_logs_when_pick_changes0')
+capsys = <_pytest.capture.CaptureFixture object at 0x10c0d6330>
+
+    def test_logs_when_pick_changes(self, tmp_path, capsys):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult, SelectionResult
+    
+        cached = self._daily(batter_name="Brendan Donovan", batter_id=680977, p=0.7169)
+        fresh_daily = self._daily(batter_name="Trea Turner", batter_id=607208, p=0.7426)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
+    
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_sel, "local")):
+            _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        err = capsys.readouterr().err
+>       assert "CHANGED" in err
+E       AssertionError: assert 'CHANGED' in ''
+
+tests/test_scheduler.py:1997: AssertionError
+_____ TestRefreshPickAtFallback.test_keeps_cached_when_fresh_pick_matches ______
+
+self = <tests.test_scheduler.TestRefreshPickAtFallback object at 0x10778bec0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-7981/test_keeps_cached_when_fresh_p0')
+capsys = <_pytest.capture.CaptureFixture object at 0x10c0f2180>
+
+    def test_keeps_cached_when_fresh_pick_matches(self, tmp_path, capsys):
+        from bts.scheduler import _refresh_pick_at_fallback
+        from bts.strategy import PickResult, SelectionResult
+    
+        cached = self._daily(batter_name="Same Batter", batter_id=5, p=0.70)
+        fresh_daily = self._daily(batter_name="Same Batter", batter_id=5, p=0.71)
+        fresh_result = PickResult(daily=fresh_daily, locked=False)
+        fresh_sel = SelectionResult(fresh_result, None, None, None, None, None)
+    
+        with patch("bts.scheduler.run_and_pick",
+                   return_value=(None, fresh_sel, "local")):
+            result = _refresh_pick_at_fallback(
+                {"orchestrator": {"picks_dir": str(tmp_path)}},
+                "2026-04-12",
+                cached,
+            )
+        err = capsys.readouterr().err
+>       assert "unchanged" in err.lower()
+E       AssertionError: assert 'unchanged' in ''
+E        +  where '' = <built-in method lower of str object at 0x101b454b0>()
+E        +    where <built-in method lower of str object at 0x101b454b0> = ''.lower
+
+tests/test_scheduler.py:2018: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestRefreshPickAtFallback::test_swaps_to_fresh_pick_when_refresh_returns_different_batter
+FAILED tests/test_scheduler.py::TestRefreshPickAtFallback::test_logs_when_pick_changes
+FAILED tests/test_scheduler.py::TestRefreshPickAtFallback::test_keeps_cached_when_fresh_pick_matches
+========================= 3 failed, 2 passed in 0.86s ==========================

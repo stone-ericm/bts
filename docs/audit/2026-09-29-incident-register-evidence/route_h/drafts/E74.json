@@ -1,0 +1,281 @@
+{
+ "id": "I-074",
+ "working_id": "E74",
+ "title": "7/10 shadow result stranded ungraded for a month (late game not final at 01:00; old dates never revisited); nothing alerted",
+ "disposition": "observed_incident",
+ "counted": true,
+ "missing_evidence": [
+  "B1 data/picks/2026-07-10.shadow.json resolution fields showing the result still unresolved until the 8/09 remediation, and when it was finally graded — Phase 2 Route R (V8 shadow resolution_state)",
+  "cron.log 01:00 check-results output for 2026-07-11 showing the production-pending exit ('Active pick game not final…') with no shadow reconciliation — Phase 2 Route R"
+ ],
+ "classes": {
+  "primary": "R",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "research stream only: one shadow result sat ungraded for about a month without any alert and was later graded (no data loss reported); production scoring was not affected",
+ "plan_named": false,
+ "delivery_mode": "dm",
+ "policy_objective": "none",
+ "stream": "shadow_v2",
+ "authority": "local",
+ "contract": {
+  "text": "Every shadow pick is reconciled to a terminal result once its games are final, independently of the production pick's state; a result left unresolved past its age threshold alerts (WARN at 2 days, CRITICAL at 7).",
+  "source": "CLAUDE.md Architecture 'Shadow model … Stranded-result protections (2026-08-09)'; src/bts/health/result_resolution.py (41b2bb1); design §6.2 V8 ('stranded (pending past its pinned age threshold)')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the 7/10 shadow pick's late game (10:15 pm ET first pitch) was not final at the 01:00 cron; check_results' production-pending branch ('Active pick game not final or batter not found') returned before reconcile_shadow_result, so the shadow was not graded that night",
+   "code": [
+    {
+     "path": "src/bts/cli.py",
+     "ref": "6d74d39",
+     "symbol": "check_results (slot_results is None -> return, before reconcile_shadow_result)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the nightly cron grades --date yesterday only and the 02:00 reconcile rechecks terminal picks only, so the unresolved date was never revisited",
+   "code": [
+    {
+     "path": "scripts/cron-setup-hetzner.sh",
+     "ref": "6d74d39",
+     "symbol": "01:00 check-results --date $YESTERDAY; 02:00 reconcile",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/picks.py",
+     "ref": "6d74d39",
+     "symbol": "reconcile_results (skips picks whose result is not hit/miss/void; production pick files only)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "no health source looked for stranded shadow (or production) results, so nothing alerted for a month",
+   "code": [
+    {
+     "path": "src/bts/health/runner.py",
+     "ref": "6d74d39",
+     "symbol": "run_all_checks (no result_resolution source)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "4f0257a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "64f0ffb",
+    "live_by": "2026-08-10T00:41:09Z",
+    "not_live_before": "2026-08-10T00:41:06Z",
+    "run_id": 31344916217,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "4f0257a",
+     "9ebad52"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "41b2bb1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "64f0ffb",
+    "live_by": "2026-08-10T00:41:09Z",
+    "not_live_before": "2026-08-10T00:41:06Z",
+    "run_id": 31344916217,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The wait loop and flock singleton take effect only after a manual crontab install on the box (deploys never touch crontab); until then a late-final result can still strand, and only the result_resolution alert (≥ 2 days) reports it.",
+   "reaches_production": false,
+   "source": "9ebad52 body; CLAUDE.md 'Activation' note"
+  },
+  {
+   "text": "A deploy between 01:00 and 06:00 ET leaves the old-code grader running while its status artifact stamps the new git SHA (provenance mislabel).",
+   "reaches_production": false,
+   "source": "9ebad52 body; CLAUDE.md Deployment"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a shadow pick (or scoreable production pick) for date D is still non-terminal 2 days after D although its games are final (WARN), or 7 days after (CRITICAL), scanning every date in a 30-day horizon regardless of shadow version",
+  "recovery_assertion": "the date's result is terminal (hit/miss/void) in its pick file and in the shadow status artifact, and no date in the horizon remains stranded"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 4f0257a message body",
+   "what": "the 2026-07-10 shadow pick sat ungraded for a month: its 10:15 pm ET game was not final at the 01:00 cron, the production-pending path returned before shadow reconciliation, nightly runs grade yesterday only, and the 02:00 reconcile rechecks terminal picks only (written 2026-08-09, 30 days after onset)",
+   "written_at": "2026-08-09T20:29:06-04:00"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 41b2bb1 message body",
+   "what": "nothing else revisits a stranded date; adds result_resolution (shadow + scoreable production, WARN ≥ 2 d via always-attention, CRITICAL ≥ 7 d, 30-day horizon, version-blind)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 9ebad52 message body",
+   "what": "wait-deadline + flock on the 01:00 cron; 'ACTIVATION IS MANUAL: deploys never touch crontab'"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31344916217 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deployed 64f0ffb at 2026-08-10T00:41:08Z, canary passed; contains 4f0257a, 41b2bb1 and 9ebad52"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 29119047694 and 29216777239 (deploy_runs.json)",
+   "what": "6d74d39 deployed 2026-07-10T19:49:38Z and still the pre-deploy SHA at 2026-07-13T01:12:47Z: the defective check_results was installed at the 7/11 01:00 ET run"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-09-28-p03-context-shadow-closeout.md 'Coverage' row",
+   "what": "in the frozen snapshot all v2 shadow results 2026-07-08 → 09-18 are resolved, so the 7/10 result was graded by the freeze (artifact not read here)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-07-10 shadow result (stranded 7/11 → 8/09)",
+   "onset": {
+    "not_before": "2026-07-11T01:00:00-04:00",
+    "not_after": "2026-07-12T01:00:00-04:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-07-11T01:00:00-04:00",
+    "not_after": "2026-07-12T01:00:00-04:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-08-09T20:29:06-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-08-09T20:29:06-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": {
+    "not_after": "2026-09-28T08:00:00-04:00",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   },
+   "continuing": true,
+   "observed": [
+    {
+     "not_after": "2026-08-09T20:29:06-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   ]
+  }
+ ],
+ "routes": {
+  "H": [
+   "4f0257a",
+   "41b2bb1",
+   "9ebad52"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md 'Stranded-result protections (2026-08-09)'",
+   "docs/audit/2026-09-28-p03-context-shadow-closeout.md"
+  ]
+ },
+ "related": [
+  "I-064",
+  "I-066"
+ ],
+ "notes": [
+  "defective refs: 6d74d39 = the tree installed at the 7/11 01:00 run (log both ends); 4f0257a^ (8155107) still has the same early return",
+  "link 2 deployed unknown: the code is on the box by 8/10 00:41Z, but the wait loop only runs when the installed cron line passes --wait-deadline-et, and the crontab install is not dated (Route R: B1 config/ crontab snapshots, cron.log)",
+  "whether the 7/10 shadow was graded on 8/09 (manual remediation) or later is not stated; the P-03 closeout reports it resolved by the freeze (ev6, reported)",
+  "split? 4f0257a also closes a separate pre-existing latent hazard found in review: check-results for an old date applied results against the CURRENT streak state (out-of-order grading corrupts the streak) — now refused for dates older than 2 days unless --allow-stale-scoring; no firing evidenced",
+  "delivery_mode dm (7/06–9/13); no decision involved",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 4f0257a adds tests/test_check_results_wait.py (shadow reconcile on every exit incl. production-pending; wait loop; stale guard) and 41b2bb1 adds tests/health/test_result_resolution.py",
+  "re-disposed observed_incident under ruling 6: the 7/10 shadow result was still ungraded when 4f0257a was written (8/09 20:29), a continuing condition, so that first-hand body is a contemporaneous report; missing_evidence now names what Phase 2 needs to date the grading, not what the disposition needs",
+  "ruling 6 as replaced (Codex phase-1 r4): 4f0257a's body witnesses the stranded result ON 8/09 (observed); the 7/11 onset rests on the endpoint deploy observations (ev5) plus an explicit CONTINUITY ASSUMPTION that the installed code did not change between them. The later code install (8/10) is not verification that the stranded result was repaired."
+ ]
+}

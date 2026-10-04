@@ -1,0 +1,179 @@
+{
+ "id": "I-080",
+ "working_id": "E80",
+ "title": "decision.json v1 records (6/23–8/09) carried no decision-time state on commits and dropped the skip's second candidate",
+ "disposition": "deployed_latent_defect",
+ "counted": true,
+ "classes": {
+  "primary": "R",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "research-data provenance gap: the records written 6/23–8/09 cannot say which streak/saver state fed each commit (recoverable only by ledger as-of joins) and skip→double intents cannot be verified; no delivery, entry, grading or alerting effect — the scoreable gate and skip-policy shadow use only fields v1 kept",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every final decision record persists the state that fed the decision (streak, saver_available, state_source, state_status, allow_double, contest_source_date) and, on skips, the executable second candidate.",
+  "source": "5216ea1 (bts_daily_decision_v2); docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md 'Follow-up (separate, production): bts_daily_decision_v2' — note: this contract dates from 8/09; the v1 contract (docs/audit/2026-06-20-skip-policy-shadow.md) required streak/saver and the single executable candidate on MDP skips only"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the v1 writer persisted streak/saver only on MDP skip records and recorded no state source/status or allow_double anywhere, so commit records carried no decision-time state (the census counted 31 of 44 records state-null)",
+   "code": [
+    {
+     "path": "src/bts/daily_decision.py",
+     "ref": "64f0ffb",
+     "symbol": "write_decision (bts_daily_decision_v1 fields)",
+     "ref_basis": "log"
+    },
+    {
+     "path": "src/bts/orchestrator.py",
+     "ref": "64f0ffb",
+     "symbol": "run_and_pick (DecisionStreakState not threaded to the record)",
+     "ref_basis": "log"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "SelectionResult carried the executable second candidate, but both skip-capture sites dropped it when writing the skip record, so a skip whose declined intent was a double cannot be verified from the record",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "64f0ffb",
+     "symbol": "skip-capture sites (_capture_fallback_skip, _write_endofday_skip)",
+     "ref_basis": "log"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "5216ea1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "0e4aaa8",
+    "live_by": "2026-08-10T02:00:23Z",
+    "not_live_before": "2026-08-10T02:00:21Z",
+    "run_id": 31348388174,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "5216ea1"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "0e4aaa8",
+    "live_by": "2026-08-10T02:00:23Z",
+    "not_live_before": "2026-08-10T02:00:21Z",
+    "run_id": 31348388174,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "not_applicable"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The fix is prospective: v1 records for 6/23–8/09 stay state-null on commits and lack skip second candidates; analyses must recover state from ledger/saver as-of joins or exclude the rows (state_source = unknown).",
+   "reaches_production": false,
+   "source": "5216ea1 body ('from the first deploy onward'); boundary-shadow spec §Census (state_source recorded / ledger_asof / unknown)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "a finalized decision.json (commit or skip) that lacks any v2 provenance field, or a skip record whose declined intent is a double without its second candidate, written after the v2 deploy",
+  "recovery_assertion": "every final record for the date validates against bts_daily_decision_v2's required fields and load_decision accepts it"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 5216ea1 message body and diff",
+   "what": "v1 records were unusable as a state source (only MDP skips persisted streak/saver), skip records lost the executable second candidate (carried by SelectionResult, dropped at capture), and nothing recorded which state stream fed the decision; v2 persists all of it prospectively"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md status paragraph",
+   "what": "31/44 decision records are state-null; only the 13 MDP skips persist streak/saver (census count over box records, not re-read here)"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-08-09-boundary-shadow-census-mechanism.md (diff table note)",
+   "what": "skip→double intents are flagged non-executable-verifiable because v1 skip records carry no second candidate"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-20-skip-policy-shadow.md 'Decision files' and 'Candidate eligibility — resolved'",
+   "what": "the v1 design recorded, for genuine skips, the executable declined candidate plus streak/saver as context; commit-record state was not part of it"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 31348388174 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "pre-deploy 64f0ffb -> deployed 0e4aaa8 at 2026-08-10T02:00:22Z, canary passed: first v2 writer install"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "5216ea1",
+   "4e8f69f",
+   "6db921c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/specs/2026-08-09-boundary-shadow-measurement.md",
+   "docs/audit/2026-08-09-boundary-shadow-census-mechanism.md",
+   "docs/audit/2026-06-20-skip-policy-shadow.md"
+  ]
+ },
+ "related": [
+  "I-066",
+  "I-102"
+ ],
+ "notes": [
+  "arguably a design limitation, not a defect: v1 met its documented contract; the gap was exposed by a new research use (the 8/09 boundary-shadow census). It does not matter to W4 watchdog or restore coverage — the lead may drop it or treat 5216ea1 as a feature; the one capture-omission element is link 2 (data held in SelectionResult but not written)",
+  "exposure: v1 records from the first decision.json (6/23) to the v2 install (8/10 02:00:22Z); defective ref cites the installed tree 64f0ffb (log 8/10 00:41Z → 02:00Z; only docs/spec commits before 5216ea1^ = 6db921c)",
+  "watchdog boundary 'preservation' is a forced fit (decision records as the preserved audit trail); no operational boundary applies",
+  "the census's action-diff counts and dates are research results; not restated",
+  "delivery_mode unknown (spans 6/23–8/09); verified_recovered not_applicable (prospective fix, nothing fired)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 5216ea1 adds tests/test_daily_decision_v2.py and tests/test_scheduler_decision_record.py (e.g. test_endofday_skip_persists_second_candidate_and_state_meta)"
+ ]
+}

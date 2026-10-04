@@ -1,0 +1,37 @@
+{
+ "id": "E05",
+ "episode_row": [
+  "E05",
+  "4/03",
+  "first scheduler day: later lineup did not re-trigger predictions",
+  "D",
+  "UC",
+  "P",
+  "f5ce1ed"
+ ],
+ "commits": [
+  {
+   "sha": "f5ce1ed",
+   "authored": "2026-04-03T13:37:16-04:00",
+   "subject": "fix(scheduler): always run predictions at each check, don't skip",
+   "body": "The skip-if-no-new-confirmations optimization had a bug: a game\nmarked confirmed because the *opposing* team posted a lineup would\nnot re-trigger when the picked team's lineup posted later.\n\nRemoved the gate. Every scheduled check runs the full prediction\ncascade \u2014 the pipeline determines projected vs confirmed per-batter.\nCost is ~2.5min SSH per check, 7 checks/day max. Worth it.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

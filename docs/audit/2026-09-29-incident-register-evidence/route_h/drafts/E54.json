@@ -1,0 +1,116 @@
+{
+ "id": "I-054",
+ "working_id": "E54",
+ "title": "same_team_corr health check labelled a double-down model-pair shortfall as same-day pair correlation (split 5/23)",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "journal lines or health output before 2026-05-23 (B1 journal_*_retained.txt from 5/11; health_state is latest-state) showing a same_team_corr WARN/CRITICAL fired under the pair-correlation label"
+ ],
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "U"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "alert wording/semantics on a model-quality surface: it pointed the operator at pair dependence when the signal was marginal/model shortfall; no delivery, state or liveness effect",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "A double-down alert names its cause correctly: realized both-hit below p1 x pdd is a model-pair shortfall; only a shortfall against the product of the empirical marginals is pair-dependence evidence.",
+  "source": "commit 05d6f63 (src/bts/health/same_team_corr.py module docstring); docs/superpowers/runbooks/2026-05-23-alert-disposition.md dd_pair rows"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "same_team_corr compared realized P(both hit) with the naive p1 x pdd product and reported any shortfall as same-day pick correlation drift, although ordinary marginal over-confidence in either slot produces the same shortfall",
+   "code": [
+    {
+     "path": "src/bts/health/same_team_corr.py",
+     "ref": "620ce0a",
+     "symbol": "check (SOURCE = same_team_corr)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "05d6f63"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "afa29d5",
+    "live_by": "2026-05-23T18:04:49Z",
+    "run_id": 26339789279,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "alert-label wording defect on a model-quality monitor; no delivery, entry, grading, restart or preservation boundary is involved",
+  "recovery_assertion": "not_applicable"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 05d6f63 diff (same_team_corr.py, attention.py)",
+   "what": "the old docstring attributed the shortfall to positive same-day correlation; the split adds dd_pair_realized_shortfall (model-pair) and dd_pair_residual_corr (marginal-adjusted) sources"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 26339789279 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy whose head (afa29d5) contains 05d6f63, created 2026-05-23T18:04:49Z; log unavailable_expired"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md '2026-05-24 WARN Attention Follow-up'",
+   "what": "after the split, the 5/24 end-of-day DM's dd_pair_realized_shortfall WARN decomposed to marginal/model shortfall with residual gap 0.0 - the case the old label would have called correlation"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "05d6f63"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+  ]
+ },
+ "related": [],
+ "notes": [
+  "prelim UC/B kept: the post-split WARN on 5/24 suggests the same signal was above threshold before the split, so a mislabelled pre-5/23 WARN is likely but not located",
+  "the runbook's per-slot hit counts are outcome reads and are not repeated",
+  "if Route R finds no firing, this is a deployed_latent_defect (display/wording)",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

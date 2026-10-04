@@ -1,0 +1,78 @@
+{
+ "label": "I-0811-b",
+ "link": "I-082 link 2",
+ "tests": [
+  "tests/test_contest_fetch.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/cli.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/cli.py",
+   "    except TransientAuthError as exc:\n        # Upstream flap/outage (or a rejection-lookalike page, deliberately NOT\n        # retried) \u2014 cookies are not implicated; the next scheduled run usually\n        # clears it. (2026-08-11 incident: the cookie-refresh advice below\n        # misdiagnosed a plain MLB outage.)\n        _fail(f\"auth/login transient upstream failure \u2014 cookie refresh NOT indicated \"\n              f\"unless this persists across runs. ({exc})\", category=\"transient\")\n",
+   "    except TransientAuthError as exc:\n        pass  # W1.5 mutant: pre-404358d \u2014 every auth failure advises cookie re-capture\n        _fail(f\"auth/cookie error \u2014 refresh via capture_bts_cookies.py on Mac. ({exc})\")\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/cli.py",
+  "text": "W1.5 mutant: pre-404358d \u2014 every auth failure advises cookie re-capture"
+ },
+ "entry": {
+  "path": "src/bts/cli.py",
+  "qualname": "fetch_contest_streak"
+ },
+ "boundaries": [
+  {
+   "name": "fetch_alert",
+   "binding": "bts.cli:_contest_fetch_alert",
+   "value": [
+    "args[2]",
+    "kw:msg"
+   ],
+   "classify": [
+    [
+     "cookie_advice",
+     "capture_bts_cookies"
+    ],
+    [
+     "transient",
+     "(?i)transient"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "fetch_alert",
+  "category": "cookie_advice"
+ },
+ "killing": [
+  {
+   "node": "tests/test_contest_fetch.py::test_fetch_cli_transient_auth_failure_says_outage_not_cookies",
+   "assertion": {
+    "path": "tests/test_contest_fetch.py",
+    "text": "assert \"capture_bts_cookies\" not in res.output",
+    "line": 432
+   }
+  }
+ ],
+ "contract": {
+  "text": "A transient auth failure is reported as an outage; the cookie re-capture advice is reserved for credential-shaped failures.",
+  "entry_mode": "real `bts fetch-contest-streak` via CliRunner",
+  "trigger": "fetch_login_session raises TransientAuthError",
+  "symptom_kind": "wrong alert text (cookie advice)"
+ },
+ "level": "component",
+ "level_justification": "the test replaces internal auth functions (load_session_cookies, extract_uid, fetch_login_session) with a raising stub",
+ "allowed_mocks": [
+  "bts.leaderboard.auth.load_session_cookies",
+  "bts.leaderboard.auth.extract_uid",
+  "bts.leaderboard.auth.fetch_login_session"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

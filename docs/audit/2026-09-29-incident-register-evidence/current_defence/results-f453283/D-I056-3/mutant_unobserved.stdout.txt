@@ -1,0 +1,68 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 16 items
+
+tests/health/test_contest_state.py .....F...F......                      [100%]
+
+=================================== FAILURES ===================================
+________________________ test_gap2_coverage_lag_is_warn ________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8044/test_gap2_coverage_lag_is_warn0')
+
+    def test_gap2_coverage_lag_is_warn(tmp_path):
+        """A >=2 settled-pick gap is a coverage lag (the predictions array trailing the
+        live activeStreak counter), NOT reliable staleness under the snapshot/coverage
+        split -> WARN, never a (false) CRITICAL DM."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 0, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-01",
+        }))
+        # The week-long-freeze incident: picks resolve daily while source_date stays
+        # frozen — 4 settled picks newer than source_date == genuine staleness.
+        for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
+            (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_gap2_coverage_lag_is_warn.<locals>.<genexpr> at 0x10aeee260>)
+
+tests/health/test_contest_state.py:74: AssertionError
+____________________ test_two_day_gap_is_warn_not_critical _____________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8044/test_two_day_gap_is_warn_not_c0')
+
+    def test_two_day_gap_is_warn_not_critical(tmp_path):
+        """>= 2 settled picks newer than source_date is a coverage gap (the predictions
+        array trailing the activeStreak counter), not reliable staleness under the
+        snapshot/coverage split -> WARN, not a CRITICAL DM."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-05",
+        }))
+        # Two settled picks newer than source_date (06-06 and 06-07): the contest is
+        # genuinely >= 2 settlements behind, not just a one-pick overnight lag.
+        (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_two_day_gap_is_warn_not_critical.<locals>.<genexpr> at 0x10af57780>)
+
+tests/health/test_contest_state.py:171: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn - A...
+FAILED tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical
+========================= 2 failed, 14 passed in 0.08s =========================

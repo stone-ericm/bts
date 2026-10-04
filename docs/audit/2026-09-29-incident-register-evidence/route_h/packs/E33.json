@@ -1,0 +1,37 @@
+{
+ "id": "E33",
+ "episode_row": [
+  "E33",
+  "4/22",
+  "result polling keyed to the primary game; slept through the DD game",
+  "L/G",
+  "OI",
+  "A",
+  "b681f8a"
+ ],
+ "commits": [
+  {
+   "sha": "b681f8a",
+   "authored": "2026-04-22T14:55:53-04:00",
+   "subject": "fix(scheduler): use earliest pick game for result polling, not primary-only",
+   "body": "Bug: scheduler.py:967 computed poll_start from `daily.pick.game_time + 10min`.\nWhen the double-down's game starts before the primary's, scheduler slept\nthrough the earlier game. run_result_polling already tracks both game_pks\ninternally (line 521-522), but never ran because the scheduler was\nblocked in time.sleep until the primary's game start.\n\nObserved live 2026-04-22: Laureano (SD, 20:40 ET) primary + Henderson\n(BAL, 14:10 ET) double-down. Scheduler slept until 20:50, missing\nHenderson's full live-game window. Dashboard fetch_live_scorecard runs\nindependently so display was unaffected, but daily.result was not\npersisted mid-game. 1 AM check-results cron still backfills final\nresults, so pick-ledger correctness stays intact.\n\nFix: new _compute_result_poll_start(daily) wraps _earliest_pick_game_et\n+ 10min (same helper used for the 2026-04-20 fallback-deadline fix).\nExtracted from inline code to make it unit-testable.\n\n3 new tests in TestComputeResultPollStart \u2014 primary-only, primary-earlier,\ndouble-down-earlier (the Laureano+Henderson regression). Full suite 557\npassed.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24796793225,
+    "created_at": "2026-04-22T18:55:57Z",
+    "head_sha": "b681f8a",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

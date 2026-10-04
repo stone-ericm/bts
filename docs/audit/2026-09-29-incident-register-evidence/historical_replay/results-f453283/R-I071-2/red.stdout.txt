@@ -1,0 +1,112 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I071-2
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 6 items
+
+tests/test_cli_integration.py .FFF.F                                     [100%]
+
+=================================== FAILURES ===================================
+__________ TestCheckPickEntered.test_uncommitted_pick_in_window_no_dm __________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x10d3d2630>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d52a570>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8075/test_uncommitted_pick_in_windo0')
+
+    def test_uncommitted_pick_in_window_no_dm(self, monkeypatch, tmp_path):
+        # A {date}.json exists (preview/deferred) but the pick was never
+        # committed/locked (no decision.json, not delivered). The scheduler
+        # rewrites {date}.json all day with projections, so its mere existence
+        # must NOT trigger a "you didn't enter your pick" nag. Regression for the
+        # 2026-07-06 premature DM on a deferred double-down.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min before pitch, in window
+>       assert r.exit_code == 0, r.output
+E       AssertionError: check-pick-entered: DM sent to x.bsky.social
+E         
+E       assert 1 == 0
+E        +  where 1 = <Result SystemExit(1)>.exit_code
+
+tests/test_cli_integration.py:1056: AssertionError
+_________ TestCheckPickEntered.test_no_alert_inside_submission_cutoff __________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x10d213e30>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d5b3f80>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8075/test_no_alert_inside_submissio0')
+
+    def test_no_alert_inside_submission_cutoff(self, monkeypatch, tmp_path):
+        # Within 5 min of first pitch the pick can no longer be submitted, so
+        # "Fix it now!" is useless (and the cutoff countdown would go negative).
+        # The firing window must exclude the un-submittable final 5 minutes.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        r = self._run(picks, "2026-06-12T19:06:00")  # 4 min to first pitch (inside cutoff)
+>       assert dms == [], r.output
+E       AssertionError: check-pick-entered: DM sent to x.bsky.social
+E         
+E       assert [('x.bsky.soc...Fix it now!')] == []
+E         
+E         Left contains one more item: ('x.bsky.social', '⚠️ BTS pick NOT entered in MLB app: Test Batter — first pitch 7:10 PM ET (4 min). Fix it now!')
+E         Use -v to get more diff
+
+tests/test_cli_integration.py:1069: AssertionError
+________ TestCheckPickEntered.test_dm_countdown_uses_submission_cutoff _________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x10d3d28a0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d5c7e90>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8075/test_dm_countdown_uses_submiss0')
+
+    def test_dm_countdown_uses_submission_cutoff(self, monkeypatch, tmp_path):
+        # BTS rejects submissions within 5 min of first pitch, so the true
+        # deadline is first pitch - 5. The DM countdown must report minutes to
+        # that cutoff, not minutes to first pitch.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00", batter_id=1)
+    
+        r = self._run(picks, "2026-06-12T18:30:00")  # 40 min to first pitch -> 35 to cutoff
+        assert r.exit_code != 0
+        assert len(dms) == 1
+        msg = dms[0][1]
+>       assert "35 min to submit" in msg, msg
+E       AssertionError: ⚠️ BTS pick NOT entered in MLB app: Test Batter — first pitch 7:10 PM ET (40 min). Fix it now!
+E       assert '35 min to submit' in '⚠️ BTS pick NOT entered in MLB app: Test Batter — first pitch 7:10 PM ET (40 min). Fix it now!'
+
+tests/test_cli_integration.py:1084: AssertionError
+______________ TestCheckPickEntered.test_skip_day_decision_no_dm _______________
+
+self = <tests.test_cli_integration.TestCheckPickEntered object at 0x10d3d2f30>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d5d15e0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8075/test_skip_day_decision_no_dm0')
+
+    def test_skip_day_decision_no_dm(self, monkeypatch, tmp_path):
+        # A non-scoreable decision (skip day) must not alert, even though a
+        # {date}.json preview exists.
+        dms = self._setup(monkeypatch, pending=[], crosswalk={100: 1})
+        picks = tmp_path / "picks"; picks.mkdir()
+        self._save_pick(picks, "2026-06-12", "2026-06-12T23:10:00+00:00",
+                        batter_id=1, delivered=False)
+        self._write_decision(picks, "2026-06-12", action="skip",
+                             scoreable=False, delivery_status="not_applicable")
+    
+        r = self._run(picks, "2026-06-12T18:30:00")
+>       assert r.exit_code == 0, r.output
+E       AssertionError: check-pick-entered: DM sent to x.bsky.social
+E         
+E       assert 1 == 0
+E        +  where 1 = <Result SystemExit(1)>.exit_code
+
+tests/test_cli_integration.py:1113: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_uncommitted_pick_in_window_no_dm
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_no_alert_inside_submission_cutoff
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_dm_countdown_uses_submission_cutoff
+FAILED tests/test_cli_integration.py::TestCheckPickEntered::test_skip_day_decision_no_dm
+========================= 4 failed, 2 passed in 1.24s ==========================

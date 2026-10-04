@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_observer_error_while_another_thread_is_alive_reads_nothing", "kind": "assertion"}

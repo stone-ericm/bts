@@ -1,0 +1,75 @@
+{
+ "label": "D-I056-3",
+ "link": "I-056 link 3",
+ "tests": [
+  "tests/health/test_contest_state.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/contest_state.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/contest_state.py",
+   "            if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:\n                alerts.append(Alert(\n                    level=\"WARN\",\n",
+   "            if gap_steps > EXPECTED_OVERNIGHT_LAG_STEPS:\n                pass  # W1.5 mutant: pre-365ea40 \u2014 a stale contest observation raises no alert\n            elif False:\n                alerts.append(Alert(\n                    level=\"WARN\",\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/contest_state.py",
+  "text": "W1.5 mutant: pre-365ea40 \u2014 a stale contest observation raises no alert"
+ },
+ "entry": {
+  "path": "src/bts/health/contest_state.py",
+  "qualname": "check"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/contest_state.py",
+   "qualname": "check",
+   "classify": [
+    [
+     "no_alert",
+     "^\\{\"seq\": \\[\\]\\}$"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/contest_state.py",
+  "qualname": "check",
+  "category": "no_alert"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn",
+   "assertion": {
+    "path": "tests/health/test_contest_state.py",
+    "text": "assert any(a.level == \"WARN\" and a.source == SOURCE for a in alerts), alerts",
+    "line": 74
+   }
+  },
+  {
+   "node": "tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical",
+   "assertion": {
+    "path": "tests/health/test_contest_state.py",
+    "text": "assert any(a.level == \"WARN\" and a.source == SOURCE for a in alerts), alerts",
+    "line": 171
+   }
+  }
+ ],
+ "contract": {
+  "text": "An expected contest observation whose source_date trails two or more settled picks is flagged by the contest_state health check (WARN since 56f9726; 365ea40 made it CRITICAL).",
+  "entry_mode": "direct call of health.contest_state.check",
+  "trigger": "source_date frozen while 2 or 4 newer picks settle (the week-long-freeze fixture)",
+  "symptom_kind": "missing alert (empty alert list)"
+ },
+ "level": "production_path",
+ "level_justification": "the check runs on files in a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

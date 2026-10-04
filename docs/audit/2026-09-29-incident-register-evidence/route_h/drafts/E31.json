@@ -1,0 +1,203 @@
+{
+ "id": "I-031",
+ "working_id": "E31",
+ "title": "4/22 first push to the new deploy branch fired no deploy run (paths filter); operator dispatched it by hand",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "S",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "one deploy did not trigger and was dispatched manually the same morning; no delivery, state or recoverability impact is evidenced and the fix was verified by the next push",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "deploy",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every push to the dedicated deploy branch triggers the deploy workflow (deploy + canary).",
+  "source": "commit 1eb432d message body ('deploys fire when deploy branch receives a push'); CLAUDE.md Deployment"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the deploy-branch trigger kept the old push paths filter; per the fix body, GitHub Actions evaluated that filter against no usable baseline for the freshly created deploy branch, so the first main:deploy push started no workflow run",
+   "code": [
+    {
+     "path": ".github/workflows/deploy.yml",
+     "ref": "02bb8e0",
+     "symbol": "on.push (branches: [deploy] + paths filter)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "f6fcc16"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "f6fcc16",
+    "live_by": "2026-04-22T15:47:07Z",
+    "run_id": 24788031177,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": {
+    "action": "workflow_dispatch of the deploy workflow on the deploy branch",
+    "at": {
+     "at": "2026-04-22T11:40:18-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   },
+   "verified_recovered": {
+    "how": "the push of f6fcc16 to deploy fired run 24788031177 (event push, conclusion success): pushes to the branch trigger again",
+    "at": {
+     "at": "2026-04-22T11:47:07-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "preservation",
+  "trigger": "origin/deploy moves to a new SHA and no deploy workflow run for that head starts within 10 minutes, or a run concludes success while the box HEAD (deploy_history reflog) differs from that head",
+  "recovery_assertion": "a run for the pushed head concludes success and the box HEAD equals the pushed SHA"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit f6fcc16 message body",
+   "written_at": "2026-04-22T11:46:55-04:00",
+   "what": "the first main:deploy push that day silently skipped the canary workflow (paths filter vs a freshly created branch); the canary had to be kicked via workflow_dispatch"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24787683019 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "event workflow_dispatch on branch deploy at 02bb8e0, created 2026-04-22T15:40:18Z, conclusion success; no deploy run exists between 24730297455 (4/21 15:11Z, main) and this one"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24788031177 (deploy_runs.json)",
+   "what": "event push on branch deploy, head f6fcc16, created 2026-04-22T15:47:07Z, conclusion success: the first push-triggered deploy-branch run"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 1eb432d diff (.github/workflows/deploy.yml)",
+   "what": "4/21 19:03 ET switch of the trigger from main to deploy kept the paths filter and added workflow_dispatch"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a5af424 message body",
+   "what": "until 4/28 the workflow ran git pull --ff-only of origin/main on the box, so a successful deploy-branch run applied new code only if origin/main had also been pushed"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-22",
+   "onset": {
+    "not_before": "2026-04-22",
+    "not_after": "2026-04-22T11:40:18-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-22",
+    "not_after": "2026-04-22T11:40:18-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-22T11:40:18-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "at": "2026-04-22T11:40:18-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": {
+    "at": "2026-04-22T11:40:18-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "restored_verification": {
+    "at": "2026-04-22T11:47:07-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": {
+     "min_minutes": 6.81,
+     "max_minutes": 707.12
+    }
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "f6fcc16",
+   "1eb432d"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "CLAUDE.md Deployment"
+  ]
+ },
+ "related": [
+  "I-037"
+ ],
+ "notes": [
+  "the paths-filter explanation is the fix body's (operator inference about GitHub semantics), not verified against GitHub docs here",
+  "E37 caveat (ev5): whether the 11:40 manual dispatch actually installed new code depends on origin/main having been pushed; unknown",
+  "recovery latency = verified trigger (11:47:07) minus onset bounds (not before 00:00 ET, not after 11:40:18)",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

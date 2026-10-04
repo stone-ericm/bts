@@ -1,0 +1,71 @@
+{
+  "label": "D-I043-3",
+  "link": "I-043 link 3",
+  "tests": [
+    "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/scheduler.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/scheduler.py",
+      "        if fresh.result in (\"hit\", \"miss\", \"void\"):\n            return fresh\n        fresh.result = result_value\n",
+      "        pass  # W1.5 mutant: pre-68e4cdb — the polling cap overwrites an already-resolved result\n        fresh.result = result_value\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/scheduler.py",
+    "text": "W1.5 mutant: pre-68e4cdb — the polling cap overwrites an already-resolved result"
+  },
+  "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_result_polling"
+  },
+  "returns": [
+    {
+      "path": "src/bts/scheduler.py",
+      "qualname": "run_result_polling",
+      "classify": [
+        [
+          "unresolved",
+          "^unresolved$"
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_result_polling",
+    "category": "unresolved"
+  },
+  "killing": [
+    {
+      "node": "tests/test_scheduler.py::TestPollResults::test_run_result_polling_cap_does_not_overwrite_resolved_result",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert status == \"final\"",
+        "line": 1053
+      }
+    }
+  ],
+  "contract": {
+    "text": "PARTIAL (cap clause of link 3 only): when result polling reaches its cap, an already-resolved hit/miss/void pick is reported final and is never overwritten with 'unresolved'. The link's headline clause (a schedule-detailed postponed/cancelled game counts as final when the live feed still says Preview) is NOT covered by this spec.",
+    "entry_mode": "direct call of scheduler.run_result_polling",
+    "trigger": "clock at 05:01 ET (cap hour 5) with the pick already resolved 'hit'",
+    "symptom_kind": "wrong return ('unresolved' for a resolved day) plus the overwrite of the result on disk"
+  },
+  "level": "production_path",
+  "level_justification": "only the clock (_now_et) is replaced; the autouse network guards (retry_urlopen, get_game_statuses_detailed) are never reached on the cap path",
+  "allowed_mocks": [
+    "bts.scheduler._now_et",
+    "bts.scheduler.retry_urlopen",
+    "bts.picks.get_game_statuses_detailed"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  }
+}

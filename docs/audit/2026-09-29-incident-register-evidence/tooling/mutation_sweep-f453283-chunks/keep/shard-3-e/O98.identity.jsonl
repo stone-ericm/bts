@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_a_swapped_code_is_registered_at_its_first_start_only_while_alone[alone]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_code_object_swapped_in_place_is_seen", "kind": "assertion"}

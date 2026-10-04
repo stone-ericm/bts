@@ -1,0 +1,74 @@
+{
+ "label": "D-I063-1",
+ "link": "I-063 link 1",
+ "tests": [
+  "tests/test_contest_state.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/contest_state.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/contest_state.py",
+   "    return DecisionStreakState(\n        streak=contest.streak,\n        saver_available=contest_saver,\n        allow_double=True,\n        source=\"contest\",\n",
+   "    decision_streak = contest.streak\n    if status != \"fresh\":\n        pass  # W1.5 mutant: pre-2b4ff1d \u2014 a non-fresh contest observation keeps max(model, contest)\n        decision_streak = max(model_streak, contest.streak)\n    return DecisionStreakState(\n        streak=decision_streak,\n        saver_available=contest_saver,\n        allow_double=True,\n        source=\"contest\",\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/contest_state.py",
+  "text": "W1.5 mutant: pre-2b4ff1d \u2014 a non-fresh contest observation keeps max(model, contest)"
+ },
+ "entry": {
+  "path": "src/bts/contest_state.py",
+  "qualname": "load_decision_streak_state"
+ },
+ "boundaries": [
+  {
+   "name": "decision_state",
+   "binding": "bts.contest_state:DecisionStreakState.__init__",
+   "value": [
+    "kw:streak",
+    "args[1]"
+   ],
+   "classify": [
+    [
+     "model_value",
+     "^10$"
+    ],
+    [
+     "contest_value",
+     "^8$"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "decision_state",
+  "category": "model_value"
+ },
+ "killing": [
+  {
+   "node": "tests/test_contest_state.py::test_model_never_inflates_decision_streak",
+   "assertion": {
+    "path": "tests/test_contest_state.py",
+    "text": "assert state.streak == 8            # real MLB streak",
+    "line": 219
+   }
+  }
+ ],
+ "contract": {
+  "text": "The decision streak is the real contest (MLB) streak; the model's replay of suggested picks never raises it, also when the contest observation lags.",
+  "entry_mode": "direct call of load_decision_streak_state",
+  "trigger": "model streak 10 above a lagging contest streak 8 (the 2026-06-17 incident fixture)",
+  "symptom_kind": "wrong decision state (the DecisionStreakState is built with the model's 10, not the contest's 8)"
+ },
+ "level": "production_path",
+ "level_justification": "the decision state is computed from files written to a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

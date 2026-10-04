@@ -1,0 +1,42 @@
+{
+ "id": "E76",
+ "episode_row": [
+  "E76",
+  "7/12\u20137/13",
+  "DD-leg shortfall invisible to monitors",
+  "A",
+  "OI",
+  "B",
+  "a275399"
+ ],
+ "commits": [
+  {
+   "sha": "a275399",
+   "authored": "2026-07-13T00:00:22-04:00",
+   "subject": "feat(health): DD-leg absolute-calibration coverage + evidence-proportionate tiers",
+   "body": "The 2026-07-12 DD-leg analysis (docs/audit/2026-07-12-dd-leg-calibration.md)\nfound a season-long DD shortfall (25/42 = 0.595 realized vs 0.734 stated,\ntail p=0.035) that NO monitor could see: every DD-relevant check is\ndrift-framed (chronic spans both windows \u2192 drift \u2248 0) and the only\nabsolute-level check watched [0.75,0.80) while 38/42 DD legs sit below\n0.76. Pooling can't fix it \u2014 calibrated primaries dilute the band to\n+10.3pp, under the WARN bar.\n\n- realized_calibration: bucket spec generalized to a slot-aware list \u2014\n  [0.75,0.80) both slots (unchanged) + [0.70,0.75) double_down-only (new;\n  live 30d reading +36.6pp at n=8). Per-bucket incident_key (composes with\n  the same-day DM dedup); legacy bucket_low/high overrides translated with\n  a warning instead of dying silently (review r2#7)\n- slot grading priority now slot_results (production live-feed grading,\n  authoritative) \u2192 PA-frame join \u2192 day-result proxy (primary on non-DD\n  days only \u2014 the knowingly-biased legacy DD fallback is excluded)\n- evidence-proportionate CRITICAL: requires bucket n\u226520 (SE\u224810pp at the\n  25pp bar) OR an exact Poisson-binomial tail \u22641e-3 (0-for-8 at 0.73 =\n  2.8e-5 \u2014 pipeline-failure signatures must not hide behind the n gate,\n  review r2#4; 2-for-8 at 0.0064 stays WARN)\n- attention streaks keyed by incident identity (r2#3: bucket A warning\n  yesterday must not label bucket B's first WARN '2nd consecutive day');\n  realized_calibration joins the WARN-attention list so persistence\n  actually reaches the DM digest\n- predicted_vs_realized drift_warn 0.08 \u2192 0.15: the production-clock null\n  simulation (see companion commit) shows 0.08 would feed the two-\n  consecutive-day digest in ~69% of calibrated seasons \u2014 overlapping\n  windows make crossings serially persistent; 0.15 \u2248 13%/season. INFO 0.05\n  keeps low drifts visible in logs\n- dd_pair/same_team_corr docstring records the chronic-blindness property\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01SPZRHPmXx6YokcauM7JDNw",
+   "files": [
+    "src/bts/health/attention.py",
+    "src/bts/health/predicted_vs_realized.py",
+    "src/bts/health/realized_calibration.py",
+    "src/bts/health/same_team_corr.py",
+    "tests/health/test_attention.py",
+    "tests/health/test_predicted_vs_realized.py",
+    "tests/health/test_realized_calibration.py"
+   ],
+   "first_live_log": {
+    "sha": "afbea38",
+    "live_by": "2026-07-13T04:12:55Z",
+    "not_live_before": "2026-07-13T04:12:55Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29223211407,
+    "created_at": "2026-07-13T04:08:31Z",
+    "head_sha": "afbea38",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

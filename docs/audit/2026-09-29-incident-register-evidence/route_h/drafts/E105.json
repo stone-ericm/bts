@@ -1,0 +1,204 @@
+{
+ "id": "I-105",
+ "working_id": "E105",
+ "title": "4/03-4/12 display defects: DD public post named only the primary's matchup; DD header inning; today's graded row styling; locked-but-unposted pick shown PENDING",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "whether each defect rendered on a live day: the bot account's public posts for double-down days before 2026-04-03 11:17 ET (b430e45) and dashboard renders 3/31-4/12; no screenshots or render logs are in the repo"
+ ],
+ "classes": {
+  "primary": "U",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "display/wording only: the delivered selection was unaffected (the DD post still named both batters; the rest is dashboard state)",
+ "residual_reaches_production": false,
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "dashboard",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Public posts and the dashboard describe the delivered pick accurately: a double-down post gives both matchups; the DD header shows each game's inning; today's graded row shows its result; a locked pick shows LOCKED whether or not it was posted.",
+  "source": "b430e45, d3e9337 (+575f76f), c30138b, 2ee1763 (subjects and bodies)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "posting.format_post rendered a double down as 'A (TEAM) + B / vs PRIMARY_PITCHER': no second team, opponent or probability",
+   "code": [
+    {
+     "path": "src/bts/posting.py",
+     "ref": "18b661b",
+     "symbol": "format_post",
+     "ref_basis": "unknown"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "scorecard.merge_scorecards put one game's inning beside a two-game DD label",
+   "code": [
+    {
+     "path": "src/bts/scorecard.py",
+     "ref": "7ea0ee0",
+     "symbol": "merge_scorecards",
+     "ref_basis": "unknown"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "web.render_page tested date == today before hit/miss, so today's graded row kept the neutral 'today' styling",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "6f48e47",
+     "symbol": "render_page (pick-history row_class)",
+     "ref_basis": "unknown"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "the hero LOCKED badge keyed only on game start, so a locked-but-unposted pick (private mode or a post failure) showed PENDING",
+   "code": [
+    {
+     "path": "src/bts/web.py",
+     "ref": "d5c466c",
+     "symbol": "render_page (hero is_locked)",
+     "ref_basis": "unknown"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "b430e45"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "d3e9337",
+     "575f76f"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "c30138b"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "2ee1763"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "2ee1763",
+    "live_by": "2026-04-12T16:07:23Z",
+    "run_id": 24310770761
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "none",
+  "trigger": "display-only; no W4 rank-2 boundary",
+  "recovery_assertion": "n/a"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit b430e45 message body + diff",
+   "written_at": "2026-04-03T11:17:48-04:00",
+   "what": "before/after example of the DD post: the old format omitted the second batter's team, opponent and probability"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commits d3e9337 and 575f76f (2026-04-08 17:28 and 17:30 ET)",
+   "what": "DD header shows each game's inning; the follow-up removed the duplicate inning it introduced"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit c30138b diff (web.render_page)",
+   "written_at": "2026-04-10T22:57:30-04:00",
+   "what": "today's row now takes hit/miss colour before the 'today' styling"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 2ee1763 message body",
+   "written_at": "2026-04-12T12:07:16-04:00",
+   "what": "LOCKED now follows scheduler_state.pick_locked and POSTED is a separate badge: 'a Bluesky failure shouldn't make the dashboard claim the pick is still PENDING'"
+  }
+ ],
+ "occurrences": [],
+ "routes": {
+  "H": [
+   "b430e45",
+   "d3e9337",
+   "575f76f",
+   "c30138b",
+   "2ee1763"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-014",
+  "I-024",
+  "I-036",
+  "I-045"
+ ],
+ "notes": [
+  "split? four independent display defects bundled by the row; all display-only with no watchdog or restore relevance, so the lead may drop or list them as one U group",
+  "the b430e45 example names real players; not repeated",
+  "no occurrence dated: whether and when each rendered live is exactly the missing evidence",
+  "link 4's candidate run 24310770761 is an early Hetzner run, when deploy pulls were still unreliable (I-018/I-020); log bound for all four links: live by 2026-06-07T00:11:19Z",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover",
+  "deployed unknown: candidate run 24273088030 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

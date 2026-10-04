@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_replay::test_an_unexpected_exception_never_writes_an_accepted_artifact", "kind": "assertion"}

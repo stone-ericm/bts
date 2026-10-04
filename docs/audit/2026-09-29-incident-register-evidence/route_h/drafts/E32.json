@@ -1,0 +1,282 @@
+{
+ "id": "I-032",
+ "working_id": "E32",
+ "title": "4/22 new heartbeat monitor paged Healthchecks falsely: no heartbeat during cold-wake predictions and during the result-polling sleep",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": [
+   "L"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "false liveness pages at storm cadence on the monitor's first day: every cold-wake prediction, and ~2-3 /fail pings per 15-min result-polling iteration (12 stale entries in about 2 h before discovery)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The external heartbeat monitor pings Healthchecks /fail only when the scheduler is stalled; a RUNNING heartbeat stays under 5 minutes old while the daemon is doing legitimate work.",
+  "source": "commit d4dae2c body (state-specific freshness thresholds; on stale: hc-ping /fail -> email alert); docs/superpowers/plans/2026-04-20-scheduler-hardening.md Task 1"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_single_check and _refresh_pick_at_fallback called run_and_pick (data refresh + model load + ~270-batter prediction, 5-6 min on a cold wake) without refreshing the heartbeat, so check_heartbeat.py saw a RUNNING heartbeat older than 300 s and pinged /fail",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "d4dae2c",
+     "symbol": "run_single_check / _refresh_pick_at_fallback",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "run_result_polling slept 15 minutes between iterations with no heartbeat refresh, so the monitor's 5-minute RUNNING threshold fired at minutes 5 and 10 of every polling cycle",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "55bb1df",
+     "symbol": "run_result_polling (inter-iteration time.sleep)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "0830ef4"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "0830ef4",
+    "live_by": "2026-04-22T17:24:12Z",
+    "run_id": 24792572674,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "c43869d"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "c43869d",
+    "live_by": "2026-04-22T20:30:30Z",
+    "run_id": 24801075979,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The 0830ef4 heartbeat_watchdog thread wrote RUNNING unconditionally, which later masked wedged cascades (audit H5); closed by the progress-aware watchdog 18efce1 (6/11).",
+   "reaches_production": false,
+   "source": "18efce1; working table E108 (I-108)"
+  },
+  {
+   "text": "Inline shadow prediction still ran outside heartbeat_watchdog until 150ed4c (5/09, E47/I-047).",
+   "reaches_production": false,
+   "source": "src/bts/scheduler.py _run_shadow_prediction at 053aae4 and 77b36f5; 150ed4c"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "a Healthchecks /fail from the heartbeat monitor while the scheduler journal shows the same process making progress (prediction/poll lines) inside the stale window is a monitor false positive; a stale heartbeat with no progress lines and no process exit is a real stall",
+  "recovery_assertion": "a full cold-wake prediction and a full result-polling day complete with no /fail pings and no restarts"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 0830ef4 message body",
+   "written_at": "2026-04-22T13:24:00-04:00",
+   "what": "first Phase B cron run at 13:15 ET that day reported 'running state but timestamp 302s old (>300s)' and pinged /fail to Healthchecks, then /success at 13:20 when the prediction finished; the check false-fired every cold wake"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit c43869d message body",
+   "written_at": "2026-04-22T16:30:26-04:00",
+   "what": "run_result_polling's 15-min sleep had no heartbeat refresh; observed live that day when the scheduler entered result_polling for the day's slate: 12 stale=True log entries in about 2 h before discovery via Healthchecks log review"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit d4dae2c body and scripts/check_heartbeat.py at d4dae2c",
+   "what": "the monitor (cron */5, added 4/22 12:04 ET) treats RUNNING as fresh only under 5 min and pings /fail on stale"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24792572674 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head 0830ef4 created 2026-04-22T17:24:12Z, conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24801075979 (deploy_runs.json)",
+   "what": "deploy-branch push of head c43869d created 2026-04-22T20:30:30Z, conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24796793225 (deploy_runs.json)",
+   "what": "deploy of b681f8a created 2026-04-22T18:55:57Z; the restarted scheduler could only enter result polling for the day's slate after this deploy (b681f8a body: the primary-keyed code slept until 20:50)"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a5af424 message body",
+   "what": "until 4/28 the workflow pulled origin/main on the box, so each 4/22 deploy applied code only if origin/main had also been pushed"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-22 cold-wake prediction (link 1)",
+   "onset": {
+    "at": "2026-04-22T13:15:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-04-22T13:15:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-22T13:24:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-22T13:24:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  },
+  {
+   "label": "2026-04-22 result-polling sleep (link 2)",
+   "onset": {
+    "not_before": "2026-04-22T14:55:57-04:00",
+    "not_after": "2026-04-22T16:30:26-04:00",
+    "evidence": [
+     "ev2",
+     "ev6"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-22T14:55:57-04:00",
+    "not_after": "2026-04-22T16:30:26-04:00",
+    "evidence": [
+     "ev2",
+     "ev6"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-22T16:30:26-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-22T16:30:26-04:00",
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "0830ef4",
+   "c43869d",
+   "d4dae2c"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/superpowers/plans/2026-04-20-scheduler-hardening.md",
+   "ARCHITECTURE.md at 4bd8193 'Heartbeat-watchdog discipline'"
+  ]
+ },
+ "related": [
+  "I-108",
+  "I-047",
+  "I-039",
+  "I-033"
+ ],
+ "notes": [
+  "alert fields not_applicable: the false /fail pings are the symptom itself; Healthchecks notification history (O1) was not read, so how many notifications reached the operator is unknown",
+  "tier A rests on the 'alert storm' reading (ev2 cadence); if the lead treats first-day monitor noise as B, nothing else in the record forces A (both residuals are closed)",
+  "the c43869d body says polling started '19:05 ET', but it was authored 16:30 ET; I read 19:05 as UTC (15:05 ET, just after the 14:56 ET b681f8a deploy restarted the scheduler into polling) - I'm guessing; the onset bound uses the deploy time instead (ev6)",
+  "the monitor went live the same day (d4dae2c, 4/22 12:04 ET), so the defect never ran without firing; ARCHITECTURE.md at 4bd8193 and the e74c485 body count five fixes in this class on 4/22-23; the scheduler.py fixes in that window are exactly 0830ef4, b681f8a, c43869d, 684c160, ddee3db (E32 x2, E33, E34, E35) - the mapping is mine",
+  "E37 caveat (ev7) applies to both deploy candidates",
+  "log bounds: both fixes live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fixes: tests/test_heartbeat.py test_heartbeat_watchdog_refreshes_during_block, test_heartbeat_watchdog_stops_writing_after_exit; tests/test_scheduler.py TestPollIntervalSleep",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

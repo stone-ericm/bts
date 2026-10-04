@@ -1,0 +1,37 @@
+{
+ "id": "E53",
+ "episode_row": [
+  "E53",
+  "5/22",
+  "Hoerner force-delivered before lineups (should_lock=False)",
+  "D",
+  "OI?",
+  "A",
+  "324c4a2 (+5/28 audit memo)"
+ ],
+ "commits": [
+  {
+   "sha": "324c4a2",
+   "authored": "2026-05-23T17:32:40+03:00",
+   "subject": "Defer unsafe fallback picks",
+   "body": "",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 26335678167,
+    "created_at": "2026-05-23T14:47:22Z",
+    "head_sha": "57ec6be",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

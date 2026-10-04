@@ -1,0 +1,211 @@
+{
+ "id": "I-057",
+ "working_id": "E57",
+ "title": "6/06–6/07 EOD contest_state health check paged a false CRITICAL 'STALE' on the expected overnight settlement lag",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "A",
+  "secondary": []
+ },
+ "tier": "B",
+ "tier_reason": "a false CRITICAL DM (alert noise, at most one per EOD run, not a storm); the pick path's own freshness gate was unchanged, so no delivery, entry or state impact is evidenced",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The contest_state health check pages CRITICAL 'STALE' only for genuine staleness of the contest observation (the week-long-freeze class); the expected one-day overnight lag between local settlement of day D and the next contest fetch is not an alert.",
+  "source": "src/bts/health/contest_state.py EXPECTED_OVERNIGHT_LAG_DAYS (58c9adc); ARCHITECTURE.md health-check table, 'contest_state' row ('level-aware staleness … must not DM-spam')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "health.contest_state.check raised CRITICAL 'contest state is STALE' whenever contest state was expected and contest_state_is_fresh was false (source_date < latest resolved pick), with no allowance for the one-day lag; the scheduler's end-of-day run_all_checks runs after it settles day D (latest resolved -> D) but before the next-morning fetch-contest-streak cron (01:10/02:10 ET) advances source_date to D, so the expected lag was present at the EOD run",
+   "code": [
+    {
+     "path": "src/bts/health/contest_state.py",
+     "ref": "c808dc5",
+     "symbol": "check (expected and not contest_state_is_fresh -> CRITICAL)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "c808dc5",
+     "symbol": "end-of-day health block (run_all_checks, contest_state_expected=_contest_state_required(config))",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "58c9adc"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The level-aware fix still measured the gap in calendar days, so the first played day after an n-day no-pick gap would page a false CRITICAL (All-Star break deterministic); fixed by aa6b7b1 (settled-pick steps) and later aligned by 56f9726.",
+   "reaches_production": false,
+   "source": "docs/audit/2026-06-09-fable5-full-audit.md [P1] 'contest_state gap is calendar-days, not settlement-steps'; aa6b7b1 (I-059); 56f9726 (I-063)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "private_vs_contest",
+  "trigger": "at the end-of-day health run, a contest_state CRITICAL is emitted while the contest source_date trails the latest locally settled pick by exactly one settlement step and the next scheduled contest fetch (01:10 ET) has not yet run — an expected state paged as STALE",
+  "recovery_assertion": "after the 01:10/02:10 ET fetch the contest source_date equals the latest settled pick with no CRITICAL outstanding; only a lag of more than one settled pick that persists past the 13:30 ET fetch pages"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit 58c9adc message body",
+   "written_at": "2026-06-07T13:54:42-04:00",
+   "what": "EOD health runs after the scheduler settles day D but before the next-morning fetch advances the contest source_date to D, so the expected one-day overnight lag 'fired a CRITICAL \"STALE\" DM most nights' — alert fatigue that could mask a genuine stale event"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 365ea40 diff (src/bts/health/contest_state.py); docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md step 5 and 'Health' bullets",
+   "what": "the STALE CRITICAL (expected and not contest_state_is_fresh) was added 2026-06-06 16:03 ET exactly as the contest-streak spec required; before it the check alerted only on missing/invalid state"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27072979769 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (eaccaf8, the PR #142 merge) contains 365ea40, created 2026-06-06T20:25:30Z; log expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (deploy_runs.json)",
+   "what": "retained log: pre-deploy SHA eaccaf8 at 2026-06-07T00:11:19Z, deployed 2b752be at 00:11:21Z, canary passed; both contain 365ea40 and lack 58c9adc, so the pre-fix check was installed through the night of 6/06→6/07"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688; 58c9adc is an ancestor of 83a5cad"
+  },
+  {
+   "id": "ev6",
+   "kind": "machine_observation",
+   "strength": "reported",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md header, 'Live state at audit time'",
+   "what": "the 6/09 audit reports deployed SHA a436827 (main==deploy==origin); a436827 contains 58c9adc, so the fix was live by the audit (box state not located)"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-09-fable5-full-audit.md [P1] 'contest_state gap is calendar-days, not settlement-steps'",
+   "what": "the 58c9adc level-aware fix reduced the nightly false CRITICAL but left the calendar-day class that fires after any no-pick day"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-06 EOD run (night of 6/06→6/07)",
+   "onset": {
+    "not_before": "2026-06-06T20:25:30Z",
+    "not_after": "2026-06-07T13:54:42-04:00",
+    "evidence": [
+     "ev1",
+     "ev3",
+     "ev4"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-06-06T20:25:30Z",
+    "not_after": "2026-06-07T13:54:42-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "not_applicable",
+    "confirmed": "not_applicable",
+    "failed": "not_applicable"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-07T13:54:42-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-07T13:54:42-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "58c9adc",
+   "365ea40",
+   "aa6b7b1",
+   "56f9726"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-09-fable5-full-audit.md",
+   "docs/superpowers/specs/2026-06-06-contest-streak-automation-design.md",
+   "ARCHITECTURE.md health-check table 'contest_state'"
+  ]
+ },
+ "related": [
+  "I-056",
+  "I-058",
+  "I-059",
+  "I-063"
+ ],
+ "notes": [
+  "'most nights' in the 58c9adc body cannot be literal: the STALE CRITICAL was added 6/06 16:03 ET (365ea40) and first deployable at 20:25Z, and the fix was committed 6/07 13:54 ET, so at most the 6/06→6/07 EOD run(s) fired it; read as a report of that run plus the expected nightly recurrence — Route R (journal/health DM status for 6/06–6/07) should confirm the firing time",
+  "specification defect: the contest-streak spec (d383db5) itself required 'CRITICAL when expected + not fresh'; the contract is sourced from the repair (58c9adc / ARCHITECTURE)",
+  "alert fields are not_applicable: the symptom IS the (false) CRITICAL DM; no separate alert about it exists",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing 58c9adc = run 27100280736 at 2026-06-07T17:55:03Z (head a436827, log expired); the 6/09 audit reports a436827 deployed (ev6, reported)",
+  "run_id 28601525167 is the run whose retained log first observed 83a5cad (as pre-deploy SHA); the run that deployed head 83a5cad (28520680537) has an expired log",
+  "delivery_mode unknown (5/20–7/05 window); no decision involved",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 58c9adc adds tests/health/test_contest_state.py::test_expected_overnight_lag_is_not_critical, which reproduces the incident condition (gap == 1 must not be CRITICAL)"
+ ]
+}

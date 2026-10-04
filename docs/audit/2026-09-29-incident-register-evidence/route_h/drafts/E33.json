@@ -1,0 +1,189 @@
+{
+ "id": "I-033",
+ "working_id": "E33",
+ "title": "4/22 result polling keyed to the primary's 20:40 ET game: the scheduler planned to sleep until 20:50 through the live 14:10 ET double-down game",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "G"
+  ]
+ },
+ "tier": "B",
+ "tier_reason": "result polling was absent for 36-130 minutes of a live pick game before the same-hour fix deploy restarted it; final grading was intact via the 01:00 check-results backfill and the dashboard was unaffected; no residual",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Result polling starts 10 minutes after the first pitch of the earliest pick game (primary or double-down) and persists slot results while games are live.",
+  "source": "commit b681f8a message body; src/bts/scheduler.py run_day step 8 ('Result polling (start 10 min after game start, check for hits mid-game)')"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day computed poll_start as the primary pick's game_time + 10 min; when the double-down's game started earlier, the scheduler sat in time.sleep until the primary's start, so run_result_polling (which already tracked both game_pks) never ran during the double-down game",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "0830ef4",
+     "symbol": "run_day (poll_start = game_et + 10 min)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "b681f8a"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "b681f8a",
+    "live_by": "2026-04-22T18:55:57Z",
+    "run_id": 24796793225,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "c43869d body (16:30 ET) reports the scheduler already in result_polling for the same slate, which the primary-keyed code would have deferred to 20:50 ET",
+    "at": {
+     "not_before": "2026-04-22T14:55:57-04:00",
+     "not_after": "2026-04-22T16:30:26-04:00",
+     "evidence": [
+      "ev2",
+      "ev3"
+     ]
+    }
+   }
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "while any pick game is Live, the scheduler heartbeat shows SLEEPING with sleeping_until later than that game's first pitch + 10 min, or a pick game has been Final for 30 min with no persisted slot result",
+  "recovery_assertion": "result polling runs during every pick game and each slot result is persisted before the 01:00 check-results backfill"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit b681f8a message body",
+   "written_at": "2026-04-22T14:55:53-04:00",
+   "what": "observed live 2026-04-22: primary game at 20:40 ET, double-down game at 14:10 ET; the scheduler slept until 20:50, missing the double-down's live window; the dashboard was unaffected and the 01:00 cron backfills final results"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit c43869d message body",
+   "written_at": "2026-04-22T16:30:26-04:00",
+   "what": "the scheduler had entered result_polling for the same two-game slate before 16:30 ET"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24796793225 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head b681f8a created 2026-04-22T18:55:57Z (14:55:57 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a5af424 message body",
+   "what": "until 4/28 deploys pulled origin/main; ev2 suggests this deploy did apply code"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-22",
+   "onset": {
+    "at": "2026-04-22T14:20:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-04-22T14:20:00-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-22T14:55:53-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-22T14:55:57-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "not_before": "2026-04-22T14:55:57-04:00",
+    "not_after": "2026-04-22T16:30:26-04:00",
+    "evidence": [
+     "ev2",
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "not_applicable",
+    "recovery": {
+     "min_minutes": 35.95,
+     "max_minutes": 130.44
+    }
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "b681f8a"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-032",
+  "I-021"
+ ],
+ "notes": [
+  "tier: prelim A; drafted B because the actual gap was cut short by the 14:56 ET fix deploy (bounds in restored_verification) and only mid-game persistence was affected - flip to A if the lead counts any absence of polling during a live pick game as a liveness failure",
+  "onset = the double-down's 14:10 ET first pitch + 10 min, the start the contract requires",
+  "restored_verification is my inference from ev2 + code: only the fixed poll start could put the scheduler into polling for this slate before 20:50; the moment polling began (probably ~15:05 ET) is not recorded",
+  "the batters named in the fix body are not repeated",
+  "the fix reuses _earliest_pick_game_et from the 4/20 fallback-deadline fix (body); related to the 4/12 DD-earlier fallback deadline (E21 / I-021)",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression test named in the fix: tests/test_scheduler.py TestComputeResultPollStart::test_double_down_earlier_uses_double_plus_10",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

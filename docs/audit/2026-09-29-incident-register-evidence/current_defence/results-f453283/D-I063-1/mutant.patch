@@ -1,0 +1,18 @@
+diff --git a/src/bts/contest_state.py b/src/bts/contest_state.py
+index d9f2493..84e8e20 100644
+--- a/src/bts/contest_state.py
++++ b/src/bts/contest_state.py
+@@ -344,8 +344,12 @@ def load_decision_streak_state(
+     # research replay of the bot's own suggestions and can NEVER raise it (the
+     # 2026-06-17 inflation bug). Doubles are no longer frozen on staleness — Phase 1
+     # surfaces stale-high via `status`; Phase 2 makes strategy act on the uncertainty.
++    decision_streak = contest.streak
++    if status != "fresh":
++        pass  # W1.5 mutant: pre-2b4ff1d — a non-fresh contest observation keeps max(model, contest)
++        decision_streak = max(model_streak, contest.streak)
+     return DecisionStreakState(
+-        streak=contest.streak,
++        streak=decision_streak,
+         saver_available=contest_saver,
+         allow_double=True,
+         source="contest",

@@ -1,0 +1,303 @@
+{
+ "id": "I-064",
+ "working_id": "E64",
+ "title": "Live-forward resolution of 2026-06-17 stalled ~2 weeks on a suspended-and-resumed game; the slate offered resume-date games",
+ "disposition": "observed_incident",
+ "counted": true,
+ "missing_evidence": [
+  "box journal lines (in-process EOD health / scheduler) for 2026-06-21 → 2026-06-30 showing the live_forward_resolution WARN/CRITICAL naming 2026-06-17, to date the first firing — Phase 2 Route R (journals retained from 5/11)",
+  "the 2026-06-29 22:36 ET CRITICAL DM send event and the 2026-07-01 12:01 ET live-forward resolve run reporting 'Candidate artifact verification: PASS' for 2026-06-17 — Phase 2 Route R (B1/B2 journals)",
+  "data/picks/2026-06-17.json game_pk(s): whether the production pick itself sat on the resumed game 824912 (decides the tier) — Phase 2 Route R (B1)"
+ ],
+ "classes": {
+  "primary": "R",
+  "secondary": [
+   "X",
+   "P"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "the known impact is research-only — one canonical live-forward date unresolved ~2 weeks, regenerated with verification PASS on 7/01 per a report (B); it is A if the 6/17 production pick itself was on the resumed game (a never-evaluable pick), which the repo does not establish",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "live_forward",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Every canonical live-forward artifact date reaches a terminal resolution status (resolved or verified, voids allowed) within the resolution grace window (code default 3 days, CRITICAL at 7); because the resumed portion of a suspended game is never evaluated for BTS, rows on such a game must end terminal (void), not pending.",
+  "source": "src/bts/health/live_forward_resolution.py DEFAULT_THRESHOLDS + SUCCESS_STATUSES (at 3081948); design §6.2 V8 ('stranded (pending past its pinned age threshold)'); official rules §6 'Regarding Suspended Games' (docs/audit/2026-09-29-incident-register-evidence/rules/section6.txt)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "MLB keeps a suspended-then-resumed game's original officialDate, so game 824912's PA stayed filed under 2026-06-16 while the live-forward slate dated its rows on the resume day 2026-06-17; the resolver's (date, game_pk) outcome join never matched and no terminal-void route covered the case, so the rows stayed pending and the date never resolved",
+   "code": [
+    {
+     "path": "src/bts/experiment/artifacts.py",
+     "ref": "3081948",
+     "symbol": "resolve_live_candidate_artifact_pair / _load_outcomes_from_pa",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "the daily slate offered resume-date games: _fetch_game_slots kept schedule games whose officialDate is earlier than the queried date, so a never-evaluable game entered the ranked slates (and could be picked)",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "0dca845",
+     "symbol": "_fetch_game_slots",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "0dca845"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "the live-forward resolve timer regenerated 2026-06-17 with 'Candidate artifact verification: PASS (0 failures)' (reported by the 7/01 production-state audit)",
+    "at": {
+     "at": "2026-07-01T12:01:00-04:00",
+     "evidence": [
+      "ev3"
+     ]
+    }
+   }
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "02abfcc"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "log",
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:11Z",
+    "not_live_before": "2026-06-07T00:11:21Z",
+    "run_id": 28601525167,
+    "evidence": [
+     "ev10"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "By design the resolver still leaves pending a row whose game has slate-date PA but none for the batter, or whose game is absent from PA entirely; such a date can still strand and then relies on the live_forward_resolution alert.",
+   "reaches_production": false,
+   "source": "0dca845 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "daily after the live-forward resolve timer, checked outside the scheduler's in-process health runner: a canonical artifact date older than the 3-day grace window whose resolution status is not a success status (existing_verified[_with_voids], resolved_verified, resolved_with_voids)",
+  "recovery_assertion": "the date's resolution status reaches a success status within one resolve cycle after the fix is live, and the stall alert clears"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-06-29-skip-threshold-and-discrimination.md TL;DR 'Open item' + §12 (commit 3081948)",
+   "written_at": "2026-06-29T14:04:32-04:00",
+   "what": "reports live_forward_resolution stalled on 2026-06-17 for >10 days (missing outcomes for 2 artifact rows) and flagged CRITICAL in the scheduler log; the log line itself is not located"
+  },
+  {
+   "id": "ev2",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'The week's one CRITICAL — closed' (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "reports a live_forward_resolution CRITICAL DM at 2026-06-29 22:36 ET ('canonical resolution stalled 12d on 2026-06-17', game 824912), fired one minute after the restart for the deploy carrying the first suspended-game commits; the DM and journal lines are not located"
+  },
+  {
+   "id": "ev3",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "docs/audit/2026-07-01-production-state-audit.md 'The week's one CRITICAL — closed' (commit 7636c11)",
+   "written_at": "2026-07-01T18:57:28-04:00",
+   "what": "reports that at 12:01 ET on 7/01 the resolve timer regenerated 2026-06-17 with 'Candidate artifact verification: PASS (0 failures)'; the timer output is not located"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 0dca845 message body",
+   "written_at": "2026-06-29T20:23:59-04:00",
+   "what": "mechanism: the resumed game keeps its original officialDate, its PA stay under the earlier date while the slate dates the pick on the resume day, the (date, game_pk) join never matches → permanent pending_outcomes; 'Fixes the 2026-06-17 live_forward_resolution CRITICAL stall (game 824912 resumed from 06-16)'"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 02abfcc message body + diff (src/bts/model/predict.py _fetch_game_slots, src/bts/picks.py is_resume_date_game)",
+   "what": "a suspended game resumed on a later day still appears on that day's schedule with its earlier officialDate and was offered as a candidate; the fix skips it at the source"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/health/live_forward_resolution.py at 3081948 (DEFAULT_THRESHOLDS, check); src/bts/health/attention.py at 3081948 (ALWAYS_ATTENTION_WARN_SOURCES)",
+   "what": "the check is per canonical date: WARN once a date is older than grace_days=3 without a success status, CRITICAL at age >= 7 days; live_forward_resolution WARNs always get attention"
+  },
+  {
+   "id": "ev7",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git log 2b752be..3081948 -- src/bts/experiment/artifacts.py src/bts/health/live_forward_resolution.py (empty)",
+   "what": "the resolver and its health check were unchanged from the 6/07 log-observed install 2b752be to the defective ref 3081948, so the defective resolver was the one live through the stall"
+  },
+  {
+   "id": "ev8",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27077693688 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log: 2b752be deployed 2026-06-07T00:11:21Z, canary passed — the last retained log before 7/02"
+  },
+  {
+   "id": "ev9",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28416280226 (deploy_runs.json)",
+   "what": "success at 2026-06-30T02:31:47Z with head 02abfcc (log expired): the first successful deploy whose head contains both fixes (candidate ancestry)"
+  },
+  {
+   "id": "ev10",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 28601525167 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "retained log records pre-deploy SHA 83a5cad at 2026-07-02T15:28:10Z, the first retained log after run 27077693688 (2b752be, 6/07 00:11Z); both fixes are ancestors of 83a5cad"
+  },
+  {
+   "id": "ev11",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/experiment/artifacts.py at 3081948 (module docstring, materialize_live_candidate_profile_pair top_n=10)",
+   "what": "the live-forward artifact holds paired production and candidate top-N ranked slates (default N = 10), so '2 artifact rows' on game 824912 do not identify the production pick"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-06-17 canonical date (stranded until the 7/01 regeneration)",
+   "onset": {
+    "not_before": "2026-06-18",
+    "not_after": "2026-06-29T14:04:32-04:00",
+    "evidence": [
+     "ev1",
+     "ev4"
+    ]
+   },
+   "first_detectable": {
+    "at": "2026-06-21",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "first_machine_detection": {
+    "detector": "health check live_forward_resolution (scheduler's in-process health runner)",
+    "at": {
+     "not_after": "2026-06-29T14:04:32-04:00",
+     "evidence": [
+      "ev1"
+     ]
+    }
+   },
+   "alert": {
+    "attempted": {
+     "not_after": "2026-06-29T22:36:00-04:00",
+     "evidence": [
+      "ev2"
+     ]
+    },
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-06-29T14:04:32-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-06-29T20:23:59-04:00",
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": {
+    "at": "2026-07-01T12:01:00-04:00",
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": {
+     "min_minutes": 2756,
+     "max_minutes": 19441
+    }
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "0dca845",
+   "02abfcc",
+   "3081948",
+   "7636c11"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "docs/audit/2026-06-29-skip-threshold-and-discrimination.md §12",
+   "docs/audit/2026-07-01-production-state-audit.md 'The week's one CRITICAL — closed'",
+   "ARCHITECTURE.md 'Suspended-game scoring'"
+  ]
+ },
+ "related": [
+  "I-067"
+ ],
+ "notes": [
+  "tier_pending: known impact is research-only (B); A if the 6/17 production pick was on game 824912 — the repo only shows 2 top-N ranked-slate rows on it (production + candidate variants, ev11)",
+  "onset not_before 2026-06-18 = the first possible resolve attempt for the 6/17 date; first_detectable 2026-06-21 and CRITICAL from 6/24 assume the code-default thresholds (grace 3 d, critical 7 d) — a box TOML override is unknown (none in config/orchestrator.example.toml)",
+  "alert.attempted is only an upper bound: live_forward_resolution is an always-attention WARN source, so earlier WARN/CRITICAL DMs (from ~6/21) are possible but unevidenced",
+  "deployed: log bound only (6/07 00:11Z → 7/02 15:28Z); candidate ancestry: first successful deploy containing each fix = run 28416280226 at 2026-06-30T02:31:47Z (head 02abfcc, log expired). The 7/01 audit (operator report) says the 6/30 02:31Z run succeeded with canary, box HEAD 83a5cad == deploy ref and .last_deploy_iso 2026-07-01T13:26:19Z",
+  "run_id 28601525167 = the run whose retained log observed 83a5cad as the pre-deploy SHA; no run has a logged deployed SHA 83a5cad (run 28520680537 deployed head 83a5cad, log expired)",
+  "ref_basis candidate for both links: the defective resolver code is identical in the 6/07 log-observed install 2b752be (ev7), but 2b752be is an ancestor of the fix parent, not the ref itself or a descendant",
+  "reproducing tests: tests/experiment/test_artifacts.py::test_resolve_live_candidate_artifact_pair_voids_suspended_resume (0dca845); tests/test_is_resume_date_game.py::test_excludes_resume_day_suspended_game (02abfcc)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "re-disposed observed_incident under ruling 6: the 6/17 date stayed unresolved until the 7/01 12:01 regeneration (a continuing condition), so the first-hand 6/29 memo (3081948) and 7/01 audit (7636c11) are contemporaneous reports; missing_evidence now names what Phase 2 needs to date the first WARN/CRITICAL, not what the disposition needs"
+ ]
+}

@@ -1,0 +1,132 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-4
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 4 items
+
+tests/health/test_contest_state.py FFFF                                  [100%]
+
+=================================== FAILURES ===================================
+________________________ test_gap2_coverage_lag_is_warn ________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8056/test_gap2_coverage_lag_is_warn0')
+
+    def test_gap2_coverage_lag_is_warn(tmp_path):
+        """A >=2 settled-pick gap is a coverage lag (the predictions array trailing the
+        live activeStreak counter), NOT reliable staleness under the snapshot/coverage
+        split -> WARN, never a (false) CRITICAL DM."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 0, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-01",
+        }))
+        # The week-long-freeze incident: picks resolve daily while source_date stays
+        # frozen — 4 settled picks newer than source_date == genuine staleness.
+        for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
+            (tmp_path / f"{d}.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: [Alert(level='CRITICAL', source='contest_state', message='contest state is STALE: 4 settled picks are newer than sourc...g_is_warn0/account_state/contest_streak.json); latest resolved pick 2026-06-05; live picks are frozen conservatively')]
+E       assert False
+E        +  where False = any(<generator object test_gap2_coverage_lag_is_warn.<locals>.<genexpr> at 0x1093b0380>)
+
+tests/health/test_contest_state.py:74: AssertionError
+_____________________ test_gap1_past_noon_is_info_not_warn _____________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8056/test_gap1_past_noon_is_info_no0')
+
+    def test_gap1_past_noon_is_info_not_warn(tmp_path):
+        """Phase-1 snapshot/coverage split: source_date is derived from the per-round
+        predictions array, which trails the live activeStreak counter by ~one round BY
+        DESIGN. So a 1-pick gap past noon ET is the normal coverage lag, not a stuck
+        contest — it must be INFO, not the old daily-false WARN (and no 'frozen' wording,
+        since Phase 1 no longer freezes picks on staleness)."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-06",
+        }))
+        (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        from datetime import datetime, timezone
+        afternoon = datetime(2026, 6, 8, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
+        alerts = check(tmp_path, expected=True, now=afternoon)
+>       assert not any(a.level == "WARN" for a in alerts), alerts
+E       AssertionError: [Alert(level='WARN', source='contest_state', message='contest state lag persisting past noon ET: source_date=2026-06-0...ever advanced — check the pick was actually entered in the MLB app (check-pick-entered) or MLB settlement is delayed')]
+E       assert not True
+E        +  where True = any(<generator object test_gap1_past_noon_is_info_not_warn.<locals>.<genexpr> at 0x1093c0930>)
+
+tests/health/test_contest_state.py:119: AssertionError
+______________ test_offday_gap_with_one_new_pick_is_not_critical _______________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8056/test_offday_gap_with_one_new_p0')
+
+    def test_offday_gap_with_one_new_pick_is_not_critical(tmp_path):
+        """All-Star break / league off-days: a multi-CALENDAR-day gap with only ONE
+        settled pick newer than source_date is the expected 1-settlement-step lag,
+        not staleness. Gap is measured in settled picks, not calendar days, so this
+        must be INFO — not a (false) CRITICAL on the first day back (audit H2)."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 5, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-07-13",
+        }))
+        # Last game before the All-Star break (= source_date), a 3-day no-pick gap,
+        # then the first game back today: only this one pick is newer than source.
+        (tmp_path / "2026-07-13.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-07-17.json").write_text(json.dumps({"result": "hit"}))
+    
+        from datetime import datetime, timezone
+        alerts = check(tmp_path, expected=True,
+                       now=datetime(2026, 7, 17, 23, 0, tzinfo=timezone.utc))
+        assert not any(a.level == "CRITICAL" for a in alerts), alerts
+        # gap==1 (1 settled pick newer than source) is the normal coverage lag -> INFO,
+        # never CRITICAL on the first day back (the H2 protection this test pins).
+>       assert any(a.level == "INFO" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: [Alert(level='WARN', source='contest_state', message='contest state lag persisting past noon ET: source_date=2026-07-1...ever advanced — check the pick was actually entered in the MLB app (check-pick-entered) or MLB settlement is delayed')]
+E       assert False
+E        +  where False = any(<generator object test_offday_gap_with_one_new_pick_is_not_critical.<locals>.<genexpr> at 0x1092fde50>)
+
+tests/health/test_contest_state.py:150: AssertionError
+____________________ test_two_day_gap_is_warn_not_critical _____________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8056/test_two_day_gap_is_warn_not_c0')
+
+    def test_two_day_gap_is_warn_not_critical(tmp_path):
+        """>= 2 settled picks newer than source_date is a coverage gap (the predictions
+        array trailing the activeStreak counter), not reliable staleness under the
+        snapshot/coverage split -> WARN, not a CRITICAL DM."""
+        state_dir = tmp_path / "account_state"
+        state_dir.mkdir()
+        (state_dir / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1",
+            "active_streak": 2, "best_streak": 9,
+            "source": "mlb_bts_profile", "source_date": "2026-06-05",
+        }))
+        # Two settled picks newer than source_date (06-06 and 06-07): the contest is
+        # genuinely >= 2 settlements behind, not just a one-pick overnight lag.
+        (tmp_path / "2026-06-06.json").write_text(json.dumps({"result": "hit"}))
+        (tmp_path / "2026-06-07.json").write_text(json.dumps({"result": "hit"}))
+    
+        alerts = check(tmp_path, expected=True)
+>       assert any(a.level == "WARN" and a.source == SOURCE for a in alerts), alerts
+E       AssertionError: [Alert(level='CRITICAL', source='contest_state', message='contest state is STALE: 2 settled picks are newer than sourc...arn_not_c0/account_state/contest_streak.json); latest resolved pick 2026-06-07; live picks are frozen conservatively')]
+E       assert False
+E        +  where False = any(<generator object test_two_day_gap_is_warn_not_critical.<locals>.<genexpr> at 0x109852e90>)
+
+tests/health/test_contest_state.py:171: AssertionError
+=========================== short test summary info ============================
+FAILED tests/health/test_contest_state.py::test_gap2_coverage_lag_is_warn - A...
+FAILED tests/health/test_contest_state.py::test_gap1_past_noon_is_info_not_warn
+FAILED tests/health/test_contest_state.py::test_offday_gap_with_one_new_pick_is_not_critical
+FAILED tests/health/test_contest_state.py::test_two_day_gap_is_warn_not_critical
+============================== 4 failed in 0.06s ===============================

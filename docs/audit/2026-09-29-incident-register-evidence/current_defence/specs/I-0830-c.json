@@ -1,0 +1,73 @@
+{
+ "label": "I-0830-c",
+ "link": "I-084 link 3",
+ "tests": [
+  "tests/data/test_pull.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/data/pull.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/data/pull.py",
+   "        if not cached and delay > 0 and i < len(games) - 1:\n            time.sleep(delay)\n",
+   "        if delay > 0 and i < len(games) - 1:  # W1.5 mutant: pre-c0c0a97 \u2014 sleep even on cache hits\n            time.sleep(delay)\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/data/pull.py",
+  "text": "W1.5 mutant: pre-c0c0a97 \u2014 sleep even on cache hits"
+ },
+ "entry": {
+  "path": "src/bts/data/pull.py",
+  "qualname": "pull_feeds"
+ },
+ "boundaries": [
+  {
+   "name": "sleep",
+   "binding": "time:sleep",
+   "value": [
+    "args[0]"
+   ],
+   "classify": [
+    [
+     "sleep",
+     ".*"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "event",
+  "boundary": "sleep",
+  "category": "sleep"
+ },
+ "killing": [
+  {
+   "node": "tests/data/test_pull.py::test_pull_feeds_does_not_sleep_on_cache_hits",
+   "assertion": {
+    "path": "tests/data/test_pull.py",
+    "text": "mock_sleep.assert_not_called()",
+    "line": 195
+   }
+  }
+ ],
+ "contract": {
+  "text": "pull_feeds does not sleep between feeds that are already cached (no network request was made).",
+  "entry_mode": "direct call of pull_feeds",
+  "trigger": "every discovered feed already on disk",
+  "symptom_kind": "extra event (sleep on a cache hit)"
+ },
+ "level": "production_path",
+ "level_justification": "only discovery (network), urlopen (network) and sleep are replaced",
+ "allowed_mocks": [
+  "bts.data.pull.discover_games",
+  "bts.data.pull.urlopen",
+  "bts.data.pull.time.sleep"
+ ],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

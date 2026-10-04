@@ -1,0 +1,71 @@
+{
+ "id": "I-038",
+ "working_id": "E38",
+ "title": "4/28 first end-of-day health cycle sent a false memory_growth CRITICAL (thresholds set on the sleeping baseline)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "A", "secondary": []},
+ "tier": "B",
+ "tier_reason": "one false CRITICAL health DM; no delivery, state or liveness impact attributed to the alert itself (the concurrent unexplained restart is proposed as a separate record)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "memory_growth raises CRITICAL only for a likely real leak, not for the scheduler's normal post-prediction resident memory.",
+  "source": "commit 4e221c8 message body (CRITICAL 6144 MB 'likely real leak'); commit e74c485 body (T3 memory_growth)"
+ },
+ "mechanism": [
+  {"n": 1, "text": "memory_growth used INFO 200 / WARN 500 / CRITICAL 1024 MB, calibrated on the ~90 MB sleeping baseline, while the scheduler's in-process prediction path legitimately holds 2-3 GB that CPython does not return; the first end-of-day run therefore reported 2.9 GB as CRITICAL",
+   "code": [{"path": "src/bts/health/memory_growth.py", "ref": "a9165ec", "symbol": "check (thresholds)", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["4e221c8"], "complete_fix_set": false},
+   "deployed": {"basis": "candidate_ancestry", "sha": "4e221c8", "live_by": "2026-04-29T01:25:10Z", "run_id": 25086313693, "evidence": ["ev3"]},
+   "mitigated": "none", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "The retuned WARN threshold (3072 MB) still sat inside normal post-prediction RSS (2.8-3.6 GB per the 5/23 walkthrough), mixing cold and post-prediction baselines; recalibrated by 279f190 on 5/23 (E52/I-052).", "reaches_production": false, "source": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md at 3b3e810 (memory_growth row); 279f190"}
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "an NRestarts increase between two end-of-day health runs that no deploy run or date transition explains (the concurrent 0-to-1 restart here); the false CRITICAL itself has no service boundary and is a threshold-calibration matter",
+  "recovery_assertion": "end-of-day health runs on normal days produce no memory CRITICAL and NRestarts stays flat between deploys"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 4e221c8 message body", "written_at": "2026-04-28T21:25:06-04:00",
+   "what": "the first end-of-day health cycle on 4/28 fired a spurious CRITICAL for the scheduler at 2.9 GB RSS (the 21:21 ET CRITICAL); the misfire also coincided with an unintended scheduler restart (NRestarts 0 to 1), root cause unclear from the journal, possibly a watchdog timeout under high RSS - follow-up deferred"},
+  {"id": "ev2", "kind": "inference", "strength": "primary", "locator": "commit e74c485 message body",
+   "what": "the end-of-day runner sends one Bluesky DM for the aggregated CRITICAL set; memory_growth is a T3 check"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 25086313693 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head 4e221c8 created 2026-04-29T01:25:10Z (4/28 21:25 ET), conclusion success; log unavailable_expired"},
+  {"id": "ev4", "kind": "inference", "strength": "primary", "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md at 3b3e810, memory_growth row",
+   "what": "history showed normal post-prediction RSS around 2.8-3.6 GB while sleeping RSS is about 140 MB; absolute 1 GB/3 GB thresholds mixed the two baselines"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-28",
+  "onset": {"at": "2026-04-28T21:21:00-04:00", "evidence": ["ev1"]},
+  "first_detectable": {"at": "2026-04-28T21:21:00-04:00", "evidence": ["ev1"]},
+  "first_machine_detection": "none",
+  "alert": {"attempted": "not_applicable", "confirmed": "not_applicable", "failed": "not_applicable"},
+  "operator_awareness": {"not_after": "2026-04-28T21:25:06-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-28T21:25:10-04:00", "evidence": ["ev1", "ev3"]},
+  "mitigation": "none",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["4e221c8"], "R": "pending_phase2",
+            "X": ["docs/superpowers/runbooks/2026-05-23-alert-disposition.md memory_growth row"]},
+ "related": ["I-052", "I-049", "I-037"],
+ "notes": [
+  "split? E38a = this false CRITICAL (B, fixed); E38b = the unexplained scheduler restart during the same end-of-day cycle (NRestarts 0 to 1), which the body defers; E38b would be unresolved_candidate and the journal that could settle it is not retained (journals start 5/11)",
+  "I'm guessing on E38b: at 4e221c8's parent the next-day wake was computed as today's 10:00 ET (see I-049), so after the 21:21 health run _idle_until_next_wakeup would no-op, the process would exit cleanly and Restart=always would relaunch it once - after 20:00 ET the relaunch runs the next UTC date, so exactly one restart; code reading only",
+  "alert fields not_applicable: the false CRITICAL is the symptom",
+  "the restart deferral is not listed as a residual because its mechanism is unknown; it belongs to E38b",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "regression tests named in the fix: tests/health/test_memory_growth.py test_no_critical_at_2_9gb_post_prediction (+ threshold tests)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "label": "D-I042-2",
+ "link": "I-042 link 2",
+ "tests": [
+  "tests/health/test_realized_calibration.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/realized_calibration.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/realized_calibration.py",
+   "            if not run_time or _iso_before(run_time, since_deploy_iso):\n                skipped_pre_deploy += 1\n                continue\n",
+   "            pass  # W1.5 mutant: pre-c5256e6 \u2014 no deploy filter: picks from earlier model iterations are pooled\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/realized_calibration.py",
+  "text": "W1.5 mutant: pre-c5256e6 \u2014 no deploy filter: picks from earlier model iterations are pooled"
+ },
+ "entry": {
+  "path": "src/bts/health/realized_calibration.py",
+  "qualname": "check"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/realized_calibration.py",
+   "qualname": "check",
+   "classify": [
+    [
+     "pooled_critical",
+     "\"incident_key\": \"realized_calibration:75-80%\", \"level\": \"CRITICAL\""
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/realized_calibration.py",
+  "qualname": "check",
+  "category": "pooled_critical"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_realized_calibration.py::TestSinceDeployFilter::test_pre_deploy_picks_excluded",
+   "assertion": {
+    "path": "tests/health/test_realized_calibration.py",
+    "text": "assert check(picks_dir, today=today, since_deploy_iso=deploy_iso) == []",
+    "line": 343
+   }
+  },
+  {
+   "node": "tests/health/test_realized_calibration.py::TestRegimeFingerprintPooling::test_unstamped_picks_keep_deploy_iso_fallback",
+   "assertion": {
+    "path": "tests/health/test_realized_calibration.py",
+    "text": "assert check(picks_dir, today=today, since_deploy_iso=mid_deploy) == []",
+    "line": 462
+   }
+  }
+ ],
+ "contract": {
+  "text": "realized_calibration pools only picks from the current production model: when the picks carry no regime stamp, picks whose run_time predates the current deploy are excluded, so iteration-mixed history cannot page a CRITICAL.",
+  "entry_mode": "direct call of realized_calibration.check with since_deploy_iso",
+  "trigger": "unstamped all-miss picks at 0.78 whose run_time predates since_deploy_iso",
+  "symptom_kind": "wrong return (75-80% bucket CRITICAL computed over pre-deploy picks instead of no alert)"
+ },
+ "level": "production_path",
+ "level_justification": "the check reads pick files the test writes to a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

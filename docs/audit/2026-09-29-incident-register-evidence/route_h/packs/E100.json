@@ -1,0 +1,58 @@
+{
+ "id": "E100",
+ "episode_row": [
+  "E100",
+  "6/11, 7/10",
+  "test failures blocked deploys (gate held)",
+  "S",
+  "NM",
+  "B",
+  "df01882 6919e19 (+ runs 27321348039, 29114359533)"
+ ],
+ "commits": [
+  {
+   "sha": "df01882",
+   "authored": "2026-06-11T10:36:07-04:00",
+   "subject": "Fix test_audit_driver: render_profile_command now always emits --game-probability-mode",
+   "body": "The flag was added for the MDP re-solve but its test wasn't updated (red in CI\nsince that commit; blocked the deferred-tail deploy). Update the assertion +\nadd an estimated_pa coverage case.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+   "files": [
+    "tests/test_audit_driver.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27354604212,
+    "created_at": "2026-06-11T14:36:14Z",
+    "head_sha": "df01882",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "6919e19",
+   "authored": "2026-07-10T14:31:26-04:00",
+   "subject": "fix(test): pin git_branch stamp in the interrupted-sync round-trip test",
+   "body": "The test builds a manifest via the real sync_to_r2, whose provenance\nstamp reads the CI checkout's branch \u2014 on the deploy workflow that is\n'deploy', and sync_from_r2's main-branch refusal (correctly) fired.\nVerified by running the test from a non-main branch before committing.\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+   "files": [
+    "tests/test_sync.py"
+   ],
+   "first_live_log": {
+    "sha": "6919e19",
+    "live_by": "2026-07-10T18:41:02Z",
+    "not_live_before": "2026-07-10T18:41:02Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 29114882915,
+    "created_at": "2026-07-10T18:32:02Z",
+    "head_sha": "6919e19",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+  "label": "D-I043-1",
+  "link": "I-043 link 1",
+  "tests": [
+    "tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates",
+    "tests/test_scheduler.py::TestSchedulerRun::test_double_down_postponed_regenerates_whole_pick",
+    "-q"
+  ],
+  "allowed_paths": [
+    "src/bts/picks.py"
+  ],
+  "mutation_edits": [
+    [
+      "src/bts/picks.py",
+      "    if _is_void_detailed_state(detailed):\n        return PickLockState(\n            stale=True,\n            locked=False,\n            reason=\"stale_game_status\",\n            game_pk=game_pk,\n            abstract=abstract,\n            detailed=detailed,\n        )\n",
+      "    if _is_void_detailed_state(detailed):\n        pass  # W1.5 mutant: pre-7b701c9 — a postponed/cancelled committed game falls through to the abstract != P lock\n"
+    ]
+  ],
+  "branch": {
+    "path": "src/bts/picks.py",
+    "text": "W1.5 mutant: pre-7b701c9 — a postponed/cancelled committed game falls through to the abstract != P lock"
+  },
+  "entry": {
+    "path": "src/bts/scheduler.py",
+    "qualname": "run_single_check"
+  },
+  "returns": [
+    {
+      "path": "src/bts/picks.py",
+      "qualname": "classify_pick_lock_state",
+      "classify": [
+        [
+          "started_lock",
+          "\"locked\": true, \"reason\": \"game_started_or_final\""
+        ]
+      ]
+    }
+  ],
+  "symptom": {
+    "kind": "return",
+    "path": "src/bts/picks.py",
+    "qualname": "classify_pick_lock_state",
+    "category": "started_lock"
+  },
+  "killing": [
+    {
+      "node": "tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert result[\"pick_result\"].locked is False",
+        "line": 807
+      }
+    },
+    {
+      "node": "tests/test_scheduler.py::TestSchedulerRun::test_double_down_postponed_regenerates_whole_pick",
+      "assertion": {
+        "path": "tests/test_scheduler.py",
+        "text": "assert result[\"pick_result\"].locked is False",
+        "line": 851
+      }
+    }
+  ],
+  "contract": {
+    "text": "An undelivered pick whose committed game (primary or double-down) is postponed or cancelled is stale and regenerated from live games; it is never kept as 'already locked' because the postponed game's abstract status is not Preview.",
+    "entry_mode": "direct call of scheduler.run_single_check",
+    "trigger": "existing undelivered pick on a game with detailed status Postponed (abstract F)",
+    "symptom_kind": "wrong classification (locked, game_started_or_final) that short-circuits the cascade"
+  },
+  "level": "component",
+  "level_justification": "besides the MLB status and lineup lookups (get_game_statuses_detailed, get_game_statuses, check_confirmed_lineups, retry_urlopen), the tests replace the internal model cascade (bts.orchestrator.run_cascade) and policy loader (bts.strategy._load_mdp); neither is reached on the mutant path",
+  "allowed_mocks": [
+    "bts.scheduler.check_confirmed_lineups",
+    "bts.orchestrator.run_cascade",
+    "bts.picks.get_game_statuses_detailed",
+    "bts.strategy.get_game_statuses",
+    "bts.picks.get_game_statuses",
+    "bts.strategy._load_mdp",
+    "bts.scheduler.retry_urlopen"
+  ],
+  "baseline": "BASELINE",
+  "env": {
+    "TZ": "America/New_York"
+  }
+}

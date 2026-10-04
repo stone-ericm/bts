@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_spec_environment_cannot_set_a_runner_owned_variable[PYTHONPYCACHEPREFIX]", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_spec_environment_cannot_set_a_runner_owned_variable[PYTHONPATH]", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_spec_environment_cannot_set_a_runner_owned_variable[PYTHONDONTWRITEBYTECODE]", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_spec_environment_cannot_set_a_runner_owned_variable[W15_OBS_CONFIG]", "kind": "did_not_raise"}

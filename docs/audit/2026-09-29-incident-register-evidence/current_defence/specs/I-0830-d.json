@@ -1,0 +1,67 @@
+{
+ "label": "I-0830-d",
+ "link": "I-084 link 4",
+ "tests": [
+  "tests/health/test_late_delivery.py",
+  "-q"
+ ],
+ "allowed_paths": [
+  "src/bts/health/late_delivery.py"
+ ],
+ "mutation_edits": [
+  [
+   "src/bts/health/late_delivery.py",
+   "    if delivered_at >= cutoff:\n        alerts.append(Alert(\"CRITICAL\", SOURCE, (\n",
+   "    if delivered_at >= cutoff:\n        pass  # W1.5 mutant: pre-314154d \u2014 a delivered pick reads healthy, however late\n        return alerts\n        alerts.append(Alert(\"CRITICAL\", SOURCE, (\n"
+  ]
+ ],
+ "branch": {
+  "path": "src/bts/health/late_delivery.py",
+  "text": "W1.5 mutant: pre-314154d \u2014 a delivered pick reads healthy, however late"
+ },
+ "entry": {
+  "path": "src/bts/health/late_delivery.py",
+  "qualname": "check"
+ },
+ "returns": [
+  {
+   "path": "src/bts/health/late_delivery.py",
+   "qualname": "check",
+   "classify": [
+    [
+     "no_alert",
+     "^\\{\"seq\": \\[\\]\\}$"
+    ]
+   ]
+  }
+ ],
+ "symptom": {
+  "kind": "return",
+  "path": "src/bts/health/late_delivery.py",
+  "qualname": "check",
+  "category": "no_alert"
+ },
+ "killing": [
+  {
+   "node": "tests/health/test_late_delivery.py::test_after_cutoff_is_critical",
+   "assertion": {
+    "path": "tests/health/test_late_delivery.py",
+    "text": "assert len(a) == 1 and a[0].level == \"CRITICAL\"",
+    "line": 38
+   }
+  }
+ ],
+ "contract": {
+  "text": "A pick delivered at or after its cutoff raises a CRITICAL late_delivery health alert.",
+  "entry_mode": "direct call of late_delivery.check",
+  "trigger": "delivered_at after the cutoff",
+  "symptom_kind": "missing alert (empty alert list)"
+ },
+ "level": "production_path",
+ "level_justification": "the check runs on files in a temporary picks directory; nothing is replaced",
+ "allowed_mocks": [],
+ "baseline": "BASELINE",
+ "env": {
+  "TZ": "America/New_York"
+ }
+}

@@ -1,0 +1,125 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 17 items
+
+tests/test_contest_state.py ...FF......FFF...                            [100%]
+
+=================================== FAILURES ===================================
+_____________ test_lagged_contest_uses_contest_value_keeps_doubles _____________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8034/test_lagged_contest_uses_conte0')
+
+    def test_lagged_contest_uses_contest_value_keeps_doubles(tmp_path):
+        # model 9 > contest 7 so streak==7 also proves no max() inflation (old max(9,7)=9); 1 pick behind -> lagged.
+        from bts.contest_state import load_decision_streak_state
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+        _write_pick(tmp_path / "2026-05-28.json", "hit")
+        _write_pick(tmp_path / "2026-05-29.json", "hit")
+        sd = tmp_path / "account_state"; sd.mkdir()
+        (sd / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7, "source": "manual_screenshot",
+            "source_date": "2026-05-28", "saver_available": True}))
+        transition_saver_state(tmp_path, expected_prior="uninitialized", new_state="active", season=2026, source="t")
+        state = load_decision_streak_state(tmp_path)
+        assert state.streak == 7
+>       assert state.allow_double is True
+E       AssertionError: assert False is True
+E        +  where False = DecisionStreakState(streak=7, saver_available=True, allow_double=False, source='contest', status='lagged', model_strea...t streak lagged by expected overnight settlement; using last confirmed value', best_streak=None, best_status='missing').allow_double
+
+tests/test_contest_state.py:89: AssertionError
+__________________ test_lagged_contest_model_does_not_inflate __________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8034/test_lagged_contest_model_does0')
+
+    def test_lagged_contest_model_does_not_inflate(tmp_path):
+        # Was test_stale_..._never_lowers_model_streak: model 12, 1 pick behind -> lagged; must NOT raise the streak.
+        from bts.contest_state import load_decision_streak_state
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": 12, "saver_available": True}))
+        _write_pick(tmp_path / "2026-05-29.json", "hit")
+        sd = tmp_path / "account_state"; sd.mkdir()
+        (sd / "contest_streak.manual.json").write_text(json.dumps({
+            "active_streak": 7, "source_date": "2026-05-28"}))
+        state = load_decision_streak_state(tmp_path)
+        assert state.streak == 7           # contest value; model 12 cannot inflate it
+        assert state.model_streak == 12
+>       assert state.allow_double is True
+E       AssertionError: assert False is True
+E        +  where False = DecisionStreakState(streak=7, saver_available=False, allow_double=False, source='contest', status='lagged', model_stre...t streak lagged by expected overnight settlement; using last confirmed value', best_streak=None, best_status='missing').allow_double
+
+tests/test_contest_state.py:105: AssertionError
+_____________ test_missing_source_date_is_stale_but_keeps_doubles ______________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8034/test_missing_source_date_is_st0')
+
+    def test_missing_source_date_is_stale_but_keeps_doubles(tmp_path):
+        from bts.contest_state import load_decision_streak_state
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": 3, "saver_available": True}))
+        sd = tmp_path / "account_state"; sd.mkdir()
+        (sd / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1", "active_streak": 3,
+            "best_streak": 9, "source": "mlb_bts_profile"}))  # no source_date
+        state = load_decision_streak_state(tmp_path)
+        assert state.streak == 3
+>       assert state.allow_double is True
+E       AssertionError: assert False is True
+E        +  where False = DecisionStreakState(streak=3, saver_available=False, allow_double=False, source='contest', status='stale', model_strea...essage='contest streak has no source_date; treating as last-confirmed (stale)', best_streak=9, best_status='untrusted').allow_double
+
+tests/test_contest_state.py:201: AssertionError
+__________________ test_model_never_inflates_decision_streak ___________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8034/test_model_never_inflates_deci0')
+
+    def test_model_never_inflates_decision_streak(tmp_path):
+        """The 2026-06-17 incident: model replay = 10 (missed 6/11 entry), real MLB = 8.
+        The decision streak must be 8, NOT max(10, 8)=10, and doubles must stay enabled."""
+        from bts.contest_state import load_decision_streak_state
+    
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": 10, "saver_available": True}))
+        _write_pick(tmp_path / "2026-06-16.json", "hit")          # latest resolved local pick
+        sd = tmp_path / "account_state"; sd.mkdir()
+        (sd / "contest_streak.json").write_text(json.dumps({
+            "schema_version": "bts_contest_streak_auto_v1", "active_streak": 8,
+            "best_streak": 9, "source": "mlb_bts_profile", "source_date": "2026-06-15"}))
+    
+        state = load_decision_streak_state(tmp_path)
+    
+        assert state.streak == 8            # real MLB streak, NOT the inflated model 10
+        assert state.model_streak == 10
+>       assert state.allow_double is True   # no staleness freeze
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False is True
+E        +  where False = DecisionStreakState(streak=8, saver_available=False, allow_double=False, source='contest', status='lagged', model_stre...test streak lagged by expected overnight settlement; using last confirmed value', best_streak=9, best_status='trusted').allow_double
+
+tests/test_contest_state.py:221: AssertionError
+__________________________ test_two_pick_gap_is_stale __________________________
+
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8034/test_two_pick_gap_is_stale0')
+
+    def test_two_pick_gap_is_stale(tmp_path):
+        from bts.contest_state import load_decision_streak_state
+        (tmp_path / "streak.json").write_text(json.dumps({"streak": 9, "saver_available": True}))
+        _write_pick(tmp_path / "2026-06-16.json", "hit")
+        _write_pick(tmp_path / "2026-06-17.json", "hit")
+        sd = tmp_path / "account_state"; sd.mkdir()
+        (sd / "contest_streak.json").write_text(json.dumps({
+            "active_streak": 8, "best_streak": 9, "source": "mlb_bts_profile",
+            "source_date": "2026-06-15"}))   # 2 settled picks behind -> stale
+        state = load_decision_streak_state(tmp_path)
+>       assert state.streak == 8 and state.status == "stale" and state.allow_double is True
+E       AssertionError: assert (8 == 8 and 'stale' == 'stale'
+E        +  where 8 = DecisionStreakState(streak=8, saver_available=False, allow_double=False, source='contest', status='stale', model_strea...sage='contest streak stale; using last confirmed value (current may be lower)', best_streak=9, best_status='untrusted').streak
+E          is True)
+E           stale and False
+E        +  and   False = DecisionStreakState(streak=8, saver_available=False, allow_double=False, source='contest', status='stale', model_strea...sage='contest streak stale; using last confirmed value (current may be lower)', best_streak=9, best_status='untrusted').allow_double
+
+tests/test_contest_state.py:235: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles
+FAILED tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate
+FAILED tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles
+FAILED tests/test_contest_state.py::test_model_never_inflates_decision_streak
+FAILED tests/test_contest_state.py::test_two_pick_gap_is_stale - AssertionErr...
+========================= 5 failed, 12 passed in 0.10s =========================

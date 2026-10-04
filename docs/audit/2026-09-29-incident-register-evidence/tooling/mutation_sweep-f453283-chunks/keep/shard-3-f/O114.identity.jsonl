@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_expected_failure::test_a_control_skipped_under_runxfail_rejects_the_pair", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_the_message_digest_blanks_run_metadata_shapes_not_application_text", "kind": "assertion"}

@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_records::test_observed_incident_needs_primary_observation_or_operator_report", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_draft_mode_skips_only_the_fixture_completeness_rules", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_a_repair_only_report_does_not_make_an_observed_incident", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_records::test_operator_awareness_alone_does_not_witness_the_deviation", "kind": "assertion"}

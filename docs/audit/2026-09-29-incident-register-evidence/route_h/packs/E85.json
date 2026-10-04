@@ -1,0 +1,92 @@
+{
+ "id": "E85",
+ "episode_row": [
+  "E85",
+  "9/03",
+  "reach-57 all-skip idle once 57 unreachable",
+  "P",
+  "OI",
+  "A",
+  "0abf503 eb010fd"
+ ],
+ "commits": [
+  {
+   "sha": "0abf503",
+   "authored": "2026-09-03T15:14:46-04:00",
+   "subject": "feat(strategy): tail policy \u2014 exact E[season-best] once 57 is unreachable",
+   "body": "On 9/03 the contest streak was 0 with 25 game dates left. The reach-57 solver\nvalues every action at exactly 0.0 once streak + 2*days < 57, argmax falls to\nindex 0 = skip, and production would have idled through 9/27.\n\nOwner requirement: keep picking for the season-best streak; stop only once the\nbest can no longer be beaten.\n\n- bts.simulate.tail_policy: mdp_objective (regime from state alone, exact\n  within the MDP model), solve_emax_season_best (port of the validated audit\n  solver on state (streak, best, days, saver); explicit stop rule\n  skip iff min(57, s+2d) <= best; play-first ties), a separate versioned\n  artifact data/models/mdp_tail_policy.npz with an exhaustive loader bound to\n  the base policy's sha256, forced_tail_action for every failure shape.\n- strategy.resolve_policy_decision produces ONE PolicyDecision (objective,\n  best trust, effective best, tail sha, degraded reason) reused by logs, skip\n  DM/dashboard, both EOD skip captures, the commit writer, decision.json v3.\n  A missing/corrupt base policy can no longer reach the 0.80 heuristic in the\n  tail (Codex r2 P0).\n- contest_state.classify_best_streak: only a trusted best (auto fetch or\n  unexpired manual, current season, streak <= best <= 57) may stop the account;\n  untrusted/missing degrade to best = streak and keep picking.\n- daily_decision v3; skip-policy shadow + boundary census admit reach57 only;\n  mdp_policy_alignment excludes tail days; new tail_policy health source\n  (always-attention); pick provenance tail_policy_sha256.\n- scripts/rebuild_tail_policy.py: late-season, production-shaped\n  (different-game) rates, one bin (p_hit 2641/3600, p_both 1984/3600).\n- Tests: solver vs hand values + audit solver; stop-rule partition over every\n  consulted cell; regime/fallback/trust/clamps; loader isolation; scheduler\n  capture + writers; committed-artifact contract test.\n\nDesign reviewed twice by Codex (gpt-5.6-sol) before code, once after (r3: 7 findings fixed \u2014\ndecision persisted on the pick, trust by contents, unverifiable-tail fallback, exact\nre-solve validation, single-read loader, strict v3 objective, census samples); the\nfrontier-extraction shortcut was rejected with exact counterexamples. See\ndocs/audit/2026-09-03-emax-tail-policy.md (+ archived Codex rounds).\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LsKmrV4UCTecysGnLwsmU3",
+   "files": [
+    "ARCHITECTURE.md",
+    "CLAUDE.md",
+    "docs/audit/2026-09-03-emax-tail-policy-codex-r1.md",
+    "docs/audit/2026-09-03-emax-tail-policy-codex-r2.md",
+    "docs/audit/2026-09-03-emax-tail-policy-codex-r3.md",
+    "docs/audit/2026-09-03-emax-tail-policy.md",
+    "scripts/audit/boundary_shadow_census.py",
+    "scripts/rebuild_tail_policy.py",
+    "src/bts/cli.py",
+    "src/bts/contest_state.py",
+    "src/bts/daily_decision.py",
+    "src/bts/health/attention.py",
+    "src/bts/health/mdp_policy_alignment.py",
+    "src/bts/health/runner.py",
+    "src/bts/health/tail_policy.py",
+    "src/bts/orchestrator.py",
+    "src/bts/picks.py",
+    "src/bts/scheduler.py",
+    "src/bts/simulate/tail_policy.py",
+    "src/bts/skip_policy_shadow.py",
+    "src/bts/strategy.py",
+    "src/bts/web.py",
+    "tests/health/test_mdp_policy_alignment.py",
+    "tests/health/test_tail_policy_health.py",
+    "tests/simulate/test_tail_policy.py",
+    "tests/test_contest_state_best_trust.py",
+    "tests/test_daily_decision_v2.py",
+    "tests/test_daily_decision_v3.py",
+    "tests/test_picks.py",
+    "tests/test_scheduler_tail_objective.py",
+    "tests/test_skip_policy_shadow.py",
+    "tests/test_tail_policy_artifact_contract.py",
+    "tests/test_tail_policy_r3_fixes.py",
+    "tests/test_tail_policy_strategy.py",
+    "tests/test_tail_provenance.py"
+   ],
+   "first_live_log": {
+    "sha": "eb010fd",
+    "live_by": "2026-09-03T19:20:50Z",
+    "not_live_before": "2026-09-03T19:20:50Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33795430396,
+    "created_at": "2026-09-03T19:16:09Z",
+    "head_sha": "eb010fd",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  },
+  {
+   "sha": "eb010fd",
+   "authored": "2026-09-03T15:15:08-04:00",
+   "subject": "data: ship mdp_tail_policy.npz (exact E[season-best] tail, paired with base 66d15471)",
+   "body": "One late-season bin (p_hit 2641/3600, p_both 1984/3600, production-shaped\ndifferent-game doubles), 24-seed estimated-PA profiles, built by\nscripts/rebuild_tail_policy.py; sha256 dc5d0c99\u2026f949f4. data/models is\ngitignored (force-added like the base policy).\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LsKmrV4UCTecysGnLwsmU3",
+   "files": [
+    "data/models/mdp_tail_policy.npz"
+   ],
+   "first_live_log": {
+    "sha": "eb010fd",
+    "live_by": "2026-09-03T19:20:50Z",
+    "not_live_before": "2026-09-03T19:20:50Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 33795430396,
+    "created_at": "2026-09-03T19:16:09Z",
+    "head_sha": "eb010fd",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

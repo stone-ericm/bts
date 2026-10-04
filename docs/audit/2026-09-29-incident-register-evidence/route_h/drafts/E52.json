@@ -1,0 +1,301 @@
+{
+ "id": "I-052",
+ "working_id": "E52",
+ "title": "5/21-27 scheduler OOM kill during inline shadow prediction (indicated), plus memory-growth thresholds mixing baselines and restart_spike advice assuming a heartbeat gap",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "bts-scheduler journal lines (B1 journal_*_retained.txt) around 2026-05-21 13:50-14:00 ET showing 'Main process exited, code=killed, status=9/KILL' / \"Failed with result 'oom-kill'\" during an inline shadow run, and the restart that followed",
+  "the 5/21-5/23 health state or health DM showing which alerts fired (restart_spike wording, analytics_artifacts_missing) - health_state is latest-state (likely overwritten); DM history is O1"
+ ],
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "A"
+  ]
+ },
+ "tier": "tier_pending",
+ "tier_reason": "an OOM kill of the production scheduler would be a liveness failure (A) but is not evidenced by any located artifact; the memory-threshold and restart_spike-wording parts on their own are alert-quality issues (B)",
+ "plan_named": false,
+ "delivery_mode": "unknown",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "Research work (the shadow prediction) cannot take down the production scheduler, an OOM/kill is surfaced with its cause, memory alerts compare like with like (post-prediction baseline), and restart alerts point to the evidence rather than a presumed cause.",
+  "source": "scripts/systemd/README.md 'Shadow prediction' (43ddf0c); docs/superpowers/runbooks/2026-05-23-alert-disposition.md (memory_growth, restart_spike, analytics_artifacts_missing rows)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "the shadow prediction ran inside the scheduler process after the production lock, adding its model memory to the scheduler's multi-GB resident set, so an out-of-memory kill of the shadow run killed the production daemon",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "4fd3f0e",
+     "symbol": "_run_shadow_prediction (inline)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "OOM evidence from a killed unit was not escalated: missing shadow/capture artifacts stayed WARN and no policy promoted fatal OOM evidence to CRITICAL",
+   "code": [
+    {
+     "path": "src/bts/health/runner.py",
+     "ref": "1c6fad6",
+     "symbol": "run_all_checks (no alert policy)",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/health/analytics_artifacts_missing.py",
+     "ref": "67543ca",
+     "symbol": "check (OOM evidence)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "text": "memory_growth used absolute thresholds that mixed the ~140 MB sleeping baseline with the normal 2.8-3.6 GB post-prediction RSS",
+   "code": [
+    {
+     "path": "src/bts/health/memory_growth.py",
+     "ref": "ceb7e31",
+     "symbol": "check (absolute thresholds)",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "text": "restart_spike's CRITICAL message asserted 'heartbeat-gap regression suspected', steering the operator away from OOM/watchdog/crash causes",
+   "code": [
+    {
+     "path": "src/bts/health/restart_spike.py",
+     "ref": "66cf529",
+     "symbol": "check (message)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "43ddf0c"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "67543ca",
+    "live_by": "2026-05-22T16:16:48Z",
+    "run_id": 26299067685,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "3a8d1bd",
+     "a3df746"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "67543ca",
+    "live_by": "2026-05-22T16:16:48Z",
+    "run_id": 26299067685,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 3,
+   "implemented": {
+    "commits": [
+     "279f190"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "d550bed",
+    "live_by": "2026-05-23T20:54:06Z",
+    "run_id": 26343307743,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": {
+    "how": "5/27 check: live RSS ~2481.5 MB vs post-prediction baseline median ~3023.7 MB correctly produced no alert",
+    "at": {
+     "not_before": "2026-05-27",
+     "not_after": "2026-05-27T15:30:57+03:00",
+     "evidence": [
+      "ev2"
+     ]
+    }
+   }
+  },
+  {
+   "link": 4,
+   "implemented": {
+    "commits": [
+     "ac09137"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "8872109",
+    "live_by": "2026-05-27T13:29:34Z",
+    "run_id": 26514183945,
+    "evidence": [
+     "ev4"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "Out-of-process shadow was opt-in (shadow_model_unit) and required a hand-installed unit plus a config change on the box; the example config shipped shadow_model = false. When the box switched is not recorded here.",
+   "reaches_production": false,
+   "source": "commit 43ddf0c (config/orchestrator.example.toml, scripts/systemd/README.md)"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "any bts-scheduler exit with Result=oom-kill or code=killed/signal 9 in the journal, or an NRestarts increase with no deploy, reported with the journal cause",
+  "recovery_assertion": "the scheduler is active with NRestarts flat through the next shadow run, and the shadow run's own unit finishes (success or its own OOM) without touching the scheduler"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit a3df746 (tests/health/test_analytics_artifacts_missing.py, tests/test_scheduler.py fixtures)",
+   "what": "fixtures model bts-scheduler.service 'Main process exited, code=killed, status=9/KILL' and \"Failed with result 'oom-kill'\" with a shadow dispatch at 2026-05-21T13:53:36-04:00 - consistent with a real event, but a test fixture is not a record"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "docs/superpowers/runbooks/2026-05-23-alert-disposition.md (3b3e810 and the 5/27 refresh 510ae4e)",
+   "what": "5/23: restart_spike wording 'too narrow when OOM is also a likely cause'; OOM evidence promotion is the right CRITICAL path; memory_growth absolute thresholds mix cold and post-prediction baselines; 5/27: recalibrated memory_growth correctly silent"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "PR branch names in merges 67543ca (codex/shadow-capture-serialization, PR #104), a1dea18 (codex/alert-shadow-oom-visibility, PR #105), d550bed (PR #114), cf97035 (PR #136)",
+   "what": "the 5/22-5/27 PRs are framed around shadow OOM visibility and moving shadow out of process; all their commit bodies are empty"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy runs 26299067685, 26343307743, 26514183945 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploys containing 43ddf0c + 3a8d1bd (67543ca, 5/22 16:16Z), a3df746 (a1dea18, run 26334797353, 5/23 14:06Z), 279f190 (d550bed, 5/23 20:54Z) and ac09137 (8872109, 5/27 13:29Z)"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 3a8d1bd diff (src/bts/health/alert.py OOM_EVIDENCE_RE, analytics_job_oom / memory_oom_correlation)",
+   "what": "the 5/22 00:58 ET alert policy already promotes OOM evidence to CRITICAL, i.e. OOM was a known concern by then"
+  },
+  {
+   "id": "ev6",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 43ddf0c diff (scripts/shadow_predict_once.py, bts-shadow-prediction.service, scheduler dispatch)",
+   "what": "5/22 02:59 ET: shadow prediction can be dispatched to its own systemd unit instead of running inside the scheduler"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-05-21 (indicated, unconfirmed)",
+   "onset": "unknown",
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-05-22T00:58:38-04:00",
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-05-22T02:59:54-04:00",
+    "evidence": [
+     "ev6"
+    ]
+   },
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "43ddf0c",
+   "a3df746",
+   "3a8d1bd",
+   "279f190",
+   "ac09137"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #102",
+   "PR #104",
+   "PR #105",
+   "PR #114",
+   "PR #136",
+   "docs/superpowers/runbooks/2026-05-23-alert-disposition.md"
+  ]
+ },
+ "related": [
+  "I-038",
+  "I-047",
+  "I-075"
+ ],
+ "notes": [
+  "all five commit bodies are empty; no located artifact states that the scheduler was OOM-killed - the 2026-05-21 13:53 ET timestamp comes from test fixtures only (ev1)",
+  "split? (a) scheduler OOM kill during inline shadow (liveness, UC pending the journal - the retained journal starts 5/11 and should cover it); (b) OOM visibility / alert policy (3a8d1bd, a3df746); (c) memory_growth baseline mixing - the unfinished part of I-038's 4/28 retune; (d) restart_spike wording - a message-quality fix (B)",
+  "link 2 deploy: 3a8d1bd went out with run 26299067685, a3df746 with run 26334797353 (a1dea18, 2026-05-23T14:06:53Z)",
+  "the RSS values quoted in link 3's verification are operational measurements, not pick outcomes",
+  "log bounds: all fixes live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

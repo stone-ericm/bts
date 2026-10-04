@@ -1,0 +1,96 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate": "symptom_candidate",
+    "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles": "symptom_candidate",
+    "tests/test_contest_state.py::test_missing_source_date_is_conservative_not_fail_open": "passes_at_parent",
+    "tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles": "symptom_candidate",
+    "tests/test_contest_state.py::test_model_never_inflates_decision_streak": "symptom_candidate",
+    "tests/test_contest_state.py::test_two_pick_gap_is_stale": "symptom_candidate",
+    "tests/test_contest_state.py::test_unconfirmed_local_miss_marks_stale": "passes_at_parent",
+    "tests/test_contest_state.py::test_unexpired_override_drives_decision_with_status": "passes_at_parent"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "22b2ed0e9a18e2261968b3f13f11fffd26807495c4335ea399dc2c02c638ff61",
+    "red": "58e489d689ac6470565753bbc47207eee05f2725ec7ba6c3a7539174558dd214"
+  },
+  "fix": "2b4ff1df90ecde2baf96242a9b41558ba8b99add",
+  "harness_changes": [
+    {
+      "path": "tests/test_contest_state.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I056-2",
+  "label_kind": "semantic_regression_replay",
+  "parent": "aba6f41685a1c42959f80c6cd2c1a7a6e336b41c",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_contest_state.py": {
+        "decision": "neutral",
+        "reason": "2b4ff1d rewrites the three tests that encoded the stale-branch freeze (now lagged/keeps-doubles/stale-but-keeps-doubles) and adds the keystone, two-pick-gap, unconfirmed-miss and override tests; they call only bts.contest_state functions present at the parent aba6f41 with the same signatures (load_decision_streak_state accepts now=), and _write_pick is test-local, so the parent's src runs them unchanged"
+      }
+    },
+    "deployed_ref": {
+      "basis": "candidate_ancestry",
+      "sha": "9958874"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "2b4ff1d"
+    ],
+    "incident": "I-056",
+    "label": "R-I056-2",
+    "links": [
+      2
+    ],
+    "notes": "Symptoms: the parent aba6f41's stale branch of load_decision_streak_state returns streak=max(model_streak, contest.streak), saver False, allow_double False. (1) test_lagged_contest_uses_contest_value_keeps_doubles is the I-056 shape (manual_screenshot contest 7 at source_date 2026-05-28, a pick resolved 2026-05-29, model 5, no auto file, so the legacy manual file is the selected observation and it is stale): the parent returns max(5,7)=7, so line 83 passes and line 84 fails because doubles are frozen. (2) test_lagged_contest_model_does_not_inflate (model 12, contest 7) gets max(12,7)=12 and fails at line 98. Static checks: the tests import only load_decision_streak_state, contest_state_is_fresh and load_contest_streak_state, all at aba6f41; bts.picks.load_streak/load_saver_available read streak.json the same way. Anchors at 2b4ff1d: 'assert state.allow_double is True' occurs 6 times (line 84 is inside the symptom test), 'assert state.streak == 7' 3 times (line 98 is inside the symptom test). Other selected nodes at the parent: test_model_never_inflates_decision_streak (line 214), test_two_pick_gap_is_stale (line 230) and test_missing_source_date_is_stale_but_keeps_doubles (line 196) also fail by assertion on the same branch (not declared; the keystone is I-063's and is declared in R-I063-1); the other three pass. 2b4ff1d is also the first commit of I-063 link 1's fix set (R-I063-1).",
+    "symptom_nodes": [
+      {
+        "_line": 84,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I056-2/tests/test_contest_state.py",
+        "assertion": {
+          "line": 84,
+          "path": "tests/test_contest_state.py",
+          "text": "assert state.allow_double is True"
+        },
+        "node": "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles"
+      },
+      {
+        "_line": 98,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I056-2/tests/test_contest_state.py",
+        "assertion": {
+          "line": 98,
+          "path": "tests/test_contest_state.py",
+          "text": "assert state.streak == 7"
+        },
+        "node": "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate"
+      }
+    ],
+    "tests": [
+      "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles",
+      "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate",
+      "tests/test_contest_state.py::test_missing_source_date_is_conservative_not_fail_open",
+      "tests/test_contest_state.py::test_missing_source_date_is_stale_but_keeps_doubles",
+      "tests/test_contest_state.py::test_model_never_inflates_decision_streak",
+      "tests/test_contest_state.py::test_two_pick_gap_is_stale",
+      "tests/test_contest_state.py::test_unconfirmed_local_miss_marks_stale",
+      "tests/test_contest_state.py::test_unexpired_override_drives_decision_with_status",
+      "-q"
+    ]
+  },
+  "spec_sha256": "c7aef83d58ff8eb2c4c54da6ec258d98439d3015ab7b2c944bd6b29bfd4976ee",
+  "src_tree": {
+    "fix": "32ca17fa6b3d8e1b2ced97183f763471109b6e3d",
+    "parent": "3daf69b3cb0b8161cee7f63e4f548f5661428db3"
+  },
+  "symptoms": {
+    "tests/test_contest_state.py::test_lagged_contest_model_does_not_inflate": [],
+    "tests/test_contest_state.py::test_lagged_contest_uses_contest_value_keeps_doubles": []
+  },
+  "verdict": "accepted"
+}

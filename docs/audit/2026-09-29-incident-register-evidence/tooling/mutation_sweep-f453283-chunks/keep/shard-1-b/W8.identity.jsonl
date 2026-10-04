@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_owned::test_venv_fingerprint_hashes_file_contents_not_just_names", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_dependency_bytecode_is_fingerprinted", "kind": "assertion"}

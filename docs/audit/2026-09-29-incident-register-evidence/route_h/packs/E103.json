@@ -1,0 +1,39 @@
+{
+ "id": "E103",
+ "episode_row": [
+  "E103",
+  "3/29\u20134/01",
+  "local grading had no streak-saver rule (any miss reset to 0)",
+  "G",
+  "DL",
+  "B",
+  "2be445e (could not fire: streak < 10)"
+ ],
+ "commits": [
+  {
+   "sha": "2be445e",
+   "authored": "2026-04-01T18:20:50-04:00",
+   "subject": "feat: streak saver tracking + ARCHITECTURE.md update",
+   "body": "- Saver state persisted in streak.json (saver_available field)\n- update_streak() now preserves streak on miss at 10-15 when saver\n  available, consumes saver on use\n- strategy.py passes real saver state to MDP policy lookup\n- ARCHITECTURE.md updated with simulate module, MDP strategy, learnings\n- 5 new saver tests, 169 total passing\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "ARCHITECTURE.md",
+    "src/bts/picks.py",
+    "src/bts/strategy.py",
+    "tests/test_picks.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 24253126060,
+    "created_at": "2026-04-10T16:29:24Z",
+    "head_sha": "4a82cf8",
+    "head_branch": "main",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

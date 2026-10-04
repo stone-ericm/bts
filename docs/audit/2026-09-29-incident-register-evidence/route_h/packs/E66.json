@@ -1,0 +1,186 @@
+{
+ "id": "E66",
+ "episode_row": [
+  "E66",
+  "6/21",
+  "GH #144: check-results/polling could score undelivered previews on skip days",
+  "G",
+  "UC",
+  "A",
+  "d929479 d6ae318 25aeaee 62cfe4e 7bd2934 add1b3f 5fa36c3 (issue #144)"
+ ],
+ "commits": [
+  {
+   "sha": "d929479",
+   "authored": "2026-06-21T22:51:45-04:00",
+   "subject": "feat(scheduler): write decision.json at finalization (commit/classification/crash/skip)",
+   "body": "The scheduler becomes the SINGLE writer of an authoritative\ndata/picks/<date>/decision.json at true finalization points, tracking two\nfinalization-state variables (final_skip_candidate, committed_pick_written).\nThis is the linchpin for the GH #144 fix (Task 4 reads the record).\n\n- FinalizationState + _row_from_daily + _write_{commit,classification,endofday_skip}\n  helpers (best-effort via daily_decision.write_decision; never raise into the pick path).\n- _deliver_and_lock_pick gains defaulted fs/selection params; each of its 5 lock\n  branches records a scoreable commit (delivered/private_locked/locked_unconfirmed).\n- run_single_check adds \"selection\" to every return dict (None only where genuinely\n  absent: pre-cascade lock + ContestStateError).\n- run_day owns fs: SETs the skip candidate on a genuine MDP skip, CLEARs only on a\n  genuine pick attempt, and LEAVES it on a non-delivered classification so the #144\n  skip survives to the end-of-day record. Single classification chokepoint; EOD skip\n  write before the health-checks block.\n\nTests: helper unit tests + integration tests driving real run_day/_deliver_and_lock_pick.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_decision_record.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "d6ae318",
+   "authored": "2026-06-21T23:11:41-04:00",
+   "subject": "fix(check-results): score only committed-pick decisions (GH #144)",
+   "body": "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/cli.py",
+    "tests/test_cli_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "25aeaee",
+   "authored": "2026-06-22T13:39:48-04:00",
+   "subject": "fix(scheduler): gate result-polling on a genuine commit (C2, GH #144)",
+   "body": "run_day's result-polling block was gated only on state.pick_locked. A\nNON-delivered classification-lock of a stale projected-preview <date>.json\nsets pick_locked=True on an MDP-skip day, and run_result_polling ->\nupdate_streak has no internal scoreable guard, so the stale preview got\nscored and the streak corrupted -- bypassing the check-results scoreable\ngate entirely.\n\nGate the polling entry additionally on is_scoreable_commit (D1): it defers\nto decision.json's scoreable field, falling back to pick_was_delivered when\nno record exists. state.pick_locked is left unchanged (it still gates the\nshadow-model trigger, next-day lookahead, and the stop-lineup-checks break);\na non-committed classification-lock now locks for those purposes but is\nnever polled/scored.\n\nTests (test_scheduler_decision_record_integration.py): non-delivered\nclassified-lock on an MDP-skip day -> run_result_polling NOT entered, streak\nunchanged; delivered pick -> polling IS entered. _drive_run_day gains an\noptional poll_fn to inject a tracking mock.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "62cfe4e",
+   "authored": "2026-06-22T19:47:01-04:00",
+   "subject": "fix(scheduler): fallback honors a genuine MDP skip, not the stale cached preview (D4/C1, #144)",
+   "body": "On the projected\u2192real flip, the 3am preview writes a projected pick to\n<date>.json, then real lineups make the day a genuine MDP skip. The fallback\nre-evaluated, got pick_result is None (a real skip), and \u2014 treating it as \"no\nfresh pick, use cached\" \u2014 delivered + locked + scored the stale preview on a\nskip day. Closes Critical C1.\n\n- _refresh_pick_at_fallback_decision carries selection=sel on the no-fresh-pick\n  return so callers can tell a genuine MDP skip from a cascade/no-predictions\n  (the except path stays selection=None \u2192 safety-net deliver).\n- New _refresh_is_genuine_skip / _capture_fallback_skip helpers. The fallback\n  re-captures the skip candidate (the earlier projected-pick cycle cleared it)\n  so end-of-day still records the skip.\n- Both fallback sites gate on a STANDING skip:\n  skip_standing = _refresh_is_genuine_skip(refresh)\n                  or (final_skip_candidate and not committed_pick_written).\n  A confirmed skip survives a later transient refresh that flakes to\n  selection=None (Codex r3) \u2014 never resurrect the cached pick. In-loop site\n  `continue`s (loop exhausts \u2192 EOD); post-loop site falls through the try/else\n  (no `continue` \u2192 EOD). Cascade safety-net (deliver cached) preserved only when\n  NOT skip_standing.\n\nTests (tests/test_scheduler_decision_record_integration.py): selection carried on\ngenuine skip; no-predictions not a genuine skip; in-loop fallback re-captures skip\nafter a projected-pick clear (EOD writes skip, no delivery); cascade-error still\ndelivers cached (regression guard); r3 standing-skip survives a post-loop refresh\nflake. Scoped scheduler regression + broad suite green (1470 passed).\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "7bd2934",
+   "authored": "2026-06-22T20:19:01-04:00",
+   "subject": "fix(health): gate alert/health checks on decision record so skip days don't false-fire (D6, #144)",
+   "body": "Three checks that read an undelivered pick file as a failure now respect the\ndeliberate-skip signal from the decision record or in-memory state:\n\n1. _maybe_alert_missed_pick (scheduler.py): new `state` param; early-return when\n   state.final_skip_candidate or state.skip_summary is set (pre-game; decision.json\n   may not exist yet). Call site (~line 2202) threads `state` through.\n\n2. post_failure.check: after confirming a pick exists, loads decision.json via\n   load_decision(); skips the CRITICAL when action==\"skip\" or scoreable==False.\n\n3. analytics_artifacts_missing._locked_pick_exists: replaces the\n   `pick_locked or pick_was_delivered` heuristic with is_scoreable_commit() so a\n   classification-lock on a skip day (pick_locked=True, decision scoreable=False)\n   does not trigger shadow/capture artifact alerts.\n\nTests: 8 new tests (RED\u2192GREEN verified); existing analytics tests updated to write\ndecision.json with scoreable=True so genuine-commit coverage is accurate. 398 pass.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+   "files": [
+    "src/bts/health/analytics_artifacts_missing.py",
+    "src/bts/health/post_failure.py",
+    "src/bts/scheduler.py",
+    "tests/health/test_analytics_artifacts_missing.py",
+    "tests/health/test_post_failure.py",
+    "tests/test_e3_missed_pick_alert.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "add1b3f",
+   "authored": "2026-06-22T19:18:06-04:00",
+   "subject": "fix(scheduler): persist finalization state on SchedulerState across same-day restart (D5, #144)",
+   "body": "Move final_skip_candidate + committed_pick_written off the run-local\nFinalizationState (lost on a same-day daemon restart \u2014 deploys, Restart=always)\nonto SchedulerState, which IS persisted to scheduler_state.json and carried\nforward. After an MDP skip but before end-of-day, a restart now inherits the\ncaptured skip so the EOD skip record still lands.\n\n- SchedulerState: add final_skip_candidate / committed_pick_written (defaulted,\n  so old scheduler_state.json still deserializes; asdict round-trips the dict).\n- Drop FinalizationState; the helpers (_write_commit/_classification/_endofday)\n  and _deliver_and_lock_pick operate on state directly (one finalization object).\n- carry_forward_skip_state copies both new fields on a same-date restart.\n- Save-ordering (#2a): _write_commit_decision sets the flag + save_state AFTER\n  the decision write, so a restart can't lose committed_pick_written.\n- Overwrite-guard (#2b): _write_endofday_skip no-ops if an on-disk scoreable\n  decision.json already exists \u2014 never clobber a real commit with a skip.\n- run_day persists state.final_skip_candidate immediately on SET/CLEAR.\n\nD3's is_scoreable_commit result-polling gate (25aeaee) untouched.\n\nTests: 4 carry-forward tests (mirror skip_summary carry-forward) + 1 overwrite\n-guard test; migrate decision-record tests fs= -> state=. Full scoped\nregression 1465 passed.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_scheduler_decision_record.py",
+    "tests/test_scheduler_decision_record_integration.py",
+    "tests/test_scheduler_skip_visibility.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  },
+  {
+   "sha": "5fa36c3",
+   "authored": "2026-06-22T21:19:17-04:00",
+   "subject": "fix(scheduler): standing skip must yield to a real late pick; clear skip_summary on flip; stricter load_decision (post-review)",
+   "body": "Fix 1 (CRITICAL): both fallback sites suppressed a genuine late PICK when an\nearlier cycle had set final_skip_candidate (skip_standing stayed True via the\ncandidate even though the refresh was a real single/double). Add\n_refresh_is_genuine_pick and, at both sites, clear the standing skip (both\nfinal_skip_candidate and skip_summary) on a genuine pick before computing\nskip_standing. r3 no-resurrection case preserved: a selection=None flake is not a\ngenuine pick, so the candidate is NOT cleared and the skip still stands.\n\nFix 2: the run_day result block cleared final_skip_candidate on a pick but left\nskip_summary set, so after a skip->pick flip a later undelivered pick had its\nmissed-pick alert (D6) wrongly suppressed. Clear skip_summary alongside it.\n\nFix 3: load_decision accepted schema-tagged but partial records (e.g. no action/\ndate), which could mis-authorize scoring a stale preview. Require action in\n{skip,single,double}, bool scoreable, and a date. write_decision always emits\nthese, so genuine records are unaffected; two health-test helpers used a\nnon-production action='commit' placeholder, corrected to 'single'.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+   "files": [
+    "src/bts/daily_decision.py",
+    "src/bts/scheduler.py",
+    "tests/health/test_analytics_artifacts_missing.py",
+    "tests/health/test_post_failure.py",
+    "tests/test_daily_decision.py",
+    "tests/test_scheduler_decision_record_integration.py"
+   ],
+   "first_live_log": {
+    "sha": "83a5cad",
+    "live_by": "2026-07-02T15:28:10Z",
+    "not_live_before": "2026-06-07T17:55:03Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 27996097986,
+    "created_at": "2026-06-23T01:35:58Z",
+    "head_sha": "5fa36c3",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

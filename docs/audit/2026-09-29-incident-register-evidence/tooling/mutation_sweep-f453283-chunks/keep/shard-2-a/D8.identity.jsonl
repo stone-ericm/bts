@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_defence::test_branch_anchor_outside_the_mutated_files_is_refused", "kind": "did_not_raise"}

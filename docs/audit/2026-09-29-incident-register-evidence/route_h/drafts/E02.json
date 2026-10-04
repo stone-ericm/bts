@@ -1,0 +1,153 @@
+{
+ "id": "I-002",
+ "working_id": "E02",
+ "title": "4/01 check-results could not grade a pick whose stored game_pk or batter_id did not match the MLB feed",
+ "disposition": "unresolved_candidate",
+ "counted": true,
+ "missing_evidence": [
+  "the 1am check-results output for 2026-04-01 (Pi5 orchestrator.log per scripts/cron-setup-pi5.sh; Pi5 decommissioned 4/14, retention unknown) showing the 'not found in boxscore or game not final' warning \u2014 Phase 2 Route R",
+  "data/picks/2026-03-31.json (B1) game_pk and batter_id compared with the MLB feed for that date"
+ ],
+ "classes": {
+  "primary": "G",
+  "secondary": []
+ },
+ "tier": "tier_pending",
+ "tier_reason": "if it fired, the date stayed ungraded locally ('Streak unchanged. Check manually.'), a fail-closed local-state gap; no live grading run is evidenced to have hit it",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "cron_job",
+ "authority": "local",
+ "contract": {
+  "text": "The 1am check-results job grades the previous day's pick from the MLB feed and updates the local streak.",
+  "source": "src/bts/cli.py check_results docstring 'Designed to run via cron at 1am ET' (9114224); scripts/cron-setup-pi5.sh 1am line (5ef88b0)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "check_hit looked the batter up only by batter_id in the stored game_pk's boxscore; a wrong game_pk or batter_id returned None, which check_results treats as 'not found or game not final' and exits without grading",
+   "code": [
+    {
+     "path": "src/bts/picks.py",
+     "ref": "9114224",
+     "symbol": "check_hit",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/cli.py",
+     "ref": "9114224",
+     "symbol": "check_results",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "50d4ee5"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": "unknown",
+   "mitigated": "unknown",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "a pick file with a null game_pk still made check_hit request game/None (HTTP 400) until a6cae41 on 4/04 (I-008)",
+   "reaches_production": false,
+   "source": "a6cae41 body"
+  }
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "by 06:00 ET the day after a delivered pick, its pick file still has no hit/miss result and no recorded reason to wait (e.g. suspended game)",
+  "recovery_assertion": "the date carries a hit/miss grade that matches the MLB feed (and the contest ledger when available)"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 50d4ee5 message body (authored 2026-04-01T01:09:11-04:00)",
+   "what": "adds a name-and-date fallback to check_hit for a wrong game_pk or batter_id; the body does not say that a live grading run failed"
+  },
+  {
+   "id": "ev2",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/cli.py check_results and src/bts/picks.py check_hit at 9114224",
+   "what": "a None from check_hit printed 'Streak unchanged. Check manually.' and returned without writing a result"
+  },
+  {
+   "id": "ev3",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "git history: 1e6970b (3/31 19:05 ET) added bts check-results; 5ef88b0 (3/31 23:39 ET) added the Pi5 1am check-results cron line",
+   "what": "the job existed about six hours before the fix; whether the cron was installed and ran at 01:00 on 4/01 is not evidenced"
+  },
+  {
+   "id": "ev4",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24253126060 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "first successful deploy run whose head (4a82cf8) contains 50d4ee5; a Fly.io deploy, log expired"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "candidate: a grading run between check-results' introduction and the fix",
+   "onset": {
+    "not_before": "2026-03-31T19:05:02-04:00",
+    "not_after": "2026-04-01T01:09:11-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": "unknown",
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "none",
+    "confirmed": "none",
+    "failed": "none"
+   },
+   "operator_awareness": "unknown",
+   "mitigation": "unknown",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "not_applicable",
+    "recovery": "unknown"
+   }
+  }
+ ],
+ "routes": {
+  "H": [
+   "50d4ee5"
+  ],
+  "R": "pending_phase2",
+  "X": []
+ },
+ "related": [
+  "I-008"
+ ],
+ "notes": [
+  "the fix was committed nine minutes after the 01:00 cron slot, which suggests the operator watched a failing grading run; the body does not say so, hence unresolved",
+  "deployed: candidate run 24253126060 was a Fly.io deploy (workflow 'Deploy BTS to Fly', fcedf71), not a production install: production was the Pi5 scheduler/orchestrator until the 4/11 Hetzner cutover, so the Pi5 install time of this fix is not evidenced",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time",
+  "deployed unknown: candidate run 24253126060 executed the Fly deploy.yml (its head lacks 51ef987, the 4/11 Hetzner workflow); production (Pi5 orchestrator, manual pulls) has no install record before the cutover"
+ ]
+}

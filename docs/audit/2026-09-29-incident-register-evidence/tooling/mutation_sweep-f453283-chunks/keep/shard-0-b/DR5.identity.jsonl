@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_passed_canary", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_failed_canary_with_clean_rollback", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_same_run_fractional_times_bound_a_non_empty_install_interval", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_not_live_before_is_the_latest_earlier_point_by_instant", "kind": "assertion"}

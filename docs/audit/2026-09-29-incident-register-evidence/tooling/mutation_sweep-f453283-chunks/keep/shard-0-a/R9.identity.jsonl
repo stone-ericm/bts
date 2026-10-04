@@ -1,0 +1,7 @@
+{"node": "tests.scripts.incident_register.test_defence::test_mutant_only_teardown_error_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_defence::test_a_stage_only_failure_is_rejected[1-green]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_defence::test_a_stage_only_failure_is_rejected[5-restored]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_expected_failure::test_a_control_skipped_under_runxfail_rejects_the_pair", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_replay::test_an_unrelated_red_teardown_error_is_rejected", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_teardown_error_rejects_even_a_mutant_run", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_imperative_xfail_is_not_green", "kind": "assertion"}

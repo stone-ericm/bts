@@ -1,0 +1,75 @@
+{
+ "id": "I-023",
+ "working_id": "E23",
+ "title": "4/12 shadow pick file overwritten with production's pick: a real DISAGREES day recorded as AGREES",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {"primary": "R", "secondary": []},
+ "tier": "A",
+ "tier_reason": "research-integrity failure: the shadow stream silently recorded production's pick as its own (byte-identical file), masking a real disagreement, and the load path erased the sign of corruption; repair of the 4/12 record is not evidenced",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "shadow_v1",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "The shadow model's daily pick is computed from its own predictions and written independently of production's pick.",
+  "source": "docs/superpowers/specs/2026-04-10-context-stack-shadow-design.md; 634768e body"
+ },
+ "mechanism": [
+  {"n": 1, "text": "select_pick short-circuits to the saved production DailyPick once production is locked (game started or bluesky_posted); _run_shadow_prediction called the same select_pick after production locked, so it returned production's pick and save_shadow_pick wrote it to {date}.shadow.json",
+   "code": [{"path": "src/bts/strategy.py", "ref": "bd8bcd3", "symbol": "select_pick", "ref_basis": "candidate"},
+            {"path": "src/bts/scheduler.py", "ref": "bd8bcd3", "symbol": "_run_shadow_prediction", "ref_basis": "candidate"}]},
+  {"n": 2, "text": "load_shadow_pick forced bluesky_posted=False and bluesky_uri=None on every load, so the next save-back erased the evidence of a corrupted shadow file",
+   "code": [{"path": "src/bts/picks.py", "ref": "634768e", "symbol": "load_shadow_pick", "ref_basis": "candidate"}]}
+ ],
+ "fix": [
+  {"link": 1, "implemented": {"commits": ["634768e"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "634768e", "live_by": "2026-04-12T18:33:34Z", "run_id": 24313526076, "evidence": ["ev3"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"},
+  {"link": 2, "implemented": {"commits": ["80fd31f"], "complete_fix_set": true},
+   "deployed": {"basis": "candidate_ancestry", "sha": "80fd31f", "live_by": "2026-04-12T18:46:31Z", "run_id": 24313770929, "evidence": ["ev4"]},
+   "mitigated": "unknown", "verified_recovered": "unknown"}
+ ],
+ "fixtures": {"historical_replay": [], "current_defence": [], "expected_failure": [], "characterization": []},
+ "residual": [
+  {"text": "whether data/picks/2026-04-12.shadow.json was regenerated after the fix is not evidenced; a still-corrupted row would bias shadow agreement reads", "reaches_production": false, "source": "634768e body (repro computed; no rewrite recorded)"}
+ ],
+ "watchdog": {
+  "boundary": "grading",
+  "trigger": "a shadow pick file is byte-identical to production's for the date (same run_time) or carries bluesky_posted=True",
+  "recovery_assertion": "each shadow file comes from the shadow run, with its own run_time and bluesky_posted=False"
+ },
+ "evidence": [
+  {"id": "ev1", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 634768e message body", "written_at": "2026-04-12T14:32:08-04:00",
+   "what": "repro on 4/12: production's pick differed from the real shadow top (a real DISAGREES day), yet 2026-04-12.shadow.json was byte-identical to the production file (same run_time microseconds); 4/10 and 4/11 escaped (manual verification; Fly in shadow_mode)"},
+  {"id": "ev2", "kind": "contemporaneous_operator_report", "strength": "primary", "locator": "commit 80fd31f message body", "written_at": "2026-04-12T14:46:28-04:00",
+   "what": "load_shadow_pick force-overrode bluesky_posted=False and bluesky_uri=None on every load, 'a secondary masking layer' that would reset the corrupted file's bluesky_posted=True on the next check-results save-back"},
+  {"id": "ev3", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24313526076 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "head 634768e, created 2026-04-12T18:33:34Z, concluded success; log expired"},
+  {"id": "ev4", "kind": "machine_observation", "strength": "primary", "locator": "GitHub Actions deploy run 24313770929 (deploy_runs.json)",
+   "what": "head 80fd31f, created 2026-04-12T18:46:31Z, concluded success; log expired"}
+ ],
+ "occurrences": [{
+  "label": "2026-04-12",
+  "onset": {"not_before": "2026-04-12", "not_after": "2026-04-12T14:32:08-04:00", "evidence": ["ev1"]},
+  "first_detectable": "unknown",
+  "first_machine_detection": "none",
+  "alert": {"attempted": "none", "confirmed": "none", "failed": "none"},
+  "operator_awareness": {"not_after": "2026-04-12T14:32:08-04:00", "evidence": ["ev1"]},
+  "operator_action": {"not_after": "2026-04-12T14:46:28-04:00", "evidence": ["ev2"]},
+  "mitigation": "unknown",
+  "restored_verification": "unknown",
+  "latencies": {"detection": "not_applicable", "notification": "not_applicable", "recovery": "unknown"}
+ }],
+ "routes": {"H": ["634768e", "80fd31f", "555e8f5"], "R": "pending_phase2", "X": ["docs/superpowers/specs/2026-04-10-context-stack-shadow-design.md"]},
+ "related": ["I-017"],
+ "notes": [
+  "stream shadow_v1: the context-stack shadow wired into the scheduler on 4/10 (555e8f5)",
+  "watchdog boundary 'grading' is the closest W4 boundary; no boundary covers research streams (design §6.2 V8 is the runtime check)",
+  "the body's names and model probabilities are not repeated; they are pick identities and model scores, not outcomes",
+  "the body's escape analysis says 4/12 was the first affected day; later days ran fixed code",
+  "log bound: live by 2026-06-07T00:11:19Z (first_live_log sha eaccaf8)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time; 634768e added tests/test_shadow_scheduler.py test_writes_independent_shadow_file_when_production_locked (real select_pick) and tests/test_strategy.py test_for_shadow_ignores_locked_production; 80fd31f added test_load_preserves_bluesky_posted"
+ ]
+}

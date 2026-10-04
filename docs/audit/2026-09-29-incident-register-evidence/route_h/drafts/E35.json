@@ -1,0 +1,191 @@
+{
+ "id": "I-035",
+ "working_id": "E35",
+ "title": "4/23 end-of-day clean exit relaunched by Restart=always in a loop (NRestarts 0 to 7 in 25 min)",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": []
+ },
+ "tier": "A",
+ "tier_reason": "liveness: a clean-exit restart loop of the production scheduler; the past-wake no-op that re-opens this loop is still in deployed code (residual reaches production)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "none",
+ "stream": "production",
+ "authority": "not_applicable",
+ "contract": {
+  "text": "After IDLE_END_OF_DAY the scheduler stays alive and sleeps until the next day's wake-up; process exits and clean restarts happen only at day boundaries.",
+  "source": "ARCHITECTURE.md at 4bd8193 'Daily lifecycle'; commit ddee3db message body"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "run_day wrote the IDLE_END_OF_DAY heartbeat and returned, so the process exited; systemd Restart=always (RestartSec=30 since Phase B) relaunched it, the new run_day short-circuited every post-lock branch and reached IDLE_END_OF_DAY again in about 3 min",
+   "code": [
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "684c160",
+     "symbol": "run_day (end-of-day return)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "ddee3db"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "ddee3db",
+    "live_by": "2026-04-23T22:59:15Z",
+    "run_id": 24863085537,
+    "evidence": [
+     "ev2"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "ddee3db's _idle_until_next_wakeup no-ops on a None/malformed/past next_wakeup, and the lookahead wake computed by compute_wakeup_time was a past timestamp (864d3aa body), so the exit/relaunch cycle could continue until 864d3aa (5/09, E49/I-049); later variants: no-games days (736ea8f, 6/09) and eve-of-break (9551818, 7/12, E75/I-075).",
+   "reaches_production": false,
+   "source": "commit 864d3aa message body; src/bts/scheduler.py compute_wakeup_time at ddee3db; 736ea8f; 9551818"
+  },
+  {
+   "text": "At HEAD the no-op on an unset/malformed/tz-naive/past next_wakeup still returns (now with a loud WARNING) and lets systemd relaunch, by design ('bounded restart churn'), relying on restart_spike and check_heartbeat to notice.",
+   "reaches_production": true,
+   "source": "src/bts/scheduler.py _idle_until_next_wakeup docstring at HEAD"
+  }
+ ],
+ "watchdog": {
+  "boundary": "restart",
+  "trigger": "three or more clean scheduler exits/relaunches within 60 minutes outside a date transition (one planned idle -> exit -> restart per date), from journal lifecycle lines or NRestarts deltas",
+  "recovery_assertion": "after day completion the heartbeat shows SLEEPING with sleeping_until equal to the next day's wake-up and NRestarts is unchanged until that wake"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit ddee3db message body",
+   "written_at": "2026-04-23T18:59:11-04:00",
+   "what": "observed live 4/23 post-games: NRestarts grew from 0 to 7 in 25 min after both picks' games ended; clean process exits relaunched by Restart=always, not watchdog kills"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24863085537 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy-branch push of head ddee3db created 2026-04-23T22:59:15Z (18:59:15 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 24840805271 (deploy_runs.json)",
+   "what": "deploy of 684c160 at 2026-04-23T14:24:40Z restarted the scheduler, the NRestarts=0 baseline in ev1"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "commit 864d3aa message body; src/bts/scheduler.py compute_wakeup_time and run_day step 7 at ddee3db",
+   "what": "the next-day wake was computed from datetime.now(ET) at the default hour, i.e. today's 10:00 ET, not a future time; the body says tomorrow-lookahead wake-ups were not future timestamps before 864d3aa"
+  },
+  {
+   "id": "ev5",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/scheduler.py _idle_until_next_wakeup docstring at HEAD",
+   "what": "the no-op still returns on a past/None wake 'LOUDLY'; the 7/12 eve-of-break incident rode this path"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-23 post-games",
+   "onset": {
+    "not_before": "2026-04-23T10:24:40-04:00",
+    "not_after": "2026-04-23T18:59:11-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-23T10:24:40-04:00",
+    "not_after": "2026-04-23T18:59:11-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "first_machine_detection": "none",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-23T18:59:11-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-23T18:59:15-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "not_applicable",
+    "notification": "unknown",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "ddee3db",
+   "864d3aa"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "ARCHITECTURE.md at 4bd8193 'Daily lifecycle'"
+  ]
+ },
+ "related": [
+  "I-034",
+  "I-049",
+  "I-075",
+  "I-038"
+ ],
+ "notes": [
+  "my code reading (ev4): because the lookahead wake was already in the past at day completion, ddee3db's idle sleep likely never engaged; days completing before 20:00 ET (the UTC date rollover used by `bts schedule`, Fable-5 audit P1) would loop until 20:00, later days would restart once - not observed directly; see I-049",
+  "the slow form of this loop (RestartSec=300) was part of the pre-Phase-B design ('restart picks up the next day via datetime.now(UTC)'); RestartSec=30 made it fast",
+  "verified_recovered unknown: no evidence the fix held; I-049's 5/09 canary failure suggests it did not",
+  "log bound: live by 2026-06-07T00:11:19Z (run 27077693688)",
+  "the fix's tests (TestIdleUntilNextWakeup) only cover the no-op paths; none asserts a future wake at day completion",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

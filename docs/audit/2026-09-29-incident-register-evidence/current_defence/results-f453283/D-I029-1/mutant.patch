@@ -1,0 +1,14 @@
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 547824d..b510ddf 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -597,7 +597,8 @@ def _replay_season_streak(
+     """
+     streak, saver = 0, True
+     for f in sorted(picks_dir.glob(f"{season}-*.json")):
+-        if not _ISO_DATE_RE.match(f.stem) or f.stem >= today_iso:
++        pass  # W1.5 mutant: pre-1d61908 — the streak walk reads shadow and today/future (preview) pick files
++        if False:
+             continue  # skip non-date files and today/future (unplayed) previews
+         try:
+             data = json.loads(f.read_text())

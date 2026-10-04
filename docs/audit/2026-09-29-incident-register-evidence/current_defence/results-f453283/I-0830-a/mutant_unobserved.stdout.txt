@@ -1,0 +1,134 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/test_late_delivery_guard.py .FFF.F..                               [100%]
+
+=================================== FAILURES ===================================
+__________________ test_at_cutoff_refuses_archives_and_alerts __________________
+
+mock_now = <MagicMock name='_now_et' id='4490074720'>
+mock_dm = <MagicMock name='send_dm' id='4490079376'>
+_cap = <MagicMock name='_trigger_live_forward_capture_on_lock' id='4490093456'>
+_dss = <MagicMock name='load_decision_streak_state' id='4490111664'>
+mock_alert = <MagicMock name='dispatch_dm_for_health_alerts' id='4490115888'>
+cfg = {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_at_cutoff_refuses_archive0'}, 'scheduler': {'pick_delivery': 'dm'}}
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_at_cutoff_refuses_archive0')
+capsys = <_pytest.capture.CaptureFixture object at 0x10b9fe420>
+
+    @patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+    @patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.dm.send_dm", return_value="msg-1")
+    @patch("bts.scheduler._now_et")
+    def test_at_cutoff_refuses_archives_and_alerts(mock_now, mock_dm, _cap, _dss, mock_alert,
+                                                   cfg, tmp_path, capsys):
+        mock_now.return_value = datetime(2026, 8, 30, 13, 35, 0, tzinfo=ET)   # == cutoff
+        daily = _daily()
+        save_pick(daily, tmp_path)
+        state = _state()
+        ok = _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "lineup")
+>       assert ok is False
+E       assert True is False
+
+tests/test_late_delivery_guard.py:76: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: msg-1
+___________________ test_earlier_double_down_sets_the_cutoff ___________________
+
+mock_now = <MagicMock name='_now_et' id='4418120704'>
+mock_dm = <MagicMock name='send_dm' id='4489998608'>
+_cap = <MagicMock name='_trigger_live_forward_capture_on_lock' id='4489992752'>
+_dss = <MagicMock name='load_decision_streak_state' id='4490069968'>
+_alert = <MagicMock name='dispatch_dm_for_health_alerts' id='4492354208'>
+cfg = {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_earlier_double_down_sets_0'}, 'scheduler': {'pick_delivery': 'dm'}}
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_earlier_double_down_sets_0')
+
+    @patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+    @patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.dm.send_dm", return_value="msg-1")
+    @patch("bts.scheduler._now_et")
+    def test_earlier_double_down_sets_the_cutoff(mock_now, mock_dm, _cap, _dss, _alert, cfg, tmp_path):
+        # primary 16:05 ET, DD 13:40 ET → cutoff 13:35 from the DD
+        daily = _daily(dd_utc="2026-08-30T17:40:00Z")
+        daily.pick.game_time = "2026-08-30T20:05:00Z"
+        save_pick(daily, tmp_path)
+        mock_now.return_value = datetime(2026, 8, 30, 13, 36, tzinfo=ET)
+>       assert _deliver_and_lock_pick(daily, cfg, tmp_path, _state(), DATE, "fallback") is False
+E       AssertionError: assert True is False
+E        +  where True = _deliver_and_lock_pick(DailyPick(date='2026-08-30', run_time='2026-08-30T17:20:00+00:00', pick=Pick(batter_name='Kwan', batter_id=680757, tea...eature_env_schema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_earlier_double_down_sets_0'}, 'scheduler': {'pick_delivery': 'dm'}}, PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_earlier_double_down_sets_0'), SchedulerState(date='2026-08-30', schedule_fetched_at='x', games=[], confirmed_game_pks=[], runs_completed=[], pick_lo...ified_at=None, final_skip_candidate=None, committed_pick_written=True, delivery_refusals=None, fallback_refreshes=None), '2026-08-30', 'fallback')
+E        +    where SchedulerState(date='2026-08-30', schedule_fetched_at='x', games=[], confirmed_game_pks=[], runs_completed=[], pick_lo...ified_at=None, final_skip_candidate=None, committed_pick_written=True, delivery_refusals=None, fallback_refreshes=None) = _state()
+
+tests/test_late_delivery_guard.py:105: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (fallback) — Pick DM sent: msg-1
+_______________________ test_private_mode_is_guarded_too _______________________
+
+mock_now = <MagicMock name='_now_et' id='4492351856'>
+_cap = <MagicMock name='_trigger_live_forward_capture_on_lock' id='4483810368'>
+_dss = <MagicMock name='load_decision_streak_state' id='4486719792'>
+_alert = <MagicMock name='dispatch_dm_for_health_alerts' id='4489402928'>
+cfg = {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_private_mode_is_guarded_t0'}, 'scheduler': {'pick_delivery': 'private'}}
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_private_mode_is_guarded_t0')
+
+    @patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+    @patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.scheduler._now_et")
+    def test_private_mode_is_guarded_too(mock_now, _cap, _dss, _alert, cfg, tmp_path):
+        """A private lock past the cutoff is just as unenterable as a DM."""
+        cfg["scheduler"]["pick_delivery"] = "private"
+        daily = _daily()
+        save_pick(daily, tmp_path)
+        mock_now.return_value = datetime(2026, 8, 30, 13, 40, tzinfo=ET)
+        state = _state()
+>       assert _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "lineup") is False
+E       AssertionError: assert True is False
+E        +  where True = _deliver_and_lock_pick(DailyPick(date='2026-08-30', run_time='2026-08-30T17:20:00+00:00', pick=Pick(batter_name='Kwan', batter_id=680757, tea...eature_env_schema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_private_mode_is_guarded_t0'}, 'scheduler': {'pick_delivery': 'private'}}, PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_private_mode_is_guarded_t0'), SchedulerState(date='2026-08-30', schedule_fetched_at='x', games=[], confirmed_game_pks=[], runs_completed=[], pick_lo...ified_at=None, final_skip_candidate=None, committed_pick_written=True, delivery_refusals=None, fallback_refreshes=None), '2026-08-30', 'lineup')
+
+tests/test_late_delivery_guard.py:120: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE] LOCKED (lineup) — Kwan (CLE) 75.7% — NOT delivered
+__________ test_clock_crossing_cutoff_between_guard_and_send_refuses ___________
+
+mock_now = <MagicMock name='_now_et' id='4496692800'>
+mock_dm = <MagicMock name='send_dm' id='4489017008'>
+_cap = <MagicMock name='_trigger_live_forward_capture_on_lock' id='4489013072'>
+_dss = <MagicMock name='load_decision_streak_state' id='4489009904'>
+mock_alert = <MagicMock name='dispatch_dm_for_health_alerts' id='4489006832'>
+cfg = {'bluesky': {'dm_recipient': 'eric.test'}, 'orchestrator': {'picks_dir': '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_clock_crossing_cutoff_bet0'}, 'scheduler': {'pick_delivery': 'dm'}}
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8122/test_clock_crossing_cutoff_bet0')
+
+    @patch("bts.health.alert.dispatch_dm_for_health_alerts", return_value=True)
+    @patch("bts.contest_state.load_decision_streak_state", return_value=MagicMock(streak=0))
+    @patch("bts.scheduler._trigger_live_forward_capture_on_lock")
+    @patch("bts.dm.send_dm", return_value="msg-1")
+    @patch("bts.scheduler._now_et")
+    def test_clock_crossing_cutoff_between_guard_and_send_refuses(mock_now, mock_dm, _cap, _dss,
+                                                                  mock_alert, cfg, tmp_path):
+        """Codex r2 F1: the top-of-function guard passed, but the contest-state fetch
+        ate the window — the pre-send re-check must refuse, and must not leave the
+        delivery_attempted crash marker set."""
+        times = iter([datetime(2026, 8, 30, 13, 34, 0, tzinfo=ET)])   # guard passes...
+        late = datetime(2026, 8, 30, 13, 35, 30, tzinfo=ET)           # ...everything after is late
+        mock_now.side_effect = lambda: next(times, late)
+        daily = _daily()
+        save_pick(daily, tmp_path)
+        state = _state()
+        ok = _deliver_and_lock_pick(daily, cfg, tmp_path, state, DATE, "lineup")
+>       assert ok is False and state.pick_locked is False
+E       assert (True is False)
+
+tests/test_late_delivery_guard.py:158: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  LOCKED (lineup) — Pick DM sent: msg-1
+=========================== short test summary info ============================
+FAILED tests/test_late_delivery_guard.py::test_at_cutoff_refuses_archives_and_alerts
+FAILED tests/test_late_delivery_guard.py::test_earlier_double_down_sets_the_cutoff
+FAILED tests/test_late_delivery_guard.py::test_private_mode_is_guarded_too - ...
+FAILED tests/test_late_delivery_guard.py::test_clock_crossing_cutoff_between_guard_and_send_refuses
+========================= 4 failed, 4 passed in 0.89s ==========================

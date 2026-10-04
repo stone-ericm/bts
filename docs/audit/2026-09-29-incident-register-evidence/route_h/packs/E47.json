@@ -1,0 +1,37 @@
+{
+ "id": "E47",
+ "episode_row": [
+  "E47",
+  "5/09",
+  "shadow generation without watchdog pings \u2192 restart loops",
+  "L",
+  "OI?",
+  "A",
+  "150ed4c"
+ ],
+ "commits": [
+  {
+   "sha": "150ed4c",
+   "authored": "2026-05-09T15:20:39-04:00",
+   "subject": "Guard shadow scheduler watchdog",
+   "body": "Guard shadow scheduler watchdog\n\nWrap shadow model generation in scheduler heartbeat/watchdog pings and skip existing daily shadow artifacts to avoid restart loops after successful writes.\n\nValidated with scheduler, shadow scheduler, and heartbeat tests.",
+   "files": [
+    "src/bts/scheduler.py",
+    "tests/test_shadow_scheduler.py"
+   ],
+   "first_live_log": {
+    "sha": "eaccaf8",
+    "live_by": "2026-06-07T00:11:19Z",
+    "not_live_before": null,
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 25614033235,
+    "created_at": "2026-05-09T23:02:03Z",
+    "head_sha": "a142c14",
+    "head_branch": "deploy",
+    "log": "unavailable_expired"
+   }
+  }
+ ]
+}

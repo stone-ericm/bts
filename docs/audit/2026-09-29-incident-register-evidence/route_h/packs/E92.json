@@ -1,0 +1,39 @@
+{
+ "id": "E92",
+ "episode_row": [
+  "E92",
+  "5/09\u20139/14",
+  "live-forward capture idled at pending_pick on skip days (11 of 79 decision days) until D8",
+  "R",
+  "DL",
+  "B",
+  "155f1e7 (body)"
+ ],
+ "commits": [
+  {
+   "sha": "155f1e7",
+   "authored": "2026-09-14T20:53:52-04:00",
+   "subject": "feat(live-forward): research-only forecast capture on no-pick skip days (D8)",
+   "body": "Season-wrap owner decision D8 (2026-09-14): keep a separately labeled forecast\nstream once the tail policy stops producing picks (9/19 at contest streak 0).\nThe live-forward capture idled at pending_pick on every skip day (11 of 79\ndecision days since 5/09 have no ranked slate for exactly this reason).\n\nlive_forward_capture_once.py --capture-research-on-skip: on a day with no pick\nfile where scheduler_state.json carries a CURRENT skip intent\n(final_skip_candidate; skip_notified_at alone is history) and decision.json is\nnot scoreable, export the ranked slates into a SEPARATE research root\n(data/validation/decision_weighted_lgbm_v0_live_forward_research/<date>), verify\nthem without the pick-snapshot requirement, and publish in two phases: sidecar\nresearch_capture.json (hashes, identity, provenance, timestamps) written last\nand atomically, then an acceptance marker whose published_at is sampled AFTER\nthe sidecar rename. Guards: research root may not overlap the official root,\npicks dir, data dir or production root; per-date dir may not be a symlink or\nescape the root; start before first pitch - 5 min and every publication sample\nbefore first pitch, else quarantined to <date>.late.*; partial/corrupt/\nunaccepted dirs quarantined to <date>.partial.* and redone only pregame; all\nreads side-effect-free (never load_state). Restart validation re-checks\nschema, labels, hashes, manifest identity + git_commit binding, verification\nok, start cutoff, completion ordering and the acceptance marker; a complete\ncapture for another candidate is reported incompatible and left untouched.\nOfficial #16 stream, decision.json, delivery and contest state are untouched;\nflag off is byte-identical. Unit ExecStart gains the flag.\n\nCodex (gpt-6-astra xhigh) design review + 3 code rounds; final verdict SIGN.\n34 new tests (48 in file).\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_0174VB2agxFoW14L52gEnehP",
+   "files": [
+    "scripts/live_forward_capture_once.py",
+    "scripts/systemd/README.md",
+    "scripts/systemd/bts-live-forward-capture.service",
+    "tests/scripts/test_live_forward_capture_once.py"
+   ],
+   "first_live_log": {
+    "sha": "f1b07e9",
+    "live_by": "2026-09-15T01:38:39Z",
+    "not_live_before": "2026-09-15T01:38:39Z",
+    "basis": "log"
+   },
+   "first_success_deploy_candidate": {
+    "run_id": 34917776860,
+    "created_at": "2026-09-15T01:34:02Z",
+    "head_sha": "f1b07e9",
+    "head_branch": "deploy",
+    "log": "retained"
+   }
+  }
+ ]
+}

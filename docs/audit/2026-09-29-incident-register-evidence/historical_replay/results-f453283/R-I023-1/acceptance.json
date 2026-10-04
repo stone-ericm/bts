@@ -1,0 +1,78 @@
+{
+  "audit_problems": [],
+  "classes": {
+    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked": "symptom_candidate"
+  },
+  "closure": "src_swap",
+  "events_sha256": {
+    "green": "ae982757919ae09ea2fc9902f316221ae4e0f40495740702aeb0c58b5b7a7524",
+    "red": "b1534792ddab47efba274aa94a7bccaa878d8f371ae7d3d4ed0f43b56218503b"
+  },
+  "fix": "634768e916b4d58c1cf86acfafe3f4a1a9b705da",
+  "harness_changes": [
+    {
+      "path": "tests/test_shadow_scheduler.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_strategy.py",
+      "status": "M"
+    }
+  ],
+  "label": "R-I023-1",
+  "label_kind": "semantic_regression_replay",
+  "parent": "bd8bcd33a9dcd0b9fb6134fdebd829f36ae07202",
+  "reasons": [],
+  "spec": {
+    "audit": {
+      "tests/test_shadow_scheduler.py": {
+        "decision": "neutral",
+        "reason": "adds the contract's integration test (real select_pick; production saved locked and bluesky_posted; the shadow file must carry the shadow predictions' own top pick), new module imports (json, pandas, pytest; DailyPick, Pick, save_pick from bts.picks) and an autouse fixture patching bts.strategy._load_mdp to None. Every name exists at the parent bd8bcd3 (bts.strategy._load_mdp at line 33; bts.scheduler.predict_local_shadow imported at line 19; bts.strategy.get_game_statuses imported at line 19), so the parent's src runs the test unchanged. The autouse fixture also forces heuristic mode in the file's pre-existing tests, which are not selected"
+      },
+      "tests/test_strategy.py": {
+        "decision": "neutral",
+        "reason": "adds one unit test of the fix at the strategy layer (select_pick(..., for_shadow=True) must ignore a locked, posted production pick); it uses the file's existing _predictions helper and autouse _disable_mdp fixture, unchanged since the parent, and patches bts.strategy.get_game_statuses, which exists at bd8bcd3. It passes for_shadow, a keyword the fix added, so it is not a symptom (TypeError at the parent, classified new_api)"
+      }
+    },
+    "deployed_ref": {
+      "basis": "candidate_ancestry",
+      "sha": "634768e"
+    },
+    "env": {
+      "TZ": "America/New_York"
+    },
+    "fix_set": [
+      "634768e"
+    ],
+    "incident": "I-023",
+    "label": "R-I023-1",
+    "links": [
+      1
+    ],
+    "notes": "Symptom: at the parent (bd8bcd3), _run_shadow_prediction calls select_pick(predictions, date, picks_dir, streak=streak) with no bypass; select_pick loads the production file 2026-04-12.json, sees game 823154 still 'P' but bluesky_posted=True, and returns PickResult(daily=<production DailyPick>, locked=True); save_shadow_pick then writes asdict(production) to 2026-04-12.shadow.json. The shadow file therefore exists (the exists() check at line 104 passes) but its pick is Brendan Donovan, so the assertion at line 106 fails. Static checks at bd8bcd3 (git show bd8bcd3:src/bts/...): _run_shadow_prediction(config, date, production_pick_name) has the same signature and reads only config['orchestrator']['picks_dir']; bts.scheduler has the module attribute predict_local_shadow (from bts.orchestrator, line 19); bts.strategy has get_game_statuses (imported from bts.picks, line 19) and _load_mdp (line 33); Pick has pitcher_team and DailyPick has bluesky_posted/bluesky_uri; save_pick, save_shadow_pick, load_pick and load_streak exist. _run_shadow_prediction swallows exceptions, but on this input nothing before save_shadow_pick can raise (predictions non-empty, load_streak returns 0 with no streak.json, the lock check returns before any MDP or pick_from_row work). The anchor occurs once in tests/test_shadow_scheduler.py at 634768e (line 106). Non-symptom node: tests/test_strategy.py::TestSelectPick::test_for_shadow_ignores_locked_production passes for_shadow=True, added by the fix, so at the parent it fails in its call phase with TypeError (classified new_api; the red gate accepts failed calls); it is selected because it is one of the fix's two tests and passes at F. Green sanity at F: the shadow path skips the lock check, picks Hoerner 0.82 (>= SKIP_THRESHOLD 0.80) and doubles with Kwan (0.82*0.81 = 0.66 >= the streak-0 heuristic threshold 0.55). Lead's review: test_strategy.py::TestSelectPick::test_for_shadow_ignores_locked_production dropped from the selection: it passes the fix's new for_shadow keyword, so at the parent it can only fail with TypeError and adds nothing to the replay.",
+    "symptom_nodes": [
+      {
+        "_line": 106,
+        "_path": "/Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I023-1/tests/test_shadow_scheduler.py",
+        "assertion": {
+          "path": "tests/test_shadow_scheduler.py",
+          "text": "assert shadow_data[\"pick\"][\"batter_name\"] == \"Nico Hoerner\""
+        },
+        "node": "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked"
+      }
+    ],
+    "tests": [
+      "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked",
+      "-q"
+    ]
+  },
+  "spec_sha256": "3610f707ff6109e387b3f99a5e23497b891f9fa1d679abac27f522655e566ed2",
+  "src_tree": {
+    "fix": "0334478c06f9205adfb933161d1059fcfed2bcc6",
+    "parent": "9adb1acb7bf51216ad3fe188fee95eda86528e7d"
+  },
+  "symptoms": {
+    "tests/test_shadow_scheduler.py::TestRunShadowPrediction::test_writes_independent_shadow_file_when_production_locked": []
+  },
+  "verdict": "accepted"
+}

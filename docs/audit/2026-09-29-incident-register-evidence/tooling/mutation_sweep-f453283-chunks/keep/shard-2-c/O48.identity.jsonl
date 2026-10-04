@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_a_mock_whose_call_was_overridden_before_observation_witnesses_nothing[sends-elsewhere]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_a_mock_whose_call_was_overridden_before_observation_witnesses_nothing[rewrites-arguments]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r7_counterexamples::test_a_call_override_stored_after_the_mock_was_held_is_unattributed", "kind": "assertion"}

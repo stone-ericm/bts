@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-replay/wt-R-I063-1
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 9 items
+
+tests/test_contest_state.py .........                                    [100%]
+
+============================== 9 passed in 0.05s ===============================

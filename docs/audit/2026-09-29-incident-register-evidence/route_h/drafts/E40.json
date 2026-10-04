@@ -1,0 +1,232 @@
+{
+ "id": "I-040",
+ "working_id": "E40",
+ "title": "4/29-30 bpm promoted to FEATURE_COLS but never built in the inference path: every scheduler prediction crashed; the 4/30 pick sat unlocked and unposted until the fix",
+ "disposition": "observed_incident",
+ "counted": true,
+ "classes": {
+  "primary": "L",
+  "secondary": [
+   "D"
+  ]
+ },
+ "tier": "A",
+ "tier_reason": "liveness failure of the live prediction path for about 19 hours (every tick crashed), and the 4/30 pick was neither locked nor posted as of the fix (delivery at risk)",
+ "plan_named": false,
+ "delivery_mode": "public",
+ "policy_objective": "reach57",
+ "stream": "production",
+ "authority": "local",
+ "contract": {
+  "text": "Every feature in FEATURE_COLS is populated in the live inference rows, so each scheduler lineup check produces predictions and a lockable pick before the earliest pick game's first pitch.",
+  "source": "commit ee4190f message body; commit 7afee63 message body (FEATURE_COLS extended 15 -> 16)"
+ },
+ "mechanism": [
+  {
+   "n": 1,
+   "text": "7afee63 added batter_pitcher_shrunk_hr to FEATURE_COLS and to compute_all_features, but predict() builds inference rows from the _build_feature_lookups dicts, which never carried bpm, so every live prediction raised KeyError \"['batter_pitcher_shrunk_hr'] not in index\"",
+   "code": [
+    {
+     "path": "src/bts/model/predict.py",
+     "ref": "018ba87",
+     "symbol": "predict / _build_feature_lookups",
+     "ref_basis": "candidate"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "text": "predict_local caught the exception and returned None and run_single_check returned without a pick; the scheduler read missed_pick_alert_min ('Alert threshold ... if no pick posted') but never acted on it (the E3 alert was dead config until bb7ccc1), so no alert fired while the 3 AM projected preview pick stayed on disk unlocked and unposted",
+   "code": [
+    {
+     "path": "src/bts/orchestrator.py",
+     "ref": "018ba87",
+     "symbol": "predict_local / run_and_pick",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "018ba87",
+     "symbol": "run_single_check",
+     "ref_basis": "candidate"
+    },
+    {
+     "path": "src/bts/scheduler.py",
+     "ref": "8e867fc",
+     "symbol": "run_day (missed_pick_alert_min read, no alert wired)",
+     "ref_basis": "candidate"
+    }
+   ]
+  }
+ ],
+ "fix": [
+  {
+   "link": 1,
+   "implemented": {
+    "commits": [
+     "ee4190f"
+    ],
+    "complete_fix_set": true
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "ee4190f",
+    "live_by": "2026-04-30T16:27:37Z",
+    "run_id": 25176998666,
+    "evidence": [
+     "ev3"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  },
+  {
+   "link": 2,
+   "implemented": {
+    "commits": [
+     "bb7ccc1"
+    ],
+    "complete_fix_set": false
+   },
+   "deployed": {
+    "basis": "candidate_ancestry",
+    "sha": "df01882",
+    "live_by": "2026-06-11T14:36:14Z",
+    "run_id": 27354604212,
+    "evidence": [
+     "ev5"
+    ]
+   },
+   "mitigated": "none",
+   "verified_recovered": "unknown"
+  }
+ ],
+ "fixtures": {
+  "historical_replay": [],
+  "current_defence": [],
+  "expected_failure": [],
+  "characterization": []
+ },
+ "residual": [
+  {
+   "text": "The fix commit added no alert; the delivery symptom became alertable only when the E3 missed-pick alert was implemented on 6/10 (bb7ccc1, 'was dead config'), and its state.pick_locked gate still let a classification-locked undelivered day pass silently until 224ddce (8/14, I-083).",
+   "reaches_production": false,
+   "source": "commit bb7ccc1 message body; commit 224ddce; working table E59, E83"
+  }
+ ],
+ "watchdog": {
+  "boundary": "delivery",
+  "trigger": "two consecutive scheduled lineup checks end with 'Prediction failed' (no predictions), or the earliest pick game's first pitch minus 5 min approaches with the day's pick still unlocked and undelivered",
+  "recovery_assertion": "the next lineup check produces predictions and the day ends with a delivered pick or a recorded deliberate skip"
+ },
+ "evidence": [
+  {
+   "id": "ev1",
+   "kind": "contemporaneous_operator_report",
+   "strength": "primary",
+   "locator": "commit ee4190f message body",
+   "written_at": "2026-04-30T12:27:30-04:00",
+   "what": "every scheduler tick after the 4/29 deploy crashed with \"['batter_pitcher_shrunk_hr'] not in index\"; the 3 AM cron's pick file carried projected-lineup picks forward unchanged, never locked, never posted to Bluesky"
+  },
+  {
+   "id": "ev2",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25134669843 (docs/audit/2026-09-29-incident-register-evidence/deploy/deploy_runs.json)",
+   "what": "deploy of 053aae4 (PR #4, containing 7afee63) created 2026-04-29T21:24:24Z (17:24:24 ET), conclusion success; run 25135350202 (17:40 ET) also carried the defect"
+  },
+  {
+   "id": "ev3",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 25176998666 (deploy_runs.json)",
+   "what": "deploy of head ee4190f created 2026-04-30T16:27:37Z (12:27:37 ET), conclusion success; log unavailable_expired"
+  },
+  {
+   "id": "ev4",
+   "kind": "inference",
+   "strength": "primary",
+   "locator": "src/bts/orchestrator.py and src/bts/scheduler.py at 018ba87",
+   "what": "predict_local prints '[local] Prediction failed' and returns None; run_and_pick is documented 'No posting, no DMs'; run_single_check returns quietly when predictions is None"
+  },
+  {
+   "id": "ev5",
+   "kind": "machine_observation",
+   "strength": "primary",
+   "locator": "GitHub Actions deploy run 27354604212 (deploy_runs.json)",
+   "what": "first successful deploy whose head (df01882) contains bb7ccc1 (E3 missed-pick alert), created 2026-06-11T14:36:14Z; log unavailable_expired; log bound live by 2026-07-02T15:28:10Z (run 28601525167)"
+  }
+ ],
+ "occurrences": [
+  {
+   "label": "2026-04-29 17:24 ET to 2026-04-30 12:27 ET",
+   "onset": {
+    "not_before": "2026-04-29T17:24:24-04:00",
+    "not_after": "2026-04-30T12:27:30-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_detectable": {
+    "not_before": "2026-04-29T17:24:24-04:00",
+    "not_after": "2026-04-30T12:27:30-04:00",
+    "evidence": [
+     "ev1",
+     "ev2"
+    ]
+   },
+   "first_machine_detection": "unknown",
+   "alert": {
+    "attempted": "unknown",
+    "confirmed": "unknown",
+    "failed": "unknown"
+   },
+   "operator_awareness": {
+    "not_after": "2026-04-30T12:27:30-04:00",
+    "evidence": [
+     "ev1"
+    ]
+   },
+   "operator_action": {
+    "not_after": "2026-04-30T12:27:37-04:00",
+    "evidence": [
+     "ev1",
+     "ev3"
+    ]
+   },
+   "mitigation": "none",
+   "restored_verification": "unknown",
+   "latencies": {
+    "detection": "unknown",
+    "notification": "unknown",
+    "recovery": "unknown"
+   },
+   "continuing": true
+  }
+ ],
+ "routes": {
+  "H": [
+   "ee4190f",
+   "7afee63"
+  ],
+  "R": "pending_phase2",
+  "X": [
+   "PR #4"
+  ]
+ },
+ "related": [
+  "I-039",
+  "I-059",
+  "I-083"
+ ],
+ "notes": [
+  "whether the 4/30 pick was delivered before its game after the 12:27 fix deploy, and whether any 4/29 pick was affected after 17:24, needs the 4/29-4/30 pick files (B1 data/picks: bluesky_posted/posted time) - Route R",
+  "first_machine_detection unknown: the scheduler path had no prediction-failure alert (ev4); an end-of-day health check (e.g. bluesky_post) may have fired on 4/29 but nothing records it; the journal is not retained before 5/11",
+  "link 2 (silent failure) credits bb7ccc1 (E3 missed-pick alert, 6/10), which alerts on the delivery symptom before the earliest first pitch, not on a failed prediction cycle as such; complete_fix_set false because of the 224ddce gate fix (I-083)",
+  "policy_objective reach57: the crash blocked the day's reach-57 pick decision",
+  "log bounds: link 1 (ee4190f) live by 2026-06-07T00:11:19Z (run 27077693688); link 2 (bb7ccc1) live by 2026-07-02T15:28:10Z (run 28601525167)",
+  "the fix added no regression test (body: sanity-checked on real data; existing predict tests pass)",
+  "fixtures: filled from Task 5/6 acceptance objects at build time"
+ ]
+}

@@ -1,0 +1,70 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/out-defence/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 10 items
+
+tests/test_scheduler_eve_of_break.py F.........                          [100%]
+
+=================================== FAILURES ===================================
+___ TestStep7NextWakeup.test_games_today_empty_tomorrow_stores_future_wakeup ___
+
+self = <tests.test_scheduler_eve_of_break.TestStep7NextWakeup object at 0x10e532f60>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-8083/test_games_today_empty_tomorro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b82b440>
+
+    def test_games_today_empty_tomorrow_stores_future_wakeup(self, tmp_path, monkeypatch):
+        """Eve-of-break: the stored next_wakeup must be tz-aware and in the
+        FUTURE, or the post-EOD idle no-ops and the daemon thrash-restarts.
+    
+        The date is REAL today (not a fixed past date): compute_wakeup_time's
+        empty-schedule branch anchors to the real wall clock, so a fixed past
+        date would make "today 10:00" look future and hide the bug.
+        """
+        run_date = date.today().isoformat()
+        now = datetime.strptime(f"{run_date} 23:30", "%Y-%m-%d %H:%M").replace(tzinfo=ET)
+    
+        # Games today, [] for every later fetch (tomorrow) — eve-of-break.
+        monkeypatch.setattr(sch, "fetch_schedule",
+                            _seq([[_game(100, "19:05", date=run_date)], []]))
+        monkeypatch.setattr(sch, "_now_et", lambda: now)
+        monkeypatch.setattr(sch.time, "sleep", lambda *a, **k: None)
+        monkeypatch.setattr(sch, "run_result_polling", lambda *a, **k: "final")
+        monkeypatch.setattr(sch, "_trigger_live_forward_capture_on_lock", lambda *a, **k: None)
+        monkeypatch.setattr(sch, "run_single_check", lambda *a, **k: _result(skipped=True))
+        config = {
+            "orchestrator": {"picks_dir": str(tmp_path), "heartbeat_path": str(tmp_path / ".hb")},
+            "tiers": [],
+            "scheduler": {"pick_delivery": "private", "early_lock_gap": 0.03,
+                          "lineup_check_offset_min": 45, "cluster_min": 10,
+                          "doubleheader_recheck_min": 15, "missed_pick_alert_min": 10,
+                          "results_poll_interval_min": 15, "results_cap_hour_et": 5},
+            "health_checks": {"enabled": False},
+        }
+        sch.run_day(date=run_date, config=config, dry_run=False)
+    
+        state = load_state(run_date, tmp_path)
+        assert state is not None and state.next_wakeup, "step 7 must store next_wakeup"
+        wakeup = datetime.fromisoformat(state.next_wakeup)
+        assert wakeup.tzinfo is not None, "next_wakeup must be tz-aware"
+>       assert wakeup > now, (
+            f"next_wakeup {wakeup} is not in the future of {now}: "
+            "_idle_until_next_wakeup will no-op and Restart=always will thrash"
+        )
+E       AssertionError: next_wakeup 2026-10-03 10:00:00-04:00 is not in the future of 2026-10-03 23:30:00-04:00: _idle_until_next_wakeup will no-op and Restart=always will thrash
+E       assert datetime.datetime(2026, 10, 3, 10, 0, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=72000))) > datetime.datetime(2026, 10, 3, 23, 30, tzinfo=zoneinfo.ZoneInfo(key='America/New_York'))
+
+tests/test_scheduler_eve_of_break.py:62: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  [PRIVATE MODE] Bluesky posting disabled — picks saved locally only.
+[23:30 ET] Fetching schedule for 2026-10-03...
+  1 games, 1 scheduled checks:
+    18:20 ET — 1 game(s)
+
+[23:30 ET] Running lineup check...
+  Tomorrow's wake-up: 10:00 ET
+  WARNING: not idling — next_wakeup '2026-10-03T10:00:00-04:00' is in the past (now 2026-10-04T00:07:17+00:00). run_day will return and systemd will relaunch in ~30s (2026-07-12 incident class; see _next_day_wakeup).
+=========================== short test summary info ============================
+FAILED tests/test_scheduler_eve_of_break.py::TestStep7NextWakeup::test_games_today_empty_tomorrow_stores_future_wakeup
+========================= 1 failed, 9 passed in 0.81s ==========================

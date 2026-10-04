@@ -1,0 +1,13 @@
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 547824d..6102ac8 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -790,7 +790,7 @@ def resolve_pick_slot_result(
+             detailed_statuses = {}
+ 
+     if _slot_is_voided(pick, detailed_statuses):
+-        return "void"
++        pass  # W1.5 mutant: pre-a142c14 — a postponed/cancelled slot is graded by check_hit like a played slot
+ 
+     result = check_hit(
+         pick.game_pk,
