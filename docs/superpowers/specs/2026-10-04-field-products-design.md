@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-04.
 **Plan:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md`, W2 (identifiability table; products 1–2) and owner decision D5 (150/150 profile split).
-**Status:** rev 2: Codex design r1 BLOCK (`docs/audit/2026-10-04-w2-designs-codex-r1.md`) with its verbatim edits B-E1–B-E7 applied by script; round 2 is the last.
+**Status:** rev 2, FROZEN: Codex design r1 BLOCK (`docs/audit/2026-10-04-w2-designs-codex-r1.md`, edits B-E1–B-E7 applied verbatim by script) → r2 SIGN (`docs/audit/2026-10-04-w2-designs-codex-r2.md`). "Cohort B" in the data inventory and limits names the acquired profiles only; the analytical population is E (r2).
 **Use:** descriptive only. No causal value of copying, doubling or skipping is estimated (the plan cuts those).
 
 ## Data (inventoried 2026-10-04; names and counts only)

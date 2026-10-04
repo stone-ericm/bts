@@ -6,19 +6,17 @@ import pandas as pd
 
 
 def latest_sheet(captures: list[tuple], round_dates: dict, date: str, cutoff: pd.Timestamp):
-    """The single latest stored whole sheet at or before ``cutoff`` that lists a round dated ``date``.
+    """The latest stored whole sheet at or before ``cutoff``, THEN its rows for the round dated ``date``.
 
-    A stored newer sheet is a full new observation, so players absent from it are absent; earlier sheets are never
-    unioned in. Returns ``(stamp, rows for that date's round)`` or ``(None, [])``. The stamp is the capture run's
-    start time, not a per-feed receipt time (timing uncertain)."""
-    best = None
-    for stamp, rows in captures:
-        if pd.Timestamp(stamp) > cutoff:
-            continue
-        dated = [r for r in rows if round_dates.get(r.get("roundId")) == date]
-        if dated and (best is None or pd.Timestamp(stamp) > pd.Timestamp(best[0])):
-            best = (stamp, dated)
-    return best if best is not None else (None, [])
+    The sheet is chosen before filtering (design A-E1): a newer sheet that is empty or lists only other rounds gives
+    no support, and an older sheet is never consulted instead. A stored newer sheet is a full new observation, so
+    players absent from it are absent. Returns ``(stamp, rows)``; ``(None, [])`` when no sheet precedes the cutoff.
+    The stamp is the capture run's start time, not a per-feed receipt time (timing uncertain)."""
+    eligible = [(pd.Timestamp(stamp), stamp, rows) for stamp, rows in captures if pd.Timestamp(stamp) <= cutoff]
+    if not eligible:
+        return None, []
+    _, stamp, rows = max(eligible, key=lambda x: x[0])
+    return stamp, [r for r in rows if round_dates.get(r.get("roundId")) == date]
 
 
 def forecasts_asof(captures: list[tuple], round_dates: dict, players: dict, date: str, cutoff: pd.Timestamp) -> dict:
@@ -37,16 +35,26 @@ def forecasts_asof(captures: list[tuple], round_dates: dict, players: dict, date
     return {k: v for k, v in out.items() if v is not None}
 
 
-def games_by_batter(fc: dict, player_squads: dict, round_units: list[dict]) -> dict:
-    """batter_id → the set of game_pks (unit feedId) in the date's round whose home or away squad is the player's
-    squad, both read from MLB's own sheets at the declared observation boundary. Our slate is never consulted, so a
-    second scheduled game cannot be hidden by it. A player without a squad gets an empty set."""
+def games_by_batter(fc: dict, player_squads: dict, units: list[dict], round_id: int) -> dict:
+    """batter_id → the set of game_pks (unit feedId) in round ``round_id`` whose home or away squad is the player's
+    squad, both read from MLB's own sheets at the declared observation boundary (design A-E2). Our slate is never
+    consulted. ``None`` means multiplicity unknown: a unit of the round (or of no resolved round) with an unresolved
+    squad could be anyone's game, and a squad's unit with an unresolved feedId is a possible second game; neither is
+    discarded to manufacture a singleton. A player without a squad gets an empty set."""
+    unresolved_round = any(u.get("roundId") is None for u in units)
+    todays = [u for u in units if u.get("roundId") == round_id]
+    unresolved_squad = any(u.get("homeSquadId") is None or u.get("awaySquadId") is None for u in todays)
     out = {}
     for bid, f in fc.items():
         squad = player_squads.get(f.get("player_id"))
-        out[bid] = set() if squad is None else {
-            int(u["feedId"]) for u in round_units
-            if u.get("feedId") is not None and squad in (u.get("homeSquadId"), u.get("awaySquadId"))}
+        if squad is None:
+            out[bid] = set()
+            continue
+        if unresolved_round or unresolved_squad:
+            out[bid] = None
+            continue
+        mine = [u for u in todays if squad in (u.get("homeSquadId"), u.get("awaySquadId"))]
+        out[bid] = None if any(u.get("feedId") is None for u in mine) else {int(u["feedId"]) for u in mine}
     return out
 
 
@@ -60,6 +68,8 @@ def join_to_slate(slate: pd.DataFrame, fc: dict, batter_games: dict) -> tuple[pd
         games = batter_games.get(b, set())
         if b not in fc:
             status.append("not_listed"); mlb_p.append(float("nan")); stamps.append(None)
+        elif games is None:
+            status.append("multiplicity_unknown"); mlb_p.append(float("nan")); stamps.append(None)
         elif len(games) != 1:
             status.append("multi_or_no_game"); mlb_p.append(float("nan")); stamps.append(None)
         elif int(g) not in games:

@@ -33,10 +33,11 @@ def test_a_player_absent_from_a_newer_stored_sheet_is_absent_not_resurrected():
 def test_games_come_from_mlbs_own_sheets_never_from_our_slate():
     fc = {701: {"player_id": 1}, 702: {"player_id": 2}, 703: {"player_id": 3}, 704: {"player_id": 4}}
     squads = {1: 11, 2: 12, 3: None, 4: 14}
-    units = [{"feedId": 100, "homeSquadId": 11, "awaySquadId": 21},
-             {"feedId": 200, "homeSquadId": 12, "awaySquadId": 22}, {"feedId": 201, "homeSquadId": 22, "awaySquadId": 12},
-             {"feedId": 300, "homeSquadId": 13, "awaySquadId": 23}]
-    assert core.games_by_batter(fc, squads, units) == {701: {100}, 702: {200, 201}, 703: set(), 704: set()}
+    units = [{"feedId": 100, "roundId": 10, "homeSquadId": 11, "awaySquadId": 21},
+             {"feedId": 200, "roundId": 10, "homeSquadId": 12, "awaySquadId": 22},
+             {"feedId": 201, "roundId": 10, "homeSquadId": 22, "awaySquadId": 12},
+             {"feedId": 300, "roundId": 10, "homeSquadId": 13, "awaySquadId": 23}]
+    assert core.games_by_batter(fc, squads, units, round_id=10) == {701: {100}, 702: {200, 201}, 703: set(), 704: set()}
 
 
 def test_join_links_only_a_unique_game_and_labels_it_inferred():
@@ -48,3 +49,31 @@ def test_join_links_only_a_unique_game_and_labels_it_inferred():
     assert list(joined["link_status"]) == ["inferred_unique_game", "multi_or_no_game", "not_listed",
                                            "game_mismatch", "multi_or_no_game"]
     assert joined["mlb_p"].notna().sum() == 1 and cov["mlb_not_in_slate"] == 1
+
+
+def test_a_newer_sheet_without_the_round_or_empty_is_no_support_never_a_fallback():
+    caps = _caps()[:2] + [("2026-07-05T20:00:00Z", [{"roundId": 11, "playerId": 1, "probabilityStarter": 0.6}])]
+    stamp, rows = core.latest_sheet(caps, ROUNDS, "2026-07-05", pd.Timestamp("2026-07-05T21:00:00Z"))
+    assert stamp == "2026-07-05T20:00:00Z" and rows == []
+    assert core.forecasts_asof(caps, ROUNDS, PLAYERS, "2026-07-05", pd.Timestamp("2026-07-05T21:00:00Z")) == {}
+    empty = _caps()[:2] + [("2026-07-05T20:00:00Z", [])]
+    assert core.latest_sheet(empty, ROUNDS, "2026-07-05", pd.Timestamp("2026-07-05T21:00:00Z")) == ("2026-07-05T20:00:00Z", [])
+    assert core.latest_sheet(_caps(), ROUNDS, "2026-07-05", pd.Timestamp("2026-07-05T13:00:00Z")) == (None, [])
+
+
+def test_an_unresolved_unit_makes_multiplicity_unknown_and_other_rounds_are_ignored():
+    fc = {701: {"player_id": 1}, 702: {"player_id": 2}}
+    squads = {1: 11, 2: 12}
+    units = [{"feedId": 100, "roundId": 10, "homeSquadId": 11, "awaySquadId": 21},
+             {"feedId": None, "roundId": 10, "homeSquadId": 11, "awaySquadId": 22},   # 701's possible second game
+             {"feedId": 200, "roundId": 10, "homeSquadId": 12, "awaySquadId": 23},
+             {"feedId": 201, "roundId": 11, "homeSquadId": 12, "awaySquadId": 24}]   # tomorrow: not today's game
+    assert core.games_by_batter(fc, squads, units, round_id=10) == {701: None, 702: {200}}
+    unknown_squad = units[:1] + [{"feedId": 300, "roundId": 10, "homeSquadId": None, "awaySquadId": 25}]
+    assert core.games_by_batter(fc, squads, unknown_squad, round_id=10) == {701: None, 702: None}
+    no_round = units[:1] + [{"feedId": 400, "roundId": None, "homeSquadId": 30, "awaySquadId": 31}]
+    assert core.games_by_batter(fc, squads, no_round, round_id=10) == {701: None, 702: None}
+    slate = pd.DataFrame({"batter_id": [701, 702], "game_pk": [100, 200], "D": [0.8, 0.7]})
+    fc2 = {701: {"p": 0.5, "captured_at": "x"}, 702: {"p": 0.6, "captured_at": "x"}}
+    joined, _ = core.join_to_slate(slate, fc2, {701: None, 702: {200}})
+    assert list(joined["link_status"]) == ["multiplicity_unknown", "inferred_unique_game"]
