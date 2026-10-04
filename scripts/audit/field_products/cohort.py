@@ -148,7 +148,7 @@ def bind_daily_files(manifest: dict, stems: list[str]) -> tuple[pd.DataFrame, di
         for s in cand:
             file_state[s] = "bound" if binding == "bound" else "quarantined"
         rows.append({"order": r.order, "user_id": uid, "usernames_2026_05_01": ";".join(r.usernames),
-                     "binding": binding, "files": ";".join(cand), "n_files": len(cand)})
+                     "binding": binding, "files": list(cand), "n_files": len(cand)})   # a list: names may hold any char
     states = Counter(file_state.get(s, "not_E") for s in stems)
     counts = {"files_total": len(stems), "files_bound": states["bound"], "files_quarantined": states["quarantined"],
               "files_not_E": states["not_E"], "members": dict(Counter(row["binding"] for row in rows))}

@@ -21,6 +21,9 @@ EXTENSION = (date(2026, 7, 4), date(2026, 9, 27))
 SEED = 20261004
 CONFIRMED_MATCHES = frozenset({"evidenced", "inferred"})   # the ledger's only grade-transferring links (memo §5)
 EXACT = frozenset({"hit", "not_hit"})
+# Daily username-keyed files carry no user id and no stored record witnesses which account each appended batch was
+# fetched for (code search, review r1 F2): the E arm rests on the members' stable 5/01 usernames, unwitnessed per batch.
+ATTRIBUTION_BASIS = "stable_5_01_username_unwitnessed"
 
 
 def _iso(d) -> str | None:
@@ -81,11 +84,12 @@ def e_arm(slots: pd.DataFrame, available: set[int], start: date, end: date) -> p
     """E's usable graded slots (exact hit/not_hit, status ok) of members with an available daily history; no
     filter on allocation (E_in_A members stay in the primary)."""
     if not len(slots):
-        return pd.DataFrame(columns=["user_id", "date", "round_id", "pick_number", "hit"])
+        return pd.DataFrame(columns=["user_id", "date", "round_id", "pick_number", "hit", "attribution_basis"])
     d = pd.to_datetime(slots["pick_date"]).dt.date
     s = slots[slots["user_id"].isin(available) & slots["usable"] & (d >= start) & (d <= end)]
     out = s[["user_id", "round_id", "pick_number", "hit"]].copy()
     out.insert(1, "date", s["pick_date"].map(_iso))
+    out["attribution_basis"] = ATTRIBUTION_BASIS
     return out.reset_index(drop=True)
 
 
@@ -114,11 +118,22 @@ def _ratio(p: str):
     return f
 
 
+def _round_counts(arm: pd.DataFrame) -> dict:
+    """Analytical round keys (user_id, round_id); rows without a round id and user-dates holding several round ids are
+    counted, never folded into user-dates."""
+    keyed = arm[arm["round_id"].notna()]
+    per_date = keyed.groupby(["user_id", "date"])["round_id"].nunique()
+    return {"rounds": int(len(keyed[["user_id", "round_id"]].drop_duplicates())),
+            "round_id_missing": int(arm["round_id"].isna().sum()),
+            "user_dates_with_multiple_rounds": int((per_date > 1).sum())}
+
+
 def _arm_block(arm: pd.DataFrame, pd_tab: pd.DataFrame, p: str) -> dict:
     sub = arm[arm["date"].isin(pd_tab.index)]
     n = int(pd_tab[f"{p}_slots"].sum())
+    basis = sorted(set(sub["attribution_basis"])) if "attribution_basis" in sub else []
     return {"dates_with_slots": int((pd_tab[f"{p}_slots"] > 0).sum()), "users": int(sub["user_id"].nunique()),
-            "rounds": int(len(sub[["user_id", "date"]].drop_duplicates())),
+            **_round_counts(sub), "attribution_basis": ";".join(basis) if basis else None,
             "slots": n, "hits": int(pd_tab[f"{p}_hits"].sum()),
             "ratio": float(pd_tab[f"{p}_hits"].sum() / n) if n else None}
 
@@ -192,7 +207,8 @@ def availability(members: pd.DataFrame, labels: pd.DataFrame, binding: pd.DataFr
                     else "observed" if k.get("rounds") else "none_observed_unknown")
         use = hist == "available"
         row = {"order": int(r.order), "user_id": uid, "allocation": lab.get(uid), "binding": b["binding"],
-               "files": b["files"], "daily_history": hist, "observation_rows": int(st.get("rows", 0)),
+               "files": list(b["files"]), "daily_history": hist, "observation_rows": int(st.get("rows", 0)),
+               "attribution_basis": ATTRIBUTION_BASIS if hist == "available" else None,
                "captures": int(st.get("captures", 0)), "first_capture": st.get("first_capture"),
                "last_capture": st.get("last_capture"), "window_activity": activity,
                "window_rounds": int(k.get("rounds", 0)) if use else 0,
@@ -233,8 +249,9 @@ def extension(fg_status: pd.DataFrame, slots: pd.DataFrame, n_members: int) -> d
     return {"label": "final-backfill extension (E∩(A∪B) usable final-grab histories; restricted, partly "
                      "outcome-determined support; never appended to the primary curve)",
             "window": [start.isoformat(), end.isoformat()],
+            "attribution_basis": "final_grab_user_id_keyed (identity.json parsed_sha256 verified)",
             "pooled": {"users": int(arm["user_id"].nunique()), "dates": int(arm["date"].nunique()),
-                       "rounds": int(len(arm[["user_id", "date"]].drop_duplicates())), "slots": n,
+                       "rounds": int(len(arm[["user_id", "round_id"]].drop_duplicates())), "slots": n,
                        "hits": int(arm["hit"].sum()), "ratio": float(arm["hit"].mean()) if n else None},
             "per_user": per_user.assign(hit_rate=per_user["hits"] / per_user["slots"]).to_dict("records"),
             "coverage": {"E_members": n_members, "usable": len(usable),

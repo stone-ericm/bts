@@ -188,7 +188,7 @@ def main(argv=None) -> int:
     bound = binding[binding["binding"] == "bound"]
     parts, obs_stats = [], {}
     for r in bound.itertuples():
-        paths = [daily_dir / f"{s}.parquet" for s in r.files.split(";")]
+        paths = [daily_dir / f"{s}.parquet" for s in r.files]
         for p in paths:
             read(p, f"leaderboard/user_picks/{p.name}")
         o = P.read_observations(paths, user_id=int(r.user_id), source="daily")

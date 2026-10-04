@@ -109,7 +109,9 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     prim = w22["primary"]
     a, s = prim["tables"]["all_observed_dates"], prim["tables"]["shared_dates"]
     # E: alpha 5/01 hit + 5/02 DD hit,hit ; b one 5/01 miss + 5/03 hit -> 5 slots, 4 hits; ours 4 slots, 3 hits
-    assert a["E"] == {"dates_with_slots": 3, "users": 2, "rounds": 4, "slots": 5, "hits": 4, "ratio": 0.8}
+    assert a["E"] == {"dates_with_slots": 3, "users": 2, "rounds": 4, "round_id_missing": 0,
+                      "user_dates_with_multiple_rounds": 0, "attribution_basis": "stable_5_01_username_unwitnessed",
+                      "slots": 5, "hits": 4, "ratio": 0.8}
     assert a["ours"]["slots"] == 4 and a["dates"] == 4
     assert s["date_list"] == ["2026-05-01", "2026-05-02"] and s["E"]["slots"] == 4 and s["ours"]["slots"] == 3
     assert s["intervals"]["diff_ours_minus_E"]["n_resamples"] == 60

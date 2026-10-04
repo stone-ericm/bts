@@ -63,7 +63,9 @@ def test_contest_slot_grade_must_agree_with_the_ledger_row():
 
 
 def _arm(rows):
-    return pd.DataFrame(rows, columns=["user_id", "date", "hit"])
+    """(user, date, hit[, round_id]); the round id defaults to the date's day (one round per date)."""
+    rows = [r if len(r) == 4 else (*r, int(r[1][-2:])) for r in rows]
+    return pd.DataFrame(rows, columns=["user_id", "date", "hit", "round_id"])
 
 
 def test_all_date_table_uses_the_union_and_each_arms_own_denominator_and_shared_uses_common_dates():
@@ -89,6 +91,9 @@ def test_failed_resamples_are_counted_not_dropped_silently():
     o = _arm([(0, f"2026-05-0{k}", True) for k in range(1, 6)])
     iv = Q.date_tables(e, o, n_resamples=300)["all_observed_dates"]["intervals"]["E_ratio"]
     assert iv["n_failed"] > 0 and iv["n_ok"] + iv["n_failed"] == 300
+    # shared failure policy: any failed draw leaves the nominal interval unavailable, conditional one labelled
+    assert iv["lo"] is None and iv["hi"] is None and iv["status"] == "unavailable_failed_draws"
+    assert iv["conditional_lo"] is not None
 
 
 def test_no_common_date_makes_the_shared_table_unavailable():
@@ -139,7 +144,7 @@ def test_availability_keeps_every_member_and_separates_history_from_activity():
     members = pd.DataFrame({"order": [1, 2, 3, 4, 5], "user_id": [11, 12, 13, 14, 15]})
     labels = members.assign(allocation=["E_in_A", "B", "B", "E_unfetched", "B"])
     binding = members.assign(binding=["bound", "bound", "quarantined_manifest_collision", "no_daily_file", "bound"],
-                             files=["a", "b", "c", "", "e"], n_files=[1, 1, 1, 0, 1])
+                             files=[["a"], ["b"], ["c"], [], ["e"]], n_files=[1, 1, 1, 0, 1])
     res = _res({11: [_pk(1, date(2026, 5, 2))], 12: [_pk(2, date(2026, 4, 20))],
                 15: [_pk(1, date(2026, 5, 2), player=20), _pk(1, date(2026, 5, 2), player=21)]})
     obs_stats = {11: {"rows": 1, "captures": 1}, 12: {"rows": 1, "captures": 1}, 15: {"rows": 2, "captures": 1}}
@@ -148,6 +153,8 @@ def test_availability_keeps_every_member_and_separates_history_from_activity():
     assert len(av) == 5
     assert av.loc[11, "daily_history"] == "available" and av.loc[11, "window_activity"] == "observed"
     assert av.loc[11, "window_graded_slots"] == 1 and av.loc[11, "allocation"] == "E_in_A"
+    assert av.loc[11, "attribution_basis"] == "stable_5_01_username_unwitnessed"
+    assert pd.isna(av.loc[13, "attribution_basis"])
     assert av.loc[12, "window_activity"] == "none_observed_unknown"
     assert av.loc[13, "daily_history"] == "quarantined_manifest_collision"
     assert av.loc[13, "window_activity"] == "not_assessable"
@@ -178,3 +185,19 @@ def test_e_window_exclusions_are_counted_by_label_and_status():
     x = Q.e_exclusions(res.slots, available={11}, start=W0, end=W1)
     assert x == {"window_slots": 3, "usable_graded": 1, "excluded_by_label": {"void": 1, "": 1},
                  "excluded_by_status": {}}
+
+
+def test_round_denominator_counts_user_round_keys_not_user_dates():
+    """Review F8 probe: user 7, rounds 1 and 2 both on May 1, one graded slot each -> rounds 2, not 1."""
+    e = _arm([(7, "2026-05-01", True, 1), (7, "2026-05-01", False, 2)])
+    a = Q.date_tables(e, _arm([(0, "2026-05-01", True)]), n_resamples=20)["all_observed_dates"]
+    assert a["E"]["rounds"] == 2 and a["E"]["slots"] == 2 and a["E"]["user_dates_with_multiple_rounds"] == 1
+
+
+def test_e_arm_outputs_carry_the_unwitnessed_attribution_basis():
+    res = _res({11: [_pk(1, date(2026, 5, 2))]})
+    arm = Q.e_arm(res.slots, available={11}, start=W0, end=W1)
+    assert set(arm["attribution_basis"]) == {"stable_5_01_username_unwitnessed"}
+    t = Q.date_tables(arm, _arm([(0, "2026-05-02", True)]), n_resamples=20)
+    assert t["all_observed_dates"]["E"]["attribution_basis"] == "stable_5_01_username_unwitnessed"
+    assert t["shared_dates"]["E"]["attribution_basis"] == "stable_5_01_username_unwitnessed"
