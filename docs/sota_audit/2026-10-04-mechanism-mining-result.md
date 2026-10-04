@@ -1,12 +1,12 @@
 # #87 Leaderboard mechanism mining: registered result (season wrap W2.4)
 
-**Date:** 2026-10-04. **Status:** draft for Codex review (analysis deliverable: at most two rounds, then freeze with the limits stated).
+**Date:** 2026-10-04. **Status:** FROZEN 2026-10-04 after Codex memo r1 SIGN WITH EDITS (C-E1–C-E3 applied verbatim by script; review archived at `docs/audit/2026-10-04-field-87-memos-codex-r1.md`). Pace rule: no further review rounds.
 **Protocol:** `docs/sota_audit/2026-05-10-leaderboard-mechanism-mining-prereg.md`, as amended by `docs/sota_audit/2026-10-04-mechanism-mining-amendment.md` rev 5 (FROZEN). **Code:** `scripts/audit/mining87/` final `dfa2bb4`, FROZEN. **Exposure:** X-22 (`6425eda`), published before any outcome-bearing execution.
 **Run:** `data/validation/mining87/9640703-20261004T171403Z-64e7d1e6/`, copied to `data/hetzner_results/season_wrap_outputs/mining87/`.
 - **Mode:** registered, complete (`COMPLETE.json`).
-- **Inputs:** consumed inputs verified against the manifest (`f56917bc…`).
+- **Inputs:** the copied completion receipt attests that consumed inputs matched the manifest (`f56917bc…`).
 - **Registration:** fingerprint `31e7c791…`.
-- **Pins and outputs:** the pins were persisted before any loader; stdout carried only the run directory.
+- **Pins and outputs:** the runner writes execution pins before outcome-bearing loaders and emits the final run directory, completion flag and mode on stdout.
 
 `research_only=true`, `production_deploy_claim=false`, `no_policy_edit_supported=true`. This is a retrospective post-hoc analysis of a previously exposed window (X-10); it is not an untouched holdout.
 
@@ -31,20 +31,25 @@
 **The protocol's fallback, same-slot agreement:** the fixed-cohort consensus picked the same batter as our locked production pick in **6 of 122** resolved slots (4.9%): 4/70 primary and 2/52 double-down. All-tracked gives the same counts. This is a production-decision diagnostic, not model coverage.
 
 ## 3. Decomposition cells, FDR and the five nomination conditions
-- **Primary stream:** 94 nonempty cross-product cells (48 fixed-cohort, 46 all-tracked).
-  - **None reaches the n ≥ 15 resolved-disagreement testability floor**, so there are 0 testable cells. No BH/BY family exists, nothing survives BH or BY, there are no statistical candidates, and every condition c1–c5 has empty support.
-  - 40 fixed-cohort cells have sparse support.
-  - Every cell, with its counts, is in `cells_primary.parquet`.
-  - **Outcome state: `power_limited_no_testable_cells`.**
-- **The tie-excluded sensitivity** has the same 94 cells and 0 testable, so there is nothing to compare.
-- **Nomination:** none. **No cell met all five conditions, so there is no actionable mechanism for this cohort and window.** Independently, condition 5 was unavailable by the frozen input choice (no mechanism records), so this execution could not have nominated anyway.
-- **Information limits:**
-  - all 145 fixed units lack an admitted surface;
-  - 23 have production settlement unresolved;
-  - 3 have consensus settlement unresolved;
-  - 40 fixed cells are sparse.
 
-  **This does not disprove signal** in a larger or better-instrumented sample. It is a power and instrumentation limit, not a measured negative effect.
+- **Primary stream:** all 94 observed nonempty cross-product cells are retained: 48 fixed-cohort and 46 all-tracked. Every cell and its counts/conditions is in `cells_primary.parquet` and `report.json` under `streams.primary.cells`.
+- **Testability:** none reaches 15 resolved disagreements; the maximum cell support is 13 fixed-cohort and 12 all-tracked. The realized testable BH/BY family is empty. No cell has an available p/q; there are no statistical candidates or nominations. Forty fixed cells have positive but sparse disagreement support; eight have zero resolved disagreements.
+- **Five conditions, separately, over all 48 fixed-cohort cells:** sparse point effects and directions remain descriptive. All-tracked cells supply comparisons and are not nomination candidates.
+
+| Condition | Reported status |
+|---|---|
+| c1: at least 30 resolved disagreements | 48 fail |
+| c2: consensus-minus-production lift at least 0.05 | 12 pass, 28 fail, 8 unknown |
+| c3: BH q ≤ 0.10 | 48 not testable; q unavailable |
+| c4: all-tracked direction not contradictory | 26 pass, 10 fail, 12 unknown |
+| c5: stated mechanism with evidenced lock-available variables | 48 unknown: no mechanism records supplied |
+
+- **Tie-excluded sensitivity:** one flagged unit is removed per cohort, leaving 144 units per cohort. The inventory still has 94 nonempty cells and zero testable cells. The five-condition status counts above are unchanged. No primary cell passes c1-c4, so the candidate sensitivity-comparison list is empty; this is not a claim that the two support inventories are identical.
+- **Outcome state:** `power_limited_no_testable_cells`.
+- **Nomination:** none. **No cell met all five conditions, so there is no actionable mechanism for this cohort and window under the stated information limits.** Independently, condition 5 was unavailable by the frozen input choice, so this execution could not have nominated even with stronger outcome support.
+- **Information limits:** all 145 fixed units lack an admitted surface; 23 have unresolved production settlement; 3 have unresolved consensus settlement; 40 fixed cells have sparse positive disagreement support. These are separate limits, not measured negative effects.
+
+**This does not disprove signal** in a larger or better-instrumented sample. It is a power and instrumentation limit. Sparse descriptive lift/direction passages do not establish a mechanism.
 
 ## 4. Secondary estimands (descriptive)
 **Paired outcomes, consensus minus production.** Unit-weighted means; circular geometric date-block bootstrap with expected block 7, 2,000 replicates, seed 20260510, blocks over ordered observed dates.
@@ -58,8 +63,8 @@
 
 Every interval includes zero. **The consensus outcomes are public pick logs, not evidence that the consensus was visible before lock**, so no copying claim follows.
 - **Conditional miscalibration:** unavailable (no admitted surface bound to the consensus outcome target).
-- **Consensus concentration:** among the fixed cohort's 100 primary slots with a consensus, the modal batter took a median 20% of the votes (median 488 public users per slot); for slot 2 it was 16% (median 378). The concentration may indicate a publicly obvious batter class or a stale blind spot. It is not a success metric.
-- **Unproven served-slate diagnostic** (outside the registered family; these dates failed admission): on 15 selection-consistent dates, the fixed-cohort consensus batter was our served rank-1 on 13% of dates and in our top 10 on 47%.
+- **Consensus concentration:** this summary includes every public-consensus date-slot in the registered window, whether production-matched or not. The fixed cohort has 100 slot-1 and 100 slot-2 consensuses. Median selected-batter vote share is 20.2% for slot 1 (median 488 public users) and 16.5% for the legal slot-2 choice (median 377.5 public users). Concentration may indicate a publicly obvious batter class or a stale blind spot; it is not a success metric.
+- **Unproven served-slate diagnostic:** outside the registered primary, decomposition/FDR family and nomination stream, on 15 resolved production date-slots whose dates are selection-consistent but failed admission, the fixed-cohort consensus batter appeared at served rank 1 in 2/15 slots (13.3%) and in the top 10 in 7/15 (46.7%). These are slot-weighted diagnostics, not proportions of distinct dates or admitted top-N coverage.
 
 ## Limits (amendment A4/A5)
 - **Exposure and selection:** post-hoc mining of a previously exposed window (X-10); the cohort is chosen retrospectively from the 7/04 snapshot, with survivorship and right-truncation.
