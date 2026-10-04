@@ -15,7 +15,9 @@ grades are unknown. None is ever a miss. Only the columns this module needs are 
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
@@ -61,34 +63,48 @@ PRODUCTION_UNIT_COLUMNS = [
     "production_resolved", "production_hit"]
 
 
-def load_accepted_ledger(ledger_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+def _ledger_sources(source) -> dict[str, bytes]:
+    if isinstance(source, Mapping):
+        return dict(source)
+    d = Path(source)
+    return {n: (d / n).read_bytes() for n in (ACCEPTED_FILE, LEDGER_FILE, CONTEST_FILE, BUILD_FILE)
+            if (d / n).exists()}
+
+
+def load_accepted_ledger(source) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Read a published W1.1 build: a parseable ``ACCEPTED.json`` naming the ledger and contest-slot files with the
-    predeclared rules fingerprint, and both files' schemas exactly equal to the compiler's. Projection columns only."""
-    d = Path(ledger_dir)
-    receipt_path = d / ACCEPTED_FILE
-    if not receipt_path.exists():
-        raise FileNotFoundError(f"{d} has no {ACCEPTED_FILE}: not a published W1.1 build")
-    receipt = json.loads(receipt_path.read_text())
+    predeclared rules fingerprint, and both files' schemas exactly equal to the compiler's. Projection columns only.
+    ``source`` is the build directory or the driver's pinned {file name: bytes}; the sha256 of every byte string
+    parsed is returned as ``consumed_sha256`` (R2 edit 4)."""
+    files = _ledger_sources(source)
+    if ACCEPTED_FILE not in files:
+        raise FileNotFoundError(f"{source} has no {ACCEPTED_FILE}: not a published W1.1 build")
+    receipt = json.loads(files[ACCEPTED_FILE])
     if receipt.get("rules_fingerprint") != EXPECTED_RULES_FINGERPRINT:
         raise ValueError(f"ACCEPTED.json rules fingerprint {receipt.get('rules_fingerprint')!r} is not the "
                          "predeclared one")
     if not {LEDGER_FILE, CONTEST_FILE} <= set(receipt.get("files") or []):
         raise ValueError(f"ACCEPTED.json names {receipt.get('files')}, not {LEDGER_FILE} and {CONTEST_FILE}")
     for name, schema in ((LEDGER_FILE, LEDGER_SCHEMA), (CONTEST_FILE, CONTEST_SCHEMA)):
-        got = pq.read_schema(d / name).remove_metadata()
+        if name not in files:
+            raise FileNotFoundError(f"ledger build file missing: {name}")
+        got = pq.read_schema(io.BytesIO(files[name])).remove_metadata()
         if not got.equals(schema):
             raise ValueError(f"{name} schema differs from the compiler's")
     upstream = {"status": "missing"}
-    if (d / BUILD_FILE).exists():
-        build = json.loads((d / BUILD_FILE).read_text())
+    if BUILD_FILE in files:
+        build = json.loads(files[BUILD_FILE])
         if build.get("rules_fingerprint") != EXPECTED_RULES_FINGERPRINT:
             raise ValueError(f"{BUILD_FILE} rules fingerprint differs from ACCEPTED.json's predeclared one")
         upstream = {k: build.get(k) for k in BUILD_IDENTITY_KEYS}
-    ledger = pq.read_table(d / LEDGER_FILE, columns=LEDGER_COLUMNS).to_pandas(integer_object_nulls=True)
-    slots = pq.read_table(d / CONTEST_FILE, columns=CONTEST_COLUMNS).to_pandas(integer_object_nulls=True)
+    ledger = pq.read_table(io.BytesIO(files[LEDGER_FILE]), columns=LEDGER_COLUMNS).to_pandas(
+        integer_object_nulls=True)
+    slots = pq.read_table(io.BytesIO(files[CONTEST_FILE]), columns=CONTEST_COLUMNS).to_pandas(
+        integer_object_nulls=True)
     return ledger, slots, {"run": receipt.get("run"), "rules_fingerprint": receipt["rules_fingerprint"],
                            "accepted_at_utc": receipt.get("accepted_at_utc"), "ledger_rows": int(len(ledger)),
-                           "contest_slot_rows": int(len(slots)), "upstream_build": upstream}
+                           "contest_slot_rows": int(len(slots)), "upstream_build": upstream,
+                           "consumed_sha256": {n: hashlib.sha256(raw).hexdigest() for n, raw in files.items()}}
 
 
 def production_regime(predicted_at) -> str | None:

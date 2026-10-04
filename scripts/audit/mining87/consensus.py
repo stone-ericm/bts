@@ -10,7 +10,9 @@ consensus settlement is then computed for the chosen (legal) id's voters only.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
@@ -29,27 +31,34 @@ VOTE_COLUMNS = ["username", "pick_date", "pick_number", "batter_id", "batter_nam
 
 # --- inputs ----------------------------------------------------------------------------------------------------------
 
-def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: str,
+def load_public_picks(source, *, window_start: str, window_end: str,
                       capture_end_exclusive: str) -> tuple[pd.DataFrame, dict]:
     """The latest observation per (user, date, slot) in the registered window, captured before the cutoff; the user
     is the file stem (the corpus is username-keyed and has no user column). Each scrape appends a user's whole
     history, so every file is reduced before concatenation. Each excluded row is counted under its first failing
-    rule; ambiguous latest observations are counted and cast no vote."""
-    files = sorted(Path(user_picks_dir).glob("*.parquet"))
+    rule; ambiguous latest observations are counted and cast no vote. ``source`` is a user_picks directory or the
+    driver's pinned {file name: bytes} inventory (never re-globbed); the sha256 of every byte string parsed is
+    returned as ``consumed_sha256`` (R2 edit 4)."""
+    if isinstance(source, Mapping):
+        files = sorted(source.items())
+    else:
+        files = [(p.name, p.read_bytes()) for p in sorted(Path(source).glob("*.parquet"))]
+    consumed: dict[str, str] = {}
     cutoff = pd.Timestamp(capture_end_exclusive)
     parts, empty = [], 0
     counts = {"rows_read": 0, "rows_outside_window": 0, "rows_after_capture_cutoff": 0, "rows_invalid_pick_number": 0,
               **{k: 0 for k in LATEST_COUNTS}}
     ranges = {"pick_date": [None, None], "captured_at": [None, None]}      # of every row read, before filters
-    for path in files:
-        if pq.read_metadata(path).num_rows == 0:
+    for name, raw in files:
+        consumed[name] = hashlib.sha256(raw).hexdigest()
+        pf = pq.ParquetFile(io.BytesIO(raw))
+        if pf.metadata.num_rows == 0:
             empty += 1
             continue
-        names = set(pq.read_schema(path).names)
-        missing = sorted(set(USER_PICK_COLUMNS) - names)
+        missing = sorted(set(USER_PICK_COLUMNS) - set(pf.schema_arrow.names))
         if missing:
-            raise ValueError(f"{path.name} lacks user-pick columns {missing}")
-        frame = pq.read_table(path, columns=USER_PICK_COLUMNS).to_pandas()
+            raise ValueError(f"{name} lacks user-pick columns {missing}")
+        frame = pf.read(columns=USER_PICK_COLUMNS).to_pandas()
         counts["rows_read"] += len(frame)
         frame["pick_date"] = pd.to_datetime(frame["pick_date"]).dt.strftime("%Y-%m-%d")
         frame["captured_at"] = pd.to_datetime(frame["captured_at"])
@@ -66,7 +75,7 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
         valid_slot = frame["pick_number"].isin(PICK_NUMBERS)
         counts["rows_invalid_pick_number"] += int((~valid_slot).sum())
         frame = frame[valid_slot].copy()
-        frame["username"] = path.stem
+        frame["username"] = Path(name).stem
         latest, inv = latest_observations(frame)
         for k in LATEST_COUNTS:
             counts[k] += inv[k]
@@ -76,7 +85,8 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
     return obs, {"user_pick_files": len(files), "empty_user_pick_files": empty, **counts,
                  "users_with_retained_rows": int(obs["username"].nunique()),
                  "pick_date_range_read": ranges["pick_date"],
-                 "captured_at_range_read": [stamp(t) for t in ranges["captured_at"]]}
+                 "captured_at_range_read": [stamp(t) for t in ranges["captured_at"]],
+                 "consumed_sha256": consumed}
 
 
 LATEST_COUNTS = ("user_slot_observations", "ambiguous_user_slot_observations", "user_slots_without_valid_batter_id",
@@ -130,18 +140,24 @@ def latest_observations(obs: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
                        int((votes["settlement_evidence"].map(len) > 1).sum())}
 
 
-def load_cohort(snapshot_path: Path, *, tab: str) -> tuple[set[str], dict]:
-    """Usernames in ``tab`` of one pinned snapshot file; no 'latest' search."""
-    path = Path(snapshot_path)
-    if not path.exists():
-        raise FileNotFoundError(f"pinned cohort snapshot missing: {path}")
-    frame = pq.read_table(path, columns=SNAPSHOT_COLUMNS).to_pandas()
+def load_cohort(source, *, tab: str, name: str | None = None) -> tuple[set[str], dict]:
+    """Usernames in ``tab`` of one pinned snapshot file; no 'latest' search. ``source`` is the file path or its
+    pinned bytes (with ``name``)."""
+    if isinstance(source, (bytes, bytearray)):
+        raw, file_name = bytes(source), name
+    else:
+        path = Path(source)
+        if not path.exists():
+            raise FileNotFoundError(f"pinned cohort snapshot missing: {path}")
+        raw, file_name = path.read_bytes(), path.name
+    frame = pq.read_table(io.BytesIO(raw), columns=SNAPSHOT_COLUMNS).to_pandas()
     rows = frame[frame["tab"] == tab]
     usernames = {str(u) for u in rows["username"].dropna()}
     if not usernames:
-        raise ValueError(f"cohort snapshot {path.name} has no {tab} rows")
+        raise ValueError(f"cohort snapshot {file_name} has no {tab} rows")
     return usernames, {
-        "snapshot_file": path.name, "tab": tab, "n_rows_in_tab": int(len(rows)), "n_usernames": len(usernames),
+        "consumed_sha256": {file_name: hashlib.sha256(raw).hexdigest()},
+        "snapshot_file": file_name, "tab": tab, "n_rows_in_tab": int(len(rows)), "n_usernames": len(usernames),
         "captured_at_values": sorted({pd.Timestamp(t).isoformat() for t in rows["captured_at"].dropna()}),
         "membership_sha256": hashlib.sha256(json.dumps(sorted(usernames)).encode()).hexdigest()}
 

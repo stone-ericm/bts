@@ -91,16 +91,19 @@ def load_witnesses(path: Path | None) -> tuple[dict[str, list[dict]], dict]:
                         "feature_computation": "<evidence ref>",
                         "prediction_timestamp_utc": "<ISO-8601 with offset>"}]}
 
-    One record per date; two records for a date are a conflict and admit nothing."""
+    One record per date; two records for a date are a conflict and admit nothing. ``path`` may be the driver's
+    pinned bytes."""
     if path is None:
         return {}, {"source": "none_supplied", "n_records": 0}
-    doc = json.loads(Path(path).read_text())
+    raw = bytes(path) if isinstance(path, (bytes, bytearray)) else Path(path).read_bytes()
+    doc = json.loads(raw)
     if not isinstance(doc, dict) or doc.get("schema") != WITNESS_SCHEMA or not isinstance(doc.get("witnesses"), list):
         raise ValueError(f"witness file schema is not {WITNESS_SCHEMA}")
     out: dict[str, list[dict]] = {}
     for w in doc["witnesses"]:
         out.setdefault(str(w.get("date")), []).append(w)
-    return out, {"source": str(path), "n_records": len(doc["witnesses"])}
+    return out, {"source": "pinned_bytes" if isinstance(path, (bytes, bytearray)) else str(path),
+                 "n_records": len(doc["witnesses"]), "sha256": sha256(raw)}
 
 
 def _utc(raw) -> pd.Timestamp | None:
