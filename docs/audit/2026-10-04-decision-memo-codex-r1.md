@@ -1,6 +1,65 @@
+## Verdict
+
+**SIGN WITH EDITS.** Replace the memo with the verbatim text below, then freeze with its limits stated. The replacement is a decision record with unresolved choices, not a completed quantitative D1 frontier or approval to run, change or activate anything. No new experiment, outcome read, source-memo amendment or acquisition is needed for these edits.
+
+Reviewed main at `bb1f7f52c3485a9a7f53fc24878db80ee589540f`. The memo's SHA256 was `370198e24add3a77791ec3b5e7744b2ff6861535fb9fe06db973444b9e35b58d`. The 15 memo/plan/source inputs have aggregate SHA256 `7dc1247f4a1ad94081047420204bfbd8d7aede22a469f9075f7e54e00ee83ce9` (SHA256 of compact, sorted JSON mapping repository-relative paths to file SHA256s).
+
+Checked the supplied frozen markdown, exposure rules and relevant archived reviews. Ninety-five documentary-anchor/rounding checks passed, including direct rounding of seven displayed count ratios. This verifies the copied statements against their sources; it does not reproduce the statistical results, historical execution or operational status. The source's `0.01%` statement exists, but its provenance and characterization fail F2. No `data/` reads, SSH, network, `gh`, tracked edits, commits, outside-checkout reads or live operations were used. Only this report was written.
+
+## Findings
+
+**F1 — P1: D1 substitutes reach-20 for expected season best, then treats unresolved rare-event evidence as near-zero evidence.** Decision memo `:24–41`; plan `:38`, `:200`, `:215`, `:229`; July replay memo `:64–69`, `:104–115`, `:156–168`.
+
+The four reach-20 rates are copied correctly. They do not supply the required expected-longest-streak versus projected-jackpot tradeoff. No projected reduction is specified. “Cannot be distinguished from zero” is not evidence that protecting P(57) has negligible value: this sample cannot discriminate rare-event policies. Calling that conclusion reasoning does not repair the inference.
+
+The frozen July memo supplies a useful season-best contrast: always-single minus deployed is −1.79 streaks without a haircut. Its contrast reverses to +0.79 at the 0.139 leg-shortfall stress cell, while reach-20 does not reverse. Thus reach-20 and season best can disagree even in this source. Do not infer a general doubling winner from the unshaded reach-20 table. The 120 trajectories reuse five seasons, condition on realized participation, and have known clock/partnerless-double shortcuts; “trusted evaluator” requires these qualifications. Keep the available historical figures, identify unavailable frontier cells, and defer any quantified policy trade. Do not fill the July table with June's differently computed absolute mean-max values.
+
+**F2 — P1: D6 promotes an older smoke projection into an “honest” season probability.** Decision memo `:28`, `:86`; README `:25`; June methodology memo `:45–50`, `:74–91`; July replay memo `:156–168`; plan `:38`.
+
+`0.01%` is traceable to the June four-seed smoke section. The same memo's completed 24-seed analytic results give the deployed policy `0.0004%`, both in-sample and in the stated out-of-sample comparison. These are model projections, not verified season frequencies. The later July memo identifies policy-dependent iid error; replacing `0.01%` with `0.0004%` and retaining “honest chance” would also be wrong. Remove the unqualified probability from D1/D6; retain the source discrepancy as a limit and require dependence/calibration stress for any future projection. This report does not amend the frozen README or June source.
+
+**F3 — P2: D2's calibration recommendation is stronger and less specific than the frozen experiment, and its AUC describes within-day ranking.** Decision memo `:47–62`; W1.2 `:40–45`, `:63–66`; W1.3 `:68`, `:79–80`, `:124–139`; plan `:37`, `:184–200`; W3 §1 and §5.
+
+The count-normalized 65% surface remains an oracle, not an archived pre-lock count forecast. The residual/intercept diagnostics do not establish a stable, known correctable bias. “Day-to-day ranking skill” misnames within-slate AUC: 0.566 measures candidate ordering within each day's slate. The existing rank-4a experiment is identity versus one regularized intercept map, slope only with support, with held-out proper scores; it is not a selected correction. A monotone map cannot improve ranking. Consistently remapping boundaries can leave behavior essentially unchanged; using old boundaries creates a separately evaluated policy change. Specify that design, preserve earlier-fit/later-untouched-test separation and independent acceptance, and remove the universal forecast gate from D2/D6: operational fixes and policy-only changes have different gates.
+
+**F4 — P2: W2.2 loses its acceptance-byte condition and conflates membership with contributors.** Decision memo `:50`, `:114`; cohort memo `:8–12`, `:16`, `:26–36`.
+
+All displayed shared-date rates and the difference are conditional on **both I and A**: unverified batch ownership under name attribution and unchanged outcome bytes from the earlier accepted production build. Mentioning only I is insufficient. The manifest has 310 members, but 186 contributed to the 45-date comparison: 3,349/5,047 field slots versus our 52/71. The pooled field rate weights prolific users/DD days. The conditional interval does not cover attribution, acceptance, selection/missing-history or cross-date-dependence uncertainty. Restore these limits next to the figures and in the limits section.
+
+**F5 — P2: W2.3 and #87 summaries omit material qualifications; “same number for every player” is ambiguous.** Decision memo `:49–51`; MLB benchmark memo `:30`, `:39–40`, `:66–83`, `:109–124`, `:134`; mechanism memo `:34–50`.
+
+The all-player sheet carries the same **field**, not a documented constant probability shared by every player. Its values were not read. Every benchmark game link is inferred; eligibility does not witness that link. Proper-score intervals are pointwise/unadjusted, and both positive residuals are point descriptions; MLB's no-PA-dropped residual interval includes zero. The approximately 3 pp probability-level difference is not independent accuracy evidence. “Nobody has established” exceeds the inspected-source claim: the reviewed sources did not establish the target.
+
+#87 is power-limited, not negative. In addition, mechanism records were not supplied, making its fifth nomination condition unavailable regardless of stronger outcome support. A new operational hypothesis cannot be obtained merely by collecting more disagreements under this same information contract. Preserve that independent limitation alongside the correctly copied 119-slot rates/interval; do not read the positive point difference as evidence for copying.
+
+**F6 — P2: D4 omits rank 4b and the completed bin-collapse read, and its proposed cycle lacks a bounded program/disposition.** Decision memo `:65–81`; bin-collapse memo `:17`, `:30–36`; plan `:184–200`, `:232`, `:261`; W3 §5.
+
+The plan's rank 4 has two different artifacts and gates. Omitting 4b, then calling forecasts the validation basis for every W4 candidate, erases the policy path. The missing descriptive input is 133/152 primary probabilities below the first reach-57 boundary (87.5%); the tail has one bin by construction, and the histogram establishes neither discrimination within Q0 nor better choices from finer bins. Carry it as a conditional 4b hypothesis, not a validated repair.
+
+Distinguish plan ranks from the memo's proposed priority of 2, 4a, 3. “No compute cost” is unsupported; fixtures do not make implementation/checks free. One named cycle must cover the entire selected W4 scope with a total cap and stop/disposition rules, not become three independently expandable experiments. Mark unselected paths deferred and the actual name/cap unresolved. Carry baseline pinning, separate deterministic rebaseline, seed-42-dependent shipped-change revalidation and README hygiene as prerequisites rather than alpha candidates. Candidate registrations must retain the plan's practical-effect, power, family, missingness, stopping and independent-acceptance requirements.
+
+**F7 — P2: Rank 1's prerequisite list drops byte-bound receipts, same-game/eligibility evidence and untouched full-slate acceptance.** Decision memo `:72`, `:81`; MLB benchmark memo `:119–124`; checklist `:39–44`; W2.2 `:8–12`; #87's ranked-surface limit.
+
+A generic per-fetch log is weaker than the frozen source: record successes and failures and bind receipts to response bytes, including unchanged successful fetches. Such evidence establishes retrieval, not provider model-generation age. Independently resolve target, same-game identity, eligibility and reliable pre-lock availability; this retrospective inferred join cannot serve as their witness. Freeze unavailable/invalid/unlisted fallback and evaluate the resulting full-slate rule on untouched 2027 support, then obtain independent acceptance. Resolve the all-player game/cadence question before outcomes, without assuming the broader sheet solves it.
+
+Carry the relevant checklist D items before the first prospective capture: stable user ID per batch if the cohort study is selected, independent pre-lock served-slate witnesses if the context study is selected, and readers supporting both `.json` and `.json.gz`. These are conditional prerequisites, not authorization for all three studies or a new 2026 read.
+
+**F8 — P2: D6 names A1–A7 but omits A8, the explicit activation decision.** Decision memo `:90–92`; checklist `:5`, `:14`, `:17`; plan `:234`, `:263`.
+
+Intent to play, review SIGN and passing preparatory checks are not the recorded activation approval. Include A8 and the executor/entry-check assignment. Checklist delivery closes the wrap; activation remains a later separately approved event. Keep forecast capture as a conditional preparation recommendation, with the candidate-specific gates in F3/F6, rather than saying every candidate must pass a forecast test.
+
+**F9 — P3: I-113's done status is supported, but its scope and D7's recommendation label need to be explicit.** Decision memo `:97–105`; checklist `:22–24`.
+
+Do not reopen I-113 as a pending deployment. B2 documents hotfix `3577e8b` deployed October 3 and verified October 4 at 03:07 ET: downloaded R2 tail bytes matched and the restored tail/base pair validated, with a pre-fix failure of the same verifier. This is dated documentary evidence for that object/pair, not a fresh box observation in this review or fulfillment of 2027's empty-directory restore of all artifacts. B2's manifest check and A1 remain. Label D7's recommendation reasoning, distinguish review/deploy/canary/cron evidence from Eric's approvals, and avoid implying repeatability guarantees unchanged probabilities.
+
+## Verbatim edits
+
+Replace the entire decision memo with the following text. The headings inside the fence are replacement-memo headings, not additional report sections. No source memo or checklist is changed by this edit; selected conditional items are carried to the checklist when Eric records decisions.
+
+```markdown
 # 2027 decisions (season-wrap decision memo)
 
-**Status:** FROZEN 2026-10-04 after Codex memo r1 SIGN WITH EDITS (the review's full replacement text, applied verbatim by script; review archived at `docs/audit/2026-10-04-decision-memo-codex-r1.md`); awaiting Eric's decisions. This memo summarizes completed, registered and frozen wrap evidence; it performs no new outcome analysis. At most two Codex rounds, then freeze with the limits stated. The choices below remain pending Eric's recorded decisions. This memo approves no computation, production change or activation.
+**Status:** draft for Eric's decisions, 2026-10-04. This memo summarizes completed, registered and frozen wrap evidence; it performs no new outcome analysis. At most two Codex rounds, then freeze with the limits stated. The choices below remain pending Eric's recorded decisions. This memo approves no computation, production change or activation.
 
 **How to read it:** each decision gives the situation, options, evidence, reasoning and cost if wrong. Source identifiers and paths come last in each section. The quantitative jackpot/season-best frontier is unresolved; available historical proxies are not substituted for it.
 
@@ -136,3 +195,4 @@ The R2 tail-policy backup fix is already done: the checklist records hotfix `357
 - **Short review:** sources are frozen with their stated limits, and this memo also freezes after at most two review rounds. Missing measurements are left unavailable; no new result or candidate is manufactured to close the wrap.
 
 **Sources:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md`; `docs/audit/2026-09-22-exposure-register.md`; `docs/audit/2026-06-10-mdp-estpa-ab-methodology.md`; the frozen deliverables cited above; `docs/ops/2027-season-start.md`.
+```
