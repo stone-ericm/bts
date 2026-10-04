@@ -237,7 +237,7 @@ def sync_to_r2(
     if lookup.exists():
         process_file(lookup, "models/probable_pitcher_lookup.json")
 
-    # MDP policies (optional — strategy falls back to heuristic without them).
+    # MDP policies (optional — absent/invalid artifacts use regime-specific fallbacks).
     # The tail policy is sha-bound to the base policy (bts.simulate.tail_policy),
     # so a restored host needs both; before W1.5 I-113 only the base was synced.
     for name in ("mdp_policy.npz", "mdp_tail_policy.npz"):
