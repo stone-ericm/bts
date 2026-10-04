@@ -1,32 +1,26 @@
 # W3 literature / SOTA refresh (season wrap, 2026-10-04)
 
 **Plan:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md` §W3.
-**Status:** draft for Codex review (analysis deliverable: at most two rounds, then freeze with the limits stated).
+**Status:** rev 2: Codex r1 BLOCK (`docs/audit/2026-10-04-w3-literature-codex-r1.md`) with its verbatim edits applied by script and the provenance appendix added; round 2 is the last.
 **Method:**
 - Each of the 17 tracker areas gets an **implementation state** and an **evidence disposition**, recorded separately, together with its basis, 2026 exposure and a reopening trigger.
 - Each nominated paper and each search question maps to a W4 experiment, not applicable (reason) or closed (reason).
 
 **Sources:**
-- Every external claim was checked against a primary source by a research pass on 2026-10-03, with labels kept in the working notes. BeyondArena's identity and headline were re-checked by the author on 2026-10-04.
+- External sources were reviewed on 2026-10-03, with primary/full-text, metadata or abstract-only, secondary, and unverified labels in the evidence notes. The final claims retain those distinctions. BeyondArena's identity and headline were re-checked on 2026-10-04; a source's existence or abstract is not verification of every method claim attributed to it.
 - The prize terms come from the 2026 Official Rules, fetched and quoted on 2026-10-04.
 - The repo side comes from a read-only inventory of the docs, scripts and history through 2026-10-03.
 - Claims not verified are marked so.
 
 ## 1. Summary
 - **No tracker area has cleared a production gate.** The tracker itself was last updated on 2026-05-10. Everything since is recorded in §2.
-- **Only one policy change went live this season:** the 9/03 tail objective, an owner requirement whose mechanism P-05 validated. No model change was promoted.
-  - Park drag, the context shadow, swing features, team record, kcontact and the matchup embedding were all null, inconclusive or underpowered.
+- None of the reviewed SOTA-cycle model candidates was production-cleared. This is not a claim that the season had no shipped model or feature changes: the pitcher-30g min-period change shipped on 2026-04-14 and still requires multi-seed revalidation. The 9/03 tail objective was an owner requirement; P-05 validated its mechanism, not its value or optimality. The nearby feature screens have scoped negative, inconclusive or underpowered results; the failed swing controls invalidate inference about its feature families.
 - **The literature changes three things for W4:**
-  1. **Rank 1 (MLB forecast → one combination rule):**
-     - fix the rule in advance as a beta-transformed linear pool or a one-parameter logit pool, never a linear average (Ranjan & Gneiting 2010; Smith & Wallis 2009);
-     - gate it on a forecast-encompassing-style residual-information test.
-  2. **Rank 4a (calibration map):** if selected, register online or windowed Platt scaling, with an intercept-only variant, as the single map (Gupta & Ramdas, ICML 2023). Theory-optimal recalibration needs orders of magnitude more rounds than about 180 picks a season.
-  3. **Rank 6 (model-class challenger):** the one candidate is **TabM** at its frozen default (ICLR 2025), not RealMLP.
-     - On BeyondArena (Purucker et al. 2026), the benchmark that includes temporal splits, TabM's default leads RealMLP's and default LightGBM's on the all-dataset leaderboard.
-     - Its tuned and ensembled variants lead on temporal data, but the plan forbids sweeps.
-     - The gate must be ours: within-slate top-1 and top-bin proper scores. Every benchmark scores ROC AUC.
-- **The prize terms matter for D1.** The $10,000 Top Streak Prize goes to the eligible entrant with the **highest** streak of 20 or more, as of the end of the entry period, split equally on ties; it need not be active (Official Rules §7–8).
-  - So the late-season objective that pays is relative: P(our best is at least the field's best and at least 20). It is not E[our season best], which is what the tail policy maximises.
+  1. **Rank 1:** retain the plan's order: establish target/availability semantics and shared as-of residual information in W2.3, nominate at most one combination rule afterwards, then validate on untouched later dates. A beta-transformed or logit pool is an option, not a guaranteed calibration repair; a simple fixed pool is not ruled out categorically. No combination search is permitted on the consumed benchmark window. The binary residual-information test is a proposed analogue that needs its own valid protocol.
+  2. **Rank 4a:** if selected, identity versus one regularized intercept map remains the experiment; fit a slope only with explicit support. Online Platt provides a possible implementation idea, not evidence that two fitted parameters work with our season-sized selected-pick sample. Any intercept-only adaptation, update rule and parameters are frozen before held-out evaluation; theory alone does not supply its power.
+  3. **Rank 6:** TabM remains the provisional single challenger nomination, conditional on the decision memo and a frozen small recipe/budget. BeyondArena's overall default comparison motivates it but does not verify temporal-default or BTS superiority. The paper's temporal result identifies tuned-and-ensembled **RealMLP**. Its aggregate scores combine binary ROC AUC, multiclass log loss and regression RMSE. Our gate remains temporal within-slate ranking and selected/top-bin proper scores on the identical serving contract, with paired seeds and agreed compute; no architecture sweep or LightGBM re-tuning.
+- **D1 input:** $10,000; highest eligible streak ≥20; inactive allowed; ties split; payable only if no Grand Prize is awarded ([Official Rules §§7–8](https://www.mlb.com/apps/beat-the-streak/official-rules)).
+  - Prize-winning probability, expected prize share and personal E[season best] are different objectives. If B is our best, F the largest other eligible best, K the number of other co-winners, and E/G our eligibility/no Grand Prize award, expected Top Streak payment is `10,000 × E[1{E ∩ G ∩ B≥max(20,F)} / (1+K)]`. This is a rules-based derivation, not a measured BTS value. We have not estimated the necessary joint field/own distribution. Whether to optimize a prize objective or personal season best remains D1's owner decision.
   - The 2026 best was 18, below the floor.
   - This is an input to the decision memo, not a recommendation.
 
@@ -35,61 +29,150 @@ Basis: actual-PA = the hindsight backtest surface (rank-1 hit about 0.865); est-
 
 | # | Area | Implementation | Disposition | Basis | 2026 outcomes consumed | Reopening trigger |
 |---|---|---|---|---|---|---|
-| 1 | MDP: DR-MDP / CVaR / distributional DP | built-and-measured (DR-MDP screen, Gate B, est-PA A/B, tail DP) | DR-MDP **negative**; CVaR **retired**; distributional DP unbuilt; tail objective deployed (mechanism validated only) | actual-PA (5/06, one seed); est-PA (5/24 onward); DD guardrail seed 42 | X-04, X-05, X-07, X-08, X-16 (the May Gate A/B reads have no row; see §6) | a regenerated 24-seed surface or a materially different bin manifold clears `scripts/dr_mdp_gap_measure.py` (tracker); P-06 follow-up only on the decision_v2 stream |
-| 2 | Calibration (Beta / Venn-Abers / spline) | built (isotonic only, off by default) | **inconclusive**, leaning negative: Gate A n=158 is below its own n≥200 floor | live | the 5/23 read has no row; DD legs X-05 | n ≥ 200 and a Brier CI excluding 0; W4 rank 4a |
-| 3 | TreeSHAP / ALE | unstarted | **parked** | — | no | none stated |
-| 4 | e-values / e-processes | unstarted (F10 used Bonferroni checkpoints instead) | **parked** | — | X-07 indirectly | none stated |
-| 5 | Nested purged CV + lockbox | built-and-measured (Phase D only) | **parked** (not adopted after Phase D) | actual-PA (inferred) | no | tracker |
-| 6 | Drift / BOCPD | BOCPD unstarted; alert-only monitors built | **parked**; the park-drag screen **negative** | live | X-02; monitors under X-01 | none stated |
-| 7 | Multiple testing (e-BH / online FDR) | BH/BY built-and-measured; e-BH unstarted | BH/BY **negative** (0 survivors); e-BH **parked**; #87 never run (W2.4) | live and legacy | the 5/05 and 5/10 reads have no row | tracker |
-| 8 | Streaming calibration (ACI / RCPS) | unstarted | **parked** | — | no | when conformal unblocks |
-| 9 | Sequence / transformer / GNN features | unstarted; nearby screens built | **parked**; nearby work negative or inconclusive (embedding NULL and kcontact powered NULL, both on unmerged branches; swing gate failed; team record underpowered; P-03 no-promote) | mixed | X-02, X-06 | P-03; W4 rank 5 rules |
-| 10 | Predictive stacking | pooled policy built-and-measured; stacking unstarted | pooled **negative** (Phase D −0.063, 0/100 seeds); stacking **parked** | actual-PA (inferred) | no | tracker |
-| 11 | Binary-y conformal | built-and-measured | **negative** (`NO_PRODUCTION_DEPLOY`) | actual-PA, one seed | no | tracker |
-| 12 | Proper scoring / realized picks | built-and-measured | **inconclusive** | live | X-05, X-09, X-19 (the 5/10 refresh has no row) | tracker; W1.2 (X-21) is the new read |
-| 13 | Off-policy evaluation | built-and-measured (v1) | **negative** for the 8.17% headline (est-PA ≈ 0.01%) | actual-PA, 24 seeds | no | realized replay is the trusted evaluator (7/13) |
-| 14 | Rare-event Monte Carlo | built-and-measured (CE-IS v1) | **negative** headline; the iid assumption is undermined by 7/13 run suppression | actual-PA | no | tracker |
-| 15 | PA / cross-game dependence | built-and-measured (plus the 8/30 pair lift, 0.9995) | **negative** (no exploitable dependence); the 7/13 temporal run suppression is unmodelled | actual-PA | the 7/13 live side-check has no row | tracker |
-| 16 | Decision-aware learning | built (frozen `5004b1c8`; logged 5/09–9/18) | **inconclusive** (113 < 120 eligible; never read; `E4_fresh_target_inconclusive`) | live | X-11 | the prereg's 2027 continuation |
-| 17 | Model-class challenge | built-and-measured (legacy, plus the unmerged resolution audit) | **negative**; **parked** ("no reliable top-pick headroom"; actual-PA; untuned RF/ET) | actual-PA | no | W4 rank 6 (TabM, §3) |
+| 1 | MDP: DR-MDP / CVaR / distributional DP | built-and-measured: finite DR investment screen; Gate B; est-PA A/B; DD guardrail; tail DP (deployed 9/03) | the finite DR investment screen did not clear its borrowed uncertainty bar; full DR solver unbuilt; CVaR rejected for the objective; distributional DP unbuilt; tail objective: mechanism validated (P-05), not value or optimality | actual-PA (5/06, one seed; a raw 24-seed pooled screen also exists, with path-derived seeds and uncertified provenance); est-PA (5/24 onward); DD guardrail seed 42 | X-04, X-05, X-07, X-08, X-16; Gate A's live outcomes X-27; Gate B was a historical evaluation with served-p scale inspection (C-05) | tracker L188, on a certified or new surface (the existing raw 24-seed screen does not count); P-06 follow-up only on the decision_v2 stream |
+| 2 | Calibration (Beta / Venn-Abers / spline) | built-and-measured: isotonic only (off by default); the other named families unstarted | isotonic n=158 inconclusive (below its own n≥200 floor); other families parked, not measured | live | X-27 (5/23 Gate A, retroactive); DD legs X-05 | the gate's n ≥ 200 with temporal cleanliness, a defined target and a Brier-improvement CI excluding 0; reaching n alone is insufficient; W4 rank 4a |
+| 3 | TreeSHAP / ALE | not implemented | parked; nothing measured | — | no | none stated; no reopening in this cycle: a new owner-approved need/design is required |
+| 4 | e-values / e-processes | not implemented (F10's Bonferroni checkpoints are adjacent work, not an e-process) | parked; nothing measured | — | none for this area (X-07 belongs to the adjacent F10 work) | none stated; no reopening in this cycle without a sequential-testing need and a registered valid construction |
+| 5 | Nested purged CV + lockbox | built: manifest/lockbox and opt-in season splits; some measured adoption (the conformal v2 manifest-bound lockbox evaluation, Phase C/D) | full nested/purged adoption incomplete; no method result is negative | historical actual-PA (inferred) | no documented live outcome read in these result documents | tracker L230; methodology completion is distinct from a pooled-policy win |
+| 6 | Drift / BOCPD | BOCPD not implemented; alert-only monitors built; park-drag screen built-and-measured | BOCPD parked; park-drag screen: no detected ranking gain for its definitions, a null for this screen only | est-PA aggregation on historical actual participant slates with 2026 labels, not the at-cutoff live stream | X-02; monitors under X-01 | none stated (tracker L238 first asks what a drift signal should do); no reopening in this cycle without that decision |
+| 7 | Multiple testing (e-BH / online FDR) | classical BH/BY baselines built-and-measured; e-BH not implemented | no discoveries in the two named families; underpowered (the audit-verdict family's minimum two-sided p is 0.5, so q=.05 discoveries were structurally impossible), not a negative method result; e-BH parked; #87 never run (W2.4) | live and legacy | X-26 covers the 5/10 refresh only; the 5/05 realized-picks FDR computation has no row of its own | tracker L252 |
+| 8 | Streaming calibration (ACI / RCPS) | not implemented | parked; no evidence against the methods | — | no | tracker L260–262 (after #11 unblocks); a future PA-count coverage use is distinct from game-p recalibration |
+| 9 | Sequence / transformer / GNN features | the area is not implemented; nearby screens built | parked. Nearby screens, each scoped: embedding rejects only a low-rank ID interaction (ex-post opponent selection); kcontact's +0.0024 AUC is below its practical bar with noisy top-1; the swing gate failure invalidates family inference (not a feature null); team record underpowered; P-03 inconclusive, no-promote | per screen (appendix) | P-03: X-06; the other four screens have no register row, and whether any read 2026 outcomes is not established here | tracker L412 and the L276 prerequisites; positive controls and P-03 do not trigger a sequence model; W4 rank 5 is separately registered |
+| 10 | Predictive stacking / pooled policy | pooled policy built-and-measured; stacking not implemented | pooled policy rejected on its declared Phase D surface (iid-bin value −0.063; 0/100 positive seeds); this does not falsify predictive stacking or establish serving value; stacking parked | actual-PA (inferred; the profile producer is not pinned) | no documented 2026 outcomes in this comparison | tracker L291 |
+| 11 | Binary-y conformal | built-and-measured | negative for the two methods / six cells tested on the named canonical surface (`ship_set=[]`), not for binary conformal methods generally | historical actual-PA, one seed | no | tracker L302: a non-empty method/alpha candidate or a new calibration method, with selectable-row validity and tightness |
+| 12 | Proper scoring / realized picks | built-and-measured (diagnostics) | candidate conclusions inconclusive; limited data do not falsify the scoring methodology | live | X-05, X-09; X-19 is counts only (no rates or model comparisons); X-26 covers the 5/10 refresh; X-21 is the registered descriptive bridge, not an alpha-selection read | tracker L317 |
+| 13 | Off-policy evaluation | built: the v1 model-based/terminal evaluator (fuller sequential estimators not built) | the 8.17% serving interpretation is invalid (actual- vs estimated-PA mismatch); this is not "OPE negative"; est-PA outputs are projections, not measured jackpot frequency | original actual-PA iid (24 seeds); later est-PA comparator and realized replay (7/06, 7/13) | no | tracker L330 (with L28/L98); realized replay is preferable for run structure but not unqualified: its clock and partnerless-double caveats must be fixed or disclosed (plan:200) |
+| 14 | Rare-event Monte Carlo | built: CE-IS v1 under a declared simulator | the rare-event estimate is conditional on its simulator; the serving headline is invalid and the transition structure unresolved (7/13); no defect in Monte Carlo itself is shown | original actual-PA iid; later est-PA run-structure diagnostic (7/13) | no | tracker L343; a corrected transition model must be validated first |
+| 15 | PA / cross-game dependence | built-and-measured (harness v2 dependence; 8/30 same-game pair lift) | no detected opposite-team same-game lift on the specified historical sample (relative lift 0.9995); a small same-team lift (about 1–2%); production-conditional and temporal dependence unresolved (the 7/13 run suppression is unmodelled) | historical batter-season rates, not production forecasts | X-28 (7/13 repeat-batter live side-check, retroactive) | tracker L362; a valid replay of production-conditional pairing and temporal structure before any policy change |
+| 16 | Decision-aware learning | built: frozen candidate `5004b1c8`; live-forward logging 5/09–9/18 | inconclusive (`E4_fresh_target_inconclusive`): ≤113 eligible < 120; paired comparison unread (outcomes were joined nightly, so "never read" means the paired comparison only) | live | X-11 | prereg L381–384 permits pre-registering a 2027 continuation; none is registered yet; no peeking until it and its cross-season rules are frozen |
+| 17 | Model-class challenge | built-and-measured (legacy classes on main; resolution audit on an unmerged branch) | negative / no deployable candidate for the tested legacy classes and objectives (untuned RF/ET noted); the whole area parked; no general model-class ceiling established | historical actual-PA | no documented 2026 read in those screens | tracker L387–388; W4 rank 6 may nominate one challenger, which confers no selection or production gate |
 
 **Recorded nowhere until now:** decisive results that exist only on unmerged local branches: `resolution-audit` (6/15), `kcontact-screen` (6/15) and `swing-escalation` (6/14, no result doc). Merging or archiving their result docs is a W1.6 item.
+
+**2026-10-04 follow-up to the 10/03 inventory:** W1.6 registered the 5/10 refresh, 5/23 Gate A and 7/13 repeat-batter read retroactively as X-26, X-27 and X-28 (C-05; `b8fa9d7`). The 5/24 Gate B inspection used served probabilities, with outcome evaluation on historical folds, and does not require a new 2026-outcome row. Branch result/design documents are now archived on main with provenance (`b3df966`; `docs/sota_audit/2026-06-unmerged-branch-results.md`); their code remains on the original branches, and swing-escalation still has no result document. The earlier absence statements describe 10/03, not outstanding registration/archive work. X-19 covers counts only; X-21's bridge is predeclared and descriptive. These updates authorize no new candidate or outcome read. A fourth unmerged branch, `team-record-experiment`, holds the team-record code and its design and plan; only its result document is on main (`docs/audit/2026-06-14-team-record-result.md`). It was not archived by `b3df966`.
+
+### 2a. Provenance appendix (all 17 rows)
+Tracker lines are the current file on main (the 10/03 inventory's `T:NNN` cites predate the 10/04 status section and sit 8 lines earlier). A code sha is the last commit touching that path on main unless a branch is named. One repo revision pins existing infrastructure; it cannot certify the code that produced an old result, so a missing producer pin is stated, not filled in.
+
+1. **MDP.**
+   - *Code:* `scripts/dr_mdp_gap_measure.py` 193aedb; `src/bts/simulate/mdp.py` d6995c4; Gate B `scripts/gate_b_walk_forward_policy_eval.py` 26014bf; est-PA A/B `scripts/mdp_estpa_ab.py` 03c06cf; DD guardrail `scripts/evaluate_mdp_dd_guardrail.py` 5a3a7ec; tail `src/bts/simulate/tail_policy.py` 0abf503; P-05 `scripts/audit/p05_tail_policy_audit.py` bf5c8c1.
+   - *Results:* `docs/sota_audit/2026-05-06-dr-mdp-gap-result.md`, `…-dr-mdp-gap-pooled-24seed.md`; Gate B `docs/sota_audit/2026-05-24-gate-b-*.md`; `docs/sota_audit/2026-05-30-mdp-dd-guardrail-result.md`; `docs/audit/2026-06-10-mdp-estpa-ab-methodology.md`; `docs/audit/2026-09-03-emax-tail-policy.md`, `docs/audit/2026-09-28-p05-tail-policy-audit.md`.
+   - *Producer pin:* none in the DR-MDP or Gate B docs (the tracker records PR #27 at `d96388a`); the DD guardrail pins its profile manifest to `c68c7c0`; the tail and P-05 docs pin artifacts and data, not code.
+   - *Trigger (L188):* "Do not build production DR-MDP unless a regenerated 24-seed profile surface or a materially different bin manifold clears the `scripts/dr_mdp_gap_measure.py` screen. Prefer bin-side / multi-seed pooling first."
+2. **Calibration.**
+   - *Code:* `src/bts/model/calibrate.py` 5801002 (isotonic); `scripts/validate_calibration.py` 2e9470f; DD legs `scripts/audit/build_slot_dataset.py` afbea38.
+   - *Results:* `docs/sota_audit/2026-05-23-calibration-resolve-gate.md`; `docs/audit/2026-07-12-dd-leg-calibration.md`.
+   - *Producer pin:* the gate doc records the deployed state `783986e`, not the analysis code; the DD-leg doc pins an input hash only.
+   - *Trigger:* tracker L196–198 ("When n reaches 200, brainstorm Beta-vs-isotonic-vs-Venn-Abers comparison under proper-scoring-rule eval (#12)"); the gate doc adds "the bootstrap 95% CI on Brier improvement must exclude zero."
+3. **TreeSHAP / ALE.** *Code:* not implemented. *Results:* none. *Trigger:* none stated (L208 is a pickup action).
+4. **e-values.** *Code:* not implemented (`src/bts/validate/fdr.py` states "NOT e-BH"). *Results:* none. *Trigger:* none stated (L218 is a reading/design action).
+5. **Nested CV + lockbox.**
+   - *Code:* `src/bts/validate/splits.py` e982bab; `src/bts/experiment/runner.py` 9af1177; `scripts/phase_d_pooled_policy_outer_eval.py` 4761b57.
+   - *Results:* `docs/sota_audit/2026-05-06-nested-cv-lockbox-scoping.md`; `docs/sota_audit/2026-05-06-conformal-gate-v2-refresh.md` (consumes the split manifest); `docs/sota_audit/2026-05-07-phase-c-pre-registration.md`; `docs/sota_audit/2026-05-08-phase-d-pooled-policy-outer-eval.md`.
+   - *Producer pin:* Phase C records runner commit `ca71f06`; Phase D and the conformal refresh record none.
+   - *Trigger (L230):* "when a real candidate audit or deployable stack is in flight, run `bts experiment screen/select` with explicit `--selection-seasons` and `--outer-eval-seasons`, save the selection and outer-evaluation artifacts, and summarize whether the selected stack survives the outer span."
+6. **Drift / BOCPD.**
+   - *Code:* BOCPD not implemented; park drag `scripts/park_drag_screen_driver.py` a0f159a, `src/bts/experiment/park_drag_screen.py` a0f159a; monitors `src/bts/health/{unit_drift,realized_calibration,predicted_vs_realized,slate_auc,park_drag_freshness}.py`.
+   - *Results:* `docs/audit/2026-07-08-park-drag-2026-screen.md`. *Producer pin:* none.
+   - *Trigger:* none stated; L238: "Decide what drift signal does — re-train? Switch to a fallback policy? Fire alert?"
+7. **Multiple testing.**
+   - *Code:* `src/bts/validate/fdr.py` e5ade78; `scripts/run_audit_verdict_fdr.py` e5ade78; `scripts/run_realized_picks_fdr.py` 74b552a.
+   - *Results:* `docs/sota_audit/2026-05-06-audit-verdict-fdr.md`; `docs/sota_audit/2026-05-05-realized-picks-fdr.md`; #87 protocol and amendment (not run). *Producer pin:* none.
+   - *Trigger (L252):* "If future audit cycles need sequential control, design valid e-values/e-processes before running the cycle and pre-register the tested family before looking at outer-evaluation outcomes."
+8. **Streaming calibration.** *Code:* not implemented. *Results:* none. *Trigger (L262):* "When conformal v1 unblocks, read ACI + RCPS papers and design online update path."
+9. **Sequence / GNN (nearby screens).**
+   - *Code:* embedding `scripts/resolution_audit/phase0g_embedding_ablation.py` (branch `resolution-audit`, db28250); kcontact `src/bts/experiment/k_contact_screen.py` (branch `kcontact-screen`, 9e6f0e4); swing `src/bts/experiment/swing_screen.py` 41714d8 on main, escalation on branch `swing-escalation` (5835245); team record `src/bts/experiment/team_context_experiments.py` (branch `team-record-experiment`, 26645ae); P-03 `scripts/audit/p03_context_shadow_closeout.py` bf5c8c1.
+   - *Results:* `docs/sota_audit/2026-06-15-phase0g-embedding-RESULT.md`; `docs/audit/2026-06-15-kcontact-result.md`; `docs/audit/2026-06-13-swing-screen-gate-fail3.md` (escalation: design only, no result); `docs/audit/2026-06-14-team-record-result.md`; `docs/audit/2026-09-28-p03-context-shadow-closeout.md`.
+   - *Producer pin:* none in these result docs (the embedding doc cites `/tmp` files not in the repo); P-03 pins its data manifest only.
+   - *Trigger (L412):* "major research; do after Garnett-comparable benchmarks are in place via #12."
+10. **Stacking / pooled policy.**
+    - *Code:* `scripts/phase_d_pooled_policy_outer_eval.py` 4761b57; `scripts/pooled_policy_ab.py` e1ebde9; `src/bts/simulate/pooled_policy.py` 193aedb; stacking not implemented.
+    - *Results:* `docs/sota_audit/2026-05-08-phase-d-pooled-policy-outer-eval.md`; `docs/sota_audit/2026-05-08-pooled-policy-cycle-synthesis.md`.
+    - *Producer pin:* none in Phase D (Phase C runner `ca71f06`).
+    - *Trigger (L291):* "A future #10 cycle must be newly pre-registered with a fresh evaluation target, explicit family-control rule, provider/provenance plan, and acceptance thresholds. Keep predictive stacking / pooled-prediction cutover separate until proper-scoring evidence clears the 2026-04-29 Brier failure."
+11. **Binary-y conformal.**
+    - *Code:* `src/bts/validate/conformal_gate.py` 99fc20e; `src/bts/model/conformal.py` 99fc20e.
+    - *Results:* `docs/sota_audit/2026-05-06-conformal-gate-v2-refresh.md`. *Producer pin:* none.
+    - *Trigger (L302):* "Re-run this area only when a non-empty method/alpha candidate appears or a new calibration method is proposed; use #12 proper-scoring and decision/selectable-row diagnostics as the supporting evidence before unblocking any conformal lower-bound deploy."
+12. **Proper scoring / realized picks.**
+    - *Code:* `src/bts/validate/proper_scoring.py` 1c1069e; `scripts/canonicalize_realized_picks.py` 5801002.
+    - *Results:* `docs/sota_audit/2026-05-04-realized-picks-calibration.md`; `docs/sota_audit/2026-05-05-realized-picks-attribution.md`; `docs/sota_audit/2026-05-10-realized-picks-refresh.md`.
+    - *Producer pin:* none (the calibration memo's shas are regime cutoffs).
+    - *Trigger (L317):* "Re-run realized-picks phase 2/3 when strict `post_bpm` resolved rows reach roughly n=30, strict `post_bpm` DD x not_park_driven x Q4 reaches n=10-15, or any Q1 x park_driven strict-model row appears."
+13. **Off-policy evaluation.**
+    - *Code:* `src/bts/validate/ope.py` c4349db; `src/bts/validate/ope_eval.py` fe4faa4; `scripts/audit/confirm_mdp_policy_replay.py` 4650e48; `scripts/audit/dd_p_policy_value_sensitivity.py` 96966f2.
+    - *Results:* `docs/superpowers/specs/2026-05-04-bts-sota-13-ope-design.md`; `docs/audit/2026-07-06-strategy-model-lever-investigation.md`; `docs/audit/2026-07-13-dd-p-policy-value-sensitivity.md`.
+    - *Producer pin:* the 7/13 artifact records `git_head` 96966f2 (the script's last commit); the 7/06 doc records none.
+    - *Trigger (L330):* "Only implement full sequential DR-OPE or per-decision IS if a policy candidate needs deployment-grade comparison beyond the current harness."
+14. **Rare-event MC.**
+    - *Code:* `src/bts/simulate/rare_event_mc.py` 77fec80; `src/bts/validate/rare_event_mc_eval.py` 59accb1.
+    - *Results:* `docs/superpowers/specs/2026-05-04-bts-sota-14-rare-event-mc-design.md`; `docs/sota_audit/2026-05-04-falsification-harness-synthesis.md` §#14; no standalone result document.
+    - *Producer pin:* none.
+    - *Trigger (L343):* "Add per-step/per-action tilt, subset simulation, or multilevel MC only if the current CE-IS CI or methodology sensitivity becomes a blocker for the real split audit or a deployment-grade policy comparison."
+15. **Dependence.**
+    - *Code:* `src/bts/validate/dependence.py` ed00d2f; `scripts/audit/same_game_pair_lift.py` 1cd5da8; `scripts/audit/repeat_batter_conditioning.py` 69ef515.
+    - *Results:* `docs/audit/2026-08-30-same-game-pair-correlation.md`; `docs/audit/2026-07-13-repeat-batter-stage1.md`.
+    - *Producer pin:* the repeat-batter artifact records `git_head` 69ef515; the 8/30 doc records none.
+    - *Trigger (L362):* "Build fuller out-of-fold residual/covariance modeling only if it blocks a new candidate audit or materially changes a deployment argument."
+16. **Decision-aware learning.**
+    - *Code:* `src/bts/experiment/models.py` 517d3a2; `scripts/live_forward_capture_once.py` 155f1e7; `scripts/live_forward_resolve_once.py` 2efd40a.
+    - *Results:* `docs/sota_audit/2026-05-08-fresh-audit-pre-registration.md` (protocol); register P-04 and X-11; no result document.
+    - *Producer pin:* candidate freeze `5004b1c8`.
+    - *Trigger (prereg L381–384):* "The team can then pre-register a 2027 continuation before looking at the accumulated target as confirmation evidence."
+17. **Model-class.**
+    - *Code:* `src/bts/experiment/models.py` 517d3a2; `scripts/audit_driver.py` 03c06cf; resolution audit `scripts/resolution_audit/phase0f_class_and_objective.py` (branch `resolution-audit`, 339cdb5).
+    - *Results:* `docs/sota_audit/2026-06-15-resolution-audit-RESULT.md` (archived on main by `b3df966`); `docs/sota_audit/2026-05-07-candidate-generation-closeout.md`.
+    - *Producer pin:* none.
+    - *Trigger (L387–388):* "parked as post-audit candidate generation unless Eric names a specific model-class stack and compute budget." "If reactivated, run a pre-registered model-class bakeoff under proper-score and downstream-value metrics, then nominate a winner only if it clears that candidate-generation gate."
 
 ## 3. Nominated items
 | Item | Disposition | Reason |
 |---|---|---|
-| **TabM** (Gorishniy, Kotelnikov, Babenko; ICLR 2025; arXiv 2410.24210) | **W4 rank 6 candidate**: frozen default (k=32), the single model-class challenger | <ul><li>On BeyondArena's all-dataset leaderboard (ROC-AUC Elo), TabM default is 1107, RealMLP default 1056, LightGBM default 991 and LightGBM tuned 1149.</li><li>TabReD finds MLP-like models and GBDTs best on time splits.</li><li>Our LightGBM runs on near-default parameters.</li><li>Not verified: defaults on BeyondArena's temporal subset alone (in figures only).</li><li>Daily CPU retraining on millions of rows is a real cost (reasoning only).</li></ul> |
-| **RealMLP / "Better by default"** (Holzmüller, Grinsztajn, Steinwart; NeurIPS 2024) | **not selected** (the plan picks one); its LGBM-TD defaults are **closed** by "no LightGBM re-tuning" | its temporal lead needs tuning and ensembling; its default lags TabM's |
-| **TabPFN v2** (Hollmann et al.; Nature 2025) and 2.5/3/3.5 | **not applicable** at PA level; the game-level residual idea stays **parked** until W1.2 measures headroom | <ul><li>v2's stated scope is ≤10K samples; 3/3.5 go to ≤1M rows, against millions of PA rows.</li><li>Foundation models lag on temporal and large data (BeyondArena's abstract).</li><li>Weights after v2 are non-commercial, and the 3.5 licence bars "production" use: an owner question before any production use.</li></ul> |
-| **TabArena** (Erickson et al.; NeurIPS 2025) | **closed** as evidence (methodology reference only) | IID-only by design, random CV, 500–250K training rows, ROC AUC; BeyondArena is the temporal extension |
+| **TabM** (Gorishniy, Kotelnikov, Babenko; ICLR 2025; arXiv 2410.24210) | **provisional W4 rank 6 nomination**, the single model-class challenger; recipe and budget pinned only if selected | BeyondArena Table D.1's all-task Elo point values are TabM default 1107, RealMLP default 1056, LightGBM default 991 and LightGBM tuned 1149 ([primary paper](https://arxiv.org/html/2606.30410v1)). Temporal-default ordering was not extracted. This aggregate is nomination evidence, not a comparison with our 12-model production blend. If selected, pin the package version, resolved full configuration and CPU training/refit budget; k=32 alone does not freeze the recipe ([TabM defaults](https://github.com/yandex-research/tabm#hyperparameters)). |
+| **RealMLP / "Better by default"** (Holzmüller, Grinsztajn, Steinwart; NeurIPS 2024) | **not selected** (the plan picks one); its LGBM-TD defaults are **closed** by "no LightGBM re-tuning" | Alternate to the provisional TabM nomination; no second challenger is added. The aggregate default comparison does not establish whether tuning is necessary for RealMLP to lead on temporal tasks. LGBM-TD remains outside the plan's no-LightGBM-re-tuning boundary. |
+| **TabPFN v2** (Hollmann et al.; Nature 2025) and 2.5/3/3.5 | **not nominated** for the full PA fit (a scope decision); the game-level residual idea stays **parked** until W1.2 measures headroom | Not nominated for the full multi-million-row daily PA fit. The compact out-of-time game-level residual idea remains parked pending measured W1.2 headroom. The 10K/1M row scopes are recommendations/evaluated regimes, not proven computational impossibility. TabPFN-3.5's report qualifies temporal performance on non-large tables and does not establish superiority for our task. Code and checkpoint-weight licences differ; later weights require an owner licence assessment before any production use ([report](https://arxiv.org/html/2609.17895v2), [official licence summary](https://github.com/PriorLabs/TabPFN#license)). |
+| **TabArena** (Erickson et al.; NeurIPS 2025) | **closed** as evidence (methodology reference only) | IID random-split evidence; retain as a methodology/version/budget reference, not temporal baseball performance evidence. ROC AUC describes its binary tasks, not every task in the benchmark ([primary paper](https://arxiv.org/abs/2506.16791)). |
 | **Online conformal, decaying steps** (Angelopoulos, Barber, Bates; ICML 2024) | **not applicable** (reopen if W4 rank 3 builds a PA-count model) | binary target (uninformative sets), coverage ≠ calibration, and the decaying step adapts more slowly under drift |
 
 ## 4. Search questions
 | Question | Finding | Disposition |
 |---|---|---|
 | Public BTS models | <ul><li>Alceo & Henriques: 85% / 81% top-100 pick ratio.</li><li>McKenna 2015: a BTS MDP with skip, iid p, no double-down.</li><li>Pinto's log5 lists; Nickell's 2025 scorecard.</li><li>The README cites "Garnett (2026)" (P@100 85%, P@500 77%), but the article was blocked to automated fetches; a search snippet gives 84% / 81%.</li></ul> | **closed** as a benchmark source; **README hygiene**: the Garnett citation needs a human read (§6) |
-| MLB `probabilityStarter` / "% chance to hit" | <ul><li>The only official text is the FAQ: "hit probability estimates from our unique prediction model".</li><li>The field name appears nowhere public.</li><li>The rules define a Hit as needing ≥1 official AB or sacrifice fly, with a Pass otherwise.</li></ul> | **feeds W4 rank 1**: target semantics must be established empirically (W2.3 gate ii) |
-| Statcast bat tracking | <ul><li>Miss distance launched 2026-06-09, with data from the second half of 2023, bunts excluded.</li><li>Swing path and attack angle are documented.</li><li>No official availability-lag statement exists.</li><li>Swing metrics are context-confounded (Powers & Yurko 2025).</li></ul> | **supports W4 rank 5**: the registration fixes the swing-conditioned denominator and a **measured** as-of lag |
-| Calibration under drift | Online Platt scaling (two parameters, no tuning) fits our sample size | **inside W4 rank 4a** (as §1) |
+| MLB `probabilityStarter` / "% chance to hit" | The FAQ supplies only a generic model description in the sources inspected. The search did not locate a public technical definition of `probabilityStarter`; its name does not establish conditional-on-starting semantics. The contest grading rules do not themselves define the forecast target. W2.3 must establish semantic/availability compatibility or report association only. | **feeds W4 rank 1**: W2.3 reports association/target sensitivity unless independent evidence defines the target (W2.3 gate ii) |
+| Statcast bat tracking | <ul><li>Miss distance launched 2026-06-09, with data from the second half of 2023, bunts excluded.</li><li>Swing path and attack angle are documented.</li><li>The inspected sources gave no availability-lag statement.</li><li>Swing metrics are context-confounded (Powers & Yurko 2025).</li><li>Historical coverage is distinct from point-in-time availability; the inspected sources did not establish ingestion lag. Freeze the precise tracked-swing denominator and missing/permuted controls before labels. Squared-up means ≥80% of attainable exit velocity; rates may use swings or contacts ([official definition](https://www.mlb.com/glossary/statcast/squared-up)). It is closed as an additional candidate this cycle; metric-specific historical coverage and as-of availability remain unverified here. Swing-path/attack-angle coverage must likewise be recorded separately rather than inherited from miss distance.</li></ul> | **supports W4 rank 5**: the registration fixes the swing-conditioned denominator and a **measured** as-of lag |
+| Calibration under drift | OPS is a possible low-dimensional update mechanism; its paper does not establish adequacy at our selected-pick sample size. Preserve rank 4a's identity-versus-one-regularized-intercept design, with a slope challenger only if supported, and a held-out proper-score gate ([Gupta & Ramdas](https://arxiv.org/html/2305.00070v3)). | **inside W4 rank 4a** (as §1) |
 | MDPs with resets / milestones | State augmentation is the known solution (Xu & Mannor 2011); nothing addresses BTS run structure | **closed** (no new method); the open problem stays the 7/13 run-structure misspecification |
-| Forecast combination with a public forecast | <ul><li>A linear pool of calibrated forecasts is uncalibrated; the beta-transformed pool fixes this (Ranjan & Gneiting).</li><li>Fixed simple rules beat estimated weights in small samples (Smith & Wallis).</li></ul> | **W4 rank 1 design** (as §1) |
+| Forecast combination with a public forecast | Abstract-level evidence warns that nontrivial linear pools of distinct calibrated forecasts can lose calibration; it does not prove a fitted beta/logit rule will improve our forecasts. Finite-sample weight-estimation error argues for a simple rule fixed before validation. Ranjan & Gneiting and Smith & Wallis remain abstract-level sources in this pass; the binary encompassing-style check is our proposed adaptation, not a directly verified theorem for this target ([Ranjan & Gneiting](https://doi.org/10.1111/j.1467-9868.2009.00726.x), [Smith & Wallis](https://doi.org/10.1111/j.1468-0084.2008.00541.x)). | **W4 rank 1 design** (as §1) |
 | 2026 ball drag | MLB confirmed a 2025 drag increase and a sharp June 2026 drop (statements via secondary reports; the primary articles are paywalled) | **closed** for alpha (our 2026 screen was null); keep as regime observability; any variant validates in 2027 (D3) |
 | Streak contests and consensus | <ul><li>Contrarian strategies need relative payoffs, and the grand prize is absolute.</li><li>Crowds over-pick favourites.</li></ul> | **closed** as a method; supports #87's framing (a feature hypothesis, never copying) |
 
 ## 5. What this means for W4 (reasoning only; selection belongs to the decision memo)
-- **Rank 1:** one predeclared combination rule (beta-transformed or logit pool) plus a residual-information test on shared as-of candidates, validated on untouched dates (2027).
-- **Rank 4a:** online or windowed Platt, intercept-only variant, gated on held-out proper scores.
-- **Rank 5:** miss distance, with a measured lag and a fixed denominator.
-- **Rank 6:** TabM at its default only; gate on within-slate top-1 and top-bin proper scores at the identical serving contract.
-- **Not candidates:** TabPFN, TabArena-driven selection, online conformal, consensus copying.
+- **Rank 1:** after the semantics/availability and residual-information gates, nominate at most one fixed combination rule; no search on the consumed window; validate on untouched later dates.
+- **Rank 4a:** identity versus one regularized intercept map; slope only with support; gate on held-out proper scores. An online update is a protocol choice, not a sample-size guarantee.
+- **Rank 5:** one frozen miss-distance/contact-suppression definition with metric-specific coverage, measured as-of lag, exact denominator, missing/permuted controls and a practical effect threshold.
+- **Rank 6:** provisional TabM nomination, one pinned small configuration/budget, identical feature/serving contract, temporal comparator and paired seeds. Selection is conditional; no architecture sweep or LightGBM re-tuning.
+- **Unchanged:** rank 2 ops validation uses its own failure/recovery fixtures; rank 4b policy-only changes use independent state/eligibility replay and downstream-value gates. Neither is replaced by a forecast-calibration gate.
+- **Not new candidates:** TabPFN full-PA fitting, TabArena-driven temporal selection, game-p online conformal, consensus copying, or another squared-up feature.
 
 ## 6. Open items for Eric
 - **The external benchmark the README calls "current SOTA"** is a Medium article that blocks automated fetches: https://medium.com/learning-data/chasing-5-6-million-with-machine-learning-my-approach-to-mlbs-impossible-hitting-streak-7f888e1b9d00. Its numbers appear not to match what the README cites.
-- **Licence question:** TabPFN weights after v2 are non-commercial; 3.5 bars "production" use.
-- **D1 input:** the relative Top Streak Prize (§1).
-- **W1.6:** May reads of 2026 outcomes that have no exposure-register row (the 5/10 realized-picks refresh, the 5/23 Gate A/B, the 5/24 production-metric read, the 7/13 repeat-batter live side-check) and the unmerged result branches. These are listed for the corrections pass; whether each actually read 2026 outcomes is checked there.
+- **Licence question:** TabPFN's code and checkpoint-weight licences differ; later weights need an owner licence assessment before any production use (§3).
+- **D1 input:** the Top Streak Prize terms, and the difference between prize-winning probability, expected prize share and personal E[season best] (§1).
+- **W1.6:** done on 2026-10-04; see the dated follow-up at the end of §2.
 
-## 7. Limits
+## 7. Primary references
+Source-strength labels are kept where a source was not read in full; the evidence notes carry the claim-level labels.
+
+- [TabM](https://arxiv.org/abs/2410.24210) and [code/defaults](https://github.com/yandex-research/tabm).
+- [RealMLP / Better by Default](https://arxiv.org/abs/2407.04491).
+- [TabPFN v2](https://www.nature.com/articles/s41586-024-08328-6), [3.5 report](https://arxiv.org/abs/2609.17895), [checkpoint licence summary](https://github.com/PriorLabs/TabPFN).
+- [TabArena](https://arxiv.org/abs/2506.16791), [BeyondArena](https://arxiv.org/abs/2606.30410), [TabReD](https://arxiv.org/abs/2406.19380).
+- [Online conformal with decaying step sizes](https://proceedings.mlr.press/v235/angelopoulos24a.html).
+- [Gupta & Ramdas](https://arxiv.org/abs/2305.00070); [online recalibration theory — abstract-only in the notes](https://arxiv.org/abs/2607.19689).
+- [Ranjan & Gneiting — abstract-level, full text unavailable in this review](https://doi.org/10.1111/j.1467-9868.2009.00726.x); [Smith & Wallis — abstract-level in the notes](https://doi.org/10.1111/j.1468-0084.2008.00541.x).
+- [MLB forecast FAQ](https://www.mlb.com/apps/beat-the-streak/frequently-asked-questions), [miss-distance coverage](https://baseballsavant.mlb.com/leaderboard/bat-tracking/swing-timing-miss-distance), [squared-up definition](https://www.mlb.com/glossary/statcast/squared-up), and the Rules link in the D1 passage.
+
+## 8. Limits
 - Benchmarks are aggregates, and the temporal-subset defaults were not extracted.
 - Paywalled primaries (The Athletic, Baseball Prospectus) are cited through secondary reports.
 - The tracker inventory is repo-derived; the per-area citations, the research notes with evidence labels and the quoted prize terms are in `docs/sota_audit/2026-10-04-literature-refresh-evidence/`.

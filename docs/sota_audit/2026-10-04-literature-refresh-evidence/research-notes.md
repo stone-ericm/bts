@@ -10,6 +10,17 @@ Compiled 2026-10-03 by a Claude research subagent for the lead. These are workin
 
 **Our setting, for applicability judgements.** Tabular data with roughly 20–30 features and about 1M PA rows per season, trained on 2019+ (several million rows in all), with daily refits. There is strong within- and between-season drift. PA probabilities are aggregated to a game-level P(≥1 hit). What matters most is ranking within a daily slate and calibration in the top bins near the MDP's skip/double boundaries (about 0.76–0.84). Global calibration matters less. Production runs on CPU-only Hetzner. 2026 outcomes are reserved under D3, so a candidate motivated by them validates in 2027.
 
+
+**2026-10-04 qualification (Codex W3 review r1, `docs/audit/2026-10-04-w3-literature-codex-r1.md`).** The raw observations and evidence labels below are unchanged. The "suggested disposition" and inference lines are superseded where they conflict with the memo's rev 2:
+- **TabM (§1):** a provisional nomination only. BeyondArena's figures are all-task default aggregates; temporal-default ordering was not extracted, and k=32 alone does not freeze the recipe (F4).
+- **RealMLP (§2):** the temporal result is tuned-and-ensembled RealMLP. Whether tuning is necessary for it to lead is not established (F4).
+- **TabPFN (§3):** "not applicable" is a scope decision for the full PA fit, not an impossibility. The row counts are recommended limits. The 3.5 report qualifies temporal performance on non-large tables. Code and checkpoint-weight licences differ (F7).
+- **TabArena (§4):** ROC AUC describes its binary tasks only.
+- **b (probabilityStarter):** a search that found nothing does not establish that no public definition exists (F6).
+- **c (bat tracking):** historical coverage is not point-in-time availability, and no ingestion lag was established. Squared-up is closed as an additional candidate (F9).
+- **d (calibration under drift):** OPS does not establish adequacy at our selected-pick sample size. Rank 4a stays identity versus one regularized intercept map (F1).
+- **f (forecast combination):** these sources are abstract-level. They support no blanket "never a linear average", and a beta-transformed pool is not a guaranteed repair. The binary encompassing-style check is our proposed analogue (F2).
+- **Part 3:** each row is read with the qualifications above.
 ---
 
 ## Part 1: The five nominated items

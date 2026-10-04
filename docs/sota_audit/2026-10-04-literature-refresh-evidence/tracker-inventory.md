@@ -1,5 +1,10 @@
 # W3 tracker inventory (Explore agent, 2026-10-04, repo-only; verify citations before the memo)
 
+**2026-10-04 follow-up (after Codex W3 review r1).** The rows below are the 10/03 inventory as found and are not rewritten. They are superseded by the memo's bounded §2 table and its §2a provenance appendix.
+- The `T:NNN` cites point at the tracker as it was at `013389e`. Since the 10/04 status section was added, the current line is T + 8. "Gate B :162-163" is not a tracker line.
+- W1.6 has since registered X-26/X-27/X-28 retroactively and recorded C-05 (`b8fa9d7`). The branch result documents are archived on main (`b3df966`).
+- A fourth unmerged branch, `team-record-experiment`, holds the team-record code, design and plan.
+
 The tracker was last updated 5/10 (last commit 013389e, 5/09). No SOTA target has been cleared for production. The only live policy change is the 9/03 tail objective (an owner requirement; P-05 validated the mechanism only). Several decisive results are on unmerged local branches: resolution-audit (6/15, db28250 / 339cdb5), kcontact-screen (6/15, 1e93f44), swing-escalation (6/14).
 
 | # | Area | Impl | Disposition | Basis | 2026 outcomes / row | Reopen trigger |

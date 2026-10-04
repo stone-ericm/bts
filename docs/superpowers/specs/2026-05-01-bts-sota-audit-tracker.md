@@ -9,11 +9,12 @@ This document is the operating tracker for the audit. It's structured for rollin
 
 ## Status update — 2026-10-04 (season wrap W3)
 The tracker was not updated between 2026-05-10 and the end of the season. The per-area state is now recorded in `docs/sota_audit/2026-10-04-literature-refresh.md` §2: implementation state and evidence disposition, recorded separately, with basis, 2026 exposure and reopening triggers. Its evidence is in `docs/sota_audit/2026-10-04-literature-refresh-evidence/`.
-- **No area has cleared a production gate.** The only live change was the 9/03 tail objective.
-- **W4 implications:**
-  - rank 1: one predeclared combination rule plus an encompassing test;
-  - rank 4a: online Platt;
-  - rank 6: TabM at its frozen default.
+- **No area has cleared a production gate.** None of the reviewed SOTA-cycle model candidates was production-cleared. The season did ship changes outside this tracker: the pitcher-30g min-period change (4/14, still pending multi-seed revalidation) and the 9/03 tail objective (an owner requirement; mechanism validated only).
+- **W4 implications (reasoning only; selection belongs to the decision memo):**
+  - rank 1: after W2.3's target/availability and residual-information gates, at most one fixed combination rule, validated on untouched later dates;
+  - rank 4a: identity versus one regularized intercept map, with a slope only if supported;
+  - rank 6: TabM as the provisional single challenger, with a pinned small recipe and budget.
+- Per-row code, result documents, producer pins and the literal reopening conditions are in the memo's §2a. Codex review: `docs/audit/2026-10-04-w3-literature-codex-r1.md`.
 
 ## Status update — 2026-05-04 (post-v2.5/v2.6 reconciliation)
 
