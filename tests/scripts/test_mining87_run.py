@@ -82,26 +82,30 @@ def _p(i):
     return round(0.70 + (i % 9) * 0.015, 3)
 
 
-def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=()):
+def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=(), null_game_dates=(),
+                  write_slates=True):
     data, ledger_dir = root / "data", root / "ledger"
     rows, contest, slates = [], [], {}
     for i, d in enumerate(DATES):
         picks = [("primary", 100 + i, 9000 + i)] + ([("double_down", 200 + i, 9500 + i)] if i % 2 == 0 else [])
         for slot, b, g in picks:
+            null_game = slot == "primary" and d in null_game_dates     # committed, but no recorded game (R2 #3)
+            g = None if null_game else g
             sid = f"{d}|{slot}|{b}|{g}"
             grade = "void" if i == 3 and slot == "primary" else ("hit" if (i + len(slot)) % 3 else "not_hit")
-            status = "unknown" if i == 5 else "graded"
+            status = "unknown" if (i == 5 or null_game) else "graded"
+            unlinked = i == 5 or null_game
             row = {"row_id": sid, "row_kind": "selection", "date": d, "slot": slot, "selection_id": sid,
                    "batter_id": b, "batter_name": f"P{b}", "game_pk": g, "p_stated": _p(i),
                    "projected_lineup": i % 4 == 0, "finalization": "decision", "commit_status": "committed_evidenced",
                    "predicted_at": f"{d}T15:00:00.000000Z", "locked_at": f"{d}T17:00:00.000000Z",
-                   "entry_status": "unknown" if i == 5 else "confirmed",
-                   "match": None if i == 5 else "evidenced", "match_reason": None if i == 5 else "unit_capture",
-                   "round_id": 1000 + i, "unit_id": g * 10, "player_id": b + 5000,
-                   "bts_outcome": None if i == 5 else grade, "bts_outcome_status": status,
+                   "entry_status": "unknown" if unlinked else "confirmed",
+                   "match": None if unlinked else "evidenced", "match_reason": None if unlinked else "unit_capture",
+                   "round_id": 1000 + i, "unit_id": None if unlinked else g * 10, "player_id": b + 5000,
+                   "bts_outcome": None if unlinked else grade, "bts_outcome_status": status,
                    "game_eligibility": "unknown"}
             rows.append(row)
-            if i != 5:
+            if not unlinked:
                 contest.append({"round_id": 1000 + i, "unit_id": g * 10, "player_id": b + 5000, "date": d,
                                 "batter_id": b, "game_pk": g, "selection_id": sid, "match": "evidenced",
                                 "match_reason": "unit_capture", "slot_result": grade})
@@ -110,7 +114,7 @@ def _write_inputs(root, *, snapshot_name="2026-07-04.parquet", witness_dates=())
                          "selection_id": f"{d}|preview", "batter_id": 1, "game_pk": 1, "finalization": "decision",
                          "commit_status": "unconfirmed", "entry_status": "unknown",
                          "bts_outcome_status": "unknown"})
-        if d >= "2026-06-11":
+        if write_slates and d >= "2026-06-11":
             slate_rows = [{"batter_id": 100 + i, "batter_name": "x", "game_pk": 9000 + i, "p_game_hit": _p(i)},
                           {"batter_id": 300 + i, "batter_name": "y", "game_pk": 9300 + i, "p_game_hit": 0.69},
                           {"batter_id": 400 + i, "batter_name": "z", "game_pk": 9400 + i, "p_game_hit": 0.6}]
@@ -233,6 +237,42 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, gated, capsys):
     units = pd.read_parquet(run_dir / "units.parquet")
     assert len(units) == 2 * prod["locked_units"] and set(units["cohort"]) == {"fixed_cohort", "all_tracked"}
     assert units["consensus_model_rank"].isna().all()
+
+
+def _null_game_units(run_dir, dates):
+    units = pd.read_parquet(run_dir / "units.parquet")
+    return units[units["date"].isin(dates) & (units["pick_number"] == 1)]
+
+
+def test_a_committed_null_game_primary_completes_without_slates_or_witnesses_and_keeps_its_unit(tmp_path, gated):
+    """R2 finding 3: a compiler-valid committed primary with no recorded game must reach units.parquet."""
+    dates = ("2026-06-08", "2026-06-15")
+    data, ledger_dir, _ = _write_inputs(tmp_path, null_game_dates=dates, write_slates=False)
+    assert _main(tmp_path, data, ledger_dir) == 0
+    run_dir = next(p for p in (tmp_path / "out").iterdir() if (p / "COMPLETE.json").exists())
+    kept = _null_game_units(run_dir, dates)
+    assert len(kept) == 4 and kept["production_game_pk"].isna().all()          # 2 dates x 2 cohorts
+    assert not kept["production_resolved"].any() and set(kept["production_settlement"]) == {"unknown"}
+    assert set(kept["consensus_model_rank_bin"]) == {"missing_surface"} and not kept["surface_admitted"].any()
+    report = json.loads((run_dir / "report.json").read_text())
+    per_date = {a["date"]: a for a in report["coverage_and_denominators"]["surfaces"]["per_date"]}
+    assert all(per_date[d]["reason"] == "no_served_slate" and not per_date[d]["admitted"] for d in dates)
+    assert report["coverage_and_denominators"]["production"]["locked_units"] == len(DATES) + len(DATES[::2])
+
+
+def test_a_committed_null_game_primary_with_a_candidate_slate_and_witness_is_never_admitted(tmp_path, gated):
+    data, ledger_dir, witness = _write_inputs(tmp_path, null_game_dates=("2026-06-15",),
+                                              witness_dates=("2026-06-12", "2026-06-15"))
+    assert _main(tmp_path, data, ledger_dir, "--surface-witness", str(witness)) == 0
+    run_dir = next(p for p in (tmp_path / "out").iterdir() if (p / "COMPLETE.json").exists())
+    report = json.loads((run_dir / "report.json").read_text())
+    per_date = {a["date"]: a for a in report["coverage_and_denominators"]["surfaces"]["per_date"]}
+    assert per_date["2026-06-15"]["admitted"] is False
+    assert per_date["2026-06-15"]["reason"] == "incomplete_production_selection_identity"
+    assert per_date["2026-06-15"]["selection_consistency"] == "incomplete_selection_identity"
+    assert per_date["2026-06-12"]["admitted"] is True                              # the other witnessed date still is
+    kept = _null_game_units(run_dir, ("2026-06-15",))
+    assert len(kept) == 2 and not kept["surface_admitted"].any() and kept["consensus_model_rank"].isna().all()
 
 
 def test_witnessed_dates_are_admitted_and_an_exploratory_run_is_labelled_and_cannot_nominate(tmp_path, gated):

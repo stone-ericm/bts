@@ -25,6 +25,7 @@ from scripts.audit.benchmark_bridge.core import selection_consistency
 
 SLATE_SCHEMA = "bts_slate_v1"
 WITNESS_SCHEMA = "mining87_surface_witness_v1"
+SELECTION_IDENTITY = ("batter_id", "game_pk", "p_game_hit")   # needed for the exact serialized consistency join
 WITNESS_COMPONENTS = ("candidate_universe", "lineup_assumptions", "feature_computation", "prediction_timestamp_utc")
 
 
@@ -122,6 +123,11 @@ def admit_surface(*, date: str, slate, slate_sha256: str | None, witnesses: list
     if isinstance(slate, Exception):
         return {**out, "reason": f"slate_format_invalid:{slate}"}
     if production_primary is not None:
+        if any(production_primary.get(k) is None for k in SELECTION_IDENTITY):
+            # R2 finding 3: a committed primary without a recorded game (or batter / stated probability) cannot be
+            # bound to any slate row; missing identity is never read as a match, and no witness can admit it.
+            return {**out, "selection_consistency": "incomplete_selection_identity",
+                    "reason": "incomplete_production_selection_identity"}
         out["selection_consistency"] = selection_consistency(slate["rows"], production_primary, None)["state"]
     if not witnesses:
         return {**out, "reason": "no_independent_witness"}

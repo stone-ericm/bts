@@ -150,8 +150,11 @@ def load_unit_games(units_dir: Path) -> dict[int, int]:
 
 def admit_dates(locked: pd.DataFrame, slate_paths: dict, witnesses: dict) -> tuple[list[dict], dict, dict]:
     prim = locked[locked["pick_number"] == 1]
-    primaries = {r["date"]: {"batter_id": int(r["production_batter_id"]), "game_pk": int(r["production_game_pk"]),
-                             "p_game_hit": r["production_p_game_hit"], "locked_at": r["production_locked_at"]}
+    nullable = lambda value, cast: None if pd.isna(value) else cast(value)  # noqa: E731  (R2 finding 3)
+    primaries = {r["date"]: {"batter_id": nullable(r["production_batter_id"], int),
+                             "game_pk": nullable(r["production_game_pk"], int),
+                             "p_game_hit": nullable(r["production_p_game_hit"], float),
+                             "locked_at": nullable(r["production_locked_at"], str)}
                  for r in prim.to_dict("records")}
     admission, surf, tables = [], {}, {}
     for d in sorted(set(slate_paths) | set(locked["date"])):

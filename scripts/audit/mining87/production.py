@@ -221,6 +221,8 @@ def attach_production_context(locked: pd.DataFrame, context: pd.DataFrame | None
     cols = [c for c in CONTEXT_COLUMNS if c in context.columns]
     ctx = context[key + cols].copy()
     ctx["date"] = pd.to_datetime(ctx["date"]).dt.strftime("%Y-%m-%d")
+    incomplete = ctx[key].isna().any(axis=1)              # a null key is no identity (pandas would match NaN to NaN)
+    ctx = ctx[~incomplete]
     if ctx.duplicated(key).any():
         raise ValueError("production context has duplicate (date, slot, batter_id, game_pk) keys")
     ctx = ctx.rename(columns={"slot": "production_slot", "batter_id": "production_batter_id",
@@ -232,4 +234,5 @@ def attach_production_context(locked: pd.DataFrame, context: pd.DataFrame | None
     for c in cols:
         merged[CONTEXT_COLUMNS[c]] = merged.pop(f"_ctx_{c}")
     matched = int((merged.pop("_merge") == "both").sum())
-    return merged, {"source": "production_context", "rows_matched": matched, "columns": cols}
+    return merged, {"source": "production_context", "rows_matched": matched, "columns": cols,
+                    "rows_dropped_incomplete_key": int(incomplete.sum())}
