@@ -218,8 +218,9 @@ def main(argv=None) -> int:
             slot = core.reconstruct_slot(r, feed)[0] if feed else None
             if slot is not None:
                 slots.append(slot)
+        prepared = core.history_and_lookups(d["date"], df_feat) if slots else None
         if slots and frozen is not None:
-            cf = core.score_c(d["date"], slots, df_feat, frozen).rename(columns={"p_game_hit": "C_frozen"})
+            cf = core.score_c(d["date"], slots, df_feat, frozen, prepared=prepared).rename(columns={"p_game_hit": "C_frozen"})
             cf["date"] = d["date"]
             c_frozen_parts.append(cf)
         pkl = data / "models" / f"blend_{d['date']}.pkl"
@@ -230,11 +231,11 @@ def main(argv=None) -> int:
             served_status[d["date"]] = "sha_unbound"
         elif slots:
             art = pm.load_blend(pkl)
-            cs = core.score_c(d["date"], slots, df_feat, art).rename(columns={"p_game_hit": "C_served"})
+            cs = core.score_c(d["date"], slots, df_feat, art, prepared=prepared).rename(columns={"p_game_hit": "C_served"})
             # reproduction sensitivity only (design §3, E1): the same artifact with the game's weather blanked, as a
             # pre-game feed without weather would have served it; never a surface in the comparisons
             blank = [{**s, "weather_temp": None, "weather_wind_dir": "", "weather_wind_speed": 0.0} for s in slots]
-            cw = core.score_c(d["date"], blank, df_feat, art).rename(columns={"p_game_hit": "C_served_wblank"})
+            cw = core.score_c(d["date"], blank, df_feat, art, prepared=prepared).rename(columns={"p_game_hit": "C_served_wblank"})
             cs = cs.merge(cw, on=["batter_id", "game_pk"], how="left")
             cs["date"] = d["date"]
             c_served_parts.append(cs)

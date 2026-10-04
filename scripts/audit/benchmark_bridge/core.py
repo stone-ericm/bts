@@ -171,8 +171,15 @@ def reconstruct_slot(row: dict, feed: dict) -> tuple[dict | None, dict]:
     return slot, {"game_fields": "final_feed", "pitcher_hand": "serving_none"}
 
 
+def history_and_lookups(date: str, df_feat: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """The pre-date frame and its serving lookups, built once per date and shared by every C scoring that day."""
+    import bts.model.predict as pm
+    hist = df_feat[df_feat["date"] < pd.Timestamp(date)]
+    return hist, pm._build_feature_lookups(hist)
+
+
 def score_c(date: str, slots: list[dict], df_feat: pd.DataFrame, artifact: dict, check_openers: bool = True,
-            feature_cols: list[str] | None = None) -> pd.DataFrame:
+            feature_cols: list[str] | None = None, prepared: tuple[pd.DataFrame, dict] | None = None) -> pd.DataFrame:
     """Score injected slots with an archived (or frozen) artifact through the real ``predict()`` (design §3).
 
     History, lookups and the opener check use only rows dated before ``date``, as serving's morning frame did.
@@ -183,10 +190,9 @@ def score_c(date: str, slots: list[dict], df_feat: pd.DataFrame, artifact: dict,
 
     import bts.model.predict as pm
 
-    hist = df_feat[df_feat["date"] < pd.Timestamp(date)]
+    hist, lookups = prepared if prepared is not None else history_and_lookups(date, df_feat)
     blend = dict(artifact)
     model = blend.pop("_model")
-    lookups = pm._build_feature_lookups(hist)
     with mock.patch.object(pm, "_fetch_game_slots", lambda _d: slots):
         out = pm.predict(date, hist, model, lookups, check_openers=check_openers, blend=blend,
                          feature_cols=feature_cols)
