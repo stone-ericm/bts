@@ -21,7 +21,7 @@ These are committed recommendations with a contest slot grade, from the season l
 
 ### What the backtest numbers below measure
 
-- **The 86.2% P@1 is an actual-PA walk-forward.** Each candidate's per-PA probability is compounded over the plate appearances it *actually* got, which is hindsight. On the 2026 served-slate window the same recipe scored 84.1% that way, 65.1% with expected rather than realized PA counts, and every serving-realistic surface landed at 66.7–71.4% (`docs/audit/2026-10-04-benchmark-bridge.md`). Most of the gap between the headline and the live record is that realized-count information.
+- **The reported 86.2% P@1 is an actual-PA walk-forward headline**, averaged over 2024–2025. The W1.2 bridge reuses that method on restricted 2026 served-slate candidates: A26 is 84.1%, and geometric count normalization is 65.1% on the primary diagnostic support. Both are oracle diagnostics. The bridge does not reproduce the historical headline or delivered live population, and it assigns no fraction of their gap to realized-count information. See `docs/audit/2026-10-04-benchmark-bridge.md` for populations and limits.
 - **The MDP P(57) of 8.91% is superseded.** It was solved on those actual-PA profiles with an iid day-type model. Evaluated on serving-realistic estimated-PA profiles, the deployed policy's P(57) is about 0.01% (`docs/audit/2026-06-10-mdp-estpa-ab-methodology.md`), and iid solvers misstate milestone probabilities because real hit sequences have run structure (`docs/audit/2026-07-13-dd-p-policy-value-sensitivity.md`).
 - **The "SOTA (Garnett 2026)" column is unverified.** The article blocks automated fetches, and a search snippet gives different figures (84% / 81%). See `docs/sota_audit/2026-10-04-literature-refresh.md`.
 

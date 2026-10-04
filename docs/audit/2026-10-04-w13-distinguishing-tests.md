@@ -22,7 +22,7 @@
 - **This flags a reconstruction gap, not measured live drift.** Final-feed game fields, source revisions or reconstruction limits can all produce it. Historical feature age, lineup and pitcher changes, and causal staleness are not testable here. M3 (X-03) is carried, not rerun.
 
 ## E1: benchmark optimism
-- **Flag: consistent (the restricted optimism component).** G(A26, B26), the actual-PA walk-forward's top-1 rate minus the estimated-PA one on their common pool, is **+17.5 pp [+7.9, +28.6]** over 63 dates, with 13 discordant dates.
+- **Flag: consistent (the restricted optimism component).** G(A26, B26), the actual-PA walk-forward's top-1 rate minus the estimated-PA one on their common pool (both oracle diagnostics), is **+17.5 pp [+7.9, +28.6]** over 63 dates, with 13 discordant dates.
 - **Rank-1 picks by surface:**
   - A26's rank-1 picks went to batters who got more plate appearances: mean 5.46 scoring PA, 96.8% with five or more.
   - D's averaged 4.54 PA (54.0% with five or more).
@@ -34,7 +34,7 @@
 - **Flag: `oracle_count_consistent`.** G(A26, A26_count) = **+19.0 pp [+9.5, +30.2]**. Normalizing to the expected PA count removes the gain.
 - **The composite step from A26_count to B26 is −1.6 pp [−6.3, +3.2].** It mixes context and ensemble changes, so it is undetermined.
 - The scoring and A26 PA counts agreed on every common row.
-- **The plan's at-lock PA forecast-error test is not testable here:** no at-lock PA forecast is archived. A positive oracle reduction shows that realized-count information carries the walk-forward's optimism. It is never an achievable improvement.
+- **The plan's at-lock PA forecast-error test is not testable here:** no at-lock PA forecast is archived. Within this window, the actual-PA walk-forward's advantage over count-normalized scoring rests on realized-count information. That is an oracle contrast: never an achievable improvement, and it assigns no share of the historical headline-to-live gap.
 
 ## E4: conditional hit-model drift
 - **Flag: undetermined.** On numerically reproduced support (first half 23 dates and 2,105 rows; second half 40 dates and 3,520 rows), C-frozen's second-half minus first-half residual is **+0.005 [−0.032, +0.043]**.
@@ -98,7 +98,7 @@
 | E8 | Sampling variation | 44 vs 48.0 expected, envelope [41, 54] | null-compatible | not a luck verdict |
 
 **What this adds for the decision memo, as reasoning only:**
-- The README-style 86% sits on realized-count information (E1/E3).
+- Within this window, the largest diagnostic contrast is the realized-count oracle (E1/E3). This does not reproduce the README's historical 86.2% and assigns no share of the headline-to-live gap (W1.2 memo, review r1 F1).
 - The serving recipe's stated probabilities run about 3 points high at the slate level, and about 6 at rank 1 (E5/E7).
 - Its within-slate discrimination is modest and stable across the window (E4/E7).
 - Nothing here measures drift, regime or luck as a cause.
