@@ -14,6 +14,7 @@ grades are unknown. None is ever a miss. Only the columns this module needs are 
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -26,6 +27,9 @@ from scripts.canonicalize_realized_picks import ALL_REGIMES
 LEDGER_FILE = "season_2026_ledger.parquet"
 CONTEST_FILE = "season_2026_ledger_contest_slots.parquet"
 ACCEPTED_FILE = "ACCEPTED.json"
+BUILD_FILE = "season_2026_ledger_build.json"            # upstream manifest identity (identity keys only are read)
+BUILD_IDENTITY_KEYS = ("builder_version", "code_sha", "bundle_manifest_sha256", "bundle_acquired_at_utc",
+                       "rules_fingerprint")
 EXPECTED_RULES_FINGERPRINT = "5e9d74f2f9c3093d66bc7c9ab0a7028e5fb361cdb46bbb1b368cd71e7f297b3f"
 SLOT_TO_PICK_NUMBER = {"primary": 1, "double_down": 2}
 
@@ -74,11 +78,17 @@ def load_accepted_ledger(ledger_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, 
         got = pq.read_schema(d / name).remove_metadata()
         if not got.equals(schema):
             raise ValueError(f"{name} schema differs from the compiler's")
+    upstream = {"status": "missing"}
+    if (d / BUILD_FILE).exists():
+        build = json.loads((d / BUILD_FILE).read_text())
+        if build.get("rules_fingerprint") != EXPECTED_RULES_FINGERPRINT:
+            raise ValueError(f"{BUILD_FILE} rules fingerprint differs from ACCEPTED.json's predeclared one")
+        upstream = {k: build.get(k) for k in BUILD_IDENTITY_KEYS}
     ledger = pq.read_table(d / LEDGER_FILE, columns=LEDGER_COLUMNS).to_pandas(integer_object_nulls=True)
     slots = pq.read_table(d / CONTEST_FILE, columns=CONTEST_COLUMNS).to_pandas(integer_object_nulls=True)
     return ledger, slots, {"run": receipt.get("run"), "rules_fingerprint": receipt["rules_fingerprint"],
                            "accepted_at_utc": receipt.get("accepted_at_utc"), "ledger_rows": int(len(ledger)),
-                           "contest_slot_rows": int(len(slots))}
+                           "contest_slot_rows": int(len(slots)), "upstream_build": upstream}
 
 
 def production_regime(predicted_at) -> str | None:
@@ -90,6 +100,14 @@ def production_regime(predicted_at) -> str | None:
         if t >= pd.Timestamp(regime.cutoff_iso_utc):
             return regime.label
     return None
+
+
+def projection_sha256(locked: pd.DataFrame) -> str:
+    """Content hash of the bounded projection (sorted rows, canonical JSON), independent of input row order."""
+    rows = [{k: (None if v is None or (not isinstance(v, str) and pd.isna(v)) else
+                 v.item() if hasattr(v, "item") else v) for k, v in r.items()}
+            for r in locked.sort_values(["date", "pick_number"]).to_dict("records")]
+    return hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
 
 
 def _check_vocab(frame: pd.DataFrame, col: str, allowed: set) -> None:
@@ -176,6 +194,7 @@ def project_locked_slots(ledger: pd.DataFrame, contest_slots: pd.DataFrame, *, w
     days = frame[frame["row_kind"].isin(["skip_day", "unfinalized_day", "unobserved_day"])]
     status_counts = locked["production_settlement"].replace({"hit": "resolved", "not_hit": "resolved"})
     inv = {"window": [window_start, window_end], "ledger_rows_outside_window": int((~in_window).sum()),
+           "projection_sha256": projection_sha256(locked),
            "selection_rows_in_window": int(len(sels)), "locked_units": int(len(locked)),
            "locked_units_by_slot": {s: int((locked["production_slot"] == s).sum()) for s in SLOT_TO_PICK_NUMBER},
            "lock_unsupported_selections": dict(sorted(unsupported.items())),

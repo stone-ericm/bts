@@ -188,3 +188,22 @@ def test_accepted_ledger_loader_requires_the_receipt_fingerprint_and_exact_schem
     missing.mkdir()
     with pytest.raises(FileNotFoundError, match="ACCEPTED"):
         p.load_accepted_ledger(missing)
+
+
+def test_the_upstream_build_manifest_and_the_projection_hash_are_recorded(tmp_path):
+    rows = [sel("2026-04-01", "primary", 1, 100), sel("2026-04-02", "primary", 2, 101, bts_outcome="not_hit")]
+    d = _write_build(tmp_path, rows)
+    assert p.load_accepted_ledger(d)[2]["upstream_build"] == {"status": "missing"}
+    (d / p.BUILD_FILE).write_text(json.dumps({"builder_version": "season-ledger-phase1/3", "code_sha": "abc",
+                                              "bundle_manifest_sha256": "f" * 64, "rules_fingerprint": FP,
+                                              "bundle_acquired_at_utc": "2026-09-29T02:27:33Z", "recipes": []}))
+    up = p.load_accepted_ledger(d)[2]["upstream_build"]
+    assert up["bundle_manifest_sha256"] == "f" * 64 and up["code_sha"] == "abc" and "recipes" not in up
+    (d / p.BUILD_FILE).write_text(json.dumps({"rules_fingerprint": "0" * 64}))
+    with pytest.raises(ValueError, match="build.json"):
+        p.load_accepted_ledger(d)
+    _, inv = project(rows)
+    _, again = project(list(reversed(rows)))
+    assert len(inv["projection_sha256"]) == 64 and inv["projection_sha256"] == again["projection_sha256"]
+    _, changed = project([rows[0], sel("2026-04-02", "primary", 2, 101, bts_outcome="hit")])
+    assert changed["projection_sha256"] != inv["projection_sha256"]
