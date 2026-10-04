@@ -25,8 +25,8 @@ FAILURE_STATUSES = frozenset({"http_error", "envelope_error", "parse_error", "su
                               "in_flight"})
 
 
-def load_manifest(path: Path) -> dict:
-    raw = Path(path).read_bytes()
+def load_manifest(path: Path, read=None) -> dict:
+    raw = (read or _disk)(path)
     doc = json.loads(raw)
     users = doc["users"]
     ids = [int(u["user_id"]) for u in users]
