@@ -1,7 +1,7 @@
 # W3 tracker inventory (Explore agent, 2026-10-04, repo-only; verify citations before the memo)
 
 **2026-10-04 follow-up (after Codex W3 review r1).** The rows below are the 10/03 inventory as found and are not rewritten. They are superseded by the memo's bounded §2 table and its §2a provenance appendix.
-- The `T:NNN` cites point at the tracker as it was at `013389e`. Since the 10/04 status section was added, the current line is T + 8. "Gate B :162-163" is not a tracker line.
+- The `T:NNN` cites point at the tracker as it was at `013389e`. Since the 10/04 status section was added, the line at e7e0829 is T + 9. "Gate B :162-163" is not a tracker line.
 - W1.6 has since registered X-26/X-27/X-28 retroactively and recorded C-05 (`b8fa9d7`). The branch result documents are archived on main (`b3df966`).
 - A fourth unmerged branch, `team-record-experiment`, holds the team-record code, design and plan.
 
