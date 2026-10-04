@@ -40,7 +40,7 @@ def obs(user, date, slot, batter, result="hit", unit=None):
 
 
 def consensus(rows, fixed_users):
-    latest = pd.DataFrame(rows)
+    latest, _ = c.latest_observations(pd.DataFrame(rows))
     fixed, _ = c.consensus_table(latest, users=fixed_users, cohort="fixed_cohort")
     allt, _ = c.consensus_table(latest, users=None, cohort="all_tracked")
     return pd.concat([fixed, allt], ignore_index=True)

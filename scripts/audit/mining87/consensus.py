@@ -23,7 +23,8 @@ SNAPSHOT_COLUMNS = ["captured_at", "tab", "rank", "username", "streak"]
 PICK_NUMBERS = (1, 2)
 SETTLED = {"hit": "hit", "not_hit": "not_hit", "void": "void"}
 PENDING = {"", None}
-OBS_IDENTITY = ["batter_id", "unit_id", "result"]          # names are display fields, never an identity
+VOTE_COLUMNS = ["username", "pick_date", "pick_number", "batter_id", "batter_name", "captured_at",
+                "settlement_evidence", "n_latest_rows"]
 
 
 # --- inputs ----------------------------------------------------------------------------------------------------------
@@ -38,7 +39,7 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
     cutoff = pd.Timestamp(capture_end_exclusive)
     parts, empty = [], 0
     counts = {"rows_read": 0, "rows_outside_window": 0, "rows_after_capture_cutoff": 0, "rows_invalid_pick_number": 0,
-              "user_slot_observations": 0, "ambiguous_user_slot_observations": 0}
+              **{k: 0 for k in LATEST_COUNTS}}
     ranges = {"pick_date": [None, None], "captured_at": [None, None]}      # of every row read, before filters
     for path in files:
         if pq.read_metadata(path).num_rows == 0:
@@ -67,11 +68,10 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
         frame = frame[valid_slot].copy()
         frame["username"] = path.stem
         latest, inv = latest_observations(frame)
-        for k in ("user_slot_observations", "ambiguous_user_slot_observations"):
+        for k in LATEST_COUNTS:
             counts[k] += inv[k]
         parts.append(latest)
-    obs = (pd.concat(parts, ignore_index=True) if parts
-           else pd.DataFrame(columns=[*USER_PICK_COLUMNS, "username"]))
+    obs = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=VOTE_COLUMNS)
     stamp = lambda t: None if t is None else pd.Timestamp(t).isoformat()  # noqa: E731
     return obs, {"user_pick_files": len(files), "empty_user_pick_files": empty, **counts,
                  "users_with_retained_rows": int(obs["username"].nunique()),
@@ -79,21 +79,55 @@ def load_public_picks(user_picks_dir: Path, *, window_start: str, window_end: st
                  "captured_at_range_read": [stamp(t) for t in ranges["captured_at"]]}
 
 
+LATEST_COUNTS = ("user_slot_observations", "ambiguous_user_slot_observations", "user_slots_without_valid_batter_id",
+                 "votes_with_several_latest_settlement_observations")
+
+
+def _unit(v) -> int | None:
+    return None if v is None or (not isinstance(v, str) and pd.isna(v)) else int(v)
+
+
+def _label(v) -> str | None:
+    return None if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v)
+
+
+def _evidence_key(pair: tuple) -> tuple:
+    unit, label = pair
+    return (unit is None, unit or 0, label is None, label or "")
+
+
 def latest_observations(obs: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """The latest capture per (user, date, slot). Rows sharing that latest stamp must agree on id, unit, result and
-    name; otherwise the user's slot is ambiguous and casts no vote (counted, never resolved by order)."""
+    """One vote per (user, date, slot) from its latest capture stamp, chosen without reading any outcome label (R2
+    finding 1). The vote exists only when every row at that stamp carries the same valid (positive) batter id; mixed
+    ids, or a valid id beside a null one, are ambiguous and cast no vote; null/nonpositive ids alone are no vote.
+    Results never decide a vote: every distinct (unit, result) pair at the latest stamp is carried as
+    ``settlement_evidence`` for the settlement resolver, which cannot pick one (no arbitrary result row is kept).
+    Names are display fields: the kept name is the lexicographically first at that stamp."""
     if obs.empty:
-        return obs.copy(), {"user_slot_observations": 0, "ambiguous_user_slot_observations": 0}
+        return pd.DataFrame(columns=VOTE_COLUMNS), {k: 0 for k in LATEST_COUNTS}
     key = ["username", "pick_date", "pick_number"]
-    latest_stamp = obs.groupby(key)["captured_at"].transform("max")
-    top = obs[obs["captured_at"] == latest_stamp].copy()
-    ident = top[OBS_IDENTITY].astype("string").fillna("<null>").agg("\x1f".join, axis=1)
-    n_variants = ident.groupby([top[k] for k in key]).transform("nunique")
-    ambiguous = top[n_variants > 1].drop_duplicates(key)
-    kept = (top[n_variants == 1].sort_values([*key, "batter_name"], na_position="last")
-            .drop_duplicates(key).reset_index(drop=True))
-    return kept, {"user_slot_observations": int(len(kept) + len(ambiguous)),
-                  "ambiguous_user_slot_observations": int(len(ambiguous))}
+    top = obs[obs["captured_at"] == obs.groupby(key)["captured_at"].transform("max")].copy()
+    bid = pd.to_numeric(top["batter_id"], errors="coerce")
+    top["_valid"] = bid.notna() & (bid > 0)
+    top["_bid"] = bid.where(top["_valid"])
+    grouped = top.groupby(key, sort=True)
+    stats = pd.DataFrame({"n_rows": grouped.size(), "n_valid": grouped["_valid"].sum(),
+                          "n_ids": grouped["_bid"].nunique()})
+    established = stats[(stats["n_valid"] == stats["n_rows"]) & (stats["n_ids"] == 1)]
+    no_valid = int((stats["n_valid"] == 0).sum())
+    ambiguous = int(len(stats) - len(established) - no_valid)
+    kept = top.merge(established[["n_rows"]].reset_index(), on=key, how="inner")
+    kept["_pair"] = [(_unit(u), _label(r)) for u, r in zip(kept["unit_id"], kept["result"])]
+    evidence = kept.groupby(key, sort=True)["_pair"].agg(lambda p: tuple(sorted(set(p), key=_evidence_key)))
+    first = (kept.sort_values([*key, "batter_name"], na_position="last").drop_duplicates(key)
+             .set_index(key)[["batter_id", "batter_name", "captured_at", "n_rows"]])
+    votes = first.join(evidence.rename("settlement_evidence")).reset_index()
+    votes["batter_id"] = votes["batter_id"].astype("int64")
+    votes = votes.rename(columns={"n_rows": "n_latest_rows"})[VOTE_COLUMNS]
+    return votes, {"user_slot_observations": int(len(stats)), "ambiguous_user_slot_observations": ambiguous,
+                   "user_slots_without_valid_batter_id": no_valid,
+                   "votes_with_several_latest_settlement_observations":
+                       int((votes["settlement_evidence"].map(len) > 1).sum())}
 
 
 def load_cohort(snapshot_path: Path, *, tab: str) -> tuple[set[str], dict]:
@@ -149,11 +183,15 @@ def choose_slots(slot1: dict[int, int], slot2: dict[int, int]) -> dict:
     if p_id is None:
         return {"primary": primary, "dd": {**dd, "status": "primary_unavailable"}}
     d_id, d_count, d_tied = _mode(slot2, exclude=p_id)
-    if d_id is None:
+    dependent = primary["tie_direct"] and any(
+        _mode(slot2, exclude=alt)[0] != d_id
+        for alt in p_tied if alt != p_id
+    )
+    dd["tie_dependent_on_primary"] = dependent
+    if d_id is None:                                   # R2 finding 6: unavailable, yet possibly tie-dependent
         return {"primary": primary, "dd": {**dd, "status": "no_distinct_legal_id"}}
-    dependent = primary["tie_direct"] and any(_mode(slot2, exclude=alt)[0] != d_id for alt in p_tied if alt != p_id)
     dd.update(batter_id=d_id, count=d_count, tied_ids=d_tied, tie_direct=len(d_tied) > 1,
-              tie_exposed_by_exclusion=len(d_tied) > 1 and len(u_tied) == 1, tie_dependent_on_primary=dependent,
+              tie_exposed_by_exclusion=len(d_tied) > 1 and len(u_tied) == 1,
               legal_differs_from_unconstrained=d_id != u_id, status="chosen")
     return {"primary": primary, "dd": dd}
 
@@ -161,19 +199,24 @@ def choose_slots(slot1: dict[int, int], slot2: dict[int, int]) -> dict:
 # --- settlement ------------------------------------------------------------------------------------------------------
 
 def consensus_settlement(results: list, unit_ids: list) -> tuple[str, str, int | None]:
-    """Frozen conservative rule for the chosen id's voters: one game identity (unit) or unknown; any unrecognized
-    label is unknown; settled labels must agree (hit / not_hit / void) or the slot is unknown; pending-only is
-    pending. Popularity never resolves a conflict."""
-    units = {int(u) for u in unit_ids if u is not None and not pd.isna(u) and int(u) > 0}
+    """Frozen conservative rule over the chosen id's paired observations ``(unit_ids[i], results[i])`` (R2 finding
+    2): a recognized settled label (hit / not_hit / void) whose own observation lacks a positive unit makes the
+    settlement unknown — it never borrows another observation's unit; the valid units must be exactly one game
+    identity; any unrecognized label is unknown; settled labels on that unit must agree; pending-only is pending.
+    A pending observation without a unit transfers nothing. Popularity never resolves a conflict."""
+    pairs = [(_unit(u), _label(r)) for u, r in zip(unit_ids, results, strict=True)]
+    pairs = [(u if u is not None and u > 0 else None, r) for u, r in pairs]
+    if any(r in SETTLED and u is None for u, r in pairs):
+        return "unknown", "settled_observation_without_unit_identity", None
+    units = {u for u, _r in pairs if u is not None}
     if len(units) > 1:
         return "unknown", "multiple_units_for_batter", None
     if not units:
         return "unknown", "no_unit_identity", None
     unit = next(iter(units))
-    labels = [None if (r is None or (not isinstance(r, str) and pd.isna(r))) else str(r) for r in results]
-    if any(lab not in PENDING and lab not in SETTLED for lab in labels):
+    if any(r not in PENDING and r not in SETTLED for _u, r in pairs):
         return "unknown", "unrecognized_result", unit
-    settled = {SETTLED[lab] for lab in labels if lab in SETTLED}
+    settled = {SETTLED[r] for _u, r in pairs if r in SETTLED}
     if len(settled) > 1:
         return "unknown", "conflicting_results", unit
     if not settled:
@@ -193,6 +236,8 @@ def _display_name(names: pd.Series) -> str | None:
 def consensus_table(latest: pd.DataFrame, *, users: set[str] | None, cohort: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """One row per (date, slot) with any valid vote in this cohort, plus the frozen vote table (counts only)."""
     vote_cols = ["cohort", "date", "pick_number", "batter_id", "n_users", "display_name"]
+    if "settlement_evidence" not in latest.columns:
+        raise ValueError("consensus_table takes votes from latest_observations (vote identity + settlement evidence)")
     if latest.empty:
         return pd.DataFrame(columns=CONSENSUS_COLUMNS), pd.DataFrame(columns=vote_cols)
     frame = latest if users is None else latest[latest["username"].isin(users)]
@@ -225,7 +270,8 @@ def consensus_table(latest: pd.DataFrame, *, users: set[str] | None, cohort: str
                    "consensus_legal_differs_from_unconstrained": pick.get("legal_differs_from_unconstrained", False)}
             if pick["batter_id"] is not None:
                 voters = day[(day["pick_number"] == slot) & (day["batter_id"] == pick["batter_id"])]
-                status, reason, unit = consensus_settlement(list(voters["result"]), list(voters["unit_id"]))
+                pairs = [p for ev in voters["settlement_evidence"] for p in ev]
+                status, reason, unit = consensus_settlement([r for _u, r in pairs], [u for u, _r in pairs])
             else:
                 status, reason, unit = "unavailable", "no_consensus_id", None
             row.update(consensus_settlement=status, consensus_settlement_reason=reason, consensus_unit_id=unit)
