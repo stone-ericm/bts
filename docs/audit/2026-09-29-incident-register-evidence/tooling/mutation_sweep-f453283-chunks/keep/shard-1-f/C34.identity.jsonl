@@ -1,0 +1,7 @@
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_return_certificate_never_equates_distinct_json_types[nested-list]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_return_certificate_never_equates_distinct_json_types[zip-pair]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_same_json_is_type_exact_and_recursive", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[false-0-reads]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[true-1-reads]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[0-false-reads]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_value_match_never_equates_distinct_json_types[int-float-reads]", "kind": "assertion"}

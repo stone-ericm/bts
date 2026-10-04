@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_unreadable_import_record_is_refused_not_omitted[object-key]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_unreadable_import_record_is_refused_not_omitted[subclass-key]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_sys_namespace_with_a_non_string_key_makes_import_provenance_unavailable", "kind": "assertion"}

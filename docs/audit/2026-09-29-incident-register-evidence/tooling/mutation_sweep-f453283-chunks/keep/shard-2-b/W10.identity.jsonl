@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_an_unreviewed_executable_pth_line_is_refused", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_only_a_reviewed_import_hook_is_allowed", "kind": "did_not_raise"}

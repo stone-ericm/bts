@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_deploy_runs::test_the_rollback_observation_is_the_sha_the_log_names", "kind": "assertion"}

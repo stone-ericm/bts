@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_an_inherited_pycache_prefix_never_runs_stale_bytecode", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_fresh_counterexamples::test_a_spec_environment_cannot_set_a_runner_owned_variable[PYTHONPYCACHEPREFIX]", "kind": "did_not_raise"}

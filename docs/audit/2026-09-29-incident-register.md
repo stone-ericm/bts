@@ -63,7 +63,7 @@ Other gaps:
 
 Two hazards are for Eric (§9.2).
 
-**The tooling.** Frozen at `f453283` after the fresh whole-range review (F1–F5 fixed; ruling 14). One final strict mutation sweep at that pin: SWEEP_RESULT_PENDING. The known limits are in §11.
+**The tooling.** Frozen at `f453283` after the fresh whole-range review (F1–F5 fixed; ruling 14). One final strict mutation sweep ran at that pin: **263/263 KILLED** (§8.2). Kills are classified by recorded exception identity, and every run's JUnit XML and identity record is kept. The known limits are in §11.
 
 ## 2. Coverage inventory (Phase 1)
 
@@ -462,7 +462,13 @@ Run-level notes the results review should check (each recorded in its entry's `r
 - **D-I011-1** removes both already-resolved checks at once.
 
 ### 8.2 The final strict mutation sweep of the tooling
-SWEEP_SECTION_PENDING
+The one final strict sweep (ruling 14) ran all 263 mutants of the frozen tooling at `f453283`. Each mutant ran against the whole review suite (499 nodes), in 4 shards of 6 chunks, and each chunk had its own clean baseline.
+- **Result: 263 KILLED, and nothing else** (`…-evidence/tooling/mutation_sweep.txt`).
+- **Classification:** kills are classified by the recorded exception identity (`tooling/sweep_kill_identity.py`, after fresh review F4), not by message text.
+- **Retained outputs:** every run's JUnit XML and identity record is kept in `tooling/mutation_sweep-f453283-chunks/keep/`: 287 XML files, 263 for the mutants and 24 for the baselines. Each chunk's raw output, its pin and command record, and the as-run harness are kept too.
+- **The two-hour limit:** chunk c reached the session's two-hour background limit on all four shards. Its 41 completed verdicts are kept, and the remaining labels resumed in fresh-baseline chunks d–f. No label has two verdicts; the merged file's header records this.
+
+The previous record, at `c59ee58` under the message-based classifier, is `tooling/mutation_sweep-c59ee58.txt`. Under ruling 14 this result is recorded as it is and not reviewed further. It measures the tooling's tests, not any certificate's semantics.
 
 ### 8.3 Expected-failure, characterization and config fixtures
 Each expected-failure and characterization entry is bound to `expected_failures_runs/acceptance-f453283.json` (sha256 in the record): the marked and `--runxfail` pair, run over one frozen closure at the pin, with 22 strict XFAIL nodes accepted. I-086's config node passed at the pin in `current_defence/results-f453283/D-I071-2/green.events.jsonl`; it is not part of that pair. The publication check confirms the pair's closure is byte-identical between the pin and the build head: `src/`, `tests/`, `scripts/`, `pyproject.toml`, `uv.lock` and the registry. The validator refuses a node the pair did not accept, a control that did not pass, or an exception other than the registered `module.qualname`.

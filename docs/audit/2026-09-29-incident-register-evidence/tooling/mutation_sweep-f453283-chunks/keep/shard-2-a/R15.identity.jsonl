@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_runner::test_a_source_change_before_the_session_starts_is_rejected", "kind": "assertion"}

@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_replay::test_symptom_at_an_undeclared_assertion_is_rejected", "kind": "assertion"}

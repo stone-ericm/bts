@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_code_object_names_that_are_not_strings_run_no_application_code", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r9_counterexamples::test_a_full_run_never_hashes_crafted_code_names", "kind": "assertion"}

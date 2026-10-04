@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_a_spec_cannot_request_the_reserved_category[boundary]", "kind": "did_not_raise"}
+{"node": "tests.scripts.incident_register.test_r8_counterexamples::test_a_spec_cannot_request_the_reserved_category[return]", "kind": "did_not_raise"}

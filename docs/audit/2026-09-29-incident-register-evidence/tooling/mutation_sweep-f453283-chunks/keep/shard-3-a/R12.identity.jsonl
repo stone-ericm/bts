@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_runner::test_gate_rejects_a_pytest_imported_from_the_worktree", "kind": "assertion"}

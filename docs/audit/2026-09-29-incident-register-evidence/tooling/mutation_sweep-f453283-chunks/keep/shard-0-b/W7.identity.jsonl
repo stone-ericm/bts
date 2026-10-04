@@ -1,0 +1,5 @@
+{"node": "tests.scripts.incident_register.test_owned::test_manifest_hashes_working_bytes_and_lists_untracked", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_the_manifest_hashes_untracked_file_contents", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r4_counterexamples::test_replay_sees_an_untracked_file_change_in_content", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_an_untracked_symlinks_target_bytes_are_in_the_manifest", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_pair_whose_symlinked_helper_changes_is_rejected", "kind": "assertion"}

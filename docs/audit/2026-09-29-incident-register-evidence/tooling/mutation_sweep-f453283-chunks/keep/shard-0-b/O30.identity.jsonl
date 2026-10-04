@@ -1,0 +1,2 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_resolving_a_binding_runs_no_application_attribute_code", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r6_counterexamples::test_a_class_with_a_custom_metaclass_is_a_coverage_gap", "kind": "assertion"}

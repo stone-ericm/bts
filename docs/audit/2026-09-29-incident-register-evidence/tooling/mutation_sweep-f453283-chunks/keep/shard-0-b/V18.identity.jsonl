@@ -1,0 +1,4 @@
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_a_condition_observed_after_its_restoration_is_refused", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_an_alert_confirmed_before_its_attempt_is_refused", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_other_certainly_reversed_endpoints_are_refused[first_detectable-value0-the first detectable time precedes the onset]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r5_counterexamples::test_other_certainly_reversed_endpoints_are_refused[observed-value1-the observed time precedes the onset]", "kind": "assertion"}

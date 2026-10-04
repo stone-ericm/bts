@@ -1,0 +1,3 @@
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_async_boundary_callee_is_never_witnessed[coroutine]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_r10_counterexamples::test_an_async_boundary_callee_is_never_witnessed[async-generator]", "kind": "assertion"}
+{"node": "tests.scripts.incident_register.test_runner::test_async_path_is_unavailable", "kind": "assertion"}

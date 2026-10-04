@@ -1,0 +1,1 @@
+{"node": "tests.scripts.incident_register.test_expected_failure::test_same_named_exception_from_another_module_is_rejected", "kind": "assertion"}
