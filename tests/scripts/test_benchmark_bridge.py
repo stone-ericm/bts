@@ -245,3 +245,23 @@ def test_pair_metrics_use_the_identical_pool_and_report_discordance():
     assert m["top1_diff_b_minus_a"] == 0.0
     lo, hi = m["top1_diff_ci95"]
     assert lo <= 0.0 <= hi
+
+
+def test_the_opener_check_runs_once_per_pitcher_per_date_across_scorings(monkeypatch):
+    import bts.model.predict as pm
+    calls = []
+    monkeypatch.setattr(pm, "_build_feature_lookups", lambda df: {})
+    monkeypatch.setattr(pm, "_check_opener", lambda pid, df: calls.append(pid) or {"is_opener": False})
+
+    def fake_predict(date, df, model, lookups, check_openers=True, blend=None, feature_cols=None):
+        for s in pm._fetch_game_slots(date):
+            pm._check_opener(s["pitcher_id"], df)
+        return pd.DataFrame({"batter_id": [1], "game_pk": [1], "p_game_hit": [0.5]})
+
+    monkeypatch.setattr(pm, "predict", fake_predict)
+    hist = pd.DataFrame({"date": pd.to_datetime(["2026-07-01"])})
+    prepared = core.history_and_lookups("2026-07-02", hist)
+    slots = [{"pitcher_id": 9}, {"pitcher_id": 9}, {"pitcher_id": 8}]
+    core.score_c("2026-07-02", slots, hist, {"_model": "m"}, prepared=prepared)
+    core.score_c("2026-07-02", slots, hist, {"_model": "m"}, prepared=prepared)
+    assert sorted(calls) == [8, 9]

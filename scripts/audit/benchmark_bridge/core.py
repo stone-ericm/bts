@@ -171,15 +171,17 @@ def reconstruct_slot(row: dict, feed: dict) -> tuple[dict | None, dict]:
     return slot, {"game_fields": "final_feed", "pitcher_hand": "serving_none"}
 
 
-def history_and_lookups(date: str, df_feat: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """The pre-date frame and its serving lookups, built once per date and shared by every C scoring that day."""
+def history_and_lookups(date: str, df_feat: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
+    """The pre-date frame, its serving lookups and an opener-check cache, built once per date and shared by every C
+    scoring that day. ``_check_opener`` depends only on (pitcher_id, the pre-date frame) and its result is read only,
+    so caching it per date changes no score."""
     import bts.model.predict as pm
     hist = df_feat[df_feat["date"] < pd.Timestamp(date)]
-    return hist, pm._build_feature_lookups(hist)
+    return hist, pm._build_feature_lookups(hist), {}
 
 
 def score_c(date: str, slots: list[dict], df_feat: pd.DataFrame, artifact: dict, check_openers: bool = True,
-            feature_cols: list[str] | None = None, prepared: tuple[pd.DataFrame, dict] | None = None) -> pd.DataFrame:
+            feature_cols: list[str] | None = None, prepared: tuple | None = None) -> pd.DataFrame:
     """Score injected slots with an archived (or frozen) artifact through the real ``predict()`` (design §3).
 
     History, lookups and the opener check use only rows dated before ``date``, as serving's morning frame did.
@@ -190,10 +192,18 @@ def score_c(date: str, slots: list[dict], df_feat: pd.DataFrame, artifact: dict,
 
     import bts.model.predict as pm
 
-    hist, lookups = prepared if prepared is not None else history_and_lookups(date, df_feat)
+    hist, lookups, opener_cache = prepared if prepared is not None else history_and_lookups(date, df_feat)
     blend = dict(artifact)
     model = blend.pop("_model")
-    with mock.patch.object(pm, "_fetch_game_slots", lambda _d: slots):
+    real_opener = pm._check_opener
+
+    def cached_opener(pid, frame):
+        if pid not in opener_cache:
+            opener_cache[pid] = real_opener(pid, frame)
+        return opener_cache[pid]
+
+    with mock.patch.object(pm, "_fetch_game_slots", lambda _d: slots), \
+            mock.patch.object(pm, "_check_opener", cached_opener):
         out = pm.predict(date, hist, model, lookups, check_openers=check_openers, blend=blend,
                          feature_cols=feature_cols)
     return out[["batter_id", "game_pk", "p_game_hit"]].copy() if not out.empty else out
