@@ -189,6 +189,7 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert s["intervals"]["diff_ours_minus_E"]["n_resamples"] == 60
     assert prim["ours"]["included_by_slot"] == {"primary": 3, "double_down": 1}
     assert prim["ledger"]["receipt"]["run"] == run.LG.ACCEPTED_RUN
+    assert prim["ledger"]["acceptance_byte_identity_established"] is False
     assert prim["E_exclusions"] == {"window_slots": 5, "usable_graded": 5, "excluded_by_label": {},
                                     "excluded_by_status": {}}
     assert a["coverage"]["E_members"] == 6 and a["coverage"]["window_calendar_dates"] == 64

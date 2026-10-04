@@ -8,8 +8,13 @@ The published build is ``data/validation/season_2026_ledger/<ACCEPTED_BUILD>/`` 
 Before outcomes (``verify_receipt``): the directory is the published build, its listing is exactly the six outputs
 plus the receipt, the receipt parses and names that run, those six files and the predeclared fingerprint, the build
 manifest names the same code and fingerprint, and both read tables have exactly the compiler's schemas. After parsing
-(``load_bound``): the parsed rows reproduce the build's own published counts (row kinds; selection commit and entry
-statuses; contest-slot match labels), binding the frozen bytes to the accepted build. Any failure refuses the run."""
+(``load_bound``): the parsed rows reproduce the build's own published marginal counts (row kinds; selection commit and
+entry statuses; contest-slot match labels). Any failure refuses the run.
+
+Owner disposition for code review r2 R2-4 (the declaration alternative): these are metadata/schema/count checks, not
+an acceptance-byte identity check. The receipt carries no output hashes, no independently retained accepted-output
+hash or reproduction is compared, and hashing the current files would only record run provenance; so every report
+carries ``acceptance_byte_identity_established = False`` and ``ACCEPTANCE_BYTE_DECLARATION`` (the X-25 wording)."""
 from __future__ import annotations
 
 import io
@@ -32,6 +37,12 @@ RECEIPT_FILE = "ACCEPTED.json"
 BUILD_FILES = tuple(sorted((LEDGER_FILE, CONTEST_FILE, BUILD_FILE, "season_2026_ledger_occurrences.parquet",
                             "season_2026_ledger_reconciliation.parquet", "season_2026_ledger_summary.md")))
 READ_FILES = (RECEIPT_FILE, BUILD_FILE, LEDGER_FILE, CONTEST_FILE)
+ACCEPTANCE_BYTE_DECLARATION = (
+    "The production denominator is read from frozen current files in the named W1.1 accepted-build directory. "
+    "The reader validates acceptance metadata, published build identity, compiler schemas and selected marginal "
+    "counts. It does not independently verify equality of outcome bytes to those accepted earlier. Production rates "
+    "and comparisons are therefore conditional on those current files remaining unchanged from the accepted build; "
+    "a current input hash is run provenance, not proof of earlier acceptance-byte identity.")
 
 
 def _refuse(problems: list[str]) -> None:
@@ -78,7 +89,8 @@ def verify_receipt(ledger_dir: Path, listing: list[str], read) -> dict:
     _refuse(problems)
     return {"receipt": receipt, "build_identity": {k: build.get(k) for k in ("builder_version", "code_sha",
                                                                               "rules_fingerprint")},
-            "build": build}
+            "acceptance_byte_identity_established": False,
+            "acceptance_byte_identity_declaration": ACCEPTANCE_BYTE_DECLARATION, "build": build}
 
 
 def _counts(values) -> dict:
@@ -86,7 +98,8 @@ def _counts(values) -> dict:
 
 
 def load_bound(ledger_dir: Path, read, info: dict):
-    """Parse the frozen ledger and contest-slot bytes and bind them to the build's published counts."""
+    """Parse the frozen ledger and contest-slot bytes and check them against the build's published marginal counts
+    (a consistency check, not acceptance-byte identity)."""
     d = Path(ledger_dir)
     ledger = pq.read_table(io.BytesIO(read(d / LEDGER_FILE))).to_pandas(integer_object_nulls=True)
     contest = pq.read_table(io.BytesIO(read(d / CONTEST_FILE))).to_pandas(integer_object_nulls=True)
@@ -95,4 +108,4 @@ def load_bound(ledger_dir: Path, read, info: dict):
            "entry_status": _counts(sels["entry_status"]), "match": _counts(contest["match"])}
     build = info["build"]
     _refuse([f"{k}: parsed {v} != build {build.get(k)}" for k, v in got.items() if build.get(k) != v])
-    return ledger, contest, {**{k: v for k, v in info.items() if k != "build"}, "bound_counts": got}
+    return ledger, contest, {**{k: v for k, v in info.items() if k != "build"}, "marginal_counts_checked": got}
