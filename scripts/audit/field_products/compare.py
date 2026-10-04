@@ -89,6 +89,18 @@ def e_arm(slots: pd.DataFrame, available: set[int], start: date, end: date) -> p
     return out.reset_index(drop=True)
 
 
+def e_exclusions(slots: pd.DataFrame, available: set[int], start: date, end: date) -> dict:
+    """E's window slots of available members that are NOT usable graded slots, counted by label or status
+    (pending, Pass/void, other labels, conflicts, unresolved identity) — never silently dropped."""
+    if not len(slots):
+        return {"window_slots": 0, "usable_graded": 0, "excluded_by_label": {}, "excluded_by_status": {}}
+    d = pd.to_datetime(slots["pick_date"]).dt.date
+    s = slots[slots["user_id"].isin(available) & (d >= start) & (d <= end)]
+    return {"window_slots": int(len(s)), "usable_graded": int(s["usable"].sum()),
+            "excluded_by_label": dict(Counter(s.loc[(s["status"] == "ok") & ~s["graded"], "label"])),
+            "excluded_by_status": dict(Counter(s.loc[s["status"] != "ok", "status"]))}
+
+
 def _per_date(arm: pd.DataFrame, p: str) -> pd.DataFrame:
     g = arm.groupby("date")
     return pd.DataFrame({f"{p}_slots": g.size(), f"{p}_hits": g["hit"].sum().astype(int),
@@ -106,6 +118,7 @@ def _arm_block(arm: pd.DataFrame, pd_tab: pd.DataFrame, p: str) -> dict:
     sub = arm[arm["date"].isin(pd_tab.index)]
     n = int(pd_tab[f"{p}_slots"].sum())
     return {"dates_with_slots": int((pd_tab[f"{p}_slots"] > 0).sum()), "users": int(sub["user_id"].nunique()),
+            "rounds": int(len(sub[["user_id", "date"]].drop_duplicates())),
             "slots": n, "hits": int(pd_tab[f"{p}_hits"].sum()),
             "ratio": float(pd_tab[f"{p}_hits"].sum() / n) if n else None}
 
@@ -114,25 +127,36 @@ def _clean(iv: dict) -> dict:
     return {k: {kk: (None if isinstance(vv, float) and vv != vv else vv) for kk, vv in v.items()} for k, v in iv.items()}
 
 
-def date_tables(e: pd.DataFrame, o: pd.DataFrame, n_resamples: int = 10_000) -> dict:
+def _coverage(e: pd.DataFrame, dates, n_members: int | None, calendar_dates: int | None) -> dict:
+    users = int(e.loc[e["date"].isin(dates), "user_id"].nunique())
+    return {"E_members": n_members, "E_users_contributing": users,
+            "E_user_share": users / n_members if n_members else None, "window_calendar_dates": calendar_dates,
+            "dates": int(len(dates)), "date_share_of_window": len(dates) / calendar_dates if calendar_dates else None}
+
+
+def date_tables(e: pd.DataFrame, o: pd.DataFrame, n_resamples: int = 10_000, n_members: int | None = None,
+                calendar_dates: int | None = None) -> dict:
     """The all-observed-date table (union of dates; each arm's own denominator) and the frozen shared-date table
-    (dates with ≥1 usable graded slot in each arm) with joint whole-date percentile intervals."""
+    (dates with ≥1 usable graded slot in each arm) with joint whole-date percentile intervals. Each arm block reports
+    its user, date, user-round and slot denominators; ``coverage`` relates them to E and the window calendar."""
     tab = _per_date(e, "E").join(_per_date(o, "ours"), how="outer").fillna(0).astype(int).sort_index()
     out = {}
     stats_all = {"E_ratio": _ratio("E"), "ours_ratio": _ratio("ours")}
     out["all_observed_dates"] = {
         "dates": int(len(tab)), "available": bool(len(tab)), "E": _arm_block(e, tab, "E"),
-        "ours": _arm_block(o, tab, "ours"),
+        "ours": _arm_block(o, tab, "ours"), "coverage": _coverage(e, tab.index, n_members, calendar_dates),
         "intervals": _clean(m.summary_bootstrap(tab, stats_all, n_resamples=n_resamples, seed=SEED)) if len(tab) else {}}
     shared = tab[(tab["E_slots"] > 0) & (tab["ours_slots"] > 0)]
     if not len(shared):
         out["shared_dates"] = {"dates": 0, "available": False, "date_list": [], "diff_ours_minus_E": None,
-                               "E": None, "ours": None, "intervals": {}}
+                               "E": None, "ours": None, "intervals": {},
+                               "coverage": _coverage(e, [], n_members, calendar_dates)}
     else:
         eb, ob = _arm_block(e, shared, "E"), _arm_block(o, shared, "ours")
         stats = {**stats_all, "diff_ours_minus_E": lambda s: _ratio("ours")(s) - _ratio("E")(s)}
         out["shared_dates"] = {"dates": int(len(shared)), "available": True, "date_list": list(shared.index),
                                "E": eb, "ours": ob, "diff_ours_minus_E": ob["ratio"] - eb["ratio"],
+                               "coverage": _coverage(e, shared.index, n_members, calendar_dates),
                                "intervals": _clean(m.summary_bootstrap(shared, stats, n_resamples=n_resamples,
                                                                        seed=SEED))}
     out["per_date"] = tab
@@ -209,7 +233,8 @@ def extension(fg_status: pd.DataFrame, slots: pd.DataFrame, n_members: int) -> d
     return {"label": "final-backfill extension (E∩(A∪B) usable final-grab histories; restricted, partly "
                      "outcome-determined support; never appended to the primary curve)",
             "window": [start.isoformat(), end.isoformat()],
-            "pooled": {"users": int(arm["user_id"].nunique()), "dates": int(arm["date"].nunique()), "slots": n,
+            "pooled": {"users": int(arm["user_id"].nunique()), "dates": int(arm["date"].nunique()),
+                       "rounds": int(len(arm[["user_id", "date"]].drop_duplicates())), "slots": n,
                        "hits": int(arm["hit"].sum()), "ratio": float(arm["hit"].mean()) if n else None},
             "per_user": per_user.assign(hit_rate=per_user["hits"] / per_user["slots"]).to_dict("records"),
             "coverage": {"E_members": n_members, "usable": len(usable),

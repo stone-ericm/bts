@@ -69,10 +69,14 @@ def _arm(rows):
 def test_all_date_table_uses_the_union_and_each_arms_own_denominator_and_shared_uses_common_dates():
     e = _arm([(1, "2026-05-01", True), (1, "2026-05-01", False), (2, "2026-05-02", True), (2, "2026-05-03", False)])
     o = _arm([(0, "2026-05-02", True), (0, "2026-05-03", True), (0, "2026-05-04", False)])
-    t = Q.date_tables(e, o, n_resamples=200)
+    t = Q.date_tables(e, o, n_resamples=200, n_members=10, calendar_dates=64)
     a, s = t["all_observed_dates"], t["shared_dates"]
     assert a["dates"] == 4 and a["E"]["slots"] == 4 and a["E"]["ratio"] == 0.5 and a["ours"]["ratio"] == 2 / 3
     assert a["E"]["dates_with_slots"] == 3 and a["ours"]["dates_with_slots"] == 3 and a["E"]["users"] == 2
+    assert a["E"]["rounds"] == 3 and a["ours"]["rounds"] == 3 and s["E"]["rounds"] == 2
+    assert a["coverage"] == {"E_members": 10, "E_users_contributing": 2, "E_user_share": 0.2,
+                             "window_calendar_dates": 64, "dates": 4, "date_share_of_window": 4 / 64}
+    assert s["coverage"]["dates"] == 2 and s["coverage"]["E_users_contributing"] == 1   # only user 2 on 5/02-5/03
     assert s["dates"] == 2 and s["date_list"] == ["2026-05-02", "2026-05-03"]
     assert s["E"]["ratio"] == 0.5 and s["ours"]["ratio"] == 1.0 and s["diff_ours_minus_E"] == 0.5
     iv = s["intervals"]["diff_ours_minus_E"]
@@ -162,6 +166,15 @@ def test_extension_is_restricted_to_usable_fetched_histories_and_labelled():
     res = _res({11: [_pk(1, date(2026, 6, 1)), _pk(2, date(2026, 7, 4)), _pk(3, date(2026, 9, 27), "not_hit")]})
     x = Q.extension(fg, res.slots, n_members=3)
     assert x["label"].startswith("final-backfill extension") and x["window"] == ["2026-07-04", "2026-09-27"]
-    assert x["pooled"] == {"users": 1, "dates": 2, "slots": 2, "hits": 1, "ratio": 0.5}
+    assert x["pooled"] == {"users": 1, "dates": 2, "rounds": 2, "slots": 2, "hits": 1, "ratio": 0.5}
     assert x["coverage"]["usable"] == 1 and x["coverage"]["E_in_A"] == 1 and x["coverage"]["budget_omissions"] == 1
     assert x["coverage"]["history"] == {"usable": 1, "no_history": 1, "budget_omission": 1}
+
+
+def test_e_window_exclusions_are_counted_by_label_and_status():
+    res = _res({11: [_pk(1, date(2026, 5, 2)), _pk(2, date(2026, 5, 3), "void"), _pk(3, date(2026, 5, 4), ""),
+                     _pk(4, date(2026, 7, 4), "void")],
+                12: [_pk(1, date(2026, 5, 2), "void")]})
+    x = Q.e_exclusions(res.slots, available={11}, start=W0, end=W1)
+    assert x == {"window_slots": 3, "usable_graded": 1, "excluded_by_label": {"void": 1, "": 1},
+                 "excluded_by_status": {}}
