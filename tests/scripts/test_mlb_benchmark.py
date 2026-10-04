@@ -22,7 +22,7 @@ def test_asof_uses_the_latest_whole_sheet_at_or_before_the_cutoff_and_never_tomo
     fc = core.forecasts_asof(_caps(), ROUNDS, PLAYERS, "2026-07-05", pd.Timestamp("2026-07-05T18:00:00Z"))
     assert fc[701]["p"] == 0.72 and fc[701]["captured_at"] == "2026-07-05T17:00:00Z" and fc[702]["p"] == 0.65
     early = core.forecasts_asof(_caps(), ROUNDS, PLAYERS, "2026-07-05", pd.Timestamp("2026-07-05T15:00:00Z"))
-    assert early == {701: {"p": 0.70, "n_sel": 5, "captured_at": "2026-07-05T14:00:00Z", "round_id": 10}}
+    assert early == {701: {"p": 0.70, "n_sel": 5, "captured_at": "2026-07-05T14:00:00Z", "round_id": 10, "player_id": 1}}
 
 
 def test_a_player_absent_from_a_newer_stored_sheet_is_absent_not_resurrected():
@@ -30,12 +30,21 @@ def test_a_player_absent_from_a_newer_stored_sheet_is_absent_not_resurrected():
     assert set(fc) == {701} and fc[701]["p"] == 0.75
 
 
-def test_join_links_only_a_unique_scheduled_game_and_labels_it_inferred():
-    slate = pd.DataFrame({"batter_id": [701, 702, 703, 704], "team": ["NYM", "ATL", "LAD", "SD"],
-                          "game_pk": [100, 200, 300, 400], "D": [0.8, 0.7, 0.6, 0.5]})
-    fc = {701: {"p": 0.7, "captured_at": "x"}, 702: {"p": 0.6, "captured_at": "x"},
-          704: {"p": 0.5, "captured_at": "x"}, 799: {"p": 0.5, "captured_at": "x"}}
-    team_games = {"NYM": {100}, "ATL": {200, 201}, "LAD": {300}, "SD": {401}}   # ATL doubleheader; SD mismatch
-    joined, cov = core.join_to_slate(slate, fc, team_games)
-    assert list(joined["link_status"]) == ["inferred_unique_game", "multi_or_no_game", "not_listed", "game_mismatch"]
+def test_games_come_from_mlbs_own_sheets_never_from_our_slate():
+    fc = {701: {"player_id": 1}, 702: {"player_id": 2}, 703: {"player_id": 3}, 704: {"player_id": 4}}
+    squads = {1: 11, 2: 12, 3: None, 4: 14}
+    units = [{"feedId": 100, "homeSquadId": 11, "awaySquadId": 21},
+             {"feedId": 200, "homeSquadId": 12, "awaySquadId": 22}, {"feedId": 201, "homeSquadId": 22, "awaySquadId": 12},
+             {"feedId": 300, "homeSquadId": 13, "awaySquadId": 23}]
+    assert core.games_by_batter(fc, squads, units) == {701: {100}, 702: {200, 201}, 703: set(), 704: set()}
+
+
+def test_join_links_only_a_unique_game_and_labels_it_inferred():
+    slate = pd.DataFrame({"batter_id": [701, 702, 703, 704, 705], "game_pk": [100, 200, 300, 400, 500],
+                          "D": [0.8, 0.7, 0.6, 0.5, 0.4]})
+    fc = {b: {"p": 0.5, "captured_at": "x"} for b in (701, 702, 704, 705, 799)}
+    games = {701: {100}, 702: {200, 201}, 704: {401}, 705: set(), 799: {900}}   # 702 doubleheader; 704 mismatch
+    joined, cov = core.join_to_slate(slate, fc, games)
+    assert list(joined["link_status"]) == ["inferred_unique_game", "multi_or_no_game", "not_listed",
+                                           "game_mismatch", "multi_or_no_game"]
     assert joined["mlb_p"].notna().sum() == 1 and cov["mlb_not_in_slate"] == 1
