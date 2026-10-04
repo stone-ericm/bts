@@ -103,3 +103,53 @@ def test_drag_date_is_available_only_when_every_contributing_venue_has_an_exact_
     assert math.isclose(out.loc["d1", "drag_mean"], 0.02)       # unique venues, equal weight: (0.01 + 0.03) / 2
     assert out.loc["d1", "complete"] and not out.loc["d2", "complete"] and math.isnan(out.loc["d2", "drag_mean"])
     assert out.loc["d2", "missing_venues"] == 1
+
+
+def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
+    import json
+    from scripts.audit.w13_tests import run
+    monkeypatch.setattr(run, "x29_gate", lambda: "e" * 40)
+    rng = np.random.default_rng(9)
+    dates = [f"2026-07-{d:02d}" for d in range(1, 21)]
+    rows, meta = [], []
+    data = tmp_path / "data"
+    (data / "raw" / "2026").mkdir(parents=True)
+    for k, d in enumerate(dates):
+        (data / "picks" / d).mkdir(parents=True)
+        meta.append({"date": d, "action": "skip" if k % 7 == 6 else "single", "n_rows": 8 + k % 3})
+        for j in range(8):
+            gpk = 5000 + 10 * k + j
+            p = float(rng.uniform(0.55, 0.85))
+            out = "hit" if rng.uniform() < p else "no_hit"
+            rows.append({"date": d, "row_order": j, "batter_id": 100 + j, "game_pk": gpk, "projected": j % 2 == 0,
+                         "D": core.serialized(p), "C_served": p, "C_served_wblank": p, "C_frozen": p - 0.01,
+                         "A26": min(p + 0.05, 0.99), "A26_count": p + 0.02, "B26": p, "n_pa": 4, "n_pas_actual": 4,
+                         "outcome": out, "sel_state": "selection_consistent", "pool_verified": True,
+                         "pool_surrogate": True, "pool_all": True})
+            (data / "raw" / "2026" / f"{gpk}.json").write_text(json.dumps({"gameData": {"venue": {"id": 1 + j % 4}}}))
+        top = max((r for r in rows if r["date"] == d), key=lambda r: r["D"])
+        dec = {"action": meta[-1]["action"], "primary": {"batter_id": top["batter_id"], "game_pk": top["game_pk"],
+                                                         "p_game_hit": top["D"]}}
+        (data / "picks" / d / "decision.json").write_text(json.dumps(dec))
+    w12 = tmp_path / "w12"; w12.mkdir()
+    pd.DataFrame(rows).to_parquet(w12 / "table.parquet")
+    pairs = [{"pair": [a, b], "exclusions": {}, "top1_diff_b_minus_a": 0.0, "top1_diff_ci95": [-0.1, 0.1],
+              "paired_top1_dates": 20, "rank1_changed_dates": 0}
+             for a, b in (("A26", "A26_count"), ("A26_count", "B26"), ("B26", "C_frozen"), ("C_frozen", "C_served"),
+                          ("C_served", "D"))]
+    surf = [{"surface": s, "brier": 0.2, "log_loss": 0.6} for s in run.SURFACES]
+    (w12 / "summary.json").write_text(json.dumps({"registered_dates": dates, "day_meta": meta, "metrics": {
+        "selection_consistent": {"pool_verified": {"pairs": pairs, "surfaces": surf}}}}))
+    (w12 / "manifest.json").write_text(json.dumps({"decisions": {}, "picks": {}}))
+    drag = pd.DataFrame([{"venue_id": v, "date": d, "park_drag_delta": 0.001 * (k % 5)}
+                         for k, d in enumerate(dates) for v in (1, 2, 3, 4)])
+    drag.to_csv(tmp_path / "park_drag_export.csv", index=False)
+    assert run.main(["--w12-run", str(w12), "--data-root", str(data), "--drag", str(tmp_path / "park_drag_export.csv"),
+                     "--out", str(tmp_path / "out"), "--n-resamples", "40"]) == 0
+    res = json.loads(next((tmp_path / "out").glob("*/results.json")).read_text())
+    assert res["E2"]["classes"] == {"exact_final_feed": 160} and res["E2"]["flag"] == "numerical_parity_conditional"
+    assert res["E3"]["full_explanation"].startswith("not testable")
+    assert res["E8"]["n"] > 0 and "skip" in res["selections"]
+    assert res["E6"]["dates_complete"] == 20
+    for e in ("E1", "E4", "E5", "E6", "E7"):
+        assert "flag" in res[e]
