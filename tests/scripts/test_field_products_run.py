@@ -18,6 +18,13 @@ def test_gate_refuses_while_the_commits_are_unset(monkeypatch):
         run.gate()
 
 
+def test_gate_refuses_a_commit_that_is_not_in_head(monkeypatch):
+    monkeypatch.setattr(run, "X24_COMMIT", run.git("rev-parse", "HEAD"))
+    monkeypatch.setattr(run, "X25_COMMIT", "0" * 40)
+    with pytest.raises(SystemExit, match="X-25 gate: .* not an ancestor"):
+        run.gate()
+
+
 def test_gate_refuses_without_both_register_rows(monkeypatch, tmp_path):
     head = run.git("rev-parse", "HEAD")
     monkeypatch.setattr(run, "X24_COMMIT", head)
@@ -123,3 +130,42 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     freeze = json.loads((out / "freeze.json").read_text())
     assert freeze["written_before_outcome_reads"] is True and freeze["binding_sha256"]
     assert (out / "w22_daily_slots.parquet").exists() and (out / "w21_distribution.parquet").exists()
+
+
+def test_freeze_is_written_before_any_outcome_bearing_read(tmp_path, monkeypatch):
+    """The board receipts are the first outcome-bearing read: when that step fails, freeze.json already exists and no
+    pick file, ledger row or result has been read or written."""
+    monkeypatch.setattr(run, "gate", lambda: "e" * 40)
+    grab, led = _inputs(tmp_path)
+
+    def boom(*a, **k):
+        raise RuntimeError("outcome read attempted")
+    monkeypatch.setattr(run.C, "load_board_receipts", boom)
+    monkeypatch.setattr(run.P, "read_observations", boom)
+    with pytest.raises(RuntimeError, match="outcome read attempted"):
+        run.main(["--data-root", str(tmp_path / "data"), "--ledger-dir", str(led), "--out", str(tmp_path / "out"),
+                  "--early-manifest", str(tmp_path / "early.json")])
+    out = next((tmp_path / "out").glob("eeeeeee-*"))
+    freeze = json.loads((out / "freeze.json").read_text())
+    assert freeze["binding_counts"]["members"]["bound"] == 3 and not (out / "results.json").exists()
+
+
+def test_manifest_hashes_are_the_bytes_on_disk_and_nested_files_are_counted(tmp_path, monkeypatch):
+    import hashlib
+    monkeypatch.setattr(run, "gate", lambda: "d" * 40)
+    grab, led = _inputs(tmp_path)
+    nested = tmp_path / "data" / "leaderboard" / "user_picks" / "a"
+    nested.mkdir()
+    B.write_daily(nested, "b", [[B.daily_pick(10, 1, cap=CAP1, pick_date=date(2026, 5, 1))]])
+    assert run.main(["--data-root", str(tmp_path / "data"), "--ledger-dir", str(led), "--out", str(tmp_path / "out"),
+                     "--n-resamples", "20", "--early-manifest", str(tmp_path / "early.json")]) == 0
+    out = next((tmp_path / "out").glob("ddddddd-*"))
+    man = json.loads((out / "manifest.json").read_text())
+    assert man["inputs"]["ledger/season_2026_ledger.parquet"] == hashlib.sha256(
+        (led / "season_2026_ledger.parquet").read_bytes()).hexdigest()
+    assert man["inputs"]["leaderboard/user_picks/alpha.parquet"] == hashlib.sha256(
+        (tmp_path / "data" / "leaderboard" / "user_picks" / "alpha.parquet").read_bytes()).hexdigest()
+    freeze = json.loads((out / "freeze.json").read_text())
+    assert freeze["daily_nested_files_ignored"] == ["a/b.parquet"]
+    res = json.loads((out / "results.json").read_text())
+    assert res["w21"]["season_best"]["own"]["matched_by_user_id"] is False      # no --our-user-id given

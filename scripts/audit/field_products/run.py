@@ -160,6 +160,8 @@ def main(argv=None) -> int:
     grab_copy = grab / "inputs" / "early_cohort.json"
     alloc_checks["grab_input_copy_matches"] = grab_copy.exists() and _sha_file(grab_copy) == manifest["sha256"]
     stems = sorted(p.stem for p in daily_dir.glob("*.parquet"))
+    # a pre-2026-06-09 username containing "/" was written into a subdirectory: listed and counted, never bound
+    nested = sorted(str(p.relative_to(daily_dir)) for p in daily_dir.rglob("*.parquet") if p.parent != daily_dir)
     binding, bind_counts = K.bind_daily_files(manifest, stems)
     code_files = {p.name: _sha_file(p) for p in sorted(Path(__file__).parent.glob("*.py"))}
     freeze = {"written_before_outcome_reads": True, "code_head": head, "code_files": code_files,
@@ -167,7 +169,8 @@ def main(argv=None) -> int:
               "labels_sha256": _sha_bytes(labels.to_csv(index=False).encode()),
               "binding_sha256": _sha_bytes(binding.to_csv(index=False).encode()),
               "daily_listing_sha256": _sha_bytes("\n".join(stems).encode()), "daily_files_listed": len(stems),
-              "binding_counts": bind_counts, "frozen_at_utc": datetime.now(timezone.utc).isoformat()}
+              "daily_nested_files_ignored": nested, "binding_counts": bind_counts,
+              "frozen_at_utc": datetime.now(timezone.utc).isoformat()}
     (run_dir / "freeze.json").write_text(json.dumps(jsonable(freeze), indent=1, sort_keys=True) + "\n")
     _write_table(binding, run_dir / "w22_binding.parquet")
     _write_table(labels, run_dir / "w22_labels.parquet")
@@ -244,6 +247,7 @@ def main(argv=None) -> int:
                            "checks": alloc_checks, "allocation_labels": labels["allocation"].value_counts().to_dict(),
                            "note": "A/B/E_in_A/E_unfetched/B_shortfall are acquisition labels, not cohorts"},
             "identity": {**bind_counts, "ownership_quarantined": sorted(ownership),
+                         "daily_nested_files_ignored": len(nested),
                          "rule": "bind only by a unique 5/01 username sanitization whose file stems are the member's "
                                  "own raw or sanitized name; otherwise quarantine"},
             "availability": {"members": int(len(av)), "daily_history": av["daily_history"].value_counts().to_dict(),
