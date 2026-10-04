@@ -176,6 +176,8 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert w22["identity"]["ownership_quarantined"] == [2004]
     assert w22["identity"]["attribution_basis"] == "stable_5_01_username_unwitnessed"
     assert w22["identity"]["per_batch_identity_established"] is False
+    assert w22["identity"]["per_batch_identity"] == 'Batch-specific identity for all May 1-July 3 daily observations has not been established. Daily pick parquet omits user ID; the normal daily writer provides no general durable batch-ID receipt. Particular retained backfill logs or later ID-bearing snapshots/stats may supply partial evidence, but coverage has not been verified. Primary attribution uses the unwitnessed stable May 1 name assumption.'
+    assert res["limits"][0].startswith(w22["identity"]["per_batch_identity"])
     assert w22["availability"]["daily_history"] == {"available": 2, "quarantined_manifest_collision": 2,
                                                     "quarantined_ownership_conflict": 1, "no_daily_file": 1}
     prim = w22["primary"]

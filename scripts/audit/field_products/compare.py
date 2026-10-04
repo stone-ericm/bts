@@ -21,8 +21,10 @@ EXTENSION = (date(2026, 7, 4), date(2026, 9, 27))
 SEED = 20261004
 CONFIRMED_MATCHES = frozenset({"evidenced", "inferred"})   # the ledger's only grade-transferring links (memo §5)
 EXACT = frozenset({"hit", "not_hit"})
-# Daily username-keyed files carry no user id and no stored record witnesses which account each appended batch was
-# fetched for (code search, review r1 F2): the E arm rests on the members' stable 5/01 usernames, unwitnessed per batch.
+# Code review r2 (F2): "Batch-specific identity for all May 1-July 3 daily observations has not been established.
+# Daily pick parquet omits user ID; the normal daily writer provides no general durable batch-ID receipt. Particular
+# retained backfill logs or later ID-bearing snapshots/stats may supply partial evidence, but coverage has not been
+# verified. Primary attribution uses the unwitnessed stable May 1 name assumption."
 ATTRIBUTION_BASIS = "stable_5_01_username_unwitnessed"
 
 
