@@ -2,7 +2,11 @@
 
 Every C1 box job runs as a transient ``c1-*`` user unit. When a unit stops, systemd journals its cgroup CPU time
 (``CPU_USAGE_NSEC``) with a unique ``USER_INVOCATION_ID``; the ledger is the deduplicated set of those records.
-The cycle cap is 100 CPU-hours with a stop-and-report at 50 (resumed only by Eric's written acknowledgement)."""
+The cycle cap is 100 CPU-hours with a stop-and-report at 50 (resumed only by Eric's written acknowledgement).
+
+Known undercount (measured on the box 2026-10-04, systemd 252, user-manager LogLevel=info): systemd journals the
+"Consumed ... CPU time" record at info level only for a unit that used a mentionworthy amount (a 0.6 s job left no
+record; a 1.4 s job did). Each job below that threshold goes uncounted, by under 1.4 CPU-seconds per job."""
 from __future__ import annotations
 
 import csv
