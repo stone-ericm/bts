@@ -1,6 +1,6 @@
 # C1 rank-1 prerequisites: receipted static capture and the all-player binding decision (no blend)
 
-**Status:** design rev 1, 2026-10-04, for Codex design review (at most 2 rounds, then freeze). The capture change is production code: reviewed until SIGN, and shipped only with Eric's D7 approval.
+**Status:** design rev 2, 2026-10-04: Codex trio design r1 **BLOCK**; C-E1–C-E3 and X-E1 applied verbatim by script (review `docs/audit/2026-10-04-c1-trio-design-codex-r1.md`); for design round 2 of 2, then freeze or defer. The capture change is production code: reviewed until SIGN, shipped only with Eric's D7 approval.
 **Cycle:** C1 (`docs/sota_audit/2026-10-04-c1-cycle-index.md`). Eric's D4 ruling includes only these prerequisites: **no blend is built or fitted in C1.**
 **Sources:**
 - frozen W2.3 memo `docs/sota_audit/2026-10-04-field-mlb-forecast-benchmark.md` §§2, 6;
@@ -27,35 +27,17 @@ It is still running: `players` has 3,788 stored versions, the latest on 10/04.
 
 **Rulings:**
 - **A1, one capture.** Change the production capture rather than run a second one, which would double requests to MLB.
-- **A2, receipts.** Append-only, one per feed per run, in `data/leaderboard/static_snapshots/_receipts/<UTC date>.jsonl`. That path is in the restic archive set; `~/logs` is not.
-  - **An intent line before the request**, so a crash mid-request still leaves a record: `{run_stamp, feed, url, started_utc}`.
-  - **A completion line after it:**
-    - `ended_utc`, `duration_s` (monotonic);
-    - `http_status`;
-    - `outcome`: `stored` | `unchanged` | `invalid` | `fetch_error` | `rate_limited`;
-    - `bytes`, `wire_sha256`, `decoded_sha256` (hashed before validation);
-    - `previous_marker_sha256`, and `stored_path` or `"unchanged"`;
-    - the `Date`, `Last-Modified`, `ETag`, `Age` and `Cache-Control` headers when present.
-  - **How a receipt binds to stored bytes:** the decoded sha256 matches the gunzipped stored file and the `.last_sha256` marker. Stored `.gz` bytes embed a timestamp and cannot bind.
-- **A3, the 403/429 stop** (C1 stop rule 4).
-  - Abort the remaining feeds in that run and write a persistent `_receipts/STOP_403_429.json` (time, feed, status).
-  - Every later run refuses with exit code 3 while it exists.
-  - Only Eric's recorded decision removes it.
-  - The watchdog (rank 2) alerts on its presence; this is added there as a check.
+- A2. Receipts are append-only intent/completion pairs for each request actually attempted, under data/leaderboard/static_snapshots/_receipts/<UTC intent date>.jsonl. Both lines repeat a unique run_id and attempt_id plus feed/url. Intent contains started_utc and is durably flushed before network starts. Completion contains ended_utc, monotonic duration_s, HTTP status when observed, outcome/error/completeness, wire_bytes/wire_sha256, decoded_bytes/decoded_sha256, and the observed Date/Last-Modified/ETag/Age/Cache-Control headers. Null denotes unavailable metadata; a partial body is never labelled a complete response. Hash wire bytes before decompression and decoded bytes before validation; the stdlib fetch seam exposes response metadata and body bytes instead of returning only decoded JSON.
+  - A stored completion names an immutable, collision-free relative stored_path, stored byte length and stored sha256; gunzipping those exact stored bytes must reproduce decoded_sha256. Compression timestamps do not prevent binding to stored bytes. Record previous_marker_sha256 and resulting_marker_sha256 at this completion; historical receipts are not required to equal a later current marker.
+  - An unchanged completion names the existing retained stored_path and verifies its decoded hash against the fetched payload; marker equality alone is insufficient. A missing/corrupt retained object is not unchanged success. Pre-instrumentation objects must be verified and explicitly referenced. Failed/invalid responses record available hashes and explicit null storage/marker-result fields, without inventing stored objects. Receipt or storage failure never certifies availability. Reader acceptance checks intent/completion identity and times, content binding and state transitions from the consumed bytes.
+- A3. A stdlib single-writer lock covers preflight, request scheduling, receipt writes, dedupe and stop/marker updates. Every invocation checks the persistent stop under that lock before any request and rechecks before each later feed. Native urllib HTTPError codes 403 and 429, and any equivalent observed response status, are classified before generic fetch/body/validation errors. On observing either, durably record the limit and STOP_403_429.json, abort all remaining requests and exit 3. Do not read an error body before recognizing the stop. Every later invocation refuses with exit 3 while stopped; only Eric's recorded reset decision permits capture resumption. Failure to record required intent/receipt/stop state aborts without further requests and leaves the incomplete attempt unavailable pending explicit reconciliation. No fabricated attempted-fetch receipt is written for skipped feeds.
+- Add W-capture-stop to rank 2 with a planted-stop positive alert and absent-stop no-alert control. C1 research execution also refuses while this stop is unresolved and the cycle has not been resumed by Eric; an alert alone does not satisfy the cycle-level pause. This integration gets its own production-code review/approval where applicable.
 - **A4, cadence:** unchanged, every 30 minutes, now registered. **Limit:** pre-lock availability can be shown only to within one capture interval.
 - **A5:** keep the module stdlib-only, as now.
 - **A6, User-Agent:** refresh the browser User-Agent string before the 2027 season (a checklist item). The current string will be over a year old.
 
 **Gate:**
-- **Tests first** (`tests/leaderboard/test_static_capture.py` harness, injected fetch). Each must fail before the code exists:
-  - one receipt pair for each outcome;
-  - a decoded-sha binding to a stored `.gz`;
-  - an intent line left behind by a simulated crash;
-  - a 403 and a 429 each writing the stop marker and aborting the run;
-  - a later run refusing while the marker exists;
-  - unchanged fetches still receipted.
-- **Then:** deploy-gating Codex review until SIGN, Eric's D7 approval, and a deploy inside a sleep window.
-- **After the deploy, on the box:** one receipt pair per feed from the next cron run.
+Red/green tests cover every outcome's correctly paired receipt, native urllib 403 and 429 paths through the transport seam, plain and wire-gzipped responses, wire/decoded/stored digest distinctions, unchanged-object references, missing/corrupt dedupe objects, marker transitions, intent-only crash, receipt/storage failure, abort of remaining feeds, refusal on the next invocation, and serialized competing invocations. All use synthetic bodies/clocks and patched transport. After production-code SIGN, Eric's D7 approval and deploy/canary checks, verify the next cron's attempted-feed receipt pairs and retained-byte binding. No live rate-limit probe is authorized.
 
 ## Part B. Can the all-player `probabilityStarter` be bound to a game? (outcome-free; decided before any 2027 outcome)
 **What is known:**
@@ -63,21 +45,13 @@ It is still running: `players` has 3,788 stored versions, the latest on 10/04.
 - `most_selected_players` rows carry a `roundId` and cover today's and tomorrow's rounds.
 - Nothing in the repo shows when the all-player value rolls over or how it treats doubleheaders.
 
-**The check:**
-- **Data:** the stored 2026 captures, 7/04–9/27.
-- **Pairing:** each stored `players` capture is paired with the latest stored `most_selected_players` capture at or before it. Each player present in both is classified as matching:
-  - today's round row exactly;
-  - tomorrow's round row exactly;
-  - both (equal values);
-  - or neither.
-- **Rollover:** per date, the earliest capture at which the all-player value switches from matching today's round to matching tomorrow's.
-- **Doubleheaders:** a player with two games in one round cannot be bound to a game, so those players are counted and excluded, as in W2.3.
+The one outcome-free 2026 read is a concordance diagnostic, not a Bindable gate. Pin an X-33 input manifest covering both plain/gzipped sheets and the required rounds/player/unit/schedule identity sources for 7/04–9/27. No outcome, grade, hit/miss or blend fit is read. The run is still declared 0.5 CPU-hours through the launcher.
 
-**Decision rule, fixed now:**
-- **Bindable:** at least **99%** of comparable (player, capture) pairs match exactly one round, *and* that round is a fixed function of capture time on at least **95%** of dates (one rollover rule).
-- **Otherwise not bindable:** any later rank-1 rule stays restricted to the most-selected sheet's coverage.
+Pair each stored players sheet with the latest whole most-selected sheet at or before its run-start stamp, without substituting older rows to obtain a match. Validate typed player/round identities, duplicates/conflicts and probabilities before comparison. Resolve dated rounds and report exact today-only, tomorrow-only, both, neither, missing-today, missing-tomorrow, invalid and unmapped counts. Exact-one discrimination requires both round values to be observed, valid and distinct; missing values do not count as inequality. Report player/date coverage, stale reference-sheet ages and all missing dates. Report the observed intervals containing match changes, not exact rollover times; deduped run-start stamps do not witness every successful fetch or synchronous provider rollover.
 
-**Exposure:** no outcome is read. A register row (X-33) is still published before the run, because X-23 excluded this field.
+The 99% exact-one and 95% date-consistency figures are descriptive screens only. No rollover cutoff or unrestricted time function selected on these same captures passes an identity gate. Agreement on most-selected players does not establish the rule for unlisted players. Without independent, outcome-free evidence binding the broader field to a round for the intended players and times, disposition is not established and later rank-1 work remains most-selected-only. Even a resolved round requires complete, contradiction-free player/squad/unit/schedule evidence for unique-game inference; unknown multiplicity, doubleheaders and ambiguous rows remain unavailable. Label inferred links as inferred, never witnessed. Provider target and eligibility remain independent open prerequisites; receipts establish retrieval only.
+
+Publish X-33 before any new field read because X-23 excluded it. Receipt-only instrumentation has no outcome exposure; the historical concordance diagnostic does. This registration authorizes no new acquisition to resolve a missing identity contract and no blend. Any later proposed positive broader-sheet binding contract must be independently specified and reviewed before outcomes rather than inferred from favorable concordance percentages.
 
 **Execution:** the code in `scripts/audit/c1_r1/` is written test-first and runs on the box through the C1 launcher (`c1-r1-binding`), **declared 0.5 CPU-hours**. It reads both `.json` and `.json.gz`.
 
@@ -88,4 +62,11 @@ No blend, no weights, no outcome read, no new authenticated traffic. Rank 1's la
 - **Availability, not freshness:** receipts witness retrieval availability, not the provider's model-generation age.
 - **Coarse timing:** 30-minute cadence.
 - **Run-start stamps:** file names stay run-start stamps; receipts give per-feed times.
-- **The binding check uses 2026 captures:** if MLB changes the sheet's behaviour in 2027, it must be re-run on early-2027 captures before any 2027 outcome is read.
+- Changes in 2027 sheet behavior invalidate carried identity assumptions. Before broader-sheet use, independently resolve and freeze its outcome-free identity/target contract on admissible sources; no retrospective outcome fit selects that contract.
+
+## Freeze manifest and cross-design rules (trio review X-E1)
+Before each authorized fitting/evaluation/diagnostic run, publish the appropriate exposure row and an outcome-free freeze manifest: reviewed registration/code commit and hashes; old serving recipe, model-training/retraining schedule, active blend and aggregation/fallback definitions; configuration/environment including calibration/deterministic/seed flags; fixed calendar/as-of/eligibility rules; and count/identity/reader artifacts as applicable. Future forecast/model/input hashes are recorded with each immutable capture. Pin/hash the exact consumed fitting/outcome/input bytes at the declared freeze, and parse those same bytes. A missing pin, mismatched hash, unsupported schema or unregistered recipe change refuses acceptance; naming a directory is not a pin. Ordinary model retraining under the frozen schedule is allowed and its artifact hashes are recorded. A recipe change does not trigger a post-result refit, window reset or silent pooling; it is reported and the affected study is inconclusive pending a separately approved prospective registration.
+
+X-32 covers 4a's fit and test; X-34 covers rank 3's historical fitting and prospective evaluation; X-33 covers only the outcome-free broader-field/identity diagnostic. The index distinguishes X-33 from receipt-only capture. These rows are published before their respective reads, with no 2026 candidate outcome test. All new artifacts/readers preserve both plain and gzipped static input support and the declared missingness/fallback rules.
+
+Each forecast study has one fixed primary comparison and its declared regression gate. Their shared dates create dependent evidence, not replication; secondary metrics are descriptive and cannot select another map/count specification or a combination. Keep 4a, rank 3 and 4b comparisons separate under D2. No fitted 4a output is supplied to rank 3 and no rank-3 output is supplied to 4a. Independent result acceptance and Eric's D7 approval precede any named production change; applicable policy replay and D1 trade approval remain separate. The approved C1 launcher, cumulative caps, sleep-window/production-safety and calendar stops apply. An unresolved rank-1 403/429 stop pauses C1 until Eric's recorded resumption and keeps capture separately disabled until his recorded reset.

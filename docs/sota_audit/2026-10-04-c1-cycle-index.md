@@ -20,10 +20,10 @@
 | Candidate | Registration | Exposure row | Gate before picks change | Status |
 |---|---|---|---|---|
 | 2: outcome / entry / restart watchdog | `docs/sota_audit/2026-10-04-prereg-c1-watchdog.md` | — (ops: no outcome read) | failure/recovery fixtures red→green; deploy-gating review SIGN; D7 | design rev 1 (`b12084d`) in Codex design review r1 |
-| 4a: calibration map | `docs/sota_audit/2026-10-04-prereg-c1-calibration.md` | to publish before any 2027 outcome | held-out proper-score improvement on the registered 2027 split; independent acceptance; D7; a separate boundary check before it changes play | design rev 1 drafted; Codex review next |
-| 3: plate-appearance count model | `docs/sota_audit/2026-10-04-prereg-c1-pa-count.md` | to publish before any 2027 outcome | earlier-fit / later-untouched proper scores; independent acceptance; D7 | design rev 1 drafted; Codex review next |
+| 4a: calibration map | `docs/sota_audit/2026-10-04-prereg-c1-calibration.md` | X-32 (fit and test), published before the first 2027 read | held-out proper-score improvement on the registered 2027 split; independent acceptance; D7; a separate boundary check before it changes play | **design FROZEN** (trio r1 SIGN WITH EDITS) |
+| 3: plate-appearance count model | `docs/sota_audit/2026-10-04-prereg-c1-pa-count.md` | X-34 (historical fit and prospective evaluation), published before those reads | earlier-fit / later-untouched proper scores; independent acceptance; D7; the June-null kill condition stays open unless a separate downstream test closes it | design rev 2 in Codex round 2 (r1 BLOCK) |
 | 4b: longest-streak policy (D1 Option 2) | `docs/sota_audit/2026-10-04-prereg-c1-longest-streak-policy.md` | to publish before any outcome-bearing replay | Eric's trade table (chance of 57 given up against expected longest streak gained, realized-sequence replay) approved under D7; tail/base pairing (checklist A2) | design rev 1 (`12ac1c4`) in Codex design review r1 |
-| Rank-1 prerequisites (no blend) | `docs/sota_audit/2026-10-04-prereg-c1-mlb-capture.md` | — (capture only) | receipts bound to response bytes from the first 2027 capture; the all-player binding decided before any 2027 outcome | design rev 1 drafted; Codex review next |
+| Rank-1 prerequisites (no blend) | `docs/sota_audit/2026-10-04-prereg-c1-mlb-capture.md` | none for receipt-only capture; X-33 for the outcome-free 2026 concordance diagnostic, published before it runs | receipts bound to retained bytes from the first 2027 capture; all-player binding reported as **not established** unless independent evidence exists | design rev 2 in Codex round 2 (r1 BLOCK) |
 
 ## Compute ledger
 | Date | CPU-hours used (cumulative) | Note |
