@@ -53,15 +53,24 @@ REGISTRATION = {
     "lock_rule": "selection row, commit_status committed_evidenced, finalization decision|pick_file_only",
     "settlement_rule": "contest slot grade via evidenced unit_capture or inferred unique scheduled game; contest "
                        "slot row must carry the same selection, batter and game; void void; else unknown",
-    "consensus_rule": "distinct users by batter_id; DD = mode excluding the chosen primary; original slot "
-                      "denominator; ties lowest id, flagged direct/exposed/dependent; settlement from the legal id's "
-                      "voters: one unit, agreeing settled labels, else unknown/pending",
-    "surface_admission": "independent witness binding the file sha256 + candidate universe, lineup assumptions, "
+    "consensus_rule": "latest capture stamp per user and slot chosen without outcome labels; a vote needs one valid "
+                      "batter id at that stamp; distinct users by batter_id; DD = mode excluding the chosen primary; "
+                      "original slot denominator; ties lowest id, flagged direct/exposed/dependent (dependence also "
+                      "when the legal DD is unavailable); settlement from the legal id's voters' paired (unit, "
+                      "result) evidence: a settled label needs its own unit, one unit, agreeing settled labels, else "
+                      "unknown/pending",
+    "surface_admission": "complete production selection identity (batter, game, stated probability) and an "
+                         "independent witness binding the file sha256 + candidate universe, lineup assumptions, "
                          "feature computation, prediction timestamp <= lock; selection-consistent; else "
                          "missing_surface",
+    "execution": "inputs read once into a hashed byte snapshot and parsed only from it; consumed hashes must equal "
+                 "the manifest before COMPLETE; the manifest (inputs with explicit optional-input status, "
+                 "registration, mode, documents, relevant code) is persisted before any loader; registered mode: "
+                 "clean relevant code, one completed run per output location, a retry only of a failed attempt and "
+                 "bound to its manifest with identical inputs, registration, mode, documents and code",
     "served_slate_diagnostic": "computed, labelled unproven, outside the family and nomination stream",
 }
-REGISTRATION_FINGERPRINT = "70a45bfd33defe56fedcad04cac1258f23cbb8acb9eb9135a74c243bc0116b2e"
+REGISTRATION_FINGERPRINT = "31e7c791be80bdbf1fc00abf9647050db3f48df01407057bd4562f8ccb7569a5"
 
 OVERRIDABLE = ("window_start", "window_end", "seed", "n_bootstrap", "expected_block_length", "snapshot_file")
 

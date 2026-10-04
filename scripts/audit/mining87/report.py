@@ -234,8 +234,10 @@ METHODOLOGY = {
     "sensitivity": "the tie-excluded stream is diagnostic and cannot nominate",
     "power_limited_at_current_sample_size": True,
     "partial_or_source_invalid_runs_cannot_falsify_nomination_capacity": True,
-    "retries": "a technical retry uses identical frozen inputs and methods (--expect-inputs) without results "
-               "inspection; changed dates, cohort or methods after inspection are exploratory",
+    "retries": "a technical retry of a failed registered attempt is bound to that attempt's persisted manifest "
+               "(--expect-inputs) with identical inputs, registration, mode, documents and code, without results "
+               "inspection; a completed registered run is not retried; changed dates, cohort or methods after "
+               "inspection are exploratory",
     "absence_of_found_mechanism_falsifies_current_data_nomination_capacity_only": True,
     "public_window_ends_2026_07_03": "half a season (the daily corpus ends 7/04)",
 }
