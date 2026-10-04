@@ -111,19 +111,13 @@ def half_contrast_bootstrap(per_date: pd.DataFrame, first: list[str], second: li
         sb = b.iloc[rng.choice(len(b), size=len(b), replace=True)]
         for k, f in stats.items():
             draws[k][i] = f(sa, sb)
-    out = {}
-    for k, v in draws.items():
-        ok = v[np.isfinite(v)]
-        out[k] = {"lo": float(np.percentile(ok, 2.5)) if len(ok) else float("nan"),
-                  "hi": float(np.percentile(ok, 97.5)) if len(ok) else float("nan"),
-                  "n_ok": int(len(ok)), "n_failed": int(n_resamples - len(ok)), "seed": seed, "n_resamples": n_resamples}
-    return out
+    return {k: m.collect(v, n_resamples, seed) for k, v in draws.items()}
 
 
 def directional_flag(interval: dict) -> str:
     """Design §3 failure rule: a flag needs every draw defined. Wholly positive → consistent; wholly negative →
     contradicting; zero inclusion → undetermined. Pointwise and unadjusted; never equivalence."""
-    if interval.get("n_failed", 1) > 0 or not interval.get("n_ok"):
+    if interval.get("n_failed", 1) > 0 or not interval.get("n_ok") or interval.get("lo") is None:
         return "unavailable"
     if interval["lo"] > 0:
         return "consistent"

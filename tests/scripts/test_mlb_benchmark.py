@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from scripts.audit.mlb_benchmark import core
+from scripts.audit.mlb_benchmark import metrics as m
 
 
 def _caps():
@@ -127,23 +128,34 @@ def test_prepare_date_links_through_the_sheets_at_the_forecast_stamp_and_counts_
     slate = pd.DataFrame({"date": ["2026-07-05"] * 3, "row_order": [0, 1, 2], "batter_id": [701, 703, 704],
                           "game_pk": [100, 300, 400], "D": [0.8, 0.7, 0.6]})
     out, cov = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T16:00:00Z"), slate, msp,
-                                lambda feed, stamp: run.latest_at(
-                                    {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                lambda feed, stamp: (*run.latest_at(
+                                    {"rounds": rounds, "players": players, "units": units}[feed], stamp), "sha"),
                                 sched_pks={100, 300})
     assert list(out["link_status"]) == ["inferred_unique_game", "inferred_unique_game", "not_listed"]
-    assert cov["invalid_probability"] == 1 and cov["forecast_stamp"] == "2026-07-05T14:00:00Z"
+    assert cov["forecast_counts"]["invalid_probability"] == 1 and cov["forecast_stamp"] == "2026-07-05T14:00:00Z"
+    assert out.loc[0, "mlb_player_id"] == 1 and out.loc[0, "mlb_squad_id"] == 11 and out.loc[0, "mlb_round_id"] == 10
+    assert out.loc[0, "src_players"] == "2026-07-05T13:30:00Z:sha" and pd.isna(out.loc[2, "mlb_player_id"])
     assert list(out["mlb_n_sel"].fillna(-1)) == [9, 2, -1]
     assert out.loc[0, "mlb_unchanged_since"] == "2026-07-05T14:00:00Z"
     incomplete, cov2 = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T16:00:00Z"), slate, msp,
-                                        lambda feed, stamp: run.latest_at(
-                                            {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                        lambda feed, stamp: (*run.latest_at(
+                                            {"rounds": rounds, "players": players, "units": units}[feed], stamp), "sha"),
                                         sched_pks={100, 300, 500})
     assert set(incomplete["link_status"]) == {"multiplicity_unknown", "not_listed"} and cov2["units_complete"] is False
     none, cov3 = run.prepare_date("2026-07-05", pd.Timestamp("2026-07-05T13:00:00Z"), slate, msp,
-                                  lambda feed, stamp: run.latest_at(
-                                      {"rounds": rounds, "players": players, "units": units}[feed], stamp),
+                                  lambda feed, stamp: (*run.latest_at(
+                                      {"rounds": rounds, "players": players, "units": units}[feed], stamp), "sha"),
                                   sched_pks={100, 300})
     assert cov3["excluded"] == "no_forecast_sheet" and none.empty
+
+
+def _accept(w12):
+    import hashlib
+    import json as _json
+    if not (w12 / "manifest.json").exists():
+        (w12 / "manifest.json").write_text("{}")
+    files = {n: hashlib.sha256((w12 / n).read_bytes()).hexdigest() for n in ("table.parquet", "summary.json", "manifest.json")}
+    (w12 / "ACCEPTED.json").write_text(_json.dumps({"files": files, "memo": "synthetic"}))
 
 
 def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
@@ -177,6 +189,7 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     w12 = tmp_path / "w12"; w12.mkdir()
     pd.DataFrame(rows).to_parquet(w12 / "table.parquet")
     (w12 / "summary.json").write_text(_json.dumps({"day_meta": day_meta}))
+    _accept(w12)
     snaps = tmp_path / "data" / "leaderboard" / "static_snapshots"
     feeds = {"most_selected_players": ("mostSelectedPlayers", msp), "units": ("units", units),
              "rounds": ("rounds", {"20260701T000000Z": [{"id": 100 + k, "date": f"{d}T00:00:00Z"}
@@ -195,3 +208,112 @@ def test_main_runs_end_to_end_on_synthetic_inputs(tmp_path, monkeypatch):
     assert res["coverage"]["link_status"] == {"inferred_unique_game": 60}
     assert prim["encompassing_T2"]["point"]["available"] in (True, False)
     assert res["recency"]["sheet_to_written_at_minutes"]["mean"] == 60.0
+
+
+# --- code review r1 (F1, F3, F9) -------------------------------------------------------------------------------------
+
+def test_a_round_id_mapped_to_two_dates_is_a_conflict_not_a_resolution():
+    rounds = [{"id": 100, "date": "2026-07-05T00:00:00Z"}, {"id": 100, "date": "2026-07-06T00:00:00Z"}]
+    assert core.round_for_date(rounds, "2026-07-05") == (None, "conflicting_round")
+
+
+def test_contradictory_unit_rows_make_the_round_conflicted():
+    units = [{"id": 99, "feedId": 9000, "roundId": 10, "homeSquadId": 1, "awaySquadId": 2},
+             {"id": 99, "feedId": 9001, "roundId": 10, "homeSquadId": 3, "awaySquadId": 4}]
+    assert core.unit_conflicts(units, 10) == 1
+    same = [units[0], dict(units[0])]
+    assert core.unit_conflicts(same, 10) == 0
+    game_twice = [{"id": 1, "feedId": 9000, "roundId": 10, "homeSquadId": 1, "awaySquadId": 2},
+                  {"id": 2, "feedId": 9000, "roundId": 10, "homeSquadId": 5, "awaySquadId": 6}]
+    assert core.unit_conflicts(game_twice, 10) == 1
+
+
+def test_duplicates_are_resolved_on_the_raw_sheet_before_probability_validity():
+    caps = [("2026-07-05T14:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.6},
+                                      {"roundId": 10, "playerId": 1, "probabilityStarter": 1.2},
+                                      {"roundId": 10, "playerId": 2, "probabilityStarter": 1.5},
+                                      {"roundId": 10, "playerId": 3, "probabilityStarter": 0.7}])]
+    fc, counts = core.forecasts_counted(caps, ROUNDS, {1: 701, 2: 702, 3: 703}, "2026-07-05",
+                                        pd.Timestamp("2026-07-05T15:00:00Z"))
+    assert set(fc) == {703} and counts["duplicate_player"] == 1 and counts["invalid_probability"] == 1
+
+
+def test_schema_validation_separates_a_valid_empty_sheet_from_an_invalid_one():
+    from scripts.audit.mlb_benchmark import run
+    assert run.validate_sheet({"mostSelectedPlayers": []}, "mostSelectedPlayers") == []
+    assert run.validate_sheet({"unexpected": []}, "mostSelectedPlayers") is None
+    assert run.validate_sheet({"mostSelectedPlayers": {"a": 1}}, "mostSelectedPlayers") is None
+    assert run.validate_sheet({"mostSelectedPlayers": [1, 2]}, "mostSelectedPlayers") is None
+
+
+def _synthetic_inputs(tmp_path, msp_items=None, extra_msp=None):
+    import gzip
+    import json as _json
+    d = "2026-07-05"
+    rows = [{"date": d, "row_order": j, "batter_id": 700 + j, "game_pk": 9000 + j, "D": 0.7,
+             "sel_state": "selection_consistent", "pool_verified": True, "pool_surrogate": True, "pool_all": True,
+             "outcome": "no_pa"} for j in range(2)]
+    w12 = tmp_path / "w12"; w12.mkdir(parents=True)
+    pd.DataFrame(rows).to_parquet(w12 / "table.parquet")
+    (w12 / "summary.json").write_text(_json.dumps({"day_meta": [{"date": d, "written_at": f"{d}T16:00:00+00:00"}]}))
+    _accept(w12)
+    snaps = tmp_path / "data" / "leaderboard" / "static_snapshots"
+    msp = {"20260705T140000Z": {"mostSelectedPlayers": msp_items if msp_items is not None else
+                                [{"roundId": 10, "playerId": j + 1, "probabilityStarter": 0.6, "numberSelections": 1}
+                                 for j in range(2)]}}
+    msp.update(extra_msp or {})
+    sheets = {"most_selected_players": msp,
+              "rounds": {"20260701T000000Z": {"rounds": [{"id": 10, "date": f"{d}T00:00:00Z"}]}},
+              "players": {"20260701T000000Z": {"players": [{"id": j + 1, "feedId": 700 + j, "squadId": j + 1} for j in range(2)]}},
+              "units": {"20260701T000000Z": {"units": [{"id": 50 + j, "feedId": 9000 + j, "roundId": 10,
+                                                         "homeSquadId": j + 1, "awaySquadId": 20 + j} for j in range(2)]}}}
+    for feed, by_stamp in sheets.items():
+        (snaps / feed).mkdir(parents=True)
+        for stamp, doc in by_stamp.items():
+            (snaps / feed / f"{stamp}.json.gz").write_bytes(gzip.compress(_json.dumps(doc).encode()))
+    sched = tmp_path / "sched"; sched.mkdir()
+    (sched / f"{d}.json").write_text(_json.dumps({"dates": [{"date": d, "games": [
+        {"gamePk": 9000 + j, "status": {}, "teams": {"home": {"team": {"abbreviation": f"H{j}"}},
+                                                      "away": {"team": {"abbreviation": f"A{j}"}}}} for j in range(2)]}]}))
+    return w12, tmp_path / "data", sched
+
+
+def _run(tmp_path, monkeypatch, **kw):
+    import json as _json
+    from scripts.audit.mlb_benchmark import run
+    monkeypatch.setattr(run, "x23_gate", lambda: "f" * 40)
+    w12, data, sched = _synthetic_inputs(tmp_path, **kw)
+    assert run.main(["--w12-run", str(w12), "--data-root", str(data), "--schedules", str(sched),
+                     "--out", str(tmp_path / "out"), "--n-resamples", "20"]) == 0
+    out = next((tmp_path / "out").glob("*"))
+    return _json.loads((out / "results.json").read_text()), _json.loads((out / "manifest.json").read_text())
+
+
+def test_an_all_no_pa_stratum_and_empty_forecast_support_still_write_a_report(tmp_path, monkeypatch):
+    res, _ = _run(tmp_path, monkeypatch)
+    prim = res["strata"]["selection_consistent/pool_verified"]
+    assert prim["T2"]["available"] is False and prim["encompassing_T2"]["point"]["available"] is False
+    res2, _ = _run(tmp_path / "b", monkeypatch, msp_items=[])
+    assert res2["coverage"]["per_date"][0]["excluded"] == "no_target_round_rows"
+    assert res2["strata"]["selection_consistent/pool_verified"]["reason"] == "no_joined_rows"
+
+
+def test_a_newer_schema_invalid_forecast_sheet_is_skipped_and_every_consumed_file_is_hashed(tmp_path, monkeypatch):
+    res, man = _run(tmp_path, monkeypatch, extra_msp={"20260705T150000Z": {"unexpected": []}})
+    assert res["coverage"]["invalid_forecast_sheets"] == ["20260705T150000Z.json.gz"]
+    assert pd.Timestamp(res["coverage"]["per_date"][0]["forecast_stamp"]) == pd.Timestamp("2026-07-05T14:00:00Z")
+    assert set(man["feeds"]["players"]) == {"20260701T000000Z.json.gz"}
+    assert len(man["feeds"]["players"]["20260701T000000Z.json.gz"]["sha256"]) == 64
+    assert set(man["w12_accepted_files"]) == {"table.parquet", "summary.json", "manifest.json", "ACCEPTED.json"}
+
+
+def test_encompassing_draw_failures_make_the_interval_unavailable(monkeypatch):
+    from scripts.audit.mlb_benchmark import run
+    df = pd.DataFrame({"date": ["d1"] * 3 + ["d2"] * 3, "ours": [0.6, 0.7, 0.8] * 2, "mlb": [0.65, 0.6, 0.85] * 2,
+                       "outcome": ["no_hit"] * 3 + ["hit"] * 3, "row_order": [0, 1, 2] * 2,
+                       "batter_id": range(6), "game_pk": range(6)})
+    monkeypatch.setattr(m, "encompassing", lambda x: {"available": True, "coef_mlb": 0.1, "delta_log_loss": -0.01}
+                        if x["outcome"].nunique() > 1 else {"available": False, "reason": "one_class"})
+    out = run.score_encompassing(df, n_resamples=200)
+    iv = out["intervals"]["coef_mlb"]
+    assert iv["n_failed"] > 0 and iv["lo"] is None and iv["failure_reasons"] == {"one_class": iv["n_failed"]}

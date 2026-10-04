@@ -96,6 +96,22 @@ def disagreement(df: pd.DataFrame, a: str, b: str, t: str, block: str = "_block"
     return {"dates": list(diff[col]), **_paired(diff, t, a, b, col)}
 
 
+def collect(draws: np.ndarray, n_resamples: int, seed: int, reasons: dict | None = None) -> dict:
+    """The failure policy for every fixed-draw interval (code review r1 F2): all draws are kept; if any draw failed
+    the nominal interval is unavailable (``lo``/``hi`` None) and the percentile interval over successful draws is
+    published only under the separate ``conditional_*`` names, which never supply a flag."""
+    ok = draws[np.isfinite(draws)]
+    n_failed = int(n_resamples - len(ok))
+    cond = ((float(np.percentile(ok, 2.5)), float(np.percentile(ok, 97.5))) if len(ok) else (None, None))
+    out = {"n_resamples": n_resamples, "seed": seed, "n_ok": int(len(ok)), "n_failed": n_failed,
+           "status": "ok" if n_failed == 0 else ("unavailable_failed_draws" if len(ok) else "unavailable_no_draws"),
+           "lo": cond[0] if n_failed == 0 else None, "hi": cond[1] if n_failed == 0 else None,
+           "conditional_lo": cond[0], "conditional_hi": cond[1]}
+    if reasons:
+        out["failure_reasons"] = reasons
+    return out
+
+
 def block_bootstrap_many(df: pd.DataFrame, stats: dict, n_resamples: int = 10_000, seed: int = 20261004) -> dict:
     """Whole dates resampled with replacement, every statistic in ``stats`` computed on the same draws. Draw copy k
     of a date gets block id k, so equal-date statistics weight every copy. NaN/inf draws are failures, counted per
@@ -109,14 +125,7 @@ def block_bootstrap_many(df: pd.DataFrame, stats: dict, n_resamples: int = 10_00
         sample = pd.concat([groups[d].assign(_block=k) for k, d in enumerate(pick)], ignore_index=True)
         for k, f in stats.items():
             draws[k][i] = f(sample)
-    out = {}
-    for k, v in draws.items():
-        ok = v[np.isfinite(v)]
-        out[k] = {"lo": float(np.percentile(ok, 2.5)) if len(ok) else float("nan"),
-                  "hi": float(np.percentile(ok, 97.5)) if len(ok) else float("nan"),
-                  "n_ok": int(len(ok)), "n_failed": int(n_resamples - len(ok)), "seed": seed,
-                  "n_resamples": n_resamples}
-    return out
+    return {k: collect(v, n_resamples, seed) for k, v in draws.items()}
 
 
 def summary_bootstrap(per_date: pd.DataFrame, stats: dict, n_resamples: int = 10_000, seed: int = 20261004) -> dict:
@@ -132,14 +141,7 @@ def summary_bootstrap(per_date: pd.DataFrame, stats: dict, n_resamples: int = 10
         sample = per_date.iloc[pick]
         for k, f in stats.items():
             draws[k][i] = f(sample)
-    out = {}
-    for k, v in draws.items():
-        ok = v[np.isfinite(v)]
-        out[k] = {"lo": float(np.percentile(ok, 2.5)) if len(ok) else float("nan"),
-                  "hi": float(np.percentile(ok, 97.5)) if len(ok) else float("nan"),
-                  "n_ok": int(len(ok)), "n_failed": int(n_resamples - len(ok)), "seed": seed,
-                  "n_resamples": n_resamples}
-    return out
+    return {k: collect(v, n_resamples, seed) for k, v in draws.items()}
 
 
 def block_bootstrap(df: pd.DataFrame, stat: Callable[[pd.DataFrame], float], n_resamples: int = 10_000,

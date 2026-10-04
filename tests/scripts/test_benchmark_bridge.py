@@ -303,3 +303,21 @@ def test_history_slice_on_a_date_sorted_frame_equals_the_masked_copy(monkeypatch
     shuffled = df.iloc[[2, 0, 3, 1]]                 # not date-sorted: the masked copy path, same rows in frame order
     h2, _, _ = core.history_and_lookups("2026-06-03", shuffled)
     pd.testing.assert_frame_equal(h2, shuffled[shuffled["date"] < pd.Timestamp("2026-06-03")])
+
+
+def test_read_accepted_run_returns_the_verified_bytes_and_refuses_a_mismatch(tmp_path):
+    import hashlib
+    import json
+    import pytest
+    for name, body in (("table.parquet", b"T"), ("summary.json", b"{}"), ("manifest.json", b"{}")):
+        (tmp_path / name).write_bytes(body)
+    files = {n: hashlib.sha256((tmp_path / n).read_bytes()).hexdigest()
+             for n in ("table.parquet", "summary.json", "manifest.json")}
+    with pytest.raises(SystemExit):
+        core.read_accepted_run(tmp_path)                      # no ACCEPTED.json: not an accepted run
+    (tmp_path / "ACCEPTED.json").write_text(json.dumps({"files": files, "memo": "m"}))
+    got, acc = core.read_accepted_run(tmp_path)
+    assert got["table.parquet"] == b"T" and acc["memo"] == "m" and "ACCEPTED.json" in got
+    (tmp_path / "summary.json").write_bytes(b'{"x": 1}')
+    with pytest.raises(SystemExit):
+        core.read_accepted_run(tmp_path)

@@ -19,6 +19,46 @@ def latest_sheet(captures: list[tuple], round_dates: dict, date: str, cutoff: pd
     return stamp, [r for r in rows if round_dates.get(r.get("roundId")) == date]
 
 
+def valid_p(v) -> bool:
+    import math
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and 0.0 <= v <= 1.0
+
+
+def forecasts_counted(captures: list[tuple], round_dates: dict, players: dict, date: str, cutoff: pd.Timestamp):
+    """``forecasts_asof`` with its exclusions counted (code review r1 F1): duplicate player rows are resolved on the
+    raw sheet BEFORE probability validity (a player listed twice is excluded whatever its values), then invalid
+    probabilities, unmapped players and two players mapping to one batter are excluded and counted."""
+    stamp, rows = latest_sheet(captures, round_dates, date, cutoff)
+    counts = {"rows": len(rows), "duplicate_player": 0, "invalid_probability": 0, "unmapped_player": 0,
+              "batter_conflict": 0, "invalid_identity": 0}
+    by_pid: dict = {}
+    for r in rows:
+        if not _int(r.get("playerId")) or not _int(r.get("roundId")):
+            counts["invalid_identity"] += 1
+            continue
+        by_pid.setdefault(r["playerId"], []).append(r)
+    out: dict = {}
+    for pid, rs in by_pid.items():
+        if len(rs) > 1:
+            counts["duplicate_player"] += 1
+            continue
+        r = rs[0]
+        if not valid_p(r.get("probabilityStarter")):
+            counts["invalid_probability"] += 1
+            continue
+        bid = players.get(pid)
+        if bid is None:
+            counts["unmapped_player"] += 1
+            continue
+        if int(bid) in out:
+            out[int(bid)] = None
+            counts["batter_conflict"] += 1
+            continue
+        out[int(bid)] = {"p": float(r["probabilityStarter"]), "n_sel": r.get("numberSelections"),
+                         "captured_at": stamp, "round_id": r.get("roundId"), "player_id": pid}
+    return {k: v for k, v in out.items() if v is not None}, counts
+
+
 def forecasts_asof(captures: list[tuple], round_dates: dict, players: dict, date: str, cutoff: pd.Timestamp) -> dict:
     """batter_id → {p, n_sel, captured_at, round_id} from ``latest_sheet`` only."""
     stamp, rows = latest_sheet(captures, round_dates, date, cutoff)
@@ -83,14 +123,44 @@ def join_to_slate(slate: pd.DataFrame, fc: dict, batter_games: dict) -> tuple[pd
     return joined, cov
 
 
+def _int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
 def round_for_date(rounds: list[dict], date: str) -> tuple[int | None, str | None]:
-    """The single round id dated ``date`` in a rounds sheet; zero or several rounds is a conflict, never guessed."""
-    ids = sorted({r["id"] for r in rounds if isinstance(r.get("date"), str) and r["date"][:10] == date})
+    """The single round id dated ``date`` in a rounds sheet. A round id carrying two different dates anywhere in the
+    sheet is a contradiction (code review r1 F1), as are zero or several rounds for the date; none is guessed."""
+    dates_by_id: dict = {}
+    for r in rounds:
+        if _int(r.get("id")) and isinstance(r.get("date"), str):
+            dates_by_id.setdefault(r["id"], set()).add(r["date"][:10])
+    ids = sorted(i for i, ds in dates_by_id.items() if date in ds)
     if not ids:
         return None, "no_round"
+    if any(len(dates_by_id[i]) > 1 for i in ids):
+        return None, "conflicting_round"
     if len(ids) > 1:
         return None, "multiple_rounds"
     return ids[0], None
+
+
+def unit_conflicts(units: list[dict], round_id: int) -> int:
+    """Contradictions among a units sheet's rows for ``round_id``: one unit id with two different mappings, or one
+    game (feedId) listed with two different squad pairs. Any contradiction makes the round's unit universe unusable."""
+    by_unit, by_game, n = {}, {}, 0
+    for u in units:
+        if u.get("roundId") != round_id:
+            continue
+        key = (u.get("feedId"), u.get("roundId"), u.get("homeSquadId"), u.get("awaySquadId"))
+        if _int(u.get("id")):                 # rows without a unit id cannot be compared by id
+            if u["id"] in by_unit and by_unit[u["id"]] != key:
+                n += 1
+            by_unit.setdefault(u["id"], key)
+        pair = (u.get("homeSquadId"), u.get("awaySquadId"))
+        if u.get("feedId") in by_game and by_game[u.get("feedId")] != pair:
+            n += 1
+        by_game.setdefault(u.get("feedId"), pair)
+    return n
 
 
 def player_lookup(players: list[dict]) -> tuple[dict, dict, list]:
@@ -100,7 +170,9 @@ def player_lookup(players: list[dict]) -> tuple[dict, dict, list]:
     conflicts = set()
     for p in players:
         pid = p.get("id")
-        val = (p.get("feedId"), p.get("squadId"))
+        if not _int(pid):
+            continue
+        val = (p.get("feedId") if _int(p.get("feedId")) else None, p.get("squadId") if _int(p.get("squadId")) else None)
         if pid in seen and seen[pid] != val:
             conflicts.add(pid)
         seen.setdefault(pid, val)

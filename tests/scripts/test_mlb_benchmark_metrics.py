@@ -107,3 +107,20 @@ def test_summary_bootstrap_equals_the_copy_block_bootstrap_for_equal_date_means(
     per_date = df.groupby("date").apply(lambda g: m.brier_rows(g["ours"], g["y"])).rename("b").to_frame()
     summ = m.summary_bootstrap(per_date, {"b": lambda s: s["b"].mean()}, n_resamples=500, seed=11)["b"]
     assert math.isclose(rows["lo"], summ["lo"]) and math.isclose(rows["hi"], summ["hi"])
+
+
+def test_any_failed_draw_makes_the_interval_unavailable_with_a_separately_named_conditional_interval():
+    df = pd.DataFrame({"date": ["a", "a", "b"], "v": [1.0, 3.0, 10.0]})
+
+    def flaky(x):
+        return float("nan") if (x["date"] == "b").all() else float(x["v"].mean())
+    out = m.block_bootstrap(df, flaky, n_resamples=400, seed=2)
+    assert out["n_failed"] > 0 and out["lo"] is None and out["hi"] is None
+    assert out["status"] == "unavailable_failed_draws"
+    assert out["conditional_lo"] <= out["conditional_hi"]
+    per = pd.DataFrame({"v": [1.0, float("nan"), 3.0]}, index=["a", "b", "c"])
+    s = m.summary_bootstrap(per, {"m": lambda x: x["v"].mean() if x["v"].notna().all() else float("nan")},
+                            n_resamples=200, seed=3)["m"]
+    assert s["lo"] is None and s["status"] == "unavailable_failed_draws"
+    ok = m.summary_bootstrap(per.fillna(2.0), {"m": lambda x: x["v"].mean()}, n_resamples=200, seed=3)["m"]
+    assert ok["status"] == "ok" and ok["lo"] is not None and ok["n_failed"] == 0

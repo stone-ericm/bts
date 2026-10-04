@@ -1,13 +1,14 @@
 """W2.3 MLB forecast benchmark driver (design docs/superpowers/specs/2026-10-04-mlb-forecast-benchmark-design.md rev 3,
-FROZEN). Reads the accepted W1.2 run's table (served D, eligibility pools, selection state, outcomes) and the BTS
-static captures; links MLB's probabilityStarter to the served slate by inference only; scores both forecasters on
-the frozen shared pool. Refuses to run before exposure row X-23 is in HEAD."""
+FROZEN; code review docs/audit/2026-10-04-w13-w23-code-codex-r1.md). Reads the ACCEPTED W1.2 run (verified bytes:
+served D, eligibility pools, selection state, outcomes) and the BTS static captures; links MLB's probabilityStarter to
+the served slate by inference only; scores both forecasters on the frozen shared pool. Every consumed input is read
+once and hashed from the bytes used. Refuses to run before exposure row X-23 is in HEAD."""
 from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
-import math
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -26,6 +27,9 @@ WINDOW_START = "2026-07-04"
 COHORTS = ("selection_consistent", "inconsistent", "no_selection")
 POOLS = ("pool_verified", "pool_surrogate", "pool_all")
 FEEDS = {"most_selected_players": "mostSelectedPlayers", "rounds": "rounds", "players": "players", "units": "units"}
+LIMITS = {"target_semantics": "unresolved: association / target sensitivity only (gate 2)",
+          "timing": "capture stamps are run-start stamps, not receipt times; written_at is the slate's last write",
+          "linkage": "every accepted link is inferred_unique_game, never witnessed"}
 
 
 def log(msg: str) -> None:
@@ -47,6 +51,15 @@ def x23_gate() -> str:
     return head
 
 
+def validate_sheet(doc, key: str):
+    """The sheet's item list if the document is schema-valid (a dict whose ``key`` is a list of dicts); None when it
+    is not. A valid empty list is valid empty support; an invalid document is never selected as the latest sheet."""
+    if not isinstance(doc, dict) or not isinstance(doc.get(key), list):
+        return None
+    items = doc[key]
+    return items if all(isinstance(i, dict) for i in items) else None
+
+
 def latest_at(sheets: dict, stamp) -> tuple:
     """(stamp, items) of the latest stored sheet at or before ``stamp`` from {stamp: items}; (None, None) if none."""
     cut = pd.Timestamp(stamp)
@@ -57,59 +70,92 @@ def latest_at(sheets: dict, stamp) -> tuple:
     return best, sheets[best]
 
 
-def _valid_p(v) -> bool:
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and 0.0 <= v <= 1.0
+class Feed:
+    """One static-capture feed: each file read once, hashed from the bytes read and schema-validated."""
+
+    def __init__(self, directory: Path, key: str):
+        self.key = key
+        self.paths = {stamp_to_utc(p.name): p for p in bridge.capture_files(directory) if stamp_to_utc(p.name)}
+        self.loaded: dict = {}        # stamp -> (items or None, sha256, file name)
+
+    def load(self, stamp):
+        if stamp not in self.loaded:
+            p = self.paths[stamp]
+            raw = p.read_bytes()
+            try:
+                items = validate_sheet(load_json_bytes(raw), self.key)
+            except ValueError:
+                items = None
+            self.loaded[stamp] = (items, hashlib.sha256(raw).hexdigest(), p.name)
+        return self.loaded[stamp]
+
+    def latest_valid_at(self, stamp):
+        """(stamp, items, sha) of the latest schema-valid capture at or before ``stamp``; invalid ones are skipped."""
+        cut = pd.Timestamp(stamp)
+        for s in sorted((s for s in self.paths if pd.Timestamp(s) <= cut), key=pd.Timestamp, reverse=True):
+            items, sha, _ = self.load(s)
+            if items is not None:
+                return s, items, sha
+        return None, None, None
+
+    def used(self) -> dict:
+        return {name: {"sha256": sha, "schema_valid": items is not None} for items, sha, name in self.loaded.values()}
 
 
-def prepare_date(date: str, written_at: pd.Timestamp, slate: pd.DataFrame, msp: list[tuple], sheet_at, sched_pks: set):
-    """One date's as-of join (gate 1). The forecast sheet is the latest stored whole sheet at or before written_at;
-    its run-start stamp is the boundary for the rounds/players/units lookups (A-E2); the round's units must cover
-    the MLB schedule for a unique-game inference. Returns (joined rows, coverage)."""
+def prepare_date(date: str, written_at: pd.Timestamp, slate: pd.DataFrame, msp: list[tuple], sheet_at, sched_pks: set,
+                 msp_sha: dict | None = None):
+    """One date's as-of join (gate 1). The forecast sheet is the latest schema-valid whole sheet at or before
+    written_at; its run-start stamp is the boundary for the rounds/players/units lookups (A-E2, each the latest
+    schema-valid capture at or before it); the round's units must be contradiction-free and cover the MLB schedule
+    before any unique-game inference. Every joined row carries its MLB identities and source hashes."""
+    msp_sha = msp_sha or {}
     cov: dict = {"date": date, "written_at": str(written_at), "excluded": None}
     stamp, _ = core.latest_sheet(msp, {}, date, written_at)
     cov["forecast_stamp"] = stamp
     if stamp is None:
         cov["excluded"] = "no_forecast_sheet"
         return pd.DataFrame(), cov
-    r_stamp, rounds = sheet_at("rounds", stamp)
+    r_stamp, rounds, r_sha = sheet_at("rounds", stamp)
     round_id, why = core.round_for_date(rounds or [], date)
     cov.update(rounds_stamp=r_stamp, round_id=round_id)
     if round_id is None:
         cov["excluded"] = why
         return pd.DataFrame(), cov
-    sheet_rows = [r for r in dict(msp)[stamp] if r.get("roundId") == round_id]
-    cov["invalid_probability"] = sum(1 for r in sheet_rows if not _valid_p(r.get("probabilityStarter")))
-    if not sheet_rows:
+    if not [r for r in dict(msp)[stamp] if r.get("roundId") == round_id]:
         cov["excluded"] = "no_target_round_rows"
         return pd.DataFrame(), cov
-    p_stamp, players = sheet_at("players", stamp)
+    p_stamp, players, p_sha = sheet_at("players", stamp)
     feed, squad, conflicts = core.player_lookup(players or [])
     cov.update(players_stamp=p_stamp, player_conflicts=len(conflicts))
-    valid_msp = [(s, [r for r in rows if _valid_p(r.get("probabilityStarter"))]) for s, rows in msp]
-    fc = core.forecasts_asof(valid_msp, {round_id: date}, feed, date, written_at)
-    u_stamp, units = sheet_at("units", stamp)
-    complete = core.units_complete(units or [], round_id, sched_pks)
-    cov.update(units_stamp=u_stamp, units_complete=complete, n_forecasts=len(fc))
-    games = core.games_by_batter(fc, squad, units or [], round_id) if complete else {b: None for b in fc}
+    fc, fcounts = core.forecasts_counted(msp, {round_id: date}, feed, date, written_at)
+    cov["forecast_counts"] = fcounts
+    u_stamp, units, u_sha = sheet_at("units", stamp)
+    units = units or []
+    n_conf = core.unit_conflicts(units, round_id)
+    complete = core.units_complete(units, round_id, sched_pks)
+    cov.update(units_stamp=u_stamp, units_complete=complete, unit_conflicts=n_conf, n_forecasts=len(fc))
+    games = (core.games_by_batter(fc, squad, units, round_id) if complete and n_conf == 0
+             else {b: None for b in fc})
     joined, link_cov = core.join_to_slate(slate, fc, games)
     cov.update(link_cov)
-    joined["mlb_n_sel"] = [fc[b]["n_sel"] if s == "inferred_unique_game" else np.nan
-                           for b, s in zip(joined["batter_id"], joined["link_status"])]
-    joined["mlb_unchanged_since"] = [core.unchanged_since(valid_msp, stamp, round_id, fc[b]["player_id"])
-                                     if s == "inferred_unique_game" else None
-                                     for b, s in zip(joined["batter_id"], joined["link_status"])]
+    linked = joined["link_status"] == "inferred_unique_game"
+    pid = {b: f["player_id"] for b, f in fc.items()}
+    joined["mlb_player_id"] = [pid.get(b) if ok else None for b, ok in zip(joined["batter_id"], linked)]
+    joined["mlb_squad_id"] = [squad.get(pid.get(b)) if ok else None for b, ok in zip(joined["batter_id"], linked)]
+    joined["mlb_unit_ids"] = [sorted(int(u["id"]) for u in units if u.get("roundId") == round_id
+                                     and squad.get(pid.get(b)) in (u.get("homeSquadId"), u.get("awaySquadId"))
+                                     and core._int(u.get("id"))) if ok else None
+                              for b, ok in zip(joined["batter_id"], linked)]
+    joined["mlb_round_id"] = round_id
+    joined["mlb_n_sel"] = [fc[b]["n_sel"] if ok else np.nan for b, ok in zip(joined["batter_id"], linked)]
+    joined["mlb_unchanged_since"] = [core.unchanged_since(msp, stamp, round_id, fc[b]["player_id"]) if ok else None
+                                     for b, ok in zip(joined["batter_id"], linked)]
     joined["forecast_stamp"] = stamp
+    joined["src_forecast_sha"] = msp_sha.get(stamp)
+    joined["src_rounds"] = f"{r_stamp}:{r_sha}"
+    joined["src_players"] = f"{p_stamp}:{p_sha}"
+    joined["src_units"] = f"{u_stamp}:{u_sha}"
     return joined, cov
-
-
-def _sheets(directory: Path) -> dict:
-    """{stamp: path} for one feed's captures (plain and gzipped)."""
-    return {stamp_to_utc(p.name): p for p in bridge.capture_files(directory) if stamp_to_utc(p.name)}
-
-
-def _load(path: Path, key: str):
-    doc = load_json_bytes(path.read_bytes())
-    return doc.get(key, []) if isinstance(doc, dict) else []
 
 
 def _auc(g: pd.DataFrame, score: str) -> float:
@@ -123,11 +169,13 @@ def _nanmean(s: pd.Series) -> float:
 
 def score_stratum(pool: pd.DataFrame, t: str, n_resamples: int) -> dict:
     """Equal-date proper scores, residual and AUC for both arms under target ``t`` (gate 5), with joint whole-date
-    intervals. Each statistic is a mean over date copies of a per-date value, so the per-date summary is resampled
-    (``m.summary_bootstrap``, identical to the copy-block bootstrap). Single-class dates are omitted from AUC."""
+    intervals over per-date summaries (``m.summary_bootstrap``, identical to the copy-block bootstrap). Single-class
+    dates are omitted from AUC and counted. Native and target-known populations are both reported."""
     tdf = m.target(pool, t)
+    native = {"rows": int(len(pool)), "dates": int(pool["date"].nunique()),
+              "outcomes": pool["outcome"].value_counts().to_dict()}
     if tdf.empty:
-        return {"available": False, "reason": "empty"}
+        return {"available": False, "reason": "no_target_known_rows", "native": native}
     rows = []
     for d, g in tdf.groupby("date", sort=True):
         r = {"date": d, "n": len(g)}
@@ -141,7 +189,7 @@ def score_stratum(pool: pd.DataFrame, t: str, n_resamples: int) -> dict:
         for arm in ("ours", "mlb"):
             stats[f"{arm}_{k}"] = lambda s, c=f"{arm}_{k}": _nanmean(s[c])
         stats[f"diff_{k}"] = lambda s, k=k: _nanmean(s[f"mlb_{k}"]) - _nanmean(s[f"ours_{k}"])
-    return {"available": True, "n_dates": int(len(per_date)), "n_rows": int(len(tdf)),
+    return {"available": True, "native": native, "n_dates": int(len(per_date)), "n_rows": int(len(tdf)),
             "auc_dates_omitted": {a: int(per_date[f"{a}_auc"].isna().sum()) for a in ("ours", "mlb")},
             "estimates": {k: f(per_date) for k, f in stats.items()},
             "intervals": m.summary_bootstrap(per_date, stats, n_resamples=n_resamples)}
@@ -170,15 +218,28 @@ def score_top1(pool: pd.DataFrame, t: str, n_resamples: int) -> dict:
             "intervals": boot}
 
 
-def score_encompassing(pool: pd.DataFrame, n_resamples: int) -> dict:
+def score_encompassing(pool: pd.DataFrame, n_resamples: int, seed: int = 20261004) -> dict:
+    """Gate 6 on the T2 population: one encompassing fit pair per bootstrap draw (copy blocks), both fields recorded
+    from that one result; failed draws are counted with reasons and make the interval unavailable."""
     tdf = m.target(pool, "T2")
+    if tdf.empty:
+        return {"point": {"available": False, "reason": "no_T2_rows"}}
     point = m.encompassing(tdf.assign(_block=tdf["date"]))
     if not point["available"]:
         return {"point": point}
-    keys = ("coef_mlb", "delta_log_loss")
-    stats = {k: (lambda x, k=k: (lambda r: r[k] if r["available"] else float("nan"))(m.encompassing(x)))
-             for k in keys}
-    return {"point": point, "intervals": m.block_bootstrap_many(tdf, stats, n_resamples=n_resamples)}
+    dates = np.array(sorted(tdf["date"].unique()))
+    groups = {d: g for d, g in tdf.groupby("date", sort=False)}
+    rng = np.random.default_rng(seed)
+    coef, dll, reasons = np.full(n_resamples, np.nan), np.full(n_resamples, np.nan), {}
+    for i in range(n_resamples):
+        pick = rng.choice(dates, size=len(dates), replace=True)
+        r = m.encompassing(pd.concat([groups[d].assign(_block=k) for k, d in enumerate(pick)], ignore_index=True))
+        if r["available"]:
+            coef[i], dll[i] = r["coef_mlb"], r["delta_log_loss"]
+        else:
+            reasons[r["reason"]] = reasons.get(r["reason"], 0) + 1
+    return {"point": point, "intervals": {"coef_mlb": m.collect(coef, n_resamples, seed, reasons),
+                                          "delta_log_loss": m.collect(dll, n_resamples, seed, reasons)}}
 
 
 def main(argv=None) -> int:
@@ -193,29 +254,29 @@ def main(argv=None) -> int:
     from scripts.audit.season_ledger.sources.static import parse_schedule
 
     w12 = args.w12_run.expanduser().resolve()
-    table = pd.read_parquet(w12 / "table.parquet")
-    summary = json.loads((w12 / "summary.json").read_text())
+    w12_bytes, w12_acc = bridge.read_accepted_run(w12)
+    table = pd.read_parquet(io.BytesIO(w12_bytes["table.parquet"]))
+    summary = json.loads(w12_bytes["summary.json"])
     written = {d["date"]: pd.Timestamp(d["written_at"]) for d in summary["day_meta"]}
     snaps = args.data_root.expanduser().resolve() / "leaderboard" / "static_snapshots"
-    paths = {f: _sheets(snaps / f) for f in FEEDS}
-    msp = sorted(((s, _load(p, FEEDS["most_selected_players"])) for s, p in paths["most_selected_players"].items()),
-                 key=lambda c: pd.Timestamp(c[0]))
-    cache: dict = {}
-    used: dict = {f: set() for f in FEEDS}
+    feeds = {f: Feed(snaps / f, key) for f, key in FEEDS.items()}
+    mspf = feeds["most_selected_players"]
+    msp, msp_sha, msp_invalid = [], {}, []
+    for s in sorted(mspf.paths, key=pd.Timestamp):
+        items, sha, name = mspf.load(s)
+        if items is None:
+            msp_invalid.append(name)
+            continue
+        msp.append((s, items))
+        msp_sha[s] = sha
 
     def sheet_at(feed, stamp):
-        s, p = latest_at(paths[feed], stamp)
-        if s is None:
-            return None, None
-        used[feed].add(p.name)
-        if p not in cache:
-            cache[p] = _load(p, FEEDS[feed])
-        return s, cache[p]
+        return feeds[feed].latest_valid_at(stamp)
 
     stamp_now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = args.out.expanduser().resolve() / f"{head[:7]}-{stamp_now}"
     run_dir.mkdir(parents=True, exist_ok=False)
-    log(f"run dir {run_dir}; code {head[:7]}; W1.2 run {w12.name}")
+    log(f"run dir {run_dir}; code {head[:7]}; W1.2 run {w12.name}; invalid forecast sheets {len(msp_invalid)}")
 
     parts, covs, sched_used = [], [], {}
     for d in sorted(written):
@@ -225,40 +286,46 @@ def main(argv=None) -> int:
         sp = args.schedules / f"{d}.json"
         sched = set()
         if sp.exists():
-            parsed = parse_schedule(f"schedules/{d}.json", sp.read_bytes())
+            raw = sp.read_bytes()
+            sched_used[sp.name] = hashlib.sha256(raw).hexdigest()
+            parsed = parse_schedule(f"schedules/{d}.json", raw)
             sched = set() if parsed.quarantined else {int(r["game_pk"]) for r in parsed.rows}
-            sched_used[sp.name] = hashlib.sha256(sp.read_bytes()).hexdigest()
-        slate = table[table["date"] == d]
-        joined, cov = prepare_date(d, written[d], slate, msp, sheet_at, sched)
+        joined, cov = prepare_date(d, written[d], table[table["date"] == d], msp, sheet_at, sched, msp_sha)
         covs.append(cov)
         if not joined.empty:
             parts.append(joined)
-    joined = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    joined = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(
+        columns=list(table.columns) + ["link_status", "mlb_p", "forecast_stamp", "mlb_unchanged_since", "mlb_n_sel"])
     log(f"joined rows {len(joined):,}; dates with a forecast join {len(parts)}")
 
     ok = joined["link_status"] == "inferred_unique_game"
-    valid = joined["D"].apply(_valid_p) & joined["mlb_p"].apply(_valid_p)
+    valid = joined["D"].apply(core.valid_p) & joined["mlb_p"].apply(core.valid_p)
     joined = joined.assign(ours=joined["D"], mlb=joined["mlb_p"], in_pool_base=ok & valid)
     rec = joined[joined["in_pool_base"]]
-    recency = {
-        "sheet_to_written_at_minutes": (
-            (pd.to_datetime(rec["written_at"] if "written_at" in rec else rec["date"].map(written))
-             - pd.to_datetime(rec["forecast_stamp"], utc=True)).dt.total_seconds() / 60).describe().to_dict()
-        if len(rec) else {},
-        "observed_unchanged_minutes": ((pd.to_datetime(rec["forecast_stamp"], utc=True)
-                                        - pd.to_datetime(rec["mlb_unchanged_since"], utc=True))
-                                       .dt.total_seconds() / 60).describe().to_dict() if len(rec) else {},
-        "n_sel_quantiles": rec["mlb_n_sel"].quantile([0, .25, .5, .75, 1]).to_dict() if len(rec) else {},
-    }
-    results = {"schema": "w23_mlb_benchmark_v1", "code": head, "x23_commit": X23_COMMIT, "w12_run": str(w12),
-               "coverage": {"per_date": covs, "invalid_shared_scores": int((ok & ~valid).sum()),
+    recency = {"limits": LIMITS["timing"]}
+    if len(rec):
+        recency.update({
+            "sheet_to_written_at_minutes": ((pd.to_datetime(rec["date"].map(written), utc=True)
+                                             - pd.to_datetime(rec["forecast_stamp"], utc=True))
+                                            .dt.total_seconds() / 60).describe().to_dict(),
+            "observed_unchanged_minutes": ((pd.to_datetime(rec["forecast_stamp"], utc=True)
+                                            - pd.to_datetime(rec["mlb_unchanged_since"], utc=True))
+                                           .dt.total_seconds() / 60).describe().to_dict(),
+            "n_sel_quantiles": rec["mlb_n_sel"].astype(float).quantile([0, .25, .5, .75, 1]).to_dict()})
+    results = {"schema": "w23_mlb_benchmark_v2", "code": head, "x23_commit": X23_COMMIT, "w12_run": str(w12),
+               "w12_accepted": {k: v for k, v in w12_acc.items() if k != "files"}, "limits": LIMITS,
+               "coverage": {"per_date": covs, "invalid_forecast_sheets": msp_invalid,
+                            "invalid_shared_scores": int((ok & ~valid).sum()),
                             "link_status": joined["link_status"].value_counts().to_dict()},
                "recency": recency, "strata": {}}
     for cohort in COHORTS:
         for pool_col in POOLS:
+            key = f"{cohort}/{pool_col}"
+            if joined.empty:
+                results["strata"][key] = {"available": False, "reason": "no_joined_rows"}
+                continue
             pool = joined[joined["in_pool_base"] & (joined["sel_state"] == cohort)
                           & joined[pool_col].fillna(False).astype(bool)]
-            key = f"{cohort}/{pool_col}"
             if pool.empty:
                 results["strata"][key] = {"available": False, "reason": "empty"}
                 continue
@@ -269,11 +336,8 @@ def main(argv=None) -> int:
                 "encompassing_T2": score_encompassing(pool, args.n_resamples)}
     joined.to_parquet(run_dir / "joined.parquet", index=False)
     (run_dir / "results.json").write_text(json.dumps(results, indent=1, default=str) + "\n")
-    sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
-    manifest = {"w12_table": sha(w12 / "table.parquet"), "w12_summary": sha(w12 / "summary.json"),
-                "msp_files": {p.name: sha(p) for p in paths["most_selected_players"].values()},
-                "lookup_files_used": {f: sorted(v) for f, v in used.items() if f != "most_selected_players"},
-                "schedules": sched_used}
+    manifest = {"w12_accepted_files": {k: hashlib.sha256(v).hexdigest() for k, v in w12_bytes.items()},
+                "feeds": {f: fd.used() for f, fd in feeds.items()}, "schedules": sched_used}
     (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     log(f"done: {run_dir}")
     return 0

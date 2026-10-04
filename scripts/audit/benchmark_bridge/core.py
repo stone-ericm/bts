@@ -135,6 +135,30 @@ def date_block_bootstrap(df: pd.DataFrame, stat: Callable[[pd.DataFrame], float]
     return float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))
 
 
+ACCEPTED_FILES = ("table.parquet", "summary.json", "manifest.json")
+
+
+def read_accepted_run(run_dir) -> tuple[dict, dict]:
+    """The accepted W1.2 run's files as bytes, each read once and verified against the run's ``ACCEPTED.json`` (written
+    when the W1.2 memo accepts the run). Consumers parse these bytes, so what is hashed is what is used. Refuses a run
+    without an acceptance record or with any mismatch."""
+    import hashlib
+    from pathlib import Path
+    d = Path(run_dir)
+    acc_path = d / "ACCEPTED.json"
+    if not acc_path.exists():
+        raise SystemExit(f"{d} has no ACCEPTED.json: not an accepted W1.2 run")
+    acc_bytes = acc_path.read_bytes()
+    acc = json.loads(acc_bytes)
+    out = {"ACCEPTED.json": acc_bytes}
+    for name in ACCEPTED_FILES:
+        b = (d / name).read_bytes()
+        if hashlib.sha256(b).hexdigest() != acc.get("files", {}).get(name):
+            raise SystemExit(f"{name} in {d} does not match ACCEPTED.json")
+        out[name] = b
+    return out, acc
+
+
 def capture_files(directory) -> list:
     """Every static capture in ``directory``, plain ``.json`` and gzipped ``.json.gz`` alike, in stamp order. The
     capture writer switched to gzip on 2026-07-10, so a plain-only glob silently drops every later capture."""
