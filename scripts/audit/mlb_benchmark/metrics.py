@@ -148,6 +148,11 @@ def block_bootstrap(df: pd.DataFrame, stat: Callable[[pd.DataFrame], float], n_r
     return block_bootstrap_many(df, {"stat": stat}, n_resamples, seed)["stat"]
 
 
+def _sigmoid(eta: np.ndarray) -> np.ndarray:
+    """Overflow-free logistic function."""
+    return 0.5 * (1.0 + np.tanh(0.5 * eta))
+
+
 def _logit(p: np.ndarray) -> np.ndarray:
     q = np.clip(p, EPS, 1 - EPS)
     return np.log(q / (1 - q))
@@ -160,7 +165,7 @@ def _fit(X: np.ndarray, y: np.ndarray, w: np.ndarray, max_iter: int = 100, tol: 
     beta = np.zeros(X.shape[1])
     for _ in range(max_iter):
         eta = X @ beta
-        mu = 1 / (1 + np.exp(-eta))
+        mu = _sigmoid(eta)
         grad = X.T @ (w * (y - mu))
         hess = X.T @ (X * (w * mu * (1 - mu))[:, None])
         try:
@@ -171,7 +176,7 @@ def _fit(X: np.ndarray, y: np.ndarray, w: np.ndarray, max_iter: int = 100, tol: 
         if not np.all(np.isfinite(beta)) or np.max(np.abs(beta)) > 1e3:
             return None, "separation_or_divergence"
         if np.max(np.abs(step)) < tol:
-            mu = 1 / (1 + np.exp(-(X @ beta)))
+            mu = _sigmoid(X @ beta)
             if np.any(mu < 1e-12) or np.any(mu > 1 - 1e-12):
                 return None, "separation_or_divergence"
             return beta, None
@@ -196,7 +201,7 @@ def encompassing(df: pd.DataFrame, block: str = "_block") -> dict:
         return {"available": False, "reason": r0 or r1, "boundary_rows": boundary}
 
     def wll(X, b):
-        mu = np.clip(1 / (1 + np.exp(-(X @ b))), EPS, 1 - EPS)
+        mu = np.clip(_sigmoid(X @ b), EPS, 1 - EPS)
         return float(-(w * (y * np.log(mu) + (1 - y) * np.log(1 - mu))).sum() / w.sum())
     ll0, ll1 = wll(X0, b0), wll(X1, b1)
     return {"available": True, "reason": None, "boundary_rows": boundary,
