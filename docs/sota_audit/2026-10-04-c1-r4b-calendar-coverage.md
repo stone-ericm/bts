@@ -6,8 +6,8 @@
 - **The 2021–2025 MLB regular-season schedules:** fetched from the public statsapi, one request per season, .
   - A date counts as a game day if it has at least one game that was not postponed or cancelled.
   - The sha256 of each response is listed below.
-- **The Sun Oct  4 15:48:50 EDT 2026 column of all 120 estimated-PA profiles** (, 24 seeds × 5 seasons).
-- **The  column of .**
+- **The `date` column of all 120 estimated-PA profiles** (`data/hetzner_results/mdp_estpa_run`, 24 seeds × 5 seasons).
+- **The `game_pk` column of `data/processed/pa_2023.parquet`.**
 
 ## Findings
 
@@ -20,7 +20,7 @@
 | 2025 | 184 (3/18–9/28, including the Tokyo Series on 3/18–3/19) | 184 | 0 |
 
 - **No profile date falls on a non-game day.**
-- **The one gap:** 2023-10-02 had a single game (gamePk 716404, status "Completed Early"). It is **absent from ** (0 rows), so the gap is upstream of the profiles. It cannot be filled without re-acquiring that game's feed.
+- **The one gap:** 2023-10-02 had a single game (gamePk 716404, status "Completed Early"). It is **absent from `pa_2023.parquet`** (0 rows), so the gap is upstream of the profiles. It cannot be filled without re-acquiring that game's feed.
 
 ## Contest calendar evidence
 - **Historical BTS rules (2021–2025) could not be retrieved:** the archive was unreachable from this session.
