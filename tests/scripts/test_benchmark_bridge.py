@@ -148,6 +148,21 @@ def test_slots_keep_the_slate_rows_batter_inputs_and_take_game_fields_from_the_f
     assert src["game_fields"] == "final_feed" and src["pitcher_hand"] == "serving_none"
 
 
+def test_a_slim_feed_drops_live_data_and_players_and_changes_no_slot_start_or_status():
+    full = _feed()
+    full["gameData"].update(datetime={"dateTime": "2026-07-05T23:10:00Z"}, status={"abstractGameState": "Final"},
+                            players={"ID1": {"fullName": "x" * 1000}})
+    full["liveData"] = {"plays": {"allPlays": [{"x": "y" * 1000}] * 50}}
+    slim = core.slim_feed(full)
+    assert set(slim) == {"gameData"} and "players" not in slim["gameData"]
+    for row in ({"batter_id": 7, "team": "ATL", "game_pk": 100, "lineup": 2, "pitcher_id": 900, "projected": True},
+                {"batter_id": 8, "team": "LAD", "game_pk": 100, "lineup": 3, "pitcher_id": 901}):
+        assert core.reconstruct_slot(row, slim) == core.reconstruct_slot(row, full)
+    assert slim["gameData"]["datetime"] == full["gameData"]["datetime"]
+    assert slim["gameData"]["status"] == full["gameData"]["status"]
+    assert core.slim_feed(None) is None
+
+
 def test_a_slate_row_whose_team_is_not_in_the_feed_is_unreconstructable():
     row = {"batter_id": 7, "team": "LAD", "game_pk": 100, "lineup": 2, "pitcher_id": 900}
     slot, src = core.reconstruct_slot(row, _feed())

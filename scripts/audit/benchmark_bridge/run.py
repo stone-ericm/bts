@@ -165,6 +165,8 @@ def main(argv=None) -> int:
     df = pd.concat([pd.read_parquet(p) for p in pq], ignore_index=True)
     log(f"PA rows {len(df):,}; computing features")
     df_feat = compute_all_features(df)
+    pa26 = df.loc[df["season"] == 2026, ["date", "batter_id", "game_pk", "lineup_position"]].copy()
+    del df                                       # only the 2026 lineup slots are needed later
     df_feat["date"] = pd.to_datetime(df_feat["date"])
     season_dates = sorted(df_feat.loc[df_feat["season"] == 2026, "date"].dt.strftime("%Y-%m-%d").unique())
 
@@ -183,7 +185,7 @@ def main(argv=None) -> int:
             pk = int(r["game_pk"])
             if pk not in feeds:
                 fp = raw_dir / f"{pk}.json"
-                feeds[pk] = _json(fp) if fp.exists() else None
+                feeds[pk] = core.slim_feed(_json(fp)) if fp.exists() else None
             feed = feeds[pk]
             start = None
             if feed:
@@ -268,7 +270,7 @@ def main(argv=None) -> int:
         prof = prof.assign(date=pd.to_datetime(prof["date"]).dt.strftime("%Y-%m-%d"))
         keep = prof[["date", "batter_id", "game_pk", "p_game_hit"] + (["n_pas"] if col == "A26" else [])]
         tab = tab.merge(keep.rename(columns={"p_game_hit": col, "n_pas": "n_pas_actual"}), on=key, how="left")
-    pa26 = df[df["season"] == 2026].assign(date=lambda x: pd.to_datetime(x["date"]).dt.strftime("%Y-%m-%d"))
+    pa26 = pa26.assign(date=lambda x: pd.to_datetime(x["date"]).dt.strftime("%Y-%m-%d"))
     slot_mode = (pa26.groupby(["date", "batter_id", "game_pk"])["lineup_position"]
                  .agg(lambda s: s.dropna().mode().iloc[0] if s.notna().any() else None).rename("lineup_realized").reset_index())
     tab = tab.merge(slot_mode, on=key, how="left")

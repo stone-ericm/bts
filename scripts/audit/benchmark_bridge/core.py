@@ -135,6 +135,15 @@ def date_block_bootstrap(df: pd.DataFrame, stat: Callable[[pd.DataFrame], float]
     return float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))
 
 
+def slim_feed(feed: dict | None) -> dict | None:
+    """The archived feed reduced to ``gameData`` without its ``players`` map: every field the bridge reads (teams,
+    weather, officials, venue, datetime, status) and none of ``liveData``. A full v1.1 feed costs about 4 MB in
+    memory; a season of slate games held whole exhausted the run's memory."""
+    if feed is None:
+        return None
+    return {"gameData": {k: v for k, v in feed.get("gameData", {}).items() if k != "players"}}
+
+
 def reconstruct_slot(row: dict, feed: dict) -> tuple[dict | None, dict]:
     """One ``_fetch_game_slots``-shaped slot for C (design §3, Codex r1 F4).
 
