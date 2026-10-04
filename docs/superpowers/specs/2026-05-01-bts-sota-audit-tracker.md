@@ -7,6 +7,14 @@
 
 This document is the operating tracker for the audit. It's structured for rolling updates: as each area is brainstormed/scoped/implemented, append status notes here.
 
+## Status update — 2026-10-04 (season wrap W3)
+The tracker was not updated between 2026-05-10 and the end of the season. The per-area state is now recorded in `docs/sota_audit/2026-10-04-literature-refresh.md` §2: implementation state and evidence disposition, recorded separately, with basis, 2026 exposure and reopening triggers. Its evidence is in `docs/sota_audit/2026-10-04-literature-refresh-evidence/`.
+- **No area has cleared a production gate.** The only live change was the 9/03 tail objective.
+- **W4 implications:**
+  - rank 1: one predeclared combination rule plus an encompassing test;
+  - rank 4a: online Platt;
+  - rank 6: TabM at its frozen default.
+
 ## Status update — 2026-05-04 (post-v2.5/v2.6 reconciliation)
 
 **PR #8 merged** at commit `1a0eefb` on 2026-05-04 — completes the v2.5 nested-factorial attribution + v2.6 block-bootstrap CI ablation cycle.
