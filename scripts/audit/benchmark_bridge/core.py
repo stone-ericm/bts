@@ -191,3 +191,32 @@ def score_c(date: str, slots: list[dict], df_feat: pd.DataFrame, artifact: dict,
         out = pm.predict(date, hist, model, lookups, check_openers=check_openers, blend=blend,
                          feature_cols=feature_cols)
     return out[["batter_id", "game_pk", "p_game_hit"]].copy() if not out.empty else out
+
+
+def verified_eligibility(status_history: list[tuple], written_at: pd.Timestamp, pregame: set, not_pregame: set):
+    """Eligibility from the latest BTS unit capture at or before the slate's written_at (design §5).
+
+    True for a pre-game status, False for a started/final/postponed one, None when no capture precedes written_at or
+    the status is not classified (never guessed)."""
+    before = [(pd.Timestamp(t), s) for t, s in status_history if t is not None and pd.Timestamp(t) <= written_at]
+    if not before:
+        return None
+    status = max(before, key=lambda x: x[0])[1]
+    if status in pregame:
+        return True
+    if status in not_pregame:
+        return False
+    return None
+
+
+def outcome_table(cands: pd.DataFrame, pa: pd.DataFrame, final_games: set) -> pd.DataFrame:
+    """Label each (date, batter_id, game_pk) candidate from scoring PA rows (resumed portion already excluded).
+
+    no_pa needs the game in ``final_games`` (a complete, final source); otherwise a row without PA is unknown."""
+    agg = (pa.groupby(["date", "game_pk", "batter_id"])["is_hit"].agg(n_pa="size", n_hits="sum").reset_index())
+    out = cands.merge(agg, on=["date", "game_pk", "batter_id"], how="left")
+    out["n_pa"] = out["n_pa"].fillna(0).astype(int)
+    out["n_hits"] = out["n_hits"].fillna(0).astype(int)
+    out["outcome"] = [outcome_label(n, h, int(g) in final_games)
+                      for n, h, g in zip(out["n_pa"], out["n_hits"], out["game_pk"])]
+    return out

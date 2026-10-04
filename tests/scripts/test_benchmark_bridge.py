@@ -185,3 +185,63 @@ def test_score_c_injects_the_slots_truncates_history_and_never_mutates_the_artif
     assert artifact == {"_model": "single", "baseline": "m0", "statcast_a": "m1"}      # not mutated
     assert pm._fetch_game_slots is real_fetch                                            # restored
     assert list(out.columns) == ["batter_id", "game_pk", "p_game_hit"]
+
+
+# --- verified eligibility from BTS unit captures (design §5) ---
+
+def test_verified_eligibility_uses_the_latest_unit_capture_before_written_at():
+    hist = [("2026-07-05T15:00:00Z", "scheduled"), ("2026-07-05T23:30:00Z", "inprogress")]
+    w = pd.Timestamp("2026-07-05T16:00:00Z")
+    assert core.verified_eligibility(hist, w, pregame={"scheduled"}, not_pregame={"inprogress", "final", "postponed"}) is True
+    late = pd.Timestamp("2026-07-06T00:00:00Z")
+    assert core.verified_eligibility(hist, late, pregame={"scheduled"}, not_pregame={"inprogress", "final", "postponed"}) is False
+
+
+def test_verified_eligibility_is_unknown_without_a_prior_capture_or_for_an_unclassified_status():
+    w = pd.Timestamp("2026-07-05T16:00:00Z")
+    assert core.verified_eligibility([("2026-07-05T17:00:00Z", "scheduled")], w, {"scheduled"}, {"final"}) is None
+    assert core.verified_eligibility([("2026-07-05T15:00:00Z", "weird")], w, {"scheduled"}, {"final"}) is None
+    assert core.verified_eligibility([], w, {"scheduled"}, {"final"}) is None
+
+
+# --- outcomes from PA rows (design §4) ---
+
+def test_outcome_table_labels_rows_and_needs_a_final_game_for_no_pa():
+    pa = pd.DataFrame({"date": ["2026-07-05"] * 3, "game_pk": [100, 100, 100], "batter_id": [7, 7, 8],
+                       "is_hit": [0, 1, 0]})
+    cands = pd.DataFrame({"date": ["2026-07-05"] * 4, "game_pk": [100, 100, 100, 200],
+                          "batter_id": [7, 8, 9, 10]})
+    out = core.outcome_table(cands, pa, final_games={100})
+    lab = dict(zip(out["batter_id"], out["outcome"]))
+    assert lab == {7: "hit", 8: "no_hit", 9: "no_pa", 10: "unknown"}
+
+
+# --- report (design §6) ---
+
+def _table():
+    return pd.DataFrame({
+        "date": ["d1", "d1", "d1", "d2", "d2", "d2"],
+        "row_order": [0, 1, 2, 0, 1, 2],
+        "outcome": ["hit", "no_hit", "no_pa", "no_hit", "hit", "unknown"],
+        "A": [0.9, 0.8, 0.7, 0.9, 0.6, 0.5],
+        "B": [0.7, 0.9, 0.6, 0.6, 0.95, 0.5],
+        "pool_all": [True] * 6,
+    })
+
+
+def test_surface_metrics_rank_before_outcomes_and_count_void_winners():
+    from scripts.audit.benchmark_bridge import report
+    m = report.surface_metrics(_table(), "A", "pool_all")
+    assert m["top1"] == {"hit": 1, "no_hit": 1, "no_pa": 0, "unknown": 0, "hit_rate": 0.5}
+    assert m["n_known_rows"] == 4 and m["auc_dates_used"] == 2
+
+
+def test_pair_metrics_use_the_identical_pool_and_report_discordance():
+    from scripts.audit.benchmark_bridge import report
+    m = report.pair_metrics(_table(), "A", "B", "pool_all", n_resamples=200)
+    assert m["n_rows"] == 6 and m["rank1_changed_dates"] == 2
+    assert m["paired_top1_dates"] == 2
+    assert m["discordant_dates"] == {"a_hit_b_miss": 1, "a_miss_b_hit": 1}
+    assert m["top1_diff_b_minus_a"] == 0.0
+    lo, hi = m["top1_diff_ci95"]
+    assert lo <= 0.0 <= hi
