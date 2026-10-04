@@ -1,6 +1,6 @@
 # W1.5 incident register, Phase 1 — memo (2026-10-03)
 
-**Status:** draft under the results review (plan Task 9, item 2). Round 1 (a fresh Codex session, `docs/audit/2026-09-29-incident-register-codex-results-r1.md`) found five blockers and four SHOULDs; this revision answers all of them (§12). Nothing is deployed.
+**Status:** results review done (plan Task 9, item 2). Round 1 was a fresh Codex session (`docs/audit/2026-09-29-incident-register-codex-results-r1.md`). It found five blockers and four SHOULDs, all answered (§12). Round 2, in the same session (`…-codex-results-r2.md`), gave the register **SIGN** and this memo **SIGN WITH EDITS**; its one editorial edit is applied. Nothing is deployed.
 
 **Authority:**
 - design `docs/superpowers/specs/2026-09-29-incident-register-design.md` v3.4;
@@ -552,7 +552,7 @@ In the results:
 - **Replays use F's tests on P's `src/`** (a semantic regression replay). The defective deployed closure itself was not rebuilt (design §9.2).
 - **R3 (issues and PRs) was not swept.**
 
-## 12. Results review, round 1 (answered)
+## 12. Results review (round 1 answered; round 2: register SIGN, memo SIGN WITH EDITS, applied)
 The review was a fresh Codex session at `0b7f681`. Its report is archived at `docs/audit/2026-09-29-incident-register-codex-results-r1.md`, and its probes are under `.codex-review/2026-09-29-incident-register/r8-probes/results/`. Its verdicts: (a) the register, BLOCK; (b) the memo, BLOCK. All 58 certificates were mechanically sound; 55 held at their stated decision-point scope.
 
 | Finding | Answer |
@@ -560,7 +560,7 @@ The review was a fresh Codex session at `0b7f681`. Its report is archived at `do
 | B1: R-I047-1's link-1 symptom is a call count (diagnostic_only) | link 1 is unavailable (replay manifest); R-I047-1 narrowed to link 2 and re-run at the frozen tooling: accepted, reviewed accept; revision 1 kept |
 | B2: D-I071-1 and D-I071-2 depend on elapsed time (ruling 13) | both withdrawn (`task8/corrections.json` `withdrawn`); their runs kept; §9.1 records the gap |
 | B3: I-056's inherited log-bound note contradicted the corrected installs | replaced verbatim with the review's retained-log bounds, checked against `deploy_runs.json` (`replace_notes`) |
-| B4: §8.3 bound the config fixture to the pair | sentence replaced verbatim |
+| B4: §8.3 bound the config fixture to the pair | sentence corrected to distinguish the pair from the config node |
 | B5: §10 and the Task 8 note gave I-061 link 3 the wrong status | both say unavailable (fix superseded) |
 | S1: I-043 link 5 candidate | reason extended; not certified |
 | S2: I-084 link 1 candidate | reason and the plan-named row extended; not certified |
