@@ -21,7 +21,7 @@ from scripts.audit.mlb_benchmark import core, metrics as m
 from scripts.audit.season_ledger.ids import load_json_bytes, stamp_to_utc
 
 REPO = Path(__file__).resolve().parents[3]
-X23_COMMIT = None                     # set to the register commit that publishes X-23; None refuses to run
+X23_COMMIT = "b68098d"               # the register commit that publishes X-23
 WINDOW_START = "2026-07-04"
 COHORTS = ("selection_consistent", "inconsistent", "no_selection")
 POOLS = ("pool_verified", "pool_surrogate", "pool_all")
