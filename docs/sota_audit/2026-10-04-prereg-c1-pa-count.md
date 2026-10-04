@@ -1,6 +1,6 @@
 # C1 rank 3 registration: a pregame plate-appearance count distribution against the fixed slot table
 
-**Status:** design rev 2, 2026-10-04: Codex trio design r1 **BLOCK**; B-E1–B-E5 and X-E1 applied verbatim by script (review `docs/audit/2026-10-04-c1-trio-design-codex-r1.md`); for design round 2 of 2, then freeze or defer. The 2027 shadow archive is production code: reviewed until SIGN, shipped only with Eric's D7 approval.
+**Status:** **FROZEN 2026-10-04** after Codex trio design r1 BLOCK (B-E1–B-E5, X-E1) → r2 **SIGN WITH EDITS** (B-R2-E1–E3), all applied verbatim by script (reviews `docs/audit/2026-10-04-c1-trio-design-codex-r{1,2}.md`). The historical build needs authoritative lineup/starter/order metadata or it is deferred. The 2027 shadow archive is production code: reviewed until SIGN, shipped only with Eric's D7 approval.
 **Cycle:** C1 (`docs/sota_audit/2026-10-04-c1-cycle-index.md`).
 **Plan row 3:**
 - The same PA models and slates, comparing the fixed slot-count baseline against one pregame count-distribution / starter-allocation candidate, scored on proper scores fitted earlier and tested later.
@@ -39,16 +39,16 @@ The count build requires the 2021–2025 scoring PA parquets plus authoritative 
 
 Before fitting, verify metadata/PA game and side identities, starting slots, chronology, substitutions and PA-event completeness. Quarantine every unresolved or contradictory game before aggregation and count it; never retain a bad game merely because failures total ≤1%. Stop if quarantined games exceed 1% of the eligible source games, or if authoritative metadata is unavailable. With unavailable metadata the build is deferred. New public-feed acquisition requires a separately recorded scope decision and is not authorized by this registration. Producer-version/order provenance is recorded; a cyclic slot pattern alone is not an order certificate.
 - **Outputs:**
-  - the count table (slot × home/away → distribution over N);
-  - each starter's per-start batters faced, giving lagged BF without leakage (date-level `shift(1)`);
+  - the count table (slot × home/away → distribution over min(N,8), conditioned on N≥1), with the declared historical overflow count;
+  - each certified starter's complete per-start BF workload counts, retaining legitimate resumed PA, plus their source/availability provenance; lagged BF uses only starts available on strictly earlier official dates as specified in §2;
   - an artifact with sha256 and a manifest of input hashes.
-- **Leakage:** the count table is a fixed historical aggregate applied to 2027 only; lagged BF is computed with date-level `shift(1)`. `scripts/leakage_audit.py` is unaffected (no PA-model feature changes); this is stated, not run.
+- **Leakage:** the count table is a fixed historical aggregate applied to 2027 only. BF history is filtered by strict official_date < forecast_date and actual source availability before the forecast, then the latest five available starts are selected under §2's fallback rules. A row shift is not a substitute for that predicate. `scripts/leakage_audit.py` is unaffected because no PA-model feature changes; this is stated, not run. The shadow's same-date-history fixture remains required.
 
 ## 5. The 2027 shadow archive
 
-With production-code SIGN and Eric's D7 approval, archive complete ordered run snapshots append-only under data/picks/runs/<date>.jsonl from the first registered date. Each snapshot carries schema/run identity, prediction/input-availability/write timestamps, date, ordered (batter_id,game_pk) pool, run-known game time and pregame-status evidence, slot/state, home/away, probable starter, opener, lagged-BF source/hash, count-artifact hash, serving recipe/environment/model hashes, active-model identities, each model's starter q, shared reliever q, baseline p, candidate p and fallback reasons. Run completion and terminal production-decision/commit events have stable identity links. Partial writes are not complete snapshots.
+With production-code SIGN and Eric's D7 approval, archive complete ordered run snapshots append-only under data/picks/runs/<date>.jsonl from the first registered date. Each snapshot carries schema/run identity, prediction/input-availability/write timestamps, date, ordered (batter_id,game_pk) pool, run-known game time and pregame-status evidence, slot/state, home/away, probable starter, opener, lagged-BF source/hash, count-artifact hash, serving recipe/environment/model hashes, active-model identities, each model's starter q, shared reliever q, baseline p, candidate p and fallback reasons. Run completion and terminal production-decision/commit events have stable identity links. Partial writes are not complete snapshots. For run selection, completeness means completeness of the baseline snapshot, independent of candidate-computation success. Candidate p may initially be null with an unavailable reason; separately appended candidate completion/failure records retain the same run identity and their actual availability times. Candidate completion is never a condition for choosing a baseline run.
 
-Primary and ranking comparisons use one common complete run per date: the latest run whose inputs and complete archive were available strictly before both the first terminal production commit, if one occurred, and the earliest run-known submission cutoff of the registered date's game pool. On an evidenced no-commit/skip date use that common earliest cutoff. If the commit boundary or required eligibility witness is unavailable, exclude/count the date; do not infer no commit from a missing file. Do not stitch a different run for each candidate or substitute post-run realized times/starters.
+Primary and ranking comparisons use one common baseline run per date. Identify eligible production runs from the bound run/decision inventory without examining candidate results; select the latest whose forecast inputs were available strictly before both the first terminal production commit, if one occurred, and the common earliest run-known submission cutoff of the registered date's game pool. On an evidenced no-commit/skip date use that common earliest cutoff. The selected run must have a complete baseline archive available before that boundary; otherwise exclude/count the date rather than choose an earlier run. Missing run-inventory coverage, commit-boundary evidence or required eligibility evidence also excludes/counts the date. Use candidate output only if its linked completion was available before that same boundary; otherwise use baseline p as the candidate fallback and count the reason. No candidate failure or late completion selects an older run. Do not stitch different runs per candidate or substitute post-run realized times/starters. Add a fixture where the latest eligible baseline run has missing/late candidate output: that run remains selected with baseline fallback. Add a fixture where its baseline archive is incomplete: the date is unavailable, not replaced by an older run.
 
 Choose the run/pool without outcomes and before inspecting candidate success. A missing or invalid candidate computation on an otherwise valid baseline row uses baseline p as the candidate fallback, with a counted reason; it does not remove the row or select an older run. Both arms rank the same eligible pool before outcome exclusions and preserve baseline row order for ties. Unknown/no_pa winners are never replaced.
 
@@ -58,8 +58,8 @@ Before code review, fixed-clock red/green fixtures compare shadow on/off product
 
 ## 6. Split, metrics and thresholds (fixed before any 2027 outcome)
 - **Fit:** 2021–2025, fixed now.
-- **Test:** 2027 contest dates 1–90, one analysis after date 90 is graded.
-- **Primary:** the equal-date mean log-loss difference, C minus B, on the as-of rows (all served candidates with known outcomes), with a 95% whole-date bootstrap (10,000 draws, seed 20270102).
+- **Test:** fixed 2027 contest-calendar dates 1–90; one freeze and analysis at 08:00 ET the following day after date 90, with the stated unknown exclusions/support floors and no extension.
+- **Primary:** C minus B log loss, averaged within each date's known eligible rows from §5's selected common baseline run and then equally across scoreable dates. Candidate baseline-fallback rows remain in that same paired pool. Use the registered direct date-difference bootstrap, seed 20270102 and 95% percentile interval; candidate results never choose the run or support.
 - **Dispositions:**
 
 | Disposition | Condition |
@@ -68,7 +68,7 @@ Before code review, fixed-clock red/green fixtures compare shadow on/off product
 | **Negative** | difference ≥ 0 |
 | **Inconclusive** | anything else |
 
-Fixed calendar numbering, settled-source completeness, invalid-probability handling and rank-before-outcome rules follow 4a's registration. Test dates are 1–90, with no extension; freeze and analyze once at 08:00 ET after date 90. Require at least 75 primary-scoreable dates and 75 known baseline rank-1 dates or record inconclusive (insufficient support). Use the same baseline rank-1 identities for the regression guardrail in both arms; arm-specific winners are a separate descriptive comparison on common-known dates.
+Import only 4a's fixed calendar numbering, settled-source completeness, probability-validity/clipping and rank-before-outcome/tie/no-replacement rules; B's run population, 1–90 test window, seeds and 75-date support floors remain those specified here, not 4a's daily last-write population or fit/test windows. Test dates are 1–90, with no extension; freeze and analyze once at 08:00 ET after date 90. Require at least 75 primary-scoreable dates and 75 known baseline rank-1 dates or record inconclusive (insufficient support). Use the same baseline rank-1 identities for the regression guardrail in both arms; arm-specific winners are a separate descriptive comparison on common-known dates.
 
 Bootstrap the precomputed paired date-loss differences directly, preserving draw multiplicity: 10,000 draws, seed 20270102, 2.5th/97.5th percentile primary interval. The 95th-percentile upper bound of baseline-rank-1 loss differences must be ≤0.005 nats (10,000 draws, seed 20270104). Keep the −0.001 primary bar and registered dispositions. Report all calendar/run/eligibility/fallback/outcome exclusions; no data-dependent window or threshold changes.
 
@@ -85,7 +85,7 @@ Before any production use, require independent acceptance of the declared foreca
 ## 8. Compute
 - **Count-table build on the box:** through the launcher (`c1-r3-build`), **declared 6 CPU-hours.** It reads 5 seasons of parquet.
 - **Evaluation after date 90:** declared 0.5 CPU-hours.
-- **The shadow:** adds one sum over at most 8 terms per candidate per model, which is negligible.
+- **The shadow:** the formula sums at most 8 count terms per candidate per model. Total BF/provenance/archive and prediction overhead is unmeasured at design stage; implementation acceptance must verify §5's production-safety requirements rather than presume negligible overhead.
 
 ## Limits
 - **Historical fit:** the count table is fitted on 2021–2025, with no 2026 data, and may not transfer to 2027 rules.
