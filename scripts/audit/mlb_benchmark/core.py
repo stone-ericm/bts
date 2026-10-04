@@ -81,3 +81,59 @@ def join_to_slate(slate: pd.DataFrame, fc: dict, batter_games: dict) -> tuple[pd
            **{k: int(v) for k, v in joined["link_status"].value_counts().items()},
            "mlb_not_in_slate": len(set(fc) - set(slate["batter_id"]))}
     return joined, cov
+
+
+def round_for_date(rounds: list[dict], date: str) -> tuple[int | None, str | None]:
+    """The single round id dated ``date`` in a rounds sheet; zero or several rounds is a conflict, never guessed."""
+    ids = sorted({r["id"] for r in rounds if isinstance(r.get("date"), str) and r["date"][:10] == date})
+    if not ids:
+        return None, "no_round"
+    if len(ids) > 1:
+        return None, "multiple_rounds"
+    return ids[0], None
+
+
+def player_lookup(players: list[dict]) -> tuple[dict, dict, list]:
+    """playerId → feedId (batter_id) and → squadId from one players sheet. An id listed twice with different
+    feedId or squadId is a conflict and excluded from both maps (identical duplicates are harmless)."""
+    seen: dict = {}
+    conflicts = set()
+    for p in players:
+        pid = p.get("id")
+        val = (p.get("feedId"), p.get("squadId"))
+        if pid in seen and seen[pid] != val:
+            conflicts.add(pid)
+        seen.setdefault(pid, val)
+    feed = {k: v[0] for k, v in seen.items() if k not in conflicts and v[0] is not None}
+    squad = {k: v[1] for k, v in seen.items() if k not in conflicts and v[1] is not None}
+    return feed, squad, sorted(conflicts)
+
+
+def units_complete(units: list[dict], round_id: int, scheduled_game_pks: set) -> bool:
+    """True only when every game the MLB schedule lists for the date has a unit in the round. Without schedule
+    evidence the unit universe is not established complete, so no unique-game inference is made from it."""
+    if not scheduled_game_pks:
+        return False
+    have = {int(u["feedId"]) for u in units if u.get("roundId") == round_id and u.get("feedId") is not None}
+    return set(scheduled_game_pks) <= have
+
+
+def unchanged_since(captures: list[tuple], stamp: str, round_id: int, player_id: int) -> str | None:
+    """The earliest stored sheet stamp from which this player's probability for the round is identical in every
+    stored sheet up to ``stamp``. An observation measure only: a stored sheet with the player absent ends the run,
+    and an unstored interval is not assumed unchanged beyond what the stored sheets show."""
+    ordered = sorted(captures, key=lambda c: pd.Timestamp(c[0]))
+    upto = [c for c in ordered if pd.Timestamp(c[0]) <= pd.Timestamp(stamp)]
+
+    def value(rows):
+        vals = [r.get("probabilityStarter") for r in rows
+                if r.get("roundId") == round_id and r.get("playerId") == player_id]
+        return vals[0] if len(vals) == 1 else None
+    if not upto or value(upto[-1][1]) is None:
+        return None
+    target, since = value(upto[-1][1]), upto[-1][0]
+    for st, rows in reversed(upto[:-1]):
+        if value(rows) != target:
+            break
+        since = st
+    return since

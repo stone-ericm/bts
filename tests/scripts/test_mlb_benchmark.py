@@ -77,3 +77,36 @@ def test_an_unresolved_unit_makes_multiplicity_unknown_and_other_rounds_are_igno
     fc2 = {701: {"p": 0.5, "captured_at": "x"}, 702: {"p": 0.6, "captured_at": "x"}}
     joined, _ = core.join_to_slate(slate, fc2, {701: None, 702: {200}})
     assert list(joined["link_status"]) == ["multiplicity_unknown", "inferred_unique_game"]
+
+
+def test_round_resolution_needs_exactly_one_round_for_the_date():
+    rounds = [{"id": 10, "date": "2026-07-05T00:00:00Z"}, {"id": 11, "date": "2026-07-06T00:00:00Z"},
+              {"id": 12, "date": "2026-07-06T00:00:00Z"}]
+    assert core.round_for_date(rounds, "2026-07-05") == (10, None)
+    assert core.round_for_date(rounds, "2026-07-06") == (None, "multiple_rounds")
+    assert core.round_for_date(rounds, "2026-07-07") == (None, "no_round")
+
+
+def test_player_lookup_excludes_ids_listed_twice_with_conflicting_values():
+    players = [{"id": 1, "feedId": 701, "squadId": 11}, {"id": 2, "feedId": 702, "squadId": 12},
+               {"id": 2, "feedId": 799, "squadId": 12}, {"id": 3, "feedId": 703, "squadId": 13},
+               {"id": 3, "feedId": 703, "squadId": 13}]
+    feed, squad, conflicts = core.player_lookup(players)
+    assert feed == {1: 701, 3: 703} and squad == {1: 11, 3: 13} and conflicts == [2]
+
+
+def test_units_are_complete_only_when_every_scheduled_game_has_a_unit_in_the_round():
+    units = [{"feedId": 100, "roundId": 10}, {"feedId": 200, "roundId": 10}, {"feedId": 300, "roundId": 11}]
+    assert core.units_complete(units, 10, {100, 200}) is True
+    assert core.units_complete(units, 10, {100, 200, 250}) is False
+    assert core.units_complete(units, 10, set()) is False        # no schedule evidence: completeness not established
+
+
+def test_unchanged_since_walks_back_through_stored_sheets_while_the_value_is_identical():
+    caps = [("2026-07-05T10:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.70}]),
+            ("2026-07-05T12:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.72}]),
+            ("2026-07-05T14:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.72}]),
+            ("2026-07-05T16:00:00Z", [{"roundId": 10, "playerId": 1, "probabilityStarter": 0.72}])]
+    assert core.unchanged_since(caps, "2026-07-05T16:00:00Z", 10, 1) == "2026-07-05T12:00:00Z"
+    gap = caps[:2] + [("2026-07-05T14:00:00Z", [])] + caps[3:]   # absent in between: the run stops there
+    assert core.unchanged_since(gap, "2026-07-05T16:00:00Z", 10, 1) == "2026-07-05T16:00:00Z"
