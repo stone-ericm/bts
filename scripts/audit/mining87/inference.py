@@ -42,6 +42,8 @@ CONSENSUS_DERIVED = frozenset({"cohort", "consensus_pick_share_bin", "agreement_
                                "consensus_model_probability_bin"})
 CONDITIONS = ("c1_min_units", "c2_min_lift", "c3_bh", "c4_all_tracked_direction", "c5_lock_available_mechanism")
 NON_COHORT = [v for v in DECOMPOSITION_VARIABLES if v != "cohort"]
+CONDITION_COLUMNS = [*CONDITIONS, "c5_reason", "all_tracked_n_resolved_disagreement", "all_tracked_mean_delta",
+                     "all_five_conditions", "statistical_candidate", "nominated"]
 
 
 # --- intervals -------------------------------------------------------------------------------------------------------
@@ -198,7 +200,9 @@ def evaluate_stream(units: pd.DataFrame, *, stream: str, mechanism_records: list
             out["all_five_conditions"] = all(out[c] == "pass" for c in CONDITIONS)
             out["nominated"] = bool(out["all_five_conditions"] and can_nominate)
         rows.append(out)
-    cells = pd.concat([cells, pd.DataFrame(rows, index=cells.index)], axis=1)
+    cells = pd.concat([cells, pd.DataFrame(rows, index=cells.index, columns=CONDITION_COLUMNS)], axis=1)
+    for col in ("all_five_conditions", "statistical_candidate", "nominated"):
+        cells[col] = cells[col].astype(bool)
 
     fixed_testable = cells[(cells["cohort"] == "fixed_cohort") & cells["testable"]]
     n_testable = int(cells["testable"].sum())

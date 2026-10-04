@@ -249,6 +249,32 @@ def test_witnessed_dates_are_admitted_and_an_exploratory_run_is_labelled_and_can
     assert report["secondary_paired_outcomes"]["fixed_cohort"]["all_joint_resolved"]["bootstrap"]["seed"] == 7
 
 
+def test_context_and_mechanism_inputs_are_hashed_and_only_named_context_columns_are_read(tmp_path, gated):
+    data, ledger_dir, _ = _write_inputs(tmp_path)
+    ctx = pd.DataFrame([{"date": d, "slot": "primary", "batter_id": 100 + i, "game_pk": 9000 + i,
+                         "batter_skill_prior_pa": 50 * i, "batter_skill_quartile": 1 + i % 4,
+                         "pick_weather_temp": 60.0 + i, "pick_is_indoor": False, "is_park_driven": False,
+                         "actual_hit": bool(i % 2)} for i, d in enumerate(DATES)])
+    ctx_path = tmp_path / "context.parquet"
+    ctx.to_parquet(ctx_path, index=False)
+    mech_path = tmp_path / "mech.json"
+    mech_path.write_text(json.dumps({"schema": "mining87_mechanism_records_v1", "records": []}))
+    assert _main(tmp_path, data, ledger_dir, "--production-context", str(ctx_path), "--mechanism-records",
+                 str(mech_path)) == 0
+    run_dir = next(p for p in (tmp_path / "out").iterdir() if p.is_dir())
+    report = json.loads((run_dir / "report.json").read_text())
+    ctx_meta = report["coverage_and_denominators"]["production_context"]
+    assert ctx_meta["rows_matched"] == len(DATES) and "actual_hit" not in ctx_meta["columns"]
+    assert report["run"]["mechanism_records"]["n_records"] == 0
+    manifest = json.loads((run_dir / "input_manifest.json").read_text())
+    import hashlib
+    assert manifest["inputs"]["production_context"] == hashlib.sha256(ctx_path.read_bytes()).hexdigest()
+    units = pd.read_parquet(run_dir / "units.parquet")
+    primaries = units[units["pick_number"] == 1]
+    assert (primaries["production_batter_skill_prior_pa_bin"] != "missing").all()
+    assert "actual_hit" not in units.columns
+
+
 def test_registered_run_refuses_overrides_before_reading_anything(tmp_path, gated, monkeypatch):
     def boom(*a, **k):
         raise AssertionError("an input was read")

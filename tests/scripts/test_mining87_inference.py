@@ -215,6 +215,14 @@ def test_no_testable_cells_is_power_limited():
     assert res["summary"]["outcome_state"] == "power_limited_no_testable_cells"
 
 
+def test_a_stream_left_empty_by_the_tie_filter_still_reports():
+    frame = units("fixed_cohort", [1] * 3, tie=[True] * 3)
+    res = stream(inf.tie_excluded(frame), can_nominate=False, name="tie_excluded_sensitivity")
+    assert res["cells"].empty and "nominated" in res["cells"].columns
+    assert res["summary"]["n_nonempty_cells"] == 0 and res["summary"]["outcome_state"] == "diagnostic_cannot_nominate"
+    assert inf.compare_streams(stream(frame)["cells"], res["cells"]) == []
+
+
 def test_mechanism_record_file_schema(tmp_path):
     import json
     path = tmp_path / "m.json"
