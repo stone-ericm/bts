@@ -70,6 +70,18 @@ def calendar_from_schedule(sched: dict, season: int) -> Calendar:
     return Calendar(season=season, opening=lo, final=hi, no_opportunity=frozenset(span - played))
 
 
+def exclude_dates(cal: Calendar, dates) -> Calendar:
+    """Remove owner-ruled non-contest days (e.g. register row C1-4b-2023-10-02). A removed final day moves the
+    final date back to the last remaining game day; days in between stay no-opportunity days."""
+    drop = {date.fromisoformat(str(x)) for x in dates}
+    opp = {dd for dd, o, _ in cal.days() if o} - drop
+    if not opp:
+        raise ValueError(f"{cal.season}: no contest days remain")
+    lo, hi = min(opp), max(opp)
+    span = {lo + timedelta(days=i) for i in range((hi - lo).days + 1)}
+    return Calendar(season=cal.season, opening=lo, final=hi, no_opportunity=frozenset(span - opp))
+
+
 def validate_profile(df: pd.DataFrame) -> pd.DataFrame:
     missing = [c for c in REQUIRED if c not in df.columns]
     if missing:

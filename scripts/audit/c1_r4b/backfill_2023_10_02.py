@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """C1 4b backfill of 2023-10-02 (gamePk 716404): Eric's ruling of 2026-10-05, register row C1-4b-2023-10-02.
 
+**SUPERSEDED 2026-10-05:** Eric replaced the backfill ruling with NO PLAY (2023-10-02 is not a BTS contest day), so
+no supplement is built and run.py no longer reads one. Kept only as the basis of the proposed one-block generator
+reproduction check (register row C1-4b-generator-commit, option (a)); delete it if Eric rules (b).
+
 Standalone on purpose: run it as a script, not with -m, from a worktree of the profile generator's source (commit
 8522412, most likely what the 6/10 profile run executed), using that worktree's own venv and with that worktree as
 the working directory. The bts it imports is then the generator's code. That worktree must contain no `data/raw`

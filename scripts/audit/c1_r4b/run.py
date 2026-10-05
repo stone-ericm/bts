@@ -69,7 +69,7 @@ SCHEDULE_PINS = {   # the frozen outcome-free schedule bytes (c1/r3/schedules, f
     2025: "16686b6a8135acf053cabf832071948a1d5dcbf723a2f76a90bd048ef5b378d9"}
 CALENDAR_PINS = {   # docs/sota_audit/2026-10-04-c1-r4b-calendar-coverage.md: (opening, final, game days)
     2021: ("2021-04-01", "2021-10-03", 182), 2022: ("2022-04-07", "2022-10-05", 179),
-    2023: ("2023-03-30", "2023-10-02", 183), 2024: ("2024-03-20", "2024-09-30", 185),
+    2023: ("2023-03-30", "2023-10-01", 182), 2024: ("2024-03-20", "2024-09-30", 185),   # 2023 after the no-play ruling
     2025: ("2025-03-18", "2025-09-28", 184)}
 PROFILE_RECIPE = {
     "command": ("audit_driver.py --run-kind profiles --game-probability-mode estimated_pa --data-relay --boxes 12 "
@@ -85,9 +85,7 @@ SOURCE_FILES = ("scripts/audit/c1_r4b/solvers.py", "scripts/audit/c1_r4b/project
                 "scripts/audit/dd_p_policy_value_sensitivity.py", "src/bts/simulate/mdp.py",
                 "src/bts/simulate/tail_policy.py", "src/bts/simulate/quality_bins.py", "uv.lock")
 COVERAGE_ROW = "C1-4b-2023-10-02"
-SUPPLEMENT_DATE = "2023-10-02"            # Eric 2026-10-05: backfill the real game (gamePk 716404)
-SUPPLEMENT_MANIFEST_SHA: str | None = None   # pinned once the backfill's manifest exists (every seed reproduced)
-SUPPLEMENT_REQUIRED = True
+EXCLUDED_CONTEST_DATES = {"2023-10-02": "register row C1-4b-2023-10-02: NO PLAY (resumed portion of the 9/28 suspended game)"}
 GENERATOR_ROW = "C1-4b-generator-commit"
 DATA = Path.home() / "projects" / "bts" / "data"
 ARMS = ("A0", "A1", "A2", "single", "double")
@@ -114,10 +112,11 @@ def owner_gates(register_text: str) -> list[str]:
     """The owner rulings this run depends on (code review r1 F7, F1)."""
     reasons = []
     row = next((l for l in register_text.splitlines() if l.startswith(f"| {COVERAGE_ROW} |")), None)
-    if row is None or "**OPEN.**" in row:
-        reasons.append(f"register row {COVERAGE_ROW} is missing or OPEN: the 2023-10-02 coverage ruling is pending")
-    if PROFILE_RECIPE["generator_commit"] is None and f"| {GENERATOR_ROW} |" not in register_text:
-        reasons.append(f"the profile-generator commit is not retained and register row {GENERATOR_ROW} records no ruling")
+    if row is None or "**RULED" not in row:
+        reasons.append(f"register row {COVERAGE_ROW} records no ruling: the 2023-10-02 coverage decision is pending")
+    grow = next((l for l in register_text.splitlines() if l.startswith(f"| {GENERATOR_ROW} |")), None)
+    if PROFILE_RECIPE["generator_commit"] is None and (grow is None or "**RULED" not in grow):
+        reasons.append(f"the profile-generator commit is not retained and register row {GENERATOR_ROW} is not RULED")
     return reasons
 
 
@@ -175,33 +174,6 @@ def read_verified(root: Path, files: dict, digests: dict) -> dict:
             raise ProvenanceError(f"{f}: bytes changed after verification")
         out[key] = b
     return out
-
-
-def load_supplement(sdir: Path, seeds) -> tuple[dict, dict]:
-    """The pinned backfill (register row C1-4b-2023-10-02): the manifest's own digest, every seed reproduced, every
-    supplement file's digest, and rows only on SUPPLEMENT_DATE. Returns ({seed: frame}, provenance)."""
-    if SUPPLEMENT_MANIFEST_SHA is None:
-        return {}, {"supplement": None}
-    mb = (sdir / "backfill_manifest.json").read_bytes()
-    if sha256(mb) != SUPPLEMENT_MANIFEST_SHA:
-        raise ProvenanceError("the backfill manifest does not match its pin")
-    man = json.loads(mb)
-    if not man.get("all_reproduced"):
-        raise ProvenanceError("the backfill manifest does not record every seed reproduced")
-    out, prov = {}, {"manifest_sha256": SUPPLEMENT_MANIFEST_SHA, "files": {}}
-    for seed in seeds:
-        rec = man["seeds"].get(str(seed))
-        if not rec or not rec.get("reproduced"):
-            raise ProvenanceError(f"seed {seed} has no reproduced backfill")
-        b = (sdir / rec["supplement"]).read_bytes()
-        if sha256(b) != rec["supplement_sha256"]:
-            raise ProvenanceError(f"seed {seed}: supplement bytes do not match the manifest")
-        df = pd.read_parquet(io.BytesIO(b))
-        if set(map(str, pd.to_datetime(df["date"]).dt.date)) != {SUPPLEMENT_DATE}:
-            raise ProvenanceError(f"seed {seed}: supplement rows outside {SUPPLEMENT_DATE}")
-        out[seed] = df
-        prov["files"][rec["supplement"]] = rec["supplement_sha256"]
-    return out, prov
 
 
 def mc_se(per_rep: np.ndarray) -> float:
@@ -465,6 +437,7 @@ def _calendars(schedules: Path) -> tuple[dict, dict]:
         if shas[s] != SCHEDULE_PINS[s]:
             raise ProvenanceError(f"schedule {s}: sha256 {shas[s][:12]} is not the pinned outcome-free schedule")
         c = D.calendar_from_schedule(json.loads(b), s)
+        c = D.exclude_dates(c, [x for x in EXCLUDED_CONTEST_DATES if int(x[:4]) == s])
         pin = CALENDAR_PINS[s]
         if (str(c.opening), str(c.final), sum(1 for _, o, _ in c.days() if o)) != pin:
             raise ProvenanceError(f"calendar {s} does not match its pin {pin}")
@@ -511,15 +484,12 @@ def main(argv=None) -> int:
     ap.add_argument("--a0-base", type=Path, default=DATA / "models" / "mdp_policy.npz")
     ap.add_argument("--a0-tail", type=Path, default=DATA / "models" / "mdp_tail_policy.npz")
     ap.add_argument("--out", type=Path, default=DATA / "hetzner_results" / "c1" / "r4b" / "runs")
-    ap.add_argument("--supplement-dir", type=Path, default=DATA / "hetzner_results" / "c1" / "r4b" / "backfill")
     args = ap.parse_args(argv)
     log = lambda msg: print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] {msg}", file=sys.stderr, flush=True)  # noqa: E731
 
     # 1. gates
     head = x31_gate()
     gates = owner_gates((REPO / "docs/audit/2026-09-22-exposure-register.md").read_text())
-    if SUPPLEMENT_REQUIRED and SUPPLEMENT_MANIFEST_SHA is None:
-        gates.append("the 2023-10-02 backfill supplement is not built and pinned (Eric's ruling requires it)")
     if gates:
         raise SystemExit("refusing: " + "; ".join(gates))
     dirty = dirty_tree()
@@ -548,6 +518,7 @@ def main(argv=None) -> int:
     manifest = {"code": head, "x31_commit": X31_COMMIT, "sources": sources, "w0_manifest_sha256": W0_MANIFEST_SHA,
                 "profiles": prof_sha, "profile_recipe": {**PROFILE_RECIPE, "recipe_files": recipe_sha},
                 "a0": a0_meta, "schedules": sched_sha,
+                "excluded_contest_dates": EXCLUDED_CONTEST_DATES,
                 "calendars": {s: {"opening": str(c.opening), "final": str(c.final), "exclusive_end": str(c.exclusive_end),
                                   "horizon": c.horizon, "no_opportunity": sorted(map(str, c.no_opportunity))}
                               for s, c in cals.items()},
@@ -581,14 +552,6 @@ def main(argv=None) -> int:
     log("parity: July Δ=0 anchors reproduced on the verified bytes")
 
     frames = {k: D.validate_profile(pd.read_parquet(io.BytesIO(b))) for k, b in blobs.items()}
-    sup, sup_prov = load_supplement(args.supplement_dir, sorted({seed for _, seed in frames}))
-    sup_season = int(SUPPLEMENT_DATE[:4])
-    for seed, extra in sup.items():
-        base = frames[(sup_season, seed)]
-        if (pd.to_datetime(base["date"]).dt.date.astype(str) == SUPPLEMENT_DATE).any():
-            raise ProvenanceError(f"seed {seed}: the retained profile already has {SUPPLEMENT_DATE}")
-        frames[(sup_season, seed)] = D.validate_profile(pd.concat([base, extra[list(base.columns)]], ignore_index=True))
-    manifest["supplement"] = sup_prov
     (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str) + "\n")
     days = {(s, seed): D.season_days(frames[(s, seed)], cals[s]) for (s, seed) in frames}
     seeds = sorted({seed for _, seed in days})

@@ -86,7 +86,9 @@ def test_coverage_is_checked_across_every_seed_not_just_the_first():
 def test_owner_gates_refuse_an_open_coverage_row_and_a_missing_generator_ruling():
     open_row = "| C1-4b-2023-10-02 | gap | **OPEN.** Nothing is recorded | — |\n"
     assert len(RUN.owner_gates(open_row)) == 2
-    ruled = "| C1-4b-2023-10-02 | gap | **RULED:** frozen rule kept | Eric |\n| C1-4b-generator-commit | x | y | Eric |\n"
+    proposed = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **PROPOSED, awaiting Eric** | — |\n"
+    assert len(RUN.owner_gates(proposed)) == 1                      # a proposal is not a ruling
+    ruled = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **RULED:** y | Eric |\n"
     assert RUN.owner_gates(ruled) == []
 
 
@@ -100,3 +102,12 @@ def test_self_check_catches_a_broken_solver(monkeypatch):
         return sol
     monkeypatch.setattr(RUN.S, "solve", broken)
     assert RUN.self_check()["ok"] is False
+
+
+def test_the_no_play_ruling_ends_the_2023_calendar_on_10_01():
+    from datetime import date
+    from scripts.audit.c1_r4b import data as D
+    sched = {"dates": [{"date": d, "games": [{"gamePk": i + 1, "status": {"detailedState": "Final"}}]}
+                       for i, d in enumerate(["2023-09-29", "2023-09-30", "2023-10-01", "2023-10-02"])]}
+    cal = D.exclude_dates(D.calendar_from_schedule(sched, 2023), ["2023-10-02"])
+    assert cal.final == date(2023, 10, 1) and cal.exclusive_end == date(2023, 10, 2) and not cal.no_opportunity
