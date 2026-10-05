@@ -1,6 +1,6 @@
 # C1 4b: calendar and profile-coverage check (outcome-free, before X-31)
 
-**Date:** 2026-10-04. **Status:** a finding from build task T1, made before any outcome-bearing read. It changes nothing in the frozen registration; the decision below is Eric's.
+**Date:** 2026-10-04. **Status:** a finding from build task T1, made before any outcome-bearing read. **Eric ruled 2026-10-05, before any 4b result was read: backfill the real game** (register §C, row C1-4b-2023-10-02); see the operational definition there.
 
 ## What was checked (dates and game ids only; no hit outcomes read)
 - **The 2021–2025 MLB regular-season schedules:** fetched from the public statsapi, one request per season, .
