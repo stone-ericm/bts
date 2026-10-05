@@ -76,8 +76,11 @@ PROFILE_RECIPE = {
                 "--seeds 24 --test-seasons 2024,2025 --profile-seasons 2021,2022,2023,2024,2025 "
                 "--no-log-pa-predictions"),
     "command_source": "docs/audit/2026-06-10-mdp-estpa-ab-methodology.md, 'Run that produced the profiles'",
-    "mode": "estimated_pa", "generator_commit": None,
-    "generator_commit_note": "not retained in the evidence (the run's audit_validation_split.json has no commit field)"}
+    "mode": "estimated_pa", "generator_commit": "85224124f97a0d4ee8da3059ff54b1bad228d44e",
+    "generator_commit_note": ("not retained by the 6/10 run; confirmed by reproduction on one block (seed 42, 2023-09-25..10-01, "
+                              "70/70 rows exact; register row C1-4b-generator-commit)"),
+    "generator_witness": {"manifest": "hetzner_results/c1/r4b/generator_check/20261005T163415Z/manifest.json",
+                          "sha256": "40cdc0e72766df375e479217d71dbbe2ec9dde78ec58c74f56c2cb72a2a27dbb"}}
 RECIPE_FILES = ("audit_validation_split.json", "boxes.json")
 SOURCE_FILES = ("scripts/audit/c1_r4b/solvers.py", "scripts/audit/c1_r4b/project.py", "scripts/audit/c1_r4b/data.py",
                 "scripts/audit/c1_r4b/fit.py", "scripts/audit/c1_r4b/replay.py", "scripts/audit/c1_r4b/run.py",
