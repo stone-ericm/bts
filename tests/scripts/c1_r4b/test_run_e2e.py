@@ -118,6 +118,32 @@ def test_end_to_end_outputs_and_evidential_flags(tmp_path, patched):
     assert res["achieved_haircuts"] and res["census"]["2021|0"]["known_days"] == LENGTHS[2021] - 1
     assert (d / "final_environment.json").exists() and not (d / "parity_inputs").exists()
     assert hashlib.sha256((d / "final_environment.json").read_bytes()).hexdigest() == res["final_object"]["environment_sha256"]
+    # code review r2 F6: retained trade evidence, checked by its relations rather than key presence
+    metrics = set(res["arms"]["A2"]["0.0"])
+    assert "act_play" in metrics
+    for arm in res["arms"]:
+        for dl, row in res["arms"][arm].items():
+            assert row["act_play"] == pytest.approx(row["act_single"] + row["act_double"])
+            assert set(res["by_season"][arm][dl]) == metrics
+            seas = res["by_season"][arm][dl]["max"]
+            assert res["arms_range"][arm][dl]["max"] == [min(seas.values()), max(seas.values())]
+    for name in ("objective", "switch", "adaptation"):
+        d10 = res["contrast"][name]["d10"]
+        assert len(d10["per_replicate"]) == RUN.REPS and len(d10["seasons"]) == len(SEASONS)
+        assert np.mean(d10["seasons"]) == pytest.approx(d10["mean"])
+        assert d10["range"] == [min(d10["seasons"]), max(d10["seasons"])]
+    for b_ in ("A1", "A0"):
+        r = res["reach20"]["d10_contrast"][b_]
+        assert len(r["per_replicate"]) == RUN.REPS and np.mean(r["per_replicate"]) == pytest.approx(np.mean(r["seasons"]))
+        assert np.mean(r["seasons"]) == pytest.approx(res["reach20"]["A2"]["d10"] - res["reach20"][b_]["d10"])
+    for H in map(str, SEASONS):
+        for src in ("fitting_rates", "held_out_rates"):
+            (cell,) = res["projections"][H][src]
+            for b_ in ("A0", "A1"):
+                if "p57" in cell["A2"] and "p57" in cell[b_]:
+                    assert cell[f"A2_minus_{b_}_p57"] == pytest.approx(cell["A2"]["p57"] - cell[b_]["p57"])
+                    assert cell[f"A2_minus_{b_}_p57_pp"] == pytest.approx(100 * cell[f"A2_minus_{b_}_p57"])
+    assert all("n_primary_hit" in h for h in res["achieved_haircuts"])
 
 
 @pytest.mark.slow

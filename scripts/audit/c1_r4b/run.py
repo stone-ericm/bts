@@ -379,7 +379,9 @@ def project_grid(policies: dict, env: S.Environment, cal: D.Calendar) -> list[di
                         cell[arm] = {"unavailable": str(e)}
                 for b in ("A0", "A1"):
                     ok = "p57" in cell["A2"] and "p57" in cell[b]
-                    cell[f"A2_minus_{b}_p57_pp"] = 100 * (cell["A2"]["p57"] - cell[b]["p57"]) if ok else "unavailable"
+                    diff = cell["A2"]["p57"] - cell[b]["p57"] if ok else None
+                    cell[f"A2_minus_{b}_p57"] = diff if ok else "unavailable"
+                    cell[f"A2_minus_{b}_p57_pp"] = 100 * diff if ok else "unavailable"
                 out.append(cell)
     return out
 
@@ -480,9 +482,11 @@ def _achieved(sd: dict, masks: np.ndarray) -> dict:
     removed = (legs[None, :] & ~masks).sum(axis=1)
     hk = legs & sd["hit1"]
     removed_h = (hk[None, :] & ~masks).sum(axis=1)
-    return {"partner_days": n_part, "leg_hits": n_legs,
+    n_primary_hit = int((k & sd["hit1"]).sum())
+    return {"partner_days": n_part, "leg_hits": n_legs, "n_primary_hit": n_primary_hit,
             "achieved_marginal_rate_reduction": float(removed.mean() / n_part) if n_part else None,
-            "achieved_primary_hit_conditional_reduction": float(removed_h.mean() / max(1, int((k & sd["hit1"]).sum())))}
+            "achieved_primary_hit_conditional_reduction": (float(removed_h.mean() / n_primary_hit)
+                                                           if n_primary_hit else None)}
 
 
 def _seed_metrics(res: dict) -> dict:
@@ -490,6 +494,7 @@ def _seed_metrics(res: dict) -> dict:
             "reach20": np.asarray(res["reach20"], float), "reach30": np.asarray(res["reach30"], float),
             "reach40": np.asarray(res["reach40"], float), "reach57": np.asarray(res["reach57"], float),
             **{f"act_{k}": np.asarray(v, float) for k, v in res["actions"].items()},
+            "act_play": np.asarray(res["actions"]["single"], float) + np.asarray(res["actions"]["double"], float),
             **{f"skip_{k}": np.asarray(v, float) for k, v in res["skip_census"].items()}}
 
 
@@ -676,7 +681,9 @@ def main(argv=None) -> int:
     arms_table = {arm: {str(delta): {m: equal_season_mean(season_mean(arm, delta, m)) for m in metrics}
                         for delta in DELTAS} for arm in ARMS}
     by_season = {arm: {str(delta): {m: {H: float(np.mean(season_mean(arm, delta, m)[H])) for H in SEASONS}
-                                    for m in ("max", "reach20", "resets")} for delta in DELTAS} for arm in ARMS}
+                                    for m in metrics} for delta in DELTAS} for arm in ARMS}
+    arms_range = {arm: {dl: {m: [min(v.values()), max(v.values())] for m, v in row.items()}
+                        for dl, row in by_season[arm].items()} for arm in ARMS}
     reach57_counts = {arm: {str(delta): {
         "trajectories_reaching_57": int(sum(int(m["reach57"].sum()) for H in SEASONS for m in per_rep[(arm, delta, H)])),
         "trajectories": int(sum(m["reach57"].size for H in SEASONS for m in per_rep[(arm, delta, H)]))}
@@ -685,11 +692,18 @@ def main(argv=None) -> int:
     for name, a, b in (("objective", "A2", "A1"), ("switch", "A2", "A0"), ("adaptation", "A1", "A0")):
         seasons = [by_season[a]["0.0"]["max"][H] - by_season[b]["0.0"]["max"][H] for H in SEASONS]
         t10 = per_rep_contrast(a, b, 0.10, "max")
+        s10 = [by_season[a]["0.1"]["max"][H] - by_season[b]["0.1"]["max"][H] for H in SEASONS]
         contrast[name] = {"d0": {"mean": float(np.mean(seasons)), "seasons": seasons, "range": [min(seasons), max(seasons)],
                                  "season_sd_descriptive": float(np.std(seasons, ddof=1))},
-                          "d10": {"mean": float(t10.mean()), "mc_se": mc_se(t10), "per_replicate": t10.tolist()}}
+                          "d10": {"mean": float(t10.mean()), "mc_se": mc_se(t10), "per_replicate": t10.tolist(),
+                                  "seasons": s10, "range": [min(s10), max(s10)]}}
     reach20 = {arm: {"d0": arms_table[arm]["0.0"]["reach20"], "d10": arms_table[arm]["0.1"]["reach20"]} for arm in ("A0", "A1", "A2")}
     reach20["mc_se_d10"] = {b: mc_se(per_rep_contrast("A2", b, 0.10, "reach20")) for b in ("A1", "A0")}
+    reach20["d10_contrast"] = {}
+    for b in ("A1", "A0"):
+        t = per_rep_contrast("A2", b, 0.10, "reach20")
+        s10 = [by_season["A2"]["0.1"]["reach20"][H] - by_season[b]["0.1"]["reach20"][H] for H in SEASONS]
+        reach20["d10_contrast"][b] = {"per_replicate": t.tolist(), "seasons": s10, "range": [min(s10), max(s10)]}
     fix_ladder = {rung: {arm: {m: equal_season_mean({H: [float(x[m].mean()) for x in ladder[(rung, arm, H)]] for H in SEASONS})
                                for m in ("max", "reach20", "resets")}
                          for arm in {a for (r_, a, _) in ladder if r_ == rung}}
@@ -718,7 +732,7 @@ def main(argv=None) -> int:
                                  "measured frequency; own E[best] is not a prize objective."),
                "headline": headline, "coverage": cov, "census": census_tab, "self_check": check,
                "validation_ok": validation_ok, "projections_ok": projections_ok,
-               "arms": arms_table, "by_season": by_season, "reach57_counts": reach57_counts,
+               "arms": arms_table, "by_season": by_season, "arms_range": arms_range, "reach57_counts": reach57_counts,
                "contrast": contrast, "reach20": reach20, "disposition": disp, "fix_ladder": fix_ladder,
                "achieved_haircuts": achieved, "consequences_d0": consequences, "folds": folds_out,
                "projections": projections, "projection_summary": fold_proj_summary,

@@ -151,3 +151,22 @@ def test_the_no_play_ruling_ends_the_2023_calendar_on_10_01():
                        for i, d in enumerate(["2023-09-29", "2023-09-30", "2023-10-01", "2023-10-02"])]}
     cal = D.exclude_dates(D.calendar_from_schedule(sched, 2023), ["2023-10-02"])
     assert cal.final == date(2023, 10, 1) and cal.exclusive_end == date(2023, 10, 2) and not cal.no_opportunity
+
+
+def test_achieved_haircut_reports_none_for_a_zero_primary_hit_denominator():
+    """Code review r2 F6: an undefined conditional reduction is None (with its denominator), never 0."""
+    sd = {"opp": np.ones(4, bool), "known": np.ones(4, bool), "partner": np.ones(4, bool),
+          "hit1": np.zeros(4, bool), "hit2": np.array([True, True, False, True])}
+    out = RUN._achieved(sd, np.array([[True, False, True, False]]))
+    assert out["n_primary_hit"] == 0 and out["achieved_primary_hit_conditional_reduction"] is None
+    sd["hit1"] = np.array([True, True, True, False])
+    out = RUN._achieved(sd, np.array([[True, False, True, False]]))
+    assert out["n_primary_hit"] == 3 and out["achieved_primary_hit_conditional_reduction"] == pytest.approx(1 / 3)
+
+
+def test_seed_metrics_carry_the_play_total():
+    res = {k: [1.0] for k in ("max", "resets", "reach20", "reach30", "reach40", "reach57")}
+    res["actions"] = {"skip": [4.0], "single": [10.0], "double": [3.0]}
+    res["skip_census"] = {}
+    m = RUN._seed_metrics(res)
+    assert float(m["act_play"][0]) == 13.0
