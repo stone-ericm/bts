@@ -204,10 +204,142 @@ def test_a_receipt_write_failure_during_an_ordinary_request_aborts_the_run(tmp_p
 def test_verify_binds_every_stored_file_to_its_receipt_and_flags_the_rest(tmp_path):
     run(tmp_path, {"101": feed(101), "102": feed(102), "103": feed(103)})
     out, feeds = tmp_path / "c1" / "r3", tmp_path / "raw"
-    assert aq.verify(out, feeds) == {"receipted": 3, "bound": 3, "mismatched": [], "missing": [], "unreceipted": []}
+    v = aq.verify(out, feeds)
+    assert {k: v[k] for k in ("receipted", "bound", "mismatched", "missing", "unreceipted")} == \
+        {"receipted": 3, "bound": 3, "mismatched": [], "missing": [], "unreceipted": []}
+    assert v["responses"] == {"promoted": 3, "retained": 0, "missing": [], "legacy_unretained": 0}
     (feeds / "2021" / "102.json.gz").write_bytes(gzip.compress(feed(102) + b" "))
     (feeds / "2021" / "103.json.gz").unlink()
     (feeds / "2021" / "999.json.gz").write_bytes(gzip.compress(feed(999)))
     v = aq.verify(out, feeds)
     assert v["mismatched"] == ["2021/102.json.gz"] and v["missing"] == ["2021/103.json.gz"]
     assert v["unreceipted"] == ["2021/999.json.gz"] and v["bound"] == 1
+
+
+
+# ---------- code review r2 N7: response durability and schedule resume ----------
+def test_a_response_is_durably_retained_before_its_completion_receipt(tmp_path, monkeypatch):
+    real, seen = aq._append, []
+
+    def spy(path, rec):
+        if rec.get("outcome") == "response":
+            f = tmp_path / "c1" / "r3" / rec["response_path"]
+            seen.append(f.exists() and aq.sha256(f.read_bytes()) == rec["response_sha256"]
+                        and gzip.decompress(f.read_bytes()) == feed(rec["gamePk"]))
+        return real(path, rec)
+    monkeypatch.setattr(aq, "_append", spy)
+    rc, _, _ = run(tmp_path, {"101": feed(101), "102": feed(102)}, games=(101, 102))
+    assert rc == 0 and seen == [True, True]
+    stored = [r for r in recs(tmp_path) if r.get("outcome") == "stored"]
+    resp = {r["attempt_id"]: r for r in recs(tmp_path) if r.get("outcome") == "response"}
+    for s in stored:                                     # the stored artifact is bound to the attempt that fetched it
+        assert s["from_attempt_id"] in resp and s["stored_sha256"] == resp[s["from_attempt_id"]]["response_sha256"]
+    assert not list((tmp_path / "c1" / "r3" / "responses").glob("*.json.gz"))   # promoted, then released
+
+
+def test_a_failure_retaining_the_response_leaves_the_attempt_unresolved(tmp_path, monkeypatch):
+    real = aq._write_durable
+
+    def broken(path, data):
+        if path.parent.name == "responses":
+            raise OSError("disk full")
+        return real(path, data)
+    monkeypatch.setattr(aq, "_write_durable", broken)
+    with pytest.raises(OSError):
+        run(tmp_path, {"101": feed(101)}, games=(101, 102))
+    assert aq.unresolved_intents(recs(tmp_path))                   # no completion without durable bytes
+    assert not [r for r in recs(tmp_path) if r.get("outcome") == "response"]
+
+
+def test_a_crash_between_the_response_receipt_and_storage_keeps_the_bytes_behind_the_receipt(tmp_path, monkeypatch):
+    real = aq._write_durable
+
+    def broken(path, data):
+        if path.suffixes == [".json", ".gz"] and path.parent.name == "2021":
+            raise OSError("crash before the feed is stored")
+        return real(path, data)
+    monkeypatch.setattr(aq, "_write_durable", broken)
+    with pytest.raises(OSError):
+        run(tmp_path, {"101": feed(101)}, games=(101,))
+    monkeypatch.setattr(aq, "_write_durable", real)
+    v = aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")
+    assert v["responses"]["retained"] == 1 and v["responses"]["missing"] == [] and v["receipted"] == 0
+    rc, calls, _ = run(tmp_path, {"101": feed(101)}, games=(101,))   # resume fetches again; the old bytes stay
+    assert rc == 0 and len(calls) == 1
+    assert aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")["responses"]["retained"] == 1
+
+
+def test_verify_flags_a_response_receipt_whose_bytes_are_gone(tmp_path, monkeypatch):
+    real = aq._write_durable
+    monkeypatch.setattr(aq, "_write_durable", lambda p, d: (_ for _ in ()).throw(OSError("x"))
+                        if p.parent.name == "2021" else real(p, d))
+    with pytest.raises(OSError):
+        run(tmp_path, {"101": feed(101)}, games=(101,))
+    (f,) = (tmp_path / "c1" / "r3" / "responses").glob("*.json.gz")
+    f.unlink()
+    assert len(aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")["responses"]["missing"]) == 1
+
+
+def main_env(tmp_path, monkeypatch, schedules: dict, feeds: dict):
+    """aq.main with the network replaced: schedule and feed bodies keyed by season / gamePk."""
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        if "/schedule?" in url:
+            return json.dumps(schedules[int(url.split("season=")[1].split("&")[0])]).encode()
+        return feeds[url.rsplit("/game/", 1)[1].split("/")[0]]
+    monkeypatch.setattr(aq, "C1_ROOT", tmp_path / "c1")
+    monkeypatch.setattr(aq, "_fetch", fetch)
+    monkeypatch.setattr(aq.time, "sleep", lambda s: None)
+    argv = ["--seasons", "2021", "--out", str(tmp_path / "c1" / "r3"), "--feeds", str(tmp_path / "raw"),
+            "--min-gap", "0", "--max-gap", "0"]
+    return calls, argv
+
+
+def test_a_fetched_schedule_gets_a_stored_receipt_and_is_reused_only_while_bound(tmp_path, monkeypatch):
+    s = sched(("2021-04-01", 101, "Final", None))
+    calls, argv = main_env(tmp_path, monkeypatch, {2021: s}, {"101": feed(101)})
+    assert aq.main(argv) == 0 and sum("/schedule?" in c for c in calls) == 1
+    st = [r for r in recs(tmp_path) if r.get("outcome") == "stored" and r.get("kind_of") == "schedule"]
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
+    assert len(st) == 1 and st[0]["season"] == 2021 and st[0]["stored_sha256"] == aq.sha256(sp.read_bytes())
+    calls.clear()
+    assert aq.main(argv) == 0 and calls == []                      # bound schedule reused, feeds already stored
+    sp.write_bytes(sp.read_bytes() + b" ")                          # changed bytes are never trusted
+    assert aq.main(argv) == 2 and calls == []
+
+
+def test_an_orphan_schedule_is_refused(tmp_path, monkeypatch):
+    calls, argv = main_env(tmp_path, monkeypatch, {}, {})
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
+    sp.parent.mkdir(parents=True)
+    sp.write_text(json.dumps(sched(("2021-04-01", 101, "Final", None))))
+    assert aq.main(argv) == 2 and calls == []
+
+
+def test_a_legacy_response_receipt_binds_an_earlier_schedule_by_its_hash(tmp_path, monkeypatch):
+    """The 10/04 run wrote schedules before the stored-receipt protocol: its response receipt's decoded sha256 is
+    the only binding, accepted for that exact season and hash and reported as legacy."""
+    body = json.dumps(sched(("2021-04-01", 101, "Final", None))).encode()
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
+    sp.parent.mkdir(parents=True)
+    sp.write_bytes(body)
+    url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&season=2021&gameType=R&fields=x"
+    for kind, extra in (("intent", {}), ("completion", {"outcome": "response", "decoded_sha256": aq.sha256(body)})):
+        aq._append(tmp_path / "c1" / "r3" / "receipts" / "2026-10-04.jsonl",
+                   {"kind": kind, "attempt_id": "legacy1", "kind_of": "schedule", "url": url, **extra})
+    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2021, aq.sha256(body)) == "legacy_response"
+    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2022, aq.sha256(body)) is None
+    calls, argv = main_env(tmp_path, monkeypatch, {}, {"101": feed(101)})
+    assert aq.main(argv) == 0 and not any("/schedule?" in c for c in calls)
+    v = aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")
+    assert v["schedules"] == {"sched_2021.json": "legacy_response"} and v["responses"]["legacy_unretained"] == 1
+
+
+def test_verify_lists_an_unbound_schedule(tmp_path):
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2022.json"
+    sp.parent.mkdir(parents=True)
+    sp.write_text("{}")
+    (tmp_path / "raw").mkdir()
+    assert aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")["schedules"] == {"sched_2022.json": None}

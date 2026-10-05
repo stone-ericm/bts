@@ -7,9 +7,19 @@ Public, unauthenticated statsapi requests, paced politely with jitter between re
   fsynced) goes to the shared C1 pause location *and* the output directory, before any receipt. If the stop cannot be
   written the process fails, and its intent receipt stays unresolved, which the C1 launcher treats as a stop.
 - **Other errors** retry three times with backoff, then record a failure and move on.
-- **Durable bytes:** stored bytes are fsynced (file and directory) before their completion receipt is published.
-- **Resume trusts receipts, not files:** a stored feed is skipped only when a `stored` completion receipt binds its
-  decoded sha256. A file without a matching receipt is quarantined, recorded and fetched again.
+- **Durable bytes before every receipt that claims them** (code review r2 N7): a successful response's bytes are
+  retained (`responses/<attempt>.json.gz`, file and directory fsynced) before its `response` completion receipt,
+  which records that path and hash. The stored artifact (feed or schedule) is written durably, then its `stored`
+  receipt names the attempt it came from (`from_attempt_id`), and only then is the retained response released.
+- **Resume trusts receipts, not files:**
+  - A stored feed is skipped only when a `stored` completion receipt binds its decoded sha256. A file without a
+    matching receipt is quarantined, recorded and fetched again.
+  - An existing schedule is used only when a `stored` schedule receipt for that season binds its exact bytes, or,
+    for schedules written before this protocol (the 10/04 run), when that season's `response` receipt's decoded
+    sha256 does ("legacy_response", reported as such). Changed or orphan schedule bytes are refused.
+- **`--verify`** (no requests) reconciles feeds, schedules and retained responses against their receipts. Response
+  receipts from before this protocol carry no retained bytes; they are counted as `legacy_unretained`, never
+  backfilled with synthetic receipts.
 - **No outcomes are read:** a body is accepted only as JSON whose top-level `gamePk` is the requested positive int.
 
     python -m scripts.audit.c1_r3.acquire --seasons 2021 2022 2023 2024 2025
@@ -31,6 +41,7 @@ import urllib.request
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import NamedTuple
 
 API = "https://statsapi.mlb.com"
 STOP_NAME = "STOP_403_429.json"
@@ -61,6 +72,14 @@ class Busy(Exception):
 
 class UnsupportedStatus(ValueError):
     pass
+
+
+class Response(NamedTuple):
+    """A successful attempt: its body, its id, and where its bytes are durably retained (relative to the out dir)."""
+    body: bytes
+    attempt_id: str
+    retained_path: str
+    retained_sha256: str
 
 
 def sha256(b: bytes) -> str:
@@ -182,14 +201,15 @@ class Acquirer:
         for p in (self.pause_root / STOP_NAME, self.out / STOP_NAME):   # the shared pause location first
             _write_durable(p, body)
 
-    def get(self, url: str, *, kind: str, game_pk: int | None = None) -> bytes:
+    def get(self, url: str, *, kind: str, game_pk: int | None = None, season: int | None = None) -> Response:
         """One request with per-attempt receipts. Raises RateLimited after recording the stop (the stop is written
-        before the completion receipt; a stop-write failure propagates with the intent left unresolved)."""
+        before the completion receipt; a stop-write failure propagates with the intent left unresolved). A success's
+        bytes are durably retained before its completion receipt; a retention failure propagates the same way."""
         request_id = uuid.uuid4().hex
         for attempt in range(3):
             attempt_id = uuid.uuid4().hex
             base = {"request_id": request_id, "attempt_id": attempt_id, "attempt": attempt + 1, "kind_of": kind,
-                    "url": url, "gamePk": game_pk}
+                    "url": url, "gamePk": game_pk, "season": season}
             _append(self.receipts_path(), {**base, "kind": "intent", "started_utc": self.now().isoformat()})
             t0 = time.monotonic()
             try:
@@ -207,15 +227,42 @@ class Acquirer:
                 if attempt == 2:
                     raise RequestFailed(f"{type(e).__name__} on {url}") from e
             else:
+                rel = f"responses/{attempt_id}.json.gz"
+                retained = gzip.compress(body, mtime=0)
+                _write_durable(self.out / rel, retained)
                 self._complete(base, t0, outcome="response", http_status=200, bytes=len(body),
-                               decoded_sha256=sha256(body))
-                return body
+                               decoded_sha256=sha256(body), response_path=rel, response_sha256=sha256(retained))
+                return Response(body, attempt_id, rel, sha256(retained))
             self.sleep(5.0 * (attempt + 1))
         raise AssertionError("unreachable")
 
     def _complete(self, base: dict, t0: float, **fields) -> None:
         _append(self.receipts_path(), {**base, "kind": "completion", "ended_utc": self.now().isoformat(),
                                        "duration_s": round(time.monotonic() - t0, 3), **fields})
+
+    def release(self, resp: Response) -> None:
+        """After the stored receipt names it, the retained response copy is no longer needed."""
+        f = self.out / resp.retained_path
+        f.unlink(missing_ok=True)
+        _fsync_dir(f.parent)
+
+
+def _stored(r: dict, kind: str) -> bool:
+    return r.get("kind") == "completion" and r.get("outcome") == "stored" and r.get("kind_of", "feed") == kind
+
+
+def schedule_binding(recs: list[dict], season: int, have: str) -> str | None:
+    """How an existing schedule's bytes are bound: "stored" (the season's latest stored schedule receipt), else
+    "response" / "legacy_response" (a response receipt for that season with the same decoded sha256; legacy = written
+    before retained responses existed). None = unbound: refuse."""
+    stored = [r for r in recs if _stored(r, "schedule") and r.get("season") == season]
+    if stored:
+        return "stored" if stored[-1].get("stored_sha256") == have else None
+    for r in recs:
+        if (r.get("kind") == "completion" and r.get("outcome") == "response" and r.get("kind_of") == "schedule"
+                and f"season={season}&" in str(r.get("url", "")) and r.get("decoded_sha256") == have):
+            return "response" if "response_path" in r else "legacy_response"
+    return None
 
 
 def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Path, fetch, sleep, jitter, now) -> int:
@@ -231,7 +278,7 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Pa
             return 3
         bound: dict[int, set] = {}
         for r in recs:
-            if r.get("kind") == "completion" and r.get("outcome") == "stored":
+            if _stored(r, "feed"):
                 bound.setdefault(r["gamePk"], set()).add(r["decoded_sha256"])
         failures, requested = 0, False
         for g in games:
@@ -255,7 +302,7 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Pa
             requested = True
             url = f"{API}/api/v1.1/game/{pk}/feed/live"
             try:
-                body = acq.get(url, kind="feed", game_pk=pk)
+                resp = acq.get(url, kind="feed", game_pk=pk)
             except RateLimited:
                 print(f"STOP: rate limited on {url}", file=sys.stderr)
                 return 3
@@ -263,24 +310,33 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Pa
                 failures += 1
                 print(f"failed {pk}: {e}", file=sys.stderr)
                 continue
-            if not _valid(body, pk):
+            body = resp.body
+            if not _valid(body, pk):          # its response stays retained under responses/
                 failures += 1
                 _append(acq.receipts_path(), {"kind": "validation", "gamePk": pk, "outcome": "invalid",
-                                              "decoded_sha256": sha256(body), "at_utc": now().isoformat()})
+                                              "decoded_sha256": sha256(body), "from_attempt_id": resp.attempt_id,
+                                              "at_utc": now().isoformat()})
                 continue
             stored = gzip.compress(body, mtime=0)
             _write_durable(dest, stored)
             _append(acq.receipts_path(), {"kind": "completion", "attempt_id": f"store-{uuid.uuid4().hex}",
-                                          "gamePk": pk, "outcome": "stored", "decoded_sha256": sha256(body),
-                                          "stored_path": str(rel), "stored_sha256": sha256(stored),
+                                          "kind_of": "feed", "gamePk": pk, "outcome": "stored",
+                                          "decoded_sha256": sha256(body), "stored_path": str(rel),
+                                          "stored_sha256": sha256(stored), "from_attempt_id": resp.attempt_id,
                                           "statuses": g.get("statuses"), "at_utc": now().isoformat()})
+            acq.release(resp)
         return 1 if failures else 0
 
 
 def verify(out_dir: Path, feeds_dir: Path) -> dict:
-    """Outcome-free reconciliation: every `stored` completion receipt's file must exist and its gunzipped bytes must
-    hash to the receipt's decoded sha256; stored files without a receipt are listed."""
-    recs = [r for r in read_receipts(out_dir) if r.get("kind") == "completion" and r.get("outcome") == "stored"]
+    """Outcome-free reconciliation (no requests):
+    - every `stored` feed receipt's file must exist, and its gunzipped bytes must hash to the receipt's decoded
+      sha256; stored files without a receipt are listed;
+    - every schedule file's binding (`schedule_binding`; None = unbound);
+    - every `response` receipt's bytes: promoted (a stored receipt names the attempt), retained (the file is there
+      with its hash), missing, or legacy_unretained (written before responses were retained)."""
+    allrecs = read_receipts(out_dir)
+    recs = [r for r in allrecs if _stored(r, "feed")]
     latest = {}
     for r in recs:
         latest[r["stored_path"]] = r
@@ -299,8 +355,24 @@ def verify(out_dir: Path, feeds_dir: Path) -> dict:
         else:
             mismatched.append(rel)
     on_disk = {str(f.relative_to(feeds_dir)) for f in feeds_dir.rglob("*.json.gz")}
+    schedules = {f.name: schedule_binding(allrecs, int(f.stem.split("_")[1]), sha256(f.read_bytes()))
+                 for f in sorted((out_dir / "schedules").glob("sched_*.json"))}
+    promoted_ids = {r.get("from_attempt_id") for r in allrecs if r.get("outcome") == "stored"}
+    resp = {"promoted": 0, "retained": 0, "missing": [], "legacy_unretained": 0}
+    for r in allrecs:
+        if not (r.get("kind") == "completion" and r.get("outcome") == "response"):
+            continue
+        if "response_path" not in r:
+            resp["legacy_unretained"] += 1
+        elif r["attempt_id"] in promoted_ids:
+            resp["promoted"] += 1
+        elif (out_dir / r["response_path"]).exists() and \
+                sha256((out_dir / r["response_path"]).read_bytes()) == r.get("response_sha256"):
+            resp["retained"] += 1
+        else:
+            resp["missing"].append(r["attempt_id"])
     return {"receipted": len(latest), "bound": bound, "mismatched": mismatched, "missing": missing,
-            "unreceipted": sorted(on_disk - set(latest))}
+            "unreceipted": sorted(on_disk - set(latest)), "schedules": schedules, "responses": resp}
 
 
 def _fetch(url: str) -> bytes:
@@ -320,9 +392,11 @@ def main(argv=None) -> int:
     out, pause_root = args.out.expanduser().resolve(), C1_ROOT.resolve()
     if args.verify:
         v = verify(out, args.feeds.expanduser().resolve())
-        print(json.dumps({k: (val if isinstance(val, int) else val[:20]) for k, val in v.items()} |
+        print(json.dumps({k: (val[:20] if isinstance(val, list) else val) for k, val in v.items()} |
                          {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)}, indent=1))
-        return 0 if (not v["mismatched"] and not v["missing"] and not v["unreceipted"]) else 1
+        ok = not (v["mismatched"] or v["missing"] or v["unreceipted"] or v["responses"]["missing"]
+                  or any(b is None for b in v["schedules"].values()))
+        return 0 if ok else 1
     if not args.seasons:
         ap.error("--seasons is required unless --verify")
     if pause_root not in out.parents and out != pause_root:
@@ -338,17 +412,28 @@ def main(argv=None) -> int:
             return 3
         for season in args.seasons:
             sp = out / "schedules" / f"sched_{season}.json"
-            if not sp.exists():
+            if sp.exists():
+                binding = schedule_binding(read_receipts(out), season, sha256(sp.read_bytes()))
+                if binding is None:
+                    print(f"refusing: {sp.name} is not bound to a receipt (changed or orphan bytes)", file=sys.stderr)
+                    return 2
+            else:
                 url = (f"{API}/api/v1/schedule?sportId=1&season={season}&gameType=R"
                        "&fields=dates,date,games,gamePk,officialDate,status,detailedState")
                 try:
-                    body = acq.get(url, kind="schedule")
+                    resp = acq.get(url, kind="schedule", season=season)
                 except RateLimited:
                     return 3
                 except RequestFailed as e:
                     print(f"schedule {season}: {e}", file=sys.stderr)
                     return 1
-                _write_durable(sp, body)
+                _write_durable(sp, resp.body)
+                _append(acq.receipts_path(), {"kind": "completion", "attempt_id": f"store-{uuid.uuid4().hex}",
+                                              "kind_of": "schedule", "season": season, "outcome": "stored",
+                                              "stored_path": f"schedules/{sp.name}", "stored_sha256": sha256(resp.body),
+                                              "decoded_sha256": sha256(resp.body),
+                                              "from_attempt_id": resp.attempt_id, "at_utc": now().isoformat()})
+                acq.release(resp)
                 time.sleep(jitter())
             season_games = [{**g, "season": season} for g in schedule_games(json.loads(sp.read_bytes()))]
             print(f"{season}: {len(season_games)} played games; schedule sha256 {sha256(sp.read_bytes())[:12]}",
