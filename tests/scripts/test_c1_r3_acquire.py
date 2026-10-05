@@ -318,23 +318,37 @@ def test_an_orphan_schedule_is_refused(tmp_path, monkeypatch):
     assert aq.main(argv) == 2 and calls == []
 
 
-def test_a_legacy_response_receipt_binds_an_earlier_schedule_by_its_hash(tmp_path, monkeypatch):
-    """The 10/04 run wrote schedules before the stored-receipt protocol: its response receipt's decoded sha256 is
-    the only binding, accepted for that exact season and hash and reported as legacy."""
+def test_a_response_receipt_without_retained_bytes_does_not_bind_a_schedule(tmp_path, monkeypatch):
+    """A pre-N7 response receipt (no response_path) or a receipt for another season never binds existing bytes."""
     body = json.dumps(sched(("2021-04-01", 101, "Final", None))).encode()
     sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
     sp.parent.mkdir(parents=True)
     sp.write_bytes(body)
-    url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&season=2021&gameType=R&fields=x"
     for kind, extra in (("intent", {}), ("completion", {"outcome": "response", "decoded_sha256": aq.sha256(body)})):
         aq._append(tmp_path / "c1" / "r3" / "receipts" / "2026-10-04.jsonl",
-                   {"kind": kind, "attempt_id": "legacy1", "kind_of": "schedule", "url": url, **extra})
-    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2021, aq.sha256(body)) == "legacy_response"
-    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2022, aq.sha256(body)) is None
+                   {"kind": kind, "attempt_id": "legacy1", "kind_of": "schedule", "season": 2021, **extra})
+    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2021, aq.sha256(body)) is None
     calls, argv = main_env(tmp_path, monkeypatch, {}, {"101": feed(101)})
-    assert aq.main(argv) == 0 and not any("/schedule?" in c for c in calls)
+    assert aq.main(argv) == 2 and calls == []
     v = aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")
-    assert v["schedules"] == {"sched_2021.json": "legacy_response"} and v["responses"]["legacy_unretained"] == 1
+    assert v["schedules"] == {"sched_2021.json": None} and v["responses"]["legacy_unretained"] == 1
+
+
+def test_a_crash_after_the_schedule_response_leaves_it_bound_by_the_retained_response(tmp_path, monkeypatch):
+    s = sched(("2021-04-01", 101, "Final", None))
+    calls, argv = main_env(tmp_path, monkeypatch, {2021: s}, {"101": feed(101)})
+    real = aq._append
+
+    def crash(path, rec):
+        if rec.get("outcome") == "stored" and rec.get("kind_of") == "schedule":
+            raise OSError("crash before the stored receipt")
+        return real(path, rec)
+    monkeypatch.setattr(aq, "_append", crash)
+    with pytest.raises(OSError):
+        aq.main(argv)
+    monkeypatch.setattr(aq, "_append", real)
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
+    assert aq.schedule_binding(aq.read_receipts(tmp_path / "c1" / "r3"), 2021, aq.sha256(sp.read_bytes())) == "response"
 
 
 def test_verify_lists_an_unbound_schedule(tmp_path):

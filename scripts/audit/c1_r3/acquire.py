@@ -14,9 +14,11 @@ Public, unauthenticated statsapi requests, paced politely with jitter between re
 - **Resume trusts receipts, not files:**
   - A stored feed is skipped only when a `stored` completion receipt binds its decoded sha256. A file without a
     matching receipt is quarantined, recorded and fetched again.
-  - An existing schedule is used only when a `stored` schedule receipt for that season binds its exact bytes, or,
-    for schedules written before this protocol (the 10/04 run), when that season's `response` receipt's decoded
-    sha256 does ("legacy_response", reported as such). Changed or orphan schedule bytes are refused.
+  - An existing schedule is used only when a receipt binds its exact bytes: the season's latest `stored` schedule
+    receipt, or (after a crash between the two) a retained `response` receipt for that season. Changed or orphan
+    schedule bytes are refused. The 10/04 run's five schedules predate schedule receipts and have none: they are
+    pinned only by sha256 (the 4b calendar-coverage note and `SCHEDULE_PINS`), so `--verify` reports them unbound
+    and a resume refuses them until an explicit, reviewed reconciliation.
 - **`--verify`** (no requests) reconciles feeds, schedules and retained responses against their receipts. Response
   receipts from before this protocol carry no retained bytes; they are counted as `legacy_unretained`, never
   backfilled with synthetic receipts.
@@ -253,15 +255,15 @@ def _stored(r: dict, kind: str) -> bool:
 
 def schedule_binding(recs: list[dict], season: int, have: str) -> str | None:
     """How an existing schedule's bytes are bound: "stored" (the season's latest stored schedule receipt), else
-    "response" / "legacy_response" (a response receipt for that season with the same decoded sha256; legacy = written
-    before retained responses existed). None = unbound: refuse."""
+    "response" (a retained-response receipt for that season with the same decoded sha256: a crash between the
+    response and the stored receipt). None = unbound: refuse."""
     stored = [r for r in recs if _stored(r, "schedule") and r.get("season") == season]
     if stored:
         return "stored" if stored[-1].get("stored_sha256") == have else None
     for r in recs:
         if (r.get("kind") == "completion" and r.get("outcome") == "response" and r.get("kind_of") == "schedule"
-                and f"season={season}&" in str(r.get("url", "")) and r.get("decoded_sha256") == have):
-            return "response" if "response_path" in r else "legacy_response"
+                and r.get("season") == season and "response_path" in r and r.get("decoded_sha256") == have):
+            return "response"
     return None
 
 
