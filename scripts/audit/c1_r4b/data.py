@@ -60,7 +60,8 @@ def calendar_from_schedule(sched: dict, season: int) -> Calendar:
     feed inventory (which dedupes game ids) is a different object. Unsupported statuses are refused."""
     played = set()
     for day in sched.get("dates", []):
-        if any(played_status(g["status"]["detailedState"]) for g in day.get("games", [])):
+        states = [played_status(g["status"]["detailedState"]) for g in day.get("games", [])]
+        if any(states):
             played.add(date.fromisoformat(day["date"]))
     played = {d for d in played if d.year == season}
     if not played:

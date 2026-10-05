@@ -141,3 +141,12 @@ def test_calendar_refuses_an_unsupported_status():
 def test_non_positive_identities_are_refused_on_primary_and_partner(col, vals):
     with pytest.raises(D.ProfileError):
         D.season_days(D.validate_profile(GOOD.assign(**{col: vals})), CAL)
+
+
+def test_an_unsupported_status_after_a_played_listing_on_the_same_date_is_refused():
+    """Code review r2 F2: every listing's status is evaluated; `any` must not short-circuit past a later one."""
+    from scripts.audit.c1_r3.acquire import UnsupportedStatus
+    with pytest.raises(UnsupportedStatus):
+        D.calendar_from_schedule({"dates": [{"date": "2023-06-01", "games": [
+            {"gamePk": 1, "status": {"detailedState": "Final"}},
+            {"gamePk": 2, "status": {"detailedState": "In Progress"}}]}]}, 2023)
