@@ -38,11 +38,30 @@ def c1_paths(data_root: Path) -> dict:
 
 
 def rate_limit_stops(data_root: Path) -> list[str]:
-    """Every 403/429 stop marker that pauses C1: any under the C1 results tree, plus the static capture's."""
-    found = sorted((data_root / "hetzner_results" / "c1").rglob("STOP_403_429.json"))
+    """Everything that pauses C1: any 403/429 stop marker under the C1 results tree or the static capture, and any
+    acquisition receipts directory with an intent that has no completion (an unresolved request: its outcome, which
+    may have been a rate limit, is unknown)."""
+    c1 = data_root / "hetzner_results" / "c1"
+    found = [str(p.relative_to(data_root)) for p in sorted(c1.rglob("STOP_403_429.json"))]
     capture = data_root / "leaderboard" / "static_snapshots" / "_receipts" / "STOP_403_429.json"
-    found += [capture] if capture.exists() else []
-    return [str(p.relative_to(data_root)) for p in found]
+    found += [str(capture.relative_to(data_root))] if capture.exists() else []
+    for rdir in sorted(c1.rglob("receipts")):
+        if not rdir.is_dir():
+            continue
+        intents, done = [], set()
+        for f in sorted(rdir.glob("*.jsonl")):
+            for line in f.read_text().splitlines():
+                if not line.strip():
+                    continue
+                r = json.loads(line)
+                if r.get("kind") == "intent":
+                    intents.append(r.get("attempt_id"))
+                elif r.get("kind") == "completion":
+                    done.add(r.get("attempt_id"))
+        open_ = [a for a in intents if a not in done]
+        if open_:
+            found.append(f"unresolved request receipts: {rdir.parent.relative_to(data_root)} ({len(open_)})")
+    return found
 
 
 def _ts(d: dict) -> datetime:
@@ -77,7 +96,8 @@ def season_guard(now: datetime, sched_lines: list[str], max_hours: float) -> tup
 def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dict], acked: bool,
                 active_units: list[str], sched_lines: list[str], now: datetime, cwd: str, command: list[str],
                 env_file: str = str(PROD_ENV), log_dir: Path | None = None,
-                rate_limit_stops: list[str] | None = None) -> dict:
+                rate_limit_stops: list[str] | None = None, failed_units: list[str] | None = None,
+                acked_failures: list[str] | None = None) -> dict:
     total = ledger.total_hours(rows)
     reasons = []
     if not NAME_RE.match(name):
@@ -89,6 +109,10 @@ def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dic
     if rate_limit_stops:
         reasons.append("403/429 stop in force (C1 is paused until Eric records a decision): "
                        + ", ".join(rate_limit_stops))
+    prior = [u for u in (failed_units or []) if u.startswith(f"c1-{name}-") and u not in (acked_failures or [])]
+    if prior:
+        reasons.append(f"a previous {name} unit failed ({', '.join(prior)}); no automatic retry without an "
+                       "acknowledged failure")
     g = ledger.gate(total, cpu_hours, acked)
     if g != "ok":
         reasons.append({"checkpoint": f"checkpoint: {total:.2f} CPU-h >= {ledger.CHECKPOINT_H}; stop and report "
@@ -103,10 +127,11 @@ def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dic
         return out
     unit = f"c1-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}"
     log = (log_dir or Path.home() / "logs") / f"c1-{name}.log"
-    limit = int((ledger.CAP_H - total) * 3600)
+    limit = int(min(cpu_hours, ledger.CAP_H - total) * 3600)   # the job's own declared budget, within the cycle
     out.update(unit=unit, limit_cpu_seconds=limit, log=str(log), argv=[
         "systemd-run", "--user", f"--unit={unit}", "--collect", "--nice=10",
         "-p", "MemoryMax=12G", "-p", "OOMScoreAdjust=1000", "-p", f"LimitCPU={limit}",
+        "-p", f"RuntimeMaxSec={int(max_hours * 3600)}",
         "-p", f"EnvironmentFile={env_file}",
         "-p", f"StandardOutput=append:{log}", "-p", f"StandardError=append:{log}",
         f"--working-directory={cwd}", *command])
@@ -117,11 +142,27 @@ def _run(argv: list[str]) -> str:
     return subprocess.run(argv, capture_output=True, text=True, check=True).stdout
 
 
-def sweep(path: Path) -> list[dict]:
+def failed_units(lines: list[str]) -> list[str]:
+    """C1 units that systemd reports as failed (a limit kill, timeout, signal or non-zero exit)."""
+    out = []
+    for line in lines:
+        if not line.strip():
+            continue
+        d = json.loads(line)
+        unit = d.get("USER_UNIT") or ""
+        if unit.startswith("c1-") and "Failed with result" in str(d.get("MESSAGE") or ""):
+            out.append(unit.removesuffix(".service"))
+    return sorted(set(out))
+
+
+def _journal() -> list[str]:
+    return _run(["journalctl", "--user", "-o", "json", "--since", JOURNAL_SINCE,
+                 "--output-fields=USER_UNIT,USER_INVOCATION_ID,CPU_USAGE_NSEC,MESSAGE"]).splitlines()
+
+
+def sweep(path: Path, lines: list[str]) -> list[dict]:
     """Merge every stopped C1 unit's CPU record from the user journal into the ledger file; return the ledger."""
-    new = ledger.parse_journal(_run(["journalctl", "--user", "-o", "json", "--since", JOURNAL_SINCE,
-                                     "--output-fields=USER_UNIT,USER_INVOCATION_ID,CPU_USAGE_NSEC"]).splitlines())
-    rows = ledger.merge(ledger.read_tsv(path), new)
+    rows = ledger.merge(ledger.read_tsv(path), ledger.parse_journal(lines))
     ledger.write_tsv(path, rows)
     return rows
 
@@ -137,15 +178,19 @@ def main(argv=None) -> int:
     r.add_argument("--cpu-hours", type=float, required=True, help="declared CPU budget for this job")
     r.add_argument("--max-hours", type=float, required=True, help="declared wall-time budget for this job")
     r.add_argument("--cwd", default=str(REPO))
+    r.add_argument("--ack-failure", action="append", default=[],
+                   help="a failed earlier unit of this job, acknowledged so it may be launched again")
     r.add_argument("command", nargs=argparse.REMAINDER)
     args = ap.parse_args(argv)
     paths = c1_paths(args.data_root)
-    rows = sweep(paths["ledger"])
+    journal = _journal()
+    rows = sweep(paths["ledger"], journal)
     acked = paths["ack"].exists()
     if args.cmd == "status":
         total = ledger.total_hours(rows)
         print(json.dumps({"total_cpu_hours": round(total, 4), "jobs": len(rows), "checkpoint_acked": acked,
                           "rate_limit_stops": rate_limit_stops(args.data_root),
+                          "failed_units": failed_units(journal),
                           "gate": ledger.gate(total, 0.0, acked), "ledger": str(paths["ledger"])}, indent=1))
         return 0
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -157,7 +202,8 @@ def main(argv=None) -> int:
     p = plan_launch(name=args.name, cpu_hours=args.cpu_hours, max_hours=args.max_hours, rows=rows, acked=acked,
                     active_units=active, sched_lines=sched, now=datetime.now(timezone.utc), cwd=args.cwd,
                     env_file=str(args.data_root.parent / ".env"), command=command,
-                    rate_limit_stops=rate_limit_stops(args.data_root))
+                    rate_limit_stops=rate_limit_stops(args.data_root), failed_units=failed_units(journal),
+                    acked_failures=args.ack_failure)
     print(json.dumps(p, indent=1))
     if not p["ok"]:
         return 2

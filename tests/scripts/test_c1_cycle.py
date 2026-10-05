@@ -106,7 +106,8 @@ def test_plan_ok_builds_a_capped_transient_unit():
     argv = p["argv"]
     assert argv[:3] == ["systemd-run", "--user", f"--unit={p['unit']}"]
     assert p["unit"].startswith("c1-r2-build-20261005T120000Z")
-    for prop in ("--collect", "--nice=10", "-p", "MemoryMax=12G", "OOMScoreAdjust=1000", "LimitCPU=360000",
+    for prop in ("--collect", "--nice=10", "-p", "MemoryMax=12G", "OOMScoreAdjust=1000", "LimitCPU=7200",
+                 "RuntimeMaxSec=10800",
                  "--working-directory=/home/bts/projects/bts-c1"):
         assert prop in argv
     assert argv[-2:] == ["echo", "hi"]
@@ -120,9 +121,27 @@ def test_ledger_paths_live_in_the_production_data_root_not_the_worktree(tmp_path
     assert launch.DATA_ROOT == Path.home() / "projects" / "bts" / "data"
 
 
-def test_plan_limit_cpu_is_the_remaining_cycle_budget():
+def test_plan_limits_are_the_jobs_own_declared_budgets():
+    """Code review r1 F10: the per-job CPU and wall limits, not the whole remaining cycle budget."""
     rows = [{"invocation": "a", "unit": "c1-x.service", "stopped_at": "t", "cpu_seconds": 40 * 3600.0}]
-    assert "LimitCPU=216000" in plan(rows=rows)["argv"]
+    argv = plan(rows=rows, cpu_hours=4.0, max_hours=3.0)["argv"]
+    assert "LimitCPU=14400" in argv and "RuntimeMaxSec=10800" in argv
+
+
+def test_a_failed_earlier_unit_of_the_same_job_blocks_an_automatic_retry():
+    failed = ["c1-r2-build-20261005T010000Z"]
+    p = plan(failed_units=failed)
+    assert p["ok"] is False and any("no automatic retry" in r for r in p["reasons"])
+    assert plan(failed_units=failed, acked_failures=failed)["ok"] is True
+    assert plan(failed_units=["c1-other-20261005T010000Z"])["ok"] is True
+
+
+def test_failed_units_are_read_from_systemd_failure_messages():
+    lines = [json.dumps({"USER_UNIT": "c1-r4b-run-20261005T010000Z.service",
+                         "MESSAGE": "c1-r4b-run-20261005T010000Z.service: Failed with result 'timeout'."}),
+             json.dumps({"USER_UNIT": "c1-ok-20261005T020000Z.service", "MESSAGE": "Deactivated successfully."}),
+             json.dumps({"USER_UNIT": "w23-mlb.service", "MESSAGE": "w23-mlb.service: Failed with result 'signal'."})]
+    assert launch.failed_units(lines) == ["c1-r4b-run-20261005T010000Z"]
 
 
 @pytest.mark.parametrize("kw,reason", [
