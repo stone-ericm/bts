@@ -125,3 +125,16 @@ def test_launcher_refuses_any_c1_job_while_a_rate_limit_stop_exists():
     assert launch.plan_launch(**base)["ok"] is True
     p = launch.plan_launch(**base, rate_limit_stops=["c1/r3/STOP_403_429.json"])
     assert p["ok"] is False and any("403/429" in r for r in p["reasons"])
+
+
+def test_a_rate_limit_writes_the_stop_marker_even_if_the_receipt_write_fails(tmp_path, monkeypatch):
+    real = aq._append
+
+    def flaky(path, rec):
+        if rec.get("outcome") == "rate_limited":
+            raise OSError("disk full")
+        return real(path, rec)
+    monkeypatch.setattr(aq, "_append", flaky)
+    rc, calls, _ = run(tmp_path, {"101": http_error(429)}, games=(101, 102))
+    assert rc == 3 and len(calls) == 1
+    assert json.loads((tmp_path / "r3" / aq.STOP_NAME).read_text())["http_status"] == 429

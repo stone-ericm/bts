@@ -93,6 +93,14 @@ def _append(path: Path, rec: dict) -> None:
         os.fsync(f.fileno())
 
 
+def _write_durable(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+
+
 def _verified(path: Path, pk: int) -> bool:
     try:
         return _valid(gzip.decompress(path.read_bytes()), pk)
@@ -152,10 +160,14 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, fetch, sleep, 
             try:
                 body = _get(url, fetch, sleep)
             except RateLimited as e:
-                _append(receipts, {**done, "ended_utc": now().isoformat(), "outcome": "rate_limited",
-                                   "http_status": e.code})
-                stop.write_text(json.dumps({"written_utc": now().isoformat(), "gamePk": pk, "url": url,
-                                            "http_status": e.code, "attempt_id": attempt_id}, indent=1) + "\n")
+                # The stop marker is written (durably) FIRST: a later receipt failure can never lose it.
+                _write_durable(stop, json.dumps({"written_utc": now().isoformat(), "gamePk": pk, "url": url,
+                                                 "http_status": e.code, "attempt_id": attempt_id}, indent=1) + "\n")
+                try:
+                    _append(receipts, {**done, "ended_utc": now().isoformat(), "outcome": "rate_limited",
+                                       "http_status": e.code})
+                except OSError as rec_err:
+                    print(f"receipt write failed after the stop was recorded: {rec_err}", file=sys.stderr)
                 print(f"STOP: HTTP {e.code} on {url}; wrote {stop}", file=sys.stderr)
                 return 3
             except Exception as e:  # noqa: BLE001 - recorded, counted, and the run continues

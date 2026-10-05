@@ -29,6 +29,11 @@ from scripts.audit.c1_r4b.solvers import DOUBLE, SINGLE, SKIP, DayType, Environm
 R_CAP = 8
 
 
+class Unavailable(ValueError):
+    """The environment cannot support this projection (a phase without types, or frequencies not summing to 1);
+    reported as unavailable, never as a zero probability."""
+
+
 @dataclass(frozen=True)
 class Stress:
     c: float = 0.0
@@ -76,7 +81,10 @@ def project(policy, env: Environment, days: list[tuple[bool, int]], *, target: i
         new[absorbed] += dist[absorbed]
         live = dist.copy()
         live[absorbed] = 0.0
-        for t in env.types(d, late_days):
+        types = env.types(d, late_days)
+        if not types or abs(sum(t.freq for t in types) - 1.0) > 1e-9:
+            raise Unavailable(f"day with {d} days left: phase types missing or frequencies do not sum to 1")
+        for t in types:
             if t.q is None:
                 new[..., 0] += t.freq * live.sum(axis=3)
                 continue

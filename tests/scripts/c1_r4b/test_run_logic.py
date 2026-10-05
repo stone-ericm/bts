@@ -71,3 +71,13 @@ def test_the_run_refuses_without_a_published_x31(tmp_path, monkeypatch):
     monkeypatch.setattr(RUN, "X31_COMMIT", None)
     with pytest.raises(SystemExit):
         RUN.x31_gate()
+
+
+def test_coverage_is_checked_across_every_seed_not_just_the_first():
+    from datetime import date
+    days = {(2021, 1): {"unknown_dates": []}, (2021, 2): {"unknown_dates": [date(2021, 9, 1)]},
+            (2022, 1): {"unknown_dates": []}, (2022, 2): {"unknown_dates": []}}
+    cov = RUN.coverage(days, seasons=(2021, 2022), seeds=(1, 2))
+    assert cov["complete"] is False
+    assert cov["by_season"]["2021"] == {"2021-09-01": [2]}
+    assert cov["by_season"]["2022"] == {}

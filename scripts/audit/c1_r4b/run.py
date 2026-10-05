@@ -102,6 +102,18 @@ def equal_season_mean(per_season_values: dict) -> float:
     return float(np.mean([np.mean(v) for v in per_season_values.values()]))
 
 
+def coverage(days: dict, *, seasons, seeds) -> dict:
+    """Unknown-coverage dates for every (season, seed): a date missing in ANY seed makes coverage incomplete."""
+    by_season = {}
+    for s in seasons:
+        acc: dict = {}
+        for seed in seeds:
+            for d in days[(s, seed)]["unknown_dates"]:
+                acc.setdefault(str(d), []).append(seed)
+        by_season[str(s)] = {k: sorted(v) for k, v in sorted(acc.items())}
+    return {"complete": all(not v for v in by_season.values()), "by_season": by_season}
+
+
 def _ambiguous(stat: float, threshold: float, se: float) -> bool:
     """§4: a stochastic gate within two Monte Carlo SEs of its threshold is inconclusive; a sampled zero SE at exact
     equality is too."""
@@ -204,11 +216,15 @@ def project_grid(policies: dict, env: S.Environment, cal: D.Calendar) -> list[di
                 st = P.Stress(c=c, h=h, delta=delta)
                 cell = {"delta": delta, "c": c, "h": h}
                 for arm, pol in policies.items():
-                    r = P.project(pol, env, days, target=S.TARGET, saver_zone=S.SAVER_ZONE, late_days=LATE_DAYS,
-                                  stress=st)
-                    cell[arm] = {"p57": r["p_reach"], "e_best": r["e_best"]}
-                cell["A2_minus_A0_p57"] = cell["A2"]["p57"] - cell["A0"]["p57"]
-                cell["A2_minus_A1_p57"] = cell["A2"]["p57"] - cell["A1"]["p57"]
+                    try:
+                        r = P.project(pol, env, days, target=S.TARGET, saver_zone=S.SAVER_ZONE,
+                                      late_days=LATE_DAYS, stress=st)
+                        cell[arm] = {"p57": r["p_reach"], "e_best": r["e_best"]}
+                    except P.Unavailable as e:
+                        cell[arm] = {"unavailable": str(e)}
+                for b in ("A0", "A1"):
+                    ok = "p57" in cell["A2"] and "p57" in cell[b]
+                    cell[f"A2_minus_{b}_p57"] = (cell["A2"]["p57"] - cell[b]["p57"]) if ok else "unavailable"
                 out.append(cell)
     return out
 
@@ -296,8 +312,9 @@ def main(argv=None) -> int:
     # 4. decode and validate
     days = {(s, seed): D.season_days(D.validate_profile(pd.read_parquet(f)), cals[s]) for (s, seed), f in files.items()}
     seeds = sorted({seed for _, seed in days})
-    unknown = {s: sorted(map(str, days[(s, seeds[0])]["unknown_dates"])) for s in SEASONS}
-    log(f"profiles decoded; unknown-coverage dates: {unknown}")
+    cov = coverage(days, seasons=SEASONS, seeds=seeds)
+    unknown = cov["by_season"]
+    log(f"profiles decoded; unknown-coverage dates (date -> seeds): {unknown}")
 
     # 5. folds
     per = {}            # (arm, delta, season) -> list over seeds of per-rep metric dicts
@@ -374,7 +391,7 @@ def main(argv=None) -> int:
                           "d10": {"mean": float(t10.mean()), "mc_se": mc_se(t10)}}
     reach20 = {arm: {"d0": arms_table[arm]["0.0"]["reach20"], "d10": arms_table[arm]["0.1"]["reach20"]} for arm in ("A0", "A1", "A2")}
     reach20["mc_se_d10"] = {b: mc_se(per_rep_contrast("A2", b, 0.10, "reach20")) for b in ("A1", "A0")}
-    sm = {"coverage_complete": all(not v for v in unknown.values()), "validation_ok": True, "projections_ok": True,
+    sm = {"coverage_complete": cov["complete"], "validation_ok": True, "projections_ok": True,
           "contrast": contrast, "reach20": reach20}
     disp = disposition(sm)
     results = {"schema": "c1_r4b_results_v1", "code": head, "run_dir": str(run_dir), "unknown_coverage": unknown,

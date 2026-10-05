@@ -109,3 +109,48 @@ def test_categories_are_coherent_after_every_transform():
             assert min(pm, po, pj) >= 0 and pm + po + pj == pytest.approx(1.0)
     zero = S.DayType(freq=1.0, q=0, partner=True, p_hit=0.0, p_both=0.0)
     assert P.categories(zero, P.Stress(h=0.04), at_cap=True) == (1.0, 0.0, 0.0)
+
+
+# ---------- review r1 (interim) fixes ----------
+def independent_categories(p_hit, p_both, c=0.0, h=0.0, delta=0.0, at_cap=False):
+    """Re-derived from registration §5 text, independent of project.categories."""
+    ph = max(0.0, p_hit - c)
+    pb = min(max(0.0, p_both - c), ph)
+    pb = max(0.0, pb - delta * ph)
+    if at_cap and h > 0:
+        ph2 = max(0.0, ph - h)
+        pb = pb * ph2 / ph if ph > 0 else 0.0
+        ph = ph2
+    return 1 - ph, ph - pb, pb
+
+
+def test_categories_match_hand_computed_values():
+    t = S.DayType(freq=1.0, q=0, partner=True, p_hit=0.6, p_both=0.35)
+    pm, po, pj = P.categories(t, P.Stress(c=0.04, h=0.02, delta=0.1), at_cap=True)
+    # c: ph 0.56, pb 0.31; Δ: pb 0.31 - 0.056 = 0.254; h at cap: ph 0.54, pb 0.254 * 0.54 / 0.56
+    assert (pm, po, pj) == pytest.approx((0.46, 0.54 - 0.254 * 0.54 / 0.56, 0.254 * 0.54 / 0.56), abs=1e-12)
+    assert P.categories(t, P.Stress(c=0.04, h=0.02, delta=0.1), at_cap=False) == pytest.approx((0.44, 0.56 - 0.254, 0.254))
+
+
+@pytest.mark.parametrize("stress", [P.Stress(c=0.04), P.Stress(delta=0.139), P.Stress(c=0.02, h=0.04, delta=0.1)])
+def test_projection_matches_an_oracle_with_independent_stress_transforms(stress, monkeypatch):
+    T, zone = 4, (1, 1)
+    fn = lambda s, m, d, sv, q: S.DOUBLE if q == 1 else S.SINGLE
+    days = cal(6, no_opp=(2,))
+    got = P.project(table_policy(fn, T), TINY_ENV, days, target=T, saver_zone=zone, late_days=2, stress=stress,
+                    r_cap=2)["p_reach"]
+    monkeypatch.setattr(P, "categories", lambda t, st, at_cap: independent_categories(
+        t.p_hit, t.p_both, st.c, st.h, st.delta, at_cap))
+    want = oracle(fn, TINY_ENV, days, target=T, zone=zone, late_days=2, stress=stress, r_cap=2)
+    assert got == pytest.approx(want, abs=1e-12)
+
+
+def test_a_phase_without_types_makes_the_projection_unavailable_not_zero():
+    e = S.Environment(n_bins=1, early=(S.DayType(1.0, 0, True, 0.7, 0.5),), late=())
+    with pytest.raises(P.Unavailable):
+        P.project(table_policy(lambda *a: S.SINGLE, 4), e, cal(5), target=4, saver_zone=(1, 1), late_days=2,
+                  stress=P.Stress())
+    short = S.Environment(n_bins=1, early=(S.DayType(0.6, 0, True, 0.7, 0.5),), late=(S.DayType(1.0, 0, True, 0.7, 0.5),))
+    with pytest.raises(P.Unavailable):
+        P.project(table_policy(lambda *a: S.SINGLE, 4), short, cal(5), target=4, saver_zone=(1, 1), late_days=2,
+                  stress=P.Stress())
