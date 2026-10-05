@@ -47,3 +47,14 @@ de0090ef4e4372cc940410744d788a28d7fc5fbf13fef864014ad30206a03a36  sched_2022.jso
 2aa5b058acb36c49bb3dca9ac6e38df37597825c1e9fe6e436fce710e742580b  sched_2024.json
 9f1cdf422e3458570a2de1785291813425b44f15d6855d9bf6fbd040f7a4f972  sched_2025.json
 ```
+
+## Backfill attempt, 2026-10-05: stopped (outcome-free finding)
+- **What was found.** The generator's own parser (`build.parse_game_feed` at `8522412`, and at HEAD) dates every
+  plate appearance by the feed's `gameData.datetime.officialDate`. For gamePk 716404 that is **2023-09-28**, the
+  originally scheduled day.
+- **How it was found.** An outcome-free diagnostic parsed the receipted feed: 61 PA rows, all dated 2023-09-28. The
+  pilot then stopped at its own guard: with the rows appended, 2023 still had 182 test dates, not 183.
+- **Consequence.** The original pipeline cannot produce a 2023-10-02 profile day for this game. Appending its rows
+  would instead change the retained, W0-verified 2023-09-28 rows, and 2023-10-02 would remain uncovered.
+- **What was done.** Per the ruling's instruction, the backfill was stopped rather than replaced with another option.
+  No supplement exists, and no profile or result was altered or read.
