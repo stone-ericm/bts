@@ -2,18 +2,29 @@
 
 The run proceeds in this order. Every check before step 6 is outcome-free or a stop; nothing corrected is inspected
 before the preflight passes.
-1. **Gates:** X-31; the owner rulings the run depends on (the 2023-10-02 coverage row must not be OPEN; the
-   unretained profile-generator commit must have a recorded ruling); a clean tracked tree; the single-run rule.
+1. **Admission** (code review r2 N3–N5):
+   - **X-31 and the executable:** `admission.json` names the reviewed commit and the X-31 commit. The X-31 row
+     must first appear in that commit and be unchanged since. No file of the executable closure may differ from
+     the reviewed commit (only `admission.json` may), nothing untracked may sit in it, and every loaded `bts` /
+     `scripts` module must come from this checkout.
+   - **Owner rows:** NO PLAY must be recorded for 2023-10-02. The generator row needs one recognized completed
+     outcome that agrees with `PROFILE_RECIPE`.
+   - **Single run:** the fixed run root, under an exclusive admission lock. Any claimed earlier run blocks until a
+     validated invalidation record names it.
 2. **Outcome-free provenance manifest:**
    - the W0.1 manifest digest;
-   - every profile's bytes and the profile recipe files;
+   - every profile's bytes, their parquet schema, and the profile recipe files;
+   - the pinned generator-check manifest, verified field by field, with the reference block's dates and ranks
+     taken from the verified bytes;
    - the A0 digests and their pairing;
    - the pinned schedules and calendars;
-   - the executing source hashes and `uv.lock`.
+   - the executing source hashes and the closure's git object ids.
 3. **Synthetic self-check:** the independent oracles in `oracle.py` against the executing solver, projection and
-   replay.
-4. **Verified bytes:** each profile is read once and its hash re-checked, then parsed from those bytes. July parity
-   (Δ = 0) runs on a scratch root holding only those verified bytes, and a failure stops the run.
+   replay. A failure here stops the run before any outcome is read; the directory holds no claim.
+4. **Claim, then verified bytes:** a durable `CLAIM.json` precedes the first outcome-bearing read, so any later
+   exception or kill leaves a blocking run. Each profile is read once and its hash re-checked, then parsed from those
+   bytes. July parity (Δ = 0) runs on a scratch root holding only those verified bytes and the verified A0 base copy.
+   A failure stops the run, and so does a change to the original A0 files.
 5. **Preflight:** every fold fit and the final all-season fit (cutpoints, environments, solves) runs before any replay.
 6. **Corrected evaluation:**
    - folds replayed for every arm under the Δ grid with shared nested masks;
@@ -24,19 +35,24 @@ before the preflight passes.
 7. **Aggregation:** seeds within season, then seasons equally. The disposition flags come from the actual check
    results.
 
-    python -m scripts.audit.c1_r4b.run --schedules ~/projects/bts/data/hetzner_results/c1/r3/schedules
+Run it with this checkout's own venv (its `bts` must import from this checkout's `src`):
+
+    .venv/bin/python -m scripts.audit.c1_r4b.run --schedules ~/projects/bts/data/hetzner_results/c1/r3/schedules
 """
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import io
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
 from contextlib import redirect_stdout
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -50,7 +66,11 @@ from scripts.audit.c1_r4b import replay as R
 from scripts.audit.c1_r4b import solvers as S
 
 REPO = Path(__file__).resolve().parents[3]
-X31_COMMIT: str | None = None          # the register commit that publishes X-31; set before any execution
+ADMISSION_REL = "scripts/audit/c1_r4b/admission.json"   # reviewed_commit and x31_commit: the only post-review edit
+REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
+CLOSURE = ("scripts/__init__.py", "scripts/audit/__init__.py", "scripts/audit/c1_r4b", "scripts/audit/c1_r3",
+           "scripts/audit/c1", "scripts/audit/dd_p_policy_value_sensitivity.py", "src/bts", "pyproject.toml",
+           "uv.lock")
 SEASONS = (2021, 2022, 2023, 2024, 2025)
 DELTAS = (0.0, 0.05, 0.10, 0.139)
 REPS = 200                             # registered; the CLI cannot change it
@@ -79,8 +99,11 @@ PROFILE_RECIPE = {
     "mode": "estimated_pa", "generator_commit": "85224124f97a0d4ee8da3059ff54b1bad228d44e",
     "generator_commit_note": ("not retained by the 6/10 run; confirmed by reproduction on one block (seed 42, 2023-09-25..10-01, "
                               "70/70 rows exact; register row C1-4b-generator-commit)"),
-    "generator_witness": {"manifest": "hetzner_results/c1/r4b/generator_check/20261005T163415Z/manifest.json",
-                          "sha256": "40cdc0e72766df375e479217d71dbbe2ec9dde78ec58c74f56c2cb72a2a27dbb"}}
+    "generator_witness": "GENERATOR_CHECK"}
+GENERATOR_CHECK = {   # the pinned one-block reproduction (register row C1-4b-generator-commit), verified by the run
+    "path": "hetzner_results/c1/r4b/generator_check/20261005T163415Z/manifest.json",
+    "sha256": "40cdc0e72766df375e479217d71dbbe2ec9dde78ec58c74f56c2cb72a2a27dbb",
+    "seed": 42, "season": 2023, "block": ("2023-09-25", "2023-10-01"), "ranks": 10}
 RECIPE_FILES = ("audit_validation_split.json", "boxes.json")
 SOURCE_FILES = ("scripts/audit/c1_r4b/solvers.py", "scripts/audit/c1_r4b/project.py", "scripts/audit/c1_r4b/data.py",
                 "scripts/audit/c1_r4b/fit.py", "scripts/audit/c1_r4b/replay.py", "scripts/audit/c1_r4b/run.py",
@@ -91,6 +114,8 @@ COVERAGE_ROW = "C1-4b-2023-10-02"
 EXCLUDED_CONTEST_DATES = {"2023-10-02": "register row C1-4b-2023-10-02: NO PLAY (resumed portion of the 9/28 suspended game)"}
 GENERATOR_ROW = "C1-4b-generator-commit"
 DATA = Path.home() / "projects" / "bts" / "data"
+RUN_ROOT = DATA / "hetzner_results" / "c1" / "r4b" / "runs"   # the registered run root (no --out: r2 N5)
+HEX40 = re.compile(r"^[0-9a-f]{40}$")
 ARMS = ("A0", "A1", "A2", "single", "double")
 
 
@@ -99,29 +124,89 @@ class ProvenanceError(RuntimeError):
 
 
 # ----------------------------------------------------------------------------------------------- gates
-def x31_gate() -> str:
-    if X31_COMMIT is None:
-        raise SystemExit("X-31 gate: X31_COMMIT is unset (publish X-31 first)")
-    head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True,
-                          check=True).stdout.strip()
-    if subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", X31_COMMIT, head]).returncode != 0:
-        raise SystemExit(f"X-31 gate: {X31_COMMIT} is not an ancestor of HEAD {head[:7]}")
-    if "| X-31 |" not in (REPO / "docs/audit/2026-09-22-exposure-register.md").read_text():
-        raise SystemExit("X-31 gate: the register in this checkout has no X-31 row")
+def _git(repo: Path, *args, check: bool = True) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=check)
+
+
+def _ancestor(repo: Path, a: str, b: str) -> bool:
+    return _git(repo, "merge-base", "--is-ancestor", a, b, check=False).returncode == 0
+
+
+def _row(text: str, row_id: str) -> str | None:
+    return next((l for l in text.splitlines() if l.startswith(f"| {row_id} |")), None)
+
+
+def admission_check(repo: Path, adm: dict, *, closure=CLOSURE, admission_rel: str = ADMISSION_REL,
+                    register_rel: str = REGISTER_REL) -> tuple[str, list[str]]:
+    """Code review r2 N4: X-31 published in its own commit and unchanged since; the executable closure identical to the
+    reviewed commit except `admission.json`; nothing untracked or modified in the closure."""
+    head = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    rc, xc = adm.get("reviewed_commit"), adm.get("x31_commit")
+    reasons = [f"admission: {k} is not a full commit id" for k, v in (("reviewed_commit", rc), ("x31_commit", xc))
+               if not (isinstance(v, str) and HEX40.match(v))]
+    if reasons:
+        return head, reasons
+    if not _ancestor(repo, rc, xc):
+        reasons.append("admission: the reviewed commit is not an ancestor of the X-31 commit")
+    if not _ancestor(repo, xc, head):
+        reasons.append(f"admission: the X-31 commit is not an ancestor of HEAD {head[:7]}")
+    at_x = _row(_git(repo, "show", f"{xc}:{register_rel}", check=False).stdout, "X-31")
+    at_parent = _row(_git(repo, "show", f"{xc}^:{register_rel}", check=False).stdout, "X-31")
+    if at_x is None:
+        reasons.append("admission: the X-31 commit's register has no X-31 row")
+    elif at_parent is not None:
+        reasons.append("admission: X-31 was not published in the named commit (its parent already has the row)")
+    elif _row((repo / register_rel).read_text(), "X-31") != at_x:
+        reasons.append("admission: the X-31 row changed after its publication")
+    changed = [f for f in _git(repo, "diff", "--name-only", rc, head, "--", *closure).stdout.split() if f != admission_rel]
+    if changed:
+        reasons.append(f"admission: executable files changed since the reviewed commit: {changed[:5]}")
+    loose = [l for l in _git(repo, "status", "--porcelain", "--untracked-files=all", "--", *closure).stdout.splitlines()
+             if l.strip()]
+    if loose:
+        reasons.append(f"admission: modified or untracked files in the executable closure: {loose[:5]}")
+    return head, reasons
+
+
+def admission_gate() -> str:
+    head, reasons = admission_check(REPO, json.loads((REPO / ADMISSION_REL).read_text()))
+    if reasons:
+        raise SystemExit("refusing: " + "; ".join(reasons))
     return head
 
 
+def foreign_imports(repo: Path = REPO) -> list[str]:
+    """Every loaded `bts` / `scripts` module must come from this checkout (r2 N4: no shadowing import source)."""
+    bad = []
+    for name, mod in list(sys.modules.items()):
+        if name.split(".")[0] in ("bts", "scripts"):
+            f = getattr(mod, "__file__", None)
+            if f is None or not Path(f).resolve().is_relative_to(repo):
+                bad.append(f"{name}: {f}")
+    return sorted(bad)
+
+
 def owner_gates(register_text: str) -> list[str]:
-    """The owner rulings this run depends on (code review r1 F7, F1)."""
+    """The owner rulings this run implements (code review r1 F7, r2 N4): the actual NO PLAY disposition, and one
+    recognized completed generator outcome that agrees with PROFILE_RECIPE and the pinned check."""
     reasons = []
-    row = next((l for l in register_text.splitlines() if l.startswith(f"| {COVERAGE_ROW} |")), None)
-    if row is None or "**RULED" not in row:
-        reasons.append(f"register row {COVERAGE_ROW} records no ruling: the 2023-10-02 coverage decision is pending")
-    grow = next((l for l in register_text.splitlines() if l.startswith(f"| {GENERATOR_ROW} |")), None)
+    row = _row(register_text, COVERAGE_ROW)
+    if row is None or "**RULED" not in row or "NO PLAY" not in row or "2023-10-02" not in EXCLUDED_CONTEST_DATES:
+        reasons.append(f"register row {COVERAGE_ROW} does not record the NO PLAY ruling this run implements")
+    grow = _row(register_text, GENERATOR_ROW)
     if grow is None or "**RULED" not in grow:
-        reasons.append(f"register row {GENERATOR_ROW} is not RULED")
-    elif "PENDING" in grow:
-        reasons.append(f"register row {GENERATOR_ROW}: the ruled reproduction check's outcome is PENDING")
+        return reasons + [f"register row {GENERATOR_ROW} is not RULED"]
+    if "PENDING" in grow:
+        return reasons + [f"register row {GENERATOR_ROW}: the ruled reproduction check's outcome is PENDING"]
+    confirmed = "CONFIRMED BY REPRODUCTION" in grow
+    unknown = re.search(r"\*\*Outcome[^*]*: UNKNOWN", grow) is not None
+    commit = PROFILE_RECIPE["generator_commit"]
+    if confirmed == unknown:
+        reasons.append(f"register row {GENERATOR_ROW}: no single recognized completed outcome")
+    elif confirmed and not (commit and commit in grow and GENERATOR_CHECK):
+        reasons.append(f"register row {GENERATOR_ROW}: CONFIRMED, but PROFILE_RECIPE/GENERATOR_CHECK do not match it")
+    elif unknown and commit is not None:
+        reasons.append(f"register row {GENERATOR_ROW}: UNKNOWN, but PROFILE_RECIPE names a commit")
     return reasons
 
 
@@ -131,16 +216,58 @@ def dirty_tree() -> list[str]:
     return [l for l in out.splitlines() if l.strip()]
 
 
-def prior_runs(out_root: Path) -> list[str]:
-    """The single authorized run: any earlier run directory that produced results or stopped needs an invalidation
-    record (INVALIDATION_<run>.json in the runs root) before another run may start."""
+def validate_invalidation(rec, run: str, register_text: str, repo: Path = REPO) -> list[str]:
+    """An invalidation is a recorded decision, not a filename (r2 N5): it must name the run, give a reason, cite a
+    correction commit already in HEAD's history, and cite a RULED register row approved by Eric."""
+    if not isinstance(rec, dict):
+        return ["not a JSON object"]
+    p = []
+    if rec.get("run") != run:
+        p.append("does not name this run")
+    if not (isinstance(rec.get("reason"), str) and rec["reason"].strip()):
+        p.append("no reason")
+    cc = rec.get("correction_commit")
+    if not (isinstance(cc, str) and HEX40.match(cc) and _ancestor(repo, cc, "HEAD")):
+        p.append("no correction commit in HEAD's history")
+    rr = rec.get("register_row")
+    row = _row(register_text, rr) if isinstance(rr, str) and rr.strip() else None
+    if row is None or "**RULED" not in row:
+        p.append("no RULED register row")
+    if rec.get("approved_by") != "Eric":
+        p.append("not approved by Eric")
+    return p
+
+
+def claimed_runs(root: Path, register_text: str) -> list[str]:
+    """The single authorized run: every directory holding a CLAIM.json (written before its first outcome read) blocks
+    another run until a valid INVALIDATION_<run>.json names it. A directory without a claim stopped before any
+    outcome read."""
     blocked = []
-    if out_root.exists():
-        for d in sorted(p for p in out_root.iterdir() if p.is_dir()):
-            if ((d / "results.json").exists() or list(d.glob("STOPPED_*"))) \
-                    and not (out_root / f"INVALIDATION_{d.name}.json").exists():
-                blocked.append(d.name)
+    if root.exists():
+        for d in sorted(x for x in root.iterdir() if x.is_dir() and (x / "CLAIM.json").exists()):
+            inv = root / f"INVALIDATION_{d.name}.json"
+            try:
+                problems = validate_invalidation(json.loads(inv.read_text()), d.name, register_text) \
+                    if inv.exists() else ["none"]
+            except ValueError:
+                problems = ["unreadable"]
+            if problems:
+                blocked.append(f"{d.name} (invalidation: {', '.join(problems)})")
     return blocked
+
+
+def _durable(path: Path, data: bytes) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "wb") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+    fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 # ----------------------------------------------------------------------------------------------- pure logic
@@ -179,6 +306,62 @@ def read_verified(root: Path, files: dict, digests: dict) -> dict:
             raise ProvenanceError(f"{f}: bytes changed after verification")
         out[key] = b
     return out
+
+
+def profile_schemas(root: Path, files: dict, digests: dict) -> dict:
+    """The parquet schema of every verified profile, from its metadata only (r2 N4: the schema in the outcome-free
+    manifest). Returns {schema sha256: {"schema": [[name, type], ...], "files": n}}."""
+    import pyarrow.parquet as pq
+    out: dict = {}
+    for f in files.values():
+        b = Path(f).read_bytes()
+        if sha256(b) != digests[str(Path(f).relative_to(root))]:
+            raise ProvenanceError(f"{f}: bytes changed after verification")
+        sch = [[fld.name, str(fld.type)] for fld in pq.read_schema(io.BytesIO(b))]
+        key = sha256(json.dumps(sch).encode())
+        out.setdefault(key, {"schema": sch, "files": 0})["files"] += 1
+    return out
+
+
+def verify_generator_check(man_bytes: bytes, root: Path, digests: dict) -> dict:
+    """The pinned one-block reproduction, checked against its pin and field by field (r2 N3). The reference block's
+    dates and ranks come from the W0.1-verified profile bytes, reading those two columns only (outcome-free)."""
+    gc = GENERATOR_CHECK
+    if sha256(man_bytes) != gc["sha256"]:
+        raise ProvenanceError("the generator-check manifest does not match its pin")
+    m = json.loads(man_bytes)
+    p = []
+    if m.get("generator_commit") != PROFILE_RECIPE["generator_commit"]:
+        p.append("its generator commit is not PROFILE_RECIPE's")
+    if m.get("seed") != gc["seed"] or list(m.get("block") or []) != list(gc["block"]):
+        p.append("its seed or block is not the registered one")
+    if m.get("status", "reproduced") != "reproduced":
+        p.append(f"its status is {m.get('status')!r}")
+    ret = m.get("retained") or {}
+    rel = str(ret.get("path", "")).removeprefix(f"{root.name}/")
+    want = f"simulation_seed{gc['seed']}/backtest_{gc['season']}.parquet"
+    if not rel.endswith("/" + want) or digests.get(rel) is None or digests.get(rel) != ret.get("sha256"):
+        p.append("its retained file is not the W0.1-verified registered profile")
+    dates = [str(date.fromisoformat(gc["block"][0]) + timedelta(days=i))
+             for i in range((date.fromisoformat(gc["block"][1]) - date.fromisoformat(gc["block"][0])).days + 1)]
+    r = m.get("result") or {}
+    n = len(dates) * gc["ranks"]
+    if not (r.get("reproduced") is True and r.get("columns_equal") is True and r.get("dtype_mismatch") == []
+            and r.get("differing_cells") == {} and r.get("rows") == n and r.get("rows_mine") == n):
+        p.append("its result is not a full exact reproduction of the registered block")
+    if not p:
+        b = (root / rel).read_bytes()
+        if sha256(b) != digests[rel]:
+            raise ProvenanceError(f"{rel}: bytes changed after verification")
+        df = pd.read_parquet(io.BytesIO(b), columns=["date", "rank"])
+        df = df[pd.to_datetime(df["date"]).dt.date.astype(str).isin(dates)]
+        got = {str(d): sorted(int(x) for x in g["rank"]) for d, g in df.groupby(pd.to_datetime(df["date"]).dt.date)}
+        if got != {d: list(range(1, gc["ranks"] + 1)) for d in dates}:
+            p.append("the reference block does not hold the registered dates with ranks 1..N")
+    if p:
+        raise ProvenanceError("generator check: " + "; ".join(p))
+    return {"manifest": gc["path"], "manifest_sha256": gc["sha256"], "retained": rel, "rows": n,
+            "block_dates": dates, "ranks": gc["ranks"]}
 
 
 def mc_se(per_rep: np.ndarray) -> float:
@@ -421,7 +604,7 @@ def tables_complete(tables: dict) -> bool:
 
 
 # ----------------------------------------------------------------------------------------------- execution
-def _load_a0(base_path: Path, tail_path: Path) -> tuple[R.A0, dict]:
+def _load_a0(base_path: Path, tail_path: Path) -> tuple[R.A0, dict, bytes]:
     bb, tb = base_path.read_bytes(), tail_path.read_bytes()
     if sha256(bb) != A0_BASE_SHA or sha256(tb) != A0_TAIL_SHA:
         raise ProvenanceError("A0 artifact digests do not match the registered pins")
@@ -431,7 +614,7 @@ def _load_a0(base_path: Path, tail_path: Path) -> tuple[R.A0, dict]:
     a0 = R.A0(base=base["policy_table"], base_bounds=[float(x) for x in base["boundaries"]],
               base_season_length=int(base["season_length"]), tail=tail["policy_table"],
               tail_bounds=[float(x) for x in tail["boundaries"]])
-    return a0, {"base_sha256": A0_BASE_SHA, "tail_sha256": A0_TAIL_SHA, "tail_base_pair": True}
+    return a0, {"base_sha256": A0_BASE_SHA, "tail_sha256": A0_TAIL_SHA, "tail_base_pair": True}, bb
 
 
 def _profiles(root: Path) -> dict:
@@ -505,22 +688,32 @@ def main(argv=None) -> int:
     ap.add_argument("--schedules", type=Path, required=True)
     ap.add_argument("--a0-base", type=Path, default=DATA / "models" / "mdp_policy.npz")
     ap.add_argument("--a0-tail", type=Path, default=DATA / "models" / "mdp_tail_policy.npz")
-    ap.add_argument("--out", type=Path, default=DATA / "hetzner_results" / "c1" / "r4b" / "runs")
+    ap.add_argument("--generator-check", type=Path, default=DATA / GENERATOR_CHECK["path"])
     args = ap.parse_args(argv)
     log = lambda msg: print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] {msg}", file=sys.stderr, flush=True)  # noqa: E731
 
-    # 1. gates
-    head = x31_gate()
-    gates = owner_gates((REPO / "docs/audit/2026-09-22-exposure-register.md").read_text())
+    # 1. admission
+    head = admission_gate()
+    register_text = (REPO / REGISTER_REL).read_text()
+    gates = owner_gates(register_text)
     if gates:
         raise SystemExit("refusing: " + "; ".join(gates))
     dirty = dirty_tree()
     if dirty:
         raise SystemExit(f"refusing: tracked changes in the executing tree: {dirty[:5]}")
-    blocked = prior_runs(args.out)
+    foreign = foreign_imports()
+    if foreign:
+        raise SystemExit(f"refusing: modules loaded from outside this checkout: {foreign[:5]}")
+    RUN_ROOT.mkdir(parents=True, exist_ok=True)
+    lock = open(RUN_ROOT / ".admission.lock", "w")      # held until the process exits
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("refusing: another 4b run holds the admission lock") from None
+    blocked = claimed_runs(RUN_ROOT, register_text)
     if blocked:
-        raise SystemExit(f"refusing: earlier runs without an invalidation record: {blocked}")
-    run_dir = args.out / f"{head[:7]}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
+        raise SystemExit(f"refusing: earlier claimed runs without a valid invalidation record: {blocked}")
+    run_dir = RUN_ROOT / f"{head[:7]}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
     run_dir.mkdir(parents=True, exist_ok=False)
 
     def stop(name: str, text: str) -> int:
@@ -534,11 +727,17 @@ def main(argv=None) -> int:
     files = _profiles(args.profiles)
     prof_sha = verify_profiles(args.profiles, args.w0_manifest, list(files.values()))
     recipe_sha = verify_profiles(args.profiles, args.w0_manifest, [args.profiles / n for n in RECIPE_FILES])
-    a0, a0_meta = _load_a0(args.a0_base, args.a0_tail)
+    schemas = profile_schemas(args.profiles, files, prof_sha)
+    gen_check = (verify_generator_check(args.generator_check.read_bytes(), args.profiles, prof_sha)
+                 if PROFILE_RECIPE["generator_commit"] else None)
+    a0, a0_meta, a0_base_bytes = _load_a0(args.a0_base, args.a0_tail)
     cals, sched_sha = _calendars(args.schedules)
     sources = {f: sha256((REPO / f).read_bytes()) for f in SOURCE_FILES}
-    manifest = {"code": head, "x31_commit": X31_COMMIT, "sources": sources, "w0_manifest_sha256": W0_MANIFEST_SHA,
-                "profiles": prof_sha, "profile_recipe": {**PROFILE_RECIPE, "recipe_files": recipe_sha},
+    closure_ids = {c: _git(REPO, "rev-parse", f"HEAD:{c}", check=False).stdout.strip() for c in CLOSURE}
+    manifest = {"code": head, "admission": json.loads((REPO / ADMISSION_REL).read_text()), "closure": closure_ids,
+                "sources": sources, "w0_manifest_sha256": W0_MANIFEST_SHA,
+                "profiles": prof_sha, "profile_schema": schemas,
+                "profile_recipe": {**PROFILE_RECIPE, "recipe_files": recipe_sha}, "generator_check": gen_check,
                 "a0": a0_meta, "schedules": sched_sha,
                 "excluded_contest_dates": EXCLUDED_CONTEST_DATES,
                 "calendars": {s: {"opening": str(c.opening), "final": str(c.final), "exclusive_end": str(c.exclusive_end),
@@ -548,33 +747,41 @@ def main(argv=None) -> int:
     (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str) + "\n")
     log(f"manifest written: {len(prof_sha)} profiles verified against W0.1")
 
-    # 3. synthetic self-check of the executing code
+    # 3. synthetic self-check of the executing code (no claim yet: nothing outcome-bearing has been read)
     check = self_check()
     (run_dir / "self_check.json").write_text(json.dumps(check, indent=1) + "\n")
     if not check["ok"]:
         return stop("self_check", json.dumps(check))
 
-    # 4. verified bytes; parity on a root holding only them
+    # 4. the durable claim, then verified bytes; parity on a root holding only them and the verified A0 base copy
+    _durable(run_dir / "CLAIM.json", (json.dumps({"run": run_dir.name, "code": head, "pid": os.getpid(),
+                                                  "claimed_utc": datetime.now(timezone.utc).isoformat()}) + "\n").encode())
     blobs = read_verified(args.profiles, files, prof_sha)
     proot = run_dir / "parity_inputs" / args.profiles.name
     for key, f in files.items():
         dest = proot / Path(f).relative_to(args.profiles)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(blobs[key])
+    base_copy = run_dir / "parity_inputs" / "mdp_policy.npz"
+    base_copy.write_bytes(a0_base_bytes)
     from scripts.audit import dd_p_policy_value_sensitivity as ddp
+    foreign = foreign_imports()
+    if foreign:
+        return stop("provenance", f"modules loaded from outside this checkout: {foreign[:5]}")
     buf = io.StringIO()
     try:
         with redirect_stdout(buf):
-            ddp.main(["--root", str(proot), "--policy", str(args.a0_base), "--stage", "l2",
+            ddp.main(["--root", str(proot), "--policy", str(base_copy), "--stage", "l2",
                       "--l2-deltas", "0", "--reps", "1", "--out", str(run_dir / "parity.json")])
     except AssertionError as e:
         return stop("parity", f"{e}\n{buf.getvalue()[-4000:]}")
     parity_ok = True
     shutil.rmtree(run_dir / "parity_inputs")
+    if sha256(args.a0_base.read_bytes()) != A0_BASE_SHA or sha256(args.a0_tail.read_bytes()) != A0_TAIL_SHA:
+        return stop("provenance", "an A0 artifact changed after verification")
     log("parity: July Δ=0 anchors reproduced on the verified bytes")
 
     frames = {k: D.validate_profile(pd.read_parquet(io.BytesIO(b))) for k, b in blobs.items()}
-    (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str) + "\n")
     days = {(s, seed): D.season_days(frames[(s, seed)], cals[s]) for (s, seed) in frames}
     seeds = sorted({seed for _, seed in days})
     cov = coverage(days, seasons=SEASONS, seeds=seeds)

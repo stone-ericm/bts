@@ -7,6 +7,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 import pytest
+from pathlib import Path
 
 from scripts.audit import dd_p_policy_value_sensitivity as ddp
 from scripts.audit.c1_r4b import run as RUN
@@ -64,13 +65,35 @@ def build_world(tmp_path, *, drop=None, drop_all=None, surplus_2026=False):
     tpath = tmp_path / "mdp_tail_policy.npz"
     np.savez(tpath, policy_table=np.ones((58, 58, 29, 2, 1), np.int8), boundaries=np.zeros(0),
              base_policy_sha256=np.array(hashlib.sha256(bpath.read_bytes()).hexdigest()))
-    return {"root": root, "man": man, "sched": sched_dir, "base": bpath, "tail": tpath, "pins": pins, "cal": cal_pins}
+    gen_pin, gen = synthetic_generator_check(tmp_path, root)
+    return {"root": root, "man": man, "sched": sched_dir, "base": bpath, "tail": tpath, "pins": pins, "cal": cal_pins,
+            "runs": tmp_path / "runs", "gen": gen, "gen_pin": gen_pin}
+
+
+GEN_BLOCK = ("2023-04-08", "2023-04-14")      # seven listed synthetic 2023 days; the synthetic world has ranks 1..5
+
+
+def synthetic_generator_check(tmp_path, root, **overrides):
+    """A generator-check manifest in the shape the real one has, bound to the synthetic seed-0 2023 profile."""
+    rel = "box0/simulation_seed0/backtest_2023.parquet"
+    m = {"generator_commit": RUN.PROFILE_RECIPE["generator_commit"], "seed": 0, "block": list(GEN_BLOCK),
+         "retained": {"path": f"{root.name}/{rel}", "sha256": hashlib.sha256((root / rel).read_bytes()).hexdigest()},
+         "result": {"rows": 35, "rows_mine": 35, "columns_equal": True, "dtype_mismatch": [], "differing_cells": {},
+                    "max_abs_diff": {}, "reproduced": True}}
+    m.update(overrides)
+    path = tmp_path / "generator_check_manifest.json"
+    path.write_text(json.dumps(m))
+    pin = {"path": "unused", "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "seed": 0, "season": 2023,
+           "block": GEN_BLOCK, "ranks": 5}
+    return pin, path
 
 
 @pytest.fixture
 def patched(monkeypatch):
     def apply(w, *, parity=None):
-        monkeypatch.setattr(RUN, "x31_gate", lambda: "f" * 40)
+        monkeypatch.setattr(RUN, "admission_gate", lambda: "f" * 40)
+        monkeypatch.setattr(RUN, "RUN_ROOT", w["runs"])
+        monkeypatch.setattr(RUN, "GENERATOR_CHECK", w["gen_pin"])
         monkeypatch.setattr(RUN, "owner_gates", lambda text: [])
         monkeypatch.setattr(RUN, "dirty_tree", lambda: [])
         monkeypatch.setattr(RUN, "W0_MANIFEST_SHA", hashlib.sha256(w["man"].read_bytes()).hexdigest())
@@ -87,9 +110,10 @@ def patched(monkeypatch):
     return apply
 
 
-def run_main(w, tmp_path):
+def run_main(w, tmp_path, *extra):
     return RUN.main(["--profiles", str(w["root"]), "--w0-manifest", str(w["man"]), "--schedules", str(w["sched"]),
-                     "--a0-base", str(w["base"]), "--a0-tail", str(w["tail"]), "--out", str(tmp_path / "runs")])
+                     "--a0-base", str(w["base"]), "--a0-tail", str(w["tail"]), "--generator-check", str(w["gen"]),
+                     *extra])
 
 
 def only_run(tmp_path):
@@ -144,6 +168,12 @@ def test_end_to_end_outputs_and_evidential_flags(tmp_path, patched):
                     assert cell[f"A2_minus_{b_}_p57"] == pytest.approx(cell["A2"]["p57"] - cell[b_]["p57"])
                     assert cell[f"A2_minus_{b_}_p57_pp"] == pytest.approx(100 * cell[f"A2_minus_{b_}_p57"])
     assert all("n_primary_hit" in h for h in res["achieved_haircuts"])
+    man = json.loads((d / "manifest.json").read_text())
+    (schema,) = man["profile_schema"].values()
+    assert schema["files"] == 120 and [c for c, _ in schema["schema"]][:6] == ["date", "rank", "batter_id", "game_pk",
+                                                                              "p_game_hit", "actual_hit"]
+    assert man["generator_check"]["rows"] == 35 and man["generator_check"]["block_dates"][0] == GEN_BLOCK[0]
+    assert set(man["closure"]) == set(RUN.CLOSURE) and (d / "CLAIM.json").exists()
 
 
 @pytest.mark.slow
@@ -219,16 +249,130 @@ def test_a_zero_leg_rate_stops_at_the_preflight_before_any_replay(tmp_path, patc
     assert "r_bar" in (only_run(tmp_path) / "STOPPED_preflight.txt").read_text()
 
 
-def test_an_earlier_run_without_an_invalidation_record_blocks_a_new_run(tmp_path, patched):
+def interrupted_run(w, tmp_path, monkeypatch, where):
+    """A first run killed after parity (in schema validation) or during the corrected replay."""
+    if where == "after_parity":
+        monkeypatch.setattr(RUN.D, "validate_profile", lambda df: (_ for _ in ()).throw(KeyboardInterrupt("killed")))
+    else:
+        real = RUN.R.replay
+        monkeypatch.setattr(RUN.R, "replay", lambda sd, arms, **kw: (_ for _ in ()).throw(KeyboardInterrupt("killed"))
+                            if "A0" in arms else real(sd, arms, **kw))
+    with pytest.raises(KeyboardInterrupt):
+        run_main(w, tmp_path)
+    monkeypatch.undo()
+    d = only_run(tmp_path)
+    assert (d / "CLAIM.json").exists() and not list(d.glob("STOPPED_*")) and not (d / "results.json").exists()
+    return d
+
+
+@pytest.mark.parametrize("where", ["after_parity", "during_replay"])
+def test_an_interrupted_claimed_run_blocks_another_run(tmp_path, patched, monkeypatch, where):
+    """Code review r2 N5: a kill leaves no STOPPED_* or results.json, but its claim still blocks."""
     w = build_world(tmp_path)
     patched(w)
-    prior = tmp_path / "runs" / "abc1234-20261005T000000Z"
-    prior.mkdir(parents=True)
-    (prior / "STOPPED_parity.txt").write_text("x")
-    with pytest.raises(SystemExit):
+    d = interrupted_run(w, tmp_path, monkeypatch, where)
+    patched(w)
+    with pytest.raises(SystemExit, match="earlier claimed runs"):
         run_main(w, tmp_path)
-    (tmp_path / "runs" / f"INVALIDATION_{prior.name}.json").write_text("{}")
-    assert RUN.prior_runs(tmp_path / "runs") == []
+    for rec in ({}, {"run": d.name}, {"run": d.name, "reason": "killed", "correction_commit": "0" * 40,
+                                      "register_row": "C1-4b-review-r3", "approved_by": "Eric"}):
+        (w["runs"] / f"INVALIDATION_{d.name}.json").write_text(json.dumps(rec))   # empty, partial, bad commit
+        with pytest.raises(SystemExit, match="earlier claimed runs"):
+            run_main(w, tmp_path)
+
+
+def test_a_valid_invalidation_record_releases_a_claimed_run(tmp_path, patched, monkeypatch):
+    w = build_world(tmp_path)
+    patched(w)
+    d = interrupted_run(w, tmp_path, monkeypatch, "after_parity")
+    head = RUN._git(RUN.REPO, "rev-parse", "HEAD").stdout.strip()
+    rec = {"run": d.name, "reason": "killed by the operator", "correction_commit": head,
+           "register_row": "C1-4b-review-r3", "approved_by": "Eric"}
+    assert RUN.validate_invalidation(rec, d.name, RUN._git(RUN.REPO, "show", f"HEAD:{RUN.REGISTER_REL}").stdout) == []
+    (w["runs"] / f"INVALIDATION_{d.name}.json").write_text(json.dumps(rec))
+    assert RUN.claimed_runs(w["runs"], (RUN.REPO / RUN.REGISTER_REL).read_text()) == []
+
+
+def test_a_stop_before_the_claim_does_not_block(tmp_path, patched, monkeypatch):
+    w = build_world(tmp_path)
+    patched(w)
+    monkeypatch.setattr(RUN, "self_check", lambda: {"ok": False, "errors": {"solver_emax": 0.1}})
+    assert run_main(w, tmp_path) == 2
+    assert not (only_run(tmp_path) / "CLAIM.json").exists()
+    assert RUN.claimed_runs(w["runs"], "") == []
+
+
+def test_an_alternate_output_root_is_not_accepted(tmp_path, patched):
+    w = build_world(tmp_path)
+    patched(w)
+    with pytest.raises(SystemExit) as e:
+        run_main(w, tmp_path, "--out", str(tmp_path / "elsewhere"))
+    assert e.value.code == 2 and not (tmp_path / "elsewhere").exists()
+
+
+def test_a_held_admission_lock_refuses_a_second_run(tmp_path, patched):
+    import fcntl
+    w = build_world(tmp_path)
+    patched(w)
+    w["runs"].mkdir(parents=True)
+    with open(w["runs"] / ".admission.lock", "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(SystemExit, match="admission lock"):
+            run_main(w, tmp_path)
+
+
+def test_parity_consumes_the_verified_base_and_a_changed_original_stops(tmp_path, patched, monkeypatch):
+    """r2 N4: July parity gets the verified A0 base bytes; an original changed after verification stops the run."""
+    w = build_world(tmp_path)
+    seen = {}
+
+    def parity(argv):
+        from pathlib import Path
+        seen["base"] = hashlib.sha256(Path(argv[argv.index("--policy") + 1]).read_bytes()).hexdigest()
+        return 0
+    patched(w, parity=parity)
+    real = RUN._load_a0
+
+    def load_then_change(base, tail):
+        out = real(base, tail)
+        Path(base).write_bytes(Path(base).read_bytes() + b"changed")
+        return out
+    monkeypatch.setattr(RUN, "_load_a0", load_then_change)
+    assert run_main(w, tmp_path) == 2
+    assert seen["base"] == RUN.A0_BASE_SHA
+    assert (only_run(tmp_path) / "STOPPED_provenance.txt").exists()
+
+
+@pytest.mark.parametrize("override", [{"seed": 1}, {"block": ["2023-04-08", "2023-04-13"]},
+                                      {"generator_commit": "0" * 40}, {"status": "unequal"},
+                                      {"result": {"rows": 0, "rows_mine": 0, "columns_equal": True, "dtype_mismatch": [],
+                                                  "differing_cells": {}, "max_abs_diff": {}, "reproduced": True}}])
+def test_a_generator_check_that_does_not_witness_the_registered_block_stops(tmp_path, patched, override):
+    """r2 N3: the runner consumes the pinned check manifest field by field (pin re-made so only the fields differ)."""
+    w = build_world(tmp_path)
+    w["gen_pin"], w["gen"] = synthetic_generator_check(tmp_path, w["root"], **override)
+    patched(w)
+    with pytest.raises(RUN.ProvenanceError, match="generator check"):
+        run_main(w, tmp_path)
+
+
+def test_a_generator_check_manifest_off_its_pin_stops(tmp_path, patched):
+    w = build_world(tmp_path)
+    patched(w)
+    w["gen"].write_text(w["gen"].read_text() + " ")
+    with pytest.raises(RUN.ProvenanceError, match="pin"):
+        run_main(w, tmp_path)
+
+
+def test_a_reference_block_missing_a_rank_stops(tmp_path, patched, monkeypatch):
+    """The block's dates and ranks are read from the verified bytes (date/rank columns only)."""
+    w = build_world(tmp_path)
+    patched(w)
+    monkeypatch.setitem(w["gen_pin"], "ranks", 6)        # the synthetic profile holds ranks 1..5
+    w["gen"].write_text(w["gen"].read_text().replace('"rows": 35, "rows_mine": 35', '"rows": 42, "rows_mine": 42'))
+    monkeypatch.setitem(w["gen_pin"], "sha256", hashlib.sha256(w["gen"].read_bytes()).hexdigest())
+    with pytest.raises(RUN.ProvenanceError, match="ranks"):
+        run_main(w, tmp_path)
 
 
 def test_a_tampered_profile_stops_before_any_decode(tmp_path, patched):

@@ -1,5 +1,6 @@
 """T8 pure logic: disposition precedence (registration §6), Monte Carlo ambiguity (§4), aggregation, provenance."""
 import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -67,10 +68,108 @@ def test_profile_hashes_must_match_the_retained_w0_manifest(tmp_path):
         RUN.verify_profiles(tmp_path / "mdp_estpa_run", man, [f])
 
 
-def test_the_run_refuses_without_a_published_x31(tmp_path, monkeypatch):
-    monkeypatch.setattr(RUN, "X31_COMMIT", None)
-    with pytest.raises(SystemExit):
-        RUN.x31_gate()
+def test_the_checked_in_admission_is_unset_so_the_run_refuses():
+    with pytest.raises(SystemExit, match="reviewed_commit"):
+        RUN.admission_gate()
+
+
+def _git(repo, *a):
+    import subprocess
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def _commit(repo, files: dict, msg: str) -> str:
+    for rel, text in files.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text)
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", msg)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+X31 = "| X-31 | the 4b screen | ... |\n"
+
+
+@pytest.fixture
+def repo(tmp_path):
+    """reviewed commit R; X-31 published in X; admission pointing at both in Y (the only post-review edits)."""
+    r = tmp_path / "repo"
+    r.mkdir()
+    _git(r, "init", "-q")
+    R_ = _commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-30 | y |\n"}, "reviewed")
+    X_ = _commit(r, {"reg.md": "| X-30 | y |\n" + X31, "pkg/admission.json": json.dumps({"reviewed_commit": R_})}, "x31")
+    adm = {"reviewed_commit": R_, "x31_commit": X_}
+    _commit(r, {"pkg/admission.json": json.dumps(adm)}, "admission")
+    return r, adm
+
+
+def check(r, adm):
+    return RUN.admission_check(r, adm, closure=("pkg",), admission_rel="pkg/admission.json", register_rel="reg.md")[1]
+
+
+def test_admission_passes_with_only_the_registered_post_review_edits(repo):
+    r, adm = repo
+    assert check(r, adm) == []
+
+
+def test_admission_refuses_unset_or_short_ids(repo):
+    r, adm = repo
+    assert check(r, {"reviewed_commit": None, "x31_commit": adm["x31_commit"]})
+    assert check(r, {**adm, "x31_commit": adm["x31_commit"][:7]})
+
+
+def test_admission_refuses_an_executable_change_after_review(repo):
+    """r2 N4: a clean later commit changing a solver passed ancestry before; now it refuses."""
+    r, adm = repo
+    _commit(r, {"pkg/a.py": "x = 2\n"}, "later solver edit")
+    assert any("changed since the reviewed commit" in x for x in check(r, adm))
+
+
+def test_admission_refuses_an_untracked_import_source(repo):
+    r, adm = repo
+    (r / "pkg" / "shadow.py").write_text("y = 1\n")
+    assert any("untracked" in x for x in check(r, adm))
+
+
+def test_admission_refuses_an_x31_row_edited_after_publication(repo):
+    r, adm = repo
+    _commit(r, {"reg.md": "| X-30 | y |\n| X-31 | the 4b screen, edited | ... |\n"}, "edit x31")
+    assert any("changed after its publication" in x for x in check(r, adm))
+
+
+def test_admission_refuses_an_x31_commit_that_did_not_publish_the_row(repo):
+    r, adm = repo
+    later = _commit(r, {"notes.md": "n\n"}, "unrelated")
+    assert any("not published in the named commit" in x for x in check(r, {**adm, "x31_commit": later}))
+
+
+def test_admission_refuses_a_reviewed_commit_after_x31(repo):
+    r, adm = repo
+    head = _git(r, "rev-parse", "HEAD")
+    assert any("not an ancestor of the X-31 commit" in x for x in check(r, {**adm, "reviewed_commit": head}))
+
+
+def test_foreign_imports_lists_modules_from_outside_the_checkout(monkeypatch):
+    import sys
+    import types
+    assert RUN.foreign_imports() == []
+    m = types.ModuleType("bts.shadowed")
+    m.__file__ = "/elsewhere/bts/shadowed.py"
+    monkeypatch.setitem(sys.modules, "bts.shadowed", m)
+    assert RUN.foreign_imports() == ["bts.shadowed: /elsewhere/bts/shadowed.py"]
+
+
+def test_invalidation_records_are_validated_not_just_present():
+    head = _git(RUN.REPO, "rev-parse", "HEAD")
+    reg = "| C1-4b-review-r3 | x | **RULED 2026-10-05: A** | Eric |\n| C1-x | y | **PROPOSED** | — |\n"
+    good = {"run": "r1", "reason": "killed", "correction_commit": head, "register_row": "C1-4b-review-r3",
+            "approved_by": "Eric"}
+    assert RUN.validate_invalidation(good, "r1", reg) == []
+    assert RUN.validate_invalidation({}, "r1", reg)
+    assert RUN.validate_invalidation([], "r1", reg)
+    for k, bad in (("run", "r2"), ("reason", " "), ("correction_commit", "0" * 40), ("register_row", "C1-x"),
+                   ("approved_by", "someone")):
+        assert RUN.validate_invalidation({**good, k: bad}, "r1", reg), k
 
 
 def test_coverage_is_checked_across_every_seed_not_just_the_first():
@@ -83,15 +182,39 @@ def test_coverage_is_checked_across_every_seed_not_just_the_first():
     assert cov["by_season"]["2022"] == {}
 
 
+NO_PLAY = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n"
+CONFIRMED = ("| C1-4b-generator-commit | x | **RULED:** (a) **Outcome 2026-10-05: CONFIRMED BY REPRODUCTION.** "
+             "85224124f97a0d4ee8da3059ff54b1bad228d44e | Eric |\n")
+
+
 def test_owner_gates_refuse_an_open_coverage_row_and_a_missing_generator_ruling():
     open_row = "| C1-4b-2023-10-02 | gap | **OPEN.** Nothing is recorded | — |\n"
     assert len(RUN.owner_gates(open_row)) == 2
-    proposed = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **PROPOSED, awaiting Eric** | — |\n"
+    proposed = NO_PLAY + "| C1-4b-generator-commit | x | **PROPOSED, awaiting Eric** | — |\n"
     assert len(RUN.owner_gates(proposed)) == 1                      # a proposal is not a ruling
-    pending = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **RULED:** (a) **Outcome: PENDING** | Eric |\n"
+    pending = NO_PLAY + "| C1-4b-generator-commit | x | **RULED:** (a) **Outcome: PENDING** | Eric |\n"
     assert len(RUN.owner_gates(pending)) == 1                       # ruled, but its check has not run
-    ruled = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **RULED:** y | Eric |\n"
-    assert RUN.owner_gates(ruled) == []
+    assert RUN.owner_gates(NO_PLAY + CONFIRMED) == []
+
+
+def test_owner_gates_need_the_implemented_disposition_and_a_matching_outcome(monkeypatch):
+    """Code review r2 N4: 'RULED: PLAY' plus 'RULED: UNKNOWN' passed before; text must match what the run implements."""
+    play = "| C1-4b-2023-10-02 | gap | **RULED: PLAY** | Eric |\n"
+    unknown = "| C1-4b-generator-commit | x | **RULED: UNKNOWN** | Eric |\n"
+    assert len(RUN.owner_gates(play + unknown)) == 2
+    no_outcome = "| C1-4b-generator-commit | x | **RULED:** y | Eric |\n"
+    assert len(RUN.owner_gates(NO_PLAY + no_outcome)) == 1
+    other_commit = CONFIRMED.replace("85224124f97a0d4ee8da3059ff54b1bad228d44e", "0" * 40)
+    assert len(RUN.owner_gates(NO_PLAY + other_commit)) == 1
+    recorded_unknown = "| C1-4b-generator-commit | x | **RULED:** (a) **Outcome 2026-10-05: UNKNOWN.** | Eric |\n"
+    assert len(RUN.owner_gates(NO_PLAY + recorded_unknown)) == 1   # the recipe still names a commit
+    monkeypatch.setitem(RUN.PROFILE_RECIPE, "generator_commit", None)
+    assert RUN.owner_gates(NO_PLAY + recorded_unknown) == []
+    assert len(RUN.owner_gates(NO_PLAY + CONFIRMED)) == 1
+
+
+def test_the_live_register_passes_the_owner_gates():
+    assert RUN.owner_gates((RUN.REPO / RUN.REGISTER_REL).read_text()) == []
 
 
 def test_self_check_catches_a_broken_solver(monkeypatch):
