@@ -18,7 +18,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-from scripts.audit.c1_r3.acquire import schedule_games
+from scripts.audit.c1_r3.acquire import played_status
 
 REQUIRED = ("date", "rank", "batter_id", "game_pk", "p_game_hit", "actual_hit")
 
@@ -55,7 +55,13 @@ class Calendar:
 
 
 def calendar_from_schedule(sched: dict, season: int) -> Calendar:
-    played = {date.fromisoformat(g["date"]) for g in schedule_games(sched)}
+    """Opportunity days come from the listings themselves (code review r1 F2): a schedule date is a game day when
+    any of its listings was played. A suspended game's original day and its completion day both count; the unique
+    feed inventory (which dedupes game ids) is a different object. Unsupported statuses are refused."""
+    played = set()
+    for day in sched.get("dates", []):
+        if any(played_status(g["status"]["detailedState"]) for g in day.get("games", [])):
+            played.add(date.fromisoformat(day["date"]))
     played = {d for d in played if d.year == season}
     if not played:
         raise ValueError(f"{season}: no played regular-season games in the schedule")
@@ -85,6 +91,8 @@ def validate_profile(df: pd.DataFrame) -> pd.DataFrame:
         raise ProfileError("duplicate (date, batter_id, game_pk)")
     if (df["rank"] < 1).any():
         raise ProfileError("rank must be >= 1")
+    if (df["batter_id"] <= 0).any() or (df["game_pk"] <= 0).any():
+        raise ProfileError("batter_id and game_pk must be positive integers")
     firsts = df.groupby("date")["rank"].min()
     if (firsts != 1).any():
         raise ProfileError(f"no rank 1 on {list(firsts[firsts != 1].index)[:3]}")

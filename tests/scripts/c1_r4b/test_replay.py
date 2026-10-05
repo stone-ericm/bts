@@ -4,6 +4,7 @@ import pytest
 
 from scripts.audit.c1_r4b import replay as R
 from scripts.audit.c1_r4b import solvers as S
+from scripts.audit.c1_r4b.oracle import scalar_replay
 
 T = 57
 
@@ -14,34 +15,6 @@ def season(rows):
     return {"opp": np.array(cols[0], bool), "known": np.array(cols[1], bool), "d_raw": np.array(cols[2]),
             "p1": np.array(cols[3], float), "hit1": np.array(cols[4], bool), "partner": np.array(cols[5], bool),
             "hit2": np.array(cols[6], bool)}
-
-
-def scalar_replay(days, policy, *, hit2=None, target=T, zone=(10, 15)):
-    """Independent scalar reference: one trajectory, explicit branches."""
-    s = m = 0
-    sv, resets = 1, 0
-    acts = {"skip": 0, "single": 0, "double": 0, "demoted": 0}
-    h2 = days["hit2"] if hit2 is None else hit2
-    for i in range(len(days["opp"])):
-        if not (days["opp"][i] and days["known"][i]) or s >= target:
-            continue
-        a = policy(s, m, int(days["d_raw"][i]), sv, float(days["p1"][i]), bool(days["partner"][i]))
-        if a == S.SKIP:
-            acts["skip"] += 1
-            continue
-        if a == S.DOUBLE and not days["partner"][i]:
-            acts["demoted"] += 1
-            a = S.SINGLE
-        acts["double" if a == S.DOUBLE else "single"] += 1
-        ok = bool(days["hit1"][i]) and (a == S.SINGLE or bool(h2[i]))
-        if ok:
-            s = min(target, s + (2 if a == S.DOUBLE else 1))
-        elif sv == 1 and zone[0] <= s <= zone[1]:
-            sv = 0
-        else:
-            s, resets = 0, resets + 1
-        m = max(m, s)
-    return {"max": m, "resets": resets, **acts}
 
 
 def rand_season(rng, n=120, unknown=(), no_opp=()):

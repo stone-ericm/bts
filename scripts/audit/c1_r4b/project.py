@@ -20,6 +20,7 @@ jackpot frequency.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -53,10 +54,28 @@ def categories(t: DayType, stress: Stress, *, at_cap: bool) -> tuple[float, floa
     return 1.0 - ph, ph - pb, pb
 
 
+def check_environment(env: Environment) -> None:
+    """Projection support (code review r1 F4): finite non-negative frequencies summing to 1 in each phase; every
+    positive-weight type needs a supported bin and finite coherent rates. A zero-weight cell needs no rates."""
+    for name, types in (("early", env.early), ("late", env.late)):
+        freqs = [t.freq for t in types]
+        if not types or any(not math.isfinite(f) or f < 0 for f in freqs) or abs(sum(freqs) - 1.0) > 1e-9:
+            raise Unavailable(f"{name}: missing types or frequencies that are not finite, >= 0 and summing to 1")
+        for t in types:
+            if t.freq == 0.0 or t.q is None:
+                continue
+            if not (0 <= t.q < env.n_bins):
+                raise Unavailable(f"{name}: positive-weight type with unsupported bin {t.q}")
+            if not (math.isfinite(t.p_hit) and math.isfinite(t.p_both) and 0.0 <= t.p_both <= t.p_hit <= 1.0) \
+                    or (not t.partner and t.p_both != 0.0):
+                raise Unavailable(f"{name}: positive-weight type with unsupported rates {t}")
+
+
 def project(policy, env: Environment, days: list[tuple[bool, int]], *, target: int, saver_zone: tuple[int, int],
             late_days: int, stress: Stress, r_cap: int = R_CAP, init_saver: int = 1) -> dict:
     """policy(d_raw, q) -> (T+1, T+1, 2) raw actions (the arm applies its own caps/routing). Returns the projected
     P(reach target), the projected E[season best] and the total mass (1 up to rounding)."""
+    check_environment(env)
     T1, R1 = target + 1, r_cap + 1
     S, M, SV = np.meshgrid(np.arange(T1), np.arange(T1), np.arange(2), indexing="ij")
     lo, hi = saver_zone
@@ -85,6 +104,8 @@ def project(policy, env: Environment, days: list[tuple[bool, int]], *, target: i
         if not types or abs(sum(t.freq for t in types) - 1.0) > 1e-9:
             raise Unavailable(f"day with {d} days left: phase types missing or frequencies do not sum to 1")
         for t in types:
+            if t.freq == 0.0:
+                continue
             if t.q is None:
                 new[..., 0] += t.freq * live.sum(axis=3)
                 continue
@@ -106,6 +127,8 @@ def project(policy, env: Environment, days: list[tuple[bool, int]], *, target: i
                 add(new, dbl, miss_s, M, miss_sv, rh, X * po)
                 add(new, dbl, miss_s, M, miss_sv, 0, X * pm)
         dist = new
+    mass = float(dist.sum())
+    if not np.isfinite(dist).all() or abs(mass - 1.0) > 1e-9:
+        raise Unavailable(f"projection lost or gained mass ({mass!r}) or produced non-finite values")
     by_best = dist.sum(axis=(0, 2, 3))
-    return {"p_reach": float(dist[target].sum()), "e_best": float(by_best @ np.arange(T1)),
-            "mass": float(dist.sum())}
+    return {"p_reach": float(dist[target].sum()), "e_best": float(by_best @ np.arange(T1)), "mass": mass}

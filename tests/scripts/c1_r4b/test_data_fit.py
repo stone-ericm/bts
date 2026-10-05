@@ -114,3 +114,30 @@ def test_an_empty_phase_bin_stops_the_fit():
 def test_r_bar_is_the_partner_eligible_leg_hit_rate():
     d = days([(0.5, True, True, True), (0.5, True, True, False), (0.5, True, False, True)], late=False)
     assert F.r_bar([d]) == pytest.approx(0.5)
+
+
+# ---------- code review r1 F2, F3 ----------
+def test_calendar_comes_from_listings_so_both_days_of_a_suspended_game_count():
+    s = {"dates": [
+        {"date": "2023-06-01", "games": [{"gamePk": 5, "officialDate": "2023-06-01", "status": {"detailedState": "Suspended: Rain"}}]},
+        {"date": "2023-06-02", "games": [{"gamePk": 5, "officialDate": "2023-06-01", "status": {"detailedState": "Final"}}]},
+        {"date": "2023-06-03", "games": [{"gamePk": 6, "officialDate": "2023-06-03", "status": {"detailedState": "Postponed"}}]},
+        {"date": "2023-06-04", "games": [{"gamePk": 7, "officialDate": "2023-06-04", "status": {"detailedState": "Final"}},
+                                         {"gamePk": 8, "officialDate": "2023-06-04", "status": {"detailedState": "Final"}}]}]}
+    cal = D.calendar_from_schedule(s, 2023)
+    assert (cal.opening, cal.final) == (date(2023, 6, 1), date(2023, 6, 4))
+    assert cal.no_opportunity == frozenset({date(2023, 6, 3)})
+
+
+def test_calendar_refuses_an_unsupported_status():
+    from scripts.audit.c1_r3.acquire import UnsupportedStatus
+    with pytest.raises(UnsupportedStatus):
+        D.calendar_from_schedule({"dates": [{"date": "2023-06-01", "games": [
+            {"gamePk": 5, "status": {"detailedState": "Scheduled"}}]}]}, 2023)
+
+
+@pytest.mark.parametrize("col,vals", [("batter_id", [10, 11, 0, 20, 21]), ("batter_id", [10, -7, 12, 20, 21]),
+                                      ("game_pk", [1, 1, 0, 3, 3]), ("game_pk", [-2, 1, 9, 3, 3])])
+def test_non_positive_identities_are_refused_on_primary_and_partner(col, vals):
+    with pytest.raises(D.ProfileError):
+        D.season_days(D.validate_profile(GOOD.assign(**{col: vals})), CAL)

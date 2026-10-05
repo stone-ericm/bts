@@ -4,6 +4,7 @@ import pytest
 
 from scripts.audit.c1_r4b import project as P
 from scripts.audit.c1_r4b import solvers as S
+from scripts.audit.c1_r4b.oracle import independent_categories, projection as oracle
 
 
 def env(early, late=None, n_bins=1):
@@ -29,36 +30,6 @@ def cal(n, no_opp=()):
 
 
 # ---------- independent scalar oracle: explicit recursion over days, types and outcome categories ----------
-def oracle(policy_fn, e, days, *, target, zone, late_days, stress, r_cap=8, s=0, m=0, sv=1, r=0):
-    if s >= target:
-        return 1.0
-    if not days:
-        return 0.0
-    (opp, d), rest = days[0], days[1:]
-    nxt = lambda s2, m2, sv2, r2: oracle(policy_fn, e, rest, target=target, zone=zone, late_days=late_days,
-                                         stress=stress, r_cap=r_cap, s=s2, m=m2, sv=sv2, r=r2)
-    if not opp:
-        return nxt(s, m, sv, 0)
-    total = 0.0
-    lo, hi = zone
-    miss = (s, m, 0) if (sv == 1 and lo <= s <= hi) else (0, m, sv)
-    for t in e.types(d, late_days):
-        if t.q is None:
-            total += t.freq * nxt(s, m, sv, 0)
-            continue
-        pm, po, pj = P.categories(t, stress, at_cap=(r == r_cap))
-        a = policy_fn(s, m, d, sv, t.q)
-        rh = min(r_cap, r + 1)
-        if a == S.SKIP:
-            v = (po + pj) * nxt(s, m, sv, rh) + pm * nxt(s, m, sv, 0)
-        elif a == S.SINGLE or not t.partner:
-            s1 = min(target, s + 1)
-            v = (po + pj) * nxt(s1, max(m, s1), sv, rh) + pm * nxt(*miss, 0)
-        else:
-            s2 = min(target, s + 2)
-            v = pj * nxt(s2, max(m, s2), sv, rh) + po * nxt(*miss, rh) + pm * nxt(*miss, 0)
-        total += t.freq * v
-    return total
 
 
 def test_codex_counterexample_best_must_survive_resets():
@@ -112,16 +83,6 @@ def test_categories_are_coherent_after_every_transform():
 
 
 # ---------- review r1 (interim) fixes ----------
-def independent_categories(p_hit, p_both, c=0.0, h=0.0, delta=0.0, at_cap=False):
-    """Re-derived from registration §5 text, independent of project.categories."""
-    ph = max(0.0, p_hit - c)
-    pb = min(max(0.0, p_both - c), ph)
-    pb = max(0.0, pb - delta * ph)
-    if at_cap and h > 0:
-        ph2 = max(0.0, ph - h)
-        pb = pb * ph2 / ph if ph > 0 else 0.0
-        ph = ph2
-    return 1 - ph, ph - pb, pb
 
 
 def test_categories_match_hand_computed_values():
@@ -154,3 +115,24 @@ def test_a_phase_without_types_makes_the_projection_unavailable_not_zero():
     with pytest.raises(P.Unavailable):
         P.project(table_policy(lambda *a: S.SINGLE, 4), short, cal(5), target=4, saver_zone=(1, 1), late_days=2,
                   stress=P.Stress())
+
+
+# ---------- code review r1 F4 ----------
+@pytest.mark.parametrize("bad", [
+    (1.0, 0, True, float("nan"), float("nan")),          # positive-weight type with unsupported rates
+    (float("nan"), 0, True, 0.7, 0.5),                    # non-finite frequency
+    (1.0, 0, True, 0.5, 0.6),                             # incoherent: p_both > p_hit
+    (1.0, 3, True, 0.7, 0.5),                             # bin outside the mapping
+])
+def test_unsupported_environments_are_unavailable_not_zero(bad):
+    e = env([bad])
+    with pytest.raises(P.Unavailable):
+        P.project(table_policy(lambda *a: S.SINGLE, 4), e, cal(4), target=4, saver_zone=(1, 1), late_days=1,
+                  stress=P.Stress())
+
+
+def test_a_zero_weight_cell_needs_no_rates():
+    e = env([(1.0, 0, True, 0.7, 0.5), (0.0, 0, False, float("nan"), float("nan"))])
+    r = P.project(table_policy(lambda *a: S.SINGLE, 4), e, cal(4), target=4, saver_zone=(1, 1), late_days=1,
+                  stress=P.Stress())
+    assert r["mass"] == pytest.approx(1.0)

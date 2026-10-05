@@ -63,3 +63,75 @@ def evaluate(env, policy, objective, s, m, d, sv, *, target, zone, late_days):
                                          late_days=late_days)
                             for p, s2, m2, sv2 in _step(s, m, sv, a, t, target, zone))
     return total
+
+
+def independent_categories(p_hit, p_both, c=0.0, h=0.0, delta=0.0, at_cap=False):
+    """Re-derived from registration §5 text, independent of project.categories."""
+    ph = max(0.0, p_hit - c)
+    pb = min(max(0.0, p_both - c), ph)
+    pb = max(0.0, pb - delta * ph)
+    if at_cap and h > 0:
+        ph2 = max(0.0, ph - h)
+        pb = pb * ph2 / ph if ph > 0 else 0.0
+        ph = ph2
+    return 1 - ph, ph - pb, pb
+
+
+def projection(policy_fn, e, days, *, target, zone, late_days, stress, r_cap=8, s=0, m=0, sv=1, r=0):
+    if s >= target:
+        return 1.0
+    if not days:
+        return 0.0
+    (opp, d), rest = days[0], days[1:]
+    nxt = lambda s2, m2, sv2, r2: projection(policy_fn, e, rest, target=target, zone=zone, late_days=late_days,
+                                         stress=stress, r_cap=r_cap, s=s2, m=m2, sv=sv2, r=r2)
+    if not opp:
+        return nxt(s, m, sv, 0)
+    total = 0.0
+    lo, hi = zone
+    miss = (s, m, 0) if (sv == 1 and lo <= s <= hi) else (0, m, sv)
+    for t in e.types(d, late_days):
+        if t.q is None:
+            total += t.freq * nxt(s, m, sv, 0)
+            continue
+        pm, po, pj = independent_categories(t.p_hit, t.p_both, stress.c, stress.h, stress.delta, r == r_cap)
+        a = policy_fn(s, m, d, sv, t.q)
+        rh = min(r_cap, r + 1)
+        if a == SKIP:
+            v = (po + pj) * nxt(s, m, sv, rh) + pm * nxt(s, m, sv, 0)
+        elif a == SINGLE or not t.partner:
+            s1 = min(target, s + 1)
+            v = (po + pj) * nxt(s1, max(m, s1), sv, rh) + pm * nxt(*miss, 0)
+        else:
+            s2 = min(target, s + 2)
+            v = pj * nxt(s2, max(m, s2), sv, rh) + po * nxt(*miss, rh) + pm * nxt(*miss, 0)
+        total += t.freq * v
+    return total
+
+
+def scalar_replay(days, policy, *, hit2=None, target=57, zone=(10, 15)):
+    """Independent scalar reference: one trajectory, explicit branches."""
+    s = m = 0
+    sv, resets = 1, 0
+    acts = {"skip": 0, "single": 0, "double": 0, "demoted": 0}
+    h2 = days["hit2"] if hit2 is None else hit2
+    for i in range(len(days["opp"])):
+        if not (days["opp"][i] and days["known"][i]) or s >= target:
+            continue
+        a = policy(s, m, int(days["d_raw"][i]), sv, float(days["p1"][i]), bool(days["partner"][i]))
+        if a == SKIP:
+            acts["skip"] += 1
+            continue
+        if a == DOUBLE and not days["partner"][i]:
+            acts["demoted"] += 1
+            a = SINGLE
+        acts["double" if a == DOUBLE else "single"] += 1
+        ok = bool(days["hit1"][i]) and (a == SINGLE or bool(h2[i]))
+        if ok:
+            s = min(target, s + (2 if a == DOUBLE else 1))
+        elif sv == 1 and zone[0] <= s <= zone[1]:
+            sv = 0
+        else:
+            s, resets = 0, resets + 1
+        m = max(m, s)
+    return {"max": m, "resets": resets, **acts}

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from scripts.audit.c1_r4b import solvers as S
-from tests.scripts.c1_r4b import oracle as O
+from scripts.audit.c1_r4b import oracle as O
 
 # Tiny worlds: target 4, saver zone {1}, horizon 5, late phase = last 2 days, 2 quality bins.
 TINY = dict(target=4, zone=(1, 1), late_days=2)
