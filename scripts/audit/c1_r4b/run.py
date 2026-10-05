@@ -115,8 +115,10 @@ def owner_gates(register_text: str) -> list[str]:
     if row is None or "**RULED" not in row:
         reasons.append(f"register row {COVERAGE_ROW} records no ruling: the 2023-10-02 coverage decision is pending")
     grow = next((l for l in register_text.splitlines() if l.startswith(f"| {GENERATOR_ROW} |")), None)
-    if PROFILE_RECIPE["generator_commit"] is None and (grow is None or "**RULED" not in grow):
-        reasons.append(f"the profile-generator commit is not retained and register row {GENERATOR_ROW} is not RULED")
+    if grow is None or "**RULED" not in grow:
+        reasons.append(f"register row {GENERATOR_ROW} is not RULED")
+    elif "PENDING" in grow:
+        reasons.append(f"register row {GENERATOR_ROW}: the ruled reproduction check's outcome is PENDING")
     return reasons
 
 

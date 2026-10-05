@@ -88,6 +88,8 @@ def test_owner_gates_refuse_an_open_coverage_row_and_a_missing_generator_ruling(
     assert len(RUN.owner_gates(open_row)) == 2
     proposed = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **PROPOSED, awaiting Eric** | — |\n"
     assert len(RUN.owner_gates(proposed)) == 1                      # a proposal is not a ruling
+    pending = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **RULED:** (a) **Outcome: PENDING** | Eric |\n"
+    assert len(RUN.owner_gates(pending)) == 1                       # ruled, but its check has not run
     ruled = "| C1-4b-2023-10-02 | gap | **RULED 2026-10-05: NO PLAY** | Eric |\n| C1-4b-generator-commit | x | **RULED:** y | Eric |\n"
     assert RUN.owner_gates(ruled) == []
 
