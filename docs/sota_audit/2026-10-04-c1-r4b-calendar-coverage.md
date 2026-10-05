@@ -58,3 +58,6 @@ de0090ef4e4372cc940410744d788a28d7fc5fbf13fef864014ad30206a03a36  sched_2022.jso
   would instead change the retained, W0-verified 2023-09-28 rows, and 2023-10-02 would remain uncovered.
 - **What was done.** Per the ruling's instruction, the backfill was stopped rather than replaced with another option.
   No supplement exists, and no profile or result was altered or read.
+
+## Ruling 2026-10-05 (replaces the backfill ruling)
+Eric: **2023-10-02 is NO PLAY, not a BTS contest day.** Its only game was the resumed portion of the 9/28 suspended game (officialDate 2023-09-28), which the official BTS rules never evaluate. The 2023 contest calendar ends 2023-10-01 (182 days). The retained 9/28 rows are unchanged. Register row C1-4b-2023-10-02.
