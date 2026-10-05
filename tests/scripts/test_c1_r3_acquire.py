@@ -199,3 +199,15 @@ def test_a_receipt_write_failure_during_an_ordinary_request_aborts_the_run(tmp_p
                    fetch=lambda url: (calls.append(url), feed(101))[1], sleep=lambda s: None, jitter=lambda: 0.0,
                    now=Clock())
     assert len(calls) == 1                                      # no second request after the receipt failure
+
+
+def test_verify_binds_every_stored_file_to_its_receipt_and_flags_the_rest(tmp_path):
+    run(tmp_path, {"101": feed(101), "102": feed(102), "103": feed(103)})
+    out, feeds = tmp_path / "c1" / "r3", tmp_path / "raw"
+    assert aq.verify(out, feeds) == {"receipted": 3, "bound": 3, "mismatched": [], "missing": [], "unreceipted": []}
+    (feeds / "2021" / "102.json.gz").write_bytes(gzip.compress(feed(102) + b" "))
+    (feeds / "2021" / "103.json.gz").unlink()
+    (feeds / "2021" / "999.json.gz").write_bytes(gzip.compress(feed(999)))
+    v = aq.verify(out, feeds)
+    assert v["mismatched"] == ["2021/102.json.gz"] and v["missing"] == ["2021/103.json.gz"]
+    assert v["unreceipted"] == ["2021/999.json.gz"] and v["bound"] == 1

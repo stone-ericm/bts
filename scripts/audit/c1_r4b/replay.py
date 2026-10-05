@@ -64,6 +64,20 @@ class A0:
 
 
 @dataclass
+class A0BaseOnly:
+    """The fix ladder's first rung: the shipped base table alone, without the tail routing (the July "deployed")."""
+    a0: A0
+
+    def __call__(self, s, m, d_raw, sv, p1, partner):
+        s, sv = np.asarray(s), np.asarray(sv)
+        if d_raw <= 0:
+            return np.full(s.shape, SKIP, dtype=np.int64)
+        q = min(_bin_ge(p1, self.a0.base_bounds), self.a0.base.shape[3] - 1)
+        act = self.a0.base[np.minimum(s, self.a0.target - 1), min(int(d_raw), self.a0.base_season_length), sv, q]
+        return np.where(s >= self.a0.target, SKIP, act).astype(np.int64)
+
+
+@dataclass
 class Table:
     """A1/A2-style fitted table: the fold classifier and the table's own horizon cap."""
     solution: Solution
@@ -109,12 +123,19 @@ def _executed(a: np.ndarray, partner: bool) -> tuple[np.ndarray, np.ndarray]:
 
 
 def replay(days: dict, arms: dict, *, hit2_masks: np.ndarray, target: int = TARGET,
-           zone: tuple[int, int] = SAVER_ZONE, compare: tuple[str, str] | None = None) -> dict:
+           zone: tuple[int, int] = SAVER_ZONE, compare: tuple[str, str] | None = None,
+           clock: str = "calendar", partnerless: str = "legal") -> dict:
+    """clock="row180" and partnerless="plus2" reproduce the July shortcuts for the registered fix ladder only;
+    every candidate decision uses the defaults (calendar clock, legal demotion)."""
+    if clock not in ("calendar", "row180") or partnerless not in ("legal", "plus2"):
+        raise ValueError("unknown clock or partnerless mode")
     reps, n = hit2_masks.shape
+    row = 0
     lo, hi = zone
     st = {k: {"s": np.zeros(reps, np.int64), "m": np.zeros(reps, np.int64), "sv": np.ones(reps, np.int64),
               "resets": np.zeros(reps, np.int64),
-              "actions": {a: np.zeros(reps, np.int64) for a in ("skip", "single", "double", "demoted")}}
+              "actions": {a: np.zeros(reps, np.int64) for a in ("skip", "single", "double", "demoted")},
+              "skip_census": {"partner": np.zeros(reps, np.int64), "partnerless": np.zeros(reps, np.int64)}}
           for k in arms}
     cons = None
     if compare:
@@ -125,7 +146,14 @@ def replay(days: dict, arms: dict, *, hit2_masks: np.ndarray, target: int = TARG
     for i in range(n):
         if not (days["opp"][i] and days["known"][i]):
             continue
-        d, p1, partner, h1 = int(days["d_raw"][i]), float(days["p1"][i]), bool(days["partner"][i]), bool(days["hit1"][i])
+        if clock == "row180":
+            d = 180 - row
+            row += 1
+            if d <= 0:
+                break
+        else:
+            d = int(days["d_raw"][i])
+        p1, partner, h1 = float(days["p1"][i]), bool(days["partner"][i]), bool(days["hit1"][i])
         h2 = hit2_masks[:, i]
         if cons is not None:
             x, y = compare
@@ -150,13 +178,18 @@ def replay(days: dict, arms: dict, *, hit2_masks: np.ndarray, target: int = TARG
             s, m, sv = a_st["s"], a_st["m"], a_st["sv"]
             live = s < target
             raw = np.where(live, prov(s, m, d, sv, p1, partner), SKIP)
-            a, demoted = _executed(raw, partner)
+            if partnerless == "plus2" and not partner:
+                a, demoted = raw, np.zeros(raw.shape, bool)       # the July shortcut: +2 on the primary alone
+            else:
+                a, demoted = _executed(raw, partner)
+            skipped = live & (a == SKIP)
+            a_st["skip_census"]["partner" if partner else "partnerless"] += skipped.astype(np.int64)
             a_st["actions"]["skip"] += (live & (a == SKIP)).astype(np.int64)
             a_st["actions"]["single"] += (a == SINGLE).astype(np.int64)
             a_st["actions"]["double"] += (a == DOUBLE).astype(np.int64)
             a_st["actions"]["demoted"] += (demoted & live).astype(np.int64)
             played = a != SKIP
-            success = played & h1 & ((a == SINGLE) | h2)
+            success = played & h1 & ((a == SINGLE) | h2 | ((a == DOUBLE) & (not partner)))
             miss = played & ~success
             catch = miss & (sv == 1) & (s >= lo) & (s <= hi)
             hard = miss & ~catch
@@ -168,7 +201,7 @@ def replay(days: dict, arms: dict, *, hit2_masks: np.ndarray, target: int = TARG
     out = {}
     for name, a_st in st.items():
         mx = a_st["m"]
-        out[name] = {"max": mx, "resets": a_st["resets"], "actions": a_st["actions"],
+        out[name] = {"max": mx, "resets": a_st["resets"], "actions": a_st["actions"], "skip_census": a_st["skip_census"],
                      "reach20": mx >= 20, "reach30": mx >= 30, "reach40": mx >= 40, "reach57": mx >= target}
     if cons is not None:
         out["_consequences"] = cons

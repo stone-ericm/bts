@@ -69,7 +69,10 @@ def test_h_zero_equals_iid_and_dependence_lowers_the_run_tail():
                    stress=P.Stress(h=0.0), r_cap=2)["p_reach"]
     h4 = P.project(table_policy(fn, T), TINY_ENV, days, target=T, saver_zone=(1, 1), late_days=2,
                    stress=P.Stress(h=0.04), r_cap=2)["p_reach"]
-    assert base == h0 and h4 < base
+    want = oracle(lambda s, m, d, sv, q: S.SINGLE, TINY_ENV, days, target=T, zone=(1, 1), late_days=2,
+                  stress=P.Stress(), r_cap=2)
+    assert base == pytest.approx(want, abs=1e-12) and h0 == pytest.approx(want, abs=1e-12)   # independent iid value
+    assert h4 < base
 
 
 def test_categories_are_coherent_after_every_transform():

@@ -81,3 +81,22 @@ def test_coverage_is_checked_across_every_seed_not_just_the_first():
     assert cov["complete"] is False
     assert cov["by_season"]["2021"] == {"2021-09-01": [2]}
     assert cov["by_season"]["2022"] == {}
+
+
+def test_owner_gates_refuse_an_open_coverage_row_and_a_missing_generator_ruling():
+    open_row = "| C1-4b-2023-10-02 | gap | **OPEN.** Nothing is recorded | — |\n"
+    assert len(RUN.owner_gates(open_row)) == 2
+    ruled = "| C1-4b-2023-10-02 | gap | **RULED:** frozen rule kept | Eric |\n| C1-4b-generator-commit | x | y | Eric |\n"
+    assert RUN.owner_gates(ruled) == []
+
+
+def test_self_check_catches_a_broken_solver(monkeypatch):
+    from scripts.audit.c1_r4b import solvers as S
+    real = S.solve
+
+    def broken(env, **kw):
+        sol = real(env, **kw)
+        sol.value[0, 0, -1, 1] += 0.01
+        return sol
+    monkeypatch.setattr(RUN.S, "solve", broken)
+    assert RUN.self_check()["ok"] is False

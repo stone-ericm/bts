@@ -117,3 +117,36 @@ def test_decision_consequences_compare_actions_on_common_states():
     assert c["A0_states"]["visits"] == 3 and c["A0_states"]["differ"] == 3
     assert c["A2_states"]["visits"] == 3 and c["A2_states"]["differ"] == 3
     assert c["own_trajectory"]["differ"] == 3
+
+
+# ---------- code review r1 F6: evidence and the fix ladder switches ----------
+def test_skip_census_counts_arm_skipped_known_days_by_partner_availability():
+    days = season([(True, True, 4, 0.8, True, True, True), (True, True, 3, 0.8, True, False, False),
+                   (False, False, 2, np.nan, False, False, False), (True, True, 1, 0.8, True, True, False)])
+    out = R.replay(days, {"skip": R.const(S.SKIP)}, hit2_masks=np.ones((1, 4), bool))["skip"]
+    assert out["skip_census"]["partner"][0] == 2 and out["skip_census"]["partnerless"][0] == 1
+
+
+def test_row180_clock_counts_known_rows_not_calendar_days():
+    days = season([(True, True, 9, 0.8, True, True, True), (False, False, 8, np.nan, False, False, False),
+                   (True, False, 7, np.nan, False, False, False), (True, True, 6, 0.8, True, True, True)])
+    seen_cal, seen_row = [], []
+    rec = lambda store: (lambda s, m, d, sv, p1, partner: (store.append(d), np.full(s.shape, S.SINGLE))[1])
+    R.replay(days, {"x": rec(seen_cal)}, hit2_masks=np.ones((1, 4), bool))
+    R.replay(days, {"x": rec(seen_row)}, hit2_masks=np.ones((1, 4), bool), clock="row180")
+    assert seen_cal == [9, 6] and seen_row == [180, 179]
+
+
+def test_plus2_partnerless_switch_reproduces_the_old_shortcut():
+    days = season([(True, True, 5, 0.8, True, False, False)])
+    legal = R.replay(days, {"x": R.const(S.DOUBLE)}, hit2_masks=np.zeros((1, 1), bool))["x"]
+    old = R.replay(days, {"x": R.const(S.DOUBLE)}, hit2_masks=np.zeros((1, 1), bool), partnerless="plus2")["x"]
+    assert legal["max"][0] == 1 and old["max"][0] == 2
+
+
+def test_a0_base_only_ignores_the_tail():
+    base, tail = a0_tables()
+    full = R.A0(base=base, base_bounds=[0.7, 0.75, 0.8, 0.85], base_season_length=180, tail=tail, tail_bounds=[])
+    only = R.A0BaseOnly(full)
+    s, m, sv = np.array([20]), np.array([25]), np.array([1])
+    assert list(full(s, m, 10, sv, 0.9, True)) == [S.SKIP] and list(only(s, m, 10, sv, 0.9, True)) == [S.DOUBLE]

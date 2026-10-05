@@ -55,14 +55,15 @@ def fit_environment(season_days: list[dict], cuts: np.ndarray, *, late_days: int
             for has_partner in (True, False):
                 k = (q == b) & (partner == has_partner)
                 c = int(k.sum())
-                cells[(b, has_partner)] = c
+                cells[(b, has_partner)] = {"n": c, "hit1": int(hit1[k].sum()),
+                                           "both": int((hit1[k] & hit2[k]).sum()) if has_partner else 0}
                 if c == 0:
                     continue
                 ph = float(hit1[k].mean())
                 pb = float((hit1[k] & hit2[k]).mean()) if has_partner else 0.0
                 types.append(DayType(freq=c / n, q=b, partner=has_partner, p_hit=ph, p_both=pb))
         phases[name] = tuple(types)
-        stats[name] = {"days": n, "cells": {f"{b}|{'P' if p else 'N'}": c for (b, p), c in cells.items()}}
+        stats[name] = {"days": n, "cells": {f"{b}|{'P' if p else 'N'}": c for (b, p), c in cells.items()}}  # zeros kept
     env = Environment(n_bins=n_bins, early=phases["early"], late=phases["late"])
     validate(env)
     return env, stats

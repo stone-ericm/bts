@@ -277,6 +277,32 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Pa
         return 1 if failures else 0
 
 
+def verify(out_dir: Path, feeds_dir: Path) -> dict:
+    """Outcome-free reconciliation: every `stored` completion receipt's file must exist and its gunzipped bytes must
+    hash to the receipt's decoded sha256; stored files without a receipt are listed."""
+    recs = [r for r in read_receipts(out_dir) if r.get("kind") == "completion" and r.get("outcome") == "stored"]
+    latest = {}
+    for r in recs:
+        latest[r["stored_path"]] = r
+    bound, mismatched, missing = 0, [], []
+    for rel, r in sorted(latest.items()):
+        f = feeds_dir / rel
+        if not f.exists():
+            missing.append(rel)
+            continue
+        try:
+            ok = sha256(gzip.decompress(f.read_bytes())) == r["decoded_sha256"]
+        except (OSError, EOFError):
+            ok = False
+        if ok:
+            bound += 1
+        else:
+            mismatched.append(rel)
+    on_disk = {str(f.relative_to(feeds_dir)) for f in feeds_dir.rglob("*.json.gz")}
+    return {"receipted": len(latest), "bound": bound, "mismatched": mismatched, "missing": missing,
+            "unreceipted": sorted(on_disk - set(latest))}
+
+
 def _fetch(url: str) -> bytes:
     with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=30) as r:
         return r.read()
@@ -284,13 +310,21 @@ def _fetch(url: str) -> bytes:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--seasons", type=int, nargs="+", required=True)
+    ap.add_argument("--seasons", type=int, nargs="+")
+    ap.add_argument("--verify", action="store_true", help="reconcile stored feeds against their receipts; no requests")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--feeds", type=Path, default=DEFAULT_FEEDS)
     ap.add_argument("--min-gap", type=float, default=1.0)
     ap.add_argument("--max-gap", type=float, default=2.5)
     args = ap.parse_args(argv)
     out, pause_root = args.out.expanduser().resolve(), C1_ROOT.resolve()
+    if args.verify:
+        v = verify(out, args.feeds.expanduser().resolve())
+        print(json.dumps({k: (val if isinstance(val, int) else val[:20]) for k, val in v.items()} |
+                         {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)}, indent=1))
+        return 0 if (not v["mismatched"] and not v["missing"] and not v["unreceipted"]) else 1
+    if not args.seasons:
+        ap.error("--seasons is required unless --verify")
     if pause_root not in out.parents and out != pause_root:
         print(f"refusing: --out must lie under the C1 tree {pause_root} (the launcher's stop scan)", file=sys.stderr)
         return 2
