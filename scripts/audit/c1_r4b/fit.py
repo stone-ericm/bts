@@ -74,4 +74,7 @@ def r_bar(season_days: list[dict]) -> float:
     legs = np.concatenate([d["hit2"][_known(d) & d["partner"]] for d in season_days])
     if legs.size == 0:
         raise ValueError("no partner-eligible days")
-    return float(legs.mean())
+    rb = float(legs.mean())
+    if not (np.isfinite(rb) and rb > 0):      # code review r2 N6: the Δ-thinning denominator, checked in preflight
+        raise ValueError(f"r_bar {rb} is not a positive finite rate")
+    return rb

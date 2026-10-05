@@ -243,8 +243,16 @@ def disposition(sm: dict) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------- self-check
+def _gap(a, b) -> float:
+    """|a - b|, or infinity when either side is non-finite (code review r2 N6: max() can keep a finite worst past
+    a NaN, so NaN never reaches a max here)."""
+    a, b = float(a), float(b)
+    return abs(a - b) if np.isfinite(a) and np.isfinite(b) else float("inf")
+
+
 def self_check() -> dict:
-    """The independent oracles against the executing code on fixed synthetic inputs (code review r1 F4/F7)."""
+    """The independent oracles against the executing code on fixed synthetic inputs (code review r1 F4/F7). Solver
+    value arrays must be finite and actions in {skip, single, double}; any non-finite comparison fails."""
     errs = {}
     tiny = {"early": [(0.35, 0, True, 0.55, 0.30), (0.25, 0, False, 0.60, 0.0), (0.30, 1, True, 0.80, 0.62),
                       (0.10, None, False, 0.0, 0.0)],
@@ -255,10 +263,13 @@ def self_check() -> dict:
     for obj in ("emax", "reach"):
         sol = S.solve(env, horizon=4, objective=obj, target=4, saver_zone=(1, 1), late_days=2)
         pol = lambda s, m, d, sv, q, sol=sol: int(sol.policy[s, m, d, sv, q])
+        if not np.isfinite(sol.value).all() or not np.isin(sol.policy, (S.SKIP, S.SINGLE, S.DOUBLE)).all():
+            errs[f"solver_{obj}"] = float("inf")
+            continue
         worst = 0.0
         for s, m, d, sv in [(0, 0, 4, 1), (1, 2, 3, 1), (2, 2, 2, 0), (0, 3, 4, 0), (3, 3, 1, 1)]:
             opt = O.optimal(tiny, obj, s, m, d, sv, **kw)
-            worst = max(worst, abs(sol.value[s, m, d, sv] - opt), abs(O.evaluate(tiny, pol, obj, s, m, d, sv, **kw) - opt))
+            worst = max(worst, _gap(sol.value[s, m, d, sv], opt), _gap(O.evaluate(tiny, pol, obj, s, m, d, sv, **kw), opt))
         errs[f"solver_{obj}"] = worst
     fn = lambda s, m, d, sv, q: S.DOUBLE if (m < 2 and q == 1) else S.SINGLE
     table = lambda d, q: np.array([[[fn(s, m, d, sv, q) for sv in (0, 1)] for m in range(5)] for s in range(5)])
@@ -266,7 +277,7 @@ def self_check() -> dict:
     st = P.Stress(c=0.02, h=0.04, delta=0.1)
     got = P.project(table, env, days, target=4, saver_zone=(1, 1), late_days=2, stress=st, r_cap=2)["p_reach"]
     want = O.projection(fn, env, days, target=4, zone=(1, 1), late_days=2, stress=st, r_cap=2)
-    errs["projection"] = abs(got - want)
+    errs["projection"] = _gap(got, want)
     rng = np.random.default_rng(11)
     n = 40
     sd = {"opp": np.array([i % 13 != 5 for i in range(n)]), "known": np.array([i % 13 != 5 and i != 17 for i in range(n)]),
@@ -282,7 +293,8 @@ def self_check() -> dict:
                               hit2=masks[r] & sd["hit2"])
         rerr += int(out["max"][r] != ref["max"]) + int(out["resets"][r] != ref["resets"])
     errs["replay_mismatches"] = rerr
-    ok = all(v < 1e-12 for k, v in errs.items() if k != "replay_mismatches") and errs["replay_mismatches"] == 0
+    ok = all(np.isfinite(v) and v < 1e-12 for k, v in errs.items() if k != "replay_mismatches") \
+        and errs["replay_mismatches"] == 0
     return {"ok": bool(ok), "errors": {k: float(v) for k, v in errs.items()}}
 
 

@@ -157,6 +157,42 @@ def test_a_failed_self_check_stops_before_any_outcome_read(tmp_path, patched, mo
     assert (only_run(tmp_path) / "STOPPED_self_check.txt").exists() and calls == []
 
 
+def test_a_nan_solver_mutant_stops_at_the_self_check_before_the_verified_read(tmp_path, patched, monkeypatch):
+    """r2 N6: the real self-check (not a stub) must catch NaN values and prevent read_verified."""
+    w = build_world(tmp_path)
+    patched(w)
+    real = RUN.S.solve
+
+    def nan_values(env, **kw):
+        sol = real(env, **kw)
+        sol.value[...] = np.nan
+        return sol
+    monkeypatch.setattr(RUN.S, "solve", nan_values)
+    calls = []
+    monkeypatch.setattr(RUN, "read_verified", lambda *a, **k: calls.append(1))
+    assert run_main(w, tmp_path) == 2
+    assert (only_run(tmp_path) / "STOPPED_self_check.txt").exists() and calls == []
+
+
+@pytest.mark.slow
+def test_a_zero_leg_rate_stops_at_the_preflight_before_any_replay(tmp_path, patched, monkeypatch):
+    """r2 N6: a zero r_bar is caught in the preflight, not after the first corrected replay."""
+    w = build_world(tmp_path)
+    patched(w)
+    real = RUN.F.r_bar
+    monkeypatch.setattr(RUN.F, "r_bar", lambda days: real([{**d, "hit2": np.zeros_like(d["hit2"])} for d in days]))
+    real_replay, corrected = RUN.R.replay, []
+
+    def spy(sd, arms, **kw):                   # the self-check's synthetic replay passes; corrected ones carry A0
+        if "A0" in arms:
+            corrected.append(1)
+        return real_replay(sd, arms, **kw)
+    monkeypatch.setattr(RUN.R, "replay", spy)
+    assert run_main(w, tmp_path) == 2
+    assert (only_run(tmp_path) / "STOPPED_preflight.txt").exists() and corrected == []
+    assert "r_bar" in (only_run(tmp_path) / "STOPPED_preflight.txt").read_text()
+
+
 def test_an_earlier_run_without_an_invalidation_record_blocks_a_new_run(tmp_path, patched):
     w = build_world(tmp_path)
     patched(w)

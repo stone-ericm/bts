@@ -106,6 +106,44 @@ def test_self_check_catches_a_broken_solver(monkeypatch):
     assert RUN.self_check()["ok"] is False
 
 
+def test_self_check_rejects_a_nan_value_array_with_the_real_policy(monkeypatch):
+    """Code review r2 N6: max(worst, nan) could keep the finite worst, so a NaN value array passed."""
+    from scripts.audit.c1_r4b import solvers as S
+    real = S.solve
+
+    def nan_values(env, **kw):
+        sol = real(env, **kw)
+        sol.value[...] = np.nan
+        return sol
+    monkeypatch.setattr(RUN.S, "solve", nan_values)
+    out = RUN.self_check()
+    assert out["ok"] is False and not np.isfinite(out["errors"]["solver_emax"])
+
+
+def test_self_check_rejects_an_action_outside_the_domain(monkeypatch):
+    from scripts.audit.c1_r4b import solvers as S
+    real = S.solve
+
+    def bad_action(env, **kw):
+        sol = real(env, **kw)
+        sol.policy[0, 0, 0, 0, 0] = 7
+        return sol
+    monkeypatch.setattr(RUN.S, "solve", bad_action)
+    assert RUN.self_check()["ok"] is False
+
+
+def test_self_check_rejects_a_non_finite_oracle_value(monkeypatch):
+    monkeypatch.setattr(RUN.O, "optimal", lambda *a, **k: float("nan"))
+    assert RUN.self_check()["ok"] is False
+
+
+def test_r_bar_must_be_finite_and_positive():
+    from scripts.audit.c1_r4b import fit as F
+    d = {"opp": np.ones(4, bool), "known": np.ones(4, bool), "partner": np.ones(4, bool), "hit2": np.zeros(4, bool)}
+    with pytest.raises(ValueError):
+        F.r_bar([d])
+
+
 def test_the_no_play_ruling_ends_the_2023_calendar_on_10_01():
     from datetime import date
     from scripts.audit.c1_r4b import data as D
