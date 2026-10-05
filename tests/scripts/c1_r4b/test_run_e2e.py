@@ -15,7 +15,7 @@ SEASONS = (2021, 2022, 2023, 2024, 2025)
 LENGTHS = {2021: 44, 2022: 46, 2023: 41, 2024: 48, 2025: 43}       # heterogeneous calendars (> the 30-day late phase)
 
 
-def build_world(tmp_path, *, drop=None, surplus_2026=False):
+def build_world(tmp_path, *, drop=None, drop_all=None, surplus_2026=False):
     """drop = (season, seed, day_index) removes one game day from one profile (an unknown-coverage date)."""
     root = tmp_path / "hetzner_results" / "mdp_estpa_run"
     sched_dir = tmp_path / "schedules"
@@ -35,7 +35,7 @@ def build_world(tmp_path, *, drop=None, surplus_2026=False):
         for seed in range(24):
             rows = []
             for i, d in enumerate(dates):
-                if drop == (s, seed, i):
+                if drop == (s, seed, i) or drop_all == (s, i):
                     continue
                 for rank in range(1, 6):
                     rows.append({"date": d, "rank": rank, "batter_id": 1000 + rank,
@@ -84,6 +84,8 @@ def patched(monkeypatch):
         monkeypatch.setattr(RUN, "H_GRID", (0.0,))
         monkeypatch.setattr(RUN, "PROJ_DELTAS", (0.0,))
         monkeypatch.setattr(ddp, "main", parity or (lambda argv: 0))
+        monkeypatch.setattr(RUN, "SUPPLEMENT_MANIFEST_SHA", None)
+        monkeypatch.setattr(RUN, "SUPPLEMENT_REQUIRED", False)
     return apply
 
 
@@ -184,3 +186,49 @@ def test_an_unpinned_schedule_stops(tmp_path, patched, monkeypatch):
     monkeypatch.setattr(RUN, "SCHEDULE_PINS", {**w["pins"], 2023: "0" * 64})
     with pytest.raises(RUN.ProvenanceError):
         run_main(w, tmp_path)
+
+
+def build_supplement(tmp_path, w, day, seeds=range(24)):
+    """A synthetic backfill output for one date: per-seed supplement parquets plus a manifest binding their hashes."""
+    sdir = tmp_path / "backfill"
+    sdir.mkdir()
+    man = {"all_reproduced": True, "seeds": {}}
+    for seed in seeds:
+        rows = [{"date": day, "rank": r, "batter_id": 2000 + r, "game_pk": int(f"{day.year % 100}999{r}"),
+                 "p_game_hit": 0.8 - 0.01 * r, "actual_hit": r % 2} for r in range(1, 6)]
+        p = sdir / f"supplement_{day}_seed{seed}.parquet"
+        pd.DataFrame(rows).to_parquet(p, index=False)
+        man["seeds"][str(seed)] = {"reproduced": True, "supplement": p.name,
+                                   "supplement_sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+    (sdir / "backfill_manifest.json").write_text(json.dumps(man))
+    return sdir
+
+
+@pytest.mark.slow
+def test_a_pinned_backfill_supplement_fills_the_gap(tmp_path, patched, monkeypatch):
+    w = build_world(tmp_path, drop_all=(2023, 3))
+    day = date(2023, 4, 4)
+    sdir = build_supplement(tmp_path, w, day)
+    patched(w)
+    monkeypatch.setattr(RUN, "SUPPLEMENT_DATE", str(day))
+    monkeypatch.setattr(RUN, "SUPPLEMENT_MANIFEST_SHA", hashlib.sha256((sdir / "backfill_manifest.json").read_bytes()).hexdigest())
+    assert RUN.main(["--profiles", str(w["root"]), "--w0-manifest", str(w["man"]), "--schedules", str(w["sched"]),
+                     "--a0-base", str(w["base"]), "--a0-tail", str(w["tail"]), "--out", str(tmp_path / "runs"),
+                     "--supplement-dir", str(sdir)]) == 0
+    res = json.loads((only_run(tmp_path) / "results.json").read_text())
+    assert res["coverage"]["complete"] is True
+
+
+def test_a_supplement_that_does_not_match_its_pins_stops(tmp_path, patched, monkeypatch):
+    w = build_world(tmp_path, drop_all=(2023, 3))
+    day = date(2023, 4, 4)
+    sdir = build_supplement(tmp_path, w, day)
+    patched(w)
+    monkeypatch.setattr(RUN, "SUPPLEMENT_DATE", str(day))
+    monkeypatch.setattr(RUN, "SUPPLEMENT_MANIFEST_SHA", hashlib.sha256((sdir / "backfill_manifest.json").read_bytes()).hexdigest())
+    f = next(sdir.glob("supplement_*seed5.parquet"))
+    f.write_bytes(f.read_bytes() + b"x")
+    with pytest.raises(RUN.ProvenanceError):
+        RUN.main(["--profiles", str(w["root"]), "--w0-manifest", str(w["man"]), "--schedules", str(w["sched"]),
+                  "--a0-base", str(w["base"]), "--a0-tail", str(w["tail"]), "--out", str(tmp_path / "runs"),
+                  "--supplement-dir", str(sdir)])

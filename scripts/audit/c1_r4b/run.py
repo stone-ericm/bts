@@ -85,6 +85,9 @@ SOURCE_FILES = ("scripts/audit/c1_r4b/solvers.py", "scripts/audit/c1_r4b/project
                 "scripts/audit/dd_p_policy_value_sensitivity.py", "src/bts/simulate/mdp.py",
                 "src/bts/simulate/tail_policy.py", "src/bts/simulate/quality_bins.py", "uv.lock")
 COVERAGE_ROW = "C1-4b-2023-10-02"
+SUPPLEMENT_DATE = "2023-10-02"            # Eric 2026-10-05: backfill the real game (gamePk 716404)
+SUPPLEMENT_MANIFEST_SHA: str | None = None   # pinned once the backfill's manifest exists (every seed reproduced)
+SUPPLEMENT_REQUIRED = True
 GENERATOR_ROW = "C1-4b-generator-commit"
 DATA = Path.home() / "projects" / "bts" / "data"
 ARMS = ("A0", "A1", "A2", "single", "double")
@@ -172,6 +175,33 @@ def read_verified(root: Path, files: dict, digests: dict) -> dict:
             raise ProvenanceError(f"{f}: bytes changed after verification")
         out[key] = b
     return out
+
+
+def load_supplement(sdir: Path, seeds) -> tuple[dict, dict]:
+    """The pinned backfill (register row C1-4b-2023-10-02): the manifest's own digest, every seed reproduced, every
+    supplement file's digest, and rows only on SUPPLEMENT_DATE. Returns ({seed: frame}, provenance)."""
+    if SUPPLEMENT_MANIFEST_SHA is None:
+        return {}, {"supplement": None}
+    mb = (sdir / "backfill_manifest.json").read_bytes()
+    if sha256(mb) != SUPPLEMENT_MANIFEST_SHA:
+        raise ProvenanceError("the backfill manifest does not match its pin")
+    man = json.loads(mb)
+    if not man.get("all_reproduced"):
+        raise ProvenanceError("the backfill manifest does not record every seed reproduced")
+    out, prov = {}, {"manifest_sha256": SUPPLEMENT_MANIFEST_SHA, "files": {}}
+    for seed in seeds:
+        rec = man["seeds"].get(str(seed))
+        if not rec or not rec.get("reproduced"):
+            raise ProvenanceError(f"seed {seed} has no reproduced backfill")
+        b = (sdir / rec["supplement"]).read_bytes()
+        if sha256(b) != rec["supplement_sha256"]:
+            raise ProvenanceError(f"seed {seed}: supplement bytes do not match the manifest")
+        df = pd.read_parquet(io.BytesIO(b))
+        if set(map(str, pd.to_datetime(df["date"]).dt.date)) != {SUPPLEMENT_DATE}:
+            raise ProvenanceError(f"seed {seed}: supplement rows outside {SUPPLEMENT_DATE}")
+        out[seed] = df
+        prov["files"][rec["supplement"]] = rec["supplement_sha256"]
+    return out, prov
 
 
 def mc_se(per_rep: np.ndarray) -> float:
@@ -481,12 +511,15 @@ def main(argv=None) -> int:
     ap.add_argument("--a0-base", type=Path, default=DATA / "models" / "mdp_policy.npz")
     ap.add_argument("--a0-tail", type=Path, default=DATA / "models" / "mdp_tail_policy.npz")
     ap.add_argument("--out", type=Path, default=DATA / "hetzner_results" / "c1" / "r4b" / "runs")
+    ap.add_argument("--supplement-dir", type=Path, default=DATA / "hetzner_results" / "c1" / "r4b" / "backfill")
     args = ap.parse_args(argv)
     log = lambda msg: print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] {msg}", file=sys.stderr, flush=True)  # noqa: E731
 
     # 1. gates
     head = x31_gate()
     gates = owner_gates((REPO / "docs/audit/2026-09-22-exposure-register.md").read_text())
+    if SUPPLEMENT_REQUIRED and SUPPLEMENT_MANIFEST_SHA is None:
+        gates.append("the 2023-10-02 backfill supplement is not built and pinned (Eric's ruling requires it)")
     if gates:
         raise SystemExit("refusing: " + "; ".join(gates))
     dirty = dirty_tree()
@@ -548,6 +581,15 @@ def main(argv=None) -> int:
     log("parity: July Δ=0 anchors reproduced on the verified bytes")
 
     frames = {k: D.validate_profile(pd.read_parquet(io.BytesIO(b))) for k, b in blobs.items()}
+    sup, sup_prov = load_supplement(args.supplement_dir, sorted({seed for _, seed in frames}))
+    sup_season = int(SUPPLEMENT_DATE[:4])
+    for seed, extra in sup.items():
+        base = frames[(sup_season, seed)]
+        if (pd.to_datetime(base["date"]).dt.date.astype(str) == SUPPLEMENT_DATE).any():
+            raise ProvenanceError(f"seed {seed}: the retained profile already has {SUPPLEMENT_DATE}")
+        frames[(sup_season, seed)] = D.validate_profile(pd.concat([base, extra[list(base.columns)]], ignore_index=True))
+    manifest["supplement"] = sup_prov
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str) + "\n")
     days = {(s, seed): D.season_days(frames[(s, seed)], cals[s]) for (s, seed) in frames}
     seeds = sorted({seed for _, seed in days})
     cov = coverage(days, seasons=SEASONS, seeds=seeds)

@@ -81,7 +81,7 @@ def main(argv=None) -> int:
     import numpy as np
     import pandas as pd
     from bts.data import build
-    from bts.features.compute import compute_all_features
+    from bts.features.compute import TRAIN_START_YEAR, compute_all_features
     from bts.simulate import backtest_blend as bb
 
     out = args.out
@@ -147,7 +147,7 @@ def main(argv=None) -> int:
     full["date"] = pd.to_datetime(full["date"])
     season_data = full[full["season"] == 2023]
     test_start = season_data["date"].min()
-    train_pool = full[(full["date"] < test_start) & (full["season"] >= bb.TRAIN_START_YEAR)].copy()
+    train_pool = full[(full["date"] < test_start) & (full["season"] >= TRAIN_START_YEAR)].copy()
     test_data = season_data.copy()
     test_dates = sorted(test_data["date"].unique())
     if len(test_dates) != 183 or str(pd.Timestamp(test_dates[IDX_CHECK]).date()) != CHECK_FROM \
