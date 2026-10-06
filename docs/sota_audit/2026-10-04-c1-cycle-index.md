@@ -17,8 +17,10 @@
 - **Box limits, from 2026-10-05** (Eric, row C1-4b-deferral). The infrastructure reviews are archived:
   `docs/audit/2026-10-05-c1-infra-codex-r1.md` (BLOCK) and `docs/audit/2026-10-06-c1-infra-codex-r2.md` (final round,
   BLOCK). Fixes: `788c3a7` for r1, `1fa872a` for r2.
-  **Status: unsigned after the two rounds the pace rule allows. Whether to accept it or review again is Eric's
-  decision.**
+  **Status:** two rounds plus Eric's closure-only round 3 (row C1-infra-review-r3) were all BLOCK; r3 is
+  `docs/audit/2026-10-06-c1-infra-codex-r3.md`. N2 and N5–N8 are closed. N1/N3/N4 were partially closed, and their
+  remaining items were fixed in `3d6ae3f`: every sweep replays every invocation (root and legacy `jobs/`), and a
+  colliding identity is redrawn. **Unsigned. C1 box research jobs wait; the next step is Eric's decision.**
   - **Guard:** every job runs under `scripts/audit/c1/guard.py` in a `Delegate=yes` unit.
     - The guard sits in a `guard/` leaf and the job in `payload/`, niced 10.
     - The cap is the unit's **cumulative** CPU, at min(declared budget, remaining cycle budget). The guard acts at
