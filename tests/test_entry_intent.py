@@ -125,7 +125,7 @@ def box(tmp_path):
     shims.mkdir()
     crontab = tmp_path / "crontab.txt"
     _exe(shims / "crontab",
-         f'#!/bin/sh\nf="{crontab}"\ncase "$1" in\n'
+         f'#!/bin/sh\nf="{crontab}"\necho "$1" >> "$f.calls"\ncase "$1" in\n'
          '  -l) [ -f "$f.unreadable" ] && { echo "crontab: cannot read" >&2; exit 1; }\n'
          '      [ -f "$f" ] && cat "$f" || { echo "no crontab for user" >&2; exit 1; } ;;\n'
          '  -) cat > "$f.new" && mv "$f.new" "$f" ;;\n  *) exit 98 ;;\nesac\n')   # read all stdin first, like crontab
@@ -255,3 +255,20 @@ def test_an_unreadable_crontab_refuses_and_writes_nothing(box, action):
     res = box.run(action)
     assert res.returncode != 0 and "cannot read the current crontab" in res.stderr
     assert box.cron.read_text() == before
+
+
+
+@pytest.mark.parametrize("action", ["install", "remove"])
+def test_a_filtering_failure_refuses_and_keeps_foreign_jobs(box, action, tmp_path):
+    """Producer review r1 B1: grep -v failing (status 2) used to be read as "keep nothing", installing over or
+    removing a foreign job. Now it refuses before any crontab write."""
+    box.config.write_text(RESEARCH)
+    before = "0 9 * * * echo foreign-job\n"
+    box.cron.write_text(before)
+    grep = tmp_path / "shims" / "grep"
+    _exe(grep, '#!/bin/sh\n[ "$1" = "-v" ] && { echo "grep: synthetic failure" >&2; exit 2; }\nexec /usr/bin/grep "$@"\n')
+    res = box.run(action)
+    assert res.returncode != 0 and "cannot filter the current crontab" in res.stderr
+    assert box.cron.read_text() == before
+    calls = Path(f"{box.cron}.calls").read_text().split()
+    assert "-" not in calls

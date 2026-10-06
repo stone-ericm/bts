@@ -98,7 +98,8 @@ CRON_LINES="$MARKER
 35 5 * * 0 $PREFIX $UV_BIN run bts backup prune >> $LOG_DIR/backup.log 2>&1 $MARKER"
 
 # The current crontab minus the BTS lines. "no crontab for <user>" is an empty crontab; any other read
-# failure refuses. (The old `(crontab -l | grep -v MARKER; echo ...) | crontab -` died under
+# failure refuses. grep -v's status 1 (nothing left) is the empty result; any other filtering status
+# refuses (producer review r1 B1: `|| true` used to turn a filter error into "keep nothing"). (The old `(crontab -l | grep -v MARKER; echo ...) | crontab -` died under
 # set -e/pipefail when there was no crontab, or when grep -v selected nothing, i.e. a crontab of only
 # BTS lines, and then installed an EMPTY crontab.)
 crontab_without_bts() {
@@ -106,8 +107,21 @@ crontab_without_bts() {
     err_file="$(mktemp)"
     if out="$(crontab -l 2>"$err_file")"; then
         rm -f "$err_file"
-        [ -z "$out" ] || printf '%s\n' "$out" | grep -v -- "$MARKER" || true
-        return 0
+        if [ -z "$out" ]; then
+            return 0
+        fi
+        local filtered filter_status
+        if filtered="$(printf '%s\n' "$out" | grep -v -- "$MARKER")"; then
+            printf '%s\n' "$filtered"
+            return 0
+        else
+            filter_status=$?
+            if [ "$filter_status" -eq 1 ]; then
+                return 0
+            fi
+            echo "ERROR: cannot filter the current crontab" >&2
+            return 1
+        fi
     fi
     if grep -q "^no crontab for " "$err_file"; then
         rm -f "$err_file"
