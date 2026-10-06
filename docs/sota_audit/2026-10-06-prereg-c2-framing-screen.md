@@ -83,7 +83,7 @@ For each variant and seed, let d = the mean of that seed's 2024 and 2025 P@1 del
   - At 50 the launcher refuses until Eric's `CHECKPOINT_50_ACK.json` exists. The lead stops and asks him.
   - At 100 it hard-stops.
   - Stage one at the estimate would leave about 9.5 CPU-hours under 100 for C2's remaining planned 11.1. That is recorded for Eric's cap decision.
-- **Seed order:** seeds run one at a time, in order. The lead reports the measured cost after seed 1, before seed 2.
+- **Seed order and the seed-1 gate (Eric, 2026-10-06, relayed by job-search-52):** only seed 1 launches first. Its measured CPU cost, the projected cost of seeds 2–3, and what that leaves under the 100 cap for C2's planned jobs go to Eric (through job-search-52) before anything else launches. He decides on the 50 CPU-hour checkpoint and the remaining seeds then; there is no pre-approval of the 50 gate. A seed-1-only result is not a stage-one disposition: §5 needs all three seeds.
 
 ## 7. Reporting
 - The per-seed `results.json` files, then `aggregate` across the three run directories (dispositions as in §5).
