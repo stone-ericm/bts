@@ -8,9 +8,14 @@ closeout (docs/audit/2026-06-11-m3-serving-staleness.md) could not quantify
 bpm's realized live contribution for exactly this reason.
 
 One JSON file per date under {picks_dir}/slates/. Last write wins: re-runs
-within a day overwrite with the slate that produced the final pick, which is
-the slate of record. Persistence is observability — it must NEVER break the
-pick path, so save_slate swallows and logs every failure.
+within a day overwrite it, so the file is the last slate persisted that day.
+It is written before selection, so it is not proof that it produced the final
+pick. Persistence is observability — it must NEVER break the pick path, so
+save_slate swallows and logs every failure.
+
+The envelope's `serving` field is the serving witness the local tier attached
+(bts.serving_witness: recipe, model artifact, inputs, flags, calibration), or
+null when there is none (another tier) or it cannot be serialized.
 """
 
 from __future__ import annotations
@@ -26,7 +31,8 @@ from bts.util import atomic_write_text
 
 log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = "bts_slate_v2"   # v2 (C1 4a prerequisite P1): each row's game_time and schedule status
+SCHEMA_VERSION = "bts_slate_v2"   # v2 (C1 4a prerequisites): each row's game_time and schedule status, and the
+                                  # envelope's serving witness. v2 was never deployed before the witness was added.
 
 # Persisted per candidate when present in the predictions frame. Feature
 # values are deliberately excluded: they are reconstructable from the PA
@@ -58,6 +64,12 @@ def save_slate(
         rows = json.loads(
             predictions[cols].to_json(orient="records")
         )  # to_json maps NaN -> null and numpy scalars -> JSON natives
+        serving = predictions.attrs.get("serving")
+        try:
+            json.dumps(serving)
+        except (TypeError, ValueError) as e:
+            log.warning(f"serving witness not serializable for {date} (slate still written): {e}")
+            serving = None
         payload = {
             "schema_version": SCHEMA_VERSION,
             "date": date,
@@ -65,6 +77,7 @@ def save_slate(
             "written_at": datetime.now(timezone.utc).isoformat(),
             "n_rows": len(rows),
             "rows": rows,
+            "serving": serving,
         }
         slates_dir = Path(picks_dir) / "slates"
         slates_dir.mkdir(parents=True, exist_ok=True)

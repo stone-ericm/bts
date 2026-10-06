@@ -1,5 +1,7 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
+import hashlib
+import io
 import json
 import os
 import pickle  # noqa: S403 — caching trained ML models, not untrusted data
@@ -138,6 +140,20 @@ def train_blend(
         blend[name] = (model, cols)
 
     return blend
+
+
+def _read_pa_parquets(proc: Path) -> tuple[list, list]:
+    """Read each PA parquet once: the frames, and the input witness (name, size, sha256) of the bytes parsed.
+
+    The witness hashes the same buffer that is parsed, so a slate's recorded inputs are the ones that trained and
+    fed this run (bts.serving_witness; the C1 4a X-E1 freeze rules).
+    """
+    dfs, inputs = [], []
+    for parquet in sorted(proc.glob("pa_*.parquet")):
+        raw = parquet.read_bytes()
+        dfs.append(pd.read_parquet(io.BytesIO(raw)))
+        inputs.append({"file": parquet.name, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()})
+    return dfs, inputs
 
 
 def save_blend(blend: dict, path) -> None:
@@ -868,9 +884,7 @@ def run_pipeline(
 
     proc = Path(data_dir)
     progress.mark("loading_parquets")
-    dfs = []
-    for parquet in sorted(proc.glob("pa_*.parquet")):
-        dfs.append(pd.read_parquet(parquet))
+    dfs, inputs = _read_pa_parquets(proc)
     if not dfs:
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
 
@@ -917,9 +931,11 @@ def run_pipeline(
     lookups = _build_feature_lookups(df)
 
     progress.mark("predicting")
-    return predict(
+    out = predict(
         date, df, model, lookups,
         check_openers=check_openers,
         blend=blend,
         feature_cols=feature_cols_override,
     )
+    out.attrs["serving_inputs"] = inputs     # the serving witness (bts.serving_witness), read by predict_local
+    return out

@@ -93,17 +93,23 @@ def predict_local(
     behavior. Enabled per project_bts_2026_05_01_morning_verdicts.md after
     the +6.6pp overall and +12.3pp [0.75, 0.80) over-confidence finding.
     """
-    from bts.model.predict import run_pipeline, load_blend
+    from bts.model.predict import run_pipeline
     from pathlib import Path
+    import hashlib
     import os
+    import pickle  # noqa: S403 — our own cached models
     from datetime import date as _date
 
     models_path = Path(models_dir)
     cache_path = models_path / f"blend_{date}.pkl"
     cached_blend = None
+    # The serving witness (bts.serving_witness): the blend's source and the sha256 of its bytes.
+    model_witness = {"source": "trained", "file": cache_path.name, "sha256": None}
     if cache_path.exists():
         print(f"  [local] Loading cached model from {cache_path}", file=sys.stderr)
-        cached_blend = load_blend(cache_path)
+        raw_blend = cache_path.read_bytes()             # one read: the hashed bytes are the loaded bytes
+        cached_blend = pickle.loads(raw_blend)  # noqa: S301 — loading our own cached models
+        model_witness.update(source="cache", sha256=hashlib.sha256(raw_blend).hexdigest())
 
     try:
         predictions = run_pipeline(
@@ -114,9 +120,16 @@ def predict_local(
     except Exception as e:
         print(f"  [local] Prediction failed: {e}", file=sys.stderr)
         return None
+    if model_witness["source"] == "trained":
+        try:
+            model_witness["sha256"] = hashlib.sha256(cache_path.read_bytes()).hexdigest()   # saved by this run
+        except OSError:
+            pass
 
     # Post-hoc calibration (opt-in via env var; default off).
-    if os.environ.get("BTS_USE_CALIBRATION", "0") == "1" and predictions is not None and not predictions.empty:
+    calibration_enabled = os.environ.get("BTS_USE_CALIBRATION", "0") == "1"
+    calibration_applied = False
+    if calibration_enabled and predictions is not None and not predictions.empty:
         try:
             from bts.model.calibrate import fit_calibrator_from_picks, apply_calibrator_series
             # Fit calibrator from recent resolved picks against current PA frame.
@@ -131,6 +144,7 @@ def predict_local(
                     raw = predictions["p_game_hit"].copy()
                     predictions["p_game_hit_raw"] = raw
                     predictions["p_game_hit"] = apply_calibrator_series(raw, cal)
+                    calibration_applied = True
                     n = len(predictions)
                     print(
                         f"  [local] Applied calibration to {n} predictions "
@@ -144,6 +158,15 @@ def predict_local(
         except Exception as e:
             print(f"  [local] Calibration failed (non-fatal): {e}; using raw p", file=sys.stderr)
 
+    if predictions is not None:
+        inputs = predictions.attrs.pop("serving_inputs", None)
+        try:
+            from bts import serving_witness
+            predictions.attrs["serving"] = serving_witness.build(
+                model=model_witness, inputs=inputs,
+                calibration={"enabled": calibration_enabled, "applied": calibration_applied})
+        except Exception as e:
+            print(f"  [local] Serving witness failed (non-fatal): {e}", file=sys.stderr)
     return predictions
 
 
