@@ -123,8 +123,10 @@ def prepare(out: Path, days: int) -> None:
               file=sys.stderr)
     blend = _cache_blend(CACHE_TARGET_BYTES)
     (big / "models" / f"blend_{W.DATE}.pkl").write_bytes(pickle.dumps(blend))
-    pa26 = pd.read_parquet(big / "processed" / "pa_2026.parquet")
-    by_day = pa26.groupby("date")
+    # The box's 156 picks span more than the synthetic 2026's 92 game days: the rest come from late 2025 (outside the
+    # calibration window, but read and hashed like every pick file).
+    pa = pd.concat([pd.read_parquet(big / "processed" / f"pa_{s}.parquet") for s in (2025, 2026)])
+    by_day = pa.groupby("date")
     days26 = sorted(by_day.groups)[-N_PICKS:]
     rng = np.random.default_rng(91)
     for i, day in enumerate(days26):
