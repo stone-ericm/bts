@@ -6,7 +6,7 @@ from tests.scripts.c1_r3.feeds import feed, lineup, play
 def test_starters_come_from_exact_hundreds_and_substitutes_are_kept_apart():
     m = M.extract(feed(away=lineup(100, subs=[(111, "101"), (112, "402")])))
     assert m.starters["away"] == {k: 100 + k for k in range(1, 10)}
-    assert m.substitutes["away"] == {111: 1, 112: 4}
+    assert m.substitutes["away"] == {111: (1, 1), 112: (4, 2)}
     assert m.starters["home"][9] == 209 and m.problems == ()
 
 
@@ -48,3 +48,51 @@ def test_the_resumed_portion_is_flagged_as_production_flags_it():
 def test_identity_fields():
     m = M.extract(feed(pk=716404, date="2023-09-28"))
     assert (m.game_pk, m.official_date, m.season) == (716404, "2023-09-28", 2023)
+
+
+# ---------- review r1 F4/F5: the certificates are checked, not assumed ----------
+def test_slot_codes_must_be_three_digit_strings():
+    for code in ("100.9", 100, "1000", "010", "abc"):
+        players = lineup(100)
+        players["ID101"]["battingOrder"] = code
+        assert any("slot code" in p or "missing" in p for p in M.extract(feed(away=players)).problems), code
+
+
+def test_the_same_person_cannot_start_twice_or_for_both_sides():
+    players = lineup(100)
+    players["ID102"]["person"]["id"] = 101
+    assert any("two slots" in p or "duplicate" in p for p in M.extract(feed(away=players)).problems)
+    home = lineup(200)
+    home["ID201"]["person"]["id"] = 101
+    assert any("both sides" in p for p in M.extract(feed(home=home)).problems)
+
+
+def test_an_unknown_half_inning_or_backwards_time_or_a_gap_is_a_problem():
+    assert any("halfInning" in p for p in M.extract(feed(plays=[play(0, "middle", 101, 250)])).problems)
+    back = [play(0, "top", 101, 250, start="2023-06-01T23:30:00Z"), play(1, "bottom", 201, 150, start="2023-06-01T23:10:00Z")]
+    assert any("backwards" in p for p in M.extract(feed(plays=back)).problems)
+    gap = [play(0, "top", 101, 250), play(2, "bottom", 201, 150)]
+    assert any("contiguous" in p for p in M.extract(feed(plays=gap)).problems)
+
+
+def test_an_unfinished_game_or_a_date_outside_its_season_is_a_problem():
+    for st in ("Suspended", "In Progress", "Postponed"):
+        assert any("not a completed game" in p for p in M.extract(feed(status=st)).problems), st
+    assert M.extract(feed(status="Completed Early: Rain")).completed
+    assert any("not in season" in p for p in M.extract(feed(date="2023-06-01") | {}).problems) is False
+    bad = feed(date="2023-06-01")
+    bad["gameData"]["datetime"]["officialDate"] = "2026-06-01"
+    assert any("not in season" in p for p in M.extract(bad).problems)
+
+
+def test_the_starting_pitcher_is_checked_on_the_first_play_of_any_kind():
+    """A starter who faced the first batter in a non-PA play (e.g. an inning-ending caught stealing) is confirmed."""
+    plays = [play(0, "top", 101, 250, event="caught_stealing_2b", inning=1), play(1, "bottom", 201, 150, inning=1),
+             play(2, "top", 101, 260, inning=2)]
+    assert not any("starting pitcher" in p for p in M.extract(feed(plays=plays)).problems)
+
+
+def test_a_garbled_timestamp_is_a_problem_not_an_exception():
+    plays = [play(0, "top", 101, 250, start="garbled"), play(1, "bottom", 201, 150)]
+    m = M.extract(feed(plays=plays, resume="2023-06-02T19:00:00Z"))
+    assert any("unparseable startTime" in p for p in m.problems)
