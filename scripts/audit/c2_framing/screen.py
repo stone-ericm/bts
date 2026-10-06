@@ -1,19 +1,31 @@
 """C2 side item (e): the catcher-grouped framing screen, stage one (design note
-`docs/sota_audit/2026-10-06-prereg-c2-framing-screen.md`; register row C2-framing-side-item, Eric 2026-10-06).
+`docs/sota_audit/2026-10-06-prereg-c2-framing-screen.md`; register rows C2-framing-side-item and C2-framing-seed-gate,
+Eric 2026-10-06; review r1 BLOCK B1-B7 answered in revision 2).
 
 **What it measures.** Production's framing proxy `pitcher_catcher_framing` is the borderline called-strike rate grouped
-by pitcher (`bts.features.compute`: shift(1), expanding, min_periods 5, per (pitcher, date)). This screen regroups the
-same PA-level measure (`pa_borderline_csr`, untouched) by the game's catcher (`fielding_catcher_id`):
-- **variant A** replaces `pitcher_catcher_framing` with `catcher_framing` in the base feature set;
-- **variant B** adds `catcher_framing` alongside it;
-- each 12-model blend config keeps its Statcast extras, as `bts.experiment.runner` rewrites them.
+by pitcher (`bts.features.compute`: per (pitcher, date) mean, then shift(1).expanding(min_periods=5).mean()). This
+screen regroups the same PA-level measure (`pa_borderline_csr`, untouched) by the game's catcher (`fielding_catcher_id`):
+variant A replaces `pitcher_catcher_framing` with `catcher_framing`; variant B adds it alongside; each 12-model blend
+config keeps its Statcast extras, as `bts.experiment.runner` rewrites them.
 
-**How.** One claimed run per seed (`run --seed S`): the pinned 2017–2025 PA parquets (2026 is never read), the
-production features, a self-check that the regrouping code reproduces production's pitcher feature exactly, then
-`blend_walk_forward` for baseline, A and B on 2024 and 2025 on the estimated-PA basis, each season's profiles saved,
-CPU time recorded per walk-forward. The first walk-forward stops the run if it costs more than
-`FIRST_UNIT_STOP_CPU_H` (Eric: stop and report if the measured cost is well above the estimate). `aggregate` applies
-the pre-registered dispositions across the stage-one seeds.
+**Closed inputs (r1 B1, B6).** The run reads only the pinned files: the nine 2017-2025 PA parquets and a frozen copy of
+production's probable-pitcher lookup restricted to their games (`freeze-lookup`, run once before admission). Inside the
+run, `compute_all_features`' live lookup builder is replaced by that frozen lookup (no scan of `data/raw`, no cache
+write) and the park-drag attach is replaced by its table-absent result (the column is in no registered blend). The
+import-time feature settings must equal the registered values. 2026 is never read.
+
+**Labels (r1 B4).** Each profile's `actual_hit` is rebuilt from the pinned PA rows with the resumed portion excluded
+(`bts.data.build.filter_out_resumed_portion`, the BTS scoring rule); a row whose batter/game has no original-portion PA
+is void: dropped, and that day re-ranked. Training and features keep every PA, as production does.
+
+**One run per seed, in a canonical namespace (r1 B3).** Claims live only under `OUT_ROOT/seed_<seed>`; the command line
+has no output-root option. Seed 1 runs first; seeds 2-3 run only after Eric's recorded release (register row
+`C2-framing-release-seeds-2-3`) and seed 1's completed run. `launch` is the reviewed wrapper that builds the launcher
+command (name, budget, deterministic flag) under the same checks.
+
+**Aggregation (r1 B2).** `aggregate` gives a stage-one disposition only for exactly the three registered seeds, each a
+distinct, completed, claimed run of the same reviewed code and inputs; each seed's summary is recomputed from its
+retained diff, never taken from the caller.
 
 Research code: it changes nothing in production.
 """
@@ -25,8 +37,10 @@ import io
 import json
 import math
 import os
+import re
 import resource
 import statistics
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -40,15 +54,22 @@ BASIS = "estimated_pa"
 FIRST_UNIT_STOP_CPU_H = 7.5                      # 1.5 x the lead's unmeasured ~5 CPU-h per season walk-forward
 PRACTICAL_MIN = 0.003                            # +0.3pp P@1, the June screens' practical threshold
 T_MIN = 1.5                                      # the repo's multi-seed keep rule (scripts/aggregate_seed_corpora.py)
+SEED1_BUDGET_CPU_H = 45.0                        # seed 1's declared launcher budget (Eric's stage-one approval)
+MAX_WALL_H = 16
+SETTINGS = {"ROOKIE_GATE_K": 20, "PITCHER_HR_30G_MIN_PERIODS": 7}   # production's effective values (box .env, 10/06)
 NEW_COL = "catcher_framing"
 OLD_COL = "pitcher_catcher_framing"
+LOOKUP_NAME = "probable_pitcher_lookup.2017-2025.json"
+OUT_ROOT = Path.home() / "projects" / "bts" / "data" / "hetzner_results" / "c2" / "framing_screen"
 ADMISSION_REL = "scripts/audit/c2_framing/admission.json"
 REGISTER_REL = "docs/audit/2026-09-22-exposure-register.md"
 DESIGN = "docs/sota_audit/2026-10-06-prereg-c2-framing-screen.md"
 EXPOSURE_ROW = "X-35"
+RELEASE_ROW = "C2-framing-release-seeds-2-3"
 SCOPE = "catcher framing screen stage one"
 CLOSURE = ("scripts/__init__.py", "scripts/audit/__init__.py", "scripts/audit/c1", "scripts/audit/c2_framing",
            "src/bts", "pyproject.toml", "uv.lock", DESIGN)
+INPUT_NAMES = tuple(f"pa_{s}.parquet" for s in SEASONS_IN) + (LOOKUP_NAME,)
 
 
 # ---------------------------------------------------------------- the feature
@@ -85,6 +106,79 @@ def coverage(df, col: str) -> dict:
         part = df.loc[df["season"] == s, col]
         out[str(s)] = {"rows": int(len(part)), "non_null": int(part.notna().sum())}
     return out
+
+
+def resumed_counts(df) -> dict:
+    """PA rows in the resumed portion of a suspended game, per season. They carry the original game's official date,
+    so date-level shifting admits them to history from that date (the bounded availability limit, note §8)."""
+    if "is_resumed_portion" not in df.columns:
+        return {}
+    r = df[df["is_resumed_portion"].fillna(False).astype(bool)]
+    return {str(int(s)): int(n) for s, n in r.groupby("season").size().items()}
+
+
+# ---------------------------------------------------------------- closed inputs
+
+def freeze_lookup(cache_bytes: bytes, game_pks) -> bytes:
+    """Production's probable-pitcher cache restricted to the given games, as canonical JSON bytes."""
+    cache = json.loads(cache_bytes)
+    keep = {str(k): cache[str(k)] for k in sorted({int(g) for g in game_pks}) if str(k) in cache}
+    return (json.dumps(keep, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+def frozen_lookup(raw: bytes) -> dict:
+    """The run's lookup, keyed as `_build_probable_pitcher_lookup` keys its own ({int game_pk: entry})."""
+    return {int(k): v for k, v in json.loads(raw).items()}
+
+
+def check_settings() -> dict:
+    import bts.features.compute as C
+    got = {k: getattr(C, k) for k in SETTINGS}
+    if got != SETTINGS:
+        raise SystemExit(f"refusing: feature settings {got} are not the registered {SETTINGS}")
+    return got
+
+
+def install_closed_inputs(lookup: dict) -> None:
+    """Replace the two ancillary reads of `compute_all_features` for this process (r1 B1)."""
+    import numpy as np
+    import bts.features.compute as C
+    import bts.features.park_drag as PD
+
+    def _lookup(raw_dir: str = "data/raw") -> dict:
+        return dict(lookup)
+
+    def _no_park_drag(df, table=None):
+        out = df.copy()
+        out["park_drag_delta"] = np.nan
+        return out
+    C._build_probable_pitcher_lookup = _lookup
+    PD.attach_park_drag = _no_park_drag
+
+
+# ---------------------------------------------------------------- labels (BTS scoring rule)
+
+def original_portion_labels(df):
+    """(batter_id, game_pk) -> 1 if any original-portion PA was a hit, else 0."""
+    from bts.data.build import filter_out_resumed_portion
+    orig = filter_out_resumed_portion(df)
+    return orig.groupby(["batter_id", "game_pk"])["is_hit"].max().astype(int)
+
+
+def relabel(profiles, labels):
+    """Rebuild `actual_hit` from original-portion PAs; void rows (no original-portion PA) are dropped and each day's
+    ranks renumbered in their original order. Returns (profiles, counts)."""
+    keys = list(zip(profiles["batter_id"].astype(int), profiles["game_pk"].astype(int)))
+    new = [labels.get(k) for k in keys]
+    p = profiles.copy()
+    changed = sum(1 for old, n in zip(p["actual_hit"], new) if n is not None and int(old) != int(n))
+    p["actual_hit"] = new
+    void = int(p["actual_hit"].isna().sum())
+    p = p[p["actual_hit"].notna()].copy()
+    p["actual_hit"] = p["actual_hit"].astype(int)
+    p = p.sort_values(["date", "rank"], kind="stable")
+    p["rank"] = p.groupby("date").cumcount() + 1
+    return p.reset_index(drop=True), {"changed": int(changed), "void_dropped": void}
 
 
 # ---------------------------------------------------------------- the variants
@@ -126,6 +220,7 @@ def seed_summary(diff: dict) -> dict:
 
 
 def _t(values: list[float]) -> float:
+    """m / (sd / sqrt(n)); with sd = 0: +inf if m > 0, -inf if m < 0, and 0 if m = 0."""
     m = statistics.fmean(values)
     sd = statistics.stdev(values) if len(values) > 1 else 0.0
     if sd == 0.0:
@@ -134,10 +229,10 @@ def _t(values: list[float]) -> float:
 
 
 def disposition(per_seed: list[dict]) -> dict:
-    """Stage one for one variant, over its seeds' summaries (see the design note §5)."""
+    """Stage one for one variant, over exactly the three registered seeds' summaries (note §5)."""
     seasons = [str(s) for s in TEST_SEASONS]
-    if not per_seed or any(set(p["p_at_1_delta"]) != set(seasons) for p in per_seed):
-        return {"disposition": "incomplete"}
+    if len(per_seed) != len(STAGE_ONE_SEEDS) or any(set(p["p_at_1_delta"]) != set(seasons) for p in per_seed):
+        return {"disposition": "incomplete", "n_seeds": len(per_seed)}
     mean_by_season = {s: statistics.fmean(p["p_at_1_delta"][s] for p in per_seed) for s in seasons}
     seed_level = [statistics.fmean(p["p_at_1_delta"][s] for s in seasons) for p in per_seed]
     m, t = statistics.fmean(seed_level), _t(seed_level)
@@ -165,7 +260,11 @@ def first_unit_stop(cpu_s: float) -> bool:
     return cpu_s > FIRST_UNIT_STOP_CPU_H * 3600
 
 
-# ---------------------------------------------------------------- the admitted run
+# ---------------------------------------------------------------- admission, seed order and release
+
+def _sha(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
 
 def _json(path: Path, obj) -> None:
     from scripts.audit.c1 import admission as A
@@ -184,17 +283,56 @@ def admission_gate():
     raw = path.read_bytes()
     adm = json.loads(raw)
     pins = adm.get("input_pins")
-    want = {f"pa_{s}.parquet" for s in SEASONS_IN}
-    if not (isinstance(pins, dict) and set(pins) == want
-            and all(isinstance(v, str) and len(v) == 64 and all(ch in "0123456789abcdef" for ch in v)
-                    for v in pins.values())):
-        raise SystemExit(f"refusing: admission input_pins must give a sha256 for exactly {sorted(want)}")
+    if not (isinstance(pins, dict) and set(pins) == set(INPUT_NAMES)
+            and all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{64}", v) for v in pins.values())):
+        raise SystemExit(f"refusing: admission input_pins must give a sha256 for exactly {sorted(INPUT_NAMES)}")
     head, reasons = A.admission_check(A.REPO, adm, closure=CLOSURE, admission_rel=ADMISSION_REL,
                                       register_rel=REGISTER_REL, exposure_row=EXPOSURE_ROW, scope_phrase=SCOPE,
                                       inputs_digest=pins_digest(pins))
     if reasons:
         raise SystemExit("refusing: " + "; ".join(reasons))
-    return head, adm, {**A.accepted_identity(A.REPO, adm), "admission_sha256": hashlib.sha256(raw).hexdigest()}
+    return head, adm, {**A.accepted_identity(A.REPO, adm), "admission_sha256": _sha(raw)}
+
+
+RELEASE_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): RELEASE seeds 2–3 of the framing screen; declared "
+                        r"budget (\d+(?:\.\d+)?) CPU-hours per seed\*\*$")
+
+
+def release_budget(register_text: str) -> float | None:
+    """Eric's release of seeds 2-3: the register row's ruling cell must match exactly, and its source cell must name
+    Eric. Returns the per-seed declared budget, or None."""
+    from scripts.audit.c1 import admission as A
+    cells = A.row_cells(register_text, RELEASE_ROW)
+    if not cells or len(cells) < 4:
+        return None
+    m = RELEASE_RE.match(cells[2].strip())
+    if not m or not cells[3].strip().startswith("Eric"):
+        return None
+    return float(m.group(2))
+
+
+def completed_run(root: Path) -> Path | None:
+    """The one completed (results, no stop) run directory under a seed root, or None."""
+    if not root.is_dir():
+        return None
+    done = [d for d in sorted(root.iterdir()) if d.is_dir() and (d / "results.json").is_file()
+            and not (d / "STOPPED.json").exists()]
+    return done[0] if len(done) == 1 else None
+
+
+def seed_allowed(seed: int, register_text: str, out_root: Path) -> tuple[bool, str, float | None]:
+    """Seed order (row C2-framing-seed-gate): seed 1 first; seeds 2-3 only after Eric's release and seed 1's completed
+    run. Returns (allowed, reason, declared budget)."""
+    if seed not in STAGE_ONE_SEEDS:
+        return False, f"{seed} is not a stage-one seed {STAGE_ONE_SEEDS}", None
+    if seed == STAGE_ONE_SEEDS[0]:
+        return True, "seed 1", SEED1_BUDGET_CPU_H
+    budget = release_budget(register_text)
+    if budget is None:
+        return False, f"seeds 2-3 need Eric's release (register row {RELEASE_ROW})", None
+    if completed_run(out_root / f"seed_{STAGE_ONE_SEEDS[0]}") is None:
+        return False, "seeds 2-3 need seed 1's completed run", None
+    return True, "released", budget
 
 
 def load_inputs(data_dir: Path, pins: dict):
@@ -208,9 +346,12 @@ def load_inputs(data_dir: Path, pins: dict):
     return pd.concat(frames, ignore_index=True)
 
 
-def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=None) -> int:
+# ---------------------------------------------------------------- the admitted run
+
+def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=None, _test_out_root=None) -> int:
     import pandas as pd
     from scripts.audit.c1 import admission as A
+    out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     if os.environ.get("BTS_LGBM_DETERMINISTIC") != "1":
         raise SystemExit("refusing: BTS_LGBM_DETERMINISTIC=1 is pre-registered (set before bts is imported)")
     if seed not in STAGE_ONE_SEEDS:
@@ -219,31 +360,40 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
     foreign = A.foreign_imports()
     if foreign:
         raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
+    register = (A.REPO / REGISTER_REL).read_text()
+    ok, why, _ = seed_allowed(seed, register, out_root)
+    if not ok:
+        raise SystemExit(f"refusing: {why}")
+    from bts.model.predict import LGB_PARAMS
+    if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
+        raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
+    settings = check_settings()
     os.environ["BTS_LGBM_RANDOM_STATE"] = str(seed)
     root = out_root / f"seed_{seed}"
     with A.admission_lock(root):
-        register = (A.REPO / REGISTER_REL).read_text()
         if A.claimed_runs(root, register):
             raise SystemExit(f"refusing: a claimed run already exists under {root}")
         stamp = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
         run_dir = A.make_run_dir(root, f"{head[:7]}-{stamp}")
         claim_sha = A.write_claim(run_dir, head)
+    lookup_raw, _ = A.read_pinned(inputs_dir / LOOKUP_NAME, adm["input_pins"][LOOKUP_NAME])
+    install_closed_inputs(frozen_lookup(lookup_raw))
     from bts.features.compute import compute_all_features
-    from bts.model.predict import LGB_PARAMS
     from bts.simulate.backtest_blend import blend_walk_forward
-    if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
-        raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     walk_forward = walk_forward or blend_walk_forward
     t0 = cpu_seconds()
     df = compute_all_features(load_inputs(data_dir, adm["input_pins"]))
     check = self_check(df)
     df = framing_by(df, "fielding_catcher_id", NEW_COL)
-    manifest = {"schema": "c2_framing_screen_run_v1", "head": head, "claim_sha256": claim_sha, "seed": seed,
-                "identity": identity, "input_pins": adm["input_pins"], "test_seasons": list(TEST_SEASONS),
-                "basis": BASIS, "retrain_every": RETRAIN_EVERY, "lgb_params": dict(LGB_PARAMS), "env": {
-                    k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
+    labels = original_portion_labels(df)
+    manifest = {"schema": "c2_framing_screen_run_v2", "head": head, "claim_sha256": claim_sha, "seed": seed,
+                "identity": identity, "input_pins": adm["input_pins"], "inputs_digest": pins_digest(adm["input_pins"]),
+                "test_seasons": list(TEST_SEASONS), "basis": BASIS, "retrain_every": RETRAIN_EVERY,
+                "lgb_params": dict(LGB_PARAMS), "feature_settings": settings,
+                "env": {k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
                 "self_check": check, "coverage": {NEW_COL: coverage(df, NEW_COL), OLD_COL: coverage(df, OLD_COL)},
+                "resumed_portion_rows": resumed_counts(df), "lookup_games": len(frozen_lookup(lookup_raw)),
                 "features_cpu_s": cpu_seconds() - t0}
     _json(run_dir / "manifest.json", manifest)
     if not check["identical"]:
@@ -257,10 +407,12 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
             c0, w0 = cpu_seconds(), time.monotonic()
             p = walk_forward(df, season, retrain_every=RETRAIN_EVERY, blend_configs=configs,
                              game_probability_mode=BASIS)
-            p["season"] = season
             cpu = cpu_seconds() - c0
+            p, counts = relabel(p, labels)
+            p["season"] = season
             p.to_parquet(run_dir / f"profiles_{variant}_{season}.parquet", index=False)
-            units.append({"variant": variant, "season": season, "cpu_s": cpu, "wall_s": time.monotonic() - w0})
+            units.append({"variant": variant, "season": season, "cpu_s": cpu, "wall_s": time.monotonic() - w0,
+                          "labels": counts})
             _json(run_dir / "units.json", units)
             parts.append(p)
             if len(units) == 1 and first_unit_stop(cpu):
@@ -269,11 +421,14 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
                 return 3
         profiles[variant] = pd.concat(parts, ignore_index=True)
     cards = {v: compute_full_scorecard(p) for v, p in profiles.items()}
-    results = {"seed": seed, "units": units, "total_cpu_s": cpu_seconds() - t0,
+    for v, c in cards.items():
+        _json(run_dir / f"scorecard_{v}.json", c)
+    results = {"seed": seed, "head": head, "units": units, "total_cpu_s": cpu_seconds() - t0,
                "p_at_1_by_season": {v: {str(k): x for k, x in c["p_at_1_by_season"].items()} for v, c in cards.items()},
                "variants": {}}
     for v in ("A", "B"):
         diff = diff_scorecards(cards["baseline"], cards[v])
+        _json(run_dir / f"diff_{v}.json", diff)
         results["variants"][v] = {**seed_summary(diff), "secondary": {
             "p_57_exact": diff.get("p_57_exact"), "mean_max_streak": diff.get("streak_metrics", {}).get(
                 "mean_max_streak")}}
@@ -281,31 +436,113 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
     return 0
 
 
+# ---------------------------------------------------------------- the aggregate (exactly the three registered seeds)
+
+class AggregateError(RuntimeError):
+    pass
+
+
+def _load(d: Path, name: str):
+    p = d / name
+    if not p.is_file():
+        raise AggregateError(f"{d}: missing {name}")
+    return p.read_bytes()
+
+
 def aggregate(run_dirs: list[Path]) -> dict:
-    per_variant = {"A": [], "B": []}
-    seeds, cpu = [], 0.0
-    for d in run_dirs:
-        r = json.loads((d / "results.json").read_text())
-        seeds.append(r["seed"])
-        cpu += r["total_cpu_s"]
-        for v in per_variant:
-            per_variant[v].append(r["variants"][v])
-    return {"seeds": seeds, "total_cpu_h": cpu / 3600,
-            "variants": {v: {"per_seed": rows, **disposition(rows)} for v, rows in per_variant.items()}}
+    """Stage one's dispositions, only from exactly three distinct completed runs of the three registered seeds, all of
+    the same reviewed code and inputs; each seed's summary is recomputed from its retained diff (r1 B2)."""
+    dirs = [Path(d).resolve() for d in run_dirs]
+    if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):
+        raise AggregateError(f"need exactly {len(STAGE_ONE_SEEDS)} distinct run directories, got {len(run_dirs)}")
+    manifests, rows = [], {"A": [], "B": []}
+    for d in dirs:
+        if (d / "STOPPED.json").exists():
+            raise AggregateError(f"{d}: a stopped run is not a complete seed")
+        claim = _load(d, "CLAIM.json")
+        man = json.loads(_load(d, "manifest.json"))
+        res = json.loads(_load(d, "results.json"))
+        if man.get("claim_sha256") != _sha(claim):
+            raise AggregateError(f"{d}: manifest does not bind this CLAIM.json")
+        if res.get("seed") != man.get("seed") or res.get("head") != man.get("head"):
+            raise AggregateError(f"{d}: results and manifest disagree")
+        if d.parent.name != f"seed_{man.get('seed')}":
+            raise AggregateError(f"{d}: not under its seed's claim root")
+        for v in rows:
+            summary = seed_summary(json.loads(_load(d, f"diff_{v}.json")))
+            stored = {k: res["variants"][v].get(k) for k in ("p_at_1_delta", "passed")}
+            if stored != {k: summary[k] for k in ("p_at_1_delta", "passed")}:
+                raise AggregateError(f"{d}: variant {v}'s stored summary does not match its diff")
+            rows[v].append(summary)
+        manifests.append(man)
+    seeds = [m["seed"] for m in manifests]
+    if sorted(seeds) != sorted(STAGE_ONE_SEEDS):
+        raise AggregateError(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
+    for key in ("head", "identity", "input_pins", "lgb_params", "feature_settings", "basis", "retrain_every"):
+        if any(m.get(key) != manifests[0].get(key) for m in manifests[1:]):
+            raise AggregateError(f"runs disagree on {key}")
+    order = [seeds.index(s) for s in STAGE_ONE_SEEDS]
+    total = sum(json.loads(_load(d, "results.json"))["total_cpu_s"] for d in dirs)
+    return {"seeds": list(STAGE_ONE_SEEDS), "head": manifests[0]["head"], "total_cpu_h": total / 3600,
+            "variants": {v: {"per_seed": [rs[i] for i in order], **disposition([rs[i] for i in order])}
+                         for v, rs in rows.items()}}
+
+
+# ---------------------------------------------------------------- the launch wrapper
+
+def launch_command(seed: int, budget: float, data_dir: Path, inputs_dir: Path) -> list[str]:
+    k = STAGE_ONE_SEEDS.index(seed) + 1
+    return [".venv/bin/python", "-m", "scripts.audit.c1.launch", "run", "--name", f"c2-framing-seed{k}",
+            "--cpu-hours", f"{budget:g}", "--max-hours", str(MAX_WALL_H), "--",
+            "env", "BTS_LGBM_DETERMINISTIC=1", "TZ=America/New_York", ".venv/bin/python", "-m",
+            "scripts.audit.c2_framing.screen", "run", "--seed", str(seed), "--data-dir", str(data_dir),
+            "--inputs-dir", str(inputs_dir)]
+
+
+def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.run, _test_out_root=None) -> int:
+    """The reviewed launch: the same admission and seed-order checks as `run`, then the C1 launcher with the seed's
+    declared budget (seed 1: 45; seeds 2-3: the budget in Eric's release row)."""
+    from scripts.audit.c1 import admission as A
+    out_root = OUT_ROOT if _test_out_root is None else _test_out_root
+    admission_gate()
+    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root)
+    if not ok:
+        raise SystemExit(f"refusing: {why}")
+    return execute(launch_command(seed, budget, data_dir, inputs_dir), cwd=A.REPO).returncode
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="scripts.audit.c2_framing.screen")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run")
-    r.add_argument("--seed", type=int, required=True)
-    r.add_argument("--out-root", type=Path, required=True)
-    r.add_argument("--data-dir", type=Path, required=True)
+    for name in ("run", "launch"):
+        p = sub.add_parser(name)
+        p.add_argument("--seed", type=int, required=True)
+        p.add_argument("--data-dir", type=Path, required=True)
+        p.add_argument("--inputs-dir", type=Path, default=OUT_ROOT / "inputs")
+    f = sub.add_parser("freeze-lookup", help="once, before admission: the frozen lookup for the pinned games")
+    f.add_argument("--cache", type=Path, required=True)
+    f.add_argument("--data-dir", type=Path, required=True)
+    f.add_argument("--pins", type=Path, required=True, help="JSON {pa_<season>.parquet: sha256} for the nine inputs")
+    f.add_argument("--out", type=Path, required=True)
     g = sub.add_parser("aggregate")
     g.add_argument("run_dirs", type=Path, nargs="+")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        return run(a.seed, a.out_root, a.data_dir)
+        return run(a.seed, a.data_dir, a.inputs_dir)
+    if a.cmd == "launch":
+        return launch(a.seed, a.data_dir, a.inputs_dir)
+    if a.cmd == "freeze-lookup":
+        import pandas as pd
+        from scripts.audit.c1 import admission as A
+        pins = json.loads(a.pins.read_text())
+        pks = set()
+        for s in SEASONS_IN:
+            raw, _ = A.read_pinned(a.data_dir / f"pa_{s}.parquet", pins[f"pa_{s}.parquet"])
+            pks |= set(pd.read_parquet(io.BytesIO(raw), columns=["game_pk"])["game_pk"].astype(int))
+        out = freeze_lookup(a.cache.read_bytes(), pks)
+        A.durable_write(a.out, out)
+        print(json.dumps({"games": len(pks), "covered": len(json.loads(out)), "sha256": _sha(out)}))
+        return 0
     print(json.dumps(aggregate(a.run_dirs), indent=1, sort_keys=True))
     return 0
 

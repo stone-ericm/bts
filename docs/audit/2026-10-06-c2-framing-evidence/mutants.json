@@ -230,16 +230,6 @@
   ]
  },
  {
-  "id": "F24",
-  "rule": "aggregate: per-variant rows",
-  "file": "scripts/audit/c2_framing/screen.py",
-  "old": "            per_variant[v].append(r[\"variants\"][v])\n",
-  "new": "            per_variant[v].append(r[\"variants\"][\"A\"])\n",
-  "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
- },
- {
   "id": "F25",
   "rule": "coverage: the test seasons",
   "file": "scripts/audit/c2_framing/screen.py",
@@ -255,6 +245,296 @@
   "file": "scripts/audit/c2_framing/screen.py",
   "old": "if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):",
   "new": "if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G1",
+  "rule": "aggregate: exactly three directories",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
+  "new": "if len(dirs) < 1 or len(set(dirs)) != len(dirs):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G2",
+  "rule": "aggregate: distinct directories",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
+  "new": "if len(dirs) != len(STAGE_ONE_SEEDS):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G3",
+  "rule": "aggregate: a stopped run refused",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if (d / \"STOPPED.json\").exists():\n            raise AggregateError(f\"{d}: a stopped run is not a complete seed\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G4",
+  "rule": "aggregate: the manifest binds the claim",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if man.get(\"claim_sha256\") != _sha(claim):",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G5",
+  "rule": "aggregate: under its seed's claim root",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if d.parent.name != f\"seed_{man.get('seed')}\":",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G6",
+  "rule": "aggregate: stored summary recomputed from the diff",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            if stored != {k: summary[k] for k in (\"p_at_1_delta\", \"passed\")}:",
+  "new": "            if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G7",
+  "rule": "aggregate: exactly the registered seeds",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if sorted(seeds) != sorted(STAGE_ONE_SEEDS):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G8",
+  "rule": "aggregate: runs agree on the input pins",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "for key in (\"head\", \"identity\", \"input_pins\", \"lgb_params\",",
+  "new": "for key in (\"head\", \"identity\", \"lgb_params\",",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G9",
+  "rule": "aggregate: runs agree on the head",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "for key in (\"head\", \"identity\", \"input_pins\", \"lgb_params\",",
+  "new": "for key in (\"identity\", \"input_pins\", \"lgb_params\",",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G10",
+  "rule": "disposition: exactly three seeds",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(per_seed) != len(STAGE_ONE_SEEDS) or any(",
+  "new": "if not per_seed or any(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G11",
+  "rule": "seed order: release required",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if budget is None:\n        return False, f\"seeds 2-3 need Eric's release",
+  "new": "    if False:\n        return False, f\"seeds 2-3 need Eric's release",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G12",
+  "rule": "seed order: seed 1 completed first",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if completed_run(out_root / f\"seed_{STAGE_ONE_SEEDS[0]}\") is None:",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G13",
+  "rule": "release: Eric as the source",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if not m or not cells[3].strip().startswith(\"Eric\"):",
+  "new": "if not m:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G14",
+  "rule": "release: the exact ruling",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    m = RELEASE_RE.match(cells[2].strip())\n",
+  "new": "    m = re.search(r\"(\\d+(?:\\.\\d+)?) CPU-hours\", cells[2])\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G15",
+  "rule": "completed run: a stopped run is not complete",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "\n            and not (d / \"STOPPED.json\").exists()]",
+  "new": "]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G16",
+  "rule": "labels: void rows dropped",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    p = p[p[\"actual_hit\"].notna()].copy()\n",
+  "new": "    p = p.fillna({\"actual_hit\": 0}).copy()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G17",
+  "rule": "labels: ranks renumbered",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    p[\"rank\"] = p.groupby(\"date\").cumcount() + 1\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G18",
+  "rule": "labels: the resumed portion excluded",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    orig = filter_out_resumed_portion(df)\n",
+  "new": "    orig = df\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G19",
+  "rule": "closed inputs: the live lookup replaced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    C._build_probable_pitcher_lookup = _lookup\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G20",
+  "rule": "closed inputs: park drag bypassed",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    PD.attach_park_drag = _no_park_drag\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G21",
+  "rule": "closed inputs: the lookup restricted to the pinned games",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "keep = {str(k): cache[str(k)] for k in sorted({int(g) for g in game_pks}) if str(k) in cache}",
+  "new": "keep = dict(cache)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G22",
+  "rule": "run: the feature settings checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    settings = check_settings()\n",
+  "new": "    settings = {}\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G23",
+  "rule": "run: the frozen lookup read from its pin",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    lookup_raw, _ = A.read_pinned(inputs_dir / LOOKUP_NAME, adm[\"input_pins\"][LOOKUP_NAME])\n",
+  "new": "    lookup_raw = (inputs_dir / LOOKUP_NAME).read_bytes()\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G24",
+  "rule": "run: profiles relabelled",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            p, counts = relabel(p, labels)\n",
+  "new": "            counts = {\"changed\": 0, \"void_dropped\": 0}\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G25",
+  "rule": "run: the seed order enforced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    ok, why, _ = seed_allowed(seed, register, out_root)\n    if not ok:",
+  "new": "    ok, why, _ = seed_allowed(seed, register, out_root)\n    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G26",
+  "rule": "launch: seed 1's declared budget",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return True, \"seed 1\", SEED1_BUDGET_CPU_H",
+  "new": "return True, \"seed 1\", 100.0",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G27",
+  "rule": "launch: the seed order enforced",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root)\n    if not ok:",
+  "new": "    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root)\n    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G28",
+  "rule": "admission: the frozen lookup is a pinned input",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN) + (LOOKUP_NAME,)",
+  "new": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "G29",
+  "rule": "t: zero for a zero mean with zero spread",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return math.inf if m > 0 else (-math.inf if m < 0 else 0.0)",
+  "new": "return math.inf if m >= 0 else -math.inf",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py"
   ]
