@@ -357,3 +357,47 @@ def test_verify_lists_an_unbound_schedule(tmp_path):
     sp.write_text("{}")
     (tmp_path / "raw").mkdir()
     assert aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")["schedules"] == {"sched_2022.json": None}
+
+
+# ---------- Eric 2026-10-05 (row C1-4b-deferral; code review r3 B6): two downloader problems ----------
+def test_verify_does_not_report_success_while_a_request_is_unfinished(tmp_path, monkeypatch):
+    out = tmp_path / "c1" / "r3"
+    aq._append(out / "receipts" / "2026-10-05.jsonl", {"kind": "intent", "attempt_id": "a1", "kind_of": "feed",
+                                                       "gamePk": 101})
+    (tmp_path / "raw").mkdir()
+    v = aq.verify(out, tmp_path / "raw")
+    assert v["unresolved"] == ["a1"]
+    monkeypatch.setattr(aq, "C1_ROOT", tmp_path / "c1")
+    assert aq.main(["--verify", "--out", str(out), "--feeds", str(tmp_path / "raw")]) == 1
+
+
+def test_verify_fails_when_a_receipted_schedule_is_missing(tmp_path, monkeypatch):
+    s = sched(("2021-04-01", 101, "Final", None))
+    calls, argv = main_env(tmp_path, monkeypatch, {2021: s}, {"101": feed(101)})
+    assert aq.main(argv) == 0
+    (tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json").unlink()
+    v = aq.verify(tmp_path / "c1" / "r3", tmp_path / "raw")
+    assert v["schedules_missing"] == ["schedules/sched_2021.json"]
+    assert aq.main(["--verify", "--out", str(tmp_path / "c1" / "r3"), "--feeds", str(tmp_path / "raw")]) == 1
+
+
+def test_a_cached_schedule_is_parsed_from_the_bytes_whose_binding_was_checked(tmp_path, monkeypatch):
+    """r3 B6: the binding check read the file, then parsing and logging re-read it, so bytes swapped in between
+    (game 202 instead of the receipt-bound game 101) reached the acquisition."""
+    s = sched(("2021-04-01", 101, "Final", None))
+    calls, argv = main_env(tmp_path, monkeypatch, {2021: s}, {"101": feed(101)})
+    assert aq.main(argv) == 0
+    sp = tmp_path / "c1" / "r3" / "schedules" / "sched_2021.json"
+    swapped = json.dumps(sched(("2021-04-01", 202, "Final", None))).encode()
+    real_read, reads = aq.Path.read_bytes, []
+
+    def read_bytes(self):
+        if self == sp:
+            reads.append(1)
+            return real_read(self) if len(reads) == 1 else swapped      # the file changes after the first read
+        return real_read(self)
+    monkeypatch.setattr(aq.Path, "read_bytes", read_bytes)
+    seen = []
+    monkeypatch.setattr(aq, "acquire", lambda games, **kw: (seen.extend(g["gamePk"] for g in games), 0)[1])
+    assert aq.main(argv) == 0
+    assert seen == [101] and len(reads) == 1

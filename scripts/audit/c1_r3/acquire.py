@@ -336,7 +336,9 @@ def verify(out_dir: Path, feeds_dir: Path) -> dict:
       sha256; stored files without a receipt are listed;
     - every schedule file's binding (`schedule_binding`; None = unbound);
     - every `response` receipt's bytes: promoted (a stored receipt names the attempt), retained (the file is there
-      with its hash), missing, or legacy_unretained (written before responses were retained)."""
+      with its hash), missing, or legacy_unretained (written before responses were retained);
+    - unresolved intents (a request with no completion) and receipt-named schedules that are missing. Either makes
+      `--verify` fail: success is never reported while a request is unfinished (code review r3 B6)."""
     allrecs = read_receipts(out_dir)
     recs = [r for r in allrecs if _stored(r, "feed")]
     latest = {}
@@ -373,8 +375,11 @@ def verify(out_dir: Path, feeds_dir: Path) -> dict:
             resp["retained"] += 1
         else:
             resp["missing"].append(r["attempt_id"])
+    sched_named = {r["stored_path"] for r in allrecs if _stored(r, "schedule") and r.get("stored_path")}
     return {"receipted": len(latest), "bound": bound, "mismatched": mismatched, "missing": missing,
-            "unreceipted": sorted(on_disk - set(latest)), "schedules": schedules, "responses": resp}
+            "unreceipted": sorted(on_disk - set(latest)), "schedules": schedules, "responses": resp,
+            "unresolved": unresolved_intents(allrecs),
+            "schedules_missing": sorted(x for x in sched_named if not (out_dir / x).exists())}
 
 
 def _fetch(url: str) -> bytes:
@@ -397,7 +402,7 @@ def main(argv=None) -> int:
         print(json.dumps({k: (val[:20] if isinstance(val, list) else val) for k, val in v.items()} |
                          {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)}, indent=1))
         ok = not (v["mismatched"] or v["missing"] or v["unreceipted"] or v["responses"]["missing"]
-                  or any(b is None for b in v["schedules"].values()))
+                  or any(b is None for b in v["schedules"].values()) or v["unresolved"] or v["schedules_missing"])
         return 0 if ok else 1
     if not args.seasons:
         ap.error("--seasons is required unless --verify")
@@ -415,7 +420,8 @@ def main(argv=None) -> int:
         for season in args.seasons:
             sp = out / "schedules" / f"sched_{season}.json"
             if sp.exists():
-                binding = schedule_binding(read_receipts(out), season, sha256(sp.read_bytes()))
+                sched_bytes = sp.read_bytes()        # read once: the bound bytes are the parsed bytes (r3 B6)
+                binding = schedule_binding(read_receipts(out), season, sha256(sched_bytes))
                 if binding is None:
                     print(f"refusing: {sp.name} is not bound to a receipt (changed or orphan bytes)", file=sys.stderr)
                     return 2
@@ -429,7 +435,8 @@ def main(argv=None) -> int:
                 except RequestFailed as e:
                     print(f"schedule {season}: {e}", file=sys.stderr)
                     return 1
-                _write_durable(sp, resp.body)
+                sched_bytes = resp.body
+                _write_durable(sp, sched_bytes)
                 _append(acq.receipts_path(), {"kind": "completion", "attempt_id": f"store-{uuid.uuid4().hex}",
                                               "kind_of": "schedule", "season": season, "outcome": "stored",
                                               "stored_path": f"schedules/{sp.name}", "stored_sha256": sha256(resp.body),
@@ -437,8 +444,8 @@ def main(argv=None) -> int:
                                               "from_attempt_id": resp.attempt_id, "at_utc": now().isoformat()})
                 acq.release(resp)
                 time.sleep(jitter())
-            season_games = [{**g, "season": season} for g in schedule_games(json.loads(sp.read_bytes()))]
-            print(f"{season}: {len(season_games)} played games; schedule sha256 {sha256(sp.read_bytes())[:12]}",
+            season_games = [{**g, "season": season} for g in schedule_games(json.loads(sched_bytes))]
+            print(f"{season}: {len(season_games)} played games; schedule sha256 {sha256(sched_bytes)[:12]}",
                   file=sys.stderr)
             games.extend(season_games)
     rc = acquire(games, out_dir=out, feeds_dir=args.feeds.expanduser().resolve(), pause_root=pause_root, fetch=_fetch,
