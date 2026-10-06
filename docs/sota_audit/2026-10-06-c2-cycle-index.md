@@ -13,6 +13,8 @@
 - **The shared ledger at the start:** 0.4452 CPU-hours in 16 rows, read 2026-10-06; all of it is C1.
 - **The box worktree:** `~/projects/bts-c1` was at `1fa872a`, older than the signed launcher. It is re-pinned to each job's reviewed commit before its launch.
 
+**Provenance convention (the manager, 2026-10-06 15:23):** until Eric says otherwise, any dialog answer the lead receives is the manager's call under the 10/03 delegation, unless the manager says it was Eric's. The manager always sends provenance right after relaying an Eric answer. Record each ruling's source accordingly.
+
 ## Items
 
 | Item | Starts from | Finish by | Status |
