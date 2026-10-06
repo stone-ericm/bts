@@ -170,10 +170,12 @@ def _pos_int(v) -> bool:
 
 
 def _typed_requests(recs: list) -> None:
-    """Every intent and completion's identity is typed before any comparison, lookup or join (r4 R4-1): a string
-    attempt id; `kind_of` absent (the 10/04 legacy writer, a feed) or one of feed/schedule; a feed's exact positive
-    integer gamePk, or a schedule's exact positive integer season; a string `from_attempt_id` when present. Python
-    equality would otherwise let 7.0 or True stand in for 7 in a duplicate or in `unresolved`."""
+    """Every intent and completion's identity is typed before any comparison, lookup or join (r4 R4-1; C2 review r1
+    C2R1-1): a string attempt id; `kind_of` absent (the 10/04 legacy writer, a feed) or one of feed/schedule; a feed
+    has an exact positive integer gamePk and no season (the writer's season is null or absent); a schedule has an
+    exact positive integer season and no game id (null or absent); a string `from_attempt_id` when present. Python
+    equality would otherwise let 7.0 or True stand in for 7 in a duplicate or a join, and a schedule record could
+    smuggle a game id into a feed's reconciliation."""
     for r in recs:
         if r.get("kind") not in REQUEST_KINDS:
             continue
@@ -184,9 +186,13 @@ def _typed_requests(recs: list) -> None:
         if kind_of == "feed":
             if not _pos_int(r.get("gamePk")):
                 raise ProvenanceError(f"attempt {aid}: a feed receipt's game id must be a positive int: {r.get('gamePk')!r}")
+            if r.get("season") is not None:
+                raise ProvenanceError(f"attempt {aid}: a feed receipt carries a season: {r.get('season')!r}")
         elif kind_of == "schedule":
             if not _pos_int(r.get("season")):
                 raise ProvenanceError(f"attempt {aid}: a schedule receipt's season must be a positive int: {r.get('season')!r}")
+            if r.get("gamePk") is not None:
+                raise ProvenanceError(f"attempt {aid}: a schedule receipt carries a game id: {r.get('gamePk')!r}")
         else:
             raise ProvenanceError(f"attempt {aid}: an unsupported kind_of {kind_of!r}")
         if "from_attempt_id" in r and not (isinstance(r["from_attempt_id"], str) and r["from_attempt_id"]):
@@ -197,10 +203,17 @@ def _canon(r: dict) -> str:
     return json.dumps(r, sort_keys=True)
 
 
+def _request_identity(r: dict) -> tuple:
+    """(request kind, primary id) of an already typed intent or completion: a feed's gamePk, a schedule's season."""
+    kind_of = r.get("kind_of", "feed")
+    return (kind_of, r["gamePk"] if kind_of == "feed" else r["season"])
+
+
 def _witnesses(recs: list, label: str, pred) -> dict:
     """attempt_id -> record for one receipt class. A non-string attempt id, or two different records for one attempt,
-    refuses (r3 R3-5: the last assignment used to win silently). Duplicates are compared as canonical JSON, so only a
-    byte-identical repeat is tolerated (r4 R4-1: dict equality treats 7.0 and True as 7 and 1)."""
+    refuses (r3 R3-5: the last assignment used to win silently). Duplicates are compared as canonical JSON of the parsed
+    records, so only a canonically identical repeat is tolerated (r4 R4-1: dict equality treats 7.0 and True as 7
+    and 1); key order and whitespace are not compared."""
     out: dict = {}
     for r in recs:
         if not pred(r):
@@ -215,10 +228,20 @@ def _witnesses(recs: list, label: str, pred) -> dict:
 
 
 def unresolved(recs: list[dict]) -> list:
-    """Intents with no completion for the same attempt and the same game (r2 N5: a completion for another game's
-    request does not resolve an intent)."""
-    done = {(r.get("attempt_id"), r.get("gamePk")) for r in recs if r.get("kind") == "completion"}
-    return [r.get("attempt_id") for r in recs if r.get("kind") == "intent" and (r.get("attempt_id"), r.get("gamePk")) not in done]
+    """Intents with no completion for the same attempt (r2 N5). Run after `_typed_requests`; a completion that shares
+    an intent's attempt id but names a different request (kind, game or season) refuses rather than resolving it
+    (C2 review r1 C2R1-1)."""
+    intents = {r["attempt_id"]: r for r in recs if r.get("kind") == "intent"}
+    done = set()
+    for r in recs:
+        if r.get("kind") != "completion":
+            continue
+        it = intents.get(r["attempt_id"])
+        if it is not None and _request_identity(it) != _request_identity(r):
+            raise ProvenanceError(f"the completion for attempt {r['attempt_id']} names a different request "
+                                  f"{_request_identity(r)!r} than its intent {_request_identity(it)!r}")
+        done.add(r["attempt_id"])
+    return [aid for aid in intents if aid not in done]
 
 
 def feed_inventory(recs: list[dict], feeds_dir: Path) -> list[dict]:
