@@ -1,6 +1,6 @@
 # Beat the Streak v2
 
-A PA-level MLB hit prediction model with a 12-model ensemble that beats the current state of the art on backtested data.
+A plate-appearance-level MLB hit-prediction model (a 12-model LightGBM ensemble) and pick policy for MLB's Beat the Streak, run live through the 2026 season and audited against its own backtests.
 
 MLB's [Beat the Streak](https://www.mlb.com/apps/beat-the-streak) is a free contest with a $5.6 million prize: pick one player each day who you think will get at least one hit. String together 57 correct picks in a row — beating Joe DiMaggio's 56-game hitting streak — and you win. Since the contest launched in 2001, nobody has won.
 
@@ -298,9 +298,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts simulate exact --strategy combined
 9. **Real data isn't always better than a proxy.** Savant's calibrated catcher framing (static, prior-season) lost to our expanding proxy that updates every game. Adaptive beats precise-but-stale.
 10. **The market doesn't know more than the model.** Vegas player prop odds didn't improve P@1 — the market and our model look at the same fundamentals.
 11. **P@1 has wide confidence intervals.** +/-5% on a 184-day season. Multi-season validation (6 seasons) is essential — 2-season results are unreliable.
-12. **Strategy >> model improvements for P(57).** MDP-optimal play strategy improved P(57) from 0.90% to 8.91% (10x) with zero model changes. The exponential nature of p^57 means small per-play accuracy gains from skipping bad days compound massively.
+12. **Strategy matters, but evaluate it on realistic profiles.** On the actual-PA backtest profiles an MDP policy raised P(57) from 0.90% to 8.91% with no model change; on serving-realistic estimated-PA profiles the deployed policy's P(57) is about 0.01%, and iid solvers misstate milestone probabilities because real hit sequences have run structure. Replay realized sequences before trusting a strategy number.
 13. **Anti-correlated doubling is a dead end.** Rank-1 and rank-2 outcomes are independent (r=-0.018). P(both hit) = P1 × P2 is correct — no correlation to exploit.
-14. **Model degrades in September specifically.** Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware quality bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +0.5% P(57).
+14. **Model degrades in September specifically.** Sept P@1 drops to 83.1% vs Aug 85.2%. Phase-aware quality bins (Sept-only late phase, `late_phase_days=30`) capture this, adding +0.5 pp P(57) on the superseded actual-PA basis (see Results).
 
 ## References
 
