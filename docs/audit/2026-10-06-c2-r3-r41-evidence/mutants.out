@@ -1,0 +1,10 @@
+# run 2026-10-06T18:34:32Z at d143af86044dd718931badaa7fe6865f5d0d989e, Python 3.12.13; command: .venv/bin/python -I docs/audit/2026-10-06-c2-r3-r41-evidence/mutant_runner.py docs/audit/2026-10-06-c2-r3-r41-evidence/mutants.json
+R1-typed-check-skipped RED ======================= 1 failed, 47 deselected in 0.90s =======================
+R2-completions-per-outcome-only RED ======================= 1 failed, 48 deselected in 0.95s =======================
+R3-bool-accepted-as-int RED ======================= 1 failed, 48 deselected in 0.93s =======================
+R4-zero-accepted RED ======================= 1 failed, 48 deselected in 0.94s =======================
+R5-unsupported-kind-of-accepted RED ======================= 1 failed, 48 deselected in 0.93s =======================
+R6-season-unchecked RED ======================= 1 failed, 48 deselected in 0.93s =======================
+R7-from-attempt-id-unchecked RED ======================= 1 failed, 48 deselected in 0.94s =======================
+R8-dict-equality-duplicates RED ======================= 1 failed, 48 deselected in 0.95s =======================
+R9-feed-game-id-unchecked RED ======================= 1 failed, 44 deselected in 0.82s =======================

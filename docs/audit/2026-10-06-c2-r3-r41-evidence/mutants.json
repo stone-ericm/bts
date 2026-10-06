@@ -1,0 +1,101 @@
+[
+ {
+  "id": "R1-typed-check-skipped",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    _receipt_problems(recs)\n    _typed_requests(recs)\n",
+  "new": "    _receipt_problems(recs)\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "float_request_then or malformed_error_completion"
+  ]
+ },
+ {
+  "id": "R2-completions-per-outcome-only",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\")\n    responses = {aid: r for aid, r in completions.items() if r.get(\"outcome\") == \"response\"}\n",
+  "new": "    responses = _witnesses(recs, \"response\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") == \"response\")\n    _witnesses(recs, \"stored\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") == \"stored\")\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "stored_and_an_http_error"
+  ]
+ },
+ {
+  "id": "R3-bool-accepted-as-int",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    return type(v) is int and v > 0\n",
+  "new": "    return isinstance(v, int) and v > 0\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "typed_before_any_join and True"
+  ]
+ },
+ {
+  "id": "R4-zero-accepted",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    return type(v) is int and v > 0\n",
+  "new": "    return type(v) is int\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "typed_before_any_join and gamePk-0"
+  ]
+ },
+ {
+  "id": "R5-unsupported-kind-of-accepted",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "        else:\n            raise ProvenanceError(f\"attempt {aid}: an unsupported kind_of {kind_of!r}\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "mystery"
+  ]
+ },
+ {
+  "id": "R6-season-unchecked",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "            if not _pos_int(r.get(\"season\")):\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "typed_before_any_join and schedule"
+  ]
+ },
+ {
+  "id": "R7-from-attempt-id-unchecked",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "        if \"from_attempt_id\" in r and not (isinstance(r[\"from_attempt_id\"], str) and r[\"from_attempt_id\"]):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "from_attempt_id"
+  ]
+ },
+ {
+  "id": "R8-dict-equality-duplicates",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "        if aid in out and _canon(out[aid]) != _canon(r):\n",
+  "new": "        if aid in out and out[aid] != r:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "number_type"
+  ]
+ },
+ {
+  "id": "R9-feed-game-id-unchecked",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "            if not _pos_int(r.get(\"gamePk\")):\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "float_request_then or malformed_error_completion or (typed_before_any_join and gamePk)"
+  ]
+ }
+]
