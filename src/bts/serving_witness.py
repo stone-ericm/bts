@@ -46,24 +46,43 @@ RECIPE_ENV = ("BTS_LGBM_RANDOM_STATE", "BTS_LGBM_DETERMINISTIC", "BTS_USE_CALIBR
 PACKAGES = ("lightgbm", "numpy", "pandas", "pyarrow", "scikit-learn")
 
 
-def note(errors, msg: str) -> None:
-    """Record a provenance error; recording itself never raises."""
-    if errors is None:
-        return
+def _describe(what, exc=None) -> str:
+    """A bounded description, built defensively: an exception whose str or repr fails still yields a message."""
     try:
-        errors.append(msg)
+        return (str(what) if exc is None else f"{what}: {type(exc).__name__}: {exc}")[:300]
     except Exception:
-        pass
+        try:
+            return f"{what}: {type(exc).__name__} (undescribable)"[:300]
+        except Exception:
+            return "undescribable provenance error"
 
 
-def collect(items, item, errors, what: str) -> None:
-    """Append to a provenance collector; a failed append is recorded, never raised."""
-    if items is None:
-        return
+def note(errors, what, exc=None) -> bool:
+    """Record a provenance error. The message is formatted inside the guard; never raises; returns whether recorded."""
+    if errors is None:
+        return False
     try:
-        items.append(item)
+        errors.append(_describe(what, exc))
+        return True
+    except Exception:
+        return False
+
+
+def collect(items, build, errors, what: str) -> bool:
+    """Append `build()` to a provenance collector. The record is built inside the guard. Never raises; returns False
+    when building or appending failed (the caller then treats that part as incomplete, whether or not the error itself
+    could be recorded)."""
+    if items is None:
+        return True
+    try:
+        items.append(build())
+        return True
     except Exception as e:
-        note(errors, f"{what}: collector append failed: {e!r}")
+        try:
+            note(errors, what + ": collector append failed", e)
+        except Exception:
+            pass
+        return False
 
 
 def sha256_or_none(raw, errors, what: str):
@@ -71,7 +90,10 @@ def sha256_or_none(raw, errors, what: str):
     try:
         return hashlib.sha256(raw).hexdigest()
     except Exception as e:
-        note(errors, f"{what}: sha256 failed: {e!r}")
+        try:
+            note(errors, what + ": sha256 failed", e)
+        except Exception:
+            pass
         return None
 
 
@@ -80,10 +102,6 @@ def canon_sha256(obj) -> str:
     return hashlib.sha256(
         json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     ).hexdigest()
-
-
-def _error(what: str, exc: BaseException) -> str:
-    return f"{what}: {type(exc).__name__}: {exc}"[:300]
 
 
 def _function_source(spec: str) -> str:
@@ -122,7 +140,7 @@ def build(*, model, inputs, calibration, errors=None) -> dict:
     try:
         errs.extend(errors or [])
     except Exception as e:
-        note(errs, _error("upstream errors", e))
+        note(errs, "upstream errors", e)
     parts = {}
     for key, fn in (("recipe", recipe), ("packages", _packages),
                     ("env", lambda: {k: os.environ.get(k) for k in RECIPE_ENV}),
@@ -131,12 +149,18 @@ def build(*, model, inputs, calibration, errors=None) -> dict:
             parts[key] = fn()
         except Exception as e:
             parts[key] = None
-            note(errs, _error(key, e))
+            note(errs, key, e)
+    try:
+        for name, v in (parts["packages"] or {}).items():
+            if v is None:
+                note(errs, f"packages: {name} version unavailable")
+    except Exception as e:
+        note(errs, "packages", e)
     try:
         built_at = datetime.now(timezone.utc).isoformat()
     except Exception as e:
         built_at = None
-        note(errs, _error("built_at", e))
+        note(errs, "built_at", e)
     return {"schema": SCHEMA, "tier_type": "local", "recipe": parts["recipe"], "env": parts["env"],
             "env_names": parts["env_names"], "packages": parts["packages"], "model": model, "inputs": inputs,
             "calibration": calibration, "built_at": built_at, "errors": errs}

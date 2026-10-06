@@ -100,7 +100,7 @@ def test_normal_path_reads_each_pick_file_once(world, monkeypatch):
 def test_the_decoder_matches_read_text_and_the_production_helper(tmp_path):
     f = tmp_path / "2026-06-20.json"
     f.write_bytes('{"date": "2026-06-20", "name": "José Ramírez"}\r\n'.encode())
-    text, _ = C._held_text(f, None, None)
+    text, _, _ = C._held_text(f, None, None)
     assert text == f.read_text() == _read_text_bytes(f.read_bytes())
 
 

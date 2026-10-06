@@ -53,14 +53,26 @@ ROW_COLUMNS = [
 ]
 
 
-def _serving(predictions: pd.DataFrame, date: str):
-    """The attached serving witness if it serializes as strict JSON, else None. Never raises."""
+def _take_serving(predictions: pd.DataFrame):
+    """Take the attached serving witness off the frame, so the row extraction below never copies it (pandas copies a
+    frame's attrs into every derived frame; code review r1 F1), and return it if it serializes as strict JSON, else
+    None. Never raises."""
+    serving = None
     try:
-        serving = predictions.attrs.get("serving")
+        serving = predictions.attrs.pop("serving", None)
+    except Exception:
+        try:
+            serving = predictions.attrs.get("serving")
+        except Exception:
+            serving = None
+    try:
         json.dumps(serving, allow_nan=False)
         return serving
-    except Exception as e:
-        log.warning(f"serving witness not serializable for {date} (slate still written): {e}")
+    except Exception:
+        try:
+            log.warning("serving witness not serializable (slate still written)")
+        except Exception:
+            pass
         return None
 
 
@@ -74,6 +86,7 @@ def save_slate(
     try:
         if predictions is None or predictions.empty:
             return None
+        serving = _take_serving(predictions)
         cols = [c for c in ROW_COLUMNS if c in predictions.columns]
         rows = json.loads(
             predictions[cols].to_json(orient="records")
@@ -85,7 +98,7 @@ def save_slate(
             "written_at": datetime.now(timezone.utc).isoformat(),
             "n_rows": len(rows),
             "rows": rows,
-            "serving": _serving(predictions, date),
+            "serving": serving,
         }
         slates_dir = Path(picks_dir) / "slates"
         slates_dir.mkdir(parents=True, exist_ok=True)

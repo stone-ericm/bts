@@ -73,97 +73,90 @@ def ssh_predict(
     return pd.DataFrame(data)
 
 
-# The serving calibration record (C2 step 2a, design §3.2). Every helper is contained: a witness failure is recorded
-# and never changes the calibration, the forecast or the existing calibration handler's control flow.
-_CALIBRATION_PARTS = ("pa_input", "pick_inputs", "n_fit", "samples", "samples_sha256", "map", "map_sha256")
+# The serving witness's pieces in predict_local (C2 step 2a, design §3). Every helper is contained and never raises:
+# a witness failure is recorded (when it can be) and never changes the calibration, the forecast or the existing
+# handlers' control flow. Code review r1: the pipeline's provenance leaves the frame before any calibration operation
+# (F1); the calibration record is built once, from local facts (F3); argument and message preparation is inside the
+# guards (F4).
+_PIPELINE_ATTRS = (("errors", "serving_errors"), ("model", "serving_model"), ("inputs", "serving_inputs"))
 
 
-def _calibration_record(enabled: bool, errors: list) -> dict | None:
+def _take_pipeline_provenance(predictions, errors) -> dict:
+    """Take run_pipeline's provenance attrs off the predictions before any pandas operation could copy them (r1 F1).
+    Returns {errors, model, inputs} (a missing part is None)."""
+    parts: dict = {}
     try:
-        rec = {"enabled": enabled, "applied": False, "status": None if enabled else "off"}
-        rec.update(dict.fromkeys(_CALIBRATION_PARTS))
-        rec["errors"] = errors
-        return rec
-    except Exception:
-        return None
-
-
-def _cal_set(rec, key: str, value, errors) -> None:
-    from bts.serving_witness import note
-    if rec is None:
-        return
-    try:
-        rec[key] = value
-    except Exception as e:
-        note(errors, f"calibration {key}: assignment failed: {e!r}")
-
-
-def _cal_pa_input(rec, pa_inputs, errors) -> None:
-    from bts.serving_witness import note
-    try:
-        _cal_set(rec, "pa_input", pa_inputs[0] if len(pa_inputs) == 1 else None, errors)
-    except Exception as e:
-        note(errors, f"calibration pa_input: {e!r}")
-
-
-def _cal_from_fit(rec, fit_witness, errors) -> None:
-    """Copy the fit's witness (calibrate.fit_calibrator_from_picks) into the record; status for the unavailable
-    fallbacks. A fitted map becomes `applied` only at the actual probability assignment."""
-    from bts.serving_witness import note
-    try:
-        for key in _CALIBRATION_PARTS[1:]:
-            _cal_set(rec, key, fit_witness.get(key), errors)
-        errors.extend(fit_witness.get("errors") or [])
-        if fit_witness.get("status") in ("insufficient_support", "no_sklearn"):
-            _cal_set(rec, "status", fit_witness["status"], errors)
-    except Exception as e:
-        note(errors, f"calibration fit witness: {e!r}")
-
-
-def _cal_failed(rec, exc: BaseException, errors) -> None:
-    """The existing handler caught a genuine failure: `failed` before the probability assignment; once assignment
-    succeeded, the record stays `applied` and the error is recorded."""
-    from bts.serving_witness import note
-    try:
-        note(errors, f"calibration: {type(exc).__name__}: {exc}"[:300])
-        if rec is not None and rec.get("applied") is not True:
-            _cal_set(rec, "status", "failed", errors)
+        from bts.serving_witness import note
+        for key, attr in _PIPELINE_ATTRS:
+            try:
+                parts[key] = predictions.attrs.pop(attr)
+            except KeyError:
+                parts[key] = None
+                note(errors, "run_pipeline provenance missing: " + attr)
+            except Exception as e:
+                parts[key] = None
+                note(errors, "run_pipeline provenance: " + attr, e)
     except Exception:
         pass
+    try:
+        if any(attr in predictions.attrs for _, attr in _PIPELINE_ATTRS):
+            predictions.attrs.clear()
+    except Exception:
+        pass
+    return parts
 
 
-def _attach_serving_witness(predictions, calibration, errors: list) -> None:
-    """Move run_pipeline's provenance attrs into the serving witness, attached as `attrs["serving"]` (null when it
-    cannot be built). Never raises; the forecast is returned whatever happens here."""
-    from bts.serving_witness import build, note
-    parts = {}
-    for key in ("serving_errors", "serving_model", "serving_inputs"):
-        try:
-            parts[key] = predictions.attrs.pop(key)
-        except KeyError:
-            parts[key] = None
-            note(errors, f"run_pipeline provenance {key} missing")
-        except Exception as e:
-            parts[key] = None
-            note(errors, f"run_pipeline provenance {key}: {e!r}")
+def _calibration_record(enabled, applied, failure, outcome, pa_inputs, fit, errors) -> dict | None:
+    """The serving calibration record (design §3.2), built once after the calibration block from what actually
+    happened: `applied` is the assignment's truth, and a status no fact supports stays null (incomplete). Returns
+    None if it cannot be built (r1 F3)."""
+    from bts.serving_witness import note
+    fit = fit if isinstance(fit, dict) else {}
+    if not enabled:
+        status = "off"
+    elif applied:
+        status = "applied"
+    elif failure is not None:
+        status = "failed"
+    elif outcome == "no_pa_file":
+        status = "no_pa_file"
+    elif fit.get("status") in ("insufficient_support", "no_sklearn"):
+        status = fit["status"]
+    else:
+        status = None
+    if failure is not None:
+        note(errors, "calibration (after the probability assignment)" if applied else "calibration", failure)
+    pa_input = None
+    if pa_inputs is not None and len(pa_inputs) == 1:
+        pa_input = pa_inputs[0]
+    elif enabled and outcome == "read":
+        note(errors, "calibration PA input incomplete; withheld")
+    errors.extend(fit.get("errors") or [])
+    return {"enabled": enabled, "applied": applied, "status": status, "pa_input": pa_input,
+            "pick_inputs": fit.get("pick_inputs"), "n_fit": fit.get("n_fit"), "samples": fit.get("samples"),
+            "samples_sha256": fit.get("samples_sha256"), "map": fit.get("map"), "map_sha256": fit.get("map_sha256"),
+            "errors": errors}
+
+
+def _attach_serving_witness(predictions, pipeline, calibration, errors) -> None:
+    """Build the serving witness and attach it as `attrs["serving"]` (null when it cannot be built). Never raises."""
+    witness = None
     try:
-        upstream = list(errors) + list(parts["serving_errors"] or [])
-    except Exception as e:
-        upstream = [f"upstream errors: {e!r}"]
-    try:
-        witness = build(model=parts["serving_model"], inputs=parts["serving_inputs"], calibration=calibration,
-                        errors=upstream)
-    except Exception as e:
+        from bts.serving_witness import build
+        upstream = list(errors or []) + list((pipeline or {}).get("errors") or [])
+        witness = build(model=(pipeline or {}).get("model"), inputs=(pipeline or {}).get("inputs"),
+                        calibration=calibration, errors=upstream)
+    except Exception:
         witness = None
         try:
-            print(f"  [local] Serving witness failed (non-fatal): {e}", file=sys.stderr)
+            print("  [local] Serving witness failed (non-fatal)", file=sys.stderr)
         except Exception:
             pass
     try:
         predictions.attrs["serving"] = witness
-    except Exception as e:
+    except Exception:
         try:
-            print(f"  [local] Serving witness not attached (non-fatal): {e}", file=sys.stderr)
+            print("  [local] Serving witness not attached (non-fatal)", file=sys.stderr)
         except Exception:
             pass
 
@@ -195,31 +188,45 @@ def predict_local(
     the witness, and genuine failures keep their current behaviour.
     """
     from bts.model.predict import run_pipeline, load_blend, _read_pa_parquet
-    from bts.serving_witness import note, sha256_or_none
     from pathlib import Path
     import os
     import pickle  # noqa: S403 — loading our own cached models
     from datetime import date as _date
+    try:
+        from bts.serving_witness import note, sha256_or_none
+    except Exception:
+        note = sha256_or_none = None
 
-    witness_errors: list = []
+    witness_errors = None
+    try:
+        witness_errors = []
+    except Exception:
+        witness_errors = None
     models_path = Path(models_dir)
     cache_path = models_path / f"blend_{date}.pkl"
     cached_blend = None
     cached_blend_sha256 = None
     if cache_path.exists():
         print(f"  [local] Loading cached model from {cache_path}", file=sys.stderr)
-        # One read: the hashed bytes are the bytes unpickled. A capture-preparation failure loads the original
+        # One read: the hashed bytes are the bytes unpickled. Any capture-preparation failure loads the original
         # path once; an unpickling error propagates exactly as load_blend's did.
+        raw_blend = prep_error = None
         try:
             raw_blend = cache_path.read_bytes()
         except Exception as e:
-            note(witness_errors, f"cache {cache_path.name}: capture preparation failed ({e!r}); "
-                                 "loaded from path, not from the hashed bytes")
-            raw_blend = None
+            raw_blend, prep_error = None, e
         if raw_blend is None:
+            try:
+                note(witness_errors, "cache: capture preparation failed; loaded from path, not from the hashed bytes",
+                     prep_error)
+            except Exception:
+                pass
             cached_blend = load_blend(cache_path)
         else:
-            cached_blend_sha256 = sha256_or_none(raw_blend, witness_errors, f"cache {cache_path.name}")
+            try:
+                cached_blend_sha256 = sha256_or_none(raw_blend, witness_errors, "cache")
+            except Exception:
+                cached_blend_sha256 = None
             cached_blend = pickle.loads(raw_blend)  # noqa: S301 — loading our own cached models
             del raw_blend
 
@@ -234,10 +241,19 @@ def predict_local(
         print(f"  [local] Prediction failed: {e}", file=sys.stderr)
         return None
 
+    # The pipeline's provenance leaves the frame before any calibration operation (r1 F1).
+    pipeline = None
+    if predictions is not None:
+        pipeline = _take_pipeline_provenance(predictions, witness_errors)
+
     # Post-hoc calibration (opt-in via env var; default off).
     calibration_enabled = os.environ.get("BTS_USE_CALIBRATION", "0") == "1"
-    calibration_errors: list = []
-    calibration = _calibration_record(calibration_enabled, calibration_errors)
+    cal_applied, cal_failure, cal_outcome = False, None, None
+    calibration_errors = pa_inputs = fit_witness = None
+    try:
+        calibration_errors, pa_inputs, fit_witness = [], [], {}
+    except Exception:
+        calibration_errors = pa_inputs = fit_witness = None
     if calibration_enabled and predictions is not None and not predictions.empty:
         try:
             from bts.model.calibrate import fit_calibrator_from_picks, apply_calibrator_series
@@ -246,19 +262,15 @@ def predict_local(
             current_year = int(date.split("-")[0])
             current_pa = proc / f"pa_{current_year}.parquet"
             if current_pa.exists():
-                pa_inputs: list = []
+                cal_outcome = "read"
                 pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors)
-                _cal_pa_input(calibration, pa_inputs, calibration_errors)
                 today = _date.fromisoformat(date)
-                fit_witness: dict = {}
                 cal = fit_calibrator_from_picks(Path(picks_dir), pa_df, today=today, witness=fit_witness)
-                _cal_from_fit(calibration, fit_witness, calibration_errors)
                 if cal is not None:
                     raw = predictions["p_game_hit"].copy()
                     predictions["p_game_hit_raw"] = raw
                     predictions["p_game_hit"] = apply_calibrator_series(raw, cal)
-                    _cal_set(calibration, "applied", True, calibration_errors)
-                    _cal_set(calibration, "status", "applied", calibration_errors)
+                    cal_applied = True
                     n = len(predictions)
                     print(
                         f"  [local] Applied calibration to {n} predictions "
@@ -268,14 +280,20 @@ def predict_local(
                 else:
                     print("  [local] Calibrator unavailable (insufficient resolved picks); using raw p", file=sys.stderr)
             else:
-                _cal_set(calibration, "status", "no_pa_file", calibration_errors)
+                cal_outcome = "no_pa_file"
                 print(f"  [local] No {current_pa.name}; calibration skipped", file=sys.stderr)
         except Exception as e:
-            _cal_failed(calibration, e, calibration_errors)
+            cal_failure = e
             print(f"  [local] Calibration failed (non-fatal): {e}; using raw p", file=sys.stderr)
 
     if predictions is not None:
-        _attach_serving_witness(predictions, calibration, witness_errors)
+        calibration = None
+        try:
+            calibration = _calibration_record(calibration_enabled, cal_applied, cal_failure, cal_outcome, pa_inputs,
+                                              fit_witness, calibration_errors)
+        except Exception:
+            calibration = None
+        _attach_serving_witness(predictions, pipeline, calibration, witness_errors)
     return predictions
 
 

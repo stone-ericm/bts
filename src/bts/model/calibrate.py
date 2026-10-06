@@ -56,35 +56,70 @@ DEFAULT_MIN_N = 30
 
 
 def _held_text(f: Path, inputs, errors):
-    """Read one pick file once, for the resolver: (text, sha256 of the bytes decoded, or None).
+    """Read one pick file once, for the resolver: (text, sha256 of the decoded bytes or None, whether its input record
+    was collected).
 
-    The held bytes are decoded with `Path.read_text()`'s exact semantics (`bts.picks._read_text_bytes`). A
-    capture-preparation failure falls back to the original `read_text()` once; a genuine read error (OSError)
-    propagates to the resolver's existing skip with no added retry, and a decode error propagates as before.
+    The held bytes are decoded with `Path.read_text()`'s exact semantics (`bts.picks._read_text_bytes`). The genuine
+    read has its own boundary: an OSError there propagates to the resolver's existing skip with no added retry. Any
+    failure preparing the held buffer or its decoder falls back to the original `read_text()` once (r1 F2). A decode
+    error propagates as before. Every witness statement is contained where it runs (r1 F4).
     """
+    raw = prep_error = None
     try:
         raw = f.read_bytes()
-        reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))
     except OSError as e:
-        _note(errors, f"pick {f.name}: unreadable, skipped: {e!r}")
+        try:
+            _note(errors, "pick input unreadable, skipped: " + f.name, e)
+        except Exception:
+            pass
         raise
     except Exception as e:
-        _note(errors, f"pick {f.name}: capture preparation failed ({e!r}); parsed from path, not from the hashed buffer")
-        _collect(inputs, {"file": f.name, "bytes": None, "sha256": None}, errors, f"pick {f.name}")
-        return f.read_text(), None
-    sha = _sha256_or_none(raw, errors, f"pick {f.name}")
-    _collect(inputs, {"file": f.name, "bytes": len(raw), "sha256": sha}, errors, f"pick {f.name}")
-    return reader.read(), sha
-
-
-def _bind(bindings, errors, f: Path, file_sha, pick_date: date, slot_key: str, bid, sample) -> None:
+        raw, prep_error = None, e
+    reader = None
+    if raw is not None:
+        try:
+            reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))
+        except Exception as e:
+            reader, prep_error = None, e
+    if reader is None:
+        try:
+            _note(errors, "pick input " + f.name + ": capture preparation failed; parsed from path, not from the hashed "
+                  "buffer", prep_error)
+        except Exception:
+            pass
+        recorded = False
+        try:
+            recorded = _collect(inputs, lambda: {"file": f.name, "bytes": None, "sha256": None}, errors, "pick input")
+        except Exception:
+            recorded = False
+        return f.read_text(), None, recorded
+    sha = None
     try:
-        rec = {"file": f.name, "file_sha256": file_sha, "date": pick_date.isoformat(), "slot": slot_key,
-               "batter_id": bid, "p": sample[0], "y": sample[1]}
-    except Exception as e:
-        _note(errors, f"pick {f.name} {slot_key}: binding failed: {e!r}")
+        sha = _sha256_or_none(raw, errors, "pick input")
+    except Exception:
+        sha = None
+    recorded = False
+    try:
+        recorded = _collect(inputs, lambda: {"file": f.name, "bytes": len(raw), "sha256": sha}, errors, "pick input")
+    except Exception:
+        recorded = False
+    return reader.read(), sha, recorded
+
+
+def _bind(bindings, errors, f: Path, file_sha, pick_date: date, slot_key: str, bid, sample) -> bool:
+    return _collect(bindings, lambda: {"file": f.name, "file_sha256": file_sha, "date": pick_date.isoformat(),
+                                       "slot": slot_key, "batter_id": bid, "p": sample[0], "y": sample[1]},
+                    errors, "sample binding")
+
+
+def _report(status, inputs_complete: bool, bindings_complete: bool) -> None:
+    if status is None:
         return
-    _collect(bindings, rec, errors, f"pick {f.name} {slot_key}")
+    try:
+        status["inputs_complete"] = inputs_complete
+        status["bindings_complete"] = bindings_complete
+    except Exception:
+        pass
 
 
 def _resolve_pick_outcomes(
@@ -95,6 +130,7 @@ def _resolve_pick_outcomes(
     bindings: list | None = None,
     inputs: list | None = None,
     errors: list | None = None,
+    status: dict | None = None,
 ) -> list[tuple[float, int]]:
     """Build (predicted_p, realized_hit) tuples from picks within the window.
 
@@ -105,9 +141,13 @@ def _resolve_pick_outcomes(
 
     Optional witness collectors (design §3.2), observational only: `inputs` gets `{file, bytes, sha256}` for every
     pick file read, in read order; `bindings` gets one record per returned sample, in the same order; `errors` gets
-    every provenance failure.
+    every provenance failure. `status` receives whether each collection is complete (r1 F3): a failed record, an
+    unreadable pick file or a lost binding makes that part incomplete even when its error cannot be recorded; a
+    status without the keys is incomplete.
     """
+    inputs_complete = bindings_complete = True
     if pa_df.empty:
+        _report(status, inputs_complete, bindings_complete)
         return []
     cutoff = today - timedelta(days=lookback_days)
 
@@ -129,9 +169,13 @@ def _resolve_pick_outcomes(
     samples: list[tuple[float, int]] = []
     for f in sorted(picks_dir.glob("2*.json")):
         try:
-            text, file_sha = _held_text(f, inputs, errors)
+            text, file_sha, recorded = _held_text(f, inputs, errors)
+            if not recorded:
+                inputs_complete = False
             data = json.loads(text)
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as e:
+            if isinstance(e, OSError):
+                inputs_complete = False        # an unreadable pick file: the consumed inventory is not complete
             continue
         try:
             pick_date = date.fromisoformat(data.get("date", ""))
@@ -160,24 +204,23 @@ def _resolve_pick_outcomes(
             sample = (float(p), int(day_hit))
             samples.append(sample)
             if bindings is not None:
-                _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample)
+                try:
+                    if not _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample):
+                        bindings_complete = False
+                except Exception:
+                    bindings_complete = False
+    _report(status, inputs_complete, bindings_complete)
     return samples
-
-
-def _put(witness, key: str, value, errors) -> None:
-    if witness is None:
-        return
-    try:
-        witness[key] = value
-    except Exception as e:
-        _note(errors, f"witness {key}: assignment failed: {e!r}")
 
 
 def _canon_or_none(obj, errors, what: str):
     try:
         return _canon_sha256(obj)
     except Exception as e:
-        _note(errors, f"{what}: canonical sha256 failed: {e!r}")
+        try:
+            _note(errors, what + ": canonical sha256 failed", e)
+        except Exception:
+            pass
         return None
 
 
@@ -187,8 +230,47 @@ def _fitted_map(cal, errors):
                 "increasing": bool(cal.increasing_), "out_of_bounds": cal.out_of_bounds,
                 "y_min": cal.y_min, "y_max": cal.y_max}
     except Exception as e:
-        _note(errors, f"calibration map: extraction failed: {e!r}")
+        try:
+            _note(errors, "calibration map: extraction failed", e)
+        except Exception:
+            pass
         return None
+
+
+def _fill_witness(witness, errors, *, status_word, samples=None, bindings=None, inputs=None, complete=None,
+                  cal=None) -> None:
+    """Fill the fit's witness once, from local facts (r1 F3): an incomplete collection is withheld (null), never
+    published as complete, whether or not its error can be recorded. If filling fails the witness is emptied, which
+    its reader treats as incomplete. Never raises."""
+    if witness is None:
+        return
+    try:
+        rec = {"status": status_word, "n_fit": None, "pick_inputs": None, "samples": None, "samples_sha256": None,
+               "map": None, "map_sha256": None, "errors": errors}
+        if samples is not None:
+            rec["n_fit"] = len(samples)
+            got = complete if isinstance(complete, dict) else {}
+            if got.get("inputs_complete") is True and inputs is not None:
+                rec["pick_inputs"] = inputs
+            else:
+                _note(errors, "calibration pick inputs incomplete; withheld")
+            if (got.get("bindings_complete") is True and bindings is not None
+                    and len(bindings) == len(samples)):
+                rec["samples"] = bindings
+                rec["samples_sha256"] = _canon_or_none(bindings, errors, "calibration samples")
+            else:
+                _note(errors, "calibration sample bindings incomplete; withheld")
+        if cal is not None:
+            cal_map = _fitted_map(cal, errors)
+            rec["map"] = cal_map
+            rec["map_sha256"] = None if cal_map is None else _canon_or_none(cal_map, errors, "calibration map")
+        witness.clear()
+        witness.update(rec)
+    except Exception:
+        try:
+            witness.clear()
+        except Exception:
+            pass
 
 
 def fit_calibrator_from_picks(
@@ -208,44 +290,37 @@ def fit_calibrator_from_picks(
     `n_fit`, `pick_inputs`, `samples` (the ordered bindings), `samples_sha256`, `map`, `map_sha256` and `errors`.
     Filling it never changes the return value.
     """
-    errors = [] if witness is not None else None
-    for key in ("status", "n_fit", "pick_inputs", "samples", "samples_sha256", "map", "map_sha256"):
-        _put(witness, key, None, errors)
-    _put(witness, "errors", errors, errors)
+    errors = bindings = inputs = complete = None
+    if witness is not None:
+        try:
+            errors, bindings, inputs, complete = [], [], [], {}
+        except Exception:
+            errors = bindings = inputs = complete = None
     try:
         from sklearn.isotonic import IsotonicRegression
     except ImportError:
         log.warning("scikit-learn not available; calibration disabled")
-        _put(witness, "status", "no_sklearn", errors)
+        _fill_witness(witness, errors, status_word="no_sklearn")
         return None
     if today is None:
         today = date.today()
-    bindings, inputs = ([], []) if witness is not None else (None, None)
     samples = _resolve_pick_outcomes(picks_dir, pa_df, today, lookback_days,
-                                     bindings=bindings, inputs=inputs, errors=errors)
-    if witness is not None:
-        _put(witness, "n_fit", len(samples), errors)
-        _put(witness, "pick_inputs", inputs, errors)
-        _put(witness, "samples", bindings, errors)
-        _put(witness, "samples_sha256", _canon_or_none(bindings, errors, "calibration samples"), errors)
+                                     bindings=bindings, inputs=inputs, errors=errors, status=complete)
     if len(samples) < min_n:
         log.info(
             f"calibrate: only {len(samples)} resolved picks in last {lookback_days}d "
             f"(need {min_n}); falling back to identity"
         )
-        _put(witness, "status", "insufficient_support", errors)
+        _fill_witness(witness, errors, status_word="insufficient_support", samples=samples, bindings=bindings,
+                      inputs=inputs, complete=complete)
         return None
     xs = [s[0] for s in samples]
     ys = [s[1] for s in samples]
     cal = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
     cal.fit(xs, ys)
     log.info(f"calibrate: fit on n={len(samples)} samples (lookback={lookback_days}d)")
-    if witness is not None:
-        cal_map = _fitted_map(cal, errors)
-        _put(witness, "map", cal_map, errors)
-        _put(witness, "map_sha256", None if cal_map is None else _canon_or_none(cal_map, errors, "calibration map"),
-             errors)
-        _put(witness, "status", "fitted", errors)
+    _fill_witness(witness, errors, status_word="fitted", samples=samples, bindings=bindings, inputs=inputs,
+                  complete=complete, cal=cal)
     return cal
 
 

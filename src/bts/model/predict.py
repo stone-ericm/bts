@@ -145,8 +145,9 @@ def train_blend(
 
 class HashingWriter:
     """A write-only file wrapper for pickle.dump (serving witness, design §3.1): each write updates a sha256 inside
-    its own guard, then forwards the bytes unchanged and returns the real write's result. So the digest is of exactly
-    the bytes written, with no full serialized buffer. A hash failure only nulls the digest."""
+    its own guard, then forwards the bytes unchanged and returns the real write's result. The digest stands only for
+    writes that report consuming their whole argument (r1 F5); a short or unreported write, or any hash failure, nulls
+    it. No full serialized buffer is allocated, and the write itself is never changed or retried."""
 
     def __init__(self, f, errors=None):
         self._f = f
@@ -155,16 +156,32 @@ class HashingWriter:
         try:
             self._h = hashlib.sha256()
         except Exception as e:
-            note(errors, f"blend save: sha256 init failed: {e!r}")
+            self._h = None
+            try:
+                note(errors, "blend save: sha256 init failed", e)
+            except Exception:
+                pass
 
     def write(self, b):
         if self._h is not None:
             try:
                 self._h.update(b)
             except Exception as e:
-                note(self._errors, f"blend save: sha256 update failed: {e!r}")
                 self._h = None
-        return self._f.write(b)
+                try:
+                    note(self._errors, "blend save: sha256 update failed", e)
+                except Exception:
+                    pass
+        n = self._f.write(b)
+        if self._h is not None:
+            try:
+                if n != memoryview(b).nbytes:
+                    self._h = None
+                    note(self._errors, "blend save: a write did not report consuming its whole argument; "
+                                       "digest withheld")
+            except Exception:
+                self._h = None
+        return n
 
     def hexdigest(self):
         if self._h is None:
@@ -172,7 +189,10 @@ class HashingWriter:
         try:
             return self._h.hexdigest()
         except Exception as e:
-            note(self._errors, f"blend save: sha256 finalization failed: {e!r}")
+            try:
+                note(self._errors, "blend save: sha256 finalization failed", e)
+            except Exception:
+                pass
             return None
 
 
@@ -190,34 +210,84 @@ def save_blend(blend: dict, path, errors: list | None = None) -> str | None:
         try:
             writer = HashingWriter(f, errors)
         except Exception as e:
-            note(errors, f"blend save: hashing writer failed: {e!r}")
+            writer = None
+            try:
+                note(errors, "blend save: hashing writer failed", e)
+            except Exception:
+                pass
         pickle.dump(blend, f if writer is None else writer)
-    return None if writer is None else writer.hexdigest()
+    if writer is None:
+        return None
+    try:
+        return writer.hexdigest()
+    except Exception:
+        return None
 
 
 def _read_pa_parquet(parquet: Path, inputs, errors) -> pd.DataFrame:
     """Read one PA parquet once (serving witness, design §3.0), recording `{file, bytes, sha256}` in `inputs`.
 
-    The held bytes are hashed and the same buffer is parsed. A capture-preparation failure parses the original path
-    once instead (provenance nulled); a parser error is a computation failure and propagates, never re-parsed.
+    The held bytes are hashed and the same buffer is parsed. Any failure preparing the held buffer parses the original
+    path once instead (provenance nulled); a parser error is a computation failure and propagates, never re-parsed.
+    Every witness statement is contained where it runs, and the fallback runs outside any except suite (r1 F4).
     """
+    raw = buffer = prep_error = None
     try:
         raw = parquet.read_bytes()
         buffer = io.BytesIO(raw)
     except Exception as e:
-        note(errors, f"{parquet.name}: capture preparation failed ({e!r}); parsed from path, not from the hashed buffer")
-        collect(inputs, {"file": parquet.name, "bytes": None, "sha256": None}, errors, parquet.name)
+        buffer, prep_error = None, e
+    if buffer is None:
+        try:
+            note(errors, "PA input " + parquet.name + ": capture preparation failed; parsed from path, not from "
+                 "the hashed buffer", prep_error)
+        except Exception:
+            pass
+        try:
+            collect(inputs, lambda: {"file": parquet.name, "bytes": None, "sha256": None}, errors, "PA input")
+        except Exception:
+            pass
         return pd.read_parquet(parquet)
-    collect(inputs, {"file": parquet.name, "bytes": len(raw), "sha256": sha256_or_none(raw, errors, parquet.name)},
-            errors, parquet.name)
+    sha = None
+    try:
+        sha = sha256_or_none(raw, errors, "PA input")
+    except Exception:
+        sha = None
+    try:
+        collect(inputs, lambda: {"file": parquet.name, "bytes": len(raw), "sha256": sha}, errors, "PA input")
+    except Exception:
+        pass
     return pd.read_parquet(buffer)
 
 
-def _attach(frame, key: str, value, errors) -> None:
+def _attach_pipeline_provenance(frame, source, sha, inputs, n_inputs: int, errors) -> None:
+    """Attach run_pipeline's provenance to its predictions (design §3.1). Each record is built and attached inside its
+    own guard; an input list whose length is not the number of parquets read is incomplete and attached as null
+    (r1 F3). Never raises."""
     try:
-        frame.attrs[key] = value
+        frame.attrs["serving_errors"] = errors
     except Exception as e:
-        note(errors, f"attrs {key}: assignment failed: {e!r}")
+        try:
+            note(errors, "attrs serving_errors", e)
+        except Exception:
+            pass
+    try:
+        frame.attrs["serving_model"] = {"source": source, "sha256": sha}
+    except Exception as e:
+        try:
+            note(errors, "attrs serving_model", e)
+        except Exception:
+            pass
+    try:
+        complete = inputs is not None and len(inputs) == n_inputs
+        if not complete:
+            note(errors, "PA inputs incomplete; withheld")
+        frame.attrs["serving_inputs"] = inputs if complete else None
+    except Exception as e:
+        try:
+            note(errors, "attrs serving_inputs", e)
+        except Exception:
+            pass
 
 
 def load_blend(path) -> dict:
@@ -947,11 +1017,16 @@ def run_pipeline(
 
     proc = Path(data_dir)
     progress.mark("loading_parquets")
-    witness_errors: list = []
-    pa_inputs: list = []
+    witness_errors = pa_inputs = None
+    try:
+        witness_errors, pa_inputs = [], []
+    except Exception:
+        witness_errors = pa_inputs = None
+    n_parquets = 0
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
         dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors))
+        n_parquets += 1
     if not dfs:
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
 
@@ -981,7 +1056,7 @@ def run_pipeline(
     if cached_blend:
         model = cached_blend.pop("_model")
         blend = cached_blend
-        serving_model = {"source": "cache", "sha256": cached_blend_sha256}
+        model_source, model_sha = "cache", cached_blend_sha256
     else:
         progress.mark("training_single_model")
         model = train_model(df, feature_cols=feature_cols_override)
@@ -991,10 +1066,11 @@ def run_pipeline(
             blend_configs=blend_configs_override,
             lgb_params=lgb_params_override,
         )
-        serving_model = {"source": "trained_unsaved", "sha256": None}
+        model_source, model_sha = "trained_unsaved", None
         if save_blend_path:
             to_save = {**blend, "_model": model}
-            serving_model = {"source": "trained", "sha256": save_blend(to_save, save_blend_path, witness_errors)}
+            model_sha = save_blend(to_save, save_blend_path, witness_errors)
+            model_source = "trained"
 
     progress.mark("building_lookups")
     lookups = _build_feature_lookups(df)
@@ -1006,7 +1082,5 @@ def run_pipeline(
         blend=blend,
         feature_cols=feature_cols_override,
     )
-    _attach(out, "serving_errors", witness_errors, witness_errors)
-    _attach(out, "serving_model", serving_model, witness_errors)
-    _attach(out, "serving_inputs", pa_inputs, witness_errors)
+    _attach_pipeline_provenance(out, model_source, model_sha, pa_inputs, n_parquets, witness_errors)
     return out
