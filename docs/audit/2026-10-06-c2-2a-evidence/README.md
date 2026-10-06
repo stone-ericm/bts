@@ -41,3 +41,31 @@
   - A first version of this probe imported `bts.model.predict` inside the timed region for the candidate only, and wrongly showed +0.7 s and +100 MB. That was import cost, corrected here.
 - **Contamination, disclosed:** warm_off repeats 0–1 (17:46–17:49) overlapped the author's own test runs on this Mac. Their candidate totals (50.6 s twice) are the two largest time pairs. Time still meets the acceptance.
 - **Status:** under the design's predeclared rule, warm_off's RSS maximum is not met, which stops 2a before code review. It goes to the owner side as a ruling on measurement validity (C2 index; register row to follow). The limits are not relaxed.
+
+## Phase-level memory method (row C2-2a-cost-method; manager's ruling, declared before any run)
+**Why:** the whole-run memory comparison above is declared **uninformative** for the 250 MB limit, in both directions. It neither passes nor fails 2a. The time results above stand as measured. **The 250 MB limit is unchanged.**
+
+**Instrument:**
+- Each run is one fresh process: `tests/c2_2a/bench/phases.py measure --phase P`, run from the side's repo root with the file copied unchanged.
+- Imports and the input copy happen before the measured section. The process's peak RSS (`ru_maxrss`, bytes on macOS) is read at the phase's end.
+- Every phase runs the side's real code. Only the named stop or stand-in differs, and it is identical on both sides.
+- Inputs are the big world of `cost/declared.json`, plus a full slate of **351 rows**: the largest production slate of 2026 (box, read 2026-10-06; median 270).
+
+**The phases:**
+1. **load:** `run_pipeline`'s PA loading of the six parquets. `compute_all_features` is replaced by a stop that records the peak.
+2. **cache:** `predict_local`'s cached-blend load (9.30 MB). `run_pipeline` is replaced by a stop at its entry; `predict_local`'s handler returns None.
+3. **save:** `save_blend` of the representative 9.30 MB blend to a fresh path. The blend is built before the measured section.
+4. **tail_off:** `predict_local` after `run_pipeline`, which is replaced by an instant return of the 351-row predictions frame. On the candidate it carries the attrs the real `run_pipeline` sets. Calibration is off, so the candidate builds and attaches the witness. Runs through `predict_local`'s return.
+5. **tail_on:** as tail_off, with `BTS_USE_CALIBRATION=1`. That adds the calibration PA read (`pa_2026`), the fit over the 156 picks, the application and the witness.
+6. **slate:** `save_slate` of the 351-row frame: no attrs on the baseline (as at f882411), and the realistic witness from a tail_on-shaped build on the candidate. The witness is built before the measured section.
+
+**Pairs:**
+- 5 repeats per phase, baseline (the f882411 worktree) and candidate, alternating which goes first.
+- A same-code control per phase: 5 baseline-vs-baseline pairs.
+
+**Rules:**
+- A phase counts only if its control's max |Δpeak| is comfortably under the limit (aim ≤ 125 MB).
+- A phase whose control is ≥ 250 MB is **UNRESOLVED** and returns to the manager. It does not pass.
+- A counted phase passes when its maximum paired Δpeak (candidate − baseline) is ≤ 250 MB.
+- If any phase exceeds 250 MB, 2a stops as designed and the redesign goes to Eric.
+- Phase times are reported, without acceptance weight; time was settled by the whole-run measurement.
