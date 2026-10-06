@@ -53,7 +53,7 @@
 
 **The phases:**
 1. **load:** `run_pipeline`'s PA loading of the six parquets. `compute_all_features` is replaced by a stop that records the peak.
-2. **cache:** `predict_local`'s cached-blend load (9.30 MB). `run_pipeline` is replaced by a stop at its entry; `predict_local`'s handler returns None.
+2. **cache:** `predict_local`'s cached-blend load (9.30 MB). `run_pipeline` is replaced by a stop at its entry. The stop is a `BaseException`, so it escapes `predict_local`'s `except Exception` and the phase driver catches it (corrected after code review r1; the earlier text said the handler returns None).
 3. **save:** `save_blend` of the representative 9.30 MB blend to a fresh path. The blend is built before the measured section.
 4. **tail_off:** `predict_local` after `run_pipeline`, which is replaced by an instant return of the 351-row predictions frame. On the candidate it carries the attrs the real `run_pipeline` sets. Calibration is off, so the candidate builds and attaches the witness. Runs through `predict_local`'s return.
 5. **tail_on:** as tail_off, with `BTS_USE_CALIBRATION=1`. That adds the calibration PA read (`pa_2026`), the fit over the 156 picks, the application and the witness.
@@ -64,7 +64,7 @@
 - A same-code control per phase: 5 baseline-vs-baseline pairs.
 
 **Rules:**
-- A phase counts only if its control's max |Δpeak| is comfortably under the limit (aim ≤ 125 MB).
+- A phase counts only if its control's max |Δpeak| is comfortably under the limit (aim ≤ 125 MB). A control above 125 MB but below 250 MB does not count either: that phase also returns to the manager (`CONTROL_ABOVE_AIM`; the summarizer was aligned after code review r1).
 - A phase whose control is ≥ 250 MB is **UNRESOLVED** and returns to the manager. It does not pass.
 - A counted phase passes when its maximum paired Δpeak (candidate − baseline) is ≤ 250 MB.
 - If any phase exceeds 250 MB, 2a stops as designed and the redesign goes to Eric.
@@ -90,3 +90,16 @@
   - tail_off 0.0002 → 0.005 s (the witness build); tail_on 0.436 → 0.442 s; slate 0.005 → 0.006 s.
 - **Result: all six phases PASS; the 2a cost gate is met** under row C2-2a-cost-method's declared method.
 - **Scaling note (reasoning, not measured on the box):** production loads ten parquets (231 MB). The load increment is the largest single file held at once (28 MB on the box), not the sum.
+
+## Mutant ledger after code review r1
+- **Runner (r1 F6):** RED only for pytest exit 1 with a `FAILED` line. Anything else is INCONCLUSIVE, and the runner exits 1 if any mutant is not RED.
+- **Ledger:** 76 mutants (`mutants.json`).
+  - 29 were re-anchored to the same rules in the revised code.
+  - O12 was split into O14 (`save_slate` takes the witness before building rows) and O16 (`run_and_pick`'s backstop drop).
+  - New: C18–C24, W2b, W11, W12, P13–P15, O11b, O13, O15, covering F1–F5's rules.
+- **First run at `d7f8cec`:** 71 RED, 4 SURVIVED.
+  - C13 is the recorded equivalent.
+  - C19 and C22 (bindings completeness) were masked by the length check. A new test, `test_a_binding_that_raised_after_appending_is_still_withheld`, kills them.
+  - O11 (taking the pipeline attrs) was masked by the `clear()` backstop. It became the combined mutant, provenance left on the frame. O11b removes the backstop alone, and the new `test_a_failed_pop_still_clears_the_pipeline_provenance` kills it.
+  - O11's first combined replacement left an empty `try`. The strict runner reported it INCONCLUSIVE, and it was fixed and re-run.
+- **Result: 75 of 75 attributable mutants RED; C13 equivalent.**

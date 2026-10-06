@@ -143,7 +143,7 @@
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
   ],
-  "equivalent": "IsotonicRegression(out_of_bounds='clip', y_min=0.0, y_max=1.0) keeps the default increasing=True, so increasing_ is True on any data (checked on decreasing data); the constant cannot differ from the fitted value"
+  "equivalent": "IsotonicRegression(out_of_bounds='clip', y_min=0.0, y_max=1.0) keeps sklearn's default increasing=True, so increasing_ is True on any data; the constant equals the fitted value"
  },
  {
   "id": "C13b",
@@ -562,12 +562,13 @@
  },
  {
   "id": "O11",
-  "rule": "attach: run_pipeline provenance moved, not left",
+  "rule": "F1: run_pipeline's provenance does not stay on the frame (taken, with the clear backstop)",
   "file": "src/bts/orchestrator.py",
-  "old": "                parts[key] = predictions.attrs.pop(attr)\n",
-  "new": "                parts[key] = predictions.attrs[attr]\n",
+  "old": "                parts[key] = predictions.attrs.pop(attr)\n            except KeyError:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance missing: \" + attr)\n            except Exception as e:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance: \" + attr, e)\n    except Exception:\n        pass\n    try:\n        if any(attr in predictions.attrs for _, attr in _PIPELINE_ATTRS):\n            predictions.attrs.clear()\n",
+  "new": "                parts[key] = predictions.attrs[attr]\n            except KeyError:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance missing: \" + attr)\n            except Exception as e:\n                parts[key] = None\n                note(errors, \"run_pipeline provenance: \" + attr, e)\n    except Exception:\n        pass\n    try:\n        pass\n",
   "tests": [
-   "tests/c2_2a/test_local_witness.py"
+   "tests/c2_2a/test_local_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
   ],
   "reanchored_after_r1": true
  },
@@ -836,6 +837,16 @@
   "new": "        pass\n",
   "tests": [
    "tests/c2_2a/test_slate_v3.py"
+  ]
+ },
+ {
+  "id": "O11b",
+  "rule": "F1: the clear backstop when taking an attr fails",
+  "file": "src/bts/orchestrator.py",
+  "old": "        if any(attr in predictions.attrs for _, attr in _PIPELINE_ATTRS):\n            predictions.attrs.clear()\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
   ]
  }
 ]

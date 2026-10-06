@@ -43,10 +43,18 @@ def summarise(rows):
         if not d:
             continue
         cmax = max(abs(v) for v in c) if c else None
-        resolved = cmax is not None and cmax < LIMIT
+        # The ruling (row C2-2a-cost-method): a phase counts only when its control is comfortably under the limit
+        # (aim <= 125 MB); a control at or above 250 MB is UNRESOLVED; between the two, the phase does not count and
+        # returns to the manager (code review r1: the summary must not count a control outside the aim).
+        if cmax is None or cmax >= LIMIT:
+            verdict = "UNRESOLVED"
+        elif cmax > AIM:
+            verdict = "CONTROL_ABOVE_AIM"
+        else:
+            verdict = "PASS" if max(d) <= LIMIT else "EXCEEDED"
         out[phase] = {"pairs": d, "control_pairs": c, "max": max(d), "median": statistics.median(d),
                       "control_max_abs": cmax, "control_within_aim": cmax is not None and cmax <= AIM,
-                      "verdict": ("UNRESOLVED" if not resolved else ("PASS" if max(d) <= LIMIT else "EXCEEDED")),
+                      "verdict": verdict,
                       "elapsed_s": {s: statistics.median([r["elapsed_s"] for r in rows if r["phase"] == phase
                                                           and r["side"] == s]) for s in ("baseline", "candidate")}}
     return out

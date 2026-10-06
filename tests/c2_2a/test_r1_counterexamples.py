@@ -252,3 +252,58 @@ def test_a_full_write_keeps_the_digest():
     w = P.HashingWriter(sink, [])
     assert w.write(memoryview(b"abcdef")) == 6
     assert w.hexdigest() == hashlib.sha256(b"abcdef").hexdigest()
+
+
+class _AppendThenRaise:
+    """A collector whose append lands and then raises: the length looks complete; only the reported failure says not."""
+    def __init__(self, target):
+        self.target = target
+
+    def append(self, x):
+        self.target.append(x)
+        raise MemoryError("synthetic: raised after appending")
+
+
+def test_a_binding_that_raised_after_appending_is_still_withheld(world, monkeypatch):
+    monkeypatch.setenv("BTS_USE_CALIBRATION", "1")
+    real_collect = W.collect
+    seen = {"n": 0}
+
+    def collect(items, build, errors, what):
+        if what == "sample binding" and items is not None:
+            seen["n"] += 1
+            if seen["n"] == 7:
+                return real_collect(_AppendThenRaise(items), build, errors, what)
+        return real_collect(items, build, errors, what)
+    monkeypatch.setattr(C, "_collect", collect)
+    rec = _run(world).attrs["serving"]["calibration"]
+    assert rec["status"] == "applied" and rec["n_fit"] == 40
+    assert rec["samples"] is None and rec["samples_sha256"] is None
+
+
+def test_a_failed_pop_still_clears_the_pipeline_provenance(world, monkeypatch):
+    """If taking an attr fails, the backstop clears them all before calibration (r1 F1)."""
+    class PopFails(dict):
+        def pop(self, *a):
+            raise RuntimeError("synthetic: pop")
+
+    class Frame(pd.DataFrame):
+        held = PopFails()
+
+        @property
+        def _constructor(self):
+            return pd.DataFrame
+
+        @property
+        def attrs(self):
+            return Frame.held
+
+        @attrs.setter
+        def attrs(self, value):
+            pass
+    frame = Frame({"batter_id": [1], "game_pk": [10], "p_game_hit": [0.8]})
+    Frame.held.update({"serving_errors": [], "serving_model": {"source": "cache", "sha256": None},
+                       "serving_inputs": []})
+    monkeypatch.setattr(P, "run_pipeline", lambda *a, **k: frame)
+    out = _run(world)
+    assert out is frame and set(Frame.held) == {"serving"}
