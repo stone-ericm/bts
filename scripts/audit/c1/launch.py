@@ -9,8 +9,11 @@ one exclusive launch lock (r3 B5):
    - the guard's CPU is counted when the journal has no row for the unit;
    - a missing or invalid receipt reserves the unit's full budget in the ledger;
    - a missing or invalid receipt, or any result other than a clean `exit`, materializes `OVERRUN_<unit>.json`;
-   - nothing is moved: pause markers, then the ledger, then a durable `RECONCILED_<unit>.json` (crash-safe; r2 N1);
-   - unit names carry a random suffix and are never reused (r2 N4);
+   - nothing is moved, and every sweep replays every invocation, at the root and in the legacy `jobs/` archive: pause
+     markers, then the ledger, then a deterministic `RECONCILED_<unit>.json`. A RECONCILED record never stands in for
+     the accounting (crash- and rollback-safe; r2 N1, r3);
+   - unit names carry a random suffix, and a name already present in any evidence or ledger row is redrawn (refused
+     after 5 draws), so evidence is never overwritten (r2 N4, r3);
    - an ordinary failure (exit rc != 0) still blocks a same-name relaunch after its journal entry is gone (r2 N3);
    - a failed `systemd-run` keeps the PENDING record (r2 N2);
    - systemd `timeout` / `oom-kill` failures are materialized the same way.
@@ -199,28 +202,41 @@ def terminal_problems(t, pending: dict, unit: str) -> list[str]:
     return p
 
 
-def reconcile(c1_dir: Path, ledger_path: Path, rows: list[dict]) -> tuple[list[dict], list[str]]:
-    """Every launched invocation's PENDING record against its guard TERMINAL receipt (call only with no C1 unit
-    active). Crash-safe (infra review r2 N1): nothing is moved. For each PENDING without a RECONCILED record:
-    1. write the pause marker if one is due;
-    2. commit the ledger (the guard's measured CPU, or a reservation of the full budget);
-    3. write a durable RECONCILED_<unit>.json.
+def _lifecycle(c1_dir: Path, prefix: str) -> dict:
+    """{unit: path} for PREFIX_<unit>.json at the root and in the legacy jobs/ archive (788c3a7 moved reconciled pairs
+    there). The same unit with different bytes in both places is ambiguous: refuse for explicit reconciliation."""
+    out: dict = {}
+    for d in (c1_dir, c1_dir / "jobs"):
+        for f in (sorted(d.glob(f"{prefix}_*.json")) if d.exists() else []):
+            unit = f.stem.removeprefix(f"{prefix}_")
+            if unit in out and out[unit].read_bytes() != f.read_bytes():
+                raise SystemExit(f"refusing: ambiguous {prefix} records for {unit} (root and jobs/); reconcile explicitly")
+            out.setdefault(unit, f)
+    return out
 
-    A crash anywhere repeats the same idempotent steps on the next sweep.
+
+def reconcile(c1_dir: Path, ledger_path: Path, rows: list[dict]) -> tuple[list[dict], list[str]]:
+    """Every launched invocation's PENDING record against its guard TERMINAL receipt, replayed on every sweep (call
+    only with no C1 unit active). Root and legacy `jobs/` records alike (infra review r3: a RECONCILED record does
+    not prove the current ledger holds the accounting).
+
+    Crash-safe and idempotent: nothing is moved; for each invocation:
+    1. the pause marker if one is due;
+    2. the ledger commit (the guard's measured CPU, or a reservation of the full budget; same key on every replay);
+    3. a deterministic RECONCILED_<unit>.json at the root.
+
     - **A valid receipt:** its CPU enters the ledger when the journal has no row for the unit; a result other than a
       clean exit pauses C1.
     - **A missing or invalid receipt:** the full budget is reserved and C1 pauses (unreconciled).
 
-    Returns (ledger rows, units reconciled now)."""
+    Returns (ledger rows, units reconciled)."""
     done = []
-    for pend in sorted(c1_dir.glob("PENDING_*.json")):
-        unit = pend.stem.removeprefix("PENDING_")
-        if (c1_dir / f"RECONCILED_{unit}.json").exists():
-            continue
+    terminals = _lifecycle(c1_dir, "TERMINAL")
+    for unit, pend in sorted(_lifecycle(c1_dir, "PENDING").items()):
         pending = json.loads(pend.read_text())
-        term, marker = c1_dir / f"TERMINAL_{unit}.json", c1_dir / f"OVERRUN_{unit}.json"
+        term, marker = terminals.get(unit), c1_dir / f"OVERRUN_{unit}.json"
         try:
-            t = json.loads(term.read_text()) if term.exists() else None
+            t = json.loads(term.read_text()) if term is not None else None
         except ValueError:
             t = "unreadable"
         problems = ["no guard TERMINAL receipt (the guard was killed or failed)"] if t is None else \
@@ -237,12 +253,21 @@ def reconcile(c1_dir: Path, ledger_path: Path, rows: list[dict]) -> tuple[list[d
                             "result": result, "problems": problems,
                             "written_utc": datetime.now(timezone.utc).isoformat()})
         ledger.write_tsv(ledger_path, rows)
-        _write(c1_dir / f"RECONCILED_{unit}.json", {"unit": unit, "result": result, "cpu_seconds": cpu,
-                                                    "rc": t.get("rc") if isinstance(t, dict) else None,
-                                                    "problems": problems,
-                                                    "written_utc": datetime.now(timezone.utc).isoformat()})
+        rec = {"unit": unit, "result": result, "cpu_seconds": cpu,
+               "rc": t.get("rc") if isinstance(t, dict) else None, "problems": problems}
+        target = c1_dir / f"RECONCILED_{unit}.json"
+        if not target.exists() or json.loads(target.read_text()) != rec:
+            _write(target, rec)
         done.append(unit)
     return rows, done
+
+
+def unit_taken(c1_dir: Path, rows: list[dict], unit: str) -> bool:
+    """A proposed unit identity already present in any lifecycle evidence or ledger row (infra review r3, N4)."""
+    names = [f"{p}_{unit}.json" for p in ("PENDING", "TERMINAL", "RECONCILED", "OVERRUN", "RESUME")]
+    if any((d / n).exists() for d in (c1_dir, c1_dir / "jobs") for n in names):
+        return True
+    return any(r["unit"] == f"{unit}.service" for r in rows)
 
 
 def receipt_failures(c1_dir: Path) -> list[str]:
@@ -351,7 +376,7 @@ def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dic
     out = {"ok": not reasons, "reasons": reasons, "total_cpu_hours": round(total, 4), "season": season_note}
     if reasons:
         return out
-    unit = f"c1-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"   # never reused (infra r2 N4)
+    unit = f"c1-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"   # a collision is redrawn by _locked (infra r3 N4)
     log = (log_dir or Path.home() / "logs") / f"c1-{name}.log"
     pdir = pause_dir or c1_paths(DATA_ROOT)["ledger"].parent
     out.update(unit=unit, limit_cpu_seconds=limit, log=str(log), argv=[
@@ -447,12 +472,17 @@ def _locked(args, paths: dict, c1_dir: Path) -> int:
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     sched = _run(["journalctl", "--user", "-u", "bts-scheduler", "-o", "json", "-n", "50",
                   "--output-fields=MESSAGE"]).splitlines()
-    p = plan_launch(name=args.name, cpu_hours=args.cpu_hours, max_hours=args.max_hours, rows=rows, acked=acked,
-                    active_units=_active(), sched_lines=sched, now=datetime.now(timezone.utc), cwd=args.cwd,
-                    env_file=str(PROD_ENV), command=command,
-                    rate_limit_stops=rate_limit_stops(DATA_ROOT),
-                    failed_units=sorted(set(failed_units(journal)) | set(receipt_failures(c1_dir))),
-                    acked_failures=args.ack_failure, overrun_stops=overruns, pause_dir=c1_dir)
+    for _ in range(5):                      # a fresh identity, never one already in the evidence or ledger (r3 N4)
+        p = plan_launch(name=args.name, cpu_hours=args.cpu_hours, max_hours=args.max_hours, rows=rows, acked=acked,
+                        active_units=_active(), sched_lines=sched, now=datetime.now(timezone.utc), cwd=args.cwd,
+                        env_file=str(PROD_ENV), command=command,
+                        rate_limit_stops=rate_limit_stops(DATA_ROOT),
+                        failed_units=sorted(set(failed_units(journal)) | set(receipt_failures(c1_dir))),
+                        acked_failures=args.ack_failure, overrun_stops=overruns, pause_dir=c1_dir)
+        if not p["ok"] or not unit_taken(c1_dir, rows, p["unit"]):
+            break
+    else:
+        raise SystemExit("refusing: could not draw an unused unit identity in 5 attempts")
     print(json.dumps(p, indent=1))
     if not p["ok"]:
         return 2

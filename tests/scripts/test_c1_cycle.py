@@ -570,3 +570,85 @@ def test_an_unconfirmed_empty_payload_is_an_enforcement_failure(tmp_path, monkey
     monkeypatch.setattr(guard.time, "sleep", lambda s: None)
     rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "pass"])
     assert rc == guard.GUARD_ERROR_EXIT and rec["result"] == "guard-error" and "not confirmed empty" in rec["reason"]
+
+
+# ---------- infra review r3 (closure): N1/N3 replay and archive recovery, N4 collision ----------
+def test_a_rolled_back_ledger_is_restored_from_retained_evidence_and_the_checkpoint_refuses(box):
+    """r3: RECONCILED exists, but the ledger lost the row (a rollback/restore). Replay restores 51 h; checkpoint."""
+    plant_ledger(box["c1"], 49)
+    plant(box["c1"], "c1-x-1-aa", 14400, {"result": "exit", "rc": 0, "cpu_seconds": 7200.0})
+    guard.write_receipt(box["c1"] / "RECONCILED_c1-x-1-aa.json", {"unit": "c1-x-1-aa", "result": "exit"})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert ledger_hours(box["c1"]) == pytest.approx(51.0)
+    assert launch.main(["status"]) == 0 and ledger_hours(box["c1"]) == pytest.approx(51.0)   # no double count
+
+
+@pytest.mark.parametrize("layout", ["both_archived", "pending_archived_terminal_root"])
+def test_legacy_archived_pairs_are_recovered(box, layout):
+    """r3: 788c3a7 moved reconciled pairs to jobs/; they must not become invisible accounting evidence."""
+    plant_ledger(box["c1"], 49)
+    jobs = box["c1"] / "jobs"
+    jobs.mkdir()
+    unit = "c1-x-1-aa"
+    guard.write_receipt(jobs / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 14400})
+    term_dir = jobs if layout == "both_archived" else box["c1"]
+    guard.write_receipt(term_dir / f"TERMINAL_{unit}.json", {"unit": unit, "budget_seconds": 14400, "result": "exit",
+                                                             "rc": 0, "cpu_seconds": 7200.0})
+    assert launch.main(ARGV) == 2 and ledger_hours(box["c1"]) == pytest.approx(51.0)
+
+
+def test_an_archived_ordinary_failure_still_blocks_its_same_name_relaunch(box):
+    jobs = box["c1"] / "jobs"
+    jobs.mkdir()
+    unit = "c1-r3-fit-20261005T010000Z-aa"
+    guard.write_receipt(jobs / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 3600})
+    guard.write_receipt(jobs / f"TERMINAL_{unit}.json", {"unit": unit, "budget_seconds": 3600, "result": "exit",
+                                                         "rc": 5, "cpu_seconds": 1.0})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert launch.main([*ARGV[:-2], "--ack-failure", unit, "--", "true"]) == 0
+
+
+def test_ambiguous_root_and_archive_records_refuse(box, capsys):
+    jobs = box["c1"] / "jobs"
+    jobs.mkdir()
+    guard.write_receipt(jobs / "PENDING_c1-x-1-aa.json", {"unit": "c1-x-1-aa", "limit_cpu_seconds": 3600})
+    guard.write_receipt(box["c1"] / "PENDING_c1-x-1-aa.json", {"unit": "c1-x-1-aa", "limit_cpu_seconds": 7200})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert "ambiguous PENDING records" in capsys.readouterr().err
+
+
+class FixedUUID:
+    def __init__(self, hexes):
+        self.hexes = list(hexes)
+
+    def __call__(self):
+        h = self.hexes.pop(0) if len(self.hexes) > 1 else self.hexes[0]
+        return type("U", (), {"hex": h})()
+
+
+class FrozenDT(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 10, 5, 12, tzinfo=timezone.utc)
+
+
+def test_a_colliding_identity_is_redrawn_and_never_overwrites_evidence(box, monkeypatch):
+    """r3 N4: a repeated suffix with a prior completed invocation (RECONCILED, a journal row, a released marker)."""
+    old = "c1-r3-fit-20261005T120000Z-aaaaaaaa"
+    plant(box["c1"], old, 3600, {"result": "exit", "rc": 0, "cpu_seconds": 10.0})
+    guard.write_receipt(box["c1"] / f"RECONCILED_{old}.json", {"unit": old, "result": "exit"})
+    before = (box["c1"] / f"PENDING_{old}.json").read_bytes()
+    monkeypatch.setattr(launch, "datetime", FrozenDT)
+    monkeypatch.setattr(launch.uuid, "uuid4", FixedUUID(["aaaaaaaa" + "0" * 24, "bbbbbbbb" + "0" * 24]))
+    assert launch.main(ARGV) == 0
+    started = box["started"][-1][box["started"][-1].index("--unit") + 1]
+    assert started == "c1-r3-fit-20261005T120000Z-bbbbbbbb"
+    assert (box["c1"] / f"PENDING_{old}.json").read_bytes() == before
+
+
+def test_an_identity_that_keeps_colliding_refuses(box, monkeypatch):
+    old = "c1-r3-fit-20261005T120000Z-aaaaaaaa"
+    plant(box["c1"], old, 3600, {"result": "exit", "rc": 0, "cpu_seconds": 10.0})
+    monkeypatch.setattr(launch, "datetime", FrozenDT)
+    monkeypatch.setattr(launch.uuid, "uuid4", FixedUUID(["aaaaaaaa" + "0" * 24]))
+    assert launch.main(ARGV) == 2 and box["started"] == []
