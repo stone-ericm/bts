@@ -60,10 +60,13 @@ def test_slot_codes_must_be_three_digit_strings():
 
 def test_the_same_person_cannot_start_twice_or_for_both_sides():
     players = lineup(100)
-    players["ID102"]["person"]["id"] = 101
-    assert any("two slots" in p or "duplicate" in p for p in M.extract(feed(away=players)).problems)
+    players["ID102"]["person"]["id"] = 101          # a second entry for 101 can only hide under a wrong key (r3 R3-4)
+    assert any("'ID102' holds person 101" in p for p in M.extract(feed(away=players)).problems)
     home = lineup(200)
     home["ID201"]["person"]["id"] = 101
+    assert any("'ID201' holds person 101" in p for p in M.extract(feed(home=home)).problems)
+    home = lineup(200)
+    home["ID101"] = {"person": {"id": 101}, "battingOrder": home.pop("ID201")["battingOrder"]}   # consistent keys
     assert any("both sides" in p for p in M.extract(feed(home=home)).problems)
 
 

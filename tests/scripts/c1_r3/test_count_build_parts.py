@@ -215,3 +215,115 @@ def test_a_pinch_hitter_in_the_open_slot_may_lead_off_the_next_half():
              play(2, "bottom", 201, 150, inning=1), play(3, "top", 112, 250, inning=2)]
     m, reasons = full_game(plays=plays, current_inning=2, away=lineup(100, subs=[(112, "201")]))
     assert reasons == []
+
+
+# ---------- review r3 R3-3 / R3-4: unsupported or contradictory witnesses quarantine (independent raw counters) ----------
+def raw_counts(f):
+    """Independent of extract(): production PA events counted straight from the raw plays."""
+    from bts.data.schema import PA_ENDING_EVENTS
+    return Counter((p["about"]["halfInning"] == "bottom", p["matchup"]["batter"]["id"])
+                   for p in f["liveData"]["plays"]["allPlays"] if p["result"]["eventType"] in PA_ENDING_EVENTS)
+
+
+def raw_verdict(f):
+    reasons = V.verify_game(M.extract(f), pk=7, season=2023, parquet=raw_counts(f))
+    census = V.census({7: reasons}, eligible={7}, feeds_without_parquet=set())
+    return reasons, census
+
+
+def cs_control(**kw):
+    """r2's caught-stealing control: away slot 1 single; slot 2 inning-ending caught stealing; home slot 1 single;
+    away slot 2 leads off inning 2."""
+    plays = [play(0, "top", 101, 250, inning=1), play(1, "top", 102, 250, event="caught_stealing_2b", inning=1),
+             play(2, "bottom", 201, 150, inning=1), play(3, "top", 102, 250, inning=2)]
+    return feed(pk=7, plays=plays, current_inning=2, **kw)
+
+
+def test_the_controls_still_certify_with_independent_counters():
+    for f in (feed(pk=7), cs_control()):
+        reasons, census = raw_verdict(f)
+        assert reasons == [] and census["certified"] == 1
+
+
+@pytest.mark.parametrize("flag", [False, None, "missing"])
+def test_an_interior_play_that_is_not_complete_is_quarantined(flag):
+    f = feed(pk=7)
+    if flag == "missing":
+        del f["liveData"]["plays"]["allPlays"][0]["about"]["isComplete"]
+    else:
+        f["liveData"]["plays"]["allPlays"][0]["about"]["isComplete"] = flag
+    reasons, census = raw_verdict(f)
+    assert any("play 0: isComplete" in r for r in reasons) and census["certified"] == 0 and 7 in census["quarantined"]
+
+
+@pytest.mark.parametrize("event", ["UNSUPPORTED_RESULT", "", None, "os_ruling_pending_prior", "fan_interference",
+                                   "caught_stealing", "game_advisory"])
+def test_an_unsupported_result_is_quarantined_not_assumed_open(event):
+    f = cs_control()
+    f["liveData"]["plays"]["allPlays"][1]["result"]["eventType"] = event
+    reasons, census = raw_verdict(f)
+    assert any("play 1: result" in r and "not a supported" in r for r in reasons) and census["certified"] == 0
+
+
+@pytest.mark.parametrize("who", ["batter", "pitcher"])
+def test_an_invalid_id_on_a_non_pa_play_is_quarantined_not_dropped(who):
+    f = cs_control()
+    f["liveData"]["plays"]["allPlays"][1]["matchup"][who]["id"] = False
+    reasons, census = raw_verdict(f)
+    assert any("play 1: a result without valid batter/pitcher ids" in r for r in reasons) and census["certified"] == 0
+
+
+def test_the_supported_results_are_bound_to_mlb_s_own_vocabulary():
+    """OPEN_TURN is exactly MLB's base-running, non-plate-appearance codes less the pending ruling; every
+    completed-turn code is an MLB plate-appearance code; the two sets are disjoint."""
+    import json
+    from pathlib import Path
+    vocab = json.loads((Path(M.__file__).parent / "mlb_event_types_20261005.json").read_text())
+    br = {e["code"] for e in vocab if e["baseRunningEvent"] and not e["plateAppearance"]}
+    pa = {e["code"] for e in vocab if e["plateAppearance"]}
+    assert M.OPEN_TURN == br - {"os_ruling_pending_prior"}
+    assert M.COMPLETED_TURN <= pa and not (M.COMPLETED_TURN & M.OPEN_TURN)
+
+
+def test_one_starting_pitcher_for_both_sides_is_quarantined():
+    """r3 R3-4: both sides declare 150 and both first matchups use 150; it used to emit two starts for (150, 7)."""
+    f = feed(pk=7, away_pitchers=(150,), home_pitchers=(150,), plays=[
+        *[play(k - 1, "top", 100 + k, 150) for k in range(1, 10)],
+        *[play(8 + k, "bottom", 200 + k, 150) for k in range(1, 10)]])
+    reasons, census = raw_verdict(f)
+    assert any("both sides declare starting pitcher 150" in r for r in reasons) and census["certified"] == 0
+
+
+def test_a_starting_pitcher_in_the_other_lineup_is_quarantined_but_his_own_lineup_is_legal():
+    home = lineup(200)
+    home["ID150"] = {"person": {"id": 150}, "battingOrder": home.pop("ID209")["battingOrder"]}
+    plays = [*[play(k - 1, "top", 100 + k, 250) for k in range(1, 10)],
+             *[play(8 + k, "bottom", 200 + k if k < 9 else 150, 150) for k in range(1, 10)]]
+    reasons, _ = raw_verdict(feed(pk=7, home=home, plays=plays))
+    assert any("away: starting pitcher 150 is in the home lineup" in r for r in reasons)
+    away = lineup(100)
+    away["ID150"] = {"person": {"id": 150}, "battingOrder": away.pop("ID109")["battingOrder"]}    # two-way player
+    plays = [*[play(k - 1, "top", 100 + k if k < 9 else 150, 250) for k in range(1, 10)],
+             *[play(8 + k, "bottom", 200 + k, 150) for k in range(1, 10)]]
+    assert raw_verdict(feed(pk=7, away=away, plays=plays))[0] == []
+
+
+def test_a_bf_record_under_another_person_s_key_is_quarantined():
+    """r3 R3-4: players.ID250.person.id is 999 while pitchers[0] and the matchups name 250."""
+    f = feed(pk=7)
+    f["liveData"]["boxscore"]["teams"]["home"]["players"]["ID250"]["person"]["id"] = 999
+    reasons, census = raw_verdict(f)
+    assert any("players entry ID250 holds person 999" in r for r in reasons) and census["certified"] == 0
+
+
+def test_a_duplicate_substitute_rank_is_quarantined():
+    """r3 R3-4: 111 and 112 both declared '101' (slot 1, first substitute), batting slot 1 on successive cycles."""
+    plays, i = [], 0
+    for inn, lead in ((1, 111), (2, 112)):
+        for k in range(1, 10):
+            plays.append(play(i, "top", lead if k == 1 else 100 + k, 250, inning=inn)); i += 1
+        for k in range(1, 10):
+            plays.append(play(i, "bottom", 200 + k, 150, inning=inn)); i += 1
+    reasons, census = raw_verdict(feed(pk=7, plays=plays, current_inning=2,
+                                       away=lineup(100, subs=[(111, "101"), (112, "101")])))
+    assert any("slot 1 substitute rank 1 is declared for" in r for r in reasons) and census["certified"] == 0

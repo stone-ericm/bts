@@ -10,7 +10,12 @@ Identities are validated before use: positive builtin integers, never coerced (r
   - Each side must have nine distinct starters, and no person may appear twice or on both sides.
 - **Starting pitcher:** `boxscore.teams[side].pitchers[0]`, cross-checked against the pitcher in the first play of
   the opposing half: any play, PA-ending or not, so a starter removed before completing a PA is still seen.
-- **Plays:**
+- **Plays (r3 R3-3):** every raw play is checked before anything is built from it, and none is dropped silently.
+  - `about.isComplete` must be exactly true;
+  - the result must be a supported completed-turn result (`COMPLETED_TURN`) or open-turn result (`OPEN_TURN`).
+    Anything else (an unknown code, a pending ruling, a plate-appearance code production does not count) is a
+    problem;
+  - the batter and pitcher must be valid ids;
   - every play's `atBatIndex` must run 0, 1, 2, … without a gap (a completeness witness independent of the PA
     parquet);
   - half-innings must be "top" or "bottom";
@@ -27,11 +32,15 @@ Identities are validated before use: positive builtin integers, never coerced (r
   - the last play must be complete, in `linescore.currentInning`.
 - **Official totals (r2 N2):** each side's team `plateAppearances` and each starter's `battersFaced` are read for T2
   to reconcile against the completed batting turns.
-- **Identity (r2 N4):**
+- **Identity (r2 N4, r3 R3-4):**
   - every id is a positive builtin int; the season is a 4-digit string or int;
   - `officialDate` is a real ISO date in that season;
   - innings are positive ints, and the half-innings move forward;
-  - no lineup person appears on both sides.
+  - no lineup person appears on both sides;
+  - a boxscore `players` entry used for a lineup or a starter's battersFaced is keyed `ID<its person.id>`;
+  - a substitute is declared once, and each (slot, rank) once;
+  - the two sides' starting pitchers differ, and neither is in the other side's lineup. A pitcher in his own
+    side's lineup is legal.
 
 Problems are listed, not repaired; T2 (`count_verify`) turns them into quarantine decisions.
 """
@@ -54,6 +63,16 @@ SEASON_RE = re.compile(r"(19|20)\d\d")
 # (intentional walks, batter interference). Any other result leaves the turn open (e.g. an inning-ending
 # caught stealing): the same slot must lead off the side's next half-inning.
 COMPLETED_TURN = frozenset(PA_ENDING_EVENTS) | {"intent_walk", "batter_interference"}
+# The supported open-turn results (r3 R3-3): MLB's own base-running, non-plate-appearance codes (statsapi
+# /api/v1/eventTypes, snapshot `mlb_event_types_20261005.json`: baseRunningEvent and not plateAppearance), less the
+# pending ruling `os_ruling_pending_prior`. They end a play record without the batter completing his turn, e.g. an
+# inning-ending caught stealing or a game-ending wild pitch.
+OPEN_TURN = frozenset({
+    "balk", "caught_stealing_2b", "caught_stealing_3b", "caught_stealing_home", "cs_double_play", "defensive_indiff",
+    "error", "forced_balk", "other_advance", "other_out", "passed_ball", "pickoff_1b", "pickoff_2b", "pickoff_3b",
+    "pickoff_caught_stealing_2b", "pickoff_caught_stealing_3b", "pickoff_caught_stealing_home", "pickoff_error_1b",
+    "pickoff_error_2b", "pickoff_error_3b", "runner_double_play", "stolen_base_2b", "stolen_base_3b",
+    "stolen_base_home", "wild_pitch"})
 
 
 @dataclass(frozen=True)
@@ -75,7 +94,7 @@ class Play:
     side: str
     inning: int
     batter: int
-    pitcher: int | None
+    pitcher: int
     event: str
 
     @property
@@ -107,8 +126,8 @@ def _pid(v) -> int | None:
 
 
 def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
-    starters, subs = {}, {}
-    for p in players.values():
+    starters, subs, ranks = {}, {}, {}
+    for key, p in players.items():
         code = p.get("battingOrder")
         if code is None:
             continue
@@ -116,6 +135,9 @@ def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
         m = CODE_RE.fullmatch(code) if isinstance(code, str) else None
         if pid is None:
             problems.append(f"{side}: a lineup player without a positive integer id")
+            continue
+        if key != f"ID{pid}":
+            problems.append(f"{side}: players entry {key!r} holds person {pid}")
             continue
         if m is None:
             problems.append(f"{side}: battingOrder {code!r} for {pid} is not a 3-digit slot code")
@@ -126,7 +148,12 @@ def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
                 problems.append(f"{side}: duplicate starter in slot {slot} ({starters[slot]}, {pid})")
             else:
                 starters[slot] = pid
+        elif pid in subs:
+            problems.append(f"{side}: substitute {pid} is declared twice")
+        elif (slot, rank) in ranks:
+            problems.append(f"{side}: slot {slot} substitute rank {rank} is declared for {ranks[(slot, rank)]} and {pid}")
         else:
+            ranks[(slot, rank)] = pid
             subs[pid] = (slot, rank)
     missing = sorted(set(range(1, 10)) - set(starters))
     if missing:
@@ -138,8 +165,13 @@ def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
     return starters, subs
 
 
-def _box_bf(players: dict, pid) -> int | None:
-    p = players.get(f"ID{pid}") or {}
+def _box_bf(players: dict, pid: int, side: str, problems: list) -> int | None:
+    p = players.get(f"ID{pid}")
+    if p is None:
+        return None
+    if _pid((p.get("person") or {}).get("id")) != pid:
+        problems.append(f"{side}: players entry ID{pid} holds person {(p.get('person') or {}).get('id')!r}")
+        return None
     v = ((p.get("stats") or {}).get("pitching") or {}).get("battersFaced")
     return v if type(v) is int and v >= 0 else None
 
@@ -156,10 +188,15 @@ def extract(feed: dict) -> GameMeta:
         sp[side] = _pid(pitchers[0]) if pitchers else None
         if sp[side] is None:
             problems.append(f"{side}: no valid starting pitcher in the boxscore")
-        box_bf[side] = _box_bf(players, sp[side]) if sp[side] else None
+        box_bf[side] = _box_bf(players, sp[side], side, problems) if sp[side] else None
     ids = {s: set(starters[s].values()) | set(subs[s]) for s in SIDES}
     if ids["away"] & ids["home"]:
         problems.append("a lineup person appears for both sides")
+    if sp["away"] is not None and sp["away"] == sp["home"]:
+        problems.append(f"both sides declare starting pitcher {sp['away']}")
+    for side, other in (("away", "home"), ("home", "away")):
+        if sp[side] is not None and sp[side] in ids[other]:
+            problems.append(f"{side}: starting pitcher {sp[side]} is in the {other} lineup")
     status = (gd.get("status") or {}).get("detailedState") or ""
     completed = isinstance(status, str) and STATUS_RE.fullmatch(status) is not None
     if not completed:
@@ -224,13 +261,18 @@ def extract(feed: dict) -> GameMeta:
         pitcher = _pid((matchup.get("pitcher") or {}).get("id"))
         if pitcher is not None:
             first_pitcher.setdefault(side, pitcher)
-        event = (play.get("result") or {}).get("eventType", "")
-        if event and batter is not None:
-            plays.append(Play(index=idx, side=side, inning=inning, batter=batter, pitcher=pitcher, event=event))
-        if event not in PA_ENDING_EVENTS:
+        complete = about.get("isComplete")
+        if complete is not True:
+            problems.append(f"play {n}: isComplete is {complete!r}, not true")
+        event = (play.get("result") or {}).get("eventType")
+        if not (isinstance(event, str) and (event in COMPLETED_TURN or event in OPEN_TURN)):
+            problems.append(f"play {n}: result {event!r} is not a supported completed-turn or open-turn result")
             continue
         if batter is None or pitcher is None:
-            problems.append(f"play {n}: a PA without valid batter/pitcher ids")
+            problems.append(f"play {n}: a result without valid batter/pitcher ids")
+            continue
+        plays.append(Play(index=idx, side=side, inning=inning, batter=batter, pitcher=pitcher, event=event))
+        if event not in PA_ENDING_EVENTS:
             continue
         resumed = False
         if resume_dt is not None:
