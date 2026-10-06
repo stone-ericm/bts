@@ -1,0 +1,50 @@
+"""T1: certified starting identities and the chronological PA list from one feed (synthetic)."""
+from scripts.audit.c1_r3 import count_meta as M
+from tests.scripts.c1_r3.feeds import feed, lineup, play
+
+
+def test_starters_come_from_exact_hundreds_and_substitutes_are_kept_apart():
+    m = M.extract(feed(away=lineup(100, subs=[(111, "101"), (112, "402")])))
+    assert m.starters["away"] == {k: 100 + k for k in range(1, 10)}
+    assert m.substitutes["away"] == {111: 1, 112: 4}
+    assert m.starters["home"][9] == 209 and m.problems == ()
+
+
+def test_a_missing_or_duplicate_starting_slot_is_a_problem():
+    short = M.extract(feed(away=lineup(100, n=8)))
+    assert any("away" in p and "slots" in p for p in short.problems)
+    dup = lineup(100)
+    dup["ID199"] = {"person": {"id": 199}, "battingOrder": "300"}
+    assert any("duplicate" in p for p in M.extract(feed(away=dup)).problems)
+
+
+def test_the_starting_pitcher_is_the_first_boxscore_pitcher_cross_checked_with_the_plays():
+    m = M.extract(feed())
+    assert m.starting_pitcher == {"away": 150, "home": 250} and m.problems == ()
+    plays = [play(0, "top", 101, 999), play(1, "bottom", 201, 150)]
+    bad = M.extract(feed(plays=plays))
+    assert any("home" in p and "starting pitcher" in p for p in bad.problems)
+
+
+def test_pa_list_is_chronological_pa_ending_only_with_batting_side():
+    plays = [play(0, "top", 101, 250), play(1, "top", 102, 250, event="caught_stealing_2b"),
+             play(2, "bottom", 201, 150, event="walk")]
+    m = M.extract(feed(plays=plays))
+    assert [(p.index, p.side, p.batter, p.pitcher, p.event) for p in m.pas] == \
+        [(0, "away", 101, 250, "single"), (2, "home", 201, 150, "walk")]
+    rev = M.extract(feed(plays=[play(1, "top", 101, 250), play(0, "bottom", 201, 150)]))
+    assert any("atBatIndex" in p for p in rev.problems)
+
+
+def test_the_resumed_portion_is_flagged_as_production_flags_it():
+    plays = [play(0, "top", 101, 250, start="2023-06-01T23:10:00Z"),
+             play(1, "bottom", 201, 150, start="2023-06-02T20:00:00Z"),
+             play(2, "top", 102, 250, start=None)]
+    m = M.extract(feed(plays=plays, resume="2023-06-02T19:00:00Z"))
+    assert [p.resumed for p in m.pas] == [False, True, True]          # a missing time is treated as resumed
+    assert all(not p.resumed for p in M.extract(feed(plays=plays)).pas)  # no resume time: nothing is resumed
+
+
+def test_identity_fields():
+    m = M.extract(feed(pk=716404, date="2023-09-28"))
+    assert (m.game_pk, m.official_date, m.season) == (716404, "2023-09-28", 2023)
