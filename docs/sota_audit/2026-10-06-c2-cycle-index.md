@@ -17,7 +17,7 @@
 
 | Item | Starts from | Finish by | Status |
 |---|---|---|---|
-| (a) rank-2 watchdog, plus rank-1 Part A in unit 4 | W0 `c429c41` plus W0 r3's R3-1 to R3-4; W1 evidence map and spec draft; registration `docs/sota_audit/2026-10-04-prereg-c1-watchdog.md` and plan `docs/superpowers/plans/2026-10-06-c1-r2-watchdog-build.md`; rank-1 registration `docs/sota_audit/2026-10-04-prereg-c1-mlb-capture.md` Part A | every unit signed by 2026-11-30 | **ACTIVE from 2026-10-06:** unit 1 (W0 repair) |
+| (a) rank-2 watchdog, plus rank-1 Part A in unit 4 | W0 `c429c41` plus W0 r3's R3-1 to R3-4; W1 evidence map and spec draft; registration `docs/sota_audit/2026-10-04-prereg-c1-watchdog.md` and plan `docs/superpowers/plans/2026-10-06-c1-r2-watchdog-build.md`; rank-1 registration `docs/sota_audit/2026-10-04-prereg-c1-mlb-capture.md` Part A | every unit signed by 2026-11-30 | **ACTIVE from 2026-10-06:** unit 1 (W0 repair) built on branch `c2-watchdog` (design `docs/superpowers/specs/2026-10-06-c2-w0-repair-design.md`, fixes `4a845e8` + `808ae12`, evidence `docs/audit/2026-10-06-c2-w0-evidence/` on the branch: 28/28 mutants RED, watchdog 121, fast 4028). **Codex review r1 sent 2026-10-06 12:33 ET at `d4c11ae`.** |
 | (b) rank 3, then the pick-path capture, then 4a | rank-3 code `5cca66e` plus r4's R4-1; 4a study `0f9ffb0` plus r2's R1–R4 and R10; serving witness `e66b440` plus S1–S3 | code signed and the rank-3 build accepted by 2027-01-31; capture deployed by 2027-03-10 | waiting for (a) |
 | (c) 4b | code `3648120` / `ad29869` plus r3's required changes 1–8 | trade table to Eric by 2027-02-15 | waiting for (b) |
 | (d) P3 / W-state | design draft with review d1 REVISE | — | deferred; reopens only per proposal §5 (a) |
