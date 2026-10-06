@@ -11,6 +11,11 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
+try:
+    import lightgbm  # noqa: F401  (bts.model.predict imports it at module level; it is an optional extra)
+except (ImportError, OSError):
+    pytest.skip("lightgbm unavailable (the optional model extra)", allow_module_level=True)
+
 from bts import orchestrator as O
 from bts import serving_witness as W
 from bts.model import calibrate as C

@@ -10,6 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+try:
+    import lightgbm  # noqa: F401  (bts.model.predict imports it at module level; it is an optional extra)
+except (ImportError, OSError):
+    pytest.skip("lightgbm unavailable (the optional model extra)", allow_module_level=True)
+
 from bts.model import predict as P
 
 
