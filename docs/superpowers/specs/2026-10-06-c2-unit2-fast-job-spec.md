@@ -171,7 +171,10 @@ The draft's §4 applies, with these changes:
 - **Each row is its own result,** with its own incident. One unavailable input never hides the others.
 - **What counts as an instance:** a process whose argv runs the `bts` entry point with the `schedule` subcommand, **and whose parent process is not itself such a process**.
   - `uv run bts schedule` starts a `uv` parent and a Python child, and both argvs contain `bts schedule`. Counting raw matches would report every healthy scheduler as two.
-  - The box unit's `ExecStart` is not tracked in the repository. It is confirmed by a read-only look at the unit file before the build, and the fixtures mirror it.
+  - **Observed on the box 2026-10-06** (read-only `systemctl --user cat` and `ps`):
+    - the unit is `ExecStart=/home/bts/.local/bin/uv run bts schedule --config /home/bts/.bts-orchestrator.toml`, with `Restart=always`;
+    - the live tree is a `uv run bts schedule` parent and its child `…/.venv/bin/python3 …/.venv/bin/bts schedule`, whose parent PID is the `uv` process.
+    - The unit file is not tracked in the repository. The fixtures mirror this tree, and the tree rule counts it as one instance.
 - **The watchdog's churn samples** are its own (owned root), so it never writes the monitor's state. The monitor's file is only read for its freshness.
 - **The deploy-version row (reasoning only):**
   - the deploy workflow runs `git pull` and then restarts both units within seconds, so a HEAD newer than the unit's start by more than 10 minutes means a restart did not happen;
