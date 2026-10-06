@@ -14,47 +14,63 @@
 - **Known undercount:** systemd records a unit's CPU time at info level only above about one CPU-second (measured 10/04: a 0.6 s job left no record, a 1.4 s job did). Each smaller job goes uncounted, by under 1.4 s.
 - **Verified on the box 10/04, both directions:** a real job was recorded; a second job while one was running was refused; the 50 CPU-hour checkpoint was refused (planted ledger, scratch data folder); and with a planted 99.999 CPU-hour ledger the per-job limit killed a CPU burner at 3.000 s.
 - **Checkpoint:** at 50 CPU-hours the launcher refuses until `CHECKPOINT_50_ACK.json` exists in that directory. It is created only after Eric decides to continue.
-- **Box limits, from 2026-10-05** (Eric, row C1-4b-deferral; C1 infrastructure review r1 fixes in `788c3a7`):
-  - **Guard:** every job runs under `scripts/audit/c1/guard.py` in a `Delegate=yes` unit. The guard sits in a
-    `guard/` leaf and the job in `payload/`, niced 10. The cap is the unit's **cumulative** CPU, at min(declared
-    budget, remaining cycle budget). The guard acts at budget − cores × 5 s, kills the payload cgroup before any
-    I/O, then writes a durable `TERMINAL_<unit>.json` (exit / overrun / oom / terminated / guard-error, with CPU).
-  - **What the bound assumes:** the guard (nice 0) is scheduled within 3 s of its 2 s poll. That is not proved.
-    Any total over budget is still recorded as an overrun.
-  - **Escaping the unit:** a job could spawn work outside its cgroup by asking the user manager for another unit.
-    That work would not be capped. C1 commands must not do this; it is a stated precondition, not something the
-    guard enforces.
+- **Box limits, from 2026-10-05** (Eric, row C1-4b-deferral). The infrastructure reviews are archived:
+  `docs/audit/2026-10-05-c1-infra-codex-r1.md` (BLOCK) and `docs/audit/2026-10-06-c1-infra-codex-r2.md` (final round,
+  BLOCK). Fixes: `788c3a7` for r1, `1fa872a` for r2.
+  **Status: unsigned after the two rounds the pace rule allows. Whether to accept it or review again is Eric's
+  decision.**
+  - **Guard:** every job runs under `scripts/audit/c1/guard.py` in a `Delegate=yes` unit.
+    - The guard sits in a `guard/` leaf and the job in `payload/`, niced 10.
+    - The cap is the unit's **cumulative** CPU, at min(declared budget, remaining cycle budget). The guard acts at
+      budget − cores × 5 s and kills the payload cgroup before any I/O.
+    - It confirms the payload subtree empty through recursive `cgroup.events`. If emptiness is not confirmed,
+      that is an enforcement failure.
+    - It then writes a durable `TERMINAL_<unit>.json` (exit / overrun / oom / terminated / guard-error, with CPU).
+    - `prepare` checks CPU readability and that `cgroup.kill` exists with write access; it makes no test write.
+  - **Conditions (stated, not enforced):**
+    - **Scheduling:** the guard (nice 0) is scheduled within 3 s of its 2 s poll. Any total over budget is still
+      recorded as an overrun.
+    - **Confinement:** the job's work stays in the `payload/` subtree. It must not move processes elsewhere in the
+      unit, nor ask the user manager for another unit.
+    - **Guard overhead:** the terminal CPU does not include the guard's own receipt and logging after it.
   - **Launcher:**
-    - one canonical root (no alternate-root option) and one lock;
+    - one canonical root and lock; unit names carry a random suffix and are never reused;
     - an active unit refuses the launch before any accounting;
-    - a durable `PENDING_<unit>.json` precedes each start and is reconciled against the guard's receipt (its CPU
-      enters the ledger even without a journal record);
-    - a missing receipt reserves the full budget and pauses C1;
-    - any non-exit result, or a systemd timeout/oom-kill, writes `OVERRUN_<unit>.json` and pauses **all** C1;
-    - a release needs `RESUME_<unit>.json` bound to that marker's sha256, plus register row `C1-resume-<unit>`
-      recording exactly "**RULED <date>: RESUME `<unit>` overrun `<sha prefix>`**" from Eric.
+    - a durable `PENDING_<unit>.json` precedes each start, and a failed `systemd-run` keeps it;
+    - reconciliation moves nothing: the pause marker, then the ledger, then a durable `RECONCILED_<unit>.json`;
+    - a receipt is trusted only if it is this invocation's and well formed. A missing or invalid receipt reserves
+      the full budget and pauses C1; any non-exit result or a systemd timeout/oom-kill pauses **all** C1;
+    - an ordinary failure (exit rc ≠ 0) blocks a same-name relaunch even after its journal entry is gone;
+    - a release needs `RESUME_<unit>.json` bound to that marker's sha256, plus row `C1-resume-<unit>` recording
+      exactly "**RULED <date>: RESUME `<unit>` overrun `<sha prefix>`**", with the source token Eric.
+  - **Downloader:** `--verify` scans, decides and reports inside one writer-lock interval.
   - **Ledger:** non-finite or negative values are refused, and the rename is directory-fsynced.
   - **Known limit (preexisting, not addressed):** the season guard reads the latest realtime journal timestamp, so
     a clock rollback could select an older sleep line.
-- **Verified on the box 2026-10-05/06, failure direction** (each witness shows what it says, not more):
+- **Verified on the box, failure direction** (each witness shows what it says, not more):
   - **First guard (`66e1b68`, superseded):** `c1-guardtest-20261006T000354Z` killed 3 children at 24.0 s of a
-    36 s budget; a second job was refused on that scratch root.
-  - **Current guard, run directly** (`c1-guardtest-*` units; receipts to a scratch folder, so the real cycle was
-    not paused; their CPU is in the real ledger):
-    - **T1 (overrun):** 3 burning children, one in its own session, under a 120 s budget gave `overrun` at
-      84.0 s (action point 80 s). The payload cgroup was empty after the kill, and no burner survived.
-    - **T2 (guard SIGKILLed):** systemd stopped the unit and every burner died. No receipt was written, which
-      the launcher treats as unreconciled: a pause.
-    - **T3 (`systemctl stop`):** a `terminated` receipt (signal 15), with the payload empty.
-    - **T4 (leftover descendant):** a job leaving a detached `sleep 300` gave `exit` 0, with the leftover pid
-      recorded and killed.
-    - **T5 (no delegated unit, run in an ssh session scope):** `guard-error` (permission denied on the cgroup
-      split), and the job never started.
-  - **Real launcher smoke** (`c1-infra-smoke-20261006T002211Z`, a 3 s sleep): PENDING then TERMINAL `exit` 0,
-    reconciled at `status` into `jobs/` with no pause. Its 0.05 s entered the ledger as a guard row (the journal
-    skips jobs under about 1 s).
-  - **Not witnessed on the box:** an OOM kill, a real `RuntimeMaxSec` timeout, a concurrent second launcher and
-    a lost journal. Those are covered only by unit tests with systemd replaced.
+    36 s budget.
+  - **Guard at `788c3a7`, run directly** (`c1-guardtest-*` units; receipts to a scratch folder; their CPU is in
+    the real ledger):
+    - **T1:** 3 burning children (one in its own session) under a 120 s budget gave `overrun` at 84.0 s, with the
+      payload empty.
+    - **T2:** the guard SIGKILLed; systemd stopped the unit and every burner died, with no receipt.
+    - **T3:** `systemctl stop` gave `terminated` (signal 15).
+    - **T4:** a detached `sleep 300` was recorded and killed.
+    - **T5:** with no delegated unit, `guard-error`, and the job never started.
+  - **Guard at `1fa872a`:**
+    - **T6:** the job moved a `sleep 300` into a nested `payload/workers/` cgroup and exited. Result: `exit`,
+      with `leftover: true`, the descendant killed, and nothing left.
+    - **T1b:** the T1 overrun was repeated, giving `overrun` at 84.0 s of 120 s, with the payload confirmed empty.
+  - **Real launcher smoke:**
+    - `c1-infra-smoke-20261006T002211Z` (at `788c3a7`): reconciled with no pause.
+    - `c1-infra-smoke2-20261006T004058Z-911349cb` (at `1fa872a`): PENDING, then TERMINAL `exit` 0, then a durable
+      RECONCILED at `status`, with no pause and a 0.05 s guard row in the ledger.
+  - Local tests exercise selected decision branches with systemd or cgroup state replaced. They do not establish
+    Linux crash recovery, collected-unit failure handling, concurrent-launch behavior or real OOM/RuntimeMaxSec
+    enforcement. At review pin `85adb83`, the permitted Mac suite reports 89 passed and two guard preexec failures.
+    T1–T5 and the launcher smoke are separately supplied box observations. (At `1fa872a` the preexec cause is
+    written to stderr, and those two tests pass outside Codex's sandbox.)
 
 ## Candidates
 
