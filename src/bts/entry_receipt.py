@@ -101,7 +101,8 @@ def load_units(picks_dir: Path, season: int) -> tuple[dict | None, dict | None]:
     {unit_id: (feedId, roundId)} and the source identity (each consumed file's path and sha256).
     - **Conflicts:** a unit whose captures name more than one (feedId, roundId) maps to None (ambiguous), as in the
       earlier audits' binding (`scripts/audit/season_ledger/contest.py`, `scripts/audit/mining87/run.py`).
-    - **A null feedId** names no game: it contributes no identity, and contradicts none.
+    - **A null feedId** contributes no game identity. Its non-null roundId still participates in round
+      consistency, so a pre-binding capture cannot erase a round contradiction.
 
     Returns (None, None) when the season has no capture."""
     d = units_snapshot_dir(picks_dir)
@@ -109,6 +110,7 @@ def load_units(picks_dir: Path, season: int) -> tuple[dict | None, dict | None]:
     if not snaps:
         return None, None
     seen: dict = {}
+    rounds_seen: dict = {}
     files = []
     for path in snaps:
         raw = path.read_bytes()
@@ -119,10 +121,16 @@ def load_units(picks_dir: Path, season: int) -> tuple[dict | None, dict | None]:
                 continue
             feed, rnd = _typed(u.get("feedId"), int), _typed(u.get("roundId"), int)
             seen.setdefault(u["id"], set())
+            rounds_seen.setdefault(u["id"], set())
+            if rnd is not None:
+                rounds_seen[u["id"]].add(rnd)
             if feed is not None:
                 seen[u["id"]].add((feed, rnd))
     units = {uid: (next(iter(ids)) if len(ids) == 1 else (None, None) if not ids else None)
              for uid, ids in seen.items()}
+    for uid, rounds in rounds_seen.items():
+        if len(rounds) > 1:
+            units[uid] = None
     return units, {"files": files, "inventory_sha256": payload_sha256([f["sha256"] for f in files])}
 
 

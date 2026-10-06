@@ -554,3 +554,17 @@ def test_c8_one_row_cannot_confirm_a_duplicated_selection(monkeypatch, tmp_path)
     q = only(tmp_path)["qualification"]
     assert q["all_confirmed"] is False
     assert {x["state"] for x in q["slots"]} == {"unsupported_duplicate_selection"}
+
+
+
+def test_c1_a_null_feed_still_preserves_a_round_contradiction(monkeypatch, tmp_path):
+    H._setup(monkeypatch, pending=[H._pending(100)], crosswalk={100: 1})
+    units_snapshot(tmp_path, [{"id": 1, "feedId": None, "roundId": 99}], name="20260601T120000Z")
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 1, "roundId": 7}], name="20260612T120000Z")
+    picks = picks_dir(tmp_path, batter_id=1)
+    H._run(picks, IN_WINDOW)
+    r = only(tmp_path)
+    assert r["verifier"]["reason"] == "match"
+    assert r["qualification"]["slots"][0]["state"] == "unit_unverified"
+    assert r["qualification"]["all_confirmed"] is False
+    assert len(r["observation"]["sources"]["units"]["files"]) == 2
