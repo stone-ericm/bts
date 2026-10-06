@@ -395,5 +395,38 @@
    "-k",
    "bounded_by_elapsed_monotonic"
   ]
+ },
+ {
+  "id": "M38-shared-claim-time-only",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "(_parse_utc(n[\"claimed_at\"]), _parse_utc(n[\"lease_until\"]))",
+  "new": "_parse_utc(n[\"claimed_at\"])",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "each_claim_component"
+  ]
+ },
+ {
+  "id": "M39-shared-lease-expiry-only",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "(_parse_utc(n[\"claimed_at\"]), _parse_utc(n[\"lease_until\"]))",
+  "new": "_parse_utc(n[\"lease_until\"])",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "each_claim_component"
+  ]
+ },
+ {
+  "id": "M40-unsent-message-id-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            elif n[\"recipient\"] is not None or n[\"message_id\"] is not None:",
+  "new": "            elif n[\"recipient\"] is not None:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "unsent_message_id"
+  ]
  }
 ]

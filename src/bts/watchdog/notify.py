@@ -169,8 +169,8 @@ def _validate(st) -> dict:
             if n["status"] == "sent":
                 if n["attempts"] < 1 or not n["recipient"] or n["last_error"] is not None:
                     _bad(f"notice {k}: a sent notice without its completed attempt, recipient, or with an error")
-            elif n["recipient"] is not None:
-                _bad(f"notice {k}: an unsent notice with a recipient")
+            elif n["recipient"] is not None or n["message_id"] is not None:
+                _bad(f"notice {k}: an unsent notice with a recipient or message id")
             if n["status"] == "sending":
                 if set(n) & claim != claim or not (isinstance(n["claim_token"], str) and n["claim_token"]):
                     _bad(f"notice {k}: claim")

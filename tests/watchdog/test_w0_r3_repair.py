@@ -696,3 +696,52 @@ def test_b4_a_late_success_never_overwrites_a_newer_confirmation(root):
     assert not th.is_alive() and errors == []
     (n,) = N.load_state(root)["notices"].values()
     assert n["status"] == "sent" and n["message_id"] == "new-id" and n["attempts"] == 1
+
+
+@pytest.mark.parametrize("message_id", ["", False, 7, {"id": "m"}])
+@pytest.mark.parametrize("status", ["pending", "sending"])
+@pytest.mark.parametrize("via", ["enqueue", "flush"])
+def test_b2_unsent_message_id_refuses_untouched_and_unsent(root, message_id, status, via):
+    st = _one_fault_state(root)
+    (n,) = st["notices"].values()
+    n.update(status=status, message_id=message_id)
+    if status == "sending":
+        n.update(claim_token="t", claimed_at="2026-10-06T16:00:00+00:00",
+                 lease_until="2026-10-06T16:10:00+00:00")
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    calls = []
+
+    def send(recipient, text):
+        calls.append(text)
+        return "m"
+    with pytest.raises(N.NotifyStateError):
+        if via == "enqueue":
+            notifier(root, send).enqueue([FAULT])
+        else:
+            notifier(root, send).flush()
+    assert root.read_bytes(N.STATE) == raw and calls == []
+
+
+@pytest.mark.parametrize("same_field", ["claimed_at", "lease_until"])
+@pytest.mark.parametrize("via", ["enqueue", "flush"])
+def test_b3_each_claim_component_is_required_before_action(root, same_field, via):
+    st = _split_lease_state(root)
+    fault, recovery = _seq_sorted(st)
+    if same_field == "claimed_at":
+        recovery["claimed_at"] = fault["claimed_at"]
+    else:
+        fault["lease_until"] = recovery["lease_until"]
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    calls = []
+
+    def send(recipient, text):
+        calls.append(text)
+        return "m"
+    with pytest.raises(N.NotifyStateError):
+        if via == "enqueue":
+            notifier(root, send).enqueue([FAULT])
+        else:
+            notifier(root, send).flush()
+    assert root.read_bytes(N.STATE) == raw and calls == []
