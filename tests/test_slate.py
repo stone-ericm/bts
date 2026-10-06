@@ -103,7 +103,7 @@ def test_v2_persists_each_rows_game_time_and_schedule_status(tmp_path):
     preds["game_time"] = "2027-04-01T23:05:00Z"
     preds["status"] = ["Scheduled", "Pre-Game", "Warmup"]
     payload = json.loads(save_slate(preds, "2027-04-01", tmp_path, "hetzner").read_text())
-    assert payload["schema_version"] == "bts_slate_v2"
+    assert payload["schema_version"] == SCHEMA_VERSION
     assert [r["game_time"] for r in payload["rows"]] == ["2027-04-01T23:05:00Z"] * 3
     assert [r["status"] for r in payload["rows"]] == ["Scheduled", "Pre-Game", "Warmup"]
 

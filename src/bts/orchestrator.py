@@ -410,6 +410,12 @@ def run_and_pick(
     from bts.slate import save_slate
     progress.mark("persisting_slate")
     save_slate(predictions, date, picks_dir, tier_name)
+    # The serving witness is persisted; drop it so selection and everything after it see the same frame (values and
+    # attrs) as before the witness existed, and pandas does not deep-copy it into every derived frame.
+    try:
+        predictions.attrs.pop("serving", None)
+    except Exception:
+        pass
 
     progress.mark("loading_decision_state")
     decision_state = load_decision_streak_state(

@@ -8,9 +8,17 @@ closeout (docs/audit/2026-06-11-m3-serving-staleness.md) could not quantify
 bpm's realized live contribution for exactly this reason.
 
 One JSON file per date under {picks_dir}/slates/. Last write wins: re-runs
-within a day overwrite with the slate that produced the final pick, which is
-the slate of record. Persistence is observability — it must NEVER break the
-pick path, so save_slate swallows and logs every failure.
+within a day overwrite it, so the file is the last slate persisted that day.
+It is written before selection, so it is not proof that it produced the final
+pick. Persistence is observability — it must NEVER break the pick path, so
+save_slate swallows and logs every failure.
+
+v3 (C2 step 2a, design docs/superpowers/specs/2026-10-06-c2-2a-serving-record-design.md):
+the envelope's `serving` is the serving witness the local tier attached
+(bts.serving_witness: recipe, model, inputs, flags, calibration), or null when
+there is none (another tier) or it cannot be serialized; and each local row's
+`projected` is an explicit boolean (false = posted lineup). v2 files (deployed
+2026-10-06 without `serving`) keep their tag.
 """
 
 from __future__ import annotations
@@ -26,7 +34,8 @@ from bts.util import atomic_write_text
 
 log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = "bts_slate_v2"   # v2 (C1 4a prerequisite P1): each row's game_time and schedule status
+SCHEMA_VERSION = "bts_slate_v3"   # v3 (C2 step 2a): the envelope's serving witness and an explicit projected
+                                  # boolean; v2 (C1 4a prerequisite P1): each row's game_time and schedule status
 
 # Persisted per candidate when present in the predictions frame. Feature
 # values are deliberately excluded: they are reconstructable from the PA
@@ -42,6 +51,17 @@ ROW_COLUMNS = [
     "p_game_hit", "p_game_blend", "p_hit_vs_starter", "p_hit_vs_reliever",
     "est_pas", "flags", "projected", "game_time", "status",
 ]
+
+
+def _serving(predictions: pd.DataFrame, date: str):
+    """The attached serving witness if it serializes as strict JSON, else None. Never raises."""
+    try:
+        serving = predictions.attrs.get("serving")
+        json.dumps(serving, allow_nan=False)
+        return serving
+    except Exception as e:
+        log.warning(f"serving witness not serializable for {date} (slate still written): {e}")
+        return None
 
 
 def save_slate(
@@ -65,6 +85,7 @@ def save_slate(
             "written_at": datetime.now(timezone.utc).isoformat(),
             "n_rows": len(rows),
             "rows": rows,
+            "serving": _serving(predictions, date),
         }
         slates_dir = Path(picks_dir) / "slates"
         slates_dir.mkdir(parents=True, exist_ok=True)
