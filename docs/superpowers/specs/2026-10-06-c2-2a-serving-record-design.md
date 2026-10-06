@@ -35,7 +35,7 @@ The parts are as in `e66b440`: `recipe` (file and serving-function hashes, plus 
 
 **S2, applied calibration's inputs are witnessed.** When `BTS_USE_CALIBRATION=1` and a calibrator is fitted:
 - the current-season PA parquet is read once (`read_bytes`, hashed, parsed from that buffer), in place of `pd.read_parquet(path)`;
-- `fit_calibrator_from_picks` takes an optional `witness` list. Each pick file it consumes is read once and parsed from that buffer, and `(file, bytes, sha256)` is appended;
+- `fit_calibrator_from_picks` takes an optional `witness` list. Each pick file it consumes is read once (`read_bytes`) and decoded with `bts.picks._read_text_bytes` (exactly as `read_text` would decode it), and `(file, bytes, sha256)` is appended;
 - the fitted isotonic map's state (its threshold arrays, as canonical JSON) is hashed;
 - the witness records `calibration = {enabled, applied, pa_input, pick_inputs, map_sha256, n_fit}`.
 
@@ -53,11 +53,12 @@ The parts are as in `e66b440`: `recipe` (file and serving-function hashes, plus 
 - **Test:** a real `_fetch_game_slots` call on mocked schedule and feed responses with one posted and one projected lineup goes through `predict` and `save_slate`, and the persisted rows are `true` / `false`. This is the producer-to-reader path that r2 R10 found masked by a hand-written fixture.
 
 ## 5. Gate (red first, then green)
-1. **On/off equivalence:**
-   - the same fixed inputs run through the pre-change code (`f428e51`) and the new code, with the same cache state;
-   - the predictions frame's values (`p_game_hit`, `p_game_blend`, ranks, flags), the pick file bytes and the decision bytes are identical;
-   - the only intended differences are the slate's schema, `serving`, and posted rows' `projected=false`.
-   - It is covered on the cached-model path, the train path, calibration off, calibration on, and a prediction failure.
+1. **On/off equivalence** (golden outputs from the pre-change code):
+   - **The golden files:** a committed script, run once in a worktree at `f428e51`, writes the predictions frame's values (`p_game_hit`, `p_game_blend`, ranks, flags) plus the pick file and decision bytes for fixed fixtures. The test data is committed with its sha256 and the generator command.
+   - **Training is stubbed** to a fixed tiny model on both sides, so LightGBM thread nondeterminism cannot make the comparison flaky.
+   - **The new code must reproduce them exactly.** The only intended differences are the slate's schema, `serving`, and posted rows' `projected=false`.
+   - **Paths covered:** the cached model, the train path, calibration off, calibration on, and a prediction failure.
+   - **The real chain:** the witness must reach the persisted slate through the scheduler's actual path from `predict_local` to `save_slate`, not only a `predict_local` unit. It travels on `predictions.attrs`, which a copy or concat could drop. A test drives the scheduler's prediction step with leaves patched and reads the written slate.
 2. **S1 counterexamples:**
    - an empty cached dict (the witness says `trained`, with the buffer's hash, which differs from the empty cache's);
    - the cache path replaced after save (the witness keeps the hash of the buffer used);
