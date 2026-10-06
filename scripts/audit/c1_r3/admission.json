@@ -1,5 +1,12 @@
 {
- "reviewed_commit": null,
- "review_report": null,
- "exposure_commit": null
+ "reviewed_commit": "bbafbef11beb530b22e8ba8232eb874dbd4b1510",
+ "review_report": "docs/audit/2026-10-06-c2-r3-build-codex-r2.md",
+ "exposure_commit": "2107d32ab8b32ebcb25ba4b1b90ba02f652e3db9",
+ "input_pins": {
+  "pa_2021.parquet": "8f570f0e83cb2482a8fdaf62b0407f342b04b9d465a66d7f97770368bea16b3f",
+  "pa_2022.parquet": "37fae4579c8de054d2b5e41324bd1b3c7429a8cd23b8901625dcb7b9887e03bf",
+  "pa_2023.parquet": "d4acf3804b54113f5f59da591e6f074a3686ec5424ba49f03948aedd433ed9f4",
+  "pa_2024.parquet": "f27a7def5224b7927ab39e7375c1ec0ae477711e7783ce36eeed8807a91029fa",
+  "pa_2025.parquet": "fa69bb098844bd24857d182c9c885a02e19eff712b5f6cc5eae0638dd244d44e"
+ }
 }
