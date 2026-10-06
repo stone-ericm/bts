@@ -3,16 +3,18 @@ review found (`docs/audit/2026-10-05-c1-r4b-code-codex-r3.md`, B1-B3).
 
 **The admission record** (`admission.json`, the only file of the executable closure that may change after review):
 - `reviewed_commit`: the full commit Codex reviewed.
-- `review_report`: the archived review report (repo path). At the exposure commit it must exist; its verdict line
-  must begin exactly "**SIGN.**"; and its verdict section must name the reviewed commit in full (rank-3 review r2
-  N1: a hash mentioned elsewhere does not count).
+- `review_report`: the archived review report (repo path). At the exposure commit it must exist, and its verdict line
+  must begin exactly "**SIGN.**".
+  - **The subject (rank-3 review r3 R3-1):** the verdict section holds exactly one machine-readable line
+    `Reviewed-commit: <40 hex>`, and no other line of the report starts with that field. The SIGN applies to that
+    commit only; commits mentioned in the prose, including a historical BLOCK, do not count.
   - A "**SIGN WITH EDITS.**" is conditional: it is refused until a plain SIGN of the edited commit is recorded. An
     ancestry check cannot show that the edits were applied verbatim.
 - `exposure_commit`: the commit that publishes the exposure row. The row must first appear in that commit and be
   unchanged at HEAD. Its description cell must be a positive structured record (r2 N1):
   "**PREDECLARED <date>: <scope>**; review `<report path>` sha256 `<16+ hex>`; reviewed `<commit>`[; inputs
-  `<16+ hex>`]". Each field must equal this admission. A DENIED row, a withheld row or a free-text mention does not
-  match.
+  `<16+ hex>`]". The whole cell must match that grammar (R3-1: no trailing text, so no appended DENIED). Each
+  field must equal this admission. A DENIED row, a withheld row or a free-text mention does not match.
 - `accepted_identity` returns the accepted report's exact bytes digest at the exposure commit, so the run's manifest
   records the report the gate accepted rather than a later working-tree copy (r2 N6).
 
@@ -25,12 +27,14 @@ review found (`docs/audit/2026-10-05-c1-r4b-code-codex-r3.md`, B1-B3).
 **One claimed run:**
 - **Claim:** a durable `CLAIM.json` precedes the first outcome-bearing read, inside a run directory whose parent entry
   is fsynced (`make_run_dir`). Any claimed run blocks another.
+- **No recursive creation (R3-6):** `admission_lock` and `make_run_dir` create one directory level at most; a missing
+  ancestor refuses, so no new ancestor sits outside the fsync publication.
 - **Release:** `INVALIDATION_<run>.json` must carry the claim's sha256, and register row `C1-invalidate-<run>` must
   record exactly "**RULED <date>: INVALIDATE `<run>` claim `<sha prefix>`; correction `<full commit>` reviewed
   `<report path>` `<sha prefix>`**", with the source token Eric (B1; r3b F3).
   - The correction commit must be in HEAD's history.
-  - The cited report (at HEAD) must match the sha prefix, carry an exact SIGN verdict, and name the correction
-    commit.
+  - The cited report (at HEAD) must match the sha prefix, carry an exact SIGN verdict, and give the correction
+    commit as its `Reviewed-commit`.
 
 **Inputs** are read once: `read_pinned` hashes and returns the same bytes, so the parsed buffer is the pinned one
 (B3).
@@ -51,6 +55,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 VERDICT_SIGN = re.compile(r"^\*\*(?P<v>SIGN|SIGN WITH EDITS)\.\*\*(?:\s|$)")
+REVIEWED_FIELD = re.compile(r"Reviewed-commit: (?P<c>[0-9a-f]{40})")
 EXPOSURE = re.compile(r"^\*\*PREDECLARED (?P<date>\d{4}-\d{2}-\d{2}): (?P<scope>[^*]+)\*\*; review `(?P<rep>[^`]+)` "
                       r"sha256 `(?P<sha>[0-9a-f]{16,64})`; reviewed `(?P<ref>[0-9a-f]{40})`"
                       r"(?:; inputs `(?P<inputs>[0-9a-f]{16,64})`)?")
@@ -97,16 +102,28 @@ def _verdict_section(report: str) -> str:
     return "\n".join(body)
 
 
+def reviewed_field(report: str) -> str | None:
+    """The report's single machine-readable subject: exactly one `Reviewed-commit: <40 hex>` line, inside the verdict
+    section, and no other line of the report starting with the field (R3-1)."""
+    claims = [l.strip() for l in report.splitlines() if l.strip().startswith("Reviewed-commit:")]
+    in_verdict = [l.strip() for l in _verdict_section(report).splitlines() if l.strip().startswith("Reviewed-commit:")]
+    if len(claims) != 1 or in_verdict != claims:
+        return None
+    m = REVIEWED_FIELD.fullmatch(claims[0])
+    return m.group("c") if m else None
+
+
 def _review_signs(report: str, reviewed: str) -> list[str]:
-    """A plain SIGN whose verdict section names the reviewed commit in full."""
+    """A plain SIGN whose single Reviewed-commit field is the reviewed commit."""
     v = review_verdict(report)
     out = []
     if v is None:
         out.append("the review report's verdict is not exactly SIGN")
     elif v == "SIGN WITH EDITS":
         out.append("the review is a conditional SIGN WITH EDITS: record a plain SIGN of the edited commit first")
-    if reviewed not in _verdict_section(report):
-        out.append("the review report's verdict section does not name the reviewed commit in full")
+    if reviewed_field(report) != reviewed:
+        out.append("the review report's single Reviewed-commit field (in its verdict section) is not the reviewed "
+                   "commit")
     return out
 
 
@@ -160,7 +177,7 @@ def admission_check(repo: Path, adm: dict, *, closure, admission_rel: str, regis
         reasons.append(f"admission: the {exposure_row} row changed after its publication")
     else:
         cells = [c.strip() for c in at_x.strip().strip("|").split("|")]
-        m = EXPOSURE.match(cells[1]) if len(cells) > 1 else None
+        m = EXPOSURE.fullmatch(cells[1]) if len(cells) > 1 else None
         ok = bool(m and m.group("scope") == scope_phrase and m.group("rep") == rep and m.group("ref") == ref
                   and report_sha is not None and report_sha.startswith(m.group("sha"))
                   and (inputs_digest is None or (m.group("inputs") and inputs_digest.startswith(m.group("inputs")))))
@@ -204,8 +221,9 @@ def durable_write(path: Path, data: bytes) -> None:
 
 
 def make_run_dir(root: Path, name: str) -> Path:
-    """Create the run directory and fsync its parent, so the new entry survives a crash (r3b F1)."""
-    root.mkdir(parents=True, exist_ok=True)
+    """Create the run directory and fsync its parent, so the new entry survives a crash (r3b F1). The root's parent
+    must already exist (R3-6)."""
+    root.mkdir(exist_ok=True)
     d = root / name
     d.mkdir()
     fd = os.open(root, os.O_RDONLY)
@@ -234,7 +252,7 @@ def invalidation_problems(rec, run: str, claim_sha: str, register_text: str, rep
     if rec.get("claim_sha256") != claim_sha:
         return ["the invalidation is not bound to this claim"]
     cells = row_cells(register_text, f"C1-invalidate-{run}")
-    m = INVALIDATE.match(cells[2]) if cells and len(cells) >= 4 else None
+    m = INVALIDATE.fullmatch(cells[2]) if cells and len(cells) >= 4 else None
     if not (m and m.group("run") == run and claim_sha.startswith(m.group("claim")) and _sign_eric(cells[-1])):
         return [f"no register row C1-invalidate-{run} recording Eric's INVALIDATE of this claim"]
     if not _ancestor(repo, m.group("corr"), "HEAD"):
@@ -243,7 +261,7 @@ def invalidation_problems(rec, run: str, claim_sha: str, register_text: str, rep
     if report is None or not hashlib.sha256(report).hexdigest().startswith(m.group("repsha")):
         return ["the cited correction review report is missing or does not match its sha prefix"]
     if _review_signs(report.decode("utf-8", "replace"), m.group("corr")):
-        return ["the cited correction review is not a plain SIGN naming that correction commit in its verdict"]
+        return ["the cited correction review is not a plain SIGN whose Reviewed-commit is that correction commit"]
     return []
 
 
@@ -265,7 +283,10 @@ def claimed_runs(root: Path, register_text: str) -> list[str]:
 
 @contextlib.contextmanager
 def admission_lock(root: Path):
-    root.mkdir(parents=True, exist_ok=True)
+    try:
+        root.mkdir(exist_ok=True)           # one level only: a missing ancestor refuses (R3-6)
+    except FileNotFoundError:
+        raise SystemExit(f"refusing: {root.parent} does not exist (no recursive creation)") from None
     with open(root / ".admission.lock", "w") as fh:
         try:
             fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)

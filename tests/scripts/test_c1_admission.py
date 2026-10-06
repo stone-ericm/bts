@@ -24,8 +24,9 @@ def commit(repo, files, msg):
 SCOPE = "historical count build"
 
 
-def review(sha, verdict="**SIGN.**", extra=""):
-    return f"# Review\n\n## Verdict\n\n{verdict} Reviewed `{sha}`.\n\n## Findings\n{extra}"
+def review(sha, verdict="**SIGN.**", extra="", *, field=True, verdict_extra=""):
+    subject = f"\nReviewed-commit: {sha}\n" if field else ""
+    return f"# Review\n\n## Verdict\n\n{verdict} Reviewed `{sha}`.\n{subject}{verdict_extra}\n## Findings\n{extra}"
 
 
 def x34_row(report_path, report_text, ref, scope=SCOPE, *, prefix="PREDECLARED 2026-10-07", inputs=None):
@@ -83,7 +84,21 @@ def test_only_a_plain_sign_naming_the_commit_in_its_verdict_counts():
         assert A._review_signs(review(sha, v), sha), v
     other = "b" * 40
     historical = review(other, extra=f"\nPrevious review of `{sha}` was BLOCK.\n")
-    assert any("verdict section" in x for x in A._review_signs(historical, sha))
+    assert any("Reviewed-commit" in x for x in A._review_signs(historical, sha))
+
+
+def test_the_subject_is_the_single_reviewed_commit_field_not_a_mention():
+    """r3 R3-1: a SIGN of R whose verdict section mentions a historical BLOCK of Q signs R only."""
+    R, Q = "a" * 40, "b" * 40
+    rep = review(R, verdict_extra=f"Previous review of `{Q}` was **BLOCK**.\n")
+    assert A._review_signs(rep, R) == []
+    assert A._review_signs(rep, Q)
+    assert A._review_signs(review(R, field=False), R)                                         # no field
+    assert A._review_signs(review(R, verdict_extra=f"Reviewed-commit: {Q}\n"), R)             # two fields
+    assert A._review_signs(review(R, field=False, extra=f"Reviewed-commit: {R}\n"), R)        # outside the verdict
+    assert A._review_signs(review(R, verdict_extra=f"\n", extra=f"Reviewed-commit: {R}\n"), R)  # a second, elsewhere
+    assert A._review_signs(review(R[:12]), R)                                                  # not a full id
+    assert A._review_signs(review(R).replace(f"Reviewed-commit: {R}", f"Reviewed-commit: {R} (and {Q})"), R)
 
 
 def test_sign_with_edits_is_refused_until_a_plain_sign_is_recorded(tmp_path):
@@ -105,6 +120,8 @@ def test_the_review_report_must_exist_at_the_exposure_commit(repo):
     lambda rep, R: x34_row("docs/review-r1.md", rep + "tampered", R),
     lambda rep, R: x34_row("docs/other.md", rep, R),
     lambda rep, R: x34_row("docs/review-r1.md", rep, "0" * 40),
+    lambda rep, R: x34_row("docs/review-r1.md", rep, R).replace(" | ... |", "; **DENIED: do not read inputs** | ... |"),
+    lambda rep, R: x34_row("docs/review-r1.md", rep, R).replace(" | ... |", " (withdrawn) | ... |"),
 ])
 def test_the_exposure_row_must_be_a_positive_structured_record(tmp_path, row):
     r, adm = make_repo(tmp_path, row=row)
@@ -166,7 +183,8 @@ def test_a_claimed_run_is_released_only_by_eric_s_exact_invalidation_with_a_revi
     git(r, "init", "-q")
     C = commit(r, {"a.py": "fixed\n"}, "the correction")
     good_rep, cond_rep = review(C), review(C, "**SIGN WITH EDITS.**")
-    commit(r, {"docs/fix.md": good_rep, "docs/cond.md": cond_rep}, "reviews")
+    other_rep = review("b" * 40, verdict_extra=f"Previous review of `{C}` was **BLOCK**.\n")    # r3 R3-1 variant
+    commit(r, {"docs/fix.md": good_rep, "docs/cond.md": cond_rep, "docs/other.md": other_rep}, "reviews")
     root = tmp_path / "runs"
     d = A.make_run_dir(root, "abc1234-20261006T000000Z")
     A.write_claim(d, "f" * 40)
@@ -182,6 +200,10 @@ def test_a_claimed_run_is_released_only_by_eric_s_exact_invalidation_with_a_revi
                        "correction not in history": inv_row(d.name, claim, "0" * 40, "docs/fix.md", sha(good_rep)),
                        "report sha mismatch": inv_row(d.name, claim, C, "docs/fix.md", "0" * 16),
                        "conditional correction review": inv_row(d.name, claim, C, "docs/cond.md", sha(cond_rep)),
+                       "a SIGN of another commit that mentions C": inv_row(d.name, claim, C, "docs/other.md",
+                                                                          sha(other_rep)),
+                       "trailing text": inv_row(d.name, claim, C, "docs/fix.md", sha(good_rep)).replace(
+                           "** |", "** DENIED |"),
                        "unrelated ruling": f"| C1-invalidate-{d.name} | x | **RULED 2026-10-06: A** | Eric |\n"}.items():
         assert A.invalidation_problems({"run": d.name, "claim_sha256": claim}, d.name, claim, reg, repo=r), label
     assert A.invalidation_problems({}, d.name, claim, ok, repo=r)
@@ -192,6 +214,18 @@ def test_make_run_dir_creates_and_refuses_reuse(tmp_path):
     assert d.is_dir()
     with pytest.raises(FileExistsError):
         A.make_run_dir(tmp_path / "runs", "r1")
+
+
+def test_no_recursive_creation_of_missing_ancestors(tmp_path):
+    """r3 R3-6: one directory level at most; a missing ancestor refuses and nothing is created."""
+    with pytest.raises(FileNotFoundError):
+        A.make_run_dir(tmp_path / "absent" / "runs", "r1")
+    with pytest.raises(SystemExit, match="does not exist"):
+        with A.admission_lock(tmp_path / "absent" / "runs"):
+            pass
+    assert not (tmp_path / "absent").exists()
+    with A.admission_lock(tmp_path / "runs"):                 # an existing parent: one new level, as before
+        assert A.make_run_dir(tmp_path / "runs", "r1").is_dir()
 
 
 def test_the_admission_lock_refuses_a_second_holder(tmp_path):
