@@ -37,7 +37,7 @@ Each is separately reviewed until SIGN. These are production changes at **unchan
 ## Phase W: the watchdog (`bts watchdog <job>`)
 | # | Piece | Notes |
 |---|---|---|
-| W0 | **Package skeleton.** The owned root `data/watchdog/` (symlink / escape refused; all locks, logs, dedup, temp and restore scratch live there). Notification state: a short owned critical section; failed or uncertain sends stay pending; the dedup key binds incident, ET date, selection and state, and survives restarts. DM transport. A clock seam | §4.2 write-confinement tracing (deny writes outside the root, including same-byte and write/undo cases) |
+| W0 | **Package skeleton.** The owned root `data/watchdog/` (symlink / escape refused; all locks, logs, dedup, temp and restore scratch live there). Notification state: a short owned critical section; failed or uncertain sends stay pending; the dedup key binds incident, ET date, selection and state, and survives restarts. DM transport. A clock seam | §4.2 write-confinement tracing (deny writes outside the root, including same-byte and write/undo cases). **Built 2026-10-06 (`a1607c8`)**; review pending |
 | W1 | **W-deliver, W-postponed, W-decision, W-mode** (every 5 min, every day) | the cutoff equals the earlier selected leg minus `SUBMISSION_CUTOFF_MIN`; DST, midnight and DD-leg tests |
 | W2 | **W-entry** | uses P1 receipts only. Absence is asserted only from a successful applicable observation; anything else is unverifiable |
 | W3 | **W-state** (every 15 min). **DEFERRED this cycle with P3** (row C1-r2-p3-deferral); the coverage matrix records it as deferred | uses P3 capture plus an independent replay from a declared initial state; it never uses `_replay_season_streak` |
