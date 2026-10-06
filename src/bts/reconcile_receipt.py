@@ -228,11 +228,13 @@ class ReconcileReceipt:
                 actual = (resp["gameData"].get("game") or {}).get("pk")
                 grade = grade_pick_in_feed(resp, slot["batter_id"], slot["batter_name"])
                 by_id = ReconcileReceipt._has_batter_id(resp, slot["batter_id"])
+                grade_by_id = grade_pick_in_feed(resp, slot["batter_id"])
             except (KeyError, TypeError, AttributeError):
                 continue
             if grade is None:
                 continue                         # the batter is not in this feed
-            if type(actual) is not int or not by_id or not final or grade != slot["result"]:
+            if (type(actual) is not int or not by_id or not final or grade != slot["result"]
+                    or grade_by_id != slot["result"]):
                 return "unqualified", actual if type(actual) is int else None
             if actual != slot["game_pk"]:
                 return "fallback_other_game", actual

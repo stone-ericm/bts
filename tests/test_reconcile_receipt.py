@@ -559,3 +559,44 @@ def test_r3_d6_a_write_hook_failure_is_unavailable_evidence_on_its_own_date(tmp_
     assert r["degraded"][0]["hook"] == hook                                   # (a failed intent also fails its done)
     assert {g["day"] for g in r["degraded"]} == {ix} and ix != len(r["days"]) - 1
     assert day_of(r)["slots"][0]["covered"] is True                          # coverage and the write are separate
+
+
+@pytest.mark.parametrize("name_hits, id_hits", [(1, 0), (0, 1)])
+def test_r4_d3_id_presence_cannot_qualify_another_players_grade(tmp_path, name_hits, id_hits):
+    """Away name fallback wins before the home ID lookup; qualify the returned result by ID separately."""
+    from bts.picks import grade_pick_in_feed
+    payload = feed(hits=name_hits, batter=123)
+    payload["liveData"]["boxscore"]["teams"]["home"]["players"][f"ID{BATTER}"] = {
+        "person": {"id": BATTER, "fullName": "Bound ID Batter"},
+        "stats": {"batting": {"hits": id_hits}}}
+    legacy = "hit" if name_hits else "miss"
+    assert grade_pick_in_feed(payload, BATTER) != legacy
+    plant(tmp_path, result="miss" if name_hits else "hit")
+    corrections, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": payload}), SimClock(AT_0200))
+    assert [c["new_result"] for c in corrections] == [legacy]  # unchanged business grading
+    assert load_pick(DAY, tmp_path).result == legacy
+    slot = day_of(r)["slots"][0]
+    assert (slot["result"], slot["basis"], slot["actual_game_pk"], slot["covered"]) == (
+        legacy, "unqualified", GAME, False)
+
+
+@pytest.mark.parametrize("bound_grade", ["miss", "void"])
+def test_r4_d3_id_presence_cannot_qualify_a_name_contaminated_suspended_grade(tmp_path, bound_grade):
+    """The selected ID has no pre-suspension hit; another ID with its saved name does."""
+    from bts.picks import grade_pick_in_feed
+    payload = suspended_feed(GAME)
+    if bound_grade == "miss":
+        play = payload["liveData"]["plays"]["allPlays"][0]
+        play["result"]["eventType"] = "field_out"
+        play["about"]["startTime"] = "2026-08-21T19:00:00Z"
+    payload["liveData"]["plays"]["allPlays"].append({
+        "result": {"eventType": "single"},
+        "matchup": {"batter": {"id": 123, "fullName": "Chandler Simpson"}},
+        "about": {"startTime": "2026-08-21T19:01:00Z"}})
+    assert grade_pick_in_feed(payload, BATTER) == bound_grade
+    plant(tmp_path)
+    _, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": payload}), SimClock(AT_0200))
+    assert load_pick(DAY, tmp_path).result == "hit"  # unchanged business grading
+    slot = day_of(r)["slots"][0]
+    assert (slot["result"], slot["basis"], slot["actual_game_pk"], slot["covered"]) == (
+        "hit", "unqualified", GAME, False)

@@ -67,6 +67,7 @@
 **`basis`** is established at publication from the consumed payloads themselves (producer review r2/r3 D3), never from how many payloads there were, from a request URL, or from a name match:
 - `final_feed`: the decisive feed (the first one containing the batter) is Final, holds the batter **by id** (a boxscore entry or a play's matchup), grades to the slot's result, and names its **own** game (`gameData.game.pk`) equal to the selected game.
 - `suspended_no_evaluable_pa`: the same, including the game agreement, for a suspended game graded void.
+- **ID-bound grade agreement (r4 D3):** the decisive feed must also grade to the slot result with only the selected batter ID supplied. Presence of that ID elsewhere in the feed cannot qualify a name-fallback result from another player. A disagreement or absent ID-only grade is `unqualified`; the production grader and its returned result stay unchanged.
 - `schedule_void_state:<state>`: the consumed schedule lists the selected game, in a void state.
 - `fallback_other_game`: the decisive feed is Final and agrees, but is another game. It is **not** coverage.
 - `unqualified`: there is no qualifying decisive feed. Examples: a fallback feed still Live, a feed with no `gameData.game.pk` of its own, a batter matched only by name, or a void the consumed schedule does not confirm. It is **not** coverage.
