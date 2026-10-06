@@ -31,6 +31,8 @@ lookback window. Caller should treat None as identity (no calibration).
 """
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import logging
 from datetime import date, timedelta
@@ -46,11 +48,82 @@ DEFAULT_LOOKBACK_DAYS = 30
 DEFAULT_MIN_N = 30
 
 
+# Serving-witness helpers (C2 step 2a, design §3.0/§3.2). Each one contains its own failure: a witness problem
+# nulls provenance and is recorded, and never changes a sample, the fit or the returned calibrator.
+
+def _note(errors, msg: str) -> None:
+    if errors is None:
+        return
+    try:
+        errors.append(msg)
+    except Exception:
+        pass
+
+
+def _collect(items, item, errors, what: str) -> None:
+    if items is None:
+        return
+    try:
+        items.append(item)
+    except Exception as e:
+        _note(errors, f"{what}: collector append failed: {e!r}")
+
+
+def _sha256_or_none(raw: bytes, errors, what: str):
+    try:
+        return hashlib.sha256(raw).hexdigest()
+    except Exception as e:
+        _note(errors, f"{what}: sha256 failed: {e!r}")
+        return None
+
+
+def _canon_sha256(obj) -> str:
+    """sha256 of canonical JSON (sorted keys, no whitespace, UTF-8); a non-finite float raises ValueError."""
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+
+
+def _held_text(f: Path, inputs, errors):
+    """Read one pick file once, for the resolver: (text, sha256 of the bytes decoded, or None).
+
+    The held bytes are decoded with `Path.read_text()`'s exact semantics (`bts.picks._read_text_bytes`). A
+    capture-preparation failure falls back to the original `read_text()` once; a genuine read error (OSError)
+    propagates to the resolver's existing skip with no added retry, and a decode error propagates as before.
+    """
+    try:
+        raw = f.read_bytes()
+        reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))
+    except OSError as e:
+        _note(errors, f"pick {f.name}: unreadable, skipped: {e!r}")
+        raise
+    except Exception as e:
+        _note(errors, f"pick {f.name}: capture preparation failed ({e!r}); parsed from path, not from the hashed buffer")
+        _collect(inputs, {"file": f.name, "bytes": None, "sha256": None}, errors, f"pick {f.name}")
+        return f.read_text(), None
+    sha = _sha256_or_none(raw, errors, f"pick {f.name}")
+    _collect(inputs, {"file": f.name, "bytes": len(raw), "sha256": sha}, errors, f"pick {f.name}")
+    return reader.read(), sha
+
+
+def _bind(bindings, errors, f: Path, file_sha, pick_date: date, slot_key: str, bid, sample) -> None:
+    try:
+        rec = {"file": f.name, "file_sha256": file_sha, "date": pick_date.isoformat(), "slot": slot_key,
+               "batter_id": bid, "p": sample[0], "y": sample[1]}
+    except Exception as e:
+        _note(errors, f"pick {f.name} {slot_key}: binding failed: {e!r}")
+        return
+    _collect(bindings, rec, errors, f"pick {f.name} {slot_key}")
+
+
 def _resolve_pick_outcomes(
     picks_dir: Path,
     pa_df: pd.DataFrame,
     today: date,
     lookback_days: int,
+    bindings: list | None = None,
+    inputs: list | None = None,
+    errors: list | None = None,
 ) -> list[tuple[float, int]]:
     """Build (predicted_p, realized_hit) tuples from picks within the window.
 
@@ -58,6 +131,10 @@ def _resolve_pick_outcomes(
     have any hit that day" for each pick (primary + double_down).
 
     Returns empty list if no resolved picks found in the window.
+
+    Optional witness collectors (design §3.2), observational only: `inputs` gets `{file, bytes, sha256}` for every
+    pick file read, in read order; `bindings` gets one record per returned sample, in the same order; `errors` gets
+    every provenance failure.
     """
     if pa_df.empty:
         return []
@@ -81,7 +158,8 @@ def _resolve_pick_outcomes(
     samples: list[tuple[float, int]] = []
     for f in sorted(picks_dir.glob("2*.json")):
         try:
-            data = json.loads(f.read_text())
+            text, file_sha = _held_text(f, inputs, errors)
+            data = json.loads(text)
         except (json.JSONDecodeError, OSError):
             continue
         try:
@@ -108,8 +186,38 @@ def _resolve_pick_outcomes(
             if day_hit is None:
                 # Pick not found in pa frame (unusual — could be late data). Skip.
                 continue
-            samples.append((float(p), int(day_hit)))
+            sample = (float(p), int(day_hit))
+            samples.append(sample)
+            if bindings is not None:
+                _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample)
     return samples
+
+
+def _put(witness, key: str, value, errors) -> None:
+    if witness is None:
+        return
+    try:
+        witness[key] = value
+    except Exception as e:
+        _note(errors, f"witness {key}: assignment failed: {e!r}")
+
+
+def _canon_or_none(obj, errors, what: str):
+    try:
+        return _canon_sha256(obj)
+    except Exception as e:
+        _note(errors, f"{what}: canonical sha256 failed: {e!r}")
+        return None
+
+
+def _fitted_map(cal, errors):
+    try:
+        return {"X_thresholds": cal.X_thresholds_.tolist(), "y_thresholds": cal.y_thresholds_.tolist(),
+                "increasing": bool(cal.increasing_), "out_of_bounds": cal.out_of_bounds,
+                "y_min": cal.y_min, "y_max": cal.y_max}
+    except Exception as e:
+        _note(errors, f"calibration map: extraction failed: {e!r}")
+        return None
 
 
 def fit_calibrator_from_picks(
@@ -118,31 +226,55 @@ def fit_calibrator_from_picks(
     today: date | None = None,
     lookback_days: int = DEFAULT_LOOKBACK_DAYS,
     min_n: int = DEFAULT_MIN_N,
+    witness: dict | None = None,
 ):
     """Fit IsotonicRegression on resolved picks in the lookback window.
 
     Returns the fitted calibrator OR None if insufficient data. Caller should
     treat None as identity (apply_calibrator with None returns p unchanged).
+
+    When `witness` is a dict it is filled (design §3.2) with `status` (fitted | insufficient_support | no_sklearn),
+    `n_fit`, `pick_inputs`, `samples` (the ordered bindings), `samples_sha256`, `map`, `map_sha256` and `errors`.
+    Filling it never changes the return value.
     """
+    errors = [] if witness is not None else None
+    for key in ("status", "n_fit", "pick_inputs", "samples", "samples_sha256", "map", "map_sha256"):
+        _put(witness, key, None, errors)
+    _put(witness, "errors", errors, errors)
     try:
         from sklearn.isotonic import IsotonicRegression
     except ImportError:
         log.warning("scikit-learn not available; calibration disabled")
+        _put(witness, "status", "no_sklearn", errors)
         return None
     if today is None:
         today = date.today()
-    samples = _resolve_pick_outcomes(picks_dir, pa_df, today, lookback_days)
+    bindings, inputs = ([], []) if witness is not None else (None, None)
+    samples = _resolve_pick_outcomes(picks_dir, pa_df, today, lookback_days,
+                                     bindings=bindings, inputs=inputs, errors=errors)
+    if witness is not None:
+        _put(witness, "n_fit", len(samples), errors)
+        _put(witness, "pick_inputs", inputs, errors)
+        _put(witness, "samples", bindings, errors)
+        _put(witness, "samples_sha256", _canon_or_none(bindings, errors, "calibration samples"), errors)
     if len(samples) < min_n:
         log.info(
             f"calibrate: only {len(samples)} resolved picks in last {lookback_days}d "
             f"(need {min_n}); falling back to identity"
         )
+        _put(witness, "status", "insufficient_support", errors)
         return None
     xs = [s[0] for s in samples]
     ys = [s[1] for s in samples]
     cal = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
     cal.fit(xs, ys)
     log.info(f"calibrate: fit on n={len(samples)} samples (lookback={lookback_days}d)")
+    if witness is not None:
+        cal_map = _fitted_map(cal, errors)
+        _put(witness, "map", cal_map, errors)
+        _put(witness, "map_sha256", None if cal_map is None else _canon_or_none(cal_map, errors, "calibration map"),
+             errors)
+        _put(witness, "status", "fitted", errors)
     return cal
 
 
