@@ -288,8 +288,8 @@
  {
   "id": "M27-partial-chain-claim",
   "file": "src/bts/watchdog/notify.py",
-  "old": "        return sorted(picked, key=lambda k: st[\"notices\"][k][\"seq\"])\n",
-  "new": "        return sorted(picked, key=lambda k: st[\"notices\"][k][\"seq\"])[: self.max_sends]\n",
+  "old": "        return chains[: self.max_sends]\n",
+  "new": "        return [c[:1] for c in chains[: self.max_sends]]\n",
   "tests": [
    "tests/watchdog/test_w0_r3_repair.py",
    "-k",
@@ -305,6 +305,95 @@
    "tests/watchdog/test_w0_r3_repair.py",
    "-k",
    "long_chain"
+  ]
+ },
+ {
+  "id": "M29-token-fencing-removed",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "if n is None or n.get(\"claim_token\") != token:",
+  "new": "if n is None:",
+  "tests": [
+   "tests/watchdog/test_w0_skeleton.py",
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "stale_sender or late_success"
+  ]
+ },
+ {
+  "id": "M30-claim-bound-by-notices",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        return chains[: self.max_sends]\n",
+  "new": "        out, picked = [], 0\n        for c in chains:\n            if picked >= self.max_sends:\n                break\n            out.append(c)\n            picked += len(c)\n        return out\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "never_starves"
+  ]
+ },
+ {
+  "id": "M31-no-least-tried-order",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "chains.sort(key=lambda c: (st[\"notices\"][c[0]][\"attempts\"], st[\"notices\"][c[0]][\"seq\"]))",
+  "new": "chains.sort(key=lambda c: st[\"notices\"][c[0]][\"seq\"])",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "fresh_alert"
+  ]
+ },
+ {
+  "id": "M32-attempt-time-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if (n[\"attempts\"] > 0) != (\"last_attempt_at\" in n):\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "b2 and (attempts_without_time or time_without_attempts)"
+  ]
+ },
+ {
+  "id": "M33-sent-metadata-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "                if n[\"attempts\"] < 1 or not n[\"recipient\"] or n[\"last_error\"] is not None:\n",
+  "new": "                if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "b2 and (sent_without_attempt or sent_without_recipient or sent_with_error)"
+  ]
+ },
+ {
+  "id": "M34-unsent-recipient-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            elif n[\"recipient\"] is not None:\n",
+  "new": "            elif False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "pending_with_recipient"
+  ]
+ },
+ {
+  "id": "M35-split-claim-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        if len(claims) > 1:\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "split_claim"
+  ]
+ },
+ {
+  "id": "M37-claims-unbounded",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        return chains[: self.max_sends]\n",
+  "new": "        return chains\n",
+  "tests": [
+   "tests/watchdog/test_w0_skeleton.py",
+   "-k",
+   "bounded_by_elapsed_monotonic"
   ]
  }
 ]

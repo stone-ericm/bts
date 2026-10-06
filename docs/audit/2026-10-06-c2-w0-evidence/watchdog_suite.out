@@ -1,4 +1,4 @@
-# watchdog suite at 808ae12497654de3d3d50ec94ac2894b932ca766, Python 3.12.13, macOS 27.2, run outside any agent sandbox (the gate2/r34 tests need sandbox-exec); command: UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run python -B -m pytest tests/watchdog -p no:cacheprovider -rA -q
+# watchdog suite at 9e4d8081b2379d87bf34edae3ea76e8c075b5c4e, Python 3.12.13, macOS 27.2, run outside any agent sandbox (the gate2/r34 tests need sandbox-exec); command: UV_CACHE_DIR=/tmp/uv-cache TZ=America/New_York uv run python -B -m pytest tests/watchdog -p no:cacheprovider -rA -q
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r31_a_same_named_success_in_the_same_job_never_recovers_a_broken_checker
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r31_a_same_named_success_in_another_job_never_recovers_a_broken_checker
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r31_genuine_success_recovers_and_a_later_failure_recurs
@@ -61,6 +61,28 @@ PASSED tests/watchdog/test_w0_r3_repair.py::test_r34_the_kill_profile_kills_afte
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r34_the_fork_refusal_itself_is_witnessed_under_eperm
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r32_a_reclaim_under_max_sends_takes_the_whole_chain_and_stays_valid
 PASSED tests/watchdog/test_w0_r3_repair.py::test_r32_max_sends_bounds_the_sends_of_a_long_chain
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b1_a_blocked_long_chain_never_starves_an_independent_alert[10-20]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b1_a_blocked_long_chain_never_starves_an_independent_alert[1-2]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b1_a_fresh_alert_is_tried_before_a_repeatedly_failing_one
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-attempts_without_time]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-pending_with_recipient]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-sent_with_error]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-sent_without_attempt]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-sent_without_attempt_time]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-sent_without_recipient]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[enqueue-time_without_attempts]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-attempts_without_time]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-pending_with_recipient]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-sent_with_error]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-sent_without_attempt]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-sent_without_attempt_time]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-sent_without_recipient]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent[flush-time_without_attempts]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b3_a_split_claim_refuses_before_any_send[enqueue]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b3_a_split_claim_refuses_before_any_send[flush]
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b3_a_legitimate_stale_chain_with_a_later_alert_reclaims_whole_and_stays_valid
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b3_a_chain_claimed_in_the_future_is_reclaimed_after_a_clock_rollback
+PASSED tests/watchdog/test_w0_r3_repair.py::test_b4_a_late_success_never_overwrites_a_newer_confirmation
 PASSED tests/watchdog/test_w0_skeleton.py::test_names_are_plain_components
 PASSED tests/watchdog/test_w0_skeleton.py::test_a_symlinked_root_is_refused
 PASSED tests/watchdog/test_w0_skeleton.py::test_a_symlinked_component_or_leaf_is_refused_before_any_write
@@ -120,4 +142,4 @@ PASSED tests/watchdog/test_w0_skeleton.py::test_n3_semantic_corruption_is_refuse
 PASSED tests/watchdog/test_w0_skeleton.py::test_n3_semantic_corruption_is_refused_and_preserved[bool_attempts]
 PASSED tests/watchdog/test_w0_skeleton.py::test_n3_semantic_corruption_is_refused_and_preserved[bad_key]
 PASSED tests/watchdog/test_w0_skeleton.py::test_n3_semantic_corruption_is_refused_and_preserved[claim_outside_sending]
-============================= 121 passed in 2.00s ==============================
+============================= 143 passed in 2.45s ==============================
