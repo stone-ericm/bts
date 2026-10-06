@@ -331,6 +331,14 @@ def acquire(games: list[dict], *, out_dir: Path, feeds_dir: Path, pause_root: Pa
 
 
 def verify(out_dir: Path, feeds_dir: Path) -> dict:
+    """`_verify_unlocked` under the acquisition's writer lock, held from the receipt read through the result (C1
+    infrastructure review r1 B6): an acquisition cannot append an intent mid-verification. Raises Busy while an
+    acquisition owns the lock."""
+    with writer_lock(out_dir):
+        return _verify_unlocked(out_dir, feeds_dir)
+
+
+def _verify_unlocked(out_dir: Path, feeds_dir: Path) -> dict:
     """Outcome-free reconciliation (no requests):
     - every `stored` feed receipt's file must exist, and its gunzipped bytes must hash to the receipt's decoded
       sha256; stored files without a receipt are listed;
@@ -398,7 +406,11 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     out, pause_root = args.out.expanduser().resolve(), C1_ROOT.resolve()
     if args.verify:
-        v = verify(out, args.feeds.expanduser().resolve())
+        try:
+            v = verify(out, args.feeds.expanduser().resolve())
+        except Busy:
+            print("refusing: an acquisition holds the writer lock; verify after it ends", file=sys.stderr)
+            return 3
         print(json.dumps({k: (val[:20] if isinstance(val, list) else val) for k, val in v.items()} |
                          {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)}, indent=1))
         ok = not (v["mismatched"] or v["missing"] or v["unreceipted"] or v["responses"]["missing"]

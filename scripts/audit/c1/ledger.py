@@ -48,7 +48,16 @@ def parse_journal(lines: Iterable[str]) -> list[dict]:
     return rows
 
 
+GUARD_KEYS = ("guard:", "reserve:")
+
+
+def _journal_units(rows: list[dict]) -> set:
+    return {r["unit"] for r in rows if not str(r["invocation"]).startswith(GUARD_KEYS)}
+
+
 def merge(rows: list[dict], new: list[dict]) -> list[dict]:
+    """Union by invocation id. A journal record for a unit replaces that unit's guard/reservation row (the journal's
+    cgroup CPU is authoritative once it exists)."""
     by_inv = {r["invocation"]: r for r in rows}
     for r in new:
         old = by_inv.get(r["invocation"])
@@ -56,7 +65,23 @@ def merge(rows: list[dict], new: list[dict]) -> list[dict]:
             by_inv[r["invocation"]] = r
         elif old != r:
             raise LedgerConflict(f"invocation {r['invocation']}: {old} != {r}")
-    return sorted(by_inv.values(), key=lambda r: (r["stopped_at"], r["invocation"]))
+    journaled = _journal_units(list(by_inv.values()))
+    kept = [r for r in by_inv.values() if not (str(r["invocation"]).startswith(GUARD_KEYS) and r["unit"] in journaled)]
+    return sorted(kept, key=lambda r: (r["stopped_at"], r["invocation"]))
+
+
+def add_guard_row(rows: list[dict], unit: str, cpu_seconds: float, stopped_at: str, *, reserve: bool = False) -> list[dict]:
+    """Account a launched unit the journal has not recorded (code review r1 B4): the guard's measured CPU, or, with
+    no guard receipt, a reservation of the unit's full budget. A later journal record replaces it (merge)."""
+    svc = f"{unit}.service"
+    if svc in _journal_units(rows):
+        return rows
+    if not (math.isfinite(cpu_seconds) and cpu_seconds >= 0):
+        raise ValueError(f"invalid CPU value for {unit}: {cpu_seconds}")
+    key = f"{'reserve' if reserve else 'guard'}:{unit}"
+    rest = [r for r in rows if r["invocation"] not in (f"guard:{unit}", f"reserve:{unit}")]
+    return sorted(rest + [{"invocation": key, "unit": svc, "stopped_at": stopped_at, "cpu_seconds": cpu_seconds}],
+                  key=lambda r: (r["stopped_at"], r["invocation"]))
 
 
 def total_hours(rows: list[dict]) -> float:
@@ -86,6 +111,11 @@ def write_tsv(path: Path, rows: list[dict]) -> None:
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
+    fd = os.open(path.parent, os.O_RDONLY)          # the rename itself is durable (r1 B4)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def gate(total_h: float, declared_h: float, checkpoint_acked: bool) -> str:

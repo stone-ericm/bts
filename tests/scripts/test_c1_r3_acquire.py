@@ -401,3 +401,34 @@ def test_a_cached_schedule_is_parsed_from_the_bytes_whose_binding_was_checked(tm
     monkeypatch.setattr(aq, "acquire", lambda games, **kw: (seen.extend(g["gamePk"] for g in games), 0)[1])
     assert aq.main(argv) == 0
     assert seen == [101] and len(reads) == 1
+
+
+def test_verify_holds_the_writer_lock_and_refuses_while_an_acquisition_owns_it(tmp_path, monkeypatch):
+    """C1 infrastructure review r1 B6: an intent appended after verify's receipt snapshot could go unseen."""
+    out = tmp_path / "c1" / "r3"
+    (tmp_path / "raw").mkdir()
+    out.mkdir(parents=True)
+    with aq.writer_lock(out):
+        with pytest.raises(aq.Busy):
+            aq.verify(out, tmp_path / "raw")
+        monkeypatch.setattr(aq, "C1_ROOT", tmp_path / "c1")
+        assert aq.main(["--verify", "--out", str(out), "--feeds", str(tmp_path / "raw")]) == 3
+
+
+def test_an_acquisition_cannot_start_while_verify_is_reading(tmp_path, monkeypatch):
+    out = tmp_path / "c1" / "r3"
+    (tmp_path / "raw").mkdir()
+    out.mkdir(parents=True)
+    real, attempts = aq.read_receipts, []
+
+    def read_then_try_to_acquire(o):
+        recs = real(o)
+        try:
+            run(tmp_path, {"101": feed(101)}, games=(101,))
+            attempts.append("acquired")
+        except aq.Busy:
+            attempts.append("busy")
+        return recs
+    monkeypatch.setattr(aq, "read_receipts", read_then_try_to_acquire)
+    aq.verify(out, tmp_path / "raw")
+    assert attempts == ["busy"]

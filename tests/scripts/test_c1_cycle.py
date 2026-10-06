@@ -107,7 +107,8 @@ def test_plan_ok_builds_a_capped_transient_unit():
     argv = p["argv"]
     assert argv[:3] == ["systemd-run", "--user", f"--unit={p['unit']}"]
     assert p["unit"].startswith("c1-r2-build-20261005T120000Z")
-    for prop in ("--collect", "--nice=10", "-p", "MemoryMax=12G", "OOMScoreAdjust=1000", "LimitCPU=7200",
+    assert "--nice=10" not in argv                                   # the guard niceness-shifts the job only
+    for prop in ("--collect", "Delegate=yes", "-p", "MemoryMax=12G", "OOMScoreAdjust=1000", "LimitCPU=7200",
                  "RuntimeMaxSec=10800",
                  "--working-directory=/home/bts/projects/bts-c1"):
         assert prop in argv
@@ -170,8 +171,11 @@ def test_rate_limit_stop_markers_are_found_anywhere_under_c1_and_in_the_capture(
                                              "leaderboard/static_snapshots/_receipts/STOP_403_429.json"]
 
 
-# ---------- Eric 2026-10-05 (row C1-4b-deferral; code review r3 B4/B5): C1-wide box limits ----------
+# ---------- C1 box limits (Eric 2026-10-05, row C1-4b-deferral; C1 infrastructure review r1 B1-B7) ----------
+import hashlib
 import importlib.util as _ilu
+import subprocess
+import sys
 
 _gspec = _ilu.spec_from_file_location("c1_guard", Path(launch.__file__).with_name("guard.py"))
 guard = _ilu.module_from_spec(_gspec)
@@ -187,71 +191,111 @@ class FakeProc:
         return self.rc if self.finish_after is not None and self.polls >= self.finish_after else None
 
 
-def test_the_guard_kills_the_whole_job_before_its_cumulative_cpu_reaches_the_budget():
-    """The cap holds across child processes: the cgroup's total, not any one process, is compared with the budget.
-    Usage grows by at most cores x poll per interval, so acting at budget - cores x poll keeps the total under it."""
+def test_the_guard_kills_before_it_returns_and_writes_nothing_first():
     usage, events = [0.0], []
 
     def read():
-        usage[0] += 8 * 2.0          # every core busy (e.g. several children) for a whole poll interval
+        usage[0] += 8 * guard.POLL_S
         return usage[0]
-    rc = guard.watch(FakeProc(), read, budget=100.0, ncpu=8, poll=2.0,
-                     on_overrun=lambda u: events.append(("marker", u)), kill=lambda: events.append(("kill",)),
-                     sleep=lambda s: None)
-    assert rc == guard.OVERRUN_EXIT
-    assert events[0][0] == "marker" and events[1] == ("kill",)       # the durable pause marker comes first
-    assert events[0][1] < 100.0                                       # caught before the budget was crossed
+    kind, rc = guard.watch(FakeProc(), read, threshold=guard.act_at(400.0, 8), poll=guard.POLL_S,
+                           kill=lambda: events.append("kill"), sleep=lambda s: None)
+    assert (kind, rc, events) == ("overrun", None, ["kill"])
+    assert usage[0] >= guard.act_at(400.0, 8) and usage[0] < 400.0
 
 
 def test_the_guard_returns_the_jobs_own_exit_code_within_budget():
-    rc = guard.watch(FakeProc(finish_after=3, rc=5), lambda: 1.0, budget=100.0, ncpu=8, poll=2.0,
-                     on_overrun=lambda u: pytest.fail("no overrun"), kill=lambda: pytest.fail("no kill"),
-                     sleep=lambda s: None)
-    assert rc == 5
+    assert guard.watch(FakeProc(finish_after=3, rc=5), lambda: 1.0, threshold=300.0, poll=2.0,
+                       kill=lambda: pytest.fail("no kill"), sleep=lambda s: None) == ("exit", 5)
 
 
-def test_the_guard_records_an_overrun_seen_only_at_exit():
-    seen = []
-    rc = guard.watch(FakeProc(finish_after=1), iter([1.0, 150.0]).__next__, budget=100.0, ncpu=1, poll=2.0,
-                     on_overrun=seen.append, kill=lambda: None, sleep=lambda s: None)
-    assert rc == guard.OVERRUN_EXIT and seen == [150.0]
+def test_a_total_over_budget_or_an_oom_kill_is_never_a_clean_exit():
+    assert guard.classify("exit", 0, final_cpu=401.0, budget=400.0, oom_before=0, oom_after=0) == "overrun"
+    assert guard.classify("exit", 0, final_cpu=10.0, budget=400.0, oom_before=1, oom_after=2) == "oom"
+    assert guard.classify("exit", 3, final_cpu=10.0, budget=400.0, oom_before=0, oom_after=0) == "exit"
+    assert guard.classify("overrun", None, final_cpu=380.0, budget=400.0, oom_before=0, oom_after=0) == "overrun"
 
 
-def test_the_guard_reads_its_own_cgroup_v2_cpu_total(tmp_path):
-    cg = guard.own_cgroup("0::/user.slice/user-1000.slice/user@1000.service/app.slice/c1-x.service\n", root=tmp_path)
-    assert cg == tmp_path / "user.slice/user-1000.slice/user@1000.service/app.slice/c1-x.service"
-    cg.mkdir(parents=True)
-    (cg / "cpu.stat").write_text("usage_usec 2500000\nuser_usec 2000000\nsystem_usec 500000\n")
-    assert guard.cgroup_cpu_seconds(cg) == 2.5
-    with pytest.raises(RuntimeError):
-        guard.own_cgroup("12:cpu:/x\n", root=tmp_path)          # cgroup v1 only: refuse rather than guess
+def test_the_action_margin_and_the_enforceable_minimum():
+    assert guard.act_at(400.0, 8) == 400.0 - 8 * (guard.POLL_S + guard.SLACK_S)
+    assert guard.min_budget(8) == 2 * 8 * (guard.POLL_S + guard.SLACK_S)
+    assert guard.act_at(guard.min_budget(8), 8) > 0
 
 
-def test_the_guard_writes_a_durable_pause_marker(tmp_path):
-    guard.write_marker(tmp_path / "OVERRUN_c1-x-1.json", {"unit": "c1-x-1", "cpu_seconds": 99.0})
-    assert json.loads((tmp_path / "OVERRUN_c1-x-1.json").read_text())["unit"] == "c1-x-1"
-    assert not list(tmp_path.glob("*.tmp"))
+def fake_cgroup(root, *, kill=True, usage_usec=1_000_000):
+    cg = root / "c1-x.service"
+    for leaf in ("", "guard", "payload"):
+        (cg / leaf).mkdir(parents=True, exist_ok=True)
+    (cg / "cpu.stat").write_text(f"usage_usec {usage_usec}\n")
+    (cg / "memory.events").write_text("oom 0\noom_kill 0\n")
+    (cg / "guard" / "cgroup.procs").write_text("")
+    (cg / "payload" / "cgroup.procs").write_text("")
+    if kill:
+        (cg / "payload" / "cgroup.kill").write_text("")
+    return cg
 
 
-def test_every_job_runs_under_the_guard_with_its_cpu_budget():
+def test_prepare_refuses_without_whole_cgroup_termination(tmp_path):
+    with pytest.raises(guard.GuardError, match="cgroup.kill"):
+        guard.prepare(fake_cgroup(tmp_path, kill=False), 123)
+    cg = fake_cgroup(tmp_path / "ok")
+    assert guard.prepare(cg, 123) == cg / "payload" and (cg / "guard" / "cgroup.procs").read_text() == "123"
+
+
+def run_guard(tmp_path, monkeypatch, cg, command, budget=400.0):
+    monkeypatch.setattr(guard, "_proc_cgroup_text", lambda: "0::/x\n")
+    monkeypatch.setattr(guard, "own_cgroup", lambda text: cg)
+    rc = guard.main(["--cpu-seconds", str(budget), "--pause-dir", str(tmp_path / "c1"), "--unit", "c1-x-1", "--",
+                     *command])
+    return rc, json.loads((tmp_path / "c1" / "TERMINAL_c1-x-1.json").read_text())
+
+
+def test_the_guard_runs_the_job_in_the_payload_leaf_and_writes_a_terminal_receipt(tmp_path, monkeypatch):
+    cg = fake_cgroup(tmp_path)
+    rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "import os; print(os.getpid())"])
+    assert rc == 0 and rec["result"] == "exit" and rec["rc"] == 0 and rec["cpu_seconds"] == 1.0
+    assert (cg / "payload" / "cgroup.procs").read_text().strip().isdigit()      # the job wrote itself there
+
+
+def test_the_guard_reports_an_overrun_after_killing_the_payload(tmp_path, monkeypatch):
+    cg = fake_cgroup(tmp_path, usage_usec=399_000_000)
+    rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "import time; time.sleep(0.2)"])
+    assert rc == guard.OVERRUN_EXIT and rec["result"] == "overrun"
+    assert (cg / "payload" / "cgroup.kill").read_text() == "1"
+
+
+def test_without_the_kill_capability_the_job_never_starts(tmp_path, monkeypatch):
+    marker = tmp_path / "started"
+    rc, rec = run_guard(tmp_path, monkeypatch, fake_cgroup(tmp_path, kill=False),
+                        [sys.executable, "-c", f"open({str(marker)!r}, 'w')"])
+    assert rc == guard.GUARD_ERROR_EXIT and rec["result"] == "guard-error" and not marker.exists()
+
+
+def test_a_budget_below_the_enforceable_minimum_never_starts(tmp_path, monkeypatch):
+    rc, rec = run_guard(tmp_path, monkeypatch, fake_cgroup(tmp_path), ["true"], budget=1.0)
+    assert rec["result"] == "guard-error" and "--cpu-seconds" in rec["reason"]
+
+
+def test_every_job_runs_under_the_guard_in_a_delegated_unit():
     p = plan(cpu_hours=2.0)
     argv = p["argv"]
     g = argv.index(str(launch.GUARD))
-    assert argv[g - 1] == launch.PYTHON and argv[g + 1:g + 3] == ["--cpu-seconds", "7200"]
-    assert argv[g + 3] == "--pause-dir" and argv[argv.index("--unit") + 1] == p["unit"]
+    assert "Delegate=yes" in argv and argv[g - 1] == launch.PYTHON
+    assert argv[g + 1:g + 3] == ["--cpu-seconds", "7200"] and argv[argv.index("--unit") + 1] == p["unit"]
     assert argv[argv.index("--", g) + 1:] == ["echo", "hi"]
 
 
-@pytest.mark.parametrize("kw", [dict(cpu_hours=float("nan")), dict(cpu_hours=0.0), dict(cpu_hours=-1.0),
-                                dict(cpu_hours=float("inf")), dict(max_hours=float("nan")), dict(max_hours=0.0)])
-def test_invalid_budgets_are_refused(kw):
-    p = plan(**kw)
-    assert p["ok"] is False and any("invalid" in r for r in p["reasons"])
+@pytest.mark.parametrize("kw,reason", [(dict(cpu_hours=float("nan")), "invalid cpu-hours"),
+                                       (dict(cpu_hours=0.0), "invalid cpu-hours"),
+                                       (dict(cpu_hours=float("inf")), "invalid cpu-hours"),
+                                       (dict(max_hours=float("nan")), "invalid max-hours"),
+                                       (dict(cpu_hours=1e-5), "below the guard's enforceable minimum")])
+def test_invalid_or_unenforceable_budgets_are_refused(kw, reason):
+    p = plan(ncpu=8, **kw)
+    assert p["ok"] is False and any(reason in r for r in p["reasons"]), p["reasons"]
 
 
 def test_a_non_finite_or_negative_ledger_total_stops():
-    assert ledger.gate(float("nan"), 4, False) == "stop"
-    assert ledger.gate(-1.0, 4, False) == "stop"
+    assert ledger.gate(float("nan"), 4, False) == "stop" and ledger.gate(-1.0, 4, False) == "stop"
 
 
 @pytest.mark.parametrize("bad", ["nan", "inf", "-3.0"])
@@ -262,61 +306,148 @@ def test_a_corrupt_ledger_row_is_refused(tmp_path, bad):
         ledger.read_tsv(p)
 
 
-def test_ledger_writes_use_a_unique_temporary_file(tmp_path, monkeypatch):
-    srcs, real = [], os.replace
-    monkeypatch.setattr(ledger.os, "replace", lambda a, b: (srcs.append(str(a)), real(a, b)))
-    row = [{"invocation": "a", "unit": "c1-x.service", "stopped_at": "t", "cpu_seconds": 1.0}]
-    ledger.write_tsv(tmp_path / "l.tsv", row)
-    ledger.write_tsv(tmp_path / "l.tsv", row)
-    assert len(set(srcs)) == 2 and ledger.read_tsv(tmp_path / "l.tsv") == row
+def test_guard_and_reservation_rows_give_way_to_the_journal_record():
+    rows = ledger.add_guard_row([], "c1-a-1", 30.0, "t1")
+    rows = ledger.add_guard_row(rows, "c1-b-1", 7200.0, "reserved", reserve=True)
+    assert {r["invocation"] for r in rows} == {"guard:c1-a-1", "reserve:c1-b-1"}
+    journal = [{"invocation": "inv-a", "unit": "c1-a-1.service", "stopped_at": "t2", "cpu_seconds": 31.0}]
+    merged = ledger.merge(rows, journal)
+    assert {r["invocation"] for r in merged} == {"inv-a", "reserve:c1-b-1"}       # no double count
+    assert ledger.add_guard_row(merged, "c1-a-1", 99.0, "t3") == merged          # journal already has it
 
 
-REG = ("| C1-resume-x | resume after c1-r4b-run-20261005T010000Z timed out | **RULED 2026-10-06: resume** | Eric |\n"
-       "| C1-other | an unrelated decision | **RULED 2026-10-06: something** | Eric |\n")
+# --- the launcher's admission, end to end with systemd replaced ---
+@pytest.fixture
+def box(tmp_path, monkeypatch):
+    """The launcher on a fake canonical root: journal, active units and systemd-run are injected."""
+    state = {"journal": [], "active": [], "started": [], "show": "loaded"}
+    monkeypatch.setattr(launch, "DATA_ROOT", tmp_path / "data")
+    monkeypatch.setattr(launch, "_journal", lambda: list(state["journal"]))
+    monkeypatch.setattr(launch, "_active", lambda: list(state["active"]))
+
+    def run(argv):
+        if argv[:2] == ["systemctl", "--user"] and "show" in argv:
+            return state["show"]
+        return ""
+    monkeypatch.setattr(launch, "_run", run)
+    monkeypatch.setattr(launch.subprocess, "run", lambda argv, check: state["started"].append(argv))
+    state["c1"] = tmp_path / "data" / "hetzner_results" / "c1"
+    state["c1"].mkdir(parents=True)
+    return state
 
 
-def test_a_timeout_in_one_job_pauses_every_other_c1_job(tmp_path):
-    """r3 B5: another candidate's overrun used to be ignored; now it is a durable cycle-wide pause."""
-    c1 = tmp_path / "hetzner_results" / "c1"
-    lines = [json.dumps({"USER_UNIT": "c1-r4b-run-20261005T010000Z.service",
-                         "MESSAGE": "c1-r4b-run-20261005T010000Z.service: Failed with result 'timeout'."}),
-             json.dumps({"USER_UNIT": "c1-r2-x-20261005T020000Z.service",
-                         "MESSAGE": "c1-r2-x-20261005T020000Z.service: Failed with result 'exit-code'."}),
-             json.dumps({"USER_UNIT": "c1-burner-20261004T190543Z.service",
-                         "MESSAGE": "c1-burner-20261004T190543Z.service: Failed with result 'signal'."})]
-    launch.record_overruns(c1, lines)
-    assert sorted(p.name for p in c1.glob("OVERRUN_*.json")) == ["OVERRUN_c1-r4b-run-20261005T010000Z.json"]
-    stops = launch.overrun_stops(c1, REG)
-    assert stops and "c1-r4b-run-20261005T010000Z" in stops[0]
-    assert plan(overrun_stops=stops)["ok"] is False                     # a different candidate is refused too
-    assert any("overrun" in r for r in plan(overrun_stops=stops)["reasons"])
+ARGV = ["run", "--name", "r3-fit", "--cpu-hours", "1", "--max-hours", "1", "--", "true"]
 
 
-def test_an_overrun_is_released_only_by_a_matching_owner_decision(tmp_path):
-    c1 = tmp_path / "hetzner_results" / "c1"
+def ledger_hours(c1):
+    return ledger.total_hours(ledger.read_tsv(c1 / "compute_ledger.tsv"))
+
+
+def plant_ledger(c1, hours):
+    ledger.write_tsv(c1 / "compute_ledger.tsv", [{"invocation": "old", "unit": "c1-old.service", "stopped_at": "t",
+                                                  "cpu_seconds": hours * 3600}])
+
+
+def test_a_launch_writes_a_durable_pending_record_before_starting(box):
+    assert launch.main(ARGV) == 0 and len(box["started"]) == 1
+    (pend,) = box["c1"].glob("PENDING_*.json")
+    assert json.loads(pend.read_text())["limit_cpu_seconds"] == 3600
+
+
+def test_an_active_job_refuses_the_launch_before_any_accounting(box, monkeypatch):
+    box["active"] = ["c1-r4b-run-20261005T010000Z.service"]
+    swept = []
+    monkeypatch.setattr(launch, "_journal", lambda: swept.append(1) or [])
+    assert launch.main(ARGV) == 2 and box["started"] == [] and swept == []
+
+
+def test_a_job_that_ended_just_before_admission_is_accounted_and_pauses(box):
+    """r1 B2's interleaving: 49 h in the ledger; a job ended (timeout, 2 h) and its journal record is not yet
+    visible. Its guard receipt is: the next launch sees 51 h and the pause."""
+    plant_ledger(box["c1"], 49)
     unit = "c1-r4b-run-20261005T010000Z"
-    guard.write_marker(c1 / f"OVERRUN_{unit}.json", {"unit": unit, "source": "guard", "cpu_seconds": 14000.0})
-    for rec in ({}, {"unit": unit}, {"unit": unit, "register_row": "C1-other", "approved_by": "Eric", "reason": "go"},
-                {"unit": unit, "register_row": "C1-resume-x", "approved_by": "someone", "reason": "go"},
-                {"unit": "c1-y-1", "register_row": "C1-resume-x", "approved_by": "Eric", "reason": "go"}):
-        (c1 / f"RESUME_{unit}.json").write_text(json.dumps(rec))
-        assert launch.overrun_stops(c1, REG), rec                       # empty, partial, unrelated row, wrong unit
-    (c1 / f"RESUME_{unit}.json").write_text(json.dumps({"unit": unit, "register_row": "C1-resume-x",
-                                                        "approved_by": "Eric", "reason": "budget raised"}))
-    assert launch.overrun_stops(c1, REG) == []
+    guard.write_receipt(box["c1"] / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 14400})
+    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "terminated",
+                                                              "cpu_seconds": 7200.0, "ended_utc": "t"})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert ledger_hours(box["c1"]) == pytest.approx(51.0)
+    assert (box["c1"] / f"OVERRUN_{unit}.json").exists() and (box["c1"] / "jobs" / f"PENDING_{unit}.json").exists()
 
 
-def test_two_launches_cannot_race(tmp_path, monkeypatch):
-    """r3 B5: sweep, admission and start run under one exclusive launch lock."""
+def test_a_job_whose_guard_left_no_receipt_reserves_its_budget_and_pauses(box):
+    """r1 B4: a lost journal and a killed guard. The budget is reserved and C1 pauses, not 'nothing happened'."""
+    plant_ledger(box["c1"], 49)
+    unit = "c1-r4b-run-20261005T010000Z"
+    guard.write_receipt(box["c1"] / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 14400})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert ledger_hours(box["c1"]) == pytest.approx(53.0)
+    assert json.loads((box["c1"] / f"OVERRUN_{unit}.json").read_text())["source"] == "unreconciled"
+
+
+def test_a_clean_exit_is_accounted_without_a_pause(box):
+    unit = "c1-r3-fit-20261005T010000Z"
+    guard.write_receipt(box["c1"] / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 3600})
+    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "exit", "rc": 0,
+                                                              "cpu_seconds": 90.0, "ended_utc": "t"})
+    assert launch.main(ARGV) == 0 and len(box["started"]) == 1
+    assert ledger_hours(box["c1"]) == pytest.approx(90 / 3600) and not list(box["c1"].glob("OVERRUN_*"))
+
+
+def test_a_timeout_in_one_job_pauses_every_other_c1_job(box):
+    box["journal"] = [json.dumps({"USER_UNIT": "c1-r4b-run-20261005T010000Z.service",
+                                  "MESSAGE": "c1-r4b-run-20261005T010000Z.service: Failed with result 'timeout'."}),
+                      json.dumps({"USER_UNIT": "c1-burner-20261004T190543Z.service",
+                                  "MESSAGE": "c1-burner-20261004T190543Z.service: Failed with result 'signal'."})]
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert sorted(p.name for p in box["c1"].glob("OVERRUN_*.json")) == ["OVERRUN_c1-r4b-run-20261005T010000Z.json"]
+
+
+def resume_row(unit, sha, *, verb="RESUME", source="Eric 2026-10-06"):
+    return f"| C1-resume-{unit} | release after the overrun | **RULED 2026-10-06: {verb} `{unit}` overrun `{sha[:16]}`** | {source} |\n"
+
+
+def test_an_overrun_is_released_only_by_eric_s_exact_resume_ruling(tmp_path):
+    c1 = tmp_path / "c1"
+    unit = "c1-r4b-run-20261005T010000Z"
+    guard.write_receipt(c1 / f"OVERRUN_{unit}.json", {"unit": unit, "source": "terminal", "result": "overrun"})
+    sha = hashlib.sha256((c1 / f"OVERRUN_{unit}.json").read_bytes()).hexdigest()
+    (c1 / f"RESUME_{unit}.json").write_text(json.dumps({"unit": unit, "overrun_sha256": sha}))
+    negatives = {
+        "no row": "",
+        "denial": resume_row(unit, sha, verb="DO NOT RESUME"),
+        "unrelated ruling naming the unit": f"| C1-resume-{unit} | x | **RULED 2026-10-06: keep paused; {unit}** | Eric |\n",
+        "wrong source": resume_row(unit, sha, source="Codex"),
+        "other row id": resume_row(unit, sha).replace(f"C1-resume-{unit} |", "C1-other |", 1),
+        "prefix of another unit": resume_row(unit + "9", sha).replace(f"C1-resume-{unit}9", f"C1-resume-{unit}"),
+        "another overrun's sha": resume_row(unit, "f" * 64),
+    }
+    for label, reg in negatives.items():
+        assert launch.overrun_stops(c1, reg), label
+    assert launch.overrun_stops(c1, resume_row(unit, sha)) == []
+    (c1 / f"RESUME_{unit}.json").write_text(json.dumps({"unit": unit, "overrun_sha256": "0" * 64}))
+    assert launch.overrun_stops(c1, resume_row(unit, sha))                   # a stale release (other instance)
+
+
+def test_there_is_no_alternate_root_option():
+    """r1 B3: one canonical root, lock and stop namespace for every live launch and status."""
+    for argv in (["--data-root", "/tmp/x", "status"], ["status", "--data-root", "/tmp/x"]):
+        with pytest.raises(SystemExit):
+            launch.main(argv)
+
+
+def test_two_launches_cannot_race(box):
     import fcntl
-    started = []
-    monkeypatch.setattr(launch, "_journal", lambda: [])
-    monkeypatch.setattr(launch, "_run", lambda argv: "")
-    monkeypatch.setattr(launch.subprocess, "run", lambda argv, check: started.append(argv))
-    c1 = tmp_path / "hetzner_results" / "c1"
-    c1.mkdir(parents=True)
-    argv = ["--data-root", str(tmp_path), "run", "--name", "r3-fit", "--cpu-hours", "1", "--max-hours", "1", "--", "true"]
-    with open(c1 / ".launch.lock", "w") as fh:
+    with open(box["c1"] / ".launch.lock", "w") as fh:
         fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        assert launch.main(argv) == 2 and started == []                 # a concurrent launcher is refused
-    assert launch.main(argv) == 0 and len(started) == 1
+        assert launch.main(ARGV) == 2 and box["started"] == []
+    assert launch.main(ARGV) == 0 and len(box["started"]) == 1
+
+
+def test_a_systemd_run_failure_keeps_the_pending_record_unless_the_unit_never_existed(box, monkeypatch):
+    def fail(argv, check):
+        raise subprocess.CalledProcessError(1, argv)
+    monkeypatch.setattr(launch.subprocess, "run", fail)
+    box["show"] = "not-found"
+    assert launch.main(ARGV) == 2 and not list(box["c1"].glob("PENDING_*.json"))
+    box["show"] = "loaded"
+    assert launch.main(ARGV) == 2 and len(list(box["c1"].glob("PENDING_*.json"))) == 1   # fail closed

@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
-"""C1 job guard: the CPU cap holds across a job's whole cgroup (Eric 2026-10-05, register row C1-4b-deferral; code
-review r3 B4).
+"""C1 job guard: the CPU cap holds across a job's whole cgroup (Eric 2026-10-05, register row C1-4b-deferral; C1
+infrastructure review r1 B1/B4/B7).
 
-Every C1 box job runs as `systemd-run ... <python> guard.py --cpu-seconds N --pause-dir <c1> --unit <unit> -- <cmd>`.
-`LimitCPU` is a per-process rlimit: a job that spawns children can exceed it in total. The guard closes that gap:
-- **What it measures:** it runs the command and polls its own cgroup v2 `cpu.stat` (`usage_usec`) every POLL_S
-  seconds. That is the cumulative CPU of every process in the unit: the guard, the job and all of its children.
-- **When it acts:** at `budget - cores * POLL_S`. Usage can grow by at most cores x POLL_S between polls, so the
-  total stays under the budget.
-- **What it does on an overrun:** it first writes a durable `OVERRUN_<unit>.json` into the C1 pause directory; the
-  launcher then refuses every C1 job until Eric's recorded decision releases it. Then it kills the whole cgroup
-  (`cgroup.kill`, the guard included); without `cgroup.kill` it kills the job's process group.
-- **Without an overrun:** it exits with the job's own exit code.
+Every C1 box job runs as `systemd-run --user -p Delegate=yes ... <python> guard.py --cpu-seconds N --pause-dir <c1>
+--unit <unit> -- <cmd>`. With the delegated cgroup the guard splits the unit in two leaves before the job starts:
+- **`guard/`** holds this process. It runs at normal priority.
+- **`payload/`** holds the job. The guard applies nice 10 to it at exec. Every descendant stays in this cgroup,
+  including those that start a new session.
 
-Stdlib only and run by absolute path, so it works from any job's working directory (for example a generator
-worktree that has no `scripts/audit/c1`).
+It checks that it can read the unit's `cpu.stat` and write `payload/cgroup.kill`; if not, the job never starts.
+
+**The cap.** The guard polls the unit's cumulative CPU (`cpu.stat` usage_usec: guard plus job plus all children)
+every POLL_S seconds, and acts at `budget - cores * (POLL_S + SLACK_S)`. On a trip it first kills the payload cgroup
+(`payload/cgroup.kill`), with no I/O before the kill. Only then does it record anything.
+
+**The bound** assumes the guard is scheduled within SLACK_S of its sleep. It runs at nice 0 while the payload runs at
+nice 10. That assumption is not proved here. Any overshoot past the budget is still recorded: a final total over
+budget is reported as an overrun, which pauses C1.
+
+**Terminal receipt.** On every exit path the guard can run, it writes a durable `TERMINAL_<unit>.json`: the result
+(`exit` with the job's code / `overrun` / `oom` / `terminated` / `guard-error`), the unit's final CPU total, and the
+budget. The launcher reconciles every launched unit's `PENDING_` record against this receipt:
+- every result other than a clean `exit` pauses all of C1;
+- a missing receipt does too (the guard was killed or failed before writing it).
+
+If the guard itself dies, systemd stops the unit and kills the payload with it (KillMode=control-group).
+
+Stdlib only and run by absolute path, so it works from any job's working directory.
 """
 from __future__ import annotations
 
@@ -28,8 +40,19 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-OVERRUN_EXIT = 86
 POLL_S = 2.0
+SLACK_S = 3.0
+OVERRUN_EXIT = 86
+GUARD_ERROR_EXIT = 87
+PAUSE_RESULTS = ("overrun", "oom", "terminated", "guard-error")
+
+
+class GuardError(RuntimeError):
+    pass
+
+
+def _proc_cgroup_text() -> str:
+    return Path("/proc/self/cgroup").read_text()
 
 
 def own_cgroup(proc_cgroup_text: str, root: Path = Path("/sys/fs/cgroup")) -> Path:
@@ -37,7 +60,7 @@ def own_cgroup(proc_cgroup_text: str, root: Path = Path("/sys/fs/cgroup")) -> Pa
     for line in proc_cgroup_text.splitlines():
         if line.startswith("0::"):
             return root / line[3:].lstrip("/")
-    raise RuntimeError("no cgroup v2 entry in /proc/self/cgroup: the cumulative CPU cap cannot be enforced")
+    raise GuardError("no cgroup v2 entry in /proc/self/cgroup: the cumulative CPU cap cannot be enforced")
 
 
 def cgroup_cpu_seconds(cg: Path) -> float:
@@ -45,10 +68,46 @@ def cgroup_cpu_seconds(cg: Path) -> float:
         parts = line.split()
         if len(parts) == 2 and parts[0] == "usage_usec":
             return int(parts[1]) / 1e6
-    raise RuntimeError(f"{cg}/cpu.stat has no usage_usec")
+    raise GuardError(f"{cg}/cpu.stat has no usage_usec")
 
 
-def write_marker(path: Path, rec: dict) -> None:
+def oom_kills(cg: Path) -> int:
+    f = cg / "memory.events"
+    if not f.exists():
+        return 0
+    for line in f.read_text().splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == "oom_kill":
+            return int(parts[1])
+    return 0
+
+
+def act_at(budget: float, ncpu: int) -> float:
+    return budget - ncpu * (POLL_S + SLACK_S)
+
+
+def min_budget(ncpu: int) -> float:
+    """The smallest budget the guard can enforce with headroom: twice its action margin."""
+    return 2 * ncpu * (POLL_S + SLACK_S)
+
+
+def prepare(cg: Path, pid: int) -> Path:
+    """Split the unit into guard/ and payload/ leaves, move the guard, and prove the kill capability before the job
+    starts. Returns the payload cgroup."""
+    try:
+        cgroup_cpu_seconds(cg)
+        for leaf in ("guard", "payload"):
+            (cg / leaf).mkdir(exist_ok=True)
+        (cg / "guard" / "cgroup.procs").write_text(str(pid))
+    except OSError as e:
+        raise GuardError(f"cannot split the unit cgroup (is Delegate=yes set?): {e}") from e
+    killer = cg / "payload" / "cgroup.kill"
+    if not (killer.exists() and os.access(killer, os.W_OK)):
+        raise GuardError(f"{killer} is missing or not writable: whole-cgroup termination is unavailable")
+    return cg / "payload"
+
+
+def write_receipt(path: Path, rec: dict) -> None:
     """Durable: temp file fsynced, renamed, directory fsynced."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -64,24 +123,26 @@ def write_marker(path: Path, rec: dict) -> None:
         os.close(fd)
 
 
-def watch(proc, read_usage, *, budget: float, ncpu: int, poll: float, on_overrun, kill, sleep=time.sleep) -> int:
-    """Poll until the job exits (its exit code) or its cumulative CPU reaches the action threshold (OVERRUN_EXIT,
-    after the durable marker and the kill). A total found over budget at exit is still recorded as an overrun."""
-    act_at = budget - ncpu * poll
+def watch(proc, read_usage, *, threshold: float, poll: float, kill, sleep=time.sleep) -> tuple[str, int | None]:
+    """Poll until the job exits (("exit", code)) or the cumulative CPU reaches the threshold (kill first, then
+    ("overrun", None)). Nothing is written before the kill."""
     while True:
-        used = read_usage()
-        if used >= act_at:
-            on_overrun(used)
+        if read_usage() >= threshold:
             kill()
-            return OVERRUN_EXIT
+            return "overrun", None
         rc = proc.poll()
         if rc is not None:
-            used = read_usage()
-            if used > budget:
-                on_overrun(used)
-                return OVERRUN_EXIT
-            return rc
+            return "exit", rc
         sleep(poll)
+
+
+def classify(kind: str, rc: int | None, *, final_cpu: float, budget: float, oom_before: int, oom_after: int) -> str:
+    """The terminal result: an OOM kill or a total over budget is a pause even when the job itself exited."""
+    if kind == "overrun" or final_cpu > budget:
+        return "overrun"
+    if oom_after > oom_before:
+        return "oom"
+    return "exit"
 
 
 def main(argv=None) -> int:
@@ -92,35 +153,63 @@ def main(argv=None) -> int:
     ap.add_argument("command", nargs=argparse.REMAINDER)
     args = ap.parse_args(argv)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
-    if not command or not (args.cpu_seconds > 0):
-        print("guard: a command and a positive --cpu-seconds are required", file=sys.stderr)
-        return 2
-    cg = own_cgroup(Path("/proc/self/cgroup").read_text())
-    read = lambda: cgroup_cpu_seconds(cg)  # noqa: E731
-    read()                                         # fail before starting the job if the total cannot be read
-    proc = subprocess.Popen(command, start_new_session=True)
+    ncpu = os.cpu_count() or 1
+    started = datetime.now(timezone.utc).isoformat()
+    receipt = args.pause_dir / f"TERMINAL_{args.unit}.json"
+    base = {"unit": args.unit, "budget_seconds": args.cpu_seconds, "act_at_seconds": act_at(args.cpu_seconds, ncpu),
+            "poll_s": POLL_S, "slack_s": SLACK_S, "ncpu": ncpu, "started_utc": started}
+
+    def finish(result: str, rc, cpu, **extra) -> int:
+        write_receipt(receipt, {**base, "result": result, "rc": rc, "cpu_seconds": cpu,
+                                "ended_utc": datetime.now(timezone.utc).isoformat(), **extra})
+        return {"exit": rc if isinstance(rc, int) and rc >= 0 else 1, "overrun": OVERRUN_EXIT}.get(result, GUARD_ERROR_EXIT)
+
+    if not command or not (args.cpu_seconds >= min_budget(ncpu)):
+        return finish("guard-error", None, None, reason=f"a command and --cpu-seconds >= {min_budget(ncpu)} are required")
+    try:
+        cg = own_cgroup(_proc_cgroup_text())
+        payload = prepare(cg, os.getpid())
+    except (GuardError, OSError) as e:
+        return finish("guard-error", None, None, reason=str(e))
+    oom_before = oom_kills(cg)
+
+    def enter_payload() -> None:                   # runs in the child before exec
+        (payload / "cgroup.procs").write_text(str(os.getpid()))
+        os.nice(10)
 
     def kill() -> None:
-        killer = cg / "cgroup.kill"
-        if killer.exists():
-            killer.write_text("1")                 # every process in the unit, this guard included
-        os.killpg(proc.pid, signal.SIGKILL)
-
-    def forward(signum, _frame):                  # systemd stop: take the job's process group down with us
+        (payload / "cgroup.kill").write_text("1")
         try:
-            os.killpg(proc.pid, signum)
-        finally:
-            sys.exit(128 + signum)
-    signal.signal(signal.SIGTERM, forward)
+            proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
 
-    def on_overrun(used: float) -> None:
-        write_marker(args.pause_dir / f"OVERRUN_{args.unit}.json",
-                     {"unit": args.unit, "source": "guard", "cpu_seconds": round(used, 3),
-                      "budget_seconds": args.cpu_seconds, "written_utc": datetime.now(timezone.utc).isoformat()})
-        print(f"guard: CPU overrun ({used:.1f} s of {args.cpu_seconds:.0f} s): C1 paused", file=sys.stderr, flush=True)
+    try:
+        proc = subprocess.Popen(command, preexec_fn=enter_payload, start_new_session=True)
+    except (OSError, subprocess.SubprocessError) as e:
+        return finish("guard-error", None, cgroup_cpu_seconds(cg), reason=f"the job could not start: {e}")
 
-    return watch(proc, read, budget=args.cpu_seconds, ncpu=os.cpu_count() or 1, poll=POLL_S,
-                 on_overrun=on_overrun, kill=kill)
+    def on_term(signum, _frame):                   # systemd stop or RuntimeMaxSec: kill the job, then record
+        kill()
+        sys.exit(finish("terminated", None, cgroup_cpu_seconds(cg), signal=signum,
+                        payload_left=(payload / "cgroup.procs").read_text().split()))
+    signal.signal(signal.SIGTERM, on_term)
+
+    try:
+        kind, rc = watch(proc, lambda: cgroup_cpu_seconds(cg), threshold=act_at(args.cpu_seconds, ncpu), poll=POLL_S,
+                         kill=kill)
+    except Exception as e:  # noqa: BLE001 - any monitor failure stops the job and pauses C1
+        kill()
+        return finish("guard-error", None, cgroup_cpu_seconds(cg), reason=f"monitor failed: {type(e).__name__}: {e}")
+    left = (payload / "cgroup.procs").read_text().split()
+    if left:                                       # descendants that outlived the job: stop them before the total
+        kill()
+    final = cgroup_cpu_seconds(cg)
+    result = classify(kind, rc, final_cpu=final, budget=args.cpu_seconds, oom_before=oom_before, oom_after=oom_kills(cg))
+    if result == "overrun":
+        print(f"guard: CPU overrun ({final:.1f} s; budget {args.cpu_seconds:.0f} s): job killed, C1 paused",
+              file=sys.stderr, flush=True)
+    return finish(result, rc, final, payload_left=left)
 
 
 if __name__ == "__main__":
