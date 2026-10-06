@@ -226,9 +226,12 @@ def test_the_closed_inputs_replace_the_live_lookup_and_park_drag(tmp_path, monke
     assert C._build_probable_pitcher_lookup() == {1: {"away": 2}}
     assert reads == []                                     # neither the cache nor any raw feed was read
     assert not (tmp_path / "data" / "models" / "probable_pitcher_lookup.json").read_text().startswith('{"1"')
+    table_reads = []
+    monkeypatch.setattr(PD, "get_table", lambda *a, **k: table_reads.append(1))
     df = pd.DataFrame({"venue_id": [1], "date": ["2024-05-01"]})
     out = PD.attach_park_drag(df)
     assert out["park_drag_delta"].isna().all() and "park_drag_delta" not in df
+    assert table_reads == []                                 # the external table is never consulted
 
 
 def test_admission_requires_exactly_the_ten_pins(monkeypatch, tmp_path):
@@ -543,8 +546,28 @@ def test_aggregate_the_three_registered_seeds(three_runs):
                                   lambda d: d + d[:1]])
 def test_aggregate_refuses_partial_duplicate_or_extra_runs(three_runs, pick):
     _, dirs = three_runs
-    with pytest.raises(S.AggregateError):
+    with pytest.raises(S.AggregateError, match="exactly 3 distinct run directories"):   # the count check itself
         S.aggregate(pick(dirs))
+
+
+def test_aggregate_refuses_a_run_outside_its_seed_root(three_runs, tmp_path):
+    import shutil
+    _, dirs = three_runs
+    moved = tmp_path / "elsewhere" / f"seed_{S.STAGE_ONE_SEEDS[0]}" / dirs[2].name
+    shutil.copytree(dirs[2], moved)                          # seed 3's run, under seed 1's root
+    with pytest.raises(S.AggregateError, match="not under its seed's claim root"):
+        S.aggregate([dirs[0], dirs[1], moved])
+
+
+def test_aggregate_refuses_runs_of_different_heads(three_runs):
+    import json
+    _, dirs = three_runs
+    for name in ("manifest.json", "results.json"):          # consistent within the run: only agreement catches it
+        rec = json.loads((dirs[1] / name).read_text())
+        rec["head"] = "f" * 40
+        (dirs[1] / name).write_text(json.dumps(rec))
+    with pytest.raises(S.AggregateError, match="disagree on head"):
+        S.aggregate(dirs)
 
 
 def test_aggregate_refuses_a_foreign_seed(three_runs, tmp_path):

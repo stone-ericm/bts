@@ -62,3 +62,143 @@ F26 RED ========================= 1 failed, 27 passed in 6.68s =================
 # resume 18:25 EDT: F12 re-run after the test case was isolated (its old case also failed the practical size)
 F12 RED ========================= 1 failed, 27 passed in 5.70s =========================
     FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]
+
+# revision 2 ledger at 307e7bca2ba5694a7dbeb5b5331e01ed3bb0e312, 2026-10-06 19:01 EDT (revised runner: RED = pytest exit 1 with a FAILED line)
+F1 RED ======================== 2 failed, 51 passed in 31.02s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates
+F2 RED ======================== 1 failed, 52 passed in 30.51s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F3 RED ======================== 1 failed, 52 passed in 30.65s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F4 RED =================== 6 failed, 35 passed, 12 errors in 2.85s ====================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_manifest_records_the_effective_lightgbm_params
+F5 RED ======================== 1 failed, 52 passed in 30.65s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F6 RED ======================== 1 failed, 52 passed in 30.39s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F7 RED ======================== 1 failed, 52 passed in 30.56s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras
+F8 RED ======================== 1 failed, 52 passed in 29.72s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]
+F9 RED ======================== 1 failed, 52 passed in 30.21s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]
+F10 RED ======================== 1 failed, 52 passed in 31.17s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]
+F11 RED ======================== 1 failed, 52 passed in 30.88s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative
+F12 RED ======================== 1 failed, 52 passed in 30.97s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]
+F13 RED ======================== 2 failed, 51 passed in 30.75s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+F14 RED ======================== 2 failed, 51 passed in 29.79s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F15 RED ======================== 3 failed, 50 passed in 30.44s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+F16 RED ======================== 2 failed, 51 passed in 30.13s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F17 RED ======================== 1 failed, 52 passed in 29.98s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_first_unit_stop - assert...
+F18 RED ======================== 1 failed, 52 passed in 30.05s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F19 RED ======================== 1 failed, 52 passed in 29.92s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F20 RED ======================== 1 failed, 52 passed in 30.00s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+F21 RED ======================== 1 failed, 52 passed in 30.61s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward
+F22 RED ======================== 1 failed, 52 passed in 30.54s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+F23 RED ======================== 1 failed, 52 passed in 30.79s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+F25 RED ======================== 1 failed, 52 passed in 30.25s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F26 RED ======================== 1 failed, 52 passed in 30.60s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags
+G1 SURVIVED ============================= 53 passed in 30.03s ==============================
+G2 SURVIVED ============================= 53 passed in 29.71s ==============================
+G3 RED ======================== 1 failed, 52 passed in 29.56s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_inconsistent_runs[stopped]
+G4 RED ======================== 1 failed, 52 passed in 29.84s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_inconsistent_runs[claim]
+G5 SURVIVED ============================= 53 passed in 30.74s ==============================
+G6 RED ======================== 1 failed, 52 passed in 31.14s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_inconsistent_runs[summary]
+G7 RED ======================== 1 failed, 52 passed in 30.41s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed
+G8 RED ======================== 1 failed, 52 passed in 30.90s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_inconsistent_runs[pins]
+G9 SURVIVED ============================= 53 passed in 30.50s ==============================
+G10 RED ======================== 1 failed, 52 passed in 30.33s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_disposition_incomplete
+G11 RED ======================== 3 failed, 50 passed in 29.48s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seed_order - assert (not...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_by_run_without_the_release
+G12 RED ======================== 1 failed, 52 passed in 29.59s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seed_order - assert (not...
+G13 RED ======================== 1 failed, 52 passed in 29.93s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_budget_needs_the_exact_ruling_and_eric_as_source
+G14 RED ======================== 2 failed, 51 passed in 29.55s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_release_budget_needs_the_exact_ruling_and_eric_as_source
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seed_order - IndexError:...
+G15 RED ======================== 1 failed, 52 passed in 29.79s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seed_order - assert True...
+G16 RED ======================== 1 failed, 52 passed in 29.65s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G17 RED ======================== 1 failed, 52 passed in 29.60s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+G18 RED ======================== 3 failed, 50 passed in 29.39s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_original_portion_labels_exclude_the_resumed_portion
+    FAILED tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+G19 RED ======================== 2 failed, 51 passed in 29.51s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+G20 SURVIVED ============================= 53 passed in 29.62s ==============================
+G21 RED ======================== 1 failed, 52 passed in 29.91s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_freeze_lookup_keeps_only_the_given_games_canonically
+G22 RED ======================== 1 failed, 52 passed in 29.66s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+G23 RED ======================== 1 failed, 52 passed in 30.72s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_changed_frozen_lookup_is_refused
+G24 RED ======================== 3 failed, 50 passed in 28.83s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds
+G25 RED ======================== 1 failed, 52 passed in 30.30s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_by_run_without_the_release
+G26 RED ======================== 2 failed, 51 passed in 29.54s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_seed_order - AssertionEr...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G27 RED ======================== 1 failed, 52 passed in 29.69s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget
+G28 RED ======================== 1 failed, 52 passed in 29.72s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins
+G29 RED ======================== 1 failed, 52 passed in 29.55s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_t_edges - assert (inf ==...
+NOT RED: G1,G2,G5,G9,G20
+exit 1
+# resume 19:32 EDT: G1, G2, G5, G9, G20 re-run after tests pinning the specific check (G1/G2 count, G9 head agreement), a wrong-root run (G5) and a table-read spy (G20)
+G1 RED ======================== 2 failed, 53 passed in 33.23s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]
+G2 RED ======================== 1 failed, 54 passed in 33.68s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]
+G5 RED ======================== 1 failed, 54 passed in 33.61s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_run_outside_its_seed_root
+G9 RED ======================== 1 failed, 54 passed in 33.08s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_heads
+G20 RED ======================== 1 failed, 54 passed in 32.76s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag
+NOT RED: none
