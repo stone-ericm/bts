@@ -21,24 +21,30 @@ def commit(repo, files, msg):
     return git(repo, "rev-parse", "HEAD")
 
 
-ROW = "| X-34 | the rank-3 count build | ... |\n"
+SCOPE = "historical count build"
 
 
 def review(sha, verdict="**SIGN.**"):
     return f"# Review\n\n## Verdict\n\n{verdict} Reviewed `{sha}`.\n\n## Findings\n"
 
 
+def x34_row(report_path, report_text, ref, scope=SCOPE):
+    sha = hashlib.sha256(report_text.encode()).hexdigest()
+    return f"| X-34 | rank 3 {scope}; review `{report_path}` sha256 `{sha[:16]}`; reviewed `{ref}` | ... |\n"
+
+
 @pytest.fixture
 def repo(tmp_path):
-    """R reviewed; S records the review report (SIGN naming R); X publishes X-34 and the admission's first fields;
-    Y sets the exposure commit."""
+    """R reviewed; S archives the SIGN review naming R; X publishes X-34 citing it; Y sets the exposure commit."""
     r = tmp_path / "repo"
     r.mkdir()
     git(r, "init", "-q")
     R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
-    commit(r, {"docs/review-r1.md": review(R)}, "archive the review")
+    rep = review(R)
+    commit(r, {"docs/review-r1.md": rep}, "archive the review")
     adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md"}
-    X = commit(r, {"reg.md": "| X-33 | y |\n" + ROW, "pkg/admission.json": json.dumps(adm)}, "publish X-34")
+    X = commit(r, {"reg.md": "| X-33 | y |\n" + x34_row("docs/review-r1.md", rep, R), "pkg/admission.json": json.dumps(adm)},
+               "publish X-34")
     adm = {**adm, "exposure_commit": X}
     commit(r, {"pkg/admission.json": json.dumps(adm)}, "admission")
     return r, adm
@@ -46,7 +52,7 @@ def repo(tmp_path):
 
 def check(r, adm):
     return A.admission_check(r, adm, closure=("pkg",), admission_rel="pkg/admission.json", register_rel="reg.md",
-                             exposure_row="X-34")[1]
+                             exposure_row="X-34", scope_phrase=SCOPE)[1]
 
 
 def test_admission_passes_with_a_recorded_sign_and_metadata_only_edits(repo):
@@ -60,26 +66,68 @@ def test_admission_refuses_unset_fields(repo):
         assert check(r, {**adm, k: None}), k
 
 
-def test_the_review_report_must_record_a_sign_naming_the_reviewed_commit(repo):
-    """4b r3 B2: a self-declared reviewed commit is not a review anchor."""
-    r, adm = repo
-    sha = adm["reviewed_commit"]
-    assert A._review_signs(review(sha), sha) == []
-    assert A._review_signs(review(sha, "**SIGN WITH EDITS.**"), sha) == []
-    assert any("not a SIGN" in x for x in A._review_signs(review(sha, "**BLOCK.**"), sha))
-    assert any("not a SIGN" in x for x in A._review_signs(review(sha, "**SIGNATURE PENDING**"), sha))
+def test_only_an_exact_sign_verdict_counts():
+    """r3b F2: 'SIGN OFF REFUSED' and 'SIGN WITH EDITS pending' were accepted by a prefix match."""
+    assert A.review_verdict(review("a" * 40)) == "SIGN"
+    assert A.review_verdict(review("a" * 40, "**SIGN WITH EDITS.**")) == "SIGN WITH EDITS"
+    for v in ("**SIGN OFF REFUSED.**", "**SIGN WITH EDITS pending application.**", "**SIGNATURE PENDING**",
+              "**BLOCK.**", "SIGN."):
+        assert A.review_verdict(review("a" * 40, v)) is None, v
+    assert A.review_verdict("no verdict section") is None
+    sha = "a" * 40
     assert any("does not name" in x for x in A._review_signs(review("0" * 40), sha))
-    assert any("Verdict" in x for x in A._review_signs("no verdict here " + sha, sha))
-    late = commit(r, {"docs/late.md": review(sha)}, "a report archived after the exposure commit")
+
+
+def test_the_review_report_must_exist_at_the_exposure_commit(repo):
+    r, adm = repo
+    late = commit(r, {"docs/late.md": review(adm["reviewed_commit"])}, "a report archived after the exposure commit")
     assert any("does not exist at the exposure commit" in x for x in check(r, {**adm, "review_report": "docs/late.md"}))
     assert late
 
 
-def test_a_commit_that_changes_code_cannot_declare_itself_reviewed(repo):
-    """4b r3 B2's counterexample: X publishes the row and changes code, then names itself reviewed."""
+def test_the_exposure_row_must_bind_the_review_and_its_scope(tmp_path):
+    """r3b F2: an unrelated X-34 row ('no historical fitting approved') was admitted."""
+    r = tmp_path / "repo"
+    r.mkdir()
+    git(r, "init", "-q")
+    R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
+    rep = review(R)
+    commit(r, {"docs/review-r1.md": rep}, "archive")
+    for row in ("| X-34 | unrelated diagnostic; no historical fitting approved | withheld | Codex |\n",
+                x34_row("docs/review-r1.md", rep, R, scope="diagnostic only"),
+                x34_row("docs/review-r1.md", rep + "tampered", R)):
+        X = commit(r, {"reg.md": "| X-33 | y |\n" + row}, "row")
+        adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md", "exposure_commit": X}
+        assert any("does not cite" in x for x in check(r, adm)), row
+        commit(r, {"reg.md": "| X-33 | y |\n"}, "reset")
+
+
+def test_a_replacement_commit_with_a_new_report_is_refused(repo):
+    """r3b F2: a new commit that changes code and a fresh report naming it, published before X, are refused unless
+    the row cites that exact report and commit; here the old X-34 still cites R and the old report."""
     r, adm = repo
-    X2 = commit(r, {"reg.md": "| X-33 | y |\n" + ROW.replace("count build", "count build v2"), "pkg/a.py": "x = 2\n"},
-                "row edit and a code change")
+    R2 = commit(r, {"pkg/a.py": "x = 2\n"}, "replacement code")
+    commit(r, {"docs/review-r2.md": review(R2)}, "a new report")
+    assert check(r, {**adm, "reviewed_commit": R2, "review_report": "docs/review-r2.md"})
+
+
+def test_sign_with_edits_needs_the_edits_commit(tmp_path):
+    r = tmp_path / "repo"
+    r.mkdir()
+    git(r, "init", "-q")
+    R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
+    rep = review(R, "**SIGN WITH EDITS.**")
+    commit(r, {"docs/review-r1.md": rep}, "archive")
+    E = commit(r, {"pkg/a.py": "x = 1  # edit applied verbatim\n"}, "apply the edits")
+    X = commit(r, {"reg.md": "| X-33 | y |\n" + x34_row("docs/review-r1.md", rep, E)}, "publish")
+    adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md", "exposure_commit": X}
+    assert any("edits_commit" in x for x in check(r, adm))
+    assert check(r, {**adm, "edits_commit": E}) == []                 # the closure is compared with E, not R
+
+
+def test_a_commit_that_changes_code_cannot_declare_itself_reviewed(repo):
+    r, adm = repo
+    X2 = commit(r, {"reg.md": "| X-33 | y |\n| X-34 | edited | ... |\n", "pkg/a.py": "x = 2\n"}, "row edit and code")
     assert check(r, {**adm, "reviewed_commit": X2, "exposure_commit": X2})
 
 
@@ -88,8 +136,8 @@ def test_executable_changes_untracked_sources_and_row_edits_refuse(repo):
     (r / "pkg" / "shadow.py").write_text("y = 1\n")
     assert any("untracked" in x for x in check(r, adm))
     (r / "pkg" / "shadow.py").unlink()
-    commit(r, {"reg.md": "| X-33 | y |\n| X-34 | edited | ... |\n"}, "edit")
-    assert any("changed after" in x for x in check(r, adm))
+    commit(r, {"pkg/a.py": "x = 3\n"}, "a later code change")
+    assert any("changed since the reviewed commit" in x for x in check(r, adm))
 
 
 def test_foreign_imports(monkeypatch, tmp_path):
@@ -101,31 +149,41 @@ def test_foreign_imports(monkeypatch, tmp_path):
     assert "bts.shadowed: /elsewhere/bts/shadowed.py" in A.foreign_imports(A.REPO)
 
 
-def inv_row(run, claim_sha, correction, *, verb="INVALIDATE", source="Eric 2026-10-06"):
+def inv_row(run, claim_sha, correction, report="docs/fix-review.md", report_sha="0" * 16, *, verb="INVALIDATE",
+            source="Eric 2026-10-06"):
     return (f"| C1-invalidate-{run} | x | **RULED 2026-10-06: {verb} `{run}` claim `{claim_sha[:16]}`; "
-            f"correction `{correction}`** | {source} |\n")
+            f"correction `{correction}` reviewed `{report}` `{report_sha[:16]}`** | {source} |\n")
 
 
-def test_a_claimed_run_is_released_only_by_eric_s_exact_invalidation(tmp_path):
-    """4b r3 B1: an unrelated RULED row or a self-declared approver released a claim; now the ruling must name
-    this run, this claim and a correction commit in HEAD's history, from Eric."""
+def test_a_claimed_run_is_released_only_by_eric_s_exact_invalidation_with_a_reviewed_correction(tmp_path):
+    """4b r3 B1 / r3b F3: the ruling names this run and claim, a correction in HEAD's history, and a SIGN review of
+    that correction (at HEAD) bound by its sha prefix; the source token is exactly Eric."""
     root = tmp_path / "runs"
-    d = root / "abc1234-20261006T000000Z"
-    d.mkdir(parents=True)
+    d = A.make_run_dir(root, "abc1234-20261006T000000Z")
     A.write_claim(d, "f" * 40)
     claim = hashlib.sha256((d / "CLAIM.json").read_bytes()).hexdigest()
     head = git(A.REPO, "rev-parse", "HEAD")
+    report = "docs/audit/2026-10-05-c1-r4b-code-codex-r3.md"          # a real report at HEAD: BLOCK, not a SIGN
+    rep_sha = hashlib.sha256((A.REPO / report).read_bytes()).hexdigest()   # committed and unchanged at HEAD
     (root / f"INVALIDATION_{d.name}.json").write_text(json.dumps({"run": d.name, "claim_sha256": claim}))
-    good = inv_row(d.name, claim, head)
-    assert A.claimed_runs(root, good) == []
-    for label, reg in {"none": "", "denial": inv_row(d.name, claim, head, verb="DO NOT INVALIDATE"),
-                       "wrong source": inv_row(d.name, claim, head, source="Codex"),
-                       "other claim": inv_row(d.name, "e" * 64, head),
-                       "correction not in history": inv_row(d.name, claim, "0" * 40),
+    assert any("does not SIGN" in x for x in A.claimed_runs(root, inv_row(d.name, claim, head, report, rep_sha)))
+    for label, reg in {"none": "",
+                       "denial": inv_row(d.name, claim, head, report, rep_sha, verb="DO NOT INVALIDATE"),
+                       "Erica": inv_row(d.name, claim, head, report, rep_sha, source="Erica 2026-10-06"),
+                       "other claim": inv_row(d.name, "e" * 64, head, report, rep_sha),
+                       "correction not in history": inv_row(d.name, claim, "0" * 40, report, rep_sha),
+                       "report sha mismatch": inv_row(d.name, claim, head, report, "0" * 16),
                        "unrelated ruling": f"| C1-invalidate-{d.name} | x | **RULED 2026-10-06: A** | Eric |\n"}.items():
         assert A.claimed_runs(root, reg), label
     (root / f"INVALIDATION_{d.name}.json").write_text("{}")
-    assert A.claimed_runs(root, good)
+    assert A.claimed_runs(root, inv_row(d.name, claim, head, report, rep_sha))
+
+
+def test_make_run_dir_creates_and_refuses_reuse(tmp_path):
+    d = A.make_run_dir(tmp_path / "runs", "r1")
+    assert d.is_dir()
+    with pytest.raises(FileExistsError):
+        A.make_run_dir(tmp_path / "runs", "r1")
 
 
 def test_the_admission_lock_refuses_a_second_holder(tmp_path):
