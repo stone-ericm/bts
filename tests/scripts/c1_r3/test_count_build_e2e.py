@@ -653,3 +653,16 @@ def test_c2r1_a_producer_generated_schedule_feed_retry_chain_certifies(tmp_path,
     assert CB.main([]) == 0
     census = json.loads((only_run(data) / "census.json").read_text())
     assert census["certified"] == 1 and census["quarantined"] == {}
+
+
+@pytest.mark.parametrize("season", [None, True, 0, -1, "2023", 2023.0])
+@pytest.mark.parametrize("role", ["intent", "completion"])
+def test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season(tmp_path, patched, monkeypatch, season, role):
+    """The schedule branch's own primary id, isolated: no game id, so only the season rule can refuse."""
+    data = world(tmp_path, n=3)
+    rec = {"kind": role, "attempt_id": "sch", "kind_of": "schedule", "gamePk": None, "season": season,
+           "url": "https://statsapi.mlb.com/sched"}
+    rec.update({"started_utc": "2026-10-04T23:00:00+00:00"} if role == "intent"
+               else {"outcome": "network_error", "ended_utc": "2026-10-04T23:00:01+00:00"})
+    receipt(data / "hetzner_results" / "c1" / "r3", rec)
+    _refuses_before_claim(data, patched, monkeypatch, "season")
