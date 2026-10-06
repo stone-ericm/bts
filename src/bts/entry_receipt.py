@@ -35,6 +35,9 @@ from bts import receipt_io
 SCHEMA = "bts_pick_entry_receipt_v1"
 REPO = Path(__file__).resolve().parents[2]
 ROW_FIELDS = {"roundId": int, "unitId": int, "playerId": int, "number": int, "result": str}
+# The only result values a row may carry into a receipt (producer review r2 C3): the contest's resolved states plus
+# null (pending). Any other string is nulled and named, so no unexpected text, a token included, rides along.
+RESULT_DOMAIN = frozenset({"hit", "not_hit", "miss", "void"})
 
 
 def receipts_root(picks_dir: Path) -> Path:
@@ -69,6 +72,8 @@ def clean_row(row: dict, round_id=None) -> dict:
     if round_id is not None:
         src["roundId"] = round_id
     out = {k: _typed(src.get(k), kind) for k, kind in ROW_FIELDS.items()}
+    if out["result"] is not None and out["result"] not in RESULT_DOMAIN:
+        out["result"] = None
     bad = sorted(k for k, kind in ROW_FIELDS.items() if src.get(k) is not None and out[k] is None)
     if bad:
         out["mistyped"] = bad
@@ -91,31 +96,47 @@ def target_rows(profile: dict, pending: list, rounds: dict, target) -> dict:
     return {"profile": prof, "pending": pend}
 
 
-def load_units(picks_dir: Path) -> tuple[dict | None, dict | None]:
-    """The latest captured units.json: ({unit_id: (feedId, roundId)}, source identity). A unit listed twice with
-    different identities maps to None (ambiguous). Returns (None, None) when there is no readable capture."""
+def load_units(picks_dir: Path, season: int) -> tuple[dict | None, dict | None]:
+    """Every local units.json capture of the season, as one declared inventory (producer review r2 C1):
+    {unit_id: (feedId, roundId)} and the source identity (each consumed file's path and sha256).
+    - **Conflicts:** a unit whose captures name more than one (feedId, roundId) maps to None (ambiguous), as in the
+      earlier audits' binding (`scripts/audit/season_ledger/contest.py`, `scripts/audit/mining87/run.py`).
+    - **A null feedId** names no game: it contributes no identity, and contradicts none.
+
+    Returns (None, None) when the season has no capture."""
     d = units_snapshot_dir(picks_dir)
-    snaps = sorted(p for p in d.glob("*.json.gz")) if d.is_dir() else []
+    snaps = sorted(p for p in d.glob(f"{season}*.json.gz")) if d.is_dir() else []
     if not snaps:
         return None, None
-    path = snaps[-1]
-    raw = path.read_bytes()
-    body = json.loads(gzip.decompress(raw))
-    units: dict = {}
-    for u in body.get("units", []) or []:
-        if not isinstance(u, dict) or type(u.get("id")) is not int:
-            continue
-        ident = (_typed(u.get("feedId"), int), _typed(u.get("roundId"), int))
-        units[u["id"]] = ident if units.get(u["id"], ident) == ident else None
-    return units, {"path": str(path.relative_to(Path(picks_dir).parent)), "sha256": _sha(raw),
-                   "captured_utc": path.name.split(".")[0]}
+    seen: dict = {}
+    files = []
+    for path in snaps:
+        raw = path.read_bytes()
+        files.append({"path": str(path.relative_to(Path(picks_dir).parent)), "sha256": _sha(raw),
+                      "captured_utc": path.name.split(".")[0]})
+        for u in json.loads(gzip.decompress(raw)).get("units", []) or []:
+            if not isinstance(u, dict) or type(u.get("id")) is not int:
+                continue
+            feed, rnd = _typed(u.get("feedId"), int), _typed(u.get("roundId"), int)
+            seen.setdefault(u["id"], set())
+            if feed is not None:
+                seen[u["id"]].add((feed, rnd))
+    units = {uid: (next(iter(ids)) if len(ids) == 1 else (None, None) if not ids else None)
+             for uid, ids in seen.items()}
+    return units, {"files": files, "inventory_sha256": payload_sha256([f["sha256"] for f in files])}
 
 
 def qualify(slots: list[dict], rows: dict, crosswalk: dict, units: dict | None) -> dict:
     """Per selection slot: is its batter's target-date row bound to its game? States: confirmed, missing,
-    player_unverified, ambiguous, unit_unverified, wrong_round, wrong_game."""
+    player_unverified, ambiguous, unit_unverified, wrong_round, wrong_game, unsupported_duplicate_selection.
+    One observed row can confirm at most one slot (producer review r2 C8)."""
     all_rows = rows["profile"] + rows["pending"]
     unresolved = any(r["playerId"] is None or r["playerId"] not in crosswalk for r in all_rows)
+    idents = [(s["batter_id"], s["game_pk"]) for s in slots]
+    if len(set(idents)) != len(idents):
+        return {"slots": [{"role": s["role"], "batter_id": s["batter_id"], "game_pk": s["game_pk"], "row": None,
+                           "state": "unsupported_duplicate_selection"} for s in slots], "all_confirmed": False}
+    used: set = set()
     out = []
     for s in slots:
         hits = {(r["roundId"], r["unitId"], r["playerId"], r["number"]) for r in all_rows
@@ -125,8 +146,12 @@ def qualify(slots: list[dict], rows: dict, crosswalk: dict, units: dict | None) 
             state = "player_unverified" if unresolved else "missing"
         elif len(hits) > 1:
             state = "ambiguous"
+        elif next(iter(hits)) in used:
+            state = "ambiguous"
         else:
-            row = dict(zip(("roundId", "unitId", "playerId", "number"), next(iter(hits))))
+            key = next(iter(hits))
+            used.add(key)
+            row = dict(zip(("roundId", "unitId", "playerId", "number"), key))
             ident = units.get(row["unitId"]) if units is not None else None
             if ident is None or ident[0] is None:
                 state = "unit_unverified"
@@ -252,7 +277,7 @@ class EntryReceipt:
             profile, pending, rounds, crosswalk = self._sources
             ok, reason, required, target = self._verdict
             rows = target_rows(profile, pending, rounds, target)
-            units, units_source = load_units(self.picks_dir)
+            units, units_source = load_units(self.picks_dir, int(self.et_date[:4]))
             entered = [r["playerId"] for r in rows["profile"] + rows["pending"] if r["playerId"] is not None]
             done = self._responses_done
             observation = {

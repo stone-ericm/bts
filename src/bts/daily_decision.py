@@ -8,7 +8,6 @@ docs/superpowers/specs/2026-06-21-daily-decision-record-design.md.
 from __future__ import annotations
 
 import json
-import locale
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -126,7 +125,8 @@ def load_decision_bytes(date: str, picks_dir) -> tuple[dict | None, bytes | None
         raw = path.read_bytes()
     except OSError:
         return None, None
-    return parse_decision(raw.decode(locale.getpreferredencoding(False), errors="strict")), raw
+    from bts.picks import _read_text_bytes
+    return parse_decision(_read_text_bytes(raw)), raw
 
 
 def parse_decision(text: str) -> dict | None:

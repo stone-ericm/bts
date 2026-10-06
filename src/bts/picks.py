@@ -3,8 +3,8 @@
 import contextvars
 import fcntl
 import hashlib
+import io
 import json
-import locale
 import logging
 import math
 import os
@@ -471,7 +471,13 @@ def load_pick_bytes(date: str, picks_dir: Path) -> tuple[DailyPick | None, bytes
     if not path.exists():
         return None, None
     raw = path.read_bytes()
-    return parse_daily_pick(raw.decode(locale.getpreferredencoding(False))), raw
+    return parse_daily_pick(_read_text_bytes(raw)), raw
+
+
+def _read_text_bytes(raw: bytes) -> str:
+    """Decode held bytes exactly as Path.read_text() would read them: the same default encoding, strict errors,
+    and universal newlines (producer review r2 C7)."""
+    return io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None)).read()
 
 
 def parse_daily_pick(text: str) -> DailyPick:

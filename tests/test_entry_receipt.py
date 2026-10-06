@@ -130,7 +130,7 @@ def test_a_confirmed_observation_binds_account_selection_rows_times_and_game(mon
     assert obs["before_cutoff"] is True
     assert obs["rows"]["pending"] == [H._pending(100)] and obs["rows"]["profile"] == []
     assert set(obs["sources"]) == {"profile_sha256", "pending_sha256", "rounds_sha256", "crosswalk_sha256", "units"}
-    assert obs["sources"]["units"]["sha256"] == units_sha
+    assert [f["sha256"] for f in obs["sources"]["units"]["files"]] == [units_sha]
     assert r["verifier"] == {"ok": True, "reason": "match", "required_mlb_ids": [1], "game_qualified": False}
     q = r["qualification"]
     assert q["all_confirmed"] is True and q["slots"][0]["state"] == "confirmed"
@@ -486,3 +486,71 @@ def test_each_run_is_a_distinct_record(monkeypatch, tmp_path):
         H._run(picks, t)
     rs = receipts(tmp_path)
     assert len(rs) == 2 and len({r["attempt_id"] for r in rs}) == 2
+
+
+
+# ---- producer review r2: C1, C3, C7, C8 ---------------------------------------------------------------------------
+
+def test_c1_a_capture_history_that_contradicts_itself_is_not_confirmation(monkeypatch, tmp_path):
+    """Two captures bind unit 1 / round 7 first to game 9 and then to game 1: ambiguous, never the latest."""
+    H._setup(monkeypatch, pending=[H._pending(100)], crosswalk={100: 1})
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 9, "roundId": 7}], name="20260610T120000Z")
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 1, "roundId": 7}], name="20260612T120000Z")
+    picks = picks_dir(tmp_path, batter_id=1)
+    H._run(picks, IN_WINDOW)
+    r = only(tmp_path)
+    assert r["qualification"]["slots"][0]["state"] == "unit_unverified" and not r["qualification"]["all_confirmed"]
+    assert len(r["observation"]["sources"]["units"]["files"]) == 2
+
+
+def test_c1_other_seasons_are_not_consumed_and_a_null_feed_is_no_contradiction(monkeypatch, tmp_path):
+    H._setup(monkeypatch, pending=[H._pending(100)], crosswalk={100: 1})
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 5, "roundId": 7}], name="20250610T120000Z")     # another season
+    units_snapshot(tmp_path, [{"id": 1, "feedId": None, "roundId": 7}], name="20260601T120000Z")  # not yet bound
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 1, "roundId": 7}], name="20260612T120000Z")
+    picks = picks_dir(tmp_path, batter_id=1)
+    H._run(picks, IN_WINDOW)
+    r = only(tmp_path)
+    assert r["qualification"]["all_confirmed"] is True
+    assert [f["captured_utc"] for f in r["observation"]["sources"]["units"]["files"]] == ["20260601T120000Z",
+                                                                                        "20260612T120000Z"]
+
+
+def test_c3_a_result_outside_the_contest_domain_is_nulled_and_named(monkeypatch, tmp_path):
+    H._setup(monkeypatch, pending=[{**H._pending(100), "result": "SYNTHETIC_TOKEN_IN_RESULT"}], crosswalk={100: 1})
+    picks = picks_dir(tmp_path, batter_id=1)
+    H._run(picks, IN_WINDOW)
+    r = only(tmp_path)
+    assert "SYNTHETIC_TOKEN_IN_RESULT" not in json.dumps(r)
+    assert r["observation"]["rows"]["pending"][0]["mistyped"] == ["result"]
+    assert er.clean_row({**H._pending(100), "result": "not_hit"})["result"] == "not_hit"
+
+
+@pytest.mark.parametrize("raw", [b'{\r\n"x":\r\n}', b'{\r"x":\r}', b'{"date": "2026-06-12"\r\n'])
+def test_c7_held_bytes_decode_exactly_as_read_text(tmp_path, raw):
+    import bts.picks as picks_mod
+    f = tmp_path / "2026-06-12.json"
+    f.write_bytes(raw)
+    def err(fn):
+        try:
+            fn()
+        except Exception as exc:  # noqa: BLE001
+            return type(exc).__name__, str(exc)
+    assert err(lambda: picks_mod.load_pick("2026-06-12", tmp_path)) == \
+        err(lambda: picks_mod.load_pick_bytes("2026-06-12", tmp_path))
+
+
+def test_c8_one_row_cannot_confirm_a_duplicated_selection(monkeypatch, tmp_path):
+    from bts.picks import DailyPick, Pick, save_pick
+    H._setup(monkeypatch, pending=[H._pending(100)], crosswalk={100: 1})
+    units_snapshot(tmp_path, [{"id": 1, "feedId": 1, "roundId": 7}])
+    picks = tmp_path / "picks"
+    picks.mkdir()
+    mk = lambda: Pick(batter_name="B", batter_id=1, team="NYY", lineup_position=1, pitcher_name="P", pitcher_id=2,  # noqa: E731
+                      p_game_hit=0.8, flags=[], projected_lineup=False, game_pk=1, game_time=PITCH)
+    save_pick(DailyPick(date=DATE, run_time="x", pick=mk(), double_down=mk(), runner_up=None, notification_sent=True,
+                        notification_channel="bluesky_dm", notification_id="dm_x"), picks)
+    H._run(picks, IN_WINDOW)
+    q = only(tmp_path)["qualification"]
+    assert q["all_confirmed"] is False
+    assert {x["state"] for x in q["slots"]} == {"unsupported_duplicate_selection"}

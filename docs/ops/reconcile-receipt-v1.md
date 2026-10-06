@@ -16,8 +16,8 @@
 
 ## Where
 - **One file per run:** `data/health_state/reconcile_receipts/<run start ET date>/<started %Y%m%dT%H%M%S%f>-<run_id>.json`. The cron runs at 02:00 and 07:40, so two small files a day. The restic `ops` set backs them up, and nothing prunes them.
-- **Publication** (`receipt_io.publish`): the new directory levels' parents are fsynced, then the file is written atomically and its directory fsynced. On failure the files are withdrawn or tombstoned (`<name>.failed`), and the run prints `reconcile receipt unavailable`.
-- **Discovery** (`reconcile_receipt.discover(picks_dir, run_date)`) returns only receipts without a tombstone. A missing or tombstoned receipt is unavailable evidence.
+- **Publication** (`receipt_io.publish`, shared with P1): the new directory levels' parents are fsynced, then the file is written atomically and its directory fsynced, then it is **sealed** (`<name>.sealed`). On failure before the seal, the files are withdrawn or tombstoned (`<name>.failed`), and the run prints `reconcile receipt unavailable`.
+- **Discovery** (`reconcile_receipt.discover(picks_dir, run_date)`) returns only sealed, untombstoned receipts. An unsealed, tombstoned or missing receipt is unavailable evidence. That includes the double-refusal case, which never seals.
 
 ## Fields
 | Field | Meaning |
@@ -92,7 +92,7 @@
 - **What cannot establish coverage:** `pending`, `failed`, `not_attempted`, `past_cutoff`, `not_graded`, a late slot, an empty `corrections` list, or a process exit of 0.
 - **Coverage and corrections are separate facts.** `write.state` says whether a correction was applied or refused. `unchanged` is positive evidence that the observed result matched the stored one.
 - **Clock steps (D2):** any response at or after the cutoff, or any step back in the day's response instants, makes the slot uncovered irreversibly. A later on-time reading cannot erase it. The run's own behaviour in that case is unchanged; the receipt keeps every actual instant.
-- **Publication limit (pending Eric's decision, with item C6):** if the directory fsync after the rename fails, **and** removing the file fails, **and** writing its tombstone fails, a complete receipt can remain discoverable even though the run reported it unavailable. The tombstone's own directory entry is synced (r2 C6).
+- **Publication:** only sealed receipts count (see Where). A receipt whose publication failed is never discoverable, including the double refusal.
 
 ## Re-certification (registration line 82), for the producer set P1, P2, P4 and C1/C2
 The following certified current-defence mutant patches (`results-f453283`) target functions in files these changes touched. Each function's body is unchanged, and each patch still applies at an offset. Re-run them with the frozen runner at the deploy candidate before claiming them current.
