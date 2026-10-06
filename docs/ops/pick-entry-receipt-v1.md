@@ -75,8 +75,4 @@
 
 ## Re-certification (registration line 82)
 - **What this touches:** `check_pick_entered` in `src/bts/cli.py`, plus new modules. The loaders were split into read-once plus parse; `load_pick`, `load_decision` and `is_scoreable_commit` behave as before.
-- **The certificates to re-run:** certified current-defence mutant patches (`results-f453283`) target functions in files these changes touched. Each function's body is unchanged, and each patch still applies at an offset. Re-run them with the frozen runner at the deploy candidate before claiming them current:
-  - `D-I043-1`, `D-I043-4`, `I-0813-a` (`picks.py` `_classify_unposted_game_status`);
-  - `D-I043-2` (`picks.py` `resolve_pick_slot_result`);
-  - `D-I043-3` (`scheduler.py` `save_nonterminal_result`);
-  - `D-I063-2`, `I-0811-b` (`cli.py` `fetch_contest_streak`).
+- **The certificates to re-run** for the whole producer set (P1, P2, P4, C1/C2) are listed in `docs/ops/reconcile-receipt-v1.md` § Re-certification. Every one still applies at an offset. Re-run them with the frozen runner at the deploy candidate before claiming them current.

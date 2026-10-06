@@ -2465,11 +2465,24 @@ def reconcile(picks_dir: str, lookback: int):
     07:40 runs re-check yesterday only. If a result changed, updates the pick file,
     recalculates the streak, and reports corrections.
     """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
     from bts.picks import reconcile_results, load_streak
+    from bts.reconcile_receipt import ReconcileReceipt
 
     picks_path = Path(picks_dir)
     click.echo(f"Reconciling last {lookback} days of picks...")
-    corrections = reconcile_results(picks_path, lookback_days=lookback)
+    # One receipt per run (watchdog plan P2): per-date and per-slot coverage. It only records.
+    et = ZoneInfo("America/New_York")
+    receipt = ReconcileReceipt(clock=lambda: datetime.now(et), lookback_days=lookback)
+    try:
+        corrections = reconcile_results(picks_path, lookback_days=lookback, clock=receipt.clock, receipt=receipt)
+        receipt.finish(corrections)
+    except BaseException as exc:
+        receipt.raised(exc)
+        raise
+    finally:
+        receipt.publish(picks_path)
 
     if not corrections:
         streak = load_streak(picks_path)

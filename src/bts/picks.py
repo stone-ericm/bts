@@ -1,5 +1,6 @@
 """Pick persistence, streak tracking, and MLB API helpers for BTS automation."""
 
+import contextvars
 import fcntl
 import hashlib
 import json
@@ -672,6 +673,22 @@ def get_game_statuses(date: str) -> dict[int, str]:
     return statuses
 
 
+# The reconcile receipt's source observer (watchdog plan P2). When set, it receives each grading payload's URL and
+# exact bytes; when unset (every other caller), _fetch_json is the plain fetch-and-parse it replaced.
+_SOURCE_OBSERVER: contextvars.ContextVar = contextvars.ContextVar("bts_source_observer", default=None)
+
+
+def _fetch_json(url: str, timeout: int = 15):
+    raw = retry_urlopen(url, timeout=timeout).read()
+    observer = _SOURCE_OBSERVER.get()
+    if observer is not None:
+        try:
+            observer(url, raw)
+        except Exception:  # noqa: BLE001 - observing never changes the fetch
+            pass
+    return json.loads(raw)
+
+
 def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
     """Get detailed game statuses for all games on a date.
 
@@ -679,10 +696,7 @@ def get_game_statuses_detailed(date: str) -> dict[int, dict[str, str]]:
         abstract: P = Preview, L = Live, F = Final
         detailed: e.g. "Suspended", "Delayed Start", "Final", "In Progress"
     """
-    resp = json.loads(retry_urlopen(
-        f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
-        timeout=15,
-    ).read())
+    resp = _fetch_json(f"{API_BASE}/api/v1/schedule?sportId=1&date={date}", timeout=15)
     statuses = {}
     for d in resp.get("dates", []):
         for g in d.get("games", []):
@@ -823,17 +837,36 @@ def resolve_pick_slot_result(
     return result  # "hit" | "miss" | "void" (suspended game with no pre-suspension PA)
 
 
-def resolve_daily_slot_results(daily: DailyPick, date: str) -> dict[str, str] | None:
-    """Resolve all score-bearing slots, or return None if any active slot is pending."""
+def resolve_daily_slot_results(daily: DailyPick, date: str, receipt=None) -> dict[str, str] | None:
+    """Resolve all score-bearing slots, or return None if any active slot is pending.
+
+    ``receipt`` (reconcile only, watchdog plan P2) records each slot's outcome; it never changes this function's
+    requests or result."""
     try:
         detailed_statuses = get_game_statuses_detailed(date)
-    except Exception:
+    except Exception as exc:
+        if receipt is not None:
+            receipt.status_failed(exc)
         detailed_statuses = {}
 
     slot_results: dict[str, str] = {}
-    for slot_key, pick in iter_daily_pick_slots(daily):
-        result = resolve_pick_slot_result(pick, date, detailed_statuses=detailed_statuses)
+    slots = iter_daily_pick_slots(daily)
+    for n, (slot_key, pick) in enumerate(slots):
+        if receipt is not None:
+            receipt.slot_start(slot_key, pick)
+        try:
+            result = resolve_pick_slot_result(pick, date, detailed_statuses=detailed_statuses)
+        except BaseException as exc:
+            if receipt is not None:
+                receipt.slot_failed(exc)
+                receipt.not_attempted(slots[n + 1:])
+            raise
+        if receipt is not None:
+            void = detailed_statuses.get(pick.game_pk) if _slot_is_voided(pick, detailed_statuses) else None
+            receipt.slot_done(result, void.get("detailed") if void else None)
         if result is None:
+            if receipt is not None:
+                receipt.not_attempted(slots[n + 1:])
             return None
         slot_results[slot_key] = result
     return slot_results
@@ -1047,10 +1080,7 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
         return grade if return_status else (grade == "hit")
 
     if game_pk is not None:
-        resp = json.loads(retry_urlopen(
-            f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live",
-            timeout=15,
-        ).read())
+        resp = _fetch_json(f"{API_BASE}/api/v1.1/game/{game_pk}/feed/live", timeout=15)
         if resp["gameData"]["status"]["abstractGameCode"] != "F":
             return None
         grade = grade_pick_in_feed(resp, batter_id, batter_name)
@@ -1059,20 +1089,14 @@ def check_hit(game_pk: int | None, batter_id: int, batter_name: str | None = Non
 
     # Batter not found (or no game_pk) — try every Final game on that date
     if date:
-        sched = json.loads(retry_urlopen(
-            f"{API_BASE}/api/v1/schedule?sportId=1&date={date}",
-            timeout=15,
-        ).read())
+        sched = _fetch_json(f"{API_BASE}/api/v1/schedule?sportId=1&date={date}", timeout=15)
         for d in sched.get("dates", []):
             for g in d.get("games", []):
                 if g["gamePk"] == game_pk:
                     continue  # Already tried this one
                 if g["status"]["abstractGameCode"] != "F":
                     continue
-                alt_resp = json.loads(retry_urlopen(
-                    f"{API_BASE}/api/v1.1/game/{g['gamePk']}/feed/live",
-                    timeout=15,
-                ).read())
+                alt_resp = _fetch_json(f"{API_BASE}/api/v1.1/game/{g['gamePk']}/feed/live", timeout=15)
                 grade = grade_pick_in_feed(alt_resp, batter_id, batter_name)
                 if grade is not None:
                     return _emit(grade)
@@ -1105,6 +1129,7 @@ def reconcile_results(
     picks_dir: Path,
     lookback_days: int = 8,
     clock: Callable[[], datetime] | None = None,
+    receipt=None,
 ) -> list[dict]:
     """Re-check recent picks against current boxscore data.
 
@@ -1118,6 +1143,9 @@ def reconcile_results(
     at the locked write. MLB re-scored two settled hits as errors days later in 2026
     and the old 8-day re-check flipped both (C-03). From the 02:00 and 07:40 runs this
     leaves yesterday only. ``clock`` must return timezone-aware datetimes.
+
+    ``receipt`` (a ``bts.reconcile_receipt.ReconcileReceipt``; watchdog plan P2) records every target date's and
+    slot's state. It only records: requests, results, writes and the streak are the same with or without it.
     """
     from datetime import time as time_cls, timedelta as td
     from zoneinfo import ZoneInfo
@@ -1136,22 +1164,40 @@ def reconcile_results(
     start = now_et()
     today = start.date()
     corrections = []
+    rec = receipt if receipt is not None else _NoReceipt()
 
     # Phase 1 (unlocked): resolve boxscore data — network, potentially slow.
     proposals = []
     for i in range(1, lookback_days + 1):
         day = today - td(days=i)
-        if start >= cutoff(day):
-            continue  # past the BTS correction cutoff: final
         d = day.isoformat()
+        if start >= cutoff(day):
+            rec.day(d, cutoff(day), "past_cutoff")
+            continue  # past the BTS correction cutoff: final
         daily = load_pick(d, picks_dir)
-        if not daily or daily.result not in ("hit", "miss", "void"):
+        if not daily:
+            rec.day(d, cutoff(day), "no_pick_file")
             continue
-        slot_results = resolve_daily_slot_results(daily, d)
+        if daily.result not in ("hit", "miss", "void"):
+            rec.day(d, cutoff(day), "not_graded", result=daily.result)
+            continue
+        rec.day(d, cutoff(day), "attempted")
+        rec.attempt(daily)
+        if receipt is None:                     # the call exactly as before receipts existed
+            slot_results = resolve_daily_slot_results(daily, d)
+        else:
+            token = _SOURCE_OBSERVER.set(receipt.source)
+            try:
+                slot_results = resolve_daily_slot_results(daily, d, receipt=receipt)
+            finally:
+                _SOURCE_OBSERVER.reset(token)
         if slot_results is None:
+            rec.day_state("pending")
             continue
         if now_et() >= cutoff(day):
+            rec.late_answer()
             continue  # the answer arrived after the cutoff; it may carry a late change
+        rec.day_state("observed")
         proposals.append((day, slot_results))
 
     # Phase 2 (locked): reconcile is a writer of BOTH pick files and
@@ -1161,11 +1207,13 @@ def reconcile_results(
     # (file I/O only — sub-second).
     with scoring_lock(picks_dir):
         for day, slot_results in proposals:
-            if now_et() >= cutoff(day):
-                continue  # the write would land after the cutoff
             d = day.isoformat()
+            if now_et() >= cutoff(day):
+                rec.write(d, "refused_after_cutoff")
+                continue  # the write would land after the cutoff
             daily = load_pick(d, picks_dir)
             if not daily or daily.result not in ("hit", "miss", "void"):
+                rec.write(d, "skipped_under_lock")
                 continue
             current_result = effective_daily_result(slot_results)
             if current_result != daily.result:
@@ -1175,12 +1223,16 @@ def reconcile_results(
                     "old_result": daily.result,
                     "new_result": current_result,
                 })
+                rec.write(d, "correction_applied", old_result=daily.result, new_result=current_result)
                 daily.result = current_result
                 daily.slot_results = slot_results
                 save_pick(daily, picks_dir)
             elif slot_results != daily.slot_results:
+                rec.write(d, "slot_results_updated", old_slot_results=daily.slot_results, new_slot_results=slot_results)
                 daily.slot_results = slot_results
                 save_pick(daily, picks_dir)
+            else:
+                rec.write(d, "unchanged")
 
     # Recompute the streak by FORWARD replay over the season — catches result
     # corrections AND streak-increment bugs, and (unlike the old backward walk)
@@ -1196,5 +1248,13 @@ def reconcile_results(
         if replay is not None:
             streak, saver = replay
             save_streak(streak, picks_dir, saver_available=saver)
+        rec.replayed(replay)
 
     return corrections
+
+
+class _NoReceipt:
+    """reconcile_results without a receipt: every recording call is a no-op."""
+
+    def __getattr__(self, name):
+        return lambda *a, **k: None
