@@ -6,19 +6,24 @@ X-E1; plan `docs/superpowers/plans/2026-10-05-c1-r3-count-build.md`; code review
    "historical count build" scope; the executable closure (the registration included) as reviewed; modules loaded
    from this checkout; a clean tracked tree; no claimed earlier run without Eric's exact INVALIDATE ruling. The
    roots are fixed (`DATA`), with no CLI override.
+   **One admitted record (r3 R3-2):** `admission.json` is read once, by the gate. The run receives that same record
+   and the gate's accepted report identity; nothing reloads it.
 2. **Metadata-only pre-manifest, before any outcome-bearing byte is read:**
    - the accepted review report's exact identity (from the exposure commit), and the **expected** parquet pins from
-     `admission.json`'s `input_pins` (a hash-only capture after review, cited by digest in X-34; r2 N6);
+     the admitted record's `input_pins` (a hash-only capture after review, cited by digest in X-34; r2 N6);
    - the code, the admission record, the closure's git object ids, and the registration's and review report's
      sha256;
    - the contract: the PA definition, completion states, cap, smoothing, stop rate, eligibility rule, the supported
      parquet schema and feed formats, and the environment;
    - the canonical receipt-bound feed inventory (written in full to `inventory.json` and hashed). Receipts are
-     validated first (r1 F7):
+     validated first (r1 F7, r3 R3-5):
+     - known receipt kinds and outcomes only;
+     - a string attempt id on every intent and completion, with no conflicting duplicate for one attempt;
      - a canonical `<season>/<gamePk>.json[.gz]` path inside the feed root;
      - exact positive ids and 64-hex digests;
      - no conflicting stored records;
      - no unresolved request intent;
+     - a linked response (`from_attempt_id`) attests the same decoded bytes as the stored record;
    - each PA parquet's size and mtime.
 3. **Claim:** a durable `CLAIM.json` in a run directory whose parent entry is fsynced.
 4. **Pins:** each PA parquet is read once and checked against its expected pin before any parse, then parsed from
@@ -32,7 +37,8 @@ X-E1; plan `docs/superpowers/plans/2026-10-05-c1-r3-count-build.md`; code review
      a decode failure or a receipt-named file that is missing stops the run. So does any parquet pin, schema or row
      failure. Each leaves a durable `STOPPED_incomplete.json` naming the source and the unprocessed games (r2 N8);
      the claim remains.
-   - **Availability:** a receipt without a valid retrieval time quarantines its eligible game (r2 N5).
+   - **Availability:** a receipt without a valid retrieval time, or with one before its request started,
+     quarantines its eligible game (r2 N5, r3 R3-5).
    - **Ineligible games** (no parquet rows) are hash-checked and counted, not parsed.
    - **Eligible games:** T1 extract and T2 certify. A metadata exception becomes a quarantine reason for that
      game (r1 F9).
@@ -92,18 +98,23 @@ def pins_digest(pins: dict) -> str:
     return hashlib.sha256(json.dumps(pins, sort_keys=True).encode()).hexdigest()
 
 
-def load_admission() -> dict:
-    return json.loads((REPO / ADMISSION_REL).read_text())
+def load_admission() -> tuple[dict, str]:
+    """The admission record and the sha256 of the exact bytes it was parsed from."""
+    b = (REPO / ADMISSION_REL).read_bytes()
+    return json.loads(b), hashlib.sha256(b).hexdigest()
 
 
 def accepted_identity(adm: dict) -> dict:
     return A.accepted_identity(REPO, adm)
 
 
-def admission_gate() -> str:
+def admission_gate() -> tuple[str, dict, dict]:
     """The shared gate, plus the expected input pins (r2 N6): admission.json's `input_pins` must name exactly the five
-    PA parquets with 64-hex digests, and X-34 must cite their digest."""
-    adm = load_admission()
+    PA parquets with 64-hex digests, and X-34 must cite their digest.
+
+    Returns HEAD, the admitted record and its accepted identity. The run consumes exactly these: the record is read
+    once, here (r3 R3-2)."""
+    adm, adm_sha = load_admission()
     pins = adm.get("input_pins")
     want = {f"pa_{s}.parquet" for s in SEASONS}
     if not (isinstance(pins, dict) and set(pins) == want and all(HEX64.match(str(v)) for v in pins.values())):
@@ -112,7 +123,7 @@ def admission_gate() -> str:
                                       exposure_row=EXPOSURE_ROW, scope_phrase=SCOPE, inputs_digest=pins_digest(pins))
     if reasons:
         raise SystemExit("refusing: " + "; ".join(reasons))
-    return head
+    return head, adm, {**accepted_identity(adm), "admission_sha256": adm_sha}
 
 
 def dirty_tree() -> list[str]:
@@ -121,15 +132,50 @@ def dirty_tree() -> list[str]:
     return [l for l in out.splitlines() if l.strip()]
 
 
-def _utc(v) -> str | None:
-    """A timezone-aware ISO timestamp, or None."""
+def _aware(v) -> datetime | None:
     if not isinstance(v, str):
         return None
     try:
         t = datetime.fromisoformat(v.replace("Z", "+00:00"))
     except ValueError:
         return None
-    return v if t.tzinfo is not None else None
+    return t if t.tzinfo is not None else None
+
+
+def _utc(v) -> str | None:
+    """A timezone-aware ISO timestamp, or None."""
+    return v if _aware(v) is not None else None
+
+
+KNOWN_RECEIPTS = {"intent": None, "validation": {"invalid"}, "reconciled_orphan": None,
+                  "completion": {"response", "stored", "rate_limited", "http_error", "network_error"}}
+
+
+def _receipt_problems(recs: list) -> None:
+    """Known kinds and outcomes only (r3 R3-5); refuse anything else."""
+    for r in recs:
+        kind = r.get("kind") if isinstance(r, dict) else None
+        if not (isinstance(kind, str) and kind in KNOWN_RECEIPTS):
+            raise ProvenanceError(f"an unknown receipt kind: {kind!r}")
+        outcomes = KNOWN_RECEIPTS[kind]
+        if outcomes is not None and not (isinstance(r.get("outcome"), str) and r.get("outcome") in outcomes):
+            raise ProvenanceError(f"an unknown {kind} outcome: {r.get('outcome')!r}")
+
+
+def _witnesses(recs: list, label: str, pred) -> dict:
+    """attempt_id -> record for one receipt class. A non-string attempt id, or two different records for one attempt,
+    refuses (r3 R3-5: the last assignment used to win silently)."""
+    out: dict = {}
+    for r in recs:
+        if not pred(r):
+            continue
+        aid = r.get("attempt_id")
+        if not (isinstance(aid, str) and aid):
+            raise ProvenanceError(f"a {label} receipt without a string attempt id: {aid!r}")
+        if aid in out and out[aid] != r:
+            raise ProvenanceError(f"conflicting {label} receipts for attempt {aid}")
+        out[aid] = r
+    return out
 
 
 def unresolved(recs: list[dict]) -> list:
@@ -147,11 +193,13 @@ def feed_inventory(recs: list[dict], feeds_dir: Path) -> list[dict]:
       the request URL must be exactly that game's feed URL.
     - **Availability:** a missing or invalid retrieval time marks the entry unavailable, and an eligible game is
       then quarantined. It is never certified with a null."""
+    _receipt_problems(recs)
+    intents = _witnesses(recs, "intent", lambda r: r.get("kind") == "intent")
+    responses = _witnesses(recs, "response", lambda r: r.get("kind") == "completion" and r.get("outcome") == "response")
+    _witnesses(recs, "stored", lambda r: r.get("kind") == "completion" and r.get("outcome") == "stored")
     open_ = unresolved(recs)
     if open_:
         raise ProvenanceError(f"unresolved acquisition intents ({len(open_)}): reconcile before any build")
-    intents = {r.get("attempt_id"): r for r in recs if r.get("kind") == "intent"}
-    responses = {r.get("attempt_id"): r for r in recs if r.get("kind") == "completion" and r.get("outcome") == "response"}
     by_pk: dict = {}
     root = feeds_dir.resolve()
     for r in recs:
@@ -165,17 +213,34 @@ def feed_inventory(recs: list[dict], feeds_dir: Path) -> list[dict]:
             raise ProvenanceError(f"{path}: malformed digests")
         if not (root / path).resolve().is_relative_to(root):
             raise ProvenanceError(f"{path}: outside the feed root")
-        src = responses.get(r.get("from_attempt_id")) if r.get("from_attempt_id") else r     # newer vs legacy layout
+        if "from_attempt_id" in r:                                                          # the newer layout
+            link = r["from_attempt_id"]
+            if not (isinstance(link, str) and link):
+                raise ProvenanceError(f"{path}: from_attempt_id {link!r} is not an attempt id")
+            src = responses.get(link)
+            if src is not None and src.get("decoded_sha256") != r["decoded_sha256"]:
+                raise ProvenanceError(f"{path}: the linked response attests different decoded bytes")
+        else:                                                                               # the legacy layout
+            src = r
         aid = (src or {}).get("attempt_id")
         intent = intents.get(aid) if isinstance(aid, str) and aid else None
         url = FEED_URL.format(pk=pk)
-        if not (src and intent and intent.get("gamePk") == pk and src.get("gamePk") == pk
+        if not (src and intent and type(intent.get("gamePk")) is int and intent.get("gamePk") == pk
+                and type(src.get("gamePk")) is int and src.get("gamePk") == pk
                 and intent.get("url") == url and src.get("url") == url):
             raise ProvenanceError(f"{path}: the stored record is not bound to a request for game {pk}")
         retrieved = _utc(src.get("ended_utc"))
+        started = _aware(intent.get("started_utc"))
+        if retrieved is None:
+            problem = "availability: the receipt has no valid retrieval time"
+        elif started is not None and _aware(retrieved) < started:
+            problem = "availability: the retrieval time precedes its request"
+        else:
+            problem = None
         entry = {"season": int(m.group("season")), "pk": pk, "path": path, "gz": bool(m.group("gz")),
                  "stored_sha256": r["stored_sha256"], "decoded_sha256": r["decoded_sha256"],
-                 "attempt_id": aid, "url": url, "retrieved_utc": retrieved, "available": retrieved is not None}
+                 "attempt_id": aid, "url": url, "retrieved_utc": retrieved, "available": problem is None,
+                 "availability_problem": problem}
         old = by_pk.get(pk)
         key = ("path", "stored_sha256", "decoded_sha256")
         if old is not None and any(old[k] != entry[k] for k in key):
@@ -238,7 +303,7 @@ def main(argv=None) -> int:
     log = lambda m: print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] {m}", file=sys.stderr, flush=True)  # noqa: E731
     feeds_dir, acq_out, pa_dir = DATA / "raw_c1", DATA / "hetzner_results" / "c1" / "r3", DATA / "processed"
     run_root = acq_out / "count_build"
-    head = admission_gate()
+    head, adm, identity = admission_gate()
     register_text = (REPO / REGISTER_REL).read_text()
     dirty = dirty_tree()
     if dirty:
@@ -251,17 +316,17 @@ def main(argv=None) -> int:
         if blocked:
             raise SystemExit(f"refusing: earlier claimed runs without Eric's invalidation: {blocked}")
         with aq.writer_lock(acq_out):
-            return _run(head, run_root, feeds_dir, acq_out, pa_dir, log)
+            return _run(head, adm, identity, run_root, feeds_dir, acq_out, pa_dir, log)
 
 
-def _run(head, run_root, feeds_dir, acq_out, pa_dir, log) -> int:
+def _run(head, adm, identity, run_root, feeds_dir, acq_out, pa_dir, log) -> int:
+    """`adm` and `identity` are the gate's admitted record and accepted identity, never a re-read (r3 R3-2)."""
     # 2. metadata-only pre-manifest: receipts, file metadata and the EXPECTED parquet pins (no outcome-bearing byte)
     inventory = [e for e in feed_inventory(aq.read_receipts(acq_out), feeds_dir) if e["season"] in SEASONS]
-    adm = load_admission()
     run_dir = A.make_run_dir(run_root, f"{head[:7]}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     inv_sha = _write_json(run_dir / "inventory.json", inventory)
     _write_json(run_dir / "manifest.json", {
-        "code": head, "admission": adm, "accepted_review": accepted_identity(adm),
+        "code": head, "admission": adm, "accepted_review": identity,
         "closure": {c: A._git(REPO, "rev-parse", f"HEAD:{c}", check=False).stdout.strip() for c in CLOSURE},
         "contract": contract(), "seasons": SEASONS,
         "inventory": {"count": len(inventory), "sha256": inv_sha},
@@ -313,7 +378,7 @@ def _run(head, run_root, feeds_dir, acq_out, pa_dir, log) -> int:
             ineligible.add(pk)
             continue
         if not e["available"]:
-            meta, reasons = None, ["availability: the receipt has no valid retrieval time"]
+            meta, reasons = None, [e["availability_problem"]]
         else:
             try:
                 meta = M.extract(json.loads(body))

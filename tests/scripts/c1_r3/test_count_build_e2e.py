@@ -51,12 +51,17 @@ def patched(monkeypatch):
     def apply(data, seasons=(2023,)):
         monkeypatch.setattr(CB, "DATA", data)
         monkeypatch.setattr(CB, "SEASONS", seasons)
-        monkeypatch.setattr(CB, "admission_gate", lambda: "f" * 40)
         monkeypatch.setattr(CB, "dirty_tree", lambda: [])
         pins = {f"pa_{s}.parquet": hashlib.sha256((data / "processed" / f"pa_{s}.parquet").read_bytes()).hexdigest()
-                for s in seasons}
-        monkeypatch.setattr(CB, "load_admission", lambda: {"input_pins": pins, "review_report": "r.md"})
-        monkeypatch.setattr(CB, "accepted_identity", lambda adm: {"review_report": "r.md", "review_report_sha256": "0" * 64})
+                for s in seasons} if pins_override is None else pins_override
+        monkeypatch.setattr(CB, "admission_gate", lambda: ("f" * 40, {"input_pins": pins, "review_report": "r.md"},
+                                                           {"review_report": "r.md", "review_report_sha256": "0" * 64}))
+    def apply_with(data, seasons=(2023,), pins=None):
+        nonlocal pins_override
+        pins_override = pins
+        apply(data, seasons)
+    pins_override = None
+    apply.with_pins = apply_with
     return apply
 
 
@@ -299,7 +304,7 @@ def test_an_input_off_its_expected_pin_stops_before_parsing(tmp_path, patched, m
     """r2 N6: the expected parquet pin is published before the run; the bytes must match it before any parse."""
     data = world(tmp_path, n=5)
     patched(data)
-    monkeypatch.setattr(CB, "load_admission", lambda: {"input_pins": {"pa_2023.parquet": "0" * 64}, "review_report": "r"})
+    patched.with_pins(data, pins={"pa_2023.parquet": "0" * 64})
     parsed = []
     monkeypatch.setattr(CB, "check_schema", lambda b, name: parsed.append(name))
     with pytest.raises(CB.ProvenanceError, match="pinned"):
@@ -310,7 +315,7 @@ def test_an_input_off_its_expected_pin_stops_before_parsing(tmp_path, patched, m
 
 
 def test_admission_pins_must_name_exactly_the_registered_parquets(monkeypatch):
-    monkeypatch.setattr(CB, "load_admission", lambda: {"input_pins": {"pa_2023.parquet": "0" * 64}})
+    monkeypatch.setattr(CB, "load_admission", lambda: ({"input_pins": {"pa_2023.parquet": "0" * 64}}, "0" * 64))
     with pytest.raises(SystemExit, match="input_pins"):
         CB.admission_gate()
 
@@ -341,3 +346,122 @@ def test_a_schema_failure_stops_durably(tmp_path, patched):
     with pytest.raises(CB.ProvenanceError, match="enriched"):
         CB.main([])
     assert json.loads((only_run(data) / "STOPPED_incomplete.json").read_text())["source"] == "pa_2023.parquet"
+
+
+
+# ---------- code review r3 R3-2, R3-5 ----------
+def test_the_run_consumes_the_admitted_record_not_a_later_one(tmp_path, monkeypatch):
+    """r3 R3-2: the real gate admits A (its pin is 64 zeroes; the modelled X-34 binds only A's pins digest). If the
+    admission file is then replaced by B (whose pin matches the parquet), the run must still consume A: it stops on
+    A's pin, and the manifest records A, never B."""
+    data = world(tmp_path, n=5)
+    good = hashlib.sha256((data / "processed" / "pa_2023.parquet").read_bytes()).hexdigest()
+    A_rec = {"reviewed_commit": "a" * 40, "exposure_commit": "b" * 40, "review_report": "docs/A.md",
+             "input_pins": {"pa_2023.parquet": "0" * 64}}
+    B_rec = {**A_rec, "review_report": "docs/B-block.md", "input_pins": {"pa_2023.parquet": good}}
+    reads = []
+
+    def load():
+        reads.append(1)
+        return (A_rec if len(reads) == 1 else B_rec), f"{len(reads)}" * 64
+
+    def check(repo, adm, *, inputs_digest, **kw):                      # models X-34 binding only A's pins digest
+        return "f" * 40, ([] if inputs_digest == CB.pins_digest(A_rec["input_pins"]) else ["not A"])
+    monkeypatch.setattr(CB, "DATA", data)
+    monkeypatch.setattr(CB, "SEASONS", (2023,))
+    monkeypatch.setattr(CB, "dirty_tree", lambda: [])
+    monkeypatch.setattr(CB, "load_admission", load)
+    monkeypatch.setattr(CB.A, "admission_check", check)
+    monkeypatch.setattr(CB, "accepted_identity", lambda adm: {"review_report": adm["review_report"]})
+    with pytest.raises(CB.ProvenanceError, match="pinned"):
+        CB.main([])
+    man = json.loads((only_run(data) / "manifest.json").read_text())
+    assert reads == [1]
+    assert man["expected_pa_pins"] == A_rec["input_pins"] and man["admission"] == A_rec
+    assert man["accepted_review"] == {"review_report": "docs/A.md", "admission_sha256": "1" * 64}
+    assert not (only_run(data) / "results.json").exists()
+
+
+def modern(acq, pk, body_sha, *, response_sha=None, started="2026-10-04T23:00:00+00:00",
+           ended="2026-10-04T23:00:01+00:00", stored_path=None, stored_sha="a" * 64):
+    """The newer layout: intent -> response completion -> stored record linked by from_attempt_id."""
+    url = f"https://statsapi.mlb.com/api/v1.1/game/{pk}/feed/live"
+    base = {"request_id": "q", "attempt_id": f"m-{pk}", "attempt": 1, "kind_of": "feed", "url": url, "gamePk": pk,
+            "season": None}
+    receipt(acq, {**base, "kind": "intent", "started_utc": started})
+    receipt(acq, {**base, "kind": "completion", "ended_utc": ended, "outcome": "response", "http_status": 200,
+                  "decoded_sha256": response_sha or body_sha, "response_path": f"responses/m-{pk}.json.gz"})
+    receipt(acq, {"kind": "completion", "attempt_id": f"store-{pk}", "kind_of": "feed", "gamePk": pk,
+                  "outcome": "stored", "decoded_sha256": body_sha, "stored_path": stored_path or f"2023/{pk}.json.gz",
+                  "stored_sha256": stored_sha, "from_attempt_id": f"m-{pk}", "at_utc": ended})
+
+
+def modern_world(tmp_path, n=150, **kw):
+    """world() with game 700001 re-receipted in the newer layout (its legacy receipts removed)."""
+    data = world(tmp_path, n=n)
+    acq = data / "hetzner_results" / "c1" / "r3"
+    recs = acq / "receipts" / "2026-10-04.jsonl"
+    keep = [x for x in recs.read_text().splitlines() if json.loads(x).get("gamePk") != 700001]
+    recs.write_text("".join(x + "\n" for x in keep))
+    stored = (data / "raw_c1" / "2023" / "700001.json.gz").read_bytes()
+    body_sha = hashlib.sha256(gzip.decompress(stored)).hexdigest()
+    modern(acq, 700001, body_sha, stored_sha=hashlib.sha256(stored).hexdigest(), **kw)
+    return data, body_sha
+
+
+def test_a_complete_modern_receipt_chain_certifies(tmp_path, patched):
+    data, body_sha = modern_world(tmp_path)
+    patched(data)
+    assert CB.main([]) == 0
+    prov = json.loads((only_run(data) / "provenance.json").read_text())
+    assert prov["700001"]["certified"] and prov["700001"]["attempt_id"] == "m-700001"
+
+
+def test_a_linked_response_attesting_other_bytes_refuses(tmp_path, patched):
+    data, _ = modern_world(tmp_path, response_sha="0" * 64)
+    patched(data)
+    with pytest.raises(CB.ProvenanceError, match="different decoded bytes"):
+        CB.main([])
+
+
+def test_a_retrieval_time_before_its_request_quarantines(tmp_path, patched):
+    data, _ = modern_world(tmp_path, started="2026-10-04T23:00:05+00:00", ended="2026-10-04T23:00:01+00:00")
+    patched(data)
+    assert CB.main([]) == 0
+    census = json.loads((only_run(data) / "census.json").read_text())
+    assert census["quarantined"] == {"700001": ["availability: the retrieval time precedes its request"]}
+
+
+def test_conflicting_duplicate_intents_or_unknown_receipts_refuse(tmp_path, patched):
+    """r3 R3-5: two intents with one attempt id (a wrong URL first, the right one last) used to resolve silently."""
+    data = world(tmp_path, n=3)
+    recs = data / "hetzner_results" / "c1" / "r3" / "receipts" / "2026-10-04.jsonl"
+    lines = recs.read_text().splitlines()
+    wrong = {**json.loads(lines[0]), "url": "https://statsapi.mlb.com/api/v1.1/game/8/feed/live"}
+    recs.write_text(json.dumps(wrong) + "\n" + "".join(x + "\n" for x in lines))
+    patched(data)
+    with pytest.raises(CB.ProvenanceError, match="conflicting intent"):
+        CB.main([])
+    for bad in ({"kind": "mystery", "attempt_id": "z"},
+                {"kind": "completion", "attempt_id": "z", "outcome": "teleported", "gamePk": 700002},
+                {"kind": "intent", "attempt_id": 7, "gamePk": 700002}):
+        d2 = world(tmp_path / bad["kind"] / str(bad.get("outcome")) / str(bad["attempt_id"]), n=3)
+        receipt(d2 / "hetzner_results" / "c1" / "r3", bad)
+        patched(d2)
+        with pytest.raises(CB.ProvenanceError, match="unknown|attempt id"):
+            CB.main([])
+
+
+def test_a_boolean_game_id_cannot_bind_a_request(tmp_path, patched):
+    """True == 1 in Python: a request naming game True must not bind game 1's stored record."""
+    assert CB.FEED_URL.format(pk=True) != CB.FEED_URL.format(pk=1)       # and the typed check refuses it outright
+    data = world(tmp_path, n=3)
+    recs = data / "hetzner_results" / "c1" / "r3" / "receipts" / "2026-10-04.jsonl"
+    lines = [json.loads(x) for x in recs.read_text().splitlines()]
+    for r in lines:
+        if r["kind"] == "intent" and r["gamePk"] == 700001:
+            r["gamePk"] = float(700001)
+    recs.write_text("".join(json.dumps(r) + "\n" for r in lines))
+    patched(data)
+    with pytest.raises(CB.ProvenanceError, match="not bound|unresolved"):
+        CB.main([])
