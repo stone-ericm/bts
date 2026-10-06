@@ -407,15 +407,23 @@ def main(argv=None) -> int:
     out, pause_root = args.out.expanduser().resolve(), C1_ROOT.resolve()
     if args.verify:
         try:
-            v = verify(out, args.feeds.expanduser().resolve())
+            with writer_lock(out):
+                v = _verify_unlocked(out, args.feeds.expanduser().resolve())
+                ok = not (
+                    v["mismatched"] or v["missing"] or v["unreceipted"]
+                    or v["responses"]["missing"]
+                    or any(b is None for b in v["schedules"].values())
+                    or v["unresolved"] or v["schedules_missing"]
+                )
+                print(json.dumps(
+                    {k: (val[:20] if isinstance(val, list) else val) for k, val in v.items()}
+                    | {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)},
+                    indent=1,
+                ), flush=True)
+                return 0 if ok else 1
         except Busy:
             print("refusing: an acquisition holds the writer lock; verify after it ends", file=sys.stderr)
             return 3
-        print(json.dumps({k: (val[:20] if isinstance(val, list) else val) for k, val in v.items()} |
-                         {f"n_{k}": len(val) for k, val in v.items() if isinstance(val, list)}, indent=1))
-        ok = not (v["mismatched"] or v["missing"] or v["unreceipted"] or v["responses"]["missing"]
-                  or any(b is None for b in v["schedules"].values()) or v["unresolved"] or v["schedules_missing"])
-        return 0 if ok else 1
     if not args.seasons:
         ap.error("--seasons is required unless --verify")
     if pause_root not in out.parents and out != pause_root:

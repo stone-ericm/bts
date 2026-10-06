@@ -8,7 +8,12 @@ Every C1 box job runs as `systemd-run --user -p Delegate=yes ... <python> guard.
 - **`payload/`** holds the job. The guard applies nice 10 to it at exec. Every descendant stays in this cgroup,
   including those that start a new session.
 
-It checks that it can read the unit's `cpu.stat` and write `payload/cgroup.kill`; if not, the job never starts.
+It checks that it can read the unit's `cpu.stat` and that `payload/cgroup.kill` exists with write access (no test
+write is made); if not, the job never starts.
+
+**Confinement precondition (stated, not enforced):** the job's work must stay in the `payload/` subtree. It must not
+move processes elsewhere in the delegated unit, nor ask the user manager for another unit. Nested cgroups inside
+`payload/` are covered: `cgroup.kill` and `cgroup.events` are recursive.
 
 **The cap.** The guard polls the unit's cumulative CPU (`cpu.stat` usage_usec: guard plus job plus all children)
 every POLL_S seconds, and acts at `budget - cores * (POLL_S + SLACK_S)`. On a trip it first kills the payload cgroup
@@ -17,6 +22,10 @@ every POLL_S seconds, and acts at `budget - cores * (POLL_S + SLACK_S)`. On a tr
 **The bound** assumes the guard is scheduled within SLACK_S of its sleep. It runs at nice 0 while the payload runs at
 nice 10. That assumption is not proved here. Any overshoot past the budget is still recorded: a final total over
 budget is reported as an overrun, which pauses C1.
+
+**Emptiness before the measurement** (infra review r2 N5): after the job leader exits, or after a kill, the guard
+reads `payload/cgroup.events` (`populated`, recursive). A populated payload is killed. If it is not confirmed empty
+within CONFIRM_S, the result is `guard-error` (an enforcement failure that pauses C1), not a clean exit.
 
 **Terminal receipt.** On every exit path the guard can run, it writes a durable `TERMINAL_<unit>.json`: the result
 (`exit` with the job's code / `overrun` / `oom` / `terminated` / `guard-error`), the unit's final CPU total, and the
@@ -42,6 +51,7 @@ from pathlib import Path
 
 POLL_S = 2.0
 SLACK_S = 3.0
+CONFIRM_S = 10.0
 OVERRUN_EXIT = 86
 GUARD_ERROR_EXIT = 87
 PAUSE_RESULTS = ("overrun", "oom", "terminated", "guard-error")
@@ -80,6 +90,31 @@ def oom_kills(cg: Path) -> int:
         if len(parts) == 2 and parts[0] == "oom_kill":
             return int(parts[1])
     return 0
+
+
+def populated(cg: Path) -> bool:
+    """cgroup v2 `cgroup.events` populated: 1 while any process lives anywhere in the subtree."""
+    for line in (cg / "cgroup.events").read_text().splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == "populated":
+            return parts[1] == "1"
+    raise GuardError(f"{cg}/cgroup.events has no populated field")
+
+
+def confirm_empty(payload: Path, *, timeout: float | None = None, sleep=None) -> bool:
+    """Kill the payload subtree if anything is left, then wait for it to be empty. False = not confirmed."""
+    timeout = CONFIRM_S if timeout is None else timeout
+    sleep = sleep or time.sleep
+    if not populated(payload):
+        return True
+    (payload / "cgroup.kill").write_text("1")
+    waited = 0.0
+    while waited < timeout:
+        if not populated(payload):
+            return True
+        sleep(0.2)
+        waited += 0.2
+    return not populated(payload)
 
 
 def act_at(budget: float, ncpu: int) -> float:
@@ -174,8 +209,12 @@ def main(argv=None) -> int:
     oom_before = oom_kills(cg)
 
     def enter_payload() -> None:                   # runs in the child before exec
-        (payload / "cgroup.procs").write_text(str(os.getpid()))
-        os.nice(10)
+        try:
+            (payload / "cgroup.procs").write_text(str(os.getpid()))
+            os.nice(10)
+        except BaseException as e:                 # make the cause visible: Popen reports only "preexec_fn"
+            os.write(2, f"guard preexec failed: {type(e).__name__}: {e}\n".encode())
+            raise
 
     def kill() -> None:
         (payload / "cgroup.kill").write_text("1")
@@ -191,8 +230,8 @@ def main(argv=None) -> int:
 
     def on_term(signum, _frame):                   # systemd stop or RuntimeMaxSec: kill the job, then record
         kill()
-        sys.exit(finish("terminated", None, cgroup_cpu_seconds(cg), signal=signum,
-                        payload_left=(payload / "cgroup.procs").read_text().split()))
+        empty = confirm_empty(payload)
+        sys.exit(finish("terminated", None, cgroup_cpu_seconds(cg), signal=signum, payload_empty=empty))
     signal.signal(signal.SIGTERM, on_term)
 
     try:
@@ -201,15 +240,16 @@ def main(argv=None) -> int:
     except Exception as e:  # noqa: BLE001 - any monitor failure stops the job and pauses C1
         kill()
         return finish("guard-error", None, cgroup_cpu_seconds(cg), reason=f"monitor failed: {type(e).__name__}: {e}")
-    left = (payload / "cgroup.procs").read_text().split()
-    if left:                                       # descendants that outlived the job: stop them before the total
-        kill()
+    leftover = populated(payload)                  # recursive: nested payload cgroups included
+    if not confirm_empty(payload):
+        return finish("guard-error", rc, cgroup_cpu_seconds(cg), reason="the payload was not confirmed empty after kill",
+                      leftover=leftover)
     final = cgroup_cpu_seconds(cg)
     result = classify(kind, rc, final_cpu=final, budget=args.cpu_seconds, oom_before=oom_before, oom_after=oom_kills(cg))
     if result == "overrun":
         print(f"guard: CPU overrun ({final:.1f} s; budget {args.cpu_seconds:.0f} s): job killed, C1 paused",
               file=sys.stderr, flush=True)
-    return finish(result, rc, final, payload_left=left)
+    return finish(result, rc, final, leftover=leftover)
 
 
 if __name__ == "__main__":

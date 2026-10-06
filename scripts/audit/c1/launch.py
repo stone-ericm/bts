@@ -7,8 +7,12 @@ one exclusive launch lock (r3 B5):
 2. **Accounting:** sweep the journal into the ledger, then reconcile every launched unit's `PENDING_<unit>.json`
    against the guard's durable `TERMINAL_<unit>.json` (r1 B4):
    - the guard's CPU is counted when the journal has no row for the unit;
-   - a missing receipt reserves the unit's full budget in the ledger;
-   - a missing receipt, or any result other than a clean `exit`, materializes `OVERRUN_<unit>.json`;
+   - a missing or invalid receipt reserves the unit's full budget in the ledger;
+   - a missing or invalid receipt, or any result other than a clean `exit`, materializes `OVERRUN_<unit>.json`;
+   - nothing is moved: pause markers, then the ledger, then a durable `RECONCILED_<unit>.json` (crash-safe; r2 N1);
+   - unit names carry a random suffix and are never reused (r2 N4);
+   - an ordinary failure (exit rc != 0) still blocks a same-name relaunch after its journal entry is gone (r2 N3);
+   - a failed `systemd-run` keeps the PENDING record (r2 N2);
    - systemd `timeout` / `oom-kill` failures are materialized the same way.
 3. **The launch is refused unless:**
    - the name is valid; the declared budgets are finite and positive; and the effective CPU budget is at least the
@@ -48,6 +52,7 @@ import os
 import re
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -163,41 +168,92 @@ def record_overruns(c1_dir: Path, lines: list[str]) -> list[str]:
     return out
 
 
-def reconcile(c1_dir: Path, rows: list[dict]) -> tuple[list[dict], list[str]]:
-    """Every launched unit's PENDING record against its guard TERMINAL receipt (call only with no C1 unit active):
-    - **a TERMINAL receipt:** its CPU enters the ledger when the journal has no row for the unit, and a result other
-      than a clean exit materializes OVERRUN_<unit>.json;
-    - **no receipt:** the unit's full budget is reserved in the ledger, and OVERRUN_<unit>.json (unreconciled) is
-      written.
+TERMINAL_RESULTS = ("exit", "overrun", "oom", "terminated", "guard-error")
 
-    A reconciled PENDING moves to jobs/. Idempotent. Returns (ledger rows, units reconciled now)."""
+
+def _num(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v >= 0
+
+
+def terminal_problems(t, pending: dict, unit: str) -> list[str]:
+    """A guard receipt is trusted only if it is this invocation's and well formed (infra review r2 N4). A clean
+    exit must carry a valid rc and a measured CPU total within the budget."""
+    if not isinstance(t, dict):
+        return ["not a JSON object"]
+    p = []
+    if t.get("unit") != unit:
+        p.append("names another unit")
+    if not (_num(t.get("budget_seconds")) and float(t["budget_seconds"]) == float(pending.get("limit_cpu_seconds", -1))):
+        p.append("budget does not match the PENDING record")
+    if t.get("result") not in TERMINAL_RESULTS:
+        p.append(f"unknown result {t.get('result')!r}")
+    if t.get("cpu_seconds") is not None and not _num(t.get("cpu_seconds")):
+        p.append("invalid CPU value")
+    if t.get("result") == "exit":
+        if not (isinstance(t.get("rc"), int) and not isinstance(t.get("rc"), bool)):
+            p.append("an exit without an integer rc")
+        if not _num(t.get("cpu_seconds")):
+            p.append("an exit without a measured CPU total")
+        elif _num(t.get("budget_seconds")) and t["cpu_seconds"] > t["budget_seconds"]:
+            p.append("an exit whose CPU total exceeds its budget")
+    return p
+
+
+def reconcile(c1_dir: Path, ledger_path: Path, rows: list[dict]) -> tuple[list[dict], list[str]]:
+    """Every launched invocation's PENDING record against its guard TERMINAL receipt (call only with no C1 unit
+    active). Crash-safe (infra review r2 N1): nothing is moved. For each PENDING without a RECONCILED record:
+    1. write the pause marker if one is due;
+    2. commit the ledger (the guard's measured CPU, or a reservation of the full budget);
+    3. write a durable RECONCILED_<unit>.json.
+
+    A crash anywhere repeats the same idempotent steps on the next sweep.
+    - **A valid receipt:** its CPU enters the ledger when the journal has no row for the unit; a result other than a
+      clean exit pauses C1.
+    - **A missing or invalid receipt:** the full budget is reserved and C1 pauses (unreconciled).
+
+    Returns (ledger rows, units reconciled now)."""
     done = []
     for pend in sorted(c1_dir.glob("PENDING_*.json")):
         unit = pend.stem.removeprefix("PENDING_")
+        if (c1_dir / f"RECONCILED_{unit}.json").exists():
+            continue
         pending = json.loads(pend.read_text())
-        term = c1_dir / f"TERMINAL_{unit}.json"
-        marker = c1_dir / f"OVERRUN_{unit}.json"
-        if term.exists():
-            t = json.loads(term.read_text())
-            if isinstance(t.get("cpu_seconds"), (int, float)) and math.isfinite(t["cpu_seconds"]):
-                rows = ledger.add_guard_row(rows, unit, float(t["cpu_seconds"]), t.get("ended_utc") or "")
-            else:
-                rows = ledger.add_guard_row(rows, unit, float(pending["limit_cpu_seconds"]), "reserved", reserve=True)
-            if t.get("result") != "exit" and not marker.exists():
-                _write(marker, {"unit": unit, "source": "terminal", "result": t.get("result"),
-                                "written_utc": datetime.now(timezone.utc).isoformat()})
-        else:
+        term, marker = c1_dir / f"TERMINAL_{unit}.json", c1_dir / f"OVERRUN_{unit}.json"
+        try:
+            t = json.loads(term.read_text()) if term.exists() else None
+        except ValueError:
+            t = "unreadable"
+        problems = ["no guard TERMINAL receipt (the guard was killed or failed)"] if t is None else \
+            terminal_problems(t, pending, unit)
+        if problems:
+            result, cpu = "unreconciled", None
             rows = ledger.add_guard_row(rows, unit, float(pending["limit_cpu_seconds"]), "reserved", reserve=True)
-            if not marker.exists():
-                _write(marker, {"unit": unit, "source": "unreconciled",
-                                "reason": "no guard TERMINAL receipt (the guard was killed or failed)",
-                                "written_utc": datetime.now(timezone.utc).isoformat()})
-        (c1_dir / "jobs").mkdir(exist_ok=True)
-        os.replace(pend, c1_dir / "jobs" / pend.name)
-        if term.exists():
-            os.replace(term, c1_dir / "jobs" / term.name)
+        else:
+            result, cpu = t["result"], t.get("cpu_seconds")
+            rows = ledger.add_guard_row(rows, unit, float(cpu), t.get("ended_utc") or "") if _num(cpu) else \
+                ledger.add_guard_row(rows, unit, float(pending["limit_cpu_seconds"]), "reserved", reserve=True)
+        if result != "exit" and not marker.exists():
+            _write(marker, {"unit": unit, "source": "terminal" if not problems else "unreconciled",
+                            "result": result, "problems": problems,
+                            "written_utc": datetime.now(timezone.utc).isoformat()})
+        ledger.write_tsv(ledger_path, rows)
+        _write(c1_dir / f"RECONCILED_{unit}.json", {"unit": unit, "result": result, "cpu_seconds": cpu,
+                                                    "rc": t.get("rc") if isinstance(t, dict) else None,
+                                                    "problems": problems,
+                                                    "written_utc": datetime.now(timezone.utc).isoformat()})
         done.append(unit)
     return rows, done
+
+
+def receipt_failures(c1_dir: Path) -> list[str]:
+    """Units whose reconciled receipt shows an ordinary job failure (exit with a non-zero rc): the same-name retry
+    gate holds even after the journal entry is gone (infra review r2 N3)."""
+    out = []
+    for f in sorted(c1_dir.glob("RECONCILED_*.json")):
+        r = json.loads(f.read_text())
+        if r.get("result") == "exit" and r.get("rc") not in (0, None):
+            out.append(r["unit"])
+    return out
 
 
 def _register_row(text: str, row_id: str) -> list[str] | None:
@@ -229,7 +285,7 @@ def overrun_stops(c1_dir: Path, register_text: str) -> list[str]:
                 want = re.compile(r"^\*\*RULED \d{4}-\d{2}-\d{2}: RESUME `(?P<u>[^`]+)` overrun `(?P<s>[0-9a-f]{12,64})`\*\*$")
                 m = want.match(row[2]) if row and len(row) >= 4 else None
                 if not (m and m.group("u") == unit and _sha(marker).startswith(m.group("s"))
-                        and row[-1].startswith("Eric")):
+                        and re.match(r"^Eric(?:$|\s)", row[-1])):
                     problems.append(f"no register row C1-resume-{unit} recording Eric's RESUME of this overrun")
         if problems:
             stops.append(f"{unit} ({', '.join(problems)})")
@@ -295,7 +351,7 @@ def plan_launch(*, name: str, cpu_hours: float, max_hours: float, rows: list[dic
     out = {"ok": not reasons, "reasons": reasons, "total_cpu_hours": round(total, 4), "season": season_note}
     if reasons:
         return out
-    unit = f"c1-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}"
+    unit = f"c1-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"   # never reused (infra r2 N4)
     log = (log_dir or Path.home() / "logs") / f"c1-{name}.log"
     pdir = pause_dir or c1_paths(DATA_ROOT)["ledger"].parent
     out.update(unit=unit, limit_cpu_seconds=limit, log=str(log), argv=[
@@ -375,8 +431,7 @@ def _locked(args, paths: dict, c1_dir: Path) -> int:
     journal = _journal()
     rows = sweep(paths["ledger"], journal)
     if not active:
-        rows, _ = reconcile(c1_dir, rows)
-        ledger.write_tsv(paths["ledger"], rows)
+        rows, _ = reconcile(c1_dir, paths["ledger"], rows)
     record_overruns(c1_dir, journal)
     register_text = REGISTER.read_text() if REGISTER.exists() else ""
     overruns = overrun_stops(c1_dir, register_text)
@@ -386,7 +441,7 @@ def _locked(args, paths: dict, c1_dir: Path) -> int:
         print(json.dumps({"total_cpu_hours": round(total, 4), "jobs": len(rows), "checkpoint_acked": acked,
                           "active": active, "pending": sorted(p.name for p in c1_dir.glob("PENDING_*.json")),
                           "rate_limit_stops": rate_limit_stops(DATA_ROOT), "overrun_stops": overruns,
-                          "failed_units": failed_units(journal),
+                          "failed_units": sorted(set(failed_units(journal)) | set(receipt_failures(c1_dir))),
                           "gate": ledger.gate(total, 0.0, acked), "ledger": str(paths["ledger"])}, indent=1))
         return 0
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -395,7 +450,8 @@ def _locked(args, paths: dict, c1_dir: Path) -> int:
     p = plan_launch(name=args.name, cpu_hours=args.cpu_hours, max_hours=args.max_hours, rows=rows, acked=acked,
                     active_units=_active(), sched_lines=sched, now=datetime.now(timezone.utc), cwd=args.cwd,
                     env_file=str(PROD_ENV), command=command,
-                    rate_limit_stops=rate_limit_stops(DATA_ROOT), failed_units=failed_units(journal),
+                    rate_limit_stops=rate_limit_stops(DATA_ROOT),
+                    failed_units=sorted(set(failed_units(journal)) | set(receipt_failures(c1_dir))),
                     acked_failures=args.ack_failure, overrun_stops=overruns, pause_dir=c1_dir)
     print(json.dumps(p, indent=1))
     if not p["ok"]:
@@ -406,10 +462,9 @@ def _locked(args, paths: dict, c1_dir: Path) -> int:
     try:
         subprocess.run(p["argv"], check=True)
     except subprocess.CalledProcessError:
-        state = _run(["systemctl", "--user", "show", "-p", "LoadState", "--value", p["unit"]]).strip()
-        if state == "not-found":               # the unit never existed: nothing ran, nothing to reconcile
-            (c1_dir / f"PENDING_{p['unit']}.json").unlink()
-        raise SystemExit(f"systemd-run failed for {p['unit']} (load state {state!r})") from None
+        raise SystemExit(
+            f"systemd-run failed for {p['unit']}; launch state is unresolved, PENDING retained"
+        ) from None
     return 0
 
 

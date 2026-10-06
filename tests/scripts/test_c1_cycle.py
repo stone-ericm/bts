@@ -227,6 +227,7 @@ def fake_cgroup(root, *, kill=True, usage_usec=1_000_000):
         (cg / leaf).mkdir(parents=True, exist_ok=True)
     (cg / "cpu.stat").write_text(f"usage_usec {usage_usec}\n")
     (cg / "memory.events").write_text("oom 0\noom_kill 0\n")
+    (cg / "payload" / "cgroup.events").write_text("populated 0\nfrozen 0\n")
     (cg / "guard" / "cgroup.procs").write_text("")
     (cg / "payload" / "cgroup.procs").write_text("")
     if kill:
@@ -367,11 +368,12 @@ def test_a_job_that_ended_just_before_admission_is_accounted_and_pauses(box):
     plant_ledger(box["c1"], 49)
     unit = "c1-r4b-run-20261005T010000Z"
     guard.write_receipt(box["c1"] / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 14400})
-    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "terminated",
+    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "terminated", "budget_seconds": 14400,
                                                               "cpu_seconds": 7200.0, "ended_utc": "t"})
     assert launch.main(ARGV) == 2 and box["started"] == []
     assert ledger_hours(box["c1"]) == pytest.approx(51.0)
-    assert (box["c1"] / f"OVERRUN_{unit}.json").exists() and (box["c1"] / "jobs" / f"PENDING_{unit}.json").exists()
+    assert (box["c1"] / f"OVERRUN_{unit}.json").exists() and (box["c1"] / f"RECONCILED_{unit}.json").exists()
+    assert (box["c1"] / f"PENDING_{unit}.json").exists()                  # evidence is never moved (r2 N1)
 
 
 def test_a_job_whose_guard_left_no_receipt_reserves_its_budget_and_pauses(box):
@@ -387,7 +389,7 @@ def test_a_job_whose_guard_left_no_receipt_reserves_its_budget_and_pauses(box):
 def test_a_clean_exit_is_accounted_without_a_pause(box):
     unit = "c1-r3-fit-20261005T010000Z"
     guard.write_receipt(box["c1"] / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": 3600})
-    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "exit", "rc": 0,
+    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "exit", "rc": 0, "budget_seconds": 3600,
                                                               "cpu_seconds": 90.0, "ended_utc": "t"})
     assert launch.main(ARGV) == 0 and len(box["started"]) == 1
     assert ledger_hours(box["c1"]) == pytest.approx(90 / 3600) and not list(box["c1"].glob("OVERRUN_*"))
@@ -443,11 +445,128 @@ def test_two_launches_cannot_race(box):
     assert launch.main(ARGV) == 0 and len(box["started"]) == 1
 
 
-def test_a_systemd_run_failure_keeps_the_pending_record_unless_the_unit_never_existed(box, monkeypatch):
+def test_a_systemd_run_failure_always_keeps_the_pending_record(box, monkeypatch):
+    """Infra review r2 N2: 'not-found' after a failed submission does not prove the collected unit never ran."""
     def fail(argv, check):
         raise subprocess.CalledProcessError(1, argv)
     monkeypatch.setattr(launch.subprocess, "run", fail)
-    box["show"] = "not-found"
-    assert launch.main(ARGV) == 2 and not list(box["c1"].glob("PENDING_*.json"))
-    box["show"] = "loaded"
-    assert launch.main(ARGV) == 2 and len(list(box["c1"].glob("PENDING_*.json"))) == 1   # fail closed
+    assert launch.main(ARGV) == 2 and len(list(box["c1"].glob("PENDING_*.json"))) == 1
+
+
+def test_a_collected_unit_whose_submission_failed_is_still_accounted_and_paused(box, monkeypatch):
+    def ran_then_failed(argv, check):           # the unit ran (overrun receipt), then the client reported failure
+        unit = argv[argv.index("--unit") + 1]
+        guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "overrun",
+                                                                  "budget_seconds": 3600, "cpu_seconds": 3500.0})
+        raise subprocess.CalledProcessError(1, argv)
+    monkeypatch.setattr(launch.subprocess, "run", ran_then_failed)
+    assert launch.main(ARGV) == 2
+    monkeypatch.setattr(launch.subprocess, "run", lambda argv, check: box["started"].append(argv))
+    assert launch.main(ARGV) == 2 and box["started"] == []               # the overrun pauses the next launch
+    assert ledger_hours(box["c1"]) == pytest.approx(3500 / 3600)
+
+
+
+# ---------- infra review r2: N1 crash-safe reconciliation, N3, N4, N5, N6 ----------
+def plant(c1, unit, limit, terminal=None):
+    guard.write_receipt(c1 / f"PENDING_{unit}.json", {"unit": unit, "limit_cpu_seconds": limit})
+    if terminal is not None:
+        guard.write_receipt(c1 / f"TERMINAL_{unit}.json", {"unit": unit, "budget_seconds": limit, **terminal})
+
+
+def test_a_crash_during_reconciliation_loses_no_accounting(box, monkeypatch):
+    """r2 N1: 49 h + a clean 2 h exit; the ledger write fails once. Nothing was moved, so a retry recovers 51 h."""
+    plant_ledger(box["c1"], 49)
+    plant(box["c1"], "c1-x-1-aa", 14400, {"result": "exit", "rc": 0, "cpu_seconds": 7200.0})
+    real, calls = ledger.write_tsv, []
+
+    def crash_once(path, rows):
+        calls.append(1)
+        if len(calls) == 2:                     # the sweep's write succeeds; reconciliation's first write fails
+            raise OSError("synthetic crash")
+        return real(path, rows)
+    monkeypatch.setattr(ledger, "write_tsv", crash_once)
+    with pytest.raises(OSError):
+        launch.main(ARGV)
+    monkeypatch.setattr(ledger, "write_tsv", real)
+    assert not (box["c1"] / "RECONCILED_c1-x-1-aa.json").exists()
+    assert launch.main(["status"]) == 0 and ledger_hours(box["c1"]) == pytest.approx(51.0)
+    assert launch.main(["status"]) == 0 and ledger_hours(box["c1"]) == pytest.approx(51.0)   # idempotent
+
+
+def test_an_ordinary_failure_blocks_its_same_name_relaunch_after_the_journal_is_gone(box):
+    """r2 N3: the receipt's non-zero rc keeps the same-name gate; another name is not blocked."""
+    plant(box["c1"], "c1-r3-fit-20261005T010000Z-aa", 3600, {"result": "exit", "rc": 5, "cpu_seconds": 1.0})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert launch.main(ARGV) == 2                                        # repeated: still blocked
+    assert launch.main([*ARGV[:-2], "--ack-failure", "c1-r3-fit-20261005T010000Z-aa", "--", "true"]) == 0
+    unit = box["started"][-1][box["started"][-1].index("--unit") + 1]
+    guard.write_receipt(box["c1"] / f"TERMINAL_{unit}.json", {"unit": unit, "result": "exit", "rc": 0,
+                                                              "budget_seconds": 3600, "cpu_seconds": 2.0})
+    other = ["run", "--name", "r2-x", "--cpu-hours", "1", "--max-hours", "1", "--", "true"]
+    assert launch.main(other) == 0
+
+
+def test_unit_names_are_never_reused():
+    a, b = plan()["unit"], plan()["unit"]
+    assert a != b and a.startswith("c1-r2-build-20261005T120000Z-")
+
+
+@pytest.mark.parametrize("terminal", [
+    {"result": "exit", "rc": 0, "cpu_seconds": 10.0, "unit": "c1-someone-else"},
+    {"result": "exit", "rc": 0, "cpu_seconds": True},
+    {"result": "exit", "rc": 0, "cpu_seconds": None},
+    {"result": "exit", "rc": 0, "cpu_seconds": -1.0},
+    {"result": "exit", "rc": 0, "cpu_seconds": float("nan")},
+    {"result": "exit", "rc": "0", "cpu_seconds": 1.0},
+    {"result": "exit", "rc": 0, "cpu_seconds": 4000.0},               # over its 3600 s budget, labelled exit
+    {"result": "fine", "rc": 0, "cpu_seconds": 1.0},
+    {"result": "exit", "rc": 0, "cpu_seconds": 1.0, "budget_seconds": 99.0},
+])
+def test_an_invalid_receipt_is_unreconciled_reserves_the_budget_and_pauses(box, terminal):
+    """r2 N4: a receipt is trusted only if it is this invocation's and well formed."""
+    plant(box["c1"], "c1-x-1-aa", 3600, {"budget_seconds": 3600, **terminal} if "budget_seconds" in terminal else terminal)
+    if "unit" in terminal:
+        guard.write_receipt(box["c1"] / "TERMINAL_c1-x-1-aa.json", {"budget_seconds": 3600, **terminal})
+    assert launch.main(ARGV) == 2 and box["started"] == []
+    assert ledger_hours(box["c1"]) == pytest.approx(1.0)
+    assert json.loads((box["c1"] / "OVERRUN_c1-x-1-aa.json").read_text())["source"] == "unreconciled"
+
+
+def test_the_source_must_be_eric_exactly(tmp_path):
+    """r2 N6: 'Erica' and 'Ericson' are not Eric."""
+    c1 = tmp_path / "c1"
+    unit = "c1-x-1-aa"
+    guard.write_receipt(c1 / f"OVERRUN_{unit}.json", {"unit": unit})
+    sha = hashlib.sha256((c1 / f"OVERRUN_{unit}.json").read_bytes()).hexdigest()
+    (c1 / f"RESUME_{unit}.json").write_text(json.dumps({"unit": unit, "overrun_sha256": sha}))
+    for src in ("Erica 2026-10-06", "Ericson", "Eric's assistant"):
+        assert launch.overrun_stops(c1, resume_row(unit, sha, source=src)), src
+    for src in ("Eric", "Eric 2026-10-06", "Eric 2026-10-06 (manager relay)"):
+        assert launch.overrun_stops(c1, resume_row(unit, sha, source=src)) == [], src
+
+
+def test_a_nested_descendant_is_killed_before_the_measurement(tmp_path, monkeypatch):
+    """r2 N5: the leader exits; the recursive payload is still populated (a nested cgroup). The guard kills it and
+    confirms emptiness before recording."""
+    cg = fake_cgroup(tmp_path)
+    events = cg / "payload" / "cgroup.events"
+    real_populated = guard.populated
+
+    def populated(c):
+        if (c / "cgroup.kill").read_text() == "1":          # the kill was written: the fake subtree empties
+            events.write_text("populated 0\n")
+        return real_populated(c)
+    monkeypatch.setattr(guard, "populated", populated)
+    events.write_text("populated 1\n")
+    rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "pass"])
+    assert rec["result"] == "exit" and rec["leftover"] is True and (cg / "payload" / "cgroup.kill").read_text() == "1"
+
+
+def test_an_unconfirmed_empty_payload_is_an_enforcement_failure(tmp_path, monkeypatch):
+    cg = fake_cgroup(tmp_path)
+    (cg / "payload" / "cgroup.events").write_text("populated 1\n")      # never empties
+    monkeypatch.setattr(guard, "CONFIRM_S", 0.4)
+    monkeypatch.setattr(guard.time, "sleep", lambda s: None)
+    rc, rec = run_guard(tmp_path, monkeypatch, cg, [sys.executable, "-c", "pass"])
+    assert rc == guard.GUARD_ERROR_EXIT and rec["result"] == "guard-error" and "not confirmed empty" in rec["reason"]
