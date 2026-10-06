@@ -1,69 +1,39 @@
-"""Write-confinement tracing for the watchdog (registration §4.2 gate 2).
+"""Gate 2, write confinement, enforced by the kernel (registration §4.2; W0 review r1 B2).
 
-A process-wide audit hook (`sys.addaudithook`) records every write-type syscall event while a trace is active. It
-sees writes at the syscall level, so a same-byte rewrite, or a write that is later undone, is caught whatever the
-final file contents. Audit hooks cannot be removed, so the hook is installed once and records only inside `tracing`.
+The watched code runs in a child Python process under macOS `sandbox-exec`, with a profile that denies every
+`file-write*` except beneath the admitted root (plus `/dev`, for the stdio devices).
+- **Kernel enforcement:** the sandbox mediates the operation's actual target at operation time. That includes
+  symlink leaves, descriptor-relative opens, threads and child processes, which inherit the sandbox.
+- **Descriptors:** the child starts with no inherited descriptors besides its stdin, stdout and stderr pipes
+  (`close_fds`), so a descriptor-only write would first need an open, and the sandbox mediates that open.
+- **Outcome:** any attempted outside write fails with EPERM, which the child reports. The gate passes only if the
+  child completes cleanly and its own red controls show EPERM.
+
+Where `sandbox-exec` is unavailable (not macOS), the gate tests are skipped with a visible reason, never silently
+accepted.
 """
-import contextvars
 import os
+import shutil
+import subprocess
 import sys
-from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
 
-_ACTIVE: contextvars.ContextVar = contextvars.ContextVar("watchdog_write_trace", default=None)
-_WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND
-_PATH_EVENTS = {"os.remove": (0,), "os.rmdir": (0,), "os.mkdir": (0,), "os.rename": (0, 1), "os.link": (0, 1),
-                "os.symlink": (0, 1), "os.truncate": (0,), "os.chmod": (0,), "os.chown": (0,), "os.utime": (0,),
-                "shutil.copyfile": (1,), "shutil.rmtree": (0,), "shutil.move": (0, 1)}
+SANDBOX = shutil.which("sandbox-exec")
+REPO = Path(__file__).resolve().parents[2]
+needs_sandbox = pytest.mark.skipif(SANDBOX is None, reason="gate 2 needs macOS sandbox-exec (kernel write enforcement)")
 
 
-def _hook(event, args):
-    sink = _ACTIVE.get()
-    if sink is None:
-        return
-    if event == "open":
-        path, mode, flags = (list(args) + [None, None, None])[:3]
-        writes = (isinstance(mode, str) and any(c in mode for c in "wax+")) or \
-                 (isinstance(flags, int) and flags & _WRITE_FLAGS)
-        if writes and isinstance(path, (str, bytes, os.PathLike)):
-            sink.append(("open", os.fsdecode(path)))
-    elif event in _PATH_EVENTS:
-        for i in _PATH_EVENTS[event]:
-            if i < len(args) and isinstance(args[i], (str, bytes, os.PathLike)):
-                sink.append((event, os.fsdecode(args[i])))
+def profile(allow: Path) -> str:
+    real = os.path.realpath(allow)
+    return ('(version 1)(allow default)(deny file-write*)'
+            f'(allow file-write* (subpath "{real}") (subpath "/dev"))')
 
 
-sys.addaudithook(_hook)
-
-
-@contextmanager
-def tracing():
-    sink: list = []
-    token = _ACTIVE.set(sink)
-    try:
-        yield sink
-    finally:
-        _ACTIVE.reset(token)
-
-
-def outside(sink, root: Path) -> list:
-    """Traced write targets that do not resolve beneath `root`."""
-    r = Path(root).resolve()
-    bad = []
-    for event, p in sink:
-        target = Path(p)
-        target = (target if target.is_absolute() else Path.cwd() / target)
-        try:
-            resolved = target.parent.resolve() / target.name
-        except OSError:
-            resolved = target
-        if not resolved.is_relative_to(r):
-            bad.append((event, p))
-    return bad
-
-
-@pytest.fixture
-def write_trace():
-    return tracing
+def run_confined(code: str, allow: Path, *, timeout: int = 120) -> subprocess.CompletedProcess:
+    """Run `code` in a fresh `python -B` child that may write only beneath `allow`."""
+    env = {"PATH": "/usr/bin:/bin", "HOME": os.environ.get("HOME", "/tmp"), "PYTHONDONTWRITEBYTECODE": "1",
+           "PYTHONPATH": f"{REPO / 'src'}:{REPO}", "TZ": "America/New_York"}
+    return subprocess.run([SANDBOX, "-p", profile(allow), sys.executable, "-B", "-c", code], env=env, cwd=str(allow),
+                          capture_output=True, text=True, timeout=timeout, close_fds=True)

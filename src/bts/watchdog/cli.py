@@ -28,18 +28,22 @@ def watchdog():
 @click.argument("job")
 @click.option("--data-dir", default="data", type=click.Path(path_type=Path), help="The data directory (root: <data-dir>/watchdog)")
 @click.option("--dm-recipient", default=None, help="Bluesky handle for alerts (required unless --no-send)")
-@click.option("--no-send", is_flag=True, help="Write results and queue alerts without sending")
+@click.option("--no-send", is_flag=True, help="Write results and queue alerts without sending (they stay pending)")
 def run(job, data_dir, dm_recipient, no_send):
+    """Run one registered job. Exit 1 on any infrastructure failure (results or notification); never report that
+    as completion."""
+    import sys
     if job not in JOBS:
         raise click.ClickException(f"unknown watchdog job {job!r} (registered: {sorted(JOBS) or 'none'})")
     if not no_send and not dm_recipient:
         raise click.ClickException("--dm-recipient is required unless --no-send")
     root = OwnedRoot.under(data_dir)
     clock = SystemClock()
-    notifier = None
+    send = None
     if not no_send:
         from bts.dm import send_dm
-        notifier = Notifier(root, recipient=dm_recipient, send=send_dm, clock=clock)
+        send = send_dm
+    notifier = Notifier(root, recipient=None if no_send else dm_recipient, send=send, clock=clock)
     try:
         out = run_job(job, JOBS[job], root=root, clock=clock, notifier=notifier)
     except JobBusy as exc:
@@ -49,3 +53,9 @@ def run(job, data_dir, dm_recipient, no_send):
     for r in out.results:
         counts[r.status.value] = counts.get(r.status.value, 0) + 1
     click.echo(f"watchdog {job}: {counts} -> {out.path}")
+    if out.persist_error:
+        click.echo(f"watchdog {job}: RESULTS NOT PERSISTED: {out.persist_error}", err=True)
+    if out.notify_error:
+        click.echo(f"watchdog {job}: NOTIFICATION FAILURE: {out.notify_error}", err=True)
+    if not out.ok:
+        sys.exit(1)
