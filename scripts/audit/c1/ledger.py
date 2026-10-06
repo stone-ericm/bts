@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
@@ -62,25 +64,36 @@ def total_hours(rows: list[dict]) -> float:
 
 
 def read_tsv(path: Path) -> list[dict]:
+    """The ledger rows; a non-finite or negative CPU value is refused (code review r3 B5), never summed."""
     if not path.exists():
         return []
     with path.open(newline="") as f:
-        return [{**r, "cpu_seconds": float(r["cpu_seconds"])} for r in csv.DictReader(f, delimiter="\t")]
+        rows = [{**r, "cpu_seconds": float(r["cpu_seconds"])} for r in csv.DictReader(f, delimiter="\t")]
+    bad = [r["invocation"] for r in rows if not (math.isfinite(r["cpu_seconds"]) and r["cpu_seconds"] >= 0)]
+    if bad:
+        raise ValueError(f"invalid CPU values in the ledger: {bad[:3]}")
+    return rows
 
 
 def write_tsv(path: Path, rows: list[dict]) -> None:
+    """Atomic and durable, through a unique temporary file (two writers never share one)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    with tmp.open("w", newline="") as f:
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    with os.fdopen(fd, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t")
         w.writeheader()
         w.writerows(rows)
+        f.flush()
+        os.fsync(f.fileno())
     os.replace(tmp, path)
 
 
 def gate(total_h: float, declared_h: float, checkpoint_acked: bool) -> str:
-    """``stop`` at the cap; ``checkpoint`` at 50 until Eric's acknowledgement exists; ``over_cap`` when the job's
-    declared CPU budget would cross 100; else ``ok``. Crossing 50 during a job is allowed: the next launch stops."""
+    """``stop`` at the cap (or on a non-finite or negative total); ``checkpoint`` at 50 until Eric's acknowledgement
+    exists; ``over_cap`` when the job's declared CPU budget would cross 100; else ``ok``. Crossing 50 during a job is
+    allowed: the next launch stops."""
+    if not (math.isfinite(total_h) and total_h >= 0):
+        return "stop"
     if total_h >= CAP_H:
         return "stop"
     if total_h >= CHECKPOINT_H and not checkpoint_acked:

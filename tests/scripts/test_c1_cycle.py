@@ -1,5 +1,6 @@
 """C1 cycle guard (docs/audit/2026-10-04-d4-cycle-proposal.md, approved 10/04): compute ledger + launcher rules."""
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -167,3 +168,155 @@ def test_rate_limit_stop_markers_are_found_anywhere_under_c1_and_in_the_capture(
     (root / "leaderboard" / "static_snapshots" / "_receipts" / "STOP_403_429.json").write_text("{}")
     assert launch.rate_limit_stops(root) == ["hetzner_results/c1/r3/STOP_403_429.json",
                                              "leaderboard/static_snapshots/_receipts/STOP_403_429.json"]
+
+
+# ---------- Eric 2026-10-05 (row C1-4b-deferral; code review r3 B4/B5): C1-wide box limits ----------
+import importlib.util as _ilu
+
+_gspec = _ilu.spec_from_file_location("c1_guard", Path(launch.__file__).with_name("guard.py"))
+guard = _ilu.module_from_spec(_gspec)
+_gspec.loader.exec_module(guard)
+
+
+class FakeProc:
+    def __init__(self, finish_after=None, rc=0):
+        self.polls, self.finish_after, self.rc = 0, finish_after, rc
+
+    def poll(self):
+        self.polls += 1
+        return self.rc if self.finish_after is not None and self.polls >= self.finish_after else None
+
+
+def test_the_guard_kills_the_whole_job_before_its_cumulative_cpu_reaches_the_budget():
+    """The cap holds across child processes: the cgroup's total, not any one process, is compared with the budget.
+    Usage grows by at most cores x poll per interval, so acting at budget - cores x poll keeps the total under it."""
+    usage, events = [0.0], []
+
+    def read():
+        usage[0] += 8 * 2.0          # every core busy (e.g. several children) for a whole poll interval
+        return usage[0]
+    rc = guard.watch(FakeProc(), read, budget=100.0, ncpu=8, poll=2.0,
+                     on_overrun=lambda u: events.append(("marker", u)), kill=lambda: events.append(("kill",)),
+                     sleep=lambda s: None)
+    assert rc == guard.OVERRUN_EXIT
+    assert events[0][0] == "marker" and events[1] == ("kill",)       # the durable pause marker comes first
+    assert events[0][1] < 100.0                                       # caught before the budget was crossed
+
+
+def test_the_guard_returns_the_jobs_own_exit_code_within_budget():
+    rc = guard.watch(FakeProc(finish_after=3, rc=5), lambda: 1.0, budget=100.0, ncpu=8, poll=2.0,
+                     on_overrun=lambda u: pytest.fail("no overrun"), kill=lambda: pytest.fail("no kill"),
+                     sleep=lambda s: None)
+    assert rc == 5
+
+
+def test_the_guard_records_an_overrun_seen_only_at_exit():
+    seen = []
+    rc = guard.watch(FakeProc(finish_after=1), iter([1.0, 150.0]).__next__, budget=100.0, ncpu=1, poll=2.0,
+                     on_overrun=seen.append, kill=lambda: None, sleep=lambda s: None)
+    assert rc == guard.OVERRUN_EXIT and seen == [150.0]
+
+
+def test_the_guard_reads_its_own_cgroup_v2_cpu_total(tmp_path):
+    cg = guard.own_cgroup("0::/user.slice/user-1000.slice/user@1000.service/app.slice/c1-x.service\n", root=tmp_path)
+    assert cg == tmp_path / "user.slice/user-1000.slice/user@1000.service/app.slice/c1-x.service"
+    cg.mkdir(parents=True)
+    (cg / "cpu.stat").write_text("usage_usec 2500000\nuser_usec 2000000\nsystem_usec 500000\n")
+    assert guard.cgroup_cpu_seconds(cg) == 2.5
+    with pytest.raises(RuntimeError):
+        guard.own_cgroup("12:cpu:/x\n", root=tmp_path)          # cgroup v1 only: refuse rather than guess
+
+
+def test_the_guard_writes_a_durable_pause_marker(tmp_path):
+    guard.write_marker(tmp_path / "OVERRUN_c1-x-1.json", {"unit": "c1-x-1", "cpu_seconds": 99.0})
+    assert json.loads((tmp_path / "OVERRUN_c1-x-1.json").read_text())["unit"] == "c1-x-1"
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_every_job_runs_under_the_guard_with_its_cpu_budget():
+    p = plan(cpu_hours=2.0)
+    argv = p["argv"]
+    g = argv.index(str(launch.GUARD))
+    assert argv[g - 1] == launch.PYTHON and argv[g + 1:g + 3] == ["--cpu-seconds", "7200"]
+    assert argv[g + 3] == "--pause-dir" and argv[argv.index("--unit") + 1] == p["unit"]
+    assert argv[argv.index("--", g) + 1:] == ["echo", "hi"]
+
+
+@pytest.mark.parametrize("kw", [dict(cpu_hours=float("nan")), dict(cpu_hours=0.0), dict(cpu_hours=-1.0),
+                                dict(cpu_hours=float("inf")), dict(max_hours=float("nan")), dict(max_hours=0.0)])
+def test_invalid_budgets_are_refused(kw):
+    p = plan(**kw)
+    assert p["ok"] is False and any("invalid" in r for r in p["reasons"])
+
+
+def test_a_non_finite_or_negative_ledger_total_stops():
+    assert ledger.gate(float("nan"), 4, False) == "stop"
+    assert ledger.gate(-1.0, 4, False) == "stop"
+
+
+@pytest.mark.parametrize("bad", ["nan", "inf", "-3.0"])
+def test_a_corrupt_ledger_row_is_refused(tmp_path, bad):
+    p = tmp_path / "compute_ledger.tsv"
+    p.write_text("invocation\tunit\tstopped_at\tcpu_seconds\na\tc1-x.service\tt\t" + bad + "\n")
+    with pytest.raises(ValueError):
+        ledger.read_tsv(p)
+
+
+def test_ledger_writes_use_a_unique_temporary_file(tmp_path, monkeypatch):
+    srcs, real = [], os.replace
+    monkeypatch.setattr(ledger.os, "replace", lambda a, b: (srcs.append(str(a)), real(a, b)))
+    row = [{"invocation": "a", "unit": "c1-x.service", "stopped_at": "t", "cpu_seconds": 1.0}]
+    ledger.write_tsv(tmp_path / "l.tsv", row)
+    ledger.write_tsv(tmp_path / "l.tsv", row)
+    assert len(set(srcs)) == 2 and ledger.read_tsv(tmp_path / "l.tsv") == row
+
+
+REG = ("| C1-resume-x | resume after c1-r4b-run-20261005T010000Z timed out | **RULED 2026-10-06: resume** | Eric |\n"
+       "| C1-other | an unrelated decision | **RULED 2026-10-06: something** | Eric |\n")
+
+
+def test_a_timeout_in_one_job_pauses_every_other_c1_job(tmp_path):
+    """r3 B5: another candidate's overrun used to be ignored; now it is a durable cycle-wide pause."""
+    c1 = tmp_path / "hetzner_results" / "c1"
+    lines = [json.dumps({"USER_UNIT": "c1-r4b-run-20261005T010000Z.service",
+                         "MESSAGE": "c1-r4b-run-20261005T010000Z.service: Failed with result 'timeout'."}),
+             json.dumps({"USER_UNIT": "c1-r2-x-20261005T020000Z.service",
+                         "MESSAGE": "c1-r2-x-20261005T020000Z.service: Failed with result 'exit-code'."}),
+             json.dumps({"USER_UNIT": "c1-burner-20261004T190543Z.service",
+                         "MESSAGE": "c1-burner-20261004T190543Z.service: Failed with result 'signal'."})]
+    launch.record_overruns(c1, lines)
+    assert sorted(p.name for p in c1.glob("OVERRUN_*.json")) == ["OVERRUN_c1-r4b-run-20261005T010000Z.json"]
+    stops = launch.overrun_stops(c1, REG)
+    assert stops and "c1-r4b-run-20261005T010000Z" in stops[0]
+    assert plan(overrun_stops=stops)["ok"] is False                     # a different candidate is refused too
+    assert any("overrun" in r for r in plan(overrun_stops=stops)["reasons"])
+
+
+def test_an_overrun_is_released_only_by_a_matching_owner_decision(tmp_path):
+    c1 = tmp_path / "hetzner_results" / "c1"
+    unit = "c1-r4b-run-20261005T010000Z"
+    guard.write_marker(c1 / f"OVERRUN_{unit}.json", {"unit": unit, "source": "guard", "cpu_seconds": 14000.0})
+    for rec in ({}, {"unit": unit}, {"unit": unit, "register_row": "C1-other", "approved_by": "Eric", "reason": "go"},
+                {"unit": unit, "register_row": "C1-resume-x", "approved_by": "someone", "reason": "go"},
+                {"unit": "c1-y-1", "register_row": "C1-resume-x", "approved_by": "Eric", "reason": "go"}):
+        (c1 / f"RESUME_{unit}.json").write_text(json.dumps(rec))
+        assert launch.overrun_stops(c1, REG), rec                       # empty, partial, unrelated row, wrong unit
+    (c1 / f"RESUME_{unit}.json").write_text(json.dumps({"unit": unit, "register_row": "C1-resume-x",
+                                                        "approved_by": "Eric", "reason": "budget raised"}))
+    assert launch.overrun_stops(c1, REG) == []
+
+
+def test_two_launches_cannot_race(tmp_path, monkeypatch):
+    """r3 B5: sweep, admission and start run under one exclusive launch lock."""
+    import fcntl
+    started = []
+    monkeypatch.setattr(launch, "_journal", lambda: [])
+    monkeypatch.setattr(launch, "_run", lambda argv: "")
+    monkeypatch.setattr(launch.subprocess, "run", lambda argv, check: started.append(argv))
+    c1 = tmp_path / "hetzner_results" / "c1"
+    c1.mkdir(parents=True)
+    argv = ["--data-root", str(tmp_path), "run", "--name", "r3-fit", "--cpu-hours", "1", "--max-hours", "1", "--", "true"]
+    with open(c1 / ".launch.lock", "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert launch.main(argv) == 2 and started == []                 # a concurrent launcher is refused
+    assert launch.main(argv) == 0 and len(started) == 1
