@@ -888,6 +888,12 @@ def _pick_delivery_mode(config: dict) -> str:
     """
     sched_config = config.get("scheduler", {})
     raw = sched_config.get("pick_delivery", sched_config.get("posting_mode"))
+    if raw is None and "shadow_mode" in sched_config:
+        # Checklist C2: a legacy shadow_mode-only config (not the shadow_model key) used to fall through to
+        # public posting. Refuse it, so run_day fails at its first line instead of posting.
+        raise ValueError(
+            "legacy scheduler.shadow_mode is not supported: set scheduler.pick_delivery (public, dm or private)"
+        )
     if raw is None:
         return "private" if sched_config.get("private_mode", False) else "public"
 
