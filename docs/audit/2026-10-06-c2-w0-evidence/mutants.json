@@ -1,0 +1,310 @@
+[
+ {
+  "id": "M01-identity-drops-job",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "inv = f\"{job}/{cid}\"",
+  "new": "inv = cid",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "another_job"
+  ]
+ },
+ {
+  "id": "M02-identity-display-name",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "inv = f\"{job}/{cid}\"",
+  "new": "inv = getattr(check, \"__name__\", cid)",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "same_job"
+  ]
+ },
+ {
+  "id": "M03-duplicate-id-allowed",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "        if cid in seen:\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "invalid_registration"
+  ]
+ },
+ {
+  "id": "M04-id-pattern-unchecked",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "if not isinstance(cid, str) or not ID_RE.fullmatch(cid):",
+  "new": "if not isinstance(cid, str):",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "invalid_registration"
+  ]
+ },
+ {
+  "id": "M05-job-name-unchecked",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "if not isinstance(job, str) or not ID_RE.fullmatch(job):",
+  "new": "if not isinstance(job, str):",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "invalid_job_name"
+  ]
+ },
+ {
+  "id": "M06-checker-namespace-open",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "if r.incident is not None and r.incident.startswith(CHECKER_PREFIX):",
+  "new": "if False:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "checker_namespace"
+  ]
+ },
+ {
+  "id": "M07-unstorable-result-accepted",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "if not (_opt_str(r.incident) and _opt_str(r.selection)):",
+  "new": "if False:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "silences_nothing"
+  ]
+ },
+ {
+  "id": "M08-validation-skipped",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "registered = validate_checks(job, checks)",
+  "new": "registered = tuple(checks)",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "invalid_registration"
+  ]
+ },
+ {
+  "id": "M09-empty-job-allowed",
+  "file": "src/bts/watchdog/runner.py",
+  "old": "    if not out:\n        raise RegistrationError",
+  "new": "    if False:\n        raise RegistrationError",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "no_checks"
+  ]
+ },
+ {
+  "id": "M10-reregistration-allowed",
+  "file": "src/bts/watchdog/cli.py",
+  "old": "    if job in JOBS:\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "register_validates"
+  ]
+ },
+ {
+  "id": "M11-business-recovers-checker",
+  "file": "src/bts/watchdog/notify.py",
+  "old": " and not _is_checker(t)\n",
+  "new": "\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "all_clear_never_closes"
+  ]
+ },
+ {
+  "id": "M12-claim-behind-live-head",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "                if not self._due(st[\"notices\"][k], now):\n                    break\n",
+  "new": "                if not self._due(st[\"notices\"][k], now):\n                    continue\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "live_claimed"
+  ]
+ },
+ {
+  "id": "M13-failure-does-not-block",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "                outcomes[k] = (token, None, type(exc).__name__, True)\n                blocked.add(tk)\n",
+  "new": "                outcomes[k] = (token, None, type(exc).__name__, True)\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "failed_fault_send"
+  ]
+ },
+ {
+  "id": "M14-uncertain-does-not-block",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "                if not ok:\n                    blocked.add(tk)\n",
+  "new": "",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "uncertain_fault_send"
+  ]
+ },
+ {
+  "id": "M15-held-never-checked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if tk in blocked:",
+  "new": "            if False:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "failed_fault_send"
+  ]
+ },
+ {
+  "id": "M16-seq-holes-allowed",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "if sorted(seqs) != list(range(1, st[\"seq\"] + 1)):",
+  "new": "if False:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "seq_hole"
+  ]
+ },
+ {
+  "id": "M17-episode-order-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        if eps != sorted(eps):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "episodes_out_of_order"
+  ]
+ },
+ {
+  "id": "M18-episode-coverage-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "if sorted(set(eps)) != list(range(1, t[\"episode\"] + 1)):",
+  "new": "if False:",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "episode_gap or deleted_notice"
+  ]
+ },
+ {
+  "id": "M19-opening-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if states[0] not in ALERT_STATES:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "opens_with_recovery"
+  ]
+ },
+ {
+  "id": "M20-after-recovery-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if \"recovered\" in states[:-1]:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "recovery_not_last"
+  ]
+ },
+ {
+  "id": "M21-earlier-recovery-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if e < t[\"episode\"] and not recovered:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "missing_earlier_recovery"
+  ]
+ },
+ {
+  "id": "M22-current-recovery-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if e == t[\"episode\"] and recovered == t[\"open\"]:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "closed_without_recovery or reopened_without"
+  ]
+ },
+ {
+  "id": "M23-current-state-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if e == t[\"episode\"] and t[\"open\"] and t[\"state\"] not in states:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "open_without_current_state"
+  ]
+ },
+ {
+  "id": "M24-delivery-order-unchecked",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        if ranks != sorted(ranks):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "sending_behind_pending"
+  ]
+ },
+ {
+  "id": "M25-gate-allows-fork",
+  "file": "tests/watchdog/conftest.py",
+  "old": "    fork = f\"(deny process-fork{action})\" if (kill if deny_fork is None else deny_fork) else \"\"\n",
+  "new": "    fork = \"\"\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "r34"
+  ]
+ },
+ {
+  "id": "M26-gate-fork-eperm-only",
+  "file": "tests/watchdog/conftest.py",
+  "old": "    fork = f\"(deny process-fork{action})\" if (kill if deny_fork is None else deny_fork) else \"\"\n",
+  "new": "    fork = \"(deny process-fork)\" if (kill if deny_fork is None else deny_fork) else \"\"\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "descendant_mutant or kills_after_start"
+  ]
+ },
+ {
+  "id": "M27-partial-chain-claim",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "        return sorted(picked, key=lambda k: st[\"notices\"][k][\"seq\"])\n",
+  "new": "        return sorted(picked, key=lambda k: st[\"notices\"][k][\"seq\"])[: self.max_sends]\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "reclaim_under_max_sends"
+  ]
+ },
+ {
+  "id": "M28-no-send-bound",
+  "file": "src/bts/watchdog/notify.py",
+  "old": "            if attempts >= self.max_sends:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/watchdog/test_w0_r3_repair.py",
+   "-k",
+   "long_chain"
+  ]
+ }
+]

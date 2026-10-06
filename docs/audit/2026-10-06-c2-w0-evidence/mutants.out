@@ -1,0 +1,29 @@
+# run 2026-10-06T16:22:55Z at 808ae12497654de3d3d50ec94ac2894b932ca766, Python 3.12.13; command: .venv/bin/python -I docs/audit/2026-10-06-c2-w0-evidence/mutant_runner.py docs/audit/2026-10-06-c2-w0-evidence/mutants.json
+M01-identity-drops-job RED ======================= 1 failed, 61 deselected in 0.11s =======================
+M02-identity-display-name RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M03-duplicate-id-allowed RED ======================= 1 failed, 54 deselected in 0.10s =======================
+M04-id-pattern-unchecked RED ================== 1 failed, 1 passed, 54 deselected in 0.10s ==================
+M05-job-name-unchecked RED ======================= 1 failed, 58 deselected in 0.09s =======================
+M06-checker-namespace-open RED ======================= 1 failed, 61 deselected in 0.09s =======================
+M07-unstorable-result-accepted RED ======================= 1 failed, 58 deselected in 0.09s =======================
+M08-validation-skipped RED ======================= 1 failed, 54 deselected in 0.09s =======================
+M09-empty-job-allowed RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M10-reregistration-allowed RED ======================= 1 failed, 61 deselected in 0.11s =======================
+M11-business-recovers-checker RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M12-claim-behind-live-head RED ======================= 1 failed, 61 deselected in 0.11s =======================
+M13-failure-does-not-block RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M14-uncertain-does-not-block RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M15-held-never-checked RED ======================= 1 failed, 61 deselected in 0.10s =======================
+M16-seq-holes-allowed RED ======================= 1 failed, 60 deselected in 0.10s =======================
+M17-episode-order-unchecked RED ======================= 1 failed, 60 deselected in 0.10s =======================
+M18-episode-coverage-unchecked RED ======================= 1 failed, 55 deselected in 0.11s =======================
+M19-opening-unchecked RED ======================= 1 failed, 60 deselected in 0.09s =======================
+M20-after-recovery-unchecked RED ======================= 1 failed, 60 deselected in 0.10s =======================
+M21-earlier-recovery-unchecked RED ======================= 1 failed, 60 deselected in 0.10s =======================
+M22-current-recovery-unchecked RED ================== 1 failed, 1 passed, 58 deselected in 0.10s ==================
+M23-current-state-unchecked RED ======================= 1 failed, 60 deselected in 0.09s =======================
+M24-delivery-order-unchecked RED ======================= 1 failed, 60 deselected in 0.10s =======================
+M25-gate-allows-fork RED ======================= 1 failed, 58 deselected in 0.87s =======================
+M26-gate-fork-eperm-only RED ======================= 1 failed, 59 deselected in 0.48s =======================
+M27-partial-chain-claim RED ======================= 1 failed, 61 deselected in 0.11s =======================
+M28-no-send-bound RED ======================= 1 failed, 61 deselected in 0.10s =======================
