@@ -79,10 +79,10 @@ def test_an_unfinished_game_or_a_date_outside_its_season_is_a_problem():
     for st in ("Suspended", "In Progress", "Postponed"):
         assert any("not a completed game" in p for p in M.extract(feed(status=st)).problems), st
     assert M.extract(feed(status="Completed Early: Rain")).completed
-    assert any("not in season" in p for p in M.extract(feed(date="2023-06-01") | {}).problems) is False
+    assert not any("ISO date" in p for p in M.extract(feed(date="2023-06-01")).problems)
     bad = feed(date="2023-06-01")
     bad["gameData"]["datetime"]["officialDate"] = "2026-06-01"
-    assert any("not in season" in p for p in M.extract(bad).problems)
+    assert any("ISO date in season" in p for p in M.extract(bad).problems)
 
 
 def test_the_starting_pitcher_is_checked_on_the_first_play_of_any_kind():
@@ -96,3 +96,44 @@ def test_a_garbled_timestamp_is_a_problem_not_an_exception():
     plays = [play(0, "top", 101, 250, start="garbled"), play(1, "bottom", 201, 150)]
     m = M.extract(feed(plays=plays, resume="2023-06-02T19:00:00Z"))
     assert any("unparseable startTime" in p for p in m.problems)
+
+
+# ---------- review r2 N2/N4: totals, terminal extent, strict values ----------
+def test_unsupported_values_are_problems_not_coercions():
+    """r2 N4's demonstrated cases."""
+    cases = {
+        "boolean game id": feed(pk=True),
+        "fractional season": feed(season="2023.9"),
+        "garbage date": feed(date="2023-garbage"),
+        "status suffix": feed(status="Finalish - In Progress"),
+    }
+    for label, f in cases.items():
+        assert M.extract(f).problems, label
+    no_innings = feed()
+    for pl in no_innings["liveData"]["plays"]["allPlays"]:
+        del pl["about"]["inning"]
+    assert any("inning" in p for p in M.extract(no_innings).problems)
+    nl = lineup(100)
+    nl["ID101"]["battingOrder"] = "100\n"
+    assert any("slot code" in p for p in M.extract(feed(away=nl)).problems)
+    both = M.extract(feed(away=lineup(100, subs=[(111, "101")]), home=lineup(200, subs=[(111, "101")])))
+    assert any("both sides" in p for p in both.problems)
+
+
+def test_completed_statuses_are_bounded():
+    for st in ("Final", "Game Over", "Completed Early", "Completed Early: Rain", "Final: Tied"):
+        assert M.extract(feed(status=st)).completed, st
+    for st in ("Final Score Pending", "Completed", "In Progress", "Suspended: Rain"):
+        assert not M.extract(feed(status=st)).completed, st
+
+
+def test_the_last_play_must_be_complete_and_in_the_linescore_inning():
+    f = feed()
+    f["liveData"]["plays"]["allPlays"][-1]["about"]["isComplete"] = False
+    assert any("not complete" in p for p in M.extract(f).problems)
+    assert any("currentInning" in p for p in M.extract(feed(current_inning=9)).problems)
+
+
+def test_half_innings_must_move_forward():
+    plays = [play(0, "top", 101, 250, inning=2), play(1, "bottom", 201, 150, inning=1)]
+    assert any("backwards" in p for p in M.extract(feed(plays=plays, current_inning=1)).problems)

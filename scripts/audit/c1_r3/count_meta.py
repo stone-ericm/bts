@@ -21,9 +21,17 @@ Identities are validated before use: positive builtin integers, never coerced (r
   - the resumed-portion flag follows `bts.data.build.parse_game_feed`: with a `resumeDateTime`, a play at or after
     it, or with no start time, is the resumed portion;
   - an unparseable timestamp is a problem here (production's helper raises on it).
-- **Completion:** the feed's `gameData.status.detailedState` must be a completed state (Final / Game Over /
-  Completed Early).
-- **Date:** `officialDate`'s year must be the feed's season.
+- **Completion:**
+  - the feed's `gameData.status.detailedState` must be exactly "Final", "Game Over" or "Completed Early", optionally
+    followed by ": <reason>";
+  - the last play must be complete, in `linescore.currentInning`.
+- **Official totals (r2 N2):** each side's team `plateAppearances` and each starter's `battersFaced` are read for T2
+  to reconcile against the completed batting turns.
+- **Identity (r2 N4):**
+  - every id is a positive builtin int; the season is a 4-digit string or int;
+  - `officialDate` is a real ISO date in that season;
+  - innings are positive ints, and the half-innings move forward;
+  - no lineup person appears on both sides.
 
 Problems are listed, not repaired; T2 (`count_verify`) turns them into quarantine decisions.
 """
@@ -37,8 +45,15 @@ from bts.data.build import _parse_feed_timestamp
 from bts.data.schema import PA_ENDING_EVENTS
 
 SIDES = ("away", "home")
-CODE_RE = re.compile(r"^([1-9])(\d\d)$")
+CODE_RE = re.compile(r"([1-9])(\d\d)")
 COMPLETED = ("Final", "Game Over", "Completed Early")
+STATUS_RE = re.compile(r"(Final|Game Over|Completed Early)(: .+)?")
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+SEASON_RE = re.compile(r"(19|20)\d\d")
+# A batting turn completes on production's PA events plus the official PA events production does not count
+# (intentional walks, batter interference). Any other result leaves the turn open (e.g. an inning-ending
+# caught stealing): the same slot must lead off the side's next half-inning.
+COMPLETED_TURN = frozenset(PA_ENDING_EVENTS) | {"intent_walk", "batter_interference"}
 
 
 @dataclass(frozen=True)
@@ -55,12 +70,17 @@ class PA:
 @dataclass(frozen=True)
 class Play:
     """Every play with a result (PA-ending or not, e.g. an intentional walk or an inning-ending caught stealing): the
-    batting-order, substitution and zero-PA checks need the full sequence, not just production's PA events."""
+    batting-turn, substitution and zero-PA checks need the full sequence, not just production's PA events."""
     index: int
     side: str
     inning: int
     batter: int
+    pitcher: int | None
     event: str
+
+    @property
+    def completes_turn(self) -> bool:
+        return self.event in COMPLETED_TURN
 
 
 @dataclass(frozen=True)
@@ -74,7 +94,8 @@ class GameMeta:
     starters: dict      # side -> {slot: batter_id}
     substitutes: dict   # side -> {batter_id: (slot, rank)}
     starting_pitcher: dict  # side -> pitcher_id (the side's own starter)
-    box_batters_faced: dict  # side -> the starter's boxscore battersFaced (descriptive; includes intentional walks)
+    box_batters_faced: dict  # side -> the starter's official battersFaced (reconciled in T2)
+    team_pa: dict            # side -> the side's official plateAppearances (reconciled in T2)
     pas: tuple
     problems: tuple
     plays: tuple = ()
@@ -92,7 +113,7 @@ def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
         if code is None:
             continue
         pid = _pid((p.get("person") or {}).get("id"))
-        m = CODE_RE.match(code) if isinstance(code, str) else None
+        m = CODE_RE.fullmatch(code) if isinstance(code, str) else None
         if pid is None:
             problems.append(f"{side}: a lineup player without a positive integer id")
             continue
@@ -136,21 +157,33 @@ def extract(feed: dict) -> GameMeta:
         if sp[side] is None:
             problems.append(f"{side}: no valid starting pitcher in the boxscore")
         box_bf[side] = _box_bf(players, sp[side]) if sp[side] else None
-    if set(starters["away"].values()) & set(starters["home"].values()):
-        problems.append("a person starts for both sides")
+    ids = {s: set(starters[s].values()) | set(subs[s]) for s in SIDES}
+    if ids["away"] & ids["home"]:
+        problems.append("a lineup person appears for both sides")
     status = (gd.get("status") or {}).get("detailedState") or ""
-    completed = status.startswith(COMPLETED)
+    completed = isinstance(status, str) and STATUS_RE.fullmatch(status) is not None
     if not completed:
         problems.append(f"the feed is not a completed game (status {status!r})")
-    official_date = gd["datetime"]["officialDate"]
-    season = gd["game"].get("season")
-    try:
-        season = int(season)
-    except (TypeError, ValueError):
-        problems.append(f"season {season!r} is not an integer")
+    official_date = gd["datetime"].get("officialDate")
+    raw_season = gd["game"].get("season")
+    if type(raw_season) is int and not isinstance(raw_season, bool) and 1900 <= raw_season <= 2099:
+        season = raw_season
+    elif isinstance(raw_season, str) and SEASON_RE.fullmatch(raw_season):
+        season = int(raw_season)
+    else:
+        problems.append(f"season {raw_season!r} is not a 4-digit year")
         season = -1
-    if not (isinstance(official_date, str) and official_date[:4] == str(season)):
-        problems.append(f"officialDate {official_date!r} is not in season {season}")
+    try:
+        valid_date = isinstance(official_date, str) and bool(DATE_RE.fullmatch(official_date)) and \
+            datetime.fromisoformat(official_date).year == season
+    except ValueError:
+        valid_date = False
+    if not valid_date:
+        problems.append(f"officialDate {official_date!r} is not an ISO date in season {season}")
+    team_pa = {}
+    for side in SIDES:
+        v = ((box[side].get("teamStats") or {}).get("batting") or {}).get("plateAppearances")
+        team_pa[side] = v if type(v) is int and v >= 0 else None
     try:
         resume_dt = _parse_feed_timestamp(gd["datetime"].get("resumeDateTime"))
     except ValueError as e:
@@ -158,7 +191,9 @@ def extract(feed: dict) -> GameMeta:
         resume_dt = None
     pas, plays, first_pitcher = [], [], {}
     last_start: datetime | None = None
-    for n, play in enumerate(ld["plays"]["allPlays"]):
+    last_half: tuple | None = None
+    all_plays = ld["plays"]["allPlays"]
+    for n, play in enumerate(all_plays):
         about = play.get("about") or {}
         idx = about.get("atBatIndex")
         if idx != n or type(idx) is not int:
@@ -168,6 +203,14 @@ def extract(feed: dict) -> GameMeta:
             problems.append(f"play {n}: halfInning {half!r} is not top/bottom")
             continue
         side = "home" if half == "bottom" else "away"
+        inning = about.get("inning")
+        if not (type(inning) is int and inning >= 1):
+            problems.append(f"play {n}: inning {inning!r} is not a positive integer")
+            inning = -1
+        this_half = (inning, 0 if half == "top" else 1)
+        if last_half is not None and this_half < last_half:
+            problems.append(f"play {n}: the half-innings go backwards")
+        last_half = this_half
         try:
             start = _parse_feed_timestamp(about.get("startTime"))
         except ValueError:
@@ -182,10 +225,8 @@ def extract(feed: dict) -> GameMeta:
         if pitcher is not None:
             first_pitcher.setdefault(side, pitcher)
         event = (play.get("result") or {}).get("eventType", "")
-        inning = about.get("inning")
-        inning = inning if type(inning) is int else -1
         if event and batter is not None:
-            plays.append(Play(index=idx, side=side, inning=inning, batter=batter, event=event))
+            plays.append(Play(index=idx, side=side, inning=inning, batter=batter, pitcher=pitcher, event=event))
         if event not in PA_ENDING_EVENTS:
             continue
         if batter is None or pitcher is None:
@@ -196,6 +237,15 @@ def extract(feed: dict) -> GameMeta:
             resumed = start is None or start >= resume_dt
         pas.append(PA(index=idx, side=side, inning=inning, batter=batter,
                       pitcher=pitcher, event=event, resumed=resumed))
+    if not all_plays:
+        problems.append("the feed has no plays")
+    else:
+        last = all_plays[-1].get("about") or {}
+        if last.get("isComplete") is not True:
+            problems.append("the last play is not complete")
+        cur = (ld.get("linescore") or {}).get("currentInning")
+        if not (type(cur) is int and cur == last.get("inning")):
+            problems.append(f"the last play's inning {last.get('inning')!r} is not linescore.currentInning {cur!r}")
     for side in SIDES:                      # the side's starter must be the first pitcher the other side faced
         other = "home" if side == "away" else "away"
         if other not in first_pitcher:
@@ -203,8 +253,12 @@ def extract(feed: dict) -> GameMeta:
         elif sp[side] is not None and first_pitcher[other] != sp[side]:
             problems.append(f"{side}: starting pitcher {sp[side]} was not the first to face the opposing side "
                             f"({first_pitcher[other]})")
-    return GameMeta(game_pk=gd["game"]["pk"], top_level_pk=feed.get("gamePk"), official_date=official_date,
+    game_pk = _pid(gd["game"].get("pk"))
+    if game_pk is None:
+        problems.append(f"gameData.game.pk {gd['game'].get('pk')!r} is not a positive integer")
+    return GameMeta(game_pk=game_pk, top_level_pk=_pid(feed.get("gamePk")), official_date=official_date,
                     season=season, status=status, completed=completed, starters=starters, substitutes=subs,
-                    starting_pitcher=sp, box_batters_faced=box_bf, pas=tuple(pas), problems=tuple(problems),
+                    starting_pitcher=sp, box_batters_faced=box_bf, team_pa=team_pa, pas=tuple(pas),
+                    problems=tuple(problems),
                     plays=tuple(plays),
                     feed_timestamp=(feed.get("metaData") or {}).get("timeStamp"))

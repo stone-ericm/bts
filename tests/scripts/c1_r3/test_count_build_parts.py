@@ -102,7 +102,7 @@ def full_game(**kw):
 def test_swapped_slot_codes_break_the_batting_order():
     away = lineup(100)
     away["ID101"]["battingOrder"], away["ID102"]["battingOrder"] = "200", "100"
-    assert any("batting order" in r for r in full_game(away=away)[1])
+    assert any("turn" in r for r in full_game(away=away)[1])
 
 
 def test_a_starter_returning_after_his_substitute_is_refused():
@@ -122,12 +122,12 @@ def test_a_starter_without_a_pa_needs_replacement_evidence():
         plays.append(play(i, "top", b, 250, inning=1)); i += 1
     for k in range(1, 10):
         plays.append(play(i, "bottom", 200 + k, 150, inning=1)); i += 1
-    assert not any("no PA" in r for r in full_game(plays=plays, away=lineup(100, subs=[(111, "101")]))[1])
+    assert full_game(plays=plays, away=lineup(100, subs=[(111, "101")]))[1] == []          # fully certified
     short = [play(0, "top", 101, 250, inning=1), play(1, "top", 102, 250, inning=1), play(2, "bottom", 201, 150, inning=1)]
     m, reasons = full_game(plays=short)                     # the lineup never reached slots 3-9 (away) / 2-9 (home)
-    assert not any("no PA" in r for r in reasons)
+    assert reasons == []
     skip = [play(0, "top", 101, 250, inning=1), play(1, "top", 103, 250, inning=1), play(2, "bottom", 201, 150, inning=1)]
-    assert any("no PA" in r or "batting order" in r for r in full_game(plays=skip)[1])
+    assert any("turn" in r for r in full_game(plays=skip)[1])
 
 
 def test_an_intentional_walk_advances_the_order_but_is_not_a_production_pa():
@@ -145,5 +145,73 @@ def test_an_intentional_walk_advances_the_order_but_is_not_a_production_pa():
 def test_an_inning_ending_caught_stealing_lets_the_batter_lead_off_next_inning():
     plays = [play(0, "top", 101, 250, inning=1), play(1, "top", 102, 250, event="caught_stealing_2b", inning=1),
              play(2, "bottom", 201, 150, inning=1), play(3, "top", 102, 250, inning=2)]
+    m, reasons = full_game(plays=plays, current_inning=2)
+    assert reasons == []                                     # r2 N3: the control is fully certified
+
+
+# ---------- review r2 N2/N3: totals and batting turns (independent expected counts) ----------
+def test_a_final_labelled_prefix_with_contradictory_official_totals_is_quarantined():
+    """r2 N2: two plays, Final, with box battersFaced 27 for both starters."""
+    plays = [play(0, "top", 101, 250), play(1, "bottom", 201, 150)]
+    m, reasons = full_game(plays=plays, bf={"away": 27, "home": 27}, totals={"away": 27, "home": 27})
+    assert any("battersFaced" in r for r in reasons) and any("plateAppearances" in r for r in reasons)
+
+
+def test_missing_official_totals_are_quarantined():
+    m, reasons = full_game(totals={"away": None}, bf={"home": None})
+    assert any("no official plateAppearances" in r for r in reasons)
+    assert any("no official battersFaced" in r for r in reasons)
+
+
+def test_an_intentional_walk_reconciles_with_the_official_totals():
+    plays, i = [], 0
+    for k in range(1, 10):
+        plays.append(play(i, "top", 100 + k, 250, event="intent_walk" if k == 4 else "single")); i += 1
+    for k in range(1, 10):
+        plays.append(play(i, "bottom", 200 + k, 150)); i += 1
     m, reasons = full_game(plays=plays)
-    assert not any("batting order" in r for r in reasons)
+    assert reasons == [] and m.team_pa["away"] == 9 and len([p for p in m.pas if p.side == "away"]) == 8
+
+
+def test_completed_early_and_a_resumed_game_are_certified_when_totals_reconcile():
+    assert full_game(status="Completed Early: Rain")[1] == []
+    plays = [play(0, "top", 101, 250, start="2023-09-28T23:00:00Z", inning=1)]
+    plays += [play(1 + k, "top", 102 + k, 250, start="2023-10-02T20:00:00Z", inning=1) for k in range(8)]
+    plays += [play(9 + k, "bottom", 201 + k, 150, start="2023-10-02T21:00:00Z", inning=1) for k in range(9)]
+    m, reasons = full_game(plays=plays, date="2023-09-28", resume="2023-10-02T19:00:00Z")
+    assert reasons == [] and sum(p.resumed for p in m.pas) == 17
+    rows = {(r["slot"], r["is_home"]): r["n"] for r in T.starter_counts(m)}
+    assert rows[(1, False)] == 1 and rows[(2, False)] == 0          # the resumed portion leaves N, not BF
+    assert {s["side"]: s["bf"] for s in B.starts(m)} == {"home": 9, "away": 9}
+
+
+def test_a_rotated_first_order_is_refused():
+    """r2 N3: a full cycle starting at slot 2 used to pass."""
+    plays, i = [], 0
+    for k in list(range(2, 10)) + [1]:
+        plays.append(play(i, "top", 100 + k, 250)); i += 1
+    for k in range(1, 10):
+        plays.append(play(i, "bottom", 200 + k, 150)); i += 1
+    assert any("first batting turn is slot 2" in r for r in full_game(plays=plays)[1])
+
+
+def test_a_repeat_after_a_completed_turn_is_refused():
+    """r2 N3: slot 9 completed a single in inning 1, then batted again leading off inning 2."""
+    plays, i = [], 0
+    for k in range(1, 10):
+        plays.append(play(i, "top", 100 + k, 250, inning=1)); i += 1
+    plays.append(play(i, "bottom", 201, 150, inning=1)); i += 1
+    plays.append(play(i, "top", 109, 250, inning=2)); i += 1
+    assert any("after slot 9 completed its turn, slot 9 batted" in r for r in full_game(plays=plays, current_inning=2)[1])
+
+
+def test_an_open_turn_must_end_its_half_inning():
+    plays = [play(0, "top", 101, 250, event="caught_stealing_2b"), play(1, "top", 101, 250)]
+    assert any("open turn" in r for r in full_game(plays=plays)[1])
+
+
+def test_a_pinch_hitter_in_the_open_slot_may_lead_off_the_next_half():
+    plays = [play(0, "top", 101, 250, inning=1), play(1, "top", 102, 250, event="caught_stealing_2b", inning=1),
+             play(2, "bottom", 201, 150, inning=1), play(3, "top", 112, 250, inning=2)]
+    m, reasons = full_game(plays=plays, current_inning=2, away=lineup(100, subs=[(112, "201")]))
+    assert reasons == []
