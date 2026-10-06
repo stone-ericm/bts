@@ -1,5 +1,7 @@
 """Daily BTS prediction: generate ranked picks for a given date."""
 
+import hashlib
+import io
 import json
 import os
 import pickle  # noqa: S403 — caching trained ML models, not untrusted data
@@ -14,6 +16,7 @@ from bts import progress
 from bts.features.compute import compute_all_features, FEATURE_COLS, CONTEXT_COLS, STATCAST_COLS, TRAIN_START_YEAR
 from bts.features.park_drag import with_pinned_artifact as _park_drag_pin
 from bts.picks import is_resume_date_game
+from bts.serving_witness import collect, note, sha256_or_none
 from bts.util import is_regular_season_game
 
 API_BASE = "https://statsapi.mlb.com"
@@ -140,12 +143,81 @@ def train_blend(
     return blend
 
 
-def save_blend(blend: dict, path) -> None:
-    """Save trained blend models to disk."""
+class HashingWriter:
+    """A write-only file wrapper for pickle.dump (serving witness, design §3.1): each write updates a sha256 inside
+    its own guard, then forwards the bytes unchanged and returns the real write's result. So the digest is of exactly
+    the bytes written, with no full serialized buffer. A hash failure only nulls the digest."""
+
+    def __init__(self, f, errors=None):
+        self._f = f
+        self._errors = errors
+        self._h = None
+        try:
+            self._h = hashlib.sha256()
+        except Exception as e:
+            note(errors, f"blend save: sha256 init failed: {e!r}")
+
+    def write(self, b):
+        if self._h is not None:
+            try:
+                self._h.update(b)
+            except Exception as e:
+                note(self._errors, f"blend save: sha256 update failed: {e!r}")
+                self._h = None
+        return self._f.write(b)
+
+    def hexdigest(self):
+        if self._h is None:
+            return None
+        try:
+            return self._h.hexdigest()
+        except Exception as e:
+            note(self._errors, f"blend save: sha256 finalization failed: {e!r}")
+            return None
+
+
+def save_blend(blend: dict, path, errors: list | None = None) -> str | None:
+    """Save trained blend models to disk.
+
+    Returns the sha256 of exactly the bytes written, or None when it could not be computed (recorded in `errors`).
+    The save itself is unchanged: the file is opened (truncated) before serialization, and a serialization or write
+    error raises as before.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    writer = None
     with open(path, "wb") as f:
-        pickle.dump(blend, f)
+        try:
+            writer = HashingWriter(f, errors)
+        except Exception as e:
+            note(errors, f"blend save: hashing writer failed: {e!r}")
+        pickle.dump(blend, f if writer is None else writer)
+    return None if writer is None else writer.hexdigest()
+
+
+def _read_pa_parquet(parquet: Path, inputs, errors) -> pd.DataFrame:
+    """Read one PA parquet once (serving witness, design §3.0), recording `{file, bytes, sha256}` in `inputs`.
+
+    The held bytes are hashed and the same buffer is parsed. A capture-preparation failure parses the original path
+    once instead (provenance nulled); a parser error is a computation failure and propagates, never re-parsed.
+    """
+    try:
+        raw = parquet.read_bytes()
+        buffer = io.BytesIO(raw)
+    except Exception as e:
+        note(errors, f"{parquet.name}: capture preparation failed ({e!r}); parsed from path, not from the hashed buffer")
+        collect(inputs, {"file": parquet.name, "bytes": None, "sha256": None}, errors, parquet.name)
+        return pd.read_parquet(parquet)
+    collect(inputs, {"file": parquet.name, "bytes": len(raw), "sha256": sha256_or_none(raw, errors, parquet.name)},
+            errors, parquet.name)
+    return pd.read_parquet(buffer)
+
+
+def _attach(frame, key: str, value, errors) -> None:
+    try:
+        frame.attrs[key] = value
+    except Exception as e:
+        note(errors, f"attrs {key}: assignment failed: {e!r}")
 
 
 def load_blend(path) -> dict:
@@ -551,8 +623,7 @@ def _fetch_game_slots(date: str) -> list[dict]:
                         "game_time": game_time,
                         "status": status,
                     }
-                    if is_projected:
-                        slot["projected"] = True
+                    slot["projected"] = is_projected    # explicit for every slot (R10): false = posted lineup
                     slots.append(slot)
 
     if projected_count > 0:
@@ -845,6 +916,7 @@ def run_pipeline(
     feature_cols_override: list[str] | None = None,
     blend_configs_override: list | None = None,
     lgb_params_override: dict | None = None,
+    cached_blend_sha256: str | None = None,
 ) -> pd.DataFrame:
     """Run the full prediction pipeline for a date.
 
@@ -861,6 +933,13 @@ def run_pipeline(
         blend_configs_override/lgb_params_override: Experiment-only blend
             training overrides for audit artifact logging. Production callers
             leave these as None.
+        cached_blend_sha256: The sha256 of the bytes `cached_blend` was loaded
+            from (predict_local passes it), recorded when the cache is used.
+
+    The serving witness (design §3.0/§3.1) is returned in the predictions'
+    attrs: `serving_model` ({source: cache | trained | trained_unsaved,
+    sha256}, from the branch actually taken), `serving_inputs` (each PA
+    parquet's {file, bytes, sha256}) and `serving_errors`.
     """
     if refresh_data:
         progress.mark("refreshing_data")
@@ -868,9 +947,11 @@ def run_pipeline(
 
     proc = Path(data_dir)
     progress.mark("loading_parquets")
+    witness_errors: list = []
+    pa_inputs: list = []
     dfs = []
     for parquet in sorted(proc.glob("pa_*.parquet")):
-        dfs.append(pd.read_parquet(parquet))
+        dfs.append(_read_pa_parquet(parquet, pa_inputs, witness_errors))
     if not dfs:
         raise RuntimeError("No Parquet files found. Run 'bts data build' first.")
 
@@ -900,6 +981,7 @@ def run_pipeline(
     if cached_blend:
         model = cached_blend.pop("_model")
         blend = cached_blend
+        serving_model = {"source": "cache", "sha256": cached_blend_sha256}
     else:
         progress.mark("training_single_model")
         model = train_model(df, feature_cols=feature_cols_override)
@@ -909,17 +991,22 @@ def run_pipeline(
             blend_configs=blend_configs_override,
             lgb_params=lgb_params_override,
         )
+        serving_model = {"source": "trained_unsaved", "sha256": None}
         if save_blend_path:
             to_save = {**blend, "_model": model}
-            save_blend(to_save, save_blend_path)
+            serving_model = {"source": "trained", "sha256": save_blend(to_save, save_blend_path, witness_errors)}
 
     progress.mark("building_lookups")
     lookups = _build_feature_lookups(df)
 
     progress.mark("predicting")
-    return predict(
+    out = predict(
         date, df, model, lookups,
         check_openers=check_openers,
         blend=blend,
         feature_cols=feature_cols_override,
     )
+    _attach(out, "serving_errors", witness_errors, witness_errors)
+    _attach(out, "serving_model", serving_model, witness_errors)
+    _attach(out, "serving_inputs", pa_inputs, witness_errors)
+    return out
