@@ -111,7 +111,7 @@ def test_a_hash_failure_keeps_the_sample_and_nulls_only_provenance(world, monkey
     class Boom:
         def __init__(self, *a, **k):
             raise MemoryError("synthetic hash failure")
-    monkeypatch.setattr(C.hashlib, "sha256", Boom)
+    monkeypatch.setattr(hashlib, "sha256", Boom)
     bindings, inputs, errors = [], [], []
     assert C._resolve_pick_outcomes(picks, pa, TODAY, 30, bindings=bindings, inputs=inputs, errors=errors) == plain
     assert len(bindings) == 3 and all(b["file_sha256"] is None for b in bindings)

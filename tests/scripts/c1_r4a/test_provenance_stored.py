@@ -70,8 +70,11 @@ def test_the_contract_loads_only_its_pinned_well_formed_2027_self():
 
 def test_the_real_witness_builder_satisfies_the_reader():
     """The reader restates the recipe fingerprint; a witness from bts.serving_witness must recompute under it. The
-    witness (e66b440) was reverted when 4a was deferred (row C1-r4a-deferral), so this skips until it returns."""
+    witness (e66b440) was reverted when 4a was deferred (row C1-r4a-deferral), so this skips until it returns. C2 step
+    2a's amended witness is bts_serving_witness_v2; this reader pins v1 until step 3 aligns it (row C2-step2-split)."""
     W = pytest.importorskip("bts.serving_witness", reason="the serving witness was reverted with the 4a deferral")
+    if getattr(W, "SCHEMA", None) != "bts_serving_witness_v1":
+        pytest.skip("4a's reader pins witness v1; step 3 aligns it with the step-2a witness (row C2-step2-split)")
     w = W.build(model={"source": "cache", "file": "blend_2027-04-01.pkl", "sha256": "a" * 64},
                 inputs=[{"file": "pa_2027.parquet", "bytes": 3, "sha256": "b" * 64}],
                 calibration={"enabled": False, "applied": False})

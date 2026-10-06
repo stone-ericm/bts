@@ -31,7 +31,6 @@ lookback window. Caller should treat None as identity (no calibration).
 """
 from __future__ import annotations
 
-import hashlib
 import io
 import json
 import logging
@@ -41,6 +40,10 @@ from pathlib import Path
 import pandas as pd
 
 from bts.data.build import filter_out_resumed_portion
+from bts.serving_witness import canon_sha256 as _canon_sha256
+from bts.serving_witness import collect as _collect
+from bts.serving_witness import note as _note
+from bts.serving_witness import sha256_or_none as _sha256_or_none
 
 log = logging.getLogger(__name__)
 
@@ -48,40 +51,8 @@ DEFAULT_LOOKBACK_DAYS = 30
 DEFAULT_MIN_N = 30
 
 
-# Serving-witness helpers (C2 step 2a, design §3.0/§3.2). Each one contains its own failure: a witness problem
+# Serving-witness collection (C2 step 2a, design §3.0/§3.2) uses the shared containment helpers: a witness problem
 # nulls provenance and is recorded, and never changes a sample, the fit or the returned calibrator.
-
-def _note(errors, msg: str) -> None:
-    if errors is None:
-        return
-    try:
-        errors.append(msg)
-    except Exception:
-        pass
-
-
-def _collect(items, item, errors, what: str) -> None:
-    if items is None:
-        return
-    try:
-        items.append(item)
-    except Exception as e:
-        _note(errors, f"{what}: collector append failed: {e!r}")
-
-
-def _sha256_or_none(raw: bytes, errors, what: str):
-    try:
-        return hashlib.sha256(raw).hexdigest()
-    except Exception as e:
-        _note(errors, f"{what}: sha256 failed: {e!r}")
-        return None
-
-
-def _canon_sha256(obj) -> str:
-    """sha256 of canonical JSON (sorted keys, no whitespace, UTF-8); a non-finite float raises ValueError."""
-    return hashlib.sha256(
-        json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
-    ).hexdigest()
 
 
 def _held_text(f: Path, inputs, errors):
