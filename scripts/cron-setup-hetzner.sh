@@ -13,7 +13,8 @@
 #   */5  — healthchecks.io ping
 #   */5  — scheduler heartbeat staleness check (pings hc-ping /fail on stale)
 #   */30 — capture BTS public static JSONs (pregame consensus + lookups; content-deduped, no auth)
-#   */15 10-23 — DM if today's delivered pick was never entered in the MLB app (pre-first-pitch window)
+#   */15 10-23 — DM if today's delivered pick was never entered in the MLB app (pre-first-pitch window).
+#                ONLY when [scheduler].entry_intent = "enter" (see below)
 #   20 */3 — restic 'ops' backup: data/picks + data/health_state to R2 (audit F5; needs RESTIC_PASSWORD in .env + scripts/install-restic-hetzner.sh)
 #   50 4  — restic 'archive' backup: leaderboard / hetzner_results / external
 #   35 5 Sun — restic prune (reclaims space from forgotten snapshots)
@@ -21,6 +22,12 @@
 # IMPORTANT: cron's default shell is /bin/sh (= dash on Debian). dash has no
 # `source` builtin — use `. ./.env` instead. Forgetting this kills every
 # cron job before it touches the bts CLI.
+#
+# Entry intent (C1 rank-2 watchdog plan P4, registration R4): install and show first read
+# [scheduler].entry_intent from ~/.bts-orchestrator.toml via `bts entry-intent`. It must be exactly
+# "enter" (DM/public delivery; the check-pick-entered line is installed) or "research" (private
+# delivery; the line is left out). Missing, malformed, or disagreeing with the scheduler's effective
+# delivery mode = refuse, and the crontab is left untouched. There is no default.
 #
 # Usage: bash scripts/cron-setup-hetzner.sh [install|show|remove]
 
@@ -31,6 +38,8 @@ LOG_DIR="$HOME/logs"
 UV_BIN="$HOME/.local/bin/uv"
 HC_PING_URL="${HEALTHCHECKS_PING_URL:?set HEALTHCHECKS_PING_URL (e.g. in .env, then: set -a && . ./.env && set +a) — refusing to bake a hardcoded ping URL into cron}"
 MARKER="# BTS-HETZNER"
+ORCH_CONFIG="$HOME/.bts-orchestrator.toml"
+ACTION="${1:-show}"
 
 # Common prefix: cd, load .env via dot (POSIX), guard exports
 PREFIX="cd $BTS_DIR && set -a && . ./.env && set +a &&"
@@ -39,6 +48,26 @@ YESTERDAY='$(date -d yesterday +\%Y-\%m-\%d)'
 # late MLB scoring corrections without re-downloading the full season.
 DATA_PULL_START='$(date -d "7 days ago" +\%Y-\%m-\%d)'
 DATA_PULL_END='$(date +\%Y-\%m-\%d)'
+
+# install/show only: the declared entry intent, or refuse (exit 1, crontab untouched).
+ENTRY_CRON_LINE=""
+case "$ACTION" in
+    install|show)
+        if ! ENTRY_INTENT="$(cd "$BTS_DIR" && "$UV_BIN" run bts entry-intent --config "$ORCH_CONFIG")"; then
+            echo "ERROR: refusing to $ACTION: no valid [scheduler].entry_intent in $ORCH_CONFIG (see entry-intent above)" >&2
+            exit 1
+        fi
+        case "$ENTRY_INTENT" in
+            enter) ENTRY_CRON_LINE="
+*/15 10-23 * * * $PREFIX $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER" ;;
+            research) ;;
+            *)
+                echo "ERROR: refusing to $ACTION: unexpected entry-intent output: $ENTRY_INTENT" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+esac
 
 # 3am chain ordering: data pull -> build -> { preview ; sync-to-r2 }.
 # preview is the user-facing deliverable (drives the morning dashboard); R2
@@ -63,31 +92,54 @@ CRON_LINES="$MARKER
 */5 * * * * $PREFIX $UV_BIN run bts data collect-lineup-times --out-dir data/lineup_posting_times > /dev/null 2>&1 $MARKER
 */5 * * * * curl -fsS --max-time 5 $HC_PING_URL > /dev/null 2>&1 $MARKER
 */5 * * * * $PREFIX $UV_BIN run python scripts/check_heartbeat.py --heartbeat-path data/.heartbeat --ping-url \"\$BTS_SCHEDULER_HEARTBEAT_PING_URL\" >> $LOG_DIR/heartbeat.log 2>&1 $MARKER
-*/30 * * * * $PREFIX $UV_BIN run bts leaderboard capture-static >> $LOG_DIR/static_capture.log 2>&1 $MARKER
-*/15 10-23 * * * $PREFIX $UV_BIN run bts check-pick-entered --picks-dir data/picks --expected-username stonehengee --dm-recipient stonehengee.bsky.social >> $LOG_DIR/cron.log 2>&1 $MARKER
+*/30 * * * * $PREFIX $UV_BIN run bts leaderboard capture-static >> $LOG_DIR/static_capture.log 2>&1 $MARKER$ENTRY_CRON_LINE
 20 */3 * * * $PREFIX $UV_BIN run bts backup run --set ops >> $LOG_DIR/backup.log 2>&1 $MARKER
 50 4 * * * $PREFIX $UV_BIN run bts backup run --set archive >> $LOG_DIR/backup.log 2>&1 $MARKER
 35 5 * * 0 $PREFIX $UV_BIN run bts backup prune >> $LOG_DIR/backup.log 2>&1 $MARKER"
 
-case "${1:-show}" in
+# The current crontab minus the BTS lines. "no crontab for <user>" is an empty crontab; any other read
+# failure refuses. (The old `(crontab -l | grep -v MARKER; echo ...) | crontab -` died under
+# set -e/pipefail when there was no crontab, or when grep -v selected nothing, i.e. a crontab of only
+# BTS lines, and then installed an EMPTY crontab.)
+crontab_without_bts() {
+    local out err_file
+    err_file="$(mktemp)"
+    if out="$(crontab -l 2>"$err_file")"; then
+        rm -f "$err_file"
+        [ -z "$out" ] || printf '%s\n' "$out" | grep -v -- "$MARKER" || true
+        return 0
+    fi
+    if grep -q "^no crontab for " "$err_file"; then
+        rm -f "$err_file"
+        return 0
+    fi
+    echo "ERROR: cannot read the current crontab: $(cat "$err_file")" >&2
+    rm -f "$err_file"
+    return 1
+}
+
+case "$ACTION" in
     install)
         if [ ! -f "$BTS_DIR/.env" ]; then
             echo "ERROR: $BTS_DIR/.env not found." >&2
             exit 1
         fi
         mkdir -p "$LOG_DIR"
-        (crontab -l 2>/dev/null | grep -v "$MARKER"; echo "$CRON_LINES") | crontab -
-        echo "Installed BTS Hetzner cron jobs. Verify with: crontab -l"
+        KEEP="$(crontab_without_bts)" || exit 1
+        { [ -z "$KEEP" ] || printf '%s\n' "$KEEP"; printf '%s\n' "$CRON_LINES"; } | crontab -
+        echo "Installed BTS Hetzner cron jobs (entry_intent = $ENTRY_INTENT). Verify with: crontab -l"
         ;;
     show)
         echo "Current BTS-HETZNER cron entries:"
         crontab -l 2>/dev/null | grep "$MARKER" || echo "(none)"
         echo ""
+        echo "Entry intent: $ENTRY_INTENT (check-pick-entered $([ "$ENTRY_INTENT" = enter ] && echo installed || echo left out))"
         echo "Would install:"
         echo "$CRON_LINES"
         ;;
     remove)
-        crontab -l 2>/dev/null | grep -v "$MARKER" | crontab -
+        KEEP="$(crontab_without_bts)" || exit 1
+        { [ -z "$KEEP" ] || printf '%s\n' "$KEEP"; } | crontab -
         echo "Removed BTS Hetzner cron jobs."
         ;;
     *)

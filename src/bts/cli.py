@@ -1606,6 +1606,31 @@ def _contest_fetch_alert(status_path, dm_recipient, msg, cooldown_hours=6,
     return sent
 
 
+@cli.command(name="entry-intent")
+@click.option("--config", "config_path", required=True, type=click.Path(path_type=Path),
+              help="Orchestrator TOML (the box uses ~/.bts-orchestrator.toml)")
+def entry_intent(config_path):
+    """Print the declared [scheduler].entry_intent when it agrees with the delivery mode; otherwise exit 1.
+
+    cron-setup-hetzner.sh reads stdout to decide whether to install the check-pick-entered line.
+    """
+    import tomllib
+    from bts.entry_intent import check_entry_intent
+    from bts.orchestrator import load_config
+
+    try:
+        config = load_config(config_path)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        click.echo(f"entry-intent: cannot read {config_path}: {exc}", err=True)
+        raise SystemExit(1)
+    result = check_entry_intent(config)
+    if not result.ok:
+        for problem in result.problems:
+            click.echo(f"entry-intent: {problem}", err=True)
+        raise SystemExit(1)
+    click.echo(result.intent)
+
+
 @cli.command(name="check-pick-entered")
 @click.option("--picks-dir", default="data/picks", help="Picks directory")
 @click.option("--expected-username", default=None, help="Refuse if session identity differs")
