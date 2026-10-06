@@ -1,0 +1,64 @@
+# C2 framing-screen mutant ledger at 9637a447e8ef2f60555a7404c0dd27da816b3e7c, 2026-10-06 18:22 EDT
+F1 RED ========================= 2 failed, 26 passed in 7.03s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates
+F2 RED ========================= 1 failed, 27 passed in 5.67s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F3 RED ========================= 1 failed, 27 passed in 5.69s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference
+F4 RED ========================= 5 failed, 23 passed in 2.33s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_manifest_records_the_effective_lightgbm_params
+F5 RED ========================= 1 failed, 27 passed in 5.64s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F6 RED ========================= 1 failed, 27 passed in 5.65s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_variant_bases - Assertio...
+F7 RED ========================= 1 failed, 27 passed in 5.70s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras
+F8 RED ========================= 1 failed, 27 passed in 5.67s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]
+F9 RED ========================= 1 failed, 27 passed in 5.67s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]
+F10 RED ========================= 1 failed, 27 passed in 5.75s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]
+F11 RED ========================= 1 failed, 27 passed in 5.79s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative
+F12 SURVIVED ============================== 28 passed in 5.69s ==============================
+F13 RED ========================= 2 failed, 26 passed in 5.70s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+F14 RED ========================= 2 failed, 26 passed in 5.67s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F15 RED ========================= 2 failed, 26 passed in 5.68s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F16 RED ========================= 2 failed, 26 passed in 5.60s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F17 RED ========================= 1 failed, 27 passed in 5.60s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_first_unit_stop - assert...
+F18 RED ========================= 1 failed, 27 passed in 5.60s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes
+F19 RED ========================= 1 failed, 27 passed in 5.62s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed
+F20 RED ========================= 1 failed, 27 passed in 5.59s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - Asserti...
+F21 RED ========================= 1 failed, 27 passed in 6.66s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward
+F22 RED ========================= 1 failed, 27 passed in 6.73s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run
+F23 RED ========================= 1 failed, 27 passed in 6.69s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused
+F24 RED ========================= 1 failed, 27 passed in 5.59s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_aggregate - AssertionErr...
+F25 RED ========================= 1 failed, 27 passed in 5.56s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_end_to_end - assert ...
+F26 RED ========================= 1 failed, 27 passed in 6.68s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags
+# resume 18:25 EDT: F12 re-run after the test case was isolated (its old case also failed the practical size)
+F12 RED ========================= 1 failed, 27 passed in 5.70s =========================
+    FAILED tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]

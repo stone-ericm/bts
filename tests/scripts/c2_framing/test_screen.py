@@ -124,7 +124,7 @@ def test_disposition_positive_needs_both_seasons_the_practical_size_t_and_a_majo
 
 
 @pytest.mark.parametrize("rows, why", [
-    ([_seed(0.006, -0.0005, True)] * 3, "one season's mean not above zero"),
+    ([_seed(0.010, -0.001, True)] * 3, "one season's mean not above zero (every other rule met)"),
     ([_seed(0.002, 0.002, True)] * 3, "below the practical size"),
     ([_seed(0.012, 0.010, True), _seed(-0.002, -0.004, True), _seed(0.004, 0.006, True)], "t below 1.5"),
     ([_seed(0.006, 0.005, False), _seed(0.005, 0.004, False), _seed(0.004, 0.006, True)], "a minority of passes"),
