@@ -366,8 +366,8 @@
  {
   "id": "M34-unsent-recipient-unchecked",
   "file": "src/bts/watchdog/notify.py",
-  "old": "            elif n[\"recipient\"] is not None:\n",
-  "new": "            elif False:\n",
+  "old": "            elif n[\"recipient\"] is not None or n[\"message_id\"] is not None:",
+  "new": "            elif n[\"message_id\"] is not None:",
   "tests": [
    "tests/watchdog/test_w0_r3_repair.py",
    "-k",
