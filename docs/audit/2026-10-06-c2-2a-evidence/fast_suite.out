@@ -1,0 +1,23 @@
+# fast suite at 2430ac2237277e9b149017c3cee73d5e910ab9a0, 2026-10-06 18:41 EDT
+tests/test_util.py ..........                                            [ 98%]
+tests/test_warmup_lock_classification.py ........                        [ 98%]
+tests/test_web_audit_progress.py ..........                              [ 98%]
+tests/test_web_render.py ............................                    [ 99%]
+tests/test_web_saver.py ............                                     [ 99%]
+tests/test_web_skip_policy_shadow.py ...                                 [ 99%]
+tests/test_web_streak_subtitle.py .....                                  [100%]
+
+============================= slowest 12 durations =============================
+11.37s call     tests/scripts/c1_r4b/test_solvers.py::test_values_equal_brute_force_optimum_and_the_policy_achieves_it[emax]
+11.19s call     tests/scripts/c1_r4b/test_solvers.py::test_values_equal_brute_force_optimum_and_the_policy_achieves_it[reach]
+3.28s call     tests/scripts/test_run_falsification_harness.py::test_run_harness_forwards_block_bootstrap_kwargs
+3.26s call     tests/scripts/test_run_falsification_harness.py::TestHarnessSmokeTest::test_emits_expected_verdict_json
+3.00s call     tests/scripts/incident_register/test_r10_counterexamples.py::test_alone_never_reports_alone_while_another_thread_exists
+2.38s call     tests/scripts/incident_register/test_r10_counterexamples.py::test_a_concurrent_invalidation_is_never_overwritten
+2.37s call     tests/scripts/incident_register/test_defence.py::test_kill_through_a_mock_assertion_is_located_at_the_test_line
+2.34s call     tests/scripts/incident_register/test_defence.py::test_an_assert_inside_production_code_is_not_an_observable_kill
+2.33s call     tests/scripts/incident_register/test_r10_counterexamples.py::test_a_real_alert_whose_message_shows_run_variant_values_is_still_certified
+2.33s call     tests/scripts/incident_register/test_r7_counterexamples.py::test_the_observer_off_twin_runs_with_collection_off_too
+2.31s call     tests/scripts/incident_register/test_r9_counterexamples.py::test_wholesale_invalidation_at_every_chain_level[parent-old-child-store]
+2.31s call     tests/scripts/incident_register/test_r10_counterexamples.py::test_a_jump_back_to_the_entry_is_never_a_second_start[revisit-swap]
+==== 4023 passed, 7 skipped, 54 deselected, 22 xfailed in 453.78s (0:07:33) ====
