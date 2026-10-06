@@ -103,3 +103,18 @@
   - O11 (taking the pipeline attrs) was masked by the `clear()` backstop. It became the combined mutant, provenance left on the frame. O11b removes the backstop alone, and the new `test_a_failed_pop_still_clears_the_pipeline_provenance` kills it.
   - O11's first combined replacement left an empty `try`. The strict runner reported it INCONCLUSIVE, and it was fixed and re-run.
 - **Result: 75 of 75 attributable mutants RED; C13 equivalent.**
+
+### Phase-level re-run at the revised candidate (after code review r1; `cost/phases_r2.jsonl`, `cost/phases_r2_summary.json`)
+**Method:** the same declared method and driver, run at `340dcef`, the code reviewed in round 2. The baseline is the f882411 worktree.
+
+| phase | paired Δpeak, max / median (MB) | control max \|Δ\| (MB) | verdict |
+|---|---|---|---|
+| load | 98.6 / 21.5 | 1.1 | PASS |
+| cache | 11.0 / 10.1 | 0.8 | PASS |
+| save | 3.5 / 0.0 | 3.2 | PASS |
+| tail_off | 1.1 / 1.0 | 2.8 | PASS |
+| tail_on | 5.2 / 3.8 | 3.3 | PASS |
+| slate | 1.1 / 1.0 | 1.5 | PASS |
+
+- **Load outlier:** load's maximum is a single pair. Its median matches the first run (one parquet's held bytes). A Codex review session was running tests on the same Mac during this re-run; the pair is reported as measured.
+- **Verdict:** all six phases pass the unchanged 250 MB limit, and every control is within the 125 MB aim.
