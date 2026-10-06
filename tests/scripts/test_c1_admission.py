@@ -24,40 +24,47 @@ def commit(repo, files, msg):
 SCOPE = "historical count build"
 
 
-def review(sha, verdict="**SIGN.**"):
-    return f"# Review\n\n## Verdict\n\n{verdict} Reviewed `{sha}`.\n\n## Findings\n"
+def review(sha, verdict="**SIGN.**", extra=""):
+    return f"# Review\n\n## Verdict\n\n{verdict} Reviewed `{sha}`.\n\n## Findings\n{extra}"
 
 
-def x34_row(report_path, report_text, ref, scope=SCOPE):
+def x34_row(report_path, report_text, ref, scope=SCOPE, *, prefix="PREDECLARED 2026-10-07", inputs=None):
     sha = hashlib.sha256(report_text.encode()).hexdigest()
-    return f"| X-34 | rank 3 {scope}; review `{report_path}` sha256 `{sha[:16]}`; reviewed `{ref}` | ... |\n"
+    tail = f"; inputs `{inputs[:16]}`" if inputs else ""
+    return f"| X-34 | **{prefix}: {scope}**; review `{report_path}` sha256 `{sha[:16]}`; reviewed `{ref}`{tail} | ... |\n"
 
 
-@pytest.fixture
-def repo(tmp_path):
-    """R reviewed; S archives the SIGN review naming R; X publishes X-34 citing it; Y sets the exposure commit."""
+def make_repo(tmp_path, *, verdict="**SIGN.**", row=None, report_extra=""):
+    """R reviewed; S archives the review; X publishes X-34 citing it; Y sets the exposure commit."""
     r = tmp_path / "repo"
     r.mkdir()
     git(r, "init", "-q")
     R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
-    rep = review(R)
+    rep = review(R, verdict, report_extra)
     commit(r, {"docs/review-r1.md": rep}, "archive the review")
     adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md"}
-    X = commit(r, {"reg.md": "| X-33 | y |\n" + x34_row("docs/review-r1.md", rep, R), "pkg/admission.json": json.dumps(adm)},
-               "publish X-34")
+    X = commit(r, {"reg.md": "| X-33 | y |\n" + (row(rep, R) if row else x34_row("docs/review-r1.md", rep, R)),
+                   "pkg/admission.json": json.dumps(adm)}, "publish X-34")
     adm = {**adm, "exposure_commit": X}
     commit(r, {"pkg/admission.json": json.dumps(adm)}, "admission")
     return r, adm
 
 
-def check(r, adm):
+@pytest.fixture
+def repo(tmp_path):
+    return make_repo(tmp_path)
+
+
+def check(r, adm, **kw):
     return A.admission_check(r, adm, closure=("pkg",), admission_rel="pkg/admission.json", register_rel="reg.md",
-                             exposure_row="X-34", scope_phrase=SCOPE)[1]
+                             exposure_row="X-34", scope_phrase=SCOPE, **kw)[1]
 
 
 def test_admission_passes_with_a_recorded_sign_and_metadata_only_edits(repo):
     r, adm = repo
     assert check(r, adm) == []
+    ident = A.accepted_identity(r, adm)
+    assert ident["review_report_sha256"] == hashlib.sha256((r / "docs/review-r1.md").read_bytes()).hexdigest()
 
 
 def test_admission_refuses_unset_fields(repo):
@@ -66,63 +73,59 @@ def test_admission_refuses_unset_fields(repo):
         assert check(r, {**adm, k: None}), k
 
 
-def test_only_an_exact_sign_verdict_counts():
-    """r3b F2: 'SIGN OFF REFUSED' and 'SIGN WITH EDITS pending' were accepted by a prefix match."""
-    assert A.review_verdict(review("a" * 40)) == "SIGN"
-    assert A.review_verdict(review("a" * 40, "**SIGN WITH EDITS.**")) == "SIGN WITH EDITS"
+def test_only_a_plain_sign_naming_the_commit_in_its_verdict_counts():
+    """r3b r1 F2 and r2 N1: no prefix tricks, no conditional acceptance, and no hash mentioned only elsewhere."""
+    sha = "a" * 40
+    assert A._review_signs(review(sha), sha) == []
+    assert any("conditional" in x for x in A._review_signs(review(sha, "**SIGN WITH EDITS.**"), sha))
     for v in ("**SIGN OFF REFUSED.**", "**SIGN WITH EDITS pending application.**", "**SIGNATURE PENDING**",
               "**BLOCK.**", "SIGN."):
-        assert A.review_verdict(review("a" * 40, v)) is None, v
-    assert A.review_verdict("no verdict section") is None
-    sha = "a" * 40
-    assert any("does not name" in x for x in A._review_signs(review("0" * 40), sha))
+        assert A._review_signs(review(sha, v), sha), v
+    other = "b" * 40
+    historical = review(other, extra=f"\nPrevious review of `{sha}` was BLOCK.\n")
+    assert any("verdict section" in x for x in A._review_signs(historical, sha))
+
+
+def test_sign_with_edits_is_refused_until_a_plain_sign_is_recorded(tmp_path):
+    r, adm = make_repo(tmp_path, verdict="**SIGN WITH EDITS.**")
+    assert any("conditional" in x for x in check(r, adm))
 
 
 def test_the_review_report_must_exist_at_the_exposure_commit(repo):
     r, adm = repo
-    late = commit(r, {"docs/late.md": review(adm["reviewed_commit"])}, "a report archived after the exposure commit")
+    commit(r, {"docs/late.md": review(adm["reviewed_commit"])}, "a report archived after the exposure commit")
     assert any("does not exist at the exposure commit" in x for x in check(r, {**adm, "review_report": "docs/late.md"}))
-    assert late
 
 
-def test_the_exposure_row_must_bind_the_review_and_its_scope(tmp_path):
-    """r3b F2: an unrelated X-34 row ('no historical fitting approved') was admitted."""
-    r = tmp_path / "repo"
-    r.mkdir()
-    git(r, "init", "-q")
-    R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
-    rep = review(R)
-    commit(r, {"docs/review-r1.md": rep}, "archive")
-    for row in ("| X-34 | unrelated diagnostic; no historical fitting approved | withheld | Codex |\n",
-                x34_row("docs/review-r1.md", rep, R, scope="diagnostic only"),
-                x34_row("docs/review-r1.md", rep + "tampered", R)):
-        X = commit(r, {"reg.md": "| X-33 | y |\n" + row}, "row")
-        adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md", "exposure_commit": X}
-        assert any("does not cite" in x for x in check(r, adm)), row
-        commit(r, {"reg.md": "| X-33 | y |\n"}, "reset")
+@pytest.mark.parametrize("row", [
+    lambda rep, R: "| X-34 | unrelated diagnostic; no historical fitting approved | withheld | Codex |\n",
+    lambda rep, R: x34_row("docs/review-r1.md", rep, R, prefix="DENIED 2026-10-07"),
+    lambda rep, R: x34_row("docs/review-r1.md", rep, R, scope="historical count build DENIED; do not read inputs"),
+    lambda rep, R: x34_row("docs/review-r1.md", rep, R, scope="diagnostic only"),
+    lambda rep, R: x34_row("docs/review-r1.md", rep + "tampered", R),
+    lambda rep, R: x34_row("docs/other.md", rep, R),
+    lambda rep, R: x34_row("docs/review-r1.md", rep, "0" * 40),
+])
+def test_the_exposure_row_must_be_a_positive_structured_record(tmp_path, row):
+    r, adm = make_repo(tmp_path, row=row)
+    assert any("positive structured PREDECLARED" in x for x in check(r, adm))
+
+
+def test_the_exposure_row_must_bind_the_input_pins_when_required(tmp_path):
+    pins = "c" * 64
+    r, adm = make_repo(tmp_path, row=lambda rep, R: x34_row("docs/review-r1.md", rep, R, inputs=pins))
+    assert check(r, adm, inputs_digest=pins) == []
+    assert check(r, adm, inputs_digest="d" * 64)
+    (tmp_path / "w2").mkdir()
+    r2, adm2 = make_repo(tmp_path / "w2")
+    assert check(r2, adm2, inputs_digest=pins)
 
 
 def test_a_replacement_commit_with_a_new_report_is_refused(repo):
-    """r3b F2: a new commit that changes code and a fresh report naming it, published before X, are refused unless
-    the row cites that exact report and commit; here the old X-34 still cites R and the old report."""
     r, adm = repo
     R2 = commit(r, {"pkg/a.py": "x = 2\n"}, "replacement code")
     commit(r, {"docs/review-r2.md": review(R2)}, "a new report")
     assert check(r, {**adm, "reviewed_commit": R2, "review_report": "docs/review-r2.md"})
-
-
-def test_sign_with_edits_needs_the_edits_commit(tmp_path):
-    r = tmp_path / "repo"
-    r.mkdir()
-    git(r, "init", "-q")
-    R = commit(r, {"pkg/a.py": "x = 1\n", "pkg/admission.json": "{}", "reg.md": "| X-33 | y |\n"}, "reviewed")
-    rep = review(R, "**SIGN WITH EDITS.**")
-    commit(r, {"docs/review-r1.md": rep}, "archive")
-    E = commit(r, {"pkg/a.py": "x = 1  # edit applied verbatim\n"}, "apply the edits")
-    X = commit(r, {"reg.md": "| X-33 | y |\n" + x34_row("docs/review-r1.md", rep, E)}, "publish")
-    adm = {"reviewed_commit": R, "review_report": "docs/review-r1.md", "exposure_commit": X}
-    assert any("edits_commit" in x for x in check(r, adm))
-    assert check(r, {**adm, "edits_commit": E}) == []                 # the closure is compared with E, not R
 
 
 def test_a_commit_that_changes_code_cannot_declare_itself_reviewed(repo):
@@ -156,27 +159,32 @@ def inv_row(run, claim_sha, correction, report="docs/fix-review.md", report_sha=
 
 
 def test_a_claimed_run_is_released_only_by_eric_s_exact_invalidation_with_a_reviewed_correction(tmp_path):
-    """4b r3 B1 / r3b F3: the ruling names this run and claim, a correction in HEAD's history, and a SIGN review of
-    that correction (at HEAD) bound by its sha prefix; the source token is exactly Eric."""
+    """4b r3 B1, r3b r1 F3, r2 N1: the ruling names this run and claim, a correction in HEAD's history, and a plain
+    SIGN (at HEAD, sha-bound) whose verdict names that correction; the source token is exactly Eric."""
+    r = tmp_path / "repo"
+    r.mkdir()
+    git(r, "init", "-q")
+    C = commit(r, {"a.py": "fixed\n"}, "the correction")
+    good_rep, cond_rep = review(C), review(C, "**SIGN WITH EDITS.**")
+    commit(r, {"docs/fix.md": good_rep, "docs/cond.md": cond_rep}, "reviews")
     root = tmp_path / "runs"
     d = A.make_run_dir(root, "abc1234-20261006T000000Z")
     A.write_claim(d, "f" * 40)
     claim = hashlib.sha256((d / "CLAIM.json").read_bytes()).hexdigest()
-    head = git(A.REPO, "rev-parse", "HEAD")
-    report = "docs/audit/2026-10-05-c1-r4b-code-codex-r3.md"          # a real report at HEAD: BLOCK, not a SIGN
-    rep_sha = hashlib.sha256((A.REPO / report).read_bytes()).hexdigest()   # committed and unchanged at HEAD
+    sha = lambda t: hashlib.sha256(t.encode()).hexdigest()  # noqa: E731
     (root / f"INVALIDATION_{d.name}.json").write_text(json.dumps({"run": d.name, "claim_sha256": claim}))
-    assert any("does not SIGN" in x for x in A.claimed_runs(root, inv_row(d.name, claim, head, report, rep_sha)))
+    ok = inv_row(d.name, claim, C, "docs/fix.md", sha(good_rep))
+    assert A.invalidation_problems({"run": d.name, "claim_sha256": claim}, d.name, claim, ok, repo=r) == []
     for label, reg in {"none": "",
-                       "denial": inv_row(d.name, claim, head, report, rep_sha, verb="DO NOT INVALIDATE"),
-                       "Erica": inv_row(d.name, claim, head, report, rep_sha, source="Erica 2026-10-06"),
-                       "other claim": inv_row(d.name, "e" * 64, head, report, rep_sha),
-                       "correction not in history": inv_row(d.name, claim, "0" * 40, report, rep_sha),
-                       "report sha mismatch": inv_row(d.name, claim, head, report, "0" * 16),
+                       "denial": inv_row(d.name, claim, C, "docs/fix.md", sha(good_rep), verb="DO NOT INVALIDATE"),
+                       "Erica": inv_row(d.name, claim, C, "docs/fix.md", sha(good_rep), source="Erica 2026-10-06"),
+                       "other claim": inv_row(d.name, "e" * 64, C, "docs/fix.md", sha(good_rep)),
+                       "correction not in history": inv_row(d.name, claim, "0" * 40, "docs/fix.md", sha(good_rep)),
+                       "report sha mismatch": inv_row(d.name, claim, C, "docs/fix.md", "0" * 16),
+                       "conditional correction review": inv_row(d.name, claim, C, "docs/cond.md", sha(cond_rep)),
                        "unrelated ruling": f"| C1-invalidate-{d.name} | x | **RULED 2026-10-06: A** | Eric |\n"}.items():
-        assert A.claimed_runs(root, reg), label
-    (root / f"INVALIDATION_{d.name}.json").write_text("{}")
-    assert A.claimed_runs(root, inv_row(d.name, claim, head, report, rep_sha))
+        assert A.invalidation_problems({"run": d.name, "claim_sha256": claim}, d.name, claim, reg, repo=r), label
+    assert A.invalidation_problems({}, d.name, claim, ok, repo=r)
 
 
 def test_make_run_dir_creates_and_refuses_reuse(tmp_path):

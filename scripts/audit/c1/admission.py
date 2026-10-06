@@ -3,15 +3,18 @@ review found (`docs/audit/2026-10-05-c1-r4b-code-codex-r3.md`, B1-B3).
 
 **The admission record** (`admission.json`, the only file of the executable closure that may change after review):
 - `reviewed_commit`: the full commit Codex reviewed.
-- `review_report`: the archived review report (repo path). At the exposure commit it must exist, and its verdict line
-  must begin exactly "**SIGN.**" or "**SIGN WITH EDITS.**" (r3b F2: not "SIGN OFF REFUSED", not "SIGN WITH EDITS
-  pending"). It must also name the reviewed commit in full.
-- `edits_commit` (SIGN WITH EDITS only): the commit that applied the edits. It descends from the reviewed commit,
-  and it becomes the closure's reference.
+- `review_report`: the archived review report (repo path). At the exposure commit it must exist; its verdict line
+  must begin exactly "**SIGN.**"; and its verdict section must name the reviewed commit in full (rank-3 review r2
+  N1: a hash mentioned elsewhere does not count).
+  - A "**SIGN WITH EDITS.**" is conditional: it is refused until a plain SIGN of the edited commit is recorded. An
+    ancestry check cannot show that the edits were applied verbatim.
 - `exposure_commit`: the commit that publishes the exposure row. The row must first appear in that commit and be
-  unchanged at HEAD. It must also bind the acceptance and its own scope (r3b F2): it cites the review report's path,
-  the first 16+ hex of that report's sha256, and the reference commit in full, and it contains the caller's scope
-  phrase.
+  unchanged at HEAD. Its description cell must be a positive structured record (r2 N1):
+  "**PREDECLARED <date>: <scope>**; review `<report path>` sha256 `<16+ hex>`; reviewed `<commit>`[; inputs
+  `<16+ hex>`]". Each field must equal this admission. A DENIED row, a withheld row or a free-text mention does not
+  match.
+- `accepted_identity` returns the accepted report's exact bytes digest at the exposure commit, so the run's manifest
+  records the report the gate accepted rather than a later working-tree copy (r2 N6).
 
 **The checks:**
 - the reviewed commit precedes the exposure commit, which precedes HEAD;
@@ -48,6 +51,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 VERDICT_SIGN = re.compile(r"^\*\*(?P<v>SIGN|SIGN WITH EDITS)\.\*\*(?:\s|$)")
+EXPOSURE = re.compile(r"^\*\*PREDECLARED (?P<date>\d{4}-\d{2}-\d{2}): (?P<scope>[^*]+)\*\*; review `(?P<rep>[^`]+)` "
+                      r"sha256 `(?P<sha>[0-9a-f]{16,64})`; reviewed `(?P<ref>[0-9a-f]{40})`"
+                      r"(?:; inputs `(?P<inputs>[0-9a-f]{16,64})`)?")
 INVALIDATE = re.compile(r"^\*\*RULED \d{4}-\d{2}-\d{2}: INVALIDATE `(?P<run>[^`]+)` claim `(?P<claim>[0-9a-f]{12,64})`; "
                         r"correction `(?P<corr>[0-9a-f]{40})` reviewed `(?P<rep>[^`]+)` `(?P<repsha>[0-9a-f]{16,64})`\*\*$")
 
@@ -79,11 +85,41 @@ def review_verdict(report: str) -> str | None:
     return m.group("v") if m else None
 
 
+def _verdict_section(report: str) -> str:
+    lines = report.splitlines()
+    if "## Verdict" not in lines:
+        return ""
+    body = []
+    for line in lines[lines.index("## Verdict") + 1:]:
+        if line.startswith("## "):
+            break
+        body.append(line)
+    return "\n".join(body)
+
+
 def _review_signs(report: str, reviewed: str) -> list[str]:
-    out = [] if review_verdict(report) else ["the review report's verdict is not exactly SIGN or SIGN WITH EDITS"]
-    if reviewed not in report:
-        out.append("the review report does not name the reviewed commit in full")
+    """A plain SIGN whose verdict section names the reviewed commit in full."""
+    v = review_verdict(report)
+    out = []
+    if v is None:
+        out.append("the review report's verdict is not exactly SIGN")
+    elif v == "SIGN WITH EDITS":
+        out.append("the review is a conditional SIGN WITH EDITS: record a plain SIGN of the edited commit first")
+    if reviewed not in _verdict_section(report):
+        out.append("the review report's verdict section does not name the reviewed commit in full")
     return out
+
+
+def _show_bytes(repo: Path, rev_path: str) -> bytes | None:
+    r = subprocess.run(["git", "-C", str(repo), "show", rev_path], capture_output=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def accepted_identity(repo: Path, adm: dict) -> dict:
+    """The exact report bytes the gate accepted (at the exposure commit) and the commits it binds."""
+    b = _show_bytes(repo, f"{adm['exposure_commit']}:{adm['review_report']}")
+    return {"review_report": adm["review_report"], "review_report_sha256": hashlib.sha256(b).hexdigest() if b else None,
+            "reviewed_commit": adm["reviewed_commit"], "exposure_commit": adm["exposure_commit"]}
 
 
 def _sign_eric(cell: str) -> bool:
@@ -91,7 +127,7 @@ def _sign_eric(cell: str) -> bool:
 
 
 def admission_check(repo: Path, adm: dict, *, closure, admission_rel: str, register_rel: str,
-                    exposure_row: str, scope_phrase: str = "") -> tuple[str, list[str]]:
+                    exposure_row: str, scope_phrase: str, inputs_digest: str | None = None) -> tuple[str, list[str]]:
     head = _git(repo, "rev-parse", "HEAD").stdout.strip()
     rc, xc, rep = adm.get("reviewed_commit"), adm.get("exposure_commit"), adm.get("review_report")
     reasons = [f"admission: {k} is not a full commit id" for k, v in (("reviewed_commit", rc), ("exposure_commit", xc))
@@ -101,19 +137,13 @@ def admission_check(repo: Path, adm: dict, *, closure, admission_rel: str, regis
     if reasons:
         return head, reasons
     ref = rc
-    shown = _git(repo, "show", f"{xc}:{rep}", check=False)
+    report_bytes = _show_bytes(repo, f"{xc}:{rep}")
     report_sha = None
-    if shown.returncode != 0:
+    if report_bytes is None:
         reasons.append(f"admission: the review report {rep} does not exist at the exposure commit")
     else:
-        report_sha = hashlib.sha256(_git(repo, "show", f"{xc}:{rep}").stdout.encode()).hexdigest()
-        reasons += [f"admission: {x}" for x in _review_signs(shown.stdout, rc)]
-        if review_verdict(shown.stdout) == "SIGN WITH EDITS":
-            ec = adm.get("edits_commit")
-            if not (isinstance(ec, str) and HEX40.match(ec) and _ancestor(repo, rc, ec) and _ancestor(repo, ec, xc)):
-                reasons.append("admission: SIGN WITH EDITS needs edits_commit between the reviewed and exposure commits")
-            else:
-                ref = ec
+        report_sha = hashlib.sha256(report_bytes).hexdigest()
+        reasons += [f"admission: {x}" for x in _review_signs(report_bytes.decode("utf-8", "replace"), rc)]
     if not _ancestor(repo, rc, xc):
         reasons.append("admission: the reviewed commit is not an ancestor of the exposure commit")
     if not _ancestor(repo, xc, head):
@@ -129,11 +159,15 @@ def admission_check(repo: Path, adm: dict, *, closure, admission_rel: str, regis
     elif at_head != at_x:
         reasons.append(f"admission: the {exposure_row} row changed after its publication")
     else:
-        binds = [rep in at_x, ref in at_x, report_sha is not None and report_sha[:16] in at_x,
-                 scope_phrase in at_x if scope_phrase else True]
-        if not all(binds):
-            reasons.append(f"admission: the {exposure_row} row does not cite the review report, its sha256 prefix, "
-                           f"the reference commit and its scope ({scope_phrase!r})")
+        cells = [c.strip() for c in at_x.strip().strip("|").split("|")]
+        m = EXPOSURE.match(cells[1]) if len(cells) > 1 else None
+        ok = bool(m and m.group("scope") == scope_phrase and m.group("rep") == rep and m.group("ref") == ref
+                  and report_sha is not None and report_sha.startswith(m.group("sha"))
+                  and (inputs_digest is None or (m.group("inputs") and inputs_digest.startswith(m.group("inputs")))))
+        if not ok:
+            reasons.append(f"admission: the {exposure_row} row is not a positive structured PREDECLARED record of "
+                           f"{scope_phrase!r} binding this review report, its sha256, the reviewed commit"
+                           + (" and the input pins" if inputs_digest else ""))
     changed = [f for f in _git(repo, "diff", "--name-only", ref, head, "--", *closure).stdout.split() if f != admission_rel]
     if changed:
         reasons.append(f"admission: executable files changed since the reviewed commit: {changed[:5]}")
@@ -179,6 +213,11 @@ def make_run_dir(root: Path, name: str) -> Path:
         os.fsync(fd)
     finally:
         os.close(fd)
+    fd = os.open(root.parent, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
     return d
 
 
@@ -200,11 +239,11 @@ def invalidation_problems(rec, run: str, claim_sha: str, register_text: str, rep
         return [f"no register row C1-invalidate-{run} recording Eric's INVALIDATE of this claim"]
     if not _ancestor(repo, m.group("corr"), "HEAD"):
         return ["the ruling's correction commit is not in HEAD's history"]
-    report = _git(repo, "show", f"HEAD:{m.group('rep')}", check=False)
-    if report.returncode != 0 or not hashlib.sha256(report.stdout.encode()).hexdigest().startswith(m.group("repsha")):
+    report = _show_bytes(repo, f"HEAD:{m.group('rep')}")
+    if report is None or not hashlib.sha256(report).hexdigest().startswith(m.group("repsha")):
         return ["the cited correction review report is missing or does not match its sha prefix"]
-    if _review_signs(report.stdout, m.group("corr")):
-        return ["the cited correction review does not SIGN that correction commit"]
+    if _review_signs(report.decode("utf-8", "replace"), m.group("corr")):
+        return ["the cited correction review is not a plain SIGN naming that correction commit in its verdict"]
     return []
 
 
