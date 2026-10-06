@@ -287,7 +287,7 @@ def test_a_stored_record_must_be_bound_to_its_own_request(tmp_path, patched):
                 r.update(mutate)
         recs.write_text("".join(json.dumps(r) + "\n" for r in lines))
         patched(data)
-        with pytest.raises(CB.ProvenanceError, match="not bound|unresolved"):
+        with pytest.raises(CB.ProvenanceError, match="not bound|unresolved|different request"):   # C2R1-1: now at the join
             CB.main([])
 
 
@@ -463,5 +463,206 @@ def test_a_boolean_game_id_cannot_bind_a_request(tmp_path, patched):
             r["gamePk"] = float(700001)
     recs.write_text("".join(json.dumps(r) + "\n" for r in lines))
     patched(data)
-    with pytest.raises(CB.ProvenanceError, match="not bound|unresolved"):
+    with pytest.raises(CB.ProvenanceError, match="not bound|unresolved|game id"):     # r4 R4-1: now typed first
         CB.main([])
+
+
+# ---- C2 (b) step 1: code review r4 R4-1 (docs/audit/2026-10-05-c1-r3-build-codex-r4.md) --------------------------------
+
+URL1 = "https://statsapi.mlb.com/api/v1.1/game/700001/feed/live"
+URL2 = "https://statsapi.mlb.com/api/v1.1/game/700002/feed/live"
+
+
+def _recs(data):
+    return data / "hetzner_results" / "c1" / "r3" / "receipts" / "2026-10-04.jsonl"
+
+
+def _no_run(data):
+    """No run directory and no claim: the admission lock file may exist, since the lock is taken before the
+    inventory, which refuses before `make_run_dir` and `write_claim`."""
+    builds = data / "hetzner_results" / "c1" / "r3" / "count_build"
+    return not builds.exists() or (not [p for p in builds.iterdir() if p.is_dir()]
+                                    and not list(builds.rglob("CLAIM.json")))
+
+
+def _refuses_before_claim(data, patched, monkeypatch, match):
+    """Refusal before the claim and before any PA or feed byte is read: the actual Path.read_bytes is instrumented
+    for both input roots (C2 review r1: a schema spy alone sits downstream of the parquet read)."""
+    patched(data)
+    read, real = [], Path.read_bytes
+    roots = (str(data / "processed"), str(data / "raw_c1"))
+
+    def spy(self):
+        if str(self).startswith(roots):
+            read.append(str(self))
+        return real(self)
+    monkeypatch.setattr(Path, "read_bytes", spy)
+    with pytest.raises(CB.ProvenanceError, match=match):
+        CB.main([])
+    assert _no_run(data) and read == []
+
+
+def test_r41_a_float_request_then_an_equal_integer_duplicate_refuses(tmp_path, patched, monkeypatch):
+    """R4-1 A: dict equality made intent a-700001 with gamePk 7.0 equal to its integer twin, so the malformed record
+    was overwritten instead of refused."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    first = json.loads(lines[0])
+    assert first["kind"] == "intent" and first["gamePk"] == 700001
+    _recs(data).write_text(json.dumps({**first, "gamePk": float(700001)}) + "\n" + "".join(x + "\n" for x in lines))
+    _refuses_before_claim(data, patched, monkeypatch, "game id|gamePk")
+
+
+def test_r41_a_stored_and_an_http_error_completion_for_one_attempt_refuse(tmp_path, patched, monkeypatch):
+    """R4-1 B: completions were checked only within the response and stored classes, so a terminal 404 for the same
+    attempt as its stored record was ignored."""
+    data = world(tmp_path, n=3)
+    receipt(data / "hetzner_results" / "c1" / "r3",
+            {"kind": "completion", "attempt_id": "a-700001", "gamePk": 700001, "url": URL1, "outcome": "http_error",
+             "http_status": 404, "ended_utc": "2026-10-04T23:00:02+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "conflicting completion")
+
+
+def test_r41_a_malformed_error_completion_cannot_resolve_an_intent(tmp_path, patched, monkeypatch):
+    """R4-1 B: a network_error completion with gamePk 8.0 resolved an integer-8 intent by tuple equality."""
+    data = world(tmp_path, n=3)
+    acq = data / "hetzner_results" / "c1" / "r3"
+    receipt(acq, {"kind": "intent", "attempt_id": "z", "gamePk": 700002, "url": URL2,
+                  "started_utc": "2026-10-04T23:00:00+00:00"})
+    receipt(acq, {"kind": "completion", "attempt_id": "z", "gamePk": float(700002), "url": URL2,
+                  "outcome": "network_error", "ended_utc": "2026-10-04T23:00:01+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "game id|gamePk")
+
+
+@pytest.mark.parametrize("field, value", [("attempt_id", ""), ("attempt_id", 7), ("gamePk", True), ("gamePk", 0),
+                                          ("gamePk", "700001"), ("kind_of", "mystery"), ("kind_of", "schedule"),
+                                          ("from_attempt_id", 7), ("season", 2023)])
+def test_r41_every_intent_and_completion_is_typed_before_any_join(tmp_path, patched, monkeypatch, field, value):
+    data = world(tmp_path, n=3)
+    receipt(data / "hetzner_results" / "c1" / "r3",
+            {"kind": "completion", "attempt_id": "e1", "gamePk": 700003, "url": "u", "outcome": "network_error",
+             "ended_utc": "2026-10-04T23:00:01+00:00", field: value})
+    _refuses_before_claim(data, patched, monkeypatch, "attempt id|game id|kind_of|season")
+
+
+def test_r41_genuinely_identical_repeats_and_distinct_retries_still_certify(tmp_path, patched):
+    """Positive controls: exact repeated records are tolerated, and a failed attempt followed by a successful one
+    (distinct attempt ids) is a normal retry."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    acq = data / "hetzner_results" / "c1" / "r3"
+    _recs(data).write_text("".join(x + "\n" for x in lines + lines[:2]))               # 700001's pair, repeated
+    receipt(acq, {"kind": "intent", "attempt_id": "r1", "gamePk": 700002, "url": URL2,
+                  "started_utc": "2026-10-04T22:59:00+00:00"})
+    receipt(acq, {"kind": "completion", "attempt_id": "r1", "gamePk": 700002, "url": URL2,
+                  "outcome": "network_error", "ended_utc": "2026-10-04T22:59:30+00:00"})
+    patched(data)
+    assert CB.main([]) == 0
+    census = json.loads((only_run(data) / "census.json").read_text())
+    assert census["certified"] == 3 and census["quarantined"] == {}
+
+
+def test_r41_a_duplicate_differing_only_in_number_type_is_a_conflict(tmp_path, patched, monkeypatch):
+    """Canonical comparison: an intent repeated with attempt 1 then 1.0 is not a genuinely identical duplicate."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    first = json.loads(lines[0])
+    _recs(data).write_text(json.dumps({**first, "attempt": 1}) + "\n" + json.dumps({**first, "attempt": 1.0}) + "\n"
+                           + "".join(x + "\n" for x in lines[1:]))
+    _refuses_before_claim(data, patched, monkeypatch, "conflicting intent")
+
+
+# ---- C2 (b) step 1, rank-3 review r1 C2R1-1: request kind and primary identity ------------------------------------
+
+def test_c2r1_a_schedule_completion_cannot_carry_a_feed_game_id(tmp_path, patched, monkeypatch):
+    """C2R1-1 composition 1: a schedule-declared error completion with gamePk 8.0 resolved an integer-8 feed intent."""
+    data = world(tmp_path, n=3)
+    acq = data / "hetzner_results" / "c1" / "r3"
+    url8 = "https://statsapi.mlb.com/api/v1.1/game/8/feed/live"
+    receipt(acq, {"kind": "intent", "attempt_id": "z", "gamePk": 8, "url": url8, "started_utc": "2026-10-04T23:00:00+00:00"})
+    receipt(acq, {"kind": "completion", "attempt_id": "z", "kind_of": "schedule", "season": 2023, "gamePk": 8.0,
+                  "url": url8, "outcome": "network_error", "ended_utc": "2026-10-04T23:00:01+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "schedule receipt")
+
+
+def test_c2r1_a_schedule_completion_for_another_season_cannot_resolve_its_intent(tmp_path, patched, monkeypatch):
+    """C2R1-1 composition 2: both game ids null, so (s, None) matched across seasons."""
+    data = world(tmp_path, n=3)
+    acq = data / "hetzner_results" / "c1" / "r3"
+    base = {"attempt_id": "s", "kind_of": "schedule", "gamePk": None, "url": "https://statsapi.mlb.com/sched"}
+    receipt(acq, {**base, "kind": "intent", "season": 2023, "started_utc": "2026-10-04T23:00:00+00:00"})
+    receipt(acq, {**base, "kind": "completion", "season": 2024, "outcome": "network_error",
+                  "ended_utc": "2026-10-04T23:00:01+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "different request")
+
+
+@pytest.mark.parametrize("keep_game", [True, False])
+def test_c2r1_a_schedule_declared_intent_cannot_anchor_a_feed(tmp_path, patched, monkeypatch, keep_game):
+    """C2R1-1 composition 3: the legacy game-7 intent re-declared as a schedule request still anchored its feed."""
+    data = world(tmp_path, n=3)
+    lines = [json.loads(x) for x in _recs(data).read_text().splitlines()]
+    for r in lines:
+        if r["kind"] == "intent" and r["gamePk"] == 700001:
+            r.update(kind_of="schedule", season=2023)
+            if not keep_game:
+                del r["gamePk"]
+    _recs(data).write_text("".join(json.dumps(r) + "\n" for r in lines))
+    _refuses_before_claim(data, patched, monkeypatch, "schedule receipt" if keep_game else "different request")
+
+
+@pytest.mark.parametrize("outcome, extra", [("network_error", {"error": "URLError: x"}),
+                                            ("rate_limited", {"http_status": 429})])
+def test_c2r1_a_stored_attempt_with_any_terminal_error_conflicts(tmp_path, patched, monkeypatch, outcome, extra):
+    data = world(tmp_path, n=3)
+    receipt(data / "hetzner_results" / "c1" / "r3",
+            {"kind": "completion", "attempt_id": "a-700001", "gamePk": 700001, "url": URL1, "outcome": outcome,
+             "ended_utc": "2026-10-04T23:00:02+00:00", **extra})
+    _refuses_before_claim(data, patched, monkeypatch, "conflicting completion")
+
+
+def test_c2r1_a_producer_generated_schedule_feed_retry_chain_certifies(tmp_path, patched, monkeypatch):
+    """Positive control from the actual current acquirer (schedule request, response and store; a feed network error,
+    then a retried response and its separately identified store record), consumed by the actual build."""
+    import urllib.error
+    data = tmp_path / "data"
+    out, feeds = data / "hetzner_results" / "c1" / "r3", data / "raw_c1"
+    pk = 700001
+    body = json.dumps(feed(pk=pk, date="2023-06-01")).encode()
+    sched = json.dumps({"dates": [{"date": "2023-06-01", "games": [
+        {"gamePk": pk, "officialDate": "2023-06-01", "status": {"detailedState": "Final"}}]}]}).encode()
+    calls = {"feed": 0}
+
+    def fetch(url):
+        if "/schedule" in url:
+            return sched
+        calls["feed"] += 1
+        if calls["feed"] == 1:
+            raise urllib.error.URLError("synthetic reset")
+        return body
+    monkeypatch.setattr(aq, "C1_ROOT", data / "hetzner_results" / "c1")
+    monkeypatch.setattr(aq, "_fetch", fetch)
+    monkeypatch.setattr(aq.time, "sleep", lambda s: None)
+    assert aq.main(["--seasons", "2023", "--out", str(out), "--feeds", str(feeds)]) == 0
+    kinds = [(r.get("kind"), r.get("kind_of", "feed"), r.get("outcome")) for r in aq.read_receipts(out)]
+    assert ("completion", "feed", "network_error") in kinds and ("completion", "schedule", "stored") in kinds
+    rows = [{"game_pk": pk, "batter_id": p.batter, "is_home": p.side == "home", "season": 2023, "date": "2023-06-01"}
+            for p in M.extract(feed(pk=pk, date="2023-06-01")).pas]
+    (data / "processed").mkdir(parents=True)
+    pd.DataFrame(rows).to_parquet(data / "processed" / "pa_2023.parquet", index=False)
+    patched(data)
+    assert CB.main([]) == 0
+    census = json.loads((only_run(data) / "census.json").read_text())
+    assert census["certified"] == 1 and census["quarantined"] == {}
+
+
+@pytest.mark.parametrize("season", [None, True, 0, -1, "2023", 2023.0])
+@pytest.mark.parametrize("role", ["intent", "completion"])
+def test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season(tmp_path, patched, monkeypatch, season, role):
+    """The schedule branch's own primary id, isolated: no game id, so only the season rule can refuse."""
+    data = world(tmp_path, n=3)
+    rec = {"kind": role, "attempt_id": "sch", "kind_of": "schedule", "gamePk": None, "season": season,
+           "url": "https://statsapi.mlb.com/sched"}
+    rec.update({"started_utc": "2026-10-04T23:00:00+00:00"} if role == "intent"
+               else {"outcome": "network_error", "ended_utc": "2026-10-04T23:00:01+00:00"})
+    receipt(data / "hetzner_results" / "c1" / "r3", rec)
+    _refuses_before_claim(data, patched, monkeypatch, "season")
