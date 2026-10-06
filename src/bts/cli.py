@@ -1641,6 +1641,9 @@ def entry_intent(config_path):
 def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, now_et):
     """DM if today's delivered pick was never entered in the MLB app.
 
+    Every run publishes one entry receipt (bts.entry_receipt; watchdog plan P1), whatever its outcome. The
+    receipt records; it changes nothing below.
+
     v2 (2026-07-03, RE-ENABLED in cron): entry is now detected from the UNION
     of two sources — the profile endpoint (settled rows only; v1's sole source
     and why v1 false-alarmed every pre-pitch day and was disabled 2026-06-12)
@@ -1656,22 +1659,50 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     a one-time all-clear DM once the entry appears (marker with escalation
     ledger in data/health_state/pick_entry_check.json).
     """
-    import sys
     import time
-    import httpx
     from datetime import datetime
     from zoneinfo import ZoneInfo
-    from bts.picks import load_pick
-    from bts.scheduler import _earliest_pick_game_et
+    from bts.entry_receipt import EntryReceipt
 
     ET = ZoneInfo("America/New_York")
     now = (datetime.fromisoformat(now_et).replace(tzinfo=ET)
            if now_et else datetime.now(ET))
-    today = now.date().isoformat()
 
-    picks = Path(picks_dir)
+    def clock():
+        # Production: the wall clock. Under the --now-et test override: the anchored now, advanced by process time
+        # after the run's own fetch start (no extra monotonic read before it, so its elapsed logic is untouched).
+        if not now_et:
+            return datetime.now(ET)
+        if rec.fetch_mono is None:
+            return now
+        return now + timedelta(seconds=time.monotonic() - rec.fetch_mono)
+
+    rec = EntryReceipt(et_date=now.date().isoformat(), started_at=now, clock=clock,
+                       expected_username=expected_username)
+    try:
+        _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec)
+    except SystemExit as exc:
+        rec.exit_code = exc.code
+        raise
+    except BaseException as exc:
+        rec.exit_code = None
+        rec.detail = f"raised {type(exc).__name__}"
+        raise
+    finally:
+        rec.publish(Path(picks_dir))
+
+
+def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec):
+    import sys
+    import time
+    import httpx
+    from bts.picks import load_pick
+    from bts.scheduler import _earliest_pick_game_et
+
+    today = now.date().isoformat()
     daily = load_pick(today, picks)
     if daily is None:
+        rec.outcome = "no_pick_file"
         click.echo(f"check-pick-entered: no pick for {today}; nothing to check")
         return
 
@@ -1685,9 +1716,12 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
     from bts.daily_decision import is_scoreable_commit
     if not is_scoreable_commit(today, picks, daily):
+        rec.outcome = "not_committed"
         click.echo(f"check-pick-entered: pick for {today} not committed/locked; nothing to check")
         return
 
+    from bts.entry_receipt import selection_identity
+    rec.selection = selection_identity(daily, today, picks)
     first_pitch = _earliest_pick_game_et(daily)
     minutes_to_pitch = (first_pitch - now).total_seconds() / 60
     # BTS rejects submissions within 5 min of first pitch. Only check inside
@@ -1695,13 +1729,22 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     # "Fix it now!" nag is useless (and its countdown would go negative).
     from bts.picks import SUBMISSION_CUTOFF_MIN
     submit_cutoff_min = SUBMISSION_CUTOFF_MIN
+    rec.cutoff_at = first_pitch - timedelta(minutes=submit_cutoff_min)
+    rec.minutes_to_pitch = round(minutes_to_pitch, 3)
     # Strict lower bound: at exactly first_pitch-5 the entry is already locked
     # (Codex review #8) — never DM "0 min to submit".
     if not (submit_cutoff_min < minutes_to_pitch <= window_min):
+        rec.outcome = "outside_window"
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
 
     status_path = picks.parent / "health_state" / "pick_entry_check.json"
+
+    def mark(marker):
+        # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
+        marker["receipt"] = rec.attempt_id
+        rec.marker_status = marker["status"]
+        _atomic_write_json(status_path, marker)
     # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
     # RE-VERIFYING on every run until the entry appears or the window closes —
     # a delivered warning is not verified remediation (the 7/08 missed DD leg
@@ -1716,6 +1759,8 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         if prior.get("date") != today:
             prior = {}
         if prior.get("status") == "confirmed":
+            rec.outcome = "already_confirmed"
+            rec.references = {"confirmed_by": prior.get("receipt")}   # None: the marker predates receipts
             click.echo(f"check-pick-entered: already confirmed for {today}")
             return
     was_alerted = prior.get("status") == "alerted"
@@ -1729,13 +1774,16 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     )
     import bts.contest_fetch as _cf
     fetch_started = time.monotonic()
+    rec.fetch_mono = fetch_started
     try:
         cookies = load_session_cookies()
         uid = extract_uid(cookies)
         # Bounded retries: this caller is deadline-sensitive and the */15 cron
         # is already the outer retry loop (Codex review 2026-08-11 #2).
         session = fetch_login_session(uid=uid, cookies=cookies, attempts=2)
+        rec.set_account(session.user_id, session.username)
         if expected_username and session.username != expected_username:
+            rec.outcome = "identity_mismatch"
             click.echo(f"check-pick-entered: identity mismatch ({session.username!r}); skipping", err=True)
             return
         success = _cf.fetch_profile(session.user_id, cookies, session.xsid)
@@ -1747,6 +1795,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         # Any fetch failure skips quietly WITHOUT writing the daily marker, so a
         # transient error can never suppress the real check (the v1 false-alarm
         # class) and the next */15 cron run retries.
+        rec.failed(exc)
         click.echo(f"check-pick-entered: fetch failed, skipping quietly: {exc}", err=True)
         return
 
@@ -1760,19 +1809,21 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     }
     ok, reason = _cf.pick_entry_status(
         success, pending, rounds, now.date(), required_mlb_ids, bts_to_mlb)
+    rec.observed(profile=success, pending=pending, rounds=rounds, crosswalk=bts_to_mlb, target=now.date(),
+                 ok=ok, reason=reason, required_mlb_ids=required_mlb_ids)
     if ok and reason != "match":
         # present_unverified: entries exist but the crosswalk can't prove
         # identity. NOT terminal (Codex review #1): a wrong player hiding
         # behind a crosswalk gap must keep being re-verified until lock; a
         # later crosswalk refresh can still resolve it either way.
-        _atomic_write_json(status_path, {"date": today, "status": "present_unverified",
+        mark({"date": today, "status": "present_unverified",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
         click.echo(f"check-pick-entered: {today} entry present but identity "
                    f"unverified; will re-verify")
         return
     if ok:
-        _atomic_write_json(status_path, {"date": today, "status": "confirmed",
+        mark({"date": today, "status": "confirmed",
                                          "reason": reason, "checked_at": now.isoformat()})
         if (was_alerted or "initial" in prior_escalations) and dm_recipient:
             # One-time all-clear on the alerted -> confirmed transition: the
@@ -1803,7 +1854,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         # EOD pick_entry audit, whose WARN keys on marker status "alerted"
         # (Codex r2 #3). Like the tier-exhausted branch, "alerted" here means
         # detected-and-unresolved, not "a DM was just sent".
-        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+        mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
         click.echo("check-pick-entered: submission cutoff passed during fetch; "
@@ -1821,7 +1872,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
     elif "t15" not in prior_escalations and minutes_to_cutoff <= 15:
         tier = "t15"
     else:
-        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+        mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
         click.echo(f"check-pick-entered: still not entered ({reason}); "
@@ -1854,15 +1905,15 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         for t_name, threshold in (("t30", 30), ("t15", 15)):
             if minutes_to_cutoff <= threshold:
                 consumed.add(t_name)
-        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+        mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": sorted(consumed)})
     elif tier == "initial" and not was_alerted:
-        _atomic_write_json(status_path, {"date": today, "status": "dm_failed",
+        mark({"date": today, "status": "dm_failed",
                                          "reason": reason, "checked_at": now.isoformat()})
     else:
         # Failed escalation DM: keep the marker unchanged so the tier retries.
-        _atomic_write_json(status_path, {"date": today, "status": "alerted",
+        mark({"date": today, "status": "alerted",
                                          "reason": reason, "checked_at": now.isoformat(),
                                          "escalations": prior_escalations})
     sys.exit(1)
