@@ -7,14 +7,13 @@ Acceptance (fixed in the design before measurement): for every case, paired incr
 import json, os, statistics, subprocess, sys, time
 from pathlib import Path
 
-BASE, CAND = Path(sys.argv[1]), Path(sys.argv[2])
-INPUTS, OUT = Path(sys.argv[3]), Path(sys.argv[4])
 CASES = ("cold_small", "warm_off", "warm_on", "warm_unavailable")
 REPEATS = 5
 ENV = {**os.environ, "TZ": "America/New_York", "OMP_NUM_THREADS": "1", "UV_CACHE_DIR": "/tmp/uv-cache"}
 
 
 def one(side: Path, case: str) -> dict:
+    INPUTS = Path(sys.argv[3])
     r = subprocess.run(["uv", "run", "python", "-m", "tests.c2_2a.bench.bench", "measure", "--case", case,
                         "--inputs", str(INPUTS)], cwd=side, env=ENV, capture_output=True, text=True)
     if r.returncode:
@@ -23,6 +22,7 @@ def one(side: Path, case: str) -> dict:
 
 
 def main():
+    BASE, CAND, OUT = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[4])
     rows = []
     with OUT.open("a") as fh:
         for case in CASES:
