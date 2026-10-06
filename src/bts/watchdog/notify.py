@@ -8,12 +8,17 @@ failure) opens an episode; a change of alerting state within an open episode is 
 - Otherwise, a `verified` result closes its open targets: an `incident`-carrying verified result closes only that
   incident's target; a verified result with no incident is an all-clear for the group.
 - The recovery notice is built from the **recovered target's** own identity.
+- Business recovery never touches a checker target (incident `checker:…`; r3 R3-1).
 
-**Checker execution (r2 N1):** a checker failure targets (name, `checker:<name>`, date, no selection). A later
-successful execution of the same registered name (`executed_ok`) closes every open checker-failure target of that
-name, whatever its business result.
+**Checker execution (r2 N1, r3 R3-1):** a checker failure targets (`<job>/<check_id>`, `checker:<job>/<check_id>`,
+date, no selection). A later successful execution of the same registered invocation (`executed_ok`) closes every open
+checker-failure target of that invocation, whatever its business result.
 
-**Order:** every notice carries a persistent sequence number (`seq`), and flushes go in that causal order.
+**Order (r3 R3-2):** every notice carries a persistent sequence number (`seq`). A target's unsent notices form a queue
+in `seq` order, and a notice is delivered only after every earlier notice of its target was confirmed:
+- a flush claims, per target, the longest due prefix of that queue, so nothing is claimed behind a live claim;
+- it sends each target's claimed chain in order, and at the first failure, missing message id or exhausted budget it
+  releases the rest of that chain unattempted. Other targets continue.
 
 **Delivery (r1 B4, B7; r2 N4):**
 - `enqueue` always persists notices, even with no transport (queue-only).
@@ -26,8 +31,16 @@ name, whatever its business result.
 - The flush is bounded by `max_sends` and by an **elapsed monotonic** budget, checked before each send. Neither
   bound interrupts an in-flight send; the whole-job deadline is a deploy-gate item.
 
-**Validation (r1 B5, r2 N3):** every container, field, type, timestamp, state, cross-reference and recomputed key
-is validated on load. Anything invalid raises `NotifyStateError` and leaves the file untouched.
+**Validation (r1 B5, r2 N3, r3 R3-3):** every container, field, type, timestamp, state, cross-reference and recomputed
+key is validated on load, and so is the lifecycle the protocol implies (it never prunes a notice):
+- the notice `seq` values are exactly 1 … `seq`;
+- each target's notices cover its episodes 1 … `episode`, in `seq` order across episodes;
+- each episode opens with an alerting notice, and a `recovered` notice, if any, is its last;
+- every earlier episode was recovered, and the current one was recovered exactly when the target is closed;
+- an open target has a notice for its current state;
+- by `seq`, a target's notices are `sent`, then `sending`, then `pending` (delivery never overtook a predecessor).
+
+Anything invalid raises `NotifyStateError` and leaves the file untouched.
 """
 from __future__ import annotations
 
@@ -37,7 +50,7 @@ import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
-from bts.watchdog.result import ALERTING, CheckResult, Status
+from bts.watchdog.result import ALERTING, CHECKER_PREFIX, CheckResult, Status
 
 LEASE = timedelta(minutes=10)
 BUDGET_S = 90.0
@@ -148,11 +161,47 @@ def _validate(st) -> dict:
                 _parse_utc(n["lease_until"])
             elif set(n) & claim:
                 _bad(f"notice {k}: claim fields outside sending")
+        _validate_lifecycle(st, seqs)
     except NotifyStateError:
         raise
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise NotifyStateError(f"malformed notification state: {type(exc).__name__}: {exc}") from None
     return st
+
+
+_RANK = {"sent": 0, "sending": 1, "pending": 2}
+
+
+def _validate_lifecycle(st, seqs) -> None:
+    """r3 R3-3: the reverse direction. Every target's episodes and states have the notices the protocol queued."""
+    if sorted(seqs) != list(range(1, st["seq"] + 1)):
+        _bad("notice seq values are not exactly 1..seq")
+    by_target: dict = {}
+    for n in st["notices"].values():
+        by_target.setdefault(n["target"], []).append(n)
+    for tk, t in st["targets"].items():
+        ns = sorted(by_target.get(tk, []), key=lambda n: n["seq"])
+        eps = [n["episode"] for n in ns]
+        if eps != sorted(eps):
+            _bad(f"target {tk}: episodes out of seq order")
+        if sorted(set(eps)) != list(range(1, t["episode"] + 1)):
+            _bad(f"target {tk}: notices do not cover episodes 1..{t['episode']}")
+        for e in range(1, t["episode"] + 1):
+            states = [n["state"] for n in ns if n["episode"] == e]
+            if states[0] not in ALERT_STATES:
+                _bad(f"target {tk}: episode {e} does not open with an alert")
+            if "recovered" in states[:-1]:
+                _bad(f"target {tk}: episode {e} has a notice after its recovery")
+            recovered = states[-1] == "recovered"
+            if e < t["episode"] and not recovered:
+                _bad(f"target {tk}: episode {e} was never recovered")
+            if e == t["episode"] and recovered == t["open"]:
+                _bad(f"target {tk}: the current episode's recovery does not match the target")
+            if e == t["episode"] and t["open"] and t["state"] not in states:
+                _bad(f"target {tk}: no notice for its current state {t['state']}")
+        ranks = [_RANK[n["status"]] for n in ns]
+        if ranks != sorted(ranks):
+            _bad(f"target {tk}: a notice was delivered or claimed ahead of an earlier one")
 
 
 def empty_state() -> dict:
@@ -176,6 +225,10 @@ def save_state(root, st: dict) -> None:
 
 def state_lock(root):
     return root.lock(LOCK, blocking=True)
+
+
+def _is_checker(t: dict) -> bool:
+    return isinstance(t["incident"], str) and t["incident"].startswith(CHECKER_PREFIX)
 
 
 def _text(t: dict, kind: str, episode: int, state: str, detail: str) -> str:
@@ -211,7 +264,8 @@ class Notifier:
                     all_clear = None in incidents
                     for tk, t in st["targets"].items():
                         if (t["open"] and t["check"] == check and t["et_date"] == et_date
-                                and t["selection"] == selection and (all_clear or t["incident"] in incidents)):
+                                and t["selection"] == selection and not _is_checker(t)
+                                and (all_clear or t["incident"] in incidents)):
                             new += self._recover(st, tk, t, now, "verified")
             for name in executed_ok:
                 for tk, t in st["targets"].items():
@@ -260,38 +314,59 @@ class Notifier:
         claimed, until = _parse_utc(n["claimed_at"]), _parse_utc(n["lease_until"])
         return now >= until or now < claimed          # expired, or the clock rolled back past the claim
 
+    def _claimable(self, st, now: datetime) -> list:
+        """Per target, the longest due prefix of its unsent notices in `seq` order; merged by `seq`, then capped. A
+        target whose head is live-claimed contributes nothing (r3 R3-2)."""
+        queues: dict = {}
+        for k, n in st["notices"].items():
+            if n["status"] != "sent":
+                queues.setdefault(n["target"], []).append(k)
+        picked = []
+        for ks in queues.values():
+            for k in sorted(ks, key=lambda k: st["notices"][k]["seq"]):
+                if not self._due(st["notices"][k], now):
+                    break
+                picked.append(k)
+        return sorted(picked, key=lambda k: st["notices"][k]["seq"])[: self.max_sends]
+
     def flush(self) -> dict:
-        """Send due notices in causal order (bounded). Returns {"sent", "failed", "skipped_budget"}."""
-        report = {"sent": 0, "failed": 0, "skipped_budget": 0}
+        """Send due notices, each target's in order (bounded). Returns {"sent", "failed", "skipped_budget", "held"}."""
+        report = {"sent": 0, "failed": 0, "skipped_budget": 0, "held": 0}
         if self.send is None or not self.recipient:
             return report                                # queue-only: notices stay pending
         with state_lock(self.root):
             st = load_state(self.root)
             now = _utc(self.clock.now())
-            due = sorted((k for k, n in st["notices"].items() if self._due(n, now)),
-                         key=lambda k: st["notices"][k]["seq"])[: self.max_sends]
             claims = {}
-            for k in due:
+            for k in self._claimable(st, now):
                 token = uuid.uuid4().hex
                 st["notices"][k].update(status="sending", claim_token=token, claimed_at=now.isoformat(),
                                         lease_until=(now + self.lease).isoformat())
-                claims[k] = (token, st["notices"][k]["text"])
+                claims[k] = (token, st["notices"][k]["text"], st["notices"][k]["target"])
             if claims:
                 save_state(self.root, st)
         started = self.monotonic()
-        outcomes = {}
-        for k, (token, text) in claims.items():          # network, outside the lock
+        outcomes, blocked = {}, set()
+        for k, (token, text, tk) in claims.items():      # network, outside the lock; seq order
+            if tk in blocked:                            # an earlier notice of this target was not delivered
+                outcomes[k] = (token, None, "an earlier notice of this target was not delivered", False)
+                report["held"] += 1
+                continue
             if self.monotonic() - started > self.budget_s:
                 outcomes[k] = (token, None, "budget exhausted before send", False)
                 report["skipped_budget"] += 1
+                blocked.add(tk)
                 continue
             try:
                 mid = self.send(self.recipient, text)
             except Exception as exc:  # noqa: BLE001 - a failed send stays pending
                 outcomes[k] = (token, None, type(exc).__name__, True)
+                blocked.add(tk)
             else:
                 ok = isinstance(mid, str) and mid != ""
                 outcomes[k] = (token, mid if ok else None, None if ok else "no message id", True)
+                if not ok:
+                    blocked.add(tk)
         if not outcomes:
             return report
         with state_lock(self.root):

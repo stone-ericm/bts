@@ -1,7 +1,9 @@
 """`bts watchdog run JOB`: run one registered watchdog job (registration R3; the cron line comes with the
 intent-aware install).
 
-Jobs are registered in `JOBS` by the W pieces (W1 onwards); W0 registers none. Notifications go through
+Jobs are registered with `register(job, [(check_id, callable), ...])` by the W pieces (W1 onwards); W0 registers
+none. Registration validates the identities (`runner.validate_checks`) and refuses a second registration of a job, so
+every checker has one stable `<job>/<check_id>` identity (W0 r3 R3-1). Notifications go through
 `bts.dm.send_dm` (it returns the message id), unless `--no-send` (results are still written and alerts stay
 pending).
 """
@@ -14,9 +16,18 @@ import click
 from bts.watchdog.clock import SystemClock
 from bts.watchdog.notify import Notifier
 from bts.watchdog.root import JobBusy, OwnedRoot
-from bts.watchdog.runner import run_job
+from bts.watchdog.runner import RegistrationError, run_job, validate_checks
 
-JOBS: dict[str, list] = {}
+JOBS: dict[str, tuple] = {}
+
+
+def register(job: str, checks) -> None:
+    """Register one job's `(check_id, callable)` pairs; raises RegistrationError on invalid identities or a second
+    registration of the same job."""
+    registered = validate_checks(job, checks)
+    if job in JOBS:
+        raise RegistrationError(f"watchdog job {job!r} is already registered")
+    JOBS[job] = registered
 
 
 @click.group()

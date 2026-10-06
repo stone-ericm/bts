@@ -15,6 +15,7 @@ class Status(str, enum.Enum):
 
 
 ALERTING = frozenset({Status.FAULT, Status.CHECKER_FAILURE})
+CHECKER_PREFIX = "checker:"                # incidents reserved for the runner's checker failures (W0 r3 R3-1)
 
 
 @dataclass(frozen=True)

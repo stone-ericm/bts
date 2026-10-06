@@ -178,9 +178,9 @@ def raising_check(ctx):
 
 
 def test_every_check_runs_and_an_exception_is_a_checker_failure(root):
-    out = run_job("t", [raising_check, ok_check, faulty_check], root=root, clock=FixedClock(T0), notifier=None)
+    out = run_job("t", [("raising", raising_check), ("ok", ok_check), ("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=None)
     by = {r.check: r for r in out.results}
-    assert by["raising_check"].status is Status.CHECKER_FAILURE and "RuntimeError" in by["raising_check"].detail
+    assert by["t/raising"].status is Status.CHECKER_FAILURE and "RuntimeError" in by["t/raising"].detail
     assert by["W-ok"].status is Status.VERIFIED and by["W-bad"].status is Status.FAULT
     saved = json.loads(out.path.read_text())
     assert saved["job"] == "t" and saved["et_date"] == "2026-10-06" and len(saved["results"]) == 3 and out.ok
@@ -223,25 +223,26 @@ def bad_date(ctx):
 def test_isolation_survives_hostile_checks_and_outputs(root):
     """Round-1 B6: a raising __repr__, a raising __str__, invalid output and a partial generator each become one
     checker_failure, and every following check still runs."""
-    checks = [Unnamed(), bad_str_check, partial_generator, not_a_result, unserializable, bad_date, ok_check]
+    checks = [("unnamed", Unnamed()), ("bad-str", bad_str_check), ("partial", partial_generator),
+              ("not-a-result", not_a_result), ("unserializable", unserializable), ("bad-date", bad_date), ("ok", ok_check)]
     out = run_job("t", checks, root=root, clock=FixedClock(T0), notifier=None)
     statuses = [r.status for r in out.results]
     assert statuses == [Status.CHECKER_FAILURE] * 6 + [Status.VERIFIED] and out.ok
-    assert out.results[0].check == "check#0" and "<unprintable>" in out.results[1].detail
+    assert out.results[0].check == "t/unnamed" and "<unprintable>" in out.results[1].detail
     assert "1 partial result(s) discarded" in out.results[2].detail                  # transactional, stated
     assert json.loads(out.path.read_text())["results"][-1]["check"] == "W-ok"
 
 
 def test_a_check_returning_nothing_is_a_checker_failure_not_silence(root):
-    out = run_job("t", [lambda ctx: []], root=root, clock=FixedClock(T0), notifier=None)
+    out = run_job("t", [("empty", lambda ctx: [])], root=root, clock=FixedClock(T0), notifier=None)
     assert [r.status for r in out.results] == [Status.CHECKER_FAILURE]
 
 
 def test_a_job_is_a_singleton(root):
     with root.job_lock("t"):
         with pytest.raises(JobBusy):
-            run_job("t", [ok_check], root=root, clock=FixedClock(T0), notifier=None)
-    assert run_job("u", [ok_check], root=root, clock=FixedClock(T0), notifier=None).results
+            run_job("t", [("ok", ok_check)], root=root, clock=FixedClock(T0), notifier=None)
+    assert run_job("u", [("ok", ok_check)], root=root, clock=FixedClock(T0), notifier=None).results
 
 
 # ---- notifications ------------------------------------------------------------------------------------------------
@@ -275,21 +276,21 @@ def test_a_results_write_failure_is_reported_and_notification_still_runs(root, m
             raise OSError("disk full")
         return real(parts, data)
     monkeypatch.setattr(root, "write_atomic", failing)
-    out = run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
+    out = run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
     assert out.persist_error and "disk full" in out.persist_error and not out.ok
     assert len(t.sent) == 1 and out.results[0].status is Status.FAULT
 
 
 def test_a_corrupt_notification_state_is_reported_with_results_kept(root):
     root.write_atomic(N.STATE, b'{"bad": {}}')
-    out = run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport()))
+    out = run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport()))
     assert out.notify_error and "NotifyStateError" in out.notify_error and out.path.exists() and not out.ok
 
 
 def test_a_fault_is_sent_once_per_episode_across_restarts(root):
     t = Transport()
     for _ in range(3):                                          # repeated polling, each a new Notifier (restart)
-        run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
+        run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
     assert len(t.sent) == 1 and "episode 1" in t.sent[0][1]
     (n,) = notices(root)
     assert n["status"] == "sent" and n["message_id"] == "msg-1" and n["recipient"] == "watchdog-test.invalid"
@@ -300,7 +301,7 @@ def test_fault_recovery_and_recurrence_through_the_real_path(root):
     enqueue/flush with restarts in between."""
     t = Transport()
     for check in (faulty_check, faulty_check, recovered_check, recovered_check, faulty_check, faulty_check):
-        run_job("t", [check], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
+        run_job("t", [("w", check)], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
     texts = [m for _, m in t.sent]
     assert len(texts) == 3
     assert "episode 1" in texts[0] and "RECOVERED" in texts[1] and "episode 2" in texts[2]
@@ -335,21 +336,21 @@ def test_pending_and_unverifiable_change_no_episode(root):
 
 
 def test_failed_and_uncertain_sends_stay_pending_and_retry(root):
-    run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport(fail=1)))
+    run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport(fail=1)))
     (n,) = notices(root)
     assert n["status"] == "pending" and n["attempts"] == 1 and n["last_error"] == "RuntimeError"
-    run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport(uncertain=True)))
+    run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, Transport(uncertain=True)))
     (n,) = notices(root)
     assert n["status"] == "pending" and n["attempts"] == 2 and n["last_error"] == "no message id"
     ok = Transport()
-    run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, ok))
+    run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, ok))
     (n,) = notices(root)
     assert n["status"] == "sent" and len(ok.sent) == 1
 
 
 def test_queue_only_mode_keeps_the_alert_for_a_later_send(root):
     """Round-1 B7: --no-send queues; a later configured flush sends that same notice exactly once."""
-    run_job("t", [faulty_check], root=root, clock=FixedClock(T0), notifier=notifier(root, None, recipient=None))
+    run_job("t", [("faulty", faulty_check)], root=root, clock=FixedClock(T0), notifier=notifier(root, None, recipient=None))
     (n,) = notices(root)
     assert n["status"] == "pending"
     later = Transport()
@@ -520,7 +521,7 @@ def test_the_cli_sends_through_the_dm_transport_and_fails_loudly(tmp_path, monke
     (tmp_path / "data").mkdir()
     sent = []
     monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: (sent.append((h, m)), "dm-1")[1])
-    monkeypatch.setitem(wcli.JOBS, "t", [faulty_check, ok_check])
+    monkeypatch.setitem(wcli.JOBS, "t", (("faulty", faulty_check), ("ok", ok_check)))
     res = CliRunner().invoke(cli, ["watchdog", "run", "t", "--data-dir", str(tmp_path / "data"),
                                    "--dm-recipient", "watchdog-test.invalid"])
     assert res.exit_code == 0, res.output
@@ -538,7 +539,7 @@ def test_the_cli_refuses_unknown_jobs_and_a_missing_recipient_and_queues_in_no_s
     (tmp_path / "data").mkdir()
     res = CliRunner().invoke(cli, ["watchdog", "run", "nope", "--data-dir", str(tmp_path / "data"), "--no-send"])
     assert res.exit_code != 0 and "unknown watchdog job" in res.output
-    monkeypatch.setitem(wcli.JOBS, "t", [faulty_check])
+    monkeypatch.setitem(wcli.JOBS, "t", (("faulty", faulty_check),))
     res = CliRunner().invoke(cli, ["watchdog", "run", "t", "--data-dir", str(tmp_path / "data")])
     assert res.exit_code != 0 and "--dm-recipient is required" in res.output
     res = CliRunner().invoke(cli, ["watchdog", "run", "t", "--data-dir", str(tmp_path / "data"), "--no-send"])
@@ -572,7 +573,7 @@ def send(h, m):
     return "dm-ok"
 bts.dm.send_dm = send
 {extra}
-wcli.JOBS["gate"] = [check]
+wcli.register("gate", [("gate", check)])
 for _ in range(4):                  # fault (send fails), fault (retry), recovery, recurrence
     try:
         cli(["watchdog", "run", "gate", "--data-dir", D, "--dm-recipient", "watchdog-test.invalid"], standalone_mode=False)
@@ -704,13 +705,13 @@ def test_n1_checker_failure_recovery_and_recurrence_through_run_job(root):
         raise RuntimeError("down")
     t = Transport()
     for _ in range(3):
-        run_job("t", [transient], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
+        run_job("t", [("transient", transient)], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
     texts = [m for _, m in t.sent]
     assert len(texts) == 4
-    assert "checker:transient" in texts[0] and "episode 1" in texts[0]
-    assert any("RECOVERED [checker:transient]" in x for x in texts)
+    assert "checker:t/transient" in texts[0] and "episode 1" in texts[0]
+    assert any("RECOVERED [checker:t/transient]" in x for x in texts)
     assert any("[I-b]" in x and "fault" in x for x in texts)
-    assert "checker:transient" in texts[-1] and "episode 2" in texts[-1]
+    assert "checker:t/transient" in texts[-1] and "episode 2" in texts[-1]
 
 
 def test_n2_an_unrelated_all_clear_in_the_same_batch_does_not_recover_a_live_fault(root):

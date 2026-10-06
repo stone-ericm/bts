@@ -10,6 +10,12 @@ denial **kills** the child (SIGKILL), so a caught refusal cannot leave the gate 
 - **Outcome:** in the gate, any attempted outside write kills the child, so the gate fails on its exit status. It also
   asserts the child's exact statuses, notices and confirmed fake deliveries. Red controls use plain EPERM and must
   witness both the child's start and the specific refused operation.
+- **No descendants (W0 r3 R3-4):** the gate profile also denies process creation with SIGKILL. A kill aimed at a
+  descendant would be invisible if its parent ignored the exit, so no descendant may exist: any attempt to create a
+  process (fork, posix_spawn, subprocess, os.system, multiprocessing) kills the gate's own child before a new process
+  starts, and the gate fails on its exit status. Measured on macOS 27.2 in
+  `docs/audit/2026-10-06-c2-w0-evidence/fork_probe.{py,out}`. The EPERM profile allows process creation by default,
+  so its subprocess control still witnesses that a grandchild inherits the write denial.
 
 Where `sandbox-exec` is unavailable (not macOS), the gate tests are skipped with a visible reason, never silently
 accepted.
@@ -32,18 +38,25 @@ needs_sandbox = pytest.mark.skipif(SANDBOX is None, reason="gate 2 needs macOS s
 DEV_ALLOW = '(literal "/dev/null") (literal "/dev/dtracehelper")'
 
 
-def profile(allow: Path, *, kill: bool = True) -> str:
+def profile(allow: Path, *, kill: bool = True, deny_fork: bool | None = None) -> str:
     """kill=True: any denied write kills the child with SIGKILL, so application code cannot catch and swallow a
     refusal; the gate then fails on the exit status (W0 review r2 G1). kill=False: plain EPERM, for red controls
-    that must witness the specific refused operation (G3)."""
+    that must witness the specific refused operation (G3).
+    deny_fork (default: the same as kill): process creation is denied too, with SIGKILL under kill and EPERM
+    otherwise (W0 review r3 R3-4)."""
     real = os.path.realpath(allow)
-    deny = "(deny file-write* (with send-signal SIGKILL))" if kill else "(deny file-write*)"
-    return f'(version 1)(allow default){deny}(allow file-write* (subpath "{real}") {DEV_ALLOW})'
+    action = " (with send-signal SIGKILL)" if kill else ""
+    fork = f"(deny process-fork{action})" if (kill if deny_fork is None else deny_fork) else ""
+    return (f'(version 1)(allow default)(deny file-write*{action})'
+            f'(allow file-write* (subpath "{real}") {DEV_ALLOW}){fork}')
 
 
-def run_confined(code: str, allow: Path, *, kill: bool = True, timeout: int = 120) -> subprocess.CompletedProcess:
-    """Run `code` in a fresh `python -B` child that may write only beneath `allow`."""
+def run_confined(code: str, allow: Path, *, kill: bool = True, deny_fork: bool | None = None,
+                 timeout: int = 120) -> subprocess.CompletedProcess:
+    """Run `code` in a fresh `python -B` child that may write only beneath `allow` (and, under the gate profile,
+    create no process)."""
     env = {"PATH": "/usr/bin:/bin", "HOME": os.environ.get("HOME", "/tmp"), "PYTHONDONTWRITEBYTECODE": "1",
            "PYTHONPATH": f"{REPO / 'src'}:{REPO}", "TZ": "America/New_York"}
-    return subprocess.run([SANDBOX, "-p", profile(allow, kill=kill), sys.executable, "-B", "-c", code], env=env,
+    prof = profile(allow, kill=kill, deny_fork=deny_fork)
+    return subprocess.run([SANDBOX, "-p", prof, sys.executable, "-B", "-c", code], env=env,
                           cwd=str(allow), capture_output=True, text=True, timeout=timeout, close_fds=True)

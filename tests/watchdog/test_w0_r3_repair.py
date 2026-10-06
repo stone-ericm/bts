@@ -1,0 +1,485 @@
+"""C2 (a) unit 1: W0 review r3's required changes R3-1 to R3-4 (`docs/audit/2026-10-06-c1-r2-watchdog-w0-codex-r3.md`;
+design `docs/superpowers/specs/2026-10-06-c2-w0-repair-design.md`)."""
+import json
+import threading
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+import pytest
+
+from bts.watchdog import notify as N
+from bts.watchdog.clock import FixedClock
+from bts.watchdog.result import CheckResult, Status
+from bts.watchdog.root import OwnedRoot
+from bts.watchdog.runner import RegistrationError, run_job
+from tests.watchdog.conftest import needs_sandbox, run_confined
+from tests.watchdog.test_w0_skeleton import GATE_CHILD
+
+ET = ZoneInfo("America/New_York")
+T0 = datetime(2026, 10, 6, 12, 0, tzinfo=ET)
+D = "2026-10-06"
+
+
+@pytest.fixture
+def data(tmp_path):
+    d = tmp_path / "data"
+    d.mkdir()
+    return d
+
+
+@pytest.fixture
+def root(data):
+    return OwnedRoot.under(data)
+
+
+class Recorder:
+    """A transport that records each accepted text in order; `fail_when(text)` makes a send raise."""
+
+    def __init__(self, fail_when=lambda text: False):
+        self.accepted, self.fail_when = [], fail_when
+
+    def __call__(self, recipient, text):
+        if self.fail_when(text):
+            raise RuntimeError("send failed")
+        self.accepted.append(text)
+        return f"msg-{len(self.accepted)}"
+
+
+def notifier(root, send, clock=None, recipient="watchdog-test.invalid", **kw):
+    return N.Notifier(root, recipient=recipient, send=send, clock=clock or FixedClock(T0), **kw)
+
+
+def queue_only(root):
+    return N.Notifier(root, recipient=None, send=None, clock=FixedClock(T0))
+
+
+def job(name, checks, root, send=None):
+    return run_job(name, checks, root=root, clock=FixedClock(T0),
+                   notifier=notifier(root, send) if send is not None else queue_only(root))
+
+
+def targets(root, incident):
+    return [t for t in N.load_state(root)["targets"].values() if t["incident"] == incident]
+
+
+def kinds(texts):
+    """'fault' / 'recovered' / 'checker_failure' per accepted text, from the notice heading."""
+    out = []
+    for x in texts:
+        out.append("recovered" if "RECOVERED" in x else "checker_failure" if "checker_failure" in x else "fault")
+    return out
+
+
+def broken():
+    def check(ctx):
+        raise RuntimeError("down")
+    return check
+
+
+def healthy():
+    def check(ctx):
+        return [CheckResult("W-ok", ctx.et_date, Status.VERIFIED, "fine")]
+    return check
+
+
+# ---- R3-1: a registered, job-scoped checker identity -----------------------------------------------------------------
+
+def test_r31_a_same_named_success_in_the_same_job_never_recovers_a_broken_checker(root):
+    bad, good = broken(), healthy()
+    assert bad.__name__ == good.__name__ == "check"
+    t = Recorder()
+    for _ in range(2):
+        job("j", [("broken", bad), ("good", good)], root, t)
+    assert len(t.accepted) == 1 and "[checker:j/broken]" in t.accepted[0] and "episode 1" in t.accepted[0]
+    (tgt,) = targets(root, "checker:j/broken")
+    assert tgt["open"] is True and tgt["episode"] == 1 and tgt["check"] == "j/broken"
+
+
+def test_r31_a_same_named_success_in_another_job_never_recovers_a_broken_checker(root):
+    t = Recorder()
+    job("broken-job", [("check", broken())], root, t)
+    for _ in range(2):
+        job("other-job", [("check", healthy())], root, t)
+    assert len(t.accepted) == 1 and not any("RECOVERED" in x for x in t.accepted)
+    (tgt,) = targets(root, "checker:broken-job/check")
+    assert tgt["open"] is True and tgt["episode"] == 1
+
+
+def test_r31_genuine_success_recovers_and_a_later_failure_recurs(root):
+    calls = {"n": 0}
+
+    def transient(ctx):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            return [CheckResult("W-x", ctx.et_date, Status.VERIFIED, "fine")]
+        raise RuntimeError("down")
+    t = Recorder()
+    for _ in range(3):
+        job("j", [("transient", transient)], root, t)
+    assert kinds(t.accepted) == ["checker_failure", "recovered", "checker_failure"]
+    assert "[checker:j/transient]" in t.accepted[1] and "episode 2" in t.accepted[2]
+
+
+def test_r31_a_business_result_using_the_checker_namespace_is_a_checker_failure(root):
+    def forger(ctx):
+        return [CheckResult("j/victim", ctx.et_date, Status.FAULT, "forged", incident="checker:j/victim")]
+    out = job("j", [("forger", forger)], root)
+    (r,) = out.results
+    assert r.status is Status.CHECKER_FAILURE and r.check == "j/forger" and r.incident == "checker:j/forger"
+    assert targets(root, "checker:j/victim") == []
+
+
+def test_r31_a_business_all_clear_never_closes_a_checker_target(root):
+    t = Recorder()
+    job("j", [("victim", broken())], root, t)
+
+    def all_clear(ctx):                         # same (check, date, no selection) group as the checker target
+        return [CheckResult("j/victim", ctx.et_date, Status.VERIFIED, "all clear?")]
+    job("k", [("clear", all_clear)], root, t)
+    (tgt,) = targets(root, "checker:j/victim")
+    assert tgt["open"] is True and not any("RECOVERED" in x for x in t.accepted)
+
+
+@pytest.mark.parametrize("field", [{"incident": ""}, {"selection": ""}, {"incident": 7}, {"selection": ["s"]}])
+def test_a_result_the_notification_state_cannot_hold_is_a_checker_failure_and_silences_nothing(root, field):
+    """Found while reading `_valid` (C2 unit 1): an empty or non-string incident/selection passed the runner, then made
+    the notification state fail validation, which dropped every other check's alert in that run."""
+    def odd(ctx):
+        return [CheckResult("W-odd", ctx.et_date, Status.FAULT, "x", **field)]
+
+    def fault(ctx):
+        return [FAULT]
+    t = Recorder()
+    out = job("j", [("odd", odd), ("fault", fault)], root, t)
+    assert out.ok and [r.status for r in out.results] == [Status.CHECKER_FAILURE, Status.FAULT]
+    assert sorted(kinds(t.accepted)) == ["checker_failure", "fault"]
+
+
+def _ran(log):
+    def first(ctx):
+        log.append("ran")
+        return [CheckResult("W-x", ctx.et_date, Status.VERIFIED, "fine")]
+    return first
+
+
+@pytest.mark.parametrize("bad", [
+    [("dup", lambda ctx: []), ("dup", lambda ctx: [])],          # a duplicate id
+    [("Upper", lambda ctx: [])],                                 # not [a-z0-9][a-z0-9_-]*
+    [("", lambda ctx: [])],
+    [("a/b", lambda ctx: [])],
+    [("checker:x", lambda ctx: [])],
+    [("ok", "not callable")],
+    [lambda ctx: []],                                            # a bare callable has no registered id
+    [("ok", lambda ctx: [], "extra")],
+])
+def test_r31_an_invalid_registration_refuses_before_any_check_runs(root, bad):
+    log = []
+    with pytest.raises(RegistrationError):
+        run_job("j", [("first", _ran(log))] + bad, root=root, clock=FixedClock(T0), notifier=queue_only(root))
+    assert log == [] and root.list_dir(("results",)) == []
+
+
+def test_r31_a_job_with_no_checks_refuses(root):
+    with pytest.raises(RegistrationError):
+        run_job("j", [], root=root, clock=FixedClock(T0), notifier=queue_only(root))
+    assert root.list_dir(("results",)) == []
+
+
+@pytest.mark.parametrize("name", ["Bad", "", "a/b", "-x"])
+def test_r31_an_invalid_job_name_refuses(root, name):
+    with pytest.raises(RegistrationError):
+        run_job(name, [("ok", _ran([]))], root=root, clock=FixedClock(T0), notifier=queue_only(root))
+
+
+def test_r31_register_validates_and_refuses_a_second_registration(monkeypatch):
+    import bts.watchdog.cli as wcli
+    monkeypatch.setattr(wcli, "JOBS", {})
+    wcli.register("fast", [("deliver", lambda ctx: [])])
+    assert list(wcli.JOBS) == ["fast"] and [cid for cid, _ in wcli.JOBS["fast"]] == ["deliver"]
+    with pytest.raises(RegistrationError):
+        wcli.register("fast", [("other", lambda ctx: [])])
+    with pytest.raises(RegistrationError):
+        wcli.register("slow", [("x", lambda ctx: []), ("x", lambda ctx: [])])
+    assert list(wcli.JOBS) == ["fast"]
+
+
+# ---- R3-2: a target's notices are accepted in order -----------------------------------------------------------------
+
+FAULT = CheckResult("W-x", D, Status.FAULT, "bad", incident="I-1", selection="s")
+CLEAR = CheckResult("W-x", D, Status.VERIFIED, "fixed", selection="s")
+
+
+def test_r32_a_recovery_never_overtakes_a_failed_fault_send(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    state = {"first": True}
+
+    def fail_first(text):
+        if state["first"]:
+            state["first"] = False
+            return True
+        return False
+    t = Recorder(fail_first)
+    notifier(root, t).flush()
+    assert t.accepted == []                                   # the recovery waited behind the failed fault
+    rec = [n for n in N.load_state(root)["notices"].values() if n["state"] == "recovered"]
+    assert rec[0]["status"] == "pending" and rec[0]["attempts"] == 0
+    notifier(root, t).flush()
+    assert kinds(t.accepted) == ["fault", "recovered"]
+
+
+def test_r32_a_recovery_never_overtakes_a_live_claimed_fault(root):
+    accepted, started, release, errors = [], threading.Event(), threading.Event(), []
+
+    def slow(recipient, text):
+        started.set()
+        if not release.wait(10):
+            raise AssertionError("never released")
+        accepted.append(text)
+        return "msg-slow"
+    n1 = notifier(root, slow)
+    n1.enqueue([FAULT])
+
+    def run1():
+        try:
+            n1.flush()
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    th = threading.Thread(target=run1)
+    th.start()
+    fast = Recorder()
+    try:
+        assert started.wait(10)
+        n2 = notifier(root, fast)
+        n2.enqueue([CLEAR])                                   # the recovery is queued while the fault is in flight
+        n2.flush()
+        assert fast.accepted == [] and accepted == []
+    finally:
+        release.set()
+        th.join(10)
+    assert not th.is_alive() and errors == []
+    notifier(root, fast).flush()
+    assert kinds(accepted + fast.accepted) == ["fault", "recovered"]
+
+
+def test_r32_an_uncertain_fault_send_holds_its_recovery(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    sent = []
+
+    def uncertain(recipient, text):
+        sent.append(text)
+        return ""                                             # accepted? unknown: no message id
+    notifier(root, uncertain).flush()
+    assert kinds(sent) == ["fault"]
+    by = {n["state"]: n for n in N.load_state(root)["notices"].values()}
+    assert by["fault"]["status"] == "pending" and by["recovered"]["attempts"] == 0
+
+
+def test_r32_a_blocked_target_does_not_block_other_targets(root):
+    q = queue_only(root)
+    q.enqueue([CheckResult("W-x", D, Status.FAULT, "a", incident="I-a", selection="a")])
+    q.enqueue([CheckResult("W-x", D, Status.VERIFIED, "a fixed", selection="a")])
+    q.enqueue([CheckResult("W-x", D, Status.FAULT, "b", incident="I-b", selection="b")])
+    t = Recorder(lambda text: "(a)" in text and "RECOVERED" not in text)
+    notifier(root, t).flush()
+    assert len(t.accepted) == 1 and "[I-b]" in t.accepted[0]
+    (rec,) = [n for n in N.load_state(root)["notices"].values() if n["state"] == "recovered"]
+    assert rec["status"] == "pending" and rec["attempts"] == 0
+
+
+def test_r32_an_exhausted_budget_mid_chain_releases_the_rest_unattempted(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    mono = {"t": 0.0}
+
+    def slow(recipient, text):
+        mono["t"] += 100.0
+        return "m1"
+    notifier(root, slow, budget_s=90.0, monotonic=lambda: mono["t"]).flush()
+    by = {n["state"]: n for n in N.load_state(root)["notices"].values()}
+    assert by["fault"]["status"] == "sent"
+    assert by["recovered"]["status"] == "pending" and by["recovered"]["attempts"] == 0
+
+
+# ---- R3-3: lifecycle completeness and the sequence, validated before acting ----------------------------------------
+
+def _state(root, *batches):
+    q = queue_only(root)
+    for b in batches:
+        q.enqueue(b)
+    return json.loads(root.read_bytes(N.STATE))
+
+
+def _by_seq(st):
+    return {n["seq"]: k for k, n in st["notices"].items()}
+
+
+def _rekey(st, k):
+    n = st["notices"].pop(k)
+    st["notices"][N.notice_key(n["target"], n["episode"], n["state"])] = n
+
+
+def _corrupt(st, kind):
+    seq = _by_seq(st)
+    (tk,) = st["targets"]
+    t = st["targets"][tk]
+    if kind == "deleted_notice_seq_kept":                     # the reviewer's probe
+        del st["notices"][seq[1]]
+    elif kind == "deleted_notice_seq_decremented":
+        del st["notices"][seq[1]]
+        st["seq"] = 0
+    elif kind == "seq_hole":
+        st["notices"][seq[3]]["seq"] = 4
+        st["seq"] = 4
+    elif kind == "missing_earlier_recovery":
+        del st["notices"][seq[2]]
+        st["notices"][seq[3]]["seq"] = 2
+        st["seq"] = 2
+    elif kind == "recovery_not_last":                        # an open target escalated after its own recovery
+        st["seq"] = 3
+        st["notices"]["x"] = dict(st["notices"][seq[1]], state="checker_failure", seq=3)
+        _rekey(st, "x")
+        t.update(open=True, state="checker_failure")
+        del t["closed_at"]
+    elif kind == "open_without_current_state_notice":
+        t["state"] = "checker_failure"
+    elif kind == "episodes_out_of_order":
+        st["notices"][seq[2]]["seq"], st["notices"][seq[3]]["seq"] = 3, 2
+    elif kind == "episode_gap":
+        t["episode"] = 2
+    elif kind == "episode_opens_with_recovery":
+        del st["notices"][seq[1]]
+        st["notices"][seq[2]]["seq"] = 1
+        st["seq"] = 1
+    elif kind == "closed_without_recovery":
+        del st["notices"][seq[2]]
+        st["seq"] = 1
+    elif kind == "reopened_without_new_episode":
+        t.update(open=True, state="fault")
+        del t["closed_at"]
+    elif kind == "sending_behind_pending":
+        st["notices"][seq[2]].update(status="sending", claim_token="tok", claimed_at="2026-10-06T16:00:00+00:00",
+                                     lease_until="2026-10-06T16:10:00+00:00")
+    return st
+
+
+CASES = {                         # corruption -> the generated state it starts from
+    "deleted_notice_seq_kept": "one_fault",
+    "deleted_notice_seq_decremented": "one_fault",
+    "open_without_current_state_notice": "one_fault",
+    "episode_gap": "one_fault",
+    "recovery_not_last": "recovered",
+    "sending_behind_pending": "recovered",
+    "episode_opens_with_recovery": "recovered",
+    "closed_without_recovery": "recovered",
+    "reopened_without_new_episode": "recovered",
+    "seq_hole": "two_episodes",
+    "missing_earlier_recovery": "two_episodes",
+    "episodes_out_of_order": "two_episodes",
+}
+
+
+def _generate(root, base):
+    if base == "one_fault":
+        return _state(root, [FAULT])
+    if base == "recovered":
+        return _state(root, [FAULT], [CLEAR])
+    return _state(root, [FAULT], [CLEAR], [FAULT])
+
+
+@pytest.mark.parametrize("base", ["one_fault", "recovered", "two_episodes"])
+def test_r33_every_generated_lifecycle_state_is_accepted(root, base):
+    raw = json.dumps(_generate(root, base)).encode()
+    root.write_atomic(N.STATE, raw)
+    assert N.load_state(root)["seq"] == {"one_fault": 1, "recovered": 2, "two_episodes": 3}[base]
+
+
+@pytest.mark.parametrize("kind", sorted(CASES))
+@pytest.mark.parametrize("via", ["enqueue", "flush"])
+def test_r33_an_impossible_lifecycle_state_refuses_untouched_and_unsent(root, kind, via):
+    st = _corrupt(_generate(root, CASES[kind]), kind)
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    t = Recorder()
+    with pytest.raises(N.NotifyStateError):
+        if via == "enqueue":
+            notifier(root, t).enqueue([FAULT])
+        else:
+            notifier(root, t).flush()
+    assert root.read_bytes(N.STATE) == raw and t.accepted == []
+
+
+def test_r33_the_deleted_notice_probe_through_run_job_reports_and_never_silences(root):
+    """The reviewer's sequence: a real queue-only fault, its notice deleted, then the identical fault again."""
+    def fault(ctx):
+        return [FAULT]
+    job("j", [("fault", fault)], root)
+    st = json.loads(root.read_bytes(N.STATE))
+    st["notices"] = {}
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    t = Recorder()
+    out = job("j", [("fault", fault)], root, t)
+    assert out.notify_error and "NotifyStateError" in out.notify_error and not out.ok
+    assert root.read_bytes(N.STATE) == raw and t.accepted == []
+
+
+# ---- R3-4: no descendant process inside the confinement gate ----------------------------------------------------------
+
+DESCENDANT_SELF_KILL = """
+import subprocess, sys
+_real_flush = N.Notifier.flush
+def _flush(self):
+    subprocess.run([sys.executable, "-c", "import os, signal; os.kill(os.getpid(), signal.SIGKILL)"], check=False)
+    return _real_flush(self)
+N.Notifier.flush = _flush
+"""
+
+DESCENDANT_OUTSIDE_WRITE = """
+import subprocess, sys
+_real_flush = N.Notifier.flush
+def _flush(self):
+    subprocess.run([sys.executable, "-c", "open(%r, 'w').write('outside-mutant')" % (D + "/picks/2026-10-06.json")],
+                   check=False)
+    return _real_flush(self)
+N.Notifier.flush = _flush
+"""
+
+
+def _gate_data(data):
+    (data / "picks").mkdir()
+    (data / "picks" / "2026-10-06.json").write_text("{}")
+    OwnedRoot.under(data).close()
+
+
+@needs_sandbox
+@pytest.mark.parametrize("extra", [DESCENDANT_SELF_KILL, DESCENDANT_OUTSIDE_WRITE], ids=["self_kill", "outside_write"])
+def test_r34_a_parent_continues_descendant_mutant_fails_the_gate(data, extra):
+    _gate_data(data)
+    res = run_confined(GATE_CHILD.format(data=str(data), extra=extra), data / "watchdog")
+    assert res.returncode in (-9, 137) and "GATE-OK" not in res.stdout, (res.returncode, res.stdout[-500:])
+    assert (data / "picks" / "2026-10-06.json").read_text() == "{}"
+
+
+@needs_sandbox
+def test_r34_the_kill_profile_kills_after_start_on_any_process_creation(data):
+    _gate_data(data)
+    code = ("print('CHILD-STARTED', flush=True)\nimport subprocess, sys\ntry:\n"
+            "    subprocess.run([sys.executable, '-c', 'pass'], check=False)\nexcept Exception:\n    pass\n"
+            "print('SURVIVED', flush=True)")
+    res = run_confined(code, data / "watchdog")
+    assert res.returncode in (-9, 137) and "CHILD-STARTED" in res.stdout and "SURVIVED" not in res.stdout
+
+
+@needs_sandbox
+def test_r34_the_fork_refusal_itself_is_witnessed_under_eperm(data):
+    _gate_data(data)
+    code = ("print('CHILD-STARTED', flush=True)\nimport subprocess, sys\ntry:\n"
+            "    subprocess.run([sys.executable, '-c', 'pass'], check=False)\nexcept PermissionError:\n"
+            "    print('FORK-EPERM-WITNESS', flush=True)\n    raise SystemExit(0)\nraise SystemExit(5)")
+    res = run_confined(code, data / "watchdog", kill=False, deny_fork=True)
+    assert res.returncode == 0 and "CHILD-STARTED" in res.stdout and "FORK-EPERM-WITNESS" in res.stdout
