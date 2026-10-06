@@ -1,7 +1,6 @@
 """Checklist C1 and C2 (docs/ops/2027-season-start.md), prerequisites of the C1 rank-2 watchdog (plan P4/P5).
 
-C1: private mode must never touch a delivery transport. Both transports are patched with recorders, so a regression
-cannot post for real and cannot pass silently.
+C1: an eligible private recommendation lock succeeds without calling either pick-delivery transport; existing operational health-alert DMs are outside that assertion.
 C2: a legacy `scheduler.shadow_mode`-only config used to fall through to public posting; it is now refused.
 """
 from datetime import datetime
@@ -38,9 +37,14 @@ def _daily():
 @patch("bts.dm.send_dm")
 @patch("bts.posting.post_to_bluesky")
 def test_private_mode_never_touches_a_transport(post, dm, _cap, _dss, config, tmp_path):
+    config = {**config, "bluesky": {"dm_recipient": "test-only.bsky.social"}}
+    post.return_value = "at://test-only/app.bsky.feed.post/1"
+    dm.return_value = "test-only-dm-id"
+    state = _state()
     with patch("bts.scheduler._now_et", return_value=datetime(2026, 4, 6, 15, 0, tzinfo=ET)):
         daily = _daily()
-        _deliver_and_lock_pick(daily, config, tmp_path, _state(), "2026-04-06", "test")
+        locked = _deliver_and_lock_pick(daily, config, tmp_path, state, "2026-04-06", "test")
+    assert locked is True and state.pick_locked is True
     post.assert_not_called()
     dm.assert_not_called()
     assert daily.bluesky_posted is False and not daily.notification_sent
@@ -51,6 +55,11 @@ def test_a_legacy_shadow_mode_only_config_is_refused():
         _pick_delivery_mode({"scheduler": {"shadow_mode": True}})
     with pytest.raises(ValueError, match="shadow_mode"):
         _pick_delivery_mode({"scheduler": {"shadow_mode": False}})
+
+
+@pytest.mark.parametrize("shadow_mode", [True, False])
+def test_legacy_private_mode_remains_private_with_an_unrelated_shadow_key(shadow_mode):
+    assert _pick_delivery_mode({"scheduler": {"private_mode": True, "shadow_mode": shadow_mode}}) == "private"
 
 
 def test_an_explicit_delivery_mode_still_wins_and_shadow_model_is_unrelated():
