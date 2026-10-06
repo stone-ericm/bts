@@ -44,8 +44,10 @@ def plant(picks_dir, day=DAY, *, result="hit", dd=False):
     save_streak(1, picks_dir)
 
 
-def feed(hits=0, *, code="F", batter=BATTER, name="Chandler Simpson", pk=None):
-    return {"gameData": {"status": {"abstractGameCode": code}, "datetime": {}, **({"game": {"pk": pk}} if pk else {})},
+def feed(hits=0, *, code="F", batter=BATTER, name="Chandler Simpson", pk=GAME):
+    """A live feed carrying its own game identity (`gameData.game.pk`), as real feeds do; pk=None omits it."""
+    return {"gameData": {"status": {"abstractGameCode": code}, "datetime": {},
+                         **({"game": {"pk": pk}} if pk is not None else {})},
             "liveData": {"boxscore": {"teams": {"away": {"players": {f"ID{batter}": {
                 "person": {"fullName": name}, "stats": {"batting": {"hits": hits}}}}}, "home": {"players": {}}}},
                 "plays": {"allPlays": []}}}
@@ -156,7 +158,7 @@ def test_a_pending_slot_is_not_coverage(tmp_path):
 
 def test_a_pending_first_slot_leaves_the_double_down_not_attempted(tmp_path):
     plant(tmp_path, dd=True)
-    net = Net({"/schedule": schedule(), f"/game/{GAME}/": feed(code="L"), f"/game/{DD_GAME}/": feed(hits=1)})
+    net = Net({"/schedule": schedule(), f"/game/{GAME}/": feed(code="L"), f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=1)})
     _, r = run(tmp_path, net, SimClock(AT_0200))
     assert [(s["slot"], s["state"]) for s in day_of(r)["slots"]] == [("pick", "pending"),
                                                                      ("double_down", "not_attempted")]
@@ -230,7 +232,7 @@ def test_the_receipt_changes_no_request_or_result(tmp_path):
         d.mkdir()
         plant(d, dd=True)
         net = Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=0),
-                   f"/game/{DD_GAME}/": feed(hits=1, batter=DD_BATTER, name="DD Batter")})
+                   f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=1, batter=DD_BATTER, name="DD Batter")})
         out, _ = run(d, net, SimClock(AT_0200), receipt=with_receipt)
         streak = json.loads((d / "streak.json").read_text())
         streak.pop("updated")                                     # streak.json's own write time
@@ -351,7 +353,7 @@ def test_d2_a_late_response_is_not_erased_by_a_later_step_back(tmp_path):
     plant(tmp_path, dd=True)
     clock = SimClock(datetime(2026, 8, 21, 7, 59, 58, tzinfo=ET))
     net = Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=1),
-               f"/game/{DD_GAME}/": feed(hits=1, batter=DD_BATTER, name="DD Batter")},
+               f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=1, batter=DD_BATTER, name="DD Batter")},
               on={f"/game/{GAME}/": lambda: setattr(clock, "now", datetime(2026, 8, 21, 8, 0, 1, tzinfo=ET)),
                   f"/game/{DD_GAME}/": lambda: setattr(clock, "now", datetime(2026, 8, 21, 7, 59, 59, tzinfo=ET))})
     _, r = run(tmp_path, net, clock)
@@ -371,7 +373,7 @@ def test_d2_a_late_selected_feed_then_an_on_time_fallback_is_not_coverage(tmp_pa
         if calls["n"] == 2:                                                    # the fallback search, after a step back
             clock.now = datetime(2026, 8, 21, 7, 59, 59, tzinfo=ET)
     net = Net({"/schedule": schedule({ALT: "Final"}), f"/game/{GAME}/": feed(hits=1, batter=111, name="Other"),
-               f"/game/{DD_GAME}/": feed(hits=0, batter=222, name="Nobody"), f"/game/{ALT}/": feed(hits=1)},
+               f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=0, batter=222, name="Nobody"), f"/game/{ALT}/": feed(pk=ALT, hits=1)},
               on={"/schedule": schedule_hook,
                   f"/game/{GAME}/": lambda: setattr(clock, "now", datetime(2026, 8, 21, 8, 0, 1, tzinfo=ET))})
     _, r = run(tmp_path, net, clock)
@@ -386,7 +388,7 @@ def test_d3_the_basis_comes_from_the_consumed_payloads(tmp_path, alt_code, basis
     legacy grader returns hit either way; the receipt qualifies the decisive feed itself."""
     plant(tmp_path, result="miss")
     net = Net({"/schedule": schedule({ALT: "Final"}), f"/game/{GAME}/": feed(hits=1, batter=111, name="Other"),
-               f"/game/{DD_GAME}/": feed(hits=0, batter=222, name="Nobody"), f"/game/{ALT}/": feed(hits=1, code=alt_code)})
+               f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=0, batter=222, name="Nobody"), f"/game/{ALT}/": feed(pk=ALT, hits=1, code=alt_code)})
     corrections, r = run(tmp_path, net, SimClock(AT_0200))
     assert [c["new_result"] for c in corrections] == ["hit"]                  # legacy grading, unchanged
     slot = day_of(r)["slots"][0]
@@ -474,3 +476,86 @@ def test_d2_an_out_of_order_clock_before_the_cutoff_is_still_not_coverage(tmp_pa
     _, r = run(tmp_path, net, clock)
     slot = day_of(r)["slots"][0]
     assert slot["clock_regression"] is True and slot["covered"] is False
+
+
+# ---- producer review r3 D1, D3, D6 --------------------------------------------------------------------------------
+def suspended_feed(pk, batter=BATTER, name="Chandler Simpson"):
+    """A Final suspended game where the batter appears only in the resumed portion: graded void."""
+    f = feed(hits=1, pk=pk, batter=batter, name=name)
+    f["gameData"]["datetime"] = {"resumeDateTime": "2026-08-21T20:00:00Z"}
+    f["liveData"]["plays"]["allPlays"] = [{"result": {"eventType": "single"},
+                                           "matchup": {"batter": {"id": batter, "fullName": name}},
+                                           "about": {"startTime": "2026-08-21T21:00:00Z"}}]
+    return f
+
+
+def test_r3_d3_a_feed_without_its_own_game_id_is_unqualified(tmp_path):
+    plant(tmp_path)
+    _, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=1, pk=None)}), SimClock(AT_0200))
+    slot = day_of(r)["slots"][0]
+    assert (slot["basis"], slot["actual_game_pk"], slot["covered"]) == ("unqualified", None, False)
+
+
+@pytest.mark.parametrize("pk, basis, covered", [(GAME, "suspended_no_evaluable_pa", True),
+                                                (999, "fallback_other_game", False)])
+def test_r3_d3_a_suspended_void_must_be_the_selected_game(tmp_path, pk, basis, covered):
+    plant(tmp_path)
+    corrections, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": suspended_feed(pk)}),
+                         SimClock(AT_0200))
+    assert [c["new_result"] for c in corrections] == ["void"]                # legacy grading, unchanged
+    slot = day_of(r)["slots"][0]
+    assert (slot["result"], slot["basis"], slot["covered"]) == ("void", basis, covered)
+
+
+def test_r3_d3_a_name_only_batter_match_is_unqualified(tmp_path):
+    """The selected game's feed holds player 123 named Chandler Simpson and no player 802415: the legacy name
+    fallback grades it, the receipt does not count it."""
+    plant(tmp_path, result="miss")
+    corrections, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=1, batter=123)}),
+                         SimClock(AT_0200))
+    assert [c["new_result"] for c in corrections] == ["hit"]
+    slot = day_of(r)["slots"][0]
+    assert (slot["basis"], slot["covered"]) == ("unqualified", False)
+
+
+def test_r3_d1_a_lost_earlier_leg_observation_uncovers_the_later_leg(tmp_path, monkeypatch):
+    """DD: the primary feed answers at 08:00:01 and its recording fails; the clock steps back and the DD feed
+    answers at 07:59:59. Without the lost event the DD prefix would look on time; the date is uncovered."""
+    import bts.reconcile_receipt as rr
+    plant(tmp_path, dd=True)
+    clock = SimClock(datetime(2026, 8, 21, 7, 59, 58, tzinfo=ET))
+    real = ReconcileReceipt.source
+
+    @rr._guarded
+    def lose_primary(self, url, raw):
+        if f"/game/{GAME}/" in url:
+            raise RuntimeError("recording failure")
+        return real.__wrapped__(self, url, raw)
+    monkeypatch.setattr(ReconcileReceipt, "source", lose_primary)
+    net = Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=1),
+               f"/game/{DD_GAME}/": feed(pk=DD_GAME, hits=1, batter=DD_BATTER, name="DD Batter")},
+              on={f"/game/{GAME}/": lambda: setattr(clock, "now", datetime(2026, 8, 21, 8, 0, 1, tzinfo=ET)),
+                  f"/game/{DD_GAME}/": lambda: setattr(clock, "now", datetime(2026, 8, 21, 7, 59, 59, tzinfo=ET))})
+    _, r = run(tmp_path, net, clock)
+    d = day_of(r)
+    assert d["slots"][1]["basis"] == "final_feed" and d["slots"][1]["clock_regression"] is False
+    assert [s["covered"] for s in d["slots"]] == [False, False]
+
+
+@pytest.mark.parametrize("hook", ["write_intent", "write_done"])
+def test_r3_d6_a_write_hook_failure_is_unavailable_evidence_on_its_own_date(tmp_path, monkeypatch, hook):
+    import bts.reconcile_receipt as rr
+    plant(tmp_path)
+
+    def failing(self, date, *a, **k):
+        raise ZeroDivisionError
+    failing.__name__ = hook                                                   # the production hook's own name
+    monkeypatch.setattr(ReconcileReceipt, hook, rr._guarded(failing))
+    corrections, r = run(tmp_path, Net({"/schedule": schedule(), f"/game/{GAME}/": feed(hits=0)}), SimClock(AT_0200))
+    assert [c["new_result"] for c in corrections] == ["miss"] and load_pick(DAY, tmp_path).result == "miss"
+    assert r["outcome"] == "completed" and len(r["days"]) == 8
+    ix = [x["date"] for x in r["days"]].index(DAY)
+    assert day_of(r)["write"]["state"] == "write_evidence_unavailable"
+    assert r["degraded"][0]["hook"] == hook                                   # (a failed intent also fails its done)
+    assert {g["day"] for g in r["degraded"]} == {ix} and ix != len(r["days"]) - 1
+    assert day_of(r)["slots"][0]["covered"] is True                          # coverage and the write are separate

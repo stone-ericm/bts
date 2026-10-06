@@ -39,16 +39,22 @@ def discover(picks_dir: Path, run_date: str) -> list[dict]:
     return [json.loads(p.read_text()) for p in receipt_io.discover(receipts_root(picks_dir) / run_date)]
 
 
+WRITE_HOOKS = ("write", "write_intent", "write_done")
+
+
 def _guarded(fn):
-    """A recording failure degrades the receipt, attributed to the date and slot being resolved (producer review r2
-    D1); it never reaches the reconcile run."""
+    """A recording failure degrades the receipt and never reaches the reconcile run. It is attributed to the date
+    being resolved, or, for a write hook, to its explicit date argument (producer review r3 D6)."""
     @functools.wraps(fn)
     def wrapper(self, *a, **k):
         try:
             return fn(self, *a, **k)
         except Exception as exc:  # noqa: BLE001 - the receipt must never change the run
-            self.degraded.append({"hook": fn.__name__, "error": type(exc).__name__,
-                                  "day": self._day_ix, "slot": self._slot_ix})
+            day, slot = self._day_ix, self._slot_ix
+            if fn.__name__ in WRITE_HOOKS:
+                day = next((i for i, d in enumerate(self.days) if a and d["date"] == a[0]), None)
+                slot = None
+            self.degraded.append({"hook": fn.__name__, "error": type(exc).__name__, "day": day, "slot": slot})
             return None
     return wrapper
 
@@ -191,10 +197,23 @@ class ReconcileReceipt:
         return {"url": url, "sha256": hashlib.sha256(body).hexdigest(), "returned_at": at.isoformat()}
 
     @staticmethod
+    def _has_batter_id(resp: dict, batter_id) -> bool:
+        """The batter by bound id, never by name (producer review r3 D3): a boxscore entry or a play's matchup."""
+        teams = ((resp.get("liveData") or {}).get("boxscore") or {}).get("teams") or {}
+        if any(f"ID{batter_id}" in ((teams.get(side) or {}).get("players") or {}) for side in ("away", "home")):
+            return True
+        plays = ((resp.get("liveData") or {}).get("plays") or {}).get("allPlays") or []
+        return any(((p.get("matchup") or {}).get("batter") or {}).get("id") == batter_id for p in plays)
+
+    @staticmethod
     def _qualify(slot: dict, feeds: list, status) -> tuple[str, int | None]:
         """The basis the consumed payloads themselves establish, and the actual decisive game (D3).
-        A non-void result needs a Final feed that contains the batter and grades to that result; a schedule void
-        needs the consumed schedule to list the slot's game in that void state."""
+        - **Non-void:** a Final feed that holds the batter **by id**, grades to that result, and names its own
+          game (`gameData.game.pk`) equal to the selected game.
+        - **Suspended void:** the same, including the game agreement.
+        - **Schedule void:** the consumed schedule must list the slot's game in that void state.
+
+        No identity is taken from a request URL or a name match."""
         from bts.picks import _is_void_detailed_state, grade_pick_in_feed
         if slot["schedule_void_state"] is not None:
             games = [g for d in ((status or {}).get("dates") or []) for g in (d.get("games") or [])
@@ -206,25 +225,27 @@ class ReconcileReceipt:
                 continue
             try:
                 final = resp["gameData"]["status"]["abstractGameCode"] == "F"
-                actual = resp["gameData"].get("game", {}).get("pk")
+                actual = (resp["gameData"].get("game") or {}).get("pk")
                 grade = grade_pick_in_feed(resp, slot["batter_id"], slot["batter_name"])
+                by_id = ReconcileReceipt._has_batter_id(resp, slot["batter_id"])
             except (KeyError, TypeError, AttributeError):
                 continue
-            if actual is None:
-                actual = int(url.split("/game/")[1].split("/")[0])
             if grade is None:
                 continue                         # the batter is not in this feed
-            if not final or grade != slot["result"]:
-                return "unqualified", actual
-            if slot["result"] == "void":
-                return "suspended_no_evaluable_pa", actual
-            return ("final_feed" if actual == slot["game_pk"] else "fallback_other_game"), actual
+            if type(actual) is not int or not by_id or not final or grade != slot["result"]:
+                return "unqualified", actual if type(actual) is int else None
+            if actual != slot["game_pk"]:
+                return "fallback_other_game", actual
+            return ("suspended_no_evaluable_pa" if slot["result"] == "void" else "final_feed"), actual
         return "unqualified", None
 
     def _day_record(self, ix: int, day: dict) -> dict:
         cutoff = day["cutoff"]
         events = [e for e in self._events if e[0] == ix]
         degraded = [g for g in self.degraded if g["day"] == ix]
+        # D1 (r3): any recording failure on this date may hide an observation in some slot's prefix, so it
+        # uncovers every slot of the date
+        observation_degraded = [g for g in degraded if g["hook"] not in WRITE_HOOKS]
         status_ev = [e for e in events if e[1] is None]
         status = _parse(status_ev[-1][3]) if status_ev else None
         out = {"date": day["date"], "cutoff_at": cutoff.isoformat(), "state": day["state"], "detail": day["detail"],
@@ -248,7 +269,7 @@ class ReconcileReceipt:
             relevant = [e[4] for e in events if e[1] is None or e[1] <= sx]
             high_water = max(relevant) if relevant else None
             last = evs[-1][4] if evs else (status_ev[-1][4] if (status_ev and slot["schedule_void_state"]) else None)
-            slot_degraded = [g for g in degraded if g["slot"] in (None, sx)]
+            slot_degraded = observation_degraded
             qualified = basis in ("final_feed", "suspended_no_evaluable_pa") or (
                 basis is not None and basis.startswith("schedule_void_state:"))
             covered = bool(slot["state"] == "observed" and day["state"] == "observed" and qualified
@@ -260,15 +281,25 @@ class ReconcileReceipt:
                 "sources": sources, "response_completed_at": last.isoformat() if last else None,
                 "high_water_at": high_water.isoformat() if high_water else None, "clock_regression": regression,
                 "degraded": slot_degraded, "covered": covered, "error": slot["error"]})
+        # D6 (r3): a save that raised is write_not_completed; missing completion *evidence* (a failed write hook,
+        # or a run that did not raise) is write_evidence_unavailable, never a claim about the save
         w = day["write"]
+        write_degraded = [g for g in degraded if g["hook"] in WRITE_HOOKS]
         if w is not None:
             w = dict(w)
             observed = [{"slot": s["slot"], "batter_id": s["batter_id"], "game_pk": s["game_pk"]}
                         for s in (day["selection"] or {}).get("slots", [])]
-            w["state"] = w["intended"] if w["completed"] else "write_not_completed"
+            if w["completed"] and not write_degraded:
+                w["state"] = w["intended"]
+            elif write_degraded or self.outcome != "raised":
+                w["state"] = "write_evidence_unavailable"
+            else:
+                w["state"] = "write_not_completed"
             if w.get("written_selection") is not None:
                 w["selection_changed"] = w["written_selection"] != observed
             out["write"] = w
+        elif write_degraded:
+            out["write"] = {"state": "write_evidence_unavailable"}
         return out
 
     def record(self) -> dict:

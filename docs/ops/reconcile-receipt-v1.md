@@ -30,7 +30,7 @@
 | `days[]` | one entry per target date, newest first |
 | `corrections` | the run's corrections list (the CLI output), or null |
 | `replay` | `saved` (`streak`, `saver_available`), `unavailable` (the replay refused incomplete history; the streak file was kept) or `not_reached` |
-| `degraded` | recording hooks that failed: `{hook, error, day, slot}` (indexes into `days` and their `slots`) |
+| `degraded` | recording hooks that failed: `{hook, error, day, slot}`, indexes into `days` and their `slots`. A write hook is attributed by its own date (r3 D6) |
 
 **Each `days[]` entry:**
 - `date`, `cutoff_at` (08:00 ET the next day), `state`, and `detail`;
@@ -64,12 +64,12 @@
 - `actual_game_pk`: the decisive feed's own game;
 - `covered`.
 
-**`basis`** is established at publication from the consumed payloads themselves (producer review r2 D3), never from how many payloads there were:
-- `final_feed`: the decisive feed (the first one containing the batter) is Final, grades to the slot's result, and is the selected game (its own `gameData.game.pk`).
-- `suspended_no_evaluable_pa`: the same, for a suspended game graded void.
+**`basis`** is established at publication from the consumed payloads themselves (producer review r2/r3 D3), never from how many payloads there were, from a request URL, or from a name match:
+- `final_feed`: the decisive feed (the first one containing the batter) is Final, holds the batter **by id** (a boxscore entry or a play's matchup), grades to the slot's result, and names its **own** game (`gameData.game.pk`) equal to the selected game.
+- `suspended_no_evaluable_pa`: the same, including the game agreement, for a suspended game graded void.
 - `schedule_void_state:<state>`: the consumed schedule lists the selected game, in a void state.
 - `fallback_other_game`: the decisive feed is Final and agrees, but is another game. It is **not** coverage.
-- `unqualified`: no decisive Final feed agrees with the result (for example a fallback feed that is still Live), or the void is not confirmed by the consumed schedule. It is **not** coverage.
+- `unqualified`: there is no qualifying decisive feed. Examples: a fallback feed still Live, a feed with no `gameData.game.pk` of its own, a batter matched only by name, or a void the consumed schedule does not confirm. It is **not** coverage.
 
 | `write.state` | Meaning |
 |---|---|
@@ -79,6 +79,7 @@
 | `refused_after_cutoff` | the write would land at or after the cutoff |
 | `skipped_under_lock` | the pick was gone or ungraded when re-read under the lock |
 | `write_not_completed` | a save was intended (`intended`) but did not complete; the run raised |
+| `write_evidence_unavailable` | a write hook failed, or completion was not recorded although the run did not raise. Nothing is claimed about the save (r3 D6) |
 
 **Each write also records:** `written_selection`, the slots of the pick as re-read under the scoring lock, and `selection_changed`, whether that selection differs from the observed one. A changed selection is reported, not repaired: the legacy behaviour of applying the observed proposal to the re-read pick is unchanged.
 
@@ -87,7 +88,7 @@
   - a qualifying `basis` (`final_feed`, `suspended_no_evaluable_pa` or `schedule_void_state:*`);
   - `high_water_at` strictly before `cutoff_at`;
   - no `clock_regression`;
-  - no `degraded` entry for the slot or its date;
+  - no observation `degraded` entry anywhere on its date (r3 D1: a lost observation in any slot may hide part of a later slot's prefix);
   - the day `observed`.
 - **What cannot establish coverage:** `pending`, `failed`, `not_attempted`, `past_cutoff`, `not_graded`, a late slot, an empty `corrections` list, or a process exit of 0.
 - **Coverage and corrections are separate facts.** `write.state` says whether a correction was applied or refused. `unchanged` is positive evidence that the observed result matched the stored one.
