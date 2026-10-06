@@ -419,7 +419,14 @@ def test_a_stale_sender_never_overwrites_a_newer_confirmation(root):
         raise RuntimeError("late failure")
     n1 = N.Notifier(root, recipient="r", send=failing_slow, clock=clock)
     n1.enqueue([CheckResult("W-bad", "2026-10-06", Status.FAULT, "x", incident="I-1", selection="s")])
-    th = threading.Thread(target=n1.flush)
+    errors = []
+
+    def run1():
+        try:
+            n1.flush()
+        except Exception as exc:  # noqa: BLE001 - captured: the stale completion must finish cleanly (r1 B4)
+            errors.append(exc)
+    th = threading.Thread(target=run1)
     th.start()
     try:
         assert started.wait(10)
@@ -429,6 +436,7 @@ def test_a_stale_sender_never_overwrites_a_newer_confirmation(root):
     finally:
         release.set()
         th.join(10)
+    assert not th.is_alive() and errors == []
     (n,) = notices(root)
     assert len(second.sent) == 1 and n["status"] == "sent" and n["message_id"] == "msg-1"
     third = Transport()

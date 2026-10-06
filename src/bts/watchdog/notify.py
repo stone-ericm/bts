@@ -21,6 +21,10 @@ in `seq` order, and a notice is delivered only after every earlier notice of its
   (a partial re-claim of a stalled flusher's expired chain would leave its tail on the stale claim);
 - it sends each target's claimed chain in order, and at the first failure, missing message id, exhausted budget or
   reached `max_sends` it releases the rest of that chain unattempted. Other targets continue.
+- **Progress across targets (C2 r1 B1):** a flush claims the chains of at most `max_sends` targets, least-tried
+  head first (then oldest), and `max_sends` bounds actual send attempts, not claimed notices. A target whose head
+  fails therefore uses one attempt, and independent targets use the rest; a repeatedly failing head yields to fresh
+  alerts.
 
 **Delivery (r1 B4, B7; r2 N4):**
 - `enqueue` always persists notices, even with no transport (queue-only).
@@ -30,9 +34,8 @@ in `seq` order, and a notice is delivered only after every earlier notice of its
   a notice `sent`.
 - A clock read earlier than a claim's start counts the lease as expired (a duplicate is possible; exactly-once
   delivery is not claimed).
-- The flush is bounded by `max_sends` sends and by an **elapsed monotonic** budget, both checked before each send.
-  Whole chains are claimed in head order until `max_sends` notices are claimed. Neither bound interrupts an
-  in-flight send; the whole-job deadline is a deploy-gate item.
+- The flush is bounded by `max_sends` send attempts and by an **elapsed monotonic** budget, both checked before
+  each send. Neither bound interrupts an in-flight send; the whole-job deadline is a deploy-gate item.
 
 **Validation (r1 B5, r2 N3, r3 R3-3):** every container, field, type, timestamp, state, cross-reference and recomputed
 key is validated on load, and so is the lifecycle the protocol implies (it never prunes a notice):
@@ -41,7 +44,11 @@ key is validated on load, and so is the lifecycle the protocol implies (it never
 - each episode opens with an alerting notice, and a `recovered` notice, if any, is its last;
 - every earlier episode was recovered, and the current one was recovered exactly when the target is closed;
 - an open target has a notice for its current state;
-- by `seq`, a target's notices are `sent`, then `sending`, then `pending` (delivery never overtook a predecessor).
+- by `seq`, a target's notices are `sent`, then `sending`, then `pending` (delivery never overtook a predecessor);
+- a target's `sending` notices share one claim time and one lease (one claim; C2 r1 B3);
+- delivery metadata is consistent (C2 r1 B2): an attempt count above zero exactly when `last_attempt_at` is
+  recorded; a `sent` notice has an attempt, its recipient and message id, and no error; an unsent notice has no
+  recipient and no message id.
 
 Anything invalid raises `NotifyStateError` and leaves the file untouched.
 """
@@ -157,6 +164,13 @@ def _validate(st) -> dict:
                 _bad(f"notice {k}: key does not match its identity")
             if (n["status"] == "sent") != (isinstance(n["message_id"], str) and n["message_id"] != ""):
                 _bad(f"notice {k}: sent/message_id inconsistent")
+            if (n["attempts"] > 0) != ("last_attempt_at" in n):
+                _bad(f"notice {k}: attempts and last_attempt_at inconsistent")
+            if n["status"] == "sent":
+                if n["attempts"] < 1 or not n["recipient"] or n["last_error"] is not None:
+                    _bad(f"notice {k}: a sent notice without its completed attempt, recipient, or with an error")
+            elif n["recipient"] is not None:
+                _bad(f"notice {k}: an unsent notice with a recipient")
             if n["status"] == "sending":
                 if set(n) & claim != claim or not (isinstance(n["claim_token"], str) and n["claim_token"]):
                     _bad(f"notice {k}: claim")
@@ -205,6 +219,9 @@ def _validate_lifecycle(st, seqs) -> None:
         ranks = [_RANK[n["status"]] for n in ns]
         if ranks != sorted(ranks):
             _bad(f"target {tk}: a notice was delivered or claimed ahead of an earlier one")
+        claims = {(_parse_utc(n["claimed_at"]), _parse_utc(n["lease_until"])) for n in ns if n["status"] == "sending"}
+        if len(claims) > 1:
+            _bad(f"target {tk}: its sending notices are split across claims")
 
 
 def empty_state() -> dict:
@@ -318,9 +335,12 @@ class Notifier:
         return now >= until or now < claimed          # expired, or the clock rolled back past the claim
 
     def _claimable(self, st, now: datetime) -> list:
-        """Per target, the longest due prefix of its unsent notices in `seq` order (r3 R3-2). A target whose head is
-        live-claimed contributes nothing. Chains are taken whole, in order of their heads, until at least `max_sends`
-        notices are claimed; the result is in `seq` order."""
+        """Whole chains, one per target, for at most `max_sends` targets (r3 R3-2; C2 r1 B1).
+
+        A chain is the longest due prefix of a target's unsent notices in `seq` order, so a target whose head is
+        live-claimed contributes nothing. Chains are ordered least-tried head first, then oldest head, so a head
+        that keeps failing yields to fresh alerts. Each claimed target needs at least one attempt, so claiming more
+        than `max_sends` targets could never be sent in this flush."""
         queues: dict = {}
         for k, n in st["notices"].items():
             if n["status"] != "sent":
@@ -334,12 +354,8 @@ class Notifier:
                 chain.append(k)
             if chain:
                 chains.append(chain)
-        picked = []
-        for chain in sorted(chains, key=lambda c: st["notices"][c[0]]["seq"]):
-            if len(picked) >= self.max_sends:
-                break
-            picked.extend(chain)
-        return sorted(picked, key=lambda k: st["notices"][k]["seq"])
+        chains.sort(key=lambda c: (st["notices"][c[0]]["attempts"], st["notices"][c[0]]["seq"]))
+        return chains[: self.max_sends]
 
     def flush(self) -> dict:
         """Send due notices, each target's in order (bounded). Returns {"sent", "failed", "skipped_budget", "held"}."""
@@ -350,7 +366,7 @@ class Notifier:
             st = load_state(self.root)
             now = _utc(self.clock.now())
             claims = {}
-            for k in self._claimable(st, now):
+            for k in (k for chain in self._claimable(st, now) for k in chain):
                 token = uuid.uuid4().hex
                 st["notices"][k].update(status="sending", claim_token=token, claimed_at=now.isoformat(),
                                         lease_until=(now + self.lease).isoformat())
@@ -359,7 +375,7 @@ class Notifier:
                 save_state(self.root, st)
         started = self.monotonic()
         outcomes, blocked, attempts = {}, set(), 0
-        for k, (token, text, tk) in claims.items():      # network, outside the lock; seq order
+        for k, (token, text, tk) in claims.items():      # network, outside the lock; chain by chain, each in seq order
             if tk in blocked:                            # an earlier notice of this target was not delivered
                 outcomes[k] = (token, None, "an earlier notice of this target was not delivered", False)
                 report["held"] += 1

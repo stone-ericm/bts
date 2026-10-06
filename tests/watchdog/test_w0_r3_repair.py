@@ -524,3 +524,175 @@ def test_r32_max_sends_bounds_the_sends_of_a_long_chain(root):
     assert last["status"] == "pending" and last["attempts"] == 0
     notifier(root, t, max_sends=2).flush()
     assert kinds(t.accepted) == ["fault", "recovered", "fault"]
+
+
+# ---- C2 unit 1 review r1 (docs/audit/2026-10-06-c2-w0-codex-r1.md): B1-B4 ------------------------------------------
+
+def _seq_sorted(st):
+    return sorted(st["notices"].values(), key=lambda n: n["seq"])
+
+
+B_FAULT = CheckResult("W-y", D, Status.FAULT, "b", incident="I-b", selection="b")
+
+
+@pytest.mark.parametrize("cycles, max_sends", [(10, 20), (1, 2)])
+def test_b1_a_blocked_long_chain_never_starves_an_independent_alert(root, cycles, max_sends):
+    """The reviewer's case: target A holds a long chain (2*cycles+1 notices) whose head keeps failing; independent
+    target B's alert must still be attempted and accepted, within the send bound, across repeated flushes."""
+    q = queue_only(root)
+    for _ in range(cycles):
+        q.enqueue([FAULT])
+        q.enqueue([CLEAR])
+    q.enqueue([FAULT])
+    q.enqueue([B_FAULT])
+    per_flush = []
+    for _ in range(3):
+        calls = []
+
+        def send(recipient, text):
+            calls.append(text)
+            if "[I-b]" not in text:
+                raise RuntimeError("A's head fails")
+            return "msg-b"
+        notifier(root, send, max_sends=max_sends).flush()
+        per_flush.append(len(calls))
+    assert per_flush == [2, 1, 1]                             # A's head and B, then A's head alone; within the bound
+    a = [n for n in _seq_sorted(N.load_state(root)) if "[I-b]" not in n["text"]]
+    (b,) = [n for n in N.load_state(root)["notices"].values() if "[I-b]" in n["text"]]
+    assert b["status"] == "sent" and b["attempts"] == 1 and len(a) == 2 * cycles + 1
+    assert a[0]["attempts"] == 3 and all(n["status"] == "pending" and n["attempts"] == 0 for n in a[1:])
+
+
+def test_b1_a_fresh_alert_is_tried_before_a_repeatedly_failing_one(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    for _ in range(2):
+        notifier(root, Recorder(lambda text: True)).flush()  # A's only notice fails twice
+    q.enqueue([B_FAULT])
+    t = Recorder(lambda text: "[I-b]" not in text)
+    notifier(root, t, max_sends=1).flush()
+    assert len(t.accepted) == 1 and "[I-b]" in t.accepted[0]
+
+
+def _one_fault_state(root):
+    return _state(root, [FAULT])
+
+
+META = {
+    "sent_without_attempt": dict(status="sent", message_id="fabricated-id"),          # the reviewer's B2 case
+    "sent_without_recipient": dict(status="sent", message_id="m", attempts=1, last_attempt_at="2026-10-06T16:00:00+00:00"),
+    "sent_with_error": dict(status="sent", message_id="m", attempts=1, recipient="r", last_error="x",
+                            last_attempt_at="2026-10-06T16:00:00+00:00"),
+    "sent_without_attempt_time": dict(status="sent", message_id="m", attempts=1, recipient="r"),
+    "pending_with_recipient": dict(recipient="r"),
+    "attempts_without_time": dict(attempts=1),
+    "time_without_attempts": dict(last_attempt_at="2026-10-06T16:00:00+00:00"),
+}
+
+
+@pytest.mark.parametrize("kind", sorted(META))
+@pytest.mark.parametrize("via", ["enqueue", "flush"])
+def test_b2_impossible_delivery_metadata_refuses_untouched_and_unsent(root, kind, via):
+    st = _one_fault_state(root)
+    (n,) = st["notices"].values()
+    n.update(META[kind])
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    t = Recorder()
+    with pytest.raises(N.NotifyStateError):
+        if via == "enqueue":
+            notifier(root, t).enqueue([FAULT])
+        else:
+            notifier(root, t).flush()
+    assert root.read_bytes(N.STATE) == raw and t.accepted == []
+
+
+def _split_lease_state(root):
+    """The reviewer's B3 corruption: a fault/recovery chain whose two sending records carry different claims."""
+    st = _state(root, [FAULT], [CLEAR])
+    fault, rec = _seq_sorted(st)
+    fault.update(status="sending", claim_token="t-a", claimed_at="2026-10-06T15:40:00+00:00",
+                 lease_until="2026-10-06T15:50:00+00:00")
+    rec.update(status="sending", claim_token="t-b", claimed_at="2026-10-06T16:00:00+00:00",
+               lease_until="2026-10-06T16:10:00+00:00")
+    return st
+
+
+@pytest.mark.parametrize("via", ["enqueue", "flush"])
+def test_b3_a_split_claim_refuses_before_any_send(root, via):
+    raw = json.dumps(_split_lease_state(root)).encode()
+    root.write_atomic(N.STATE, raw)
+    calls = []
+
+    def send(recipient, text):
+        calls.append(text)
+        raise RuntimeError("fails")
+    with pytest.raises(N.NotifyStateError):
+        if via == "enqueue":
+            notifier(root, send).enqueue([FAULT])
+        else:
+            notifier(root, send).flush()
+    assert root.read_bytes(N.STATE) == raw and calls == []
+
+
+def test_b3_a_legitimate_stale_chain_with_a_later_alert_reclaims_whole_and_stays_valid(root):
+    _plant_stale_chain(root)                                  # fault + recovery on an expired claim
+    queue_only(root).enqueue([FAULT])                         # episode 2 arrives behind the stale claim
+    assert [n["status"] for n in _seq_sorted(N.load_state(root))] == ["sending", "sending", "pending"]
+    notifier(root, Recorder(lambda text: True), max_sends=1).flush()
+    st = N.load_state(root)
+    assert [(n["status"], n["attempts"]) for n in _seq_sorted(st)] == [("pending", 1), ("pending", 0), ("pending", 0)]
+    t = Recorder()
+    notifier(root, t).flush()
+    assert kinds(t.accepted) == ["fault", "recovered", "fault"]
+
+
+def test_b3_a_chain_claimed_in_the_future_is_reclaimed_after_a_clock_rollback(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    with N.state_lock(root):
+        st = N.load_state(root)
+        for i, n in enumerate(_seq_sorted(st)):
+            n.update(status="sending", claim_token=f"future-{i}",
+                     claimed_at=(T0 + timedelta(minutes=30)).astimezone(timezone.utc).isoformat(),
+                     lease_until=(T0 + timedelta(minutes=40)).astimezone(timezone.utc).isoformat())
+        N.save_state(root, st)
+    t = Recorder()
+    notifier(root, t, max_sends=1).flush()                    # the clock reads before the claim: a rollback
+    assert kinds(t.accepted) == ["fault"]
+    notifier(root, t).flush()
+    assert kinds(t.accepted) == ["fault", "recovered"]
+
+
+def test_b4_a_late_success_never_overwrites_a_newer_confirmation(root):
+    """Flusher A stalls on its send; after the lease B reclaims and confirms new-id; A then returns old-id. A's
+    obsolete claim must not replace the newer confirmation (a duplicate send is the documented limit)."""
+    started, release, errors = threading.Event(), threading.Event(), []
+    clock = FixedClock(T0)
+
+    def slow_ok(recipient, text):
+        started.set()
+        if not release.wait(10):
+            raise AssertionError("never released")
+        return "old-id"
+    n1 = N.Notifier(root, recipient="r", send=slow_ok, clock=clock)
+    n1.enqueue([FAULT])
+
+    def run1():
+        try:
+            n1.flush()
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+    th = threading.Thread(target=run1)
+    th.start()
+    try:
+        assert started.wait(10)
+        clock.at = T0 + timedelta(minutes=11)
+        N.Notifier(root, recipient="r", send=lambda r, t: "new-id", clock=clock).flush()
+    finally:
+        release.set()
+        th.join(10)
+    assert not th.is_alive() and errors == []
+    (n,) = N.load_state(root)["notices"].values()
+    assert n["status"] == "sent" and n["message_id"] == "new-id" and n["attempts"] == 1
