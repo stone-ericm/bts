@@ -1,12 +1,14 @@
 # Rank 3 result: the 2021–2025 historical count build (C2 item (b), step 1)
 
 **What this is:** the results note for rank 3's historical count build, registration `docs/sota_audit/2026-10-04-prereg-c1-pa-count.md` §4 (FROZEN). The build produces the frozen inputs of the 2027 forecast: a plate-appearance count table and each starter's batters-faced history.
-- **This note does not compare forecasts.** The registered comparison is prospective: 2027 forecasts are scored after 2027 date 90 (§6). No 2026 data was read.
+- **This note does not compare forecasts.** The registered comparison is prospective: 2027 forecasts are scored after 2027 date 90 (§6). The admitted fitting sources are 2021–2025 only; 2026 acquisition receipts and build records provide provenance, not 2026 count or outcome fitting.
 - **Under the registrations' cross-design rule,** none of these outputs is supplied to 4a or 4b (correction in `docs/sota_audit/2026-10-06-c2-cycle-index.md`).
 
-**Status:** the build ran once and exited cleanly. **Independent acceptance is pending** (one Codex acceptance, at most 2 rounds, per the C2 proposal §4). Nothing here approves any production use; that needs §7's acceptance chain and Eric's D7.
+**Status:** the author reports that the build ran once and exited cleanly; the supplied files contain one claim and completed outputs. **Independent acceptance: ACCEPT WITH CORRECTIONS** (`docs/audit/2026-10-06-c2-r3-build-acceptance-codex-a1.md`; the reviewer's corrections C1–C5 are applied verbatim to this note). Nothing here approves any production use; that needs §7's acceptance chain and Eric's D7.
 
 ## The run
+**Evidence boundary:** code, claim identity, input pins, inventory and output hashes can be checked from the supplied files and local Git history. Launcher execution, start/end times, CPU usage, clean process exit, the ledger total, single-run history and backup status are the author's operational account; their guard, ledger, run-inventory and backup receipts were not supplied for this acceptance.
+
 | Item | Value |
 |---|---|
 | Code | `2dab83afbc4b11247c408346408324298b64b772` (the reviewed closure `bbafbef`, plus `admission.json` only) |
@@ -50,15 +52,17 @@
 | File | sha256 | What it holds |
 |---|---|---|
 | `count_table.json` | `15167e3b…9d9ee14` | slot × home/away → the distribution of min(N, 8) given N ≥ 1, with add-one smoothing over categories 1–8 (cap 8, conditioning N ≥ 1, as registered) |
-| `bf_starts.json` | `ebf720d7…a4e33ce7` | 23,898 certified starts' batters-faced counts (legitimate resumed PA retained), with source provenance; league median BF per start = 23.0 |
+| `bf_starts.json` | `ebf720d7…a4e33ce7` | 23,898 certified starts' registered PA-event BF counts (`PA_ENDING_EVENTS`, excluding `intent_walk` and `batter_interference`; resumed portions included by definition), with source provenance; league median BF per start = 23.0 |
 | `census.json` | `bcf4905b…35efa715` | eligibility, certification and quarantine reasons |
 | `provenance.json` | `28356ead…bf9929df4` | per-game source binding |
 | `manifest.json` | `698c3368…` | the pre-read manifest: code, admission, accepted review, closure tree ids, registration hash, inventory and pins |
 | `results.json` | `ffa04f89…` | the run's summary, binding the four outputs above by sha256 |
 
+**BF definition:** registered `bf` differs from official `box_batters_faced` in 465 starts: 450 by one and 15 by two, with official BF higher. The artifact retains both fields. The 2027 consumer must use registered `bf`, filter by strictly earlier official date and actual source availability, and sort by official date before selecting the latest five starts; file order is by game ID.
+
 **Count-table support** (descriptive; computed from `count_table.json`):
 
-| Cell | n (N ≥ 1) | zero-PA excluded | N > 8 overflow | mean min(N, 8) |
+| Cell | n (N ≥ 1) | zero-PA excluded | N > 8 overflow | empirical mean min(N, 8) given N ≥ 1 (before smoothing) |
 |---|---|---|---|---|
 | 1 away | 11949 | 0 | 0 | 4.575 |
 | 1 home | 11947 | 2 | 0 | 4.395 |
@@ -79,7 +83,7 @@
 | 9 away | 11896 | 53 | 0 | 3.416 |
 | 9 home | 11843 | 106 | 0 | 3.239 |
 
-**Plausibility, not a test:** the means fall down the order, and home trails away. That fits the home team often not batting in the 9th, which also gives the larger zero-PA count at home slot 9. The slot-1 mean (4.58 away, 4.40 home) is close to production's flat `est_pas` of 4.5 for slot 1.
+**Plausibility, not a test:** the empirical conditional means fall down the order, and home trails away. Omitting the home ninth inning is one plausible contributor to fewer home opportunities, but these aggregate outputs do not identify the causes of either the mean differences or the larger zero-PA count at home slot 9. The slot-1 empirical mean (4.58 away, 4.40 home) is close to production's flat `est_pas` of 4.5 for slot 1; that comparison establishes no forecast improvement.
 
 ## What follows
 1. **Independent acceptance** (Codex, at most 2 rounds) of these outputs against the registration's §4 definitions and the run's own binding.
