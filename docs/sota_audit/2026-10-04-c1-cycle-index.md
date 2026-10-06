@@ -14,6 +14,21 @@
 - **Known undercount:** systemd records a unit's CPU time at info level only above about one CPU-second (measured 10/04: a 0.6 s job left no record, a 1.4 s job did). Each smaller job goes uncounted, by under 1.4 s.
 - **Verified on the box 10/04, both directions:** a real job was recorded; a second job while one was running was refused; the 50 CPU-hour checkpoint was refused (planted ledger, scratch data folder); and with a planted 99.999 CPU-hour ledger the per-job limit killed a CPU burner at 3.000 s.
 - **Checkpoint:** at 50 CPU-hours the launcher refuses until `CHECKPOINT_50_ACK.json` exists in that directory. It is created only after Eric decides to continue.
+- **Box limits, from 2026-10-05** (Eric, row C1-4b-deferral; code review r3 B4/B5; `66e1b68`):
+  - **Cumulative CPU cap:** every job runs under `scripts/audit/c1/guard.py`, which caps the unit's cumulative CPU
+    (all processes, from its cgroup) at min(declared budget, remaining cycle budget). It acts at budget − cores × 2 s.
+  - **Overrun pause:** an overrun (from the guard, or a systemd `timeout`/`oom-kill`) writes a durable
+    `OVERRUN_<unit>.json` here. That pauses **every** C1 job until `RESUME_<unit>.json` cites a RULED register row
+    naming the unit, approved by Eric.
+  - **No race:** one launch lock covers the sweep, admission and start.
+  - **Ledger:** non-finite or negative values are refused.
+- **Verified on the box 2026-10-05, failure direction** (scratch data root, so the real cycle was not paused):
+  - Unit `c1-guardtest-20261006T000354Z` ran three parallel CPU-burning child processes under a 36 s budget.
+  - The guard wrote `OVERRUN_c1-guardtest-20261006T000354Z.json` and then killed the whole unit at **24.0 s**
+    cumulative. No single child came near the 36 s per-process limit. The job's own "finished" line never printed.
+  - A second launch, under a different job name, was then refused ("overrun pause in force").
+  - The real C1 root showed no overrun stop. The 24 s were added to the real ledger.
+  - The scratch root was then removed.
 
 ## Candidates
 
