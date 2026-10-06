@@ -1,0 +1,59 @@
+{
+ "big": {
+  "parquets": {
+   "pa_2021.parquet": {
+    "rows": 199800,
+    "file_bytes": 25056656,
+    "decoded_bytes": 319522011
+   },
+   "pa_2022.parquet": {
+    "rows": 199800,
+    "file_bytes": 25115956,
+    "decoded_bytes": 319522440
+   },
+   "pa_2023.parquet": {
+    "rows": 199800,
+    "file_bytes": 25105465,
+    "decoded_bytes": 319523881
+   },
+   "pa_2024.parquet": {
+    "rows": 199800,
+    "file_bytes": 25041802,
+    "decoded_bytes": 319522473
+   },
+   "pa_2025.parquet": {
+    "rows": 199800,
+    "file_bytes": 25077066,
+    "decoded_bytes": 319526950
+   },
+   "pa_2026.parquet": {
+    "rows": 102120,
+    "file_bytes": 13293915,
+    "decoded_bytes": 163312892
+   }
+  },
+  "pick_files": 92,
+  "pick_bytes": 258875,
+  "cache": {
+   "bytes": 9298513,
+   "models": 12
+  }
+ },
+ "small": {
+  "parquets": {
+   "pa_2025.parquet": {
+    "rows": 25920,
+    "file_bytes": 1355999,
+    "decoded_bytes": 41709987
+   },
+   "pa_2026.parquet": {
+    "rows": 26496,
+    "file_bytes": 1379922,
+    "decoded_bytes": 42638988
+   }
+  },
+  "pick_files": 43,
+  "pick_bytes": 21603,
+  "cache": null
+ }
+}
