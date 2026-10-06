@@ -23,6 +23,9 @@
 | (d) P3 / W-state | design draft with review d1 REVISE | — | deferred; reopens only per proposal §5 (a) |
 | Rank-1 Part B (concordance diagnostic) | rank-1 registration Part B | after (c) | waiting; needs X-33 first |
 
+## Corrections
+- **2026-10-06, item (b) step 1 rationale:** the proposal (§5 (b) step 1) said rank 3's build would publish a quarantine census that checks 4a's R1 assumption, and that X-34 should say the census is shared with 4a. That conflicts with the registrations' cross-design rule (rank 3 registration, "Freeze manifest and cross-design rules": *no fitted 4a output is supplied to rank 3 and no rank-3 output is supplied to 4a*). **The census is not shared with 4a.** 4a's R1 may reuse rank 3's reviewed accounting **code**, not its results. X-34 (`2107d32`) says nothing about sharing. Found by the lead while preparing the results note; no 4a work has used it.
+
 ## Compute ledger (C2 rows only)
 | Date | C2 CPU-hours (cumulative) | Note |
 |---|---|---|
