@@ -1,13 +1,18 @@
 {
+ "api_calls": [],
  "cache_sha256": "6e182337e6054fbb7f810d95695a67d5b9e4ffc8cbcd2d5981ee75375e96919f",
  "exception": null,
  "fallback_plans": [],
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "genuine_save_serialization",
  "selections": [],
  "slate": null,
+ "stderr_failures": [
+  "  [local] Prediction failed: Can't get local object 'sc_genuine_save_serialization.<locals>.unpicklable.<locals>.<lambda>'"
+ ],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

@@ -18,7 +18,7 @@
  "lock_decisions": [],
  "pick_reads": {},
  "resolver_inventory": [],
- "scenario": "calibration_no_sklearn",
+ "scenario": "fault_package_query",
  "selections": [
   {
    "predictions": {

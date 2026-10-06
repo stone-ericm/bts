@@ -1,4 +1,24 @@
 {
+ "api_calls": [
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30&hydrate=probablePitcher",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-07-01&hydrate=probablePitcher"
+ ],
  "cache_sha256": "d3470c120db231435b3cbbec4c1ffe7e814c2903db2684493aba9f8a68520ff2",
  "exception": null,
  "fallback_plans": [],
@@ -7,9 +27,16 @@
  },
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "day_prediction_failure",
  "selections": [],
  "slate": null,
+ "stderr_failures": [
+  "  [local] Prediction failed: golden: prediction failure",
+  "  [local] Prediction failed: golden: prediction failure",
+  "  [local] Prediction failed: golden: prediction failure",
+  "  [local] Prediction failed: golden: prediction failure"
+ ],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

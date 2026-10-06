@@ -1,4 +1,5 @@
 {
+ "api_calls": [],
  "cache_sha256": "d3470c120db231435b3cbbec4c1ffe7e814c2903db2684493aba9f8a68520ff2",
  "exception": {
   "message": "golden: stateful unpickler",
@@ -8,9 +9,11 @@
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "genuine_cache_unpickle_stateful",
  "selections": [],
  "slate": null,
+ "stderr_failures": [],
  "transport": [],
  "unknown_urls": [],
  "unpickle_calls": 1,

@@ -56,7 +56,7 @@ def test_the_environment_matches_the_goldens():
 
 # A capture-preparation failure after the bytes were read falls back to the original read once (design §3.0), so the
 # decoder fault reads each history pick exactly once more than the baseline; nowhere else may the reads differ.
-FALLBACK_REREAD = {"fault_pick_decoder"}
+FALLBACK_REREAD = {"fault_pick_decoder", "fault_pick_decoder_oserror"}
 
 
 def _compare(golden: dict, cand: dict, name: str = "") -> None:
@@ -70,8 +70,8 @@ def _compare(golden: dict, cand: dict, name: str = "") -> None:
         assert cs is None
         return
     assert cs is not None
-    for key in ("tier", "date", "n_rows", "rows"):
-        assert cs[key] == gs[key], key                     # every persisted value but `projected`
+    for key in ("tier", "date", "n_rows", "written_at", "envelope_keys", "rows"):
+        assert cs[key] == gs[key], key                     # every persisted envelope value and row value but `projected`
     assert gs["schema_version"] == "bts_slate_v2" and cs["schema_version"] == "bts_slate_v3"
     assert gs["serving"] == S._MISSING_SERVING
     assert cs["projected"] == [v is True for v in gs["projected"]]
@@ -109,12 +109,14 @@ def _w(cand):
 
 def _assert_inputs_bound(w, cand):
     world = cand["world_inputs"]
-    for i in w["inputs"]:
+    for i in w["inputs"] or []:
         if i["sha256"] is not None:
             assert world[f"data/processed/{i['file']}"] == i["sha256"] and i["bytes"] > 0
 
 
-def _assert_calibration_bound(c, cand):
+def _assert_calibration_bound(c, cand, check_map=True):
+    # complete means the whole consumed inventory, in the resolver's order (r1 F3), not just the retained records
+    assert [i["file"] for i in c["pick_inputs"]] == cand["resolver_inventory"][-1]
     world = dict(cand["world_inputs"])
     for rel, text in cand["files"].items():                # history files a scenario rewrote, as the day left them
         if rel.startswith("data/picks/2026-0") and not text.startswith("sha256:"):
@@ -130,7 +132,7 @@ def _assert_calibration_bound(c, cand):
     by_file = {i["file"]: i["sha256"] for i in c["pick_inputs"]}
     for b in c["samples"]:
         assert b["file_sha256"] == by_file[b["file"]] and b["slot"] in ("pick", "double_down")
-    if c["map"] is not None:
+    if c["map"] is not None and check_map:
         assert c["map_sha256"] == _canon(c["map"])
         assert (c["map"]["out_of_bounds"], c["map"]["y_min"], c["map"]["y_max"]) == ("clip", 0.0, 1.0)
 
@@ -145,8 +147,11 @@ EXPECT_CAL = {
     "fault_pick_buffer": ("applied", True), "fault_pick_decoder": ("applied", True),
     "fault_collector_appends": ("applied", True), "fault_sample_canonicalisation": ("applied", True),
     "fault_map_extraction": ("applied", True), "fault_error_recording": ("applied", True),
+    "fault_attrs_copy_calibration": ("applied", True), "fault_pick_decoder_oserror": ("applied", True),
+    "fault_omitted_input_lost_error": ("applied", True), "fault_undescribable_pick": ("applied", True),
+    "fault_map_hash": ("applied", True),
 }
-CACHE_SOURCE = {"model_cached", "fault_cache_buffer", "fault_cache_hash"}
+CACHE_SOURCE = {"model_cached", "fault_cache_buffer", "fault_cache_hash", "fault_undescribable_cache"}
 ONE_CYCLE_DAYS = {"day_all_posted"}                   # locks at its first check: its only slate trained the model
 NO_WITNESS = {"day_prediction_failure", "genuine_cache_unpickle", "genuine_cache_unpickle_stateful",
               "genuine_parquet_parse", "genuine_save_serialization", "genuine_partial_write",
@@ -163,11 +168,14 @@ def _check_witness(name, cand, observed):
     _assert_inputs_bound(w, cand)
     model, cache = w["model"], cand["cache_sha256"]
     c = w["calibration"]
-    status, applied = EXPECT_CAL.get(name, ("off", False))
-    assert (c["status"], c["applied"], c["enabled"]) == (status, applied, status != "off")
-    if status in ("applied", "insufficient_support") and name not in ("fault_collector_appends",
-                                                                       "fault_sample_canonicalisation"):
-        _assert_calibration_bound(c, cand)
+    if name == "fault_calibration_record":
+        assert c is None                                   # the record could not be built: null, never stale
+    else:
+        status, applied = EXPECT_CAL.get(name, ("off", False))
+        assert (c["status"], c["applied"], c["enabled"]) == (status, applied, status != "off")
+        if status in ("applied", "insufficient_support") and name not in (
+                "fault_collector_appends", "fault_sample_canonicalisation", "fault_omitted_input_lost_error"):
+            _assert_calibration_bound(c, cand, check_map=name != "fault_map_hash")
     clean = not name.startswith("fault_") and name not in (
         "calibration_decode_error", "calibration_fit_failure", "calibration_apply_failure",
         "calibration_error_after_assignment")
@@ -214,7 +222,9 @@ def _null_pick_inputs(w, c, cand, observed):
 
 
 def _empty_collectors(w, c, cand, observed):
-    assert c["pick_inputs"] == [] and c["samples"] == [] and c["n_fit"] > 0 and c["errors"]
+    # every append failed: each collection is withheld (null), never published partial (r1 F3)
+    assert c["pick_inputs"] is None and c["samples"] is None and c["samples_sha256"] is None and c["n_fit"] > 0
+    assert w["inputs"] is None and c["errors"] and w["errors"]
 
 
 def _null_samples_hash(w, c, cand, observed):
@@ -223,6 +233,27 @@ def _null_samples_hash(w, c, cand, observed):
 
 def _null_map(w, c, cand, observed):
     assert c["map"] is None and c["map_sha256"] is None and c["errors"]
+
+
+def _one_null_input(w, c, cand, observed):
+    nulls = [i for i in w["inputs"] if i["sha256"] is None]
+    assert [i["file"] for i in nulls] == ["pa_2025.parquet"] and nulls[0]["bytes"] is None and w["errors"]
+
+
+def _all_null_inputs(w, c, cand, observed):
+    assert w["inputs"] and all(i["sha256"] is None and i["bytes"] is None for i in w["inputs"]) and w["errors"]
+
+
+def _withheld_inputs(w, c, cand, observed):
+    assert c["pick_inputs"] is None and c["n_fit"] and c["samples"] is not None
+
+
+def _null_map_hash(w, c, cand, observed):
+    assert c["map"] is not None and c["map_sha256"] is None and c["samples_sha256"] is not None and c["errors"]
+
+
+def _package_error(w, c, cand, observed):
+    assert w["packages"]["pyarrow"] is None and any("pyarrow" in e for e in w["errors"])
 
 
 def _error_after_assignment(w, c, cand, observed):
@@ -246,6 +277,11 @@ _SPECIFIC = {
     "fault_map_extraction": _null_map, "calibration_error_after_assignment": _error_after_assignment,
     "calibration_decode_error": _failed_with_error, "calibration_fit_failure": _failed_with_error,
     "calibration_apply_failure": _failed_with_error,
+    "fault_undescribable_parquet": _one_null_input, "fault_parquet_buffer_alloc": _all_null_inputs,
+    "fault_undescribable_cache": _null_model_hash, "fault_short_write": _null_model_hash,
+    "fault_pick_decoder_oserror": _null_pick_inputs, "fault_undescribable_pick": _null_pick_inputs,
+    "fault_omitted_input_lost_error": _withheld_inputs, "fault_map_hash": _null_map_hash,
+    "fault_package_query": _package_error,
 }
 
 

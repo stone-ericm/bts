@@ -1,13 +1,18 @@
 {
+ "api_calls": [],
  "cache_sha256": "ef3db91c47cc10f89605731719e860429e4a3700d29ebac5130357e319779aaf",
  "exception": null,
  "fallback_plans": [],
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "genuine_partial_write",
  "selections": [],
  "slate": null,
+ "stderr_failures": [
+  "  [local] Prediction failed: [Errno 28] No space left on device (golden)"
+ ],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

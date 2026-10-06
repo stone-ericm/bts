@@ -1,4 +1,5 @@
 {
+ "api_calls": [],
  "cache_sha256": "0c12999e0eb7000e4e59ce80f00d09e2020bb30fc4fc528b2c42890f6596cf36",
  "exception": {
   "message": "invalid load key, ' '.",
@@ -8,9 +9,11 @@
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "genuine_cache_unpickle",
  "selections": [],
  "slate": null,
+ "stderr_failures": [],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

@@ -1,4 +1,16 @@
 {
+ "api_calls": [
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30&hydrate=probablePitcher",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=107&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+  "https://statsapi.mlb.com/api/v1.1/game/899999/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=108&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+  "https://statsapi.mlb.com/api/v1.1/game/899999/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30"
+ ],
  "cache_sha256": "d3470c120db231435b3cbbec4c1ffe7e814c2903db2684493aba9f8a68520ff2",
  "exception": null,
  "fallback_plans": [],
@@ -49,6 +61,53 @@
   "2026-06-28x-unresolved.json": 1,
   "2026-06-29.json": 1
  },
+ "resolver_inventory": [
+  [
+   "2026-04-02.json",
+   "2026-05-21.json",
+   "2026-05-22.json",
+   "2026-05-23.json",
+   "2026-05-24.json",
+   "2026-05-25.json",
+   "2026-05-26.json",
+   "2026-05-27.json",
+   "2026-05-28.json",
+   "2026-05-29.json",
+   "2026-05-30.json",
+   "2026-05-31.json",
+   "2026-06-01.json",
+   "2026-06-02.json",
+   "2026-06-03.json",
+   "2026-06-04.json",
+   "2026-06-05.json",
+   "2026-06-06.json",
+   "2026-06-07.json",
+   "2026-06-08.json",
+   "2026-06-09.json",
+   "2026-06-10.json",
+   "2026-06-11.json",
+   "2026-06-12.json",
+   "2026-06-13.json",
+   "2026-06-14.json",
+   "2026-06-15.json",
+   "2026-06-16.json",
+   "2026-06-17.json",
+   "2026-06-18.json",
+   "2026-06-19.json",
+   "2026-06-20.json",
+   "2026-06-21.json",
+   "2026-06-22.json",
+   "2026-06-23.json",
+   "2026-06-24.json",
+   "2026-06-25.json",
+   "2026-06-26.json",
+   "2026-06-27.json",
+   "2026-06-27x-malformed.json",
+   "2026-06-28.json",
+   "2026-06-28x-unresolved.json",
+   "2026-06-29.json"
+  ]
+ ],
  "scenario": "calibration_apply_failure",
  "selections": [
   {
@@ -1137,6 +1196,14 @@
  ],
  "slate": {
   "date": "2026-06-30",
+  "envelope_keys": [
+   "date",
+   "n_rows",
+   "rows",
+   "schema_version",
+   "tier",
+   "written_at"
+  ],
   "n_rows": 72,
   "projected": [
    true,
@@ -2440,8 +2507,12 @@
   ],
   "schema_version": "bts_slate_v2",
   "serving": "<absent>",
-  "tier": "local"
+  "tier": "local",
+  "written_at": "2026-06-30T14:00:00+00:00"
  },
+ "stderr_failures": [
+  "  [local] Calibration failed (non-fatal): golden: apply; using raw p"
+ ],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

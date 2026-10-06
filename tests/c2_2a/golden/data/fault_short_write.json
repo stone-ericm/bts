@@ -11,14 +11,14 @@
   "https://statsapi.mlb.com/api/v1.1/game/899999/feed/live",
   "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30"
  ],
- "cache_sha256": "d3470c120db231435b3cbbec4c1ffe7e814c2903db2684493aba9f8a68520ff2",
+ "cache_sha256": "1132fab59211621a5211cb66222b470a81abf5a1f0f2598a0c472ce9a7e306fd",
  "exception": null,
  "fallback_plans": [],
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
  "resolver_inventory": [],
- "scenario": "calibration_no_sklearn",
+ "scenario": "fault_short_write",
  "selections": [
   {
    "predictions": {

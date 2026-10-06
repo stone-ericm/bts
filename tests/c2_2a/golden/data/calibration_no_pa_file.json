@@ -1,10 +1,23 @@
 {
+ "api_calls": [
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30&hydrate=probablePitcher",
+  "https://statsapi.mlb.com/api/v1.1/game/900001/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900002/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900003/feed/live",
+  "https://statsapi.mlb.com/api/v1.1/game/900004/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=107&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+  "https://statsapi.mlb.com/api/v1.1/game/899999/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=108&startDate=2026-03-20&endDate=2026-12-31&gameType=R",
+  "https://statsapi.mlb.com/api/v1.1/game/899999/feed/live",
+  "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-30"
+ ],
  "cache_sha256": "d3470c120db231435b3cbbec4c1ffe7e814c2903db2684493aba9f8a68520ff2",
  "exception": null,
  "fallback_plans": [],
  "files": {},
  "lock_decisions": [],
  "pick_reads": {},
+ "resolver_inventory": [],
  "scenario": "calibration_no_pa_file",
  "selections": [
   {
@@ -1023,6 +1036,14 @@
  ],
  "slate": {
   "date": "2026-06-30",
+  "envelope_keys": [
+   "date",
+   "n_rows",
+   "rows",
+   "schema_version",
+   "tier",
+   "written_at"
+  ],
   "n_rows": 72,
   "projected": [
    true,
@@ -2326,8 +2347,10 @@
   ],
   "schema_version": "bts_slate_v2",
   "serving": "<absent>",
-  "tier": "local"
+  "tier": "local",
+  "written_at": "2026-06-30T14:00:00+00:00"
  },
+ "stderr_failures": [],
  "transport": [],
  "unknown_urls": [],
  "world_inputs": {

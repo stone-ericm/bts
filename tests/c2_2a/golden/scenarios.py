@@ -52,6 +52,11 @@ class Patcher:
         self._undo.append((obj, name, old))
         setattr(obj, name, value)
 
+    def set_dict_item(self, d: dict, key, value):
+        old = d.get(key, _MISSING)
+        self._undo.append((_DictSlot(d, key), "value", old))
+        d[key] = value
+
     def set_if_exists(self, obj, name, value) -> bool:
         if not hasattr(obj, name):
             return False
@@ -65,6 +70,19 @@ class Patcher:
             else:
                 setattr(obj, name, old)
         self._undo.clear()
+
+
+class _DictSlot:
+    """Lets Patcher.restore() put a dict item back through setattr/delattr."""
+    def __init__(self, d, key):
+        object.__setattr__(self, "_d", d)
+        object.__setattr__(self, "_key", key)
+
+    def __setattr__(self, name, value):
+        self._d[self._key] = value
+
+    def __delattr__(self, name):
+        self._d.pop(self._key, None)
 
 
 class Clock:
@@ -230,7 +248,8 @@ def _slate(root: Path) -> dict | None:
         return None
     s = json.loads(p.read_text())
     rows = s.get("rows") or []
-    return {"tier": s.get("tier"), "date": s.get("date"), "n_rows": s.get("n_rows"),
+    return {"tier": s.get("tier"), "date": s.get("date"), "n_rows": s.get("n_rows"), "written_at": s.get("written_at"),
+            "envelope_keys": sorted(k for k in s if k != "serving"),
             "rows": [{k: v for k, v in r.items() if k != "projected"} for r in rows],
             "projected": [r.get("projected") for r in rows],
             "schema_version": s.get("schema_version"), "serving": s.get("serving", _MISSING_SERVING)}
@@ -274,7 +293,7 @@ class Harness:
                  all_posted=False, statuses=None, env=None, step_on_read=None):
         self.repo, self.p, self.obs = repo, Patcher(), {
             "exception": None, "selections": [], "lock_decisions": [], "fallback_plans": [], "transport": [],
-            "pick_reads": {}}
+            "pick_reads": {}, "resolver_inventory": [], "stderr_failures": []}
         key = f"s{streak}-c{int(calibration_history)}"
         template, _ = _template(repo, key, streak=streak, calibration_history=calibration_history)
         self.root = workdir
@@ -366,6 +385,30 @@ class Harness:
             self.obs["fallback_plans"].append(_jsonable(plan))
             return plan
         p.set(sch, "plan_fallback_action", plan_spy)
+        # The calibration resolver's inventory at each call (the files it will consume, in its order).
+        import bts.model.calibrate as Cal
+        real_resolve = Cal._resolve_pick_outcomes
+
+        def resolve_spy(picks_dir, *a, **k):
+            self.obs["resolver_inventory"].append(sorted(f.name for f in Path(picks_dir).glob("2*.json")))
+            return real_resolve(picks_dir, *a, **k)
+        p.set(Cal, "_resolve_pick_outcomes", resolve_spy)
+        # stderr: the handled-failure lines (caught exceptions' messages) are compared; the candidate's own
+        # non-fatal witness notices are excluded.
+        failures = self.obs["stderr_failures"]
+        real_err = sys.stderr
+
+        class Tee(io.TextIOBase):
+            def write(self, text):
+                for line in str(text).splitlines():
+                    if any(w in line for w in ("failed", "Failed", "REFUSED", "refused", "Error")) \
+                            and "Serving witness" not in line:
+                        failures.append(line)
+                return real_err.write(text)
+
+            def flush(self):
+                return real_err.flush()
+        p.set(sys, "stderr", Tee())
         # Reads of the history pick files, whatever the method (normal path: one read per file per fit).
         reads = self.obs["pick_reads"]
         for meth in ("read_bytes", "read_text"):
@@ -398,6 +441,7 @@ class Harness:
         self.obs["cache_sha256"] = _cache(self.root)
         self.obs["slate"] = _slate(self.root)
         self.obs["unknown_urls"] = list(self.router.unknown)
+        self.obs["api_calls"] = list(self.router.calls)
         text = json.dumps(self.obs, sort_keys=True)
         for root in sorted({str(self.root), os.path.realpath(self.root)}, key=len, reverse=True):
             text = text.replace(root, "<ROOT>")
@@ -525,23 +569,15 @@ def _fault_witness_names(h: Harness, which: str):
         if sw is not None and hasattr(sw, "build"):
             h.p.set(sw, "build", lambda **k: (_ for _ in ()).throw(MemoryError("golden: injected build failure")))
     elif which == "attrs_assignment":
-        if hasattr(P, "_attach"):
-            class NoAttrs:
-                @property
-                def attrs(self):
-                    raise RuntimeError("golden: injected attrs failure")
-            real = P._attach
-            h.p.set(P, "_attach", lambda frame, key, value, errors: real(NoAttrs(), key, value, errors))
-        orch = sys.modules["bts.orchestrator"]
-        if hasattr(orch, "_attach_serving_witness"):
-            real_attach = orch._attach_serving_witness
-
-            class NoAttrsFrame:
-                @property
-                def attrs(self):
-                    raise RuntimeError("golden: injected attrs failure")
-            h.p.set(orch, "_attach_serving_witness",
-                    lambda predictions, calibration, errors: real_attach(NoAttrsFrame(), calibration, errors))
+        class NoAttrs:
+            @property
+            def attrs(self):
+                raise RuntimeError("golden: injected attrs failure")
+        for mod, name in ((P, "_attach_pipeline_provenance"), (sys.modules["bts.orchestrator"], "_attach_serving_witness"),
+                          (sys.modules["bts.orchestrator"], "_take_pipeline_provenance")):
+            real = getattr(mod, name, None)
+            if real is not None:
+                h.p.set(mod, name, (lambda r: lambda frame, *a, **k: r(NoAttrs(), *a, **k))(real))
     else:
         raise ValueError(which)
 
@@ -888,6 +924,173 @@ def sc_fault_attrs_assignment(h):
     _run_and_pick(h)
 
 
+# Code review r1 (F1-F5): the faults it reproduced, each at its own boundary.
+
+class _BadRepr(MemoryError):
+    def __repr__(self):
+        raise MemoryError("golden: formatting the witness error")
+
+    def __str__(self):
+        raise MemoryError("golden: formatting the witness error")
+
+
+def sc_fault_attrs_copy_calibration(h):
+    """pandas copying attached provenance fails during calibration and slate-row extraction (r1 F1). The baseline
+    attaches no such dicts, so the fault cannot fire there."""
+    _calibration(h)
+    g = pd.DataFrame.__finalize__.__globals__
+    real = g["deepcopy"]
+
+    def failing(obj, *a, **k):
+        if isinstance(obj, dict) and ("serving_model" in obj or "serving" in obj):
+            raise MemoryError("golden: copying attached provenance")
+        return real(obj, *a, **k)
+    h.p.set_dict_item(g, "deepcopy", failing)
+    _run_and_pick(h)
+
+
+def sc_fault_pick_decoder_oserror(h):
+    """An OSError preparing the decoder after a successful read takes the fallback (r1 F2)."""
+    _calibration(h)
+    import bts.model.calibrate as C
+
+    class IoProxy:
+        def __getattr__(self, name):
+            return getattr(io, name)
+
+        @staticmethod
+        def TextIOWrapper(*a, **k):
+            raise OSError("golden: decoder preparation after a successful read")
+    h.p.set_if_exists(C, "io", IoProxy())
+    _run_and_pick(h)
+
+
+def sc_fault_omitted_input_lost_error(h):
+    """One consumed (out-of-window) pick input fails to collect and every error record is lost (r1 F3)."""
+    _calibration(h)
+    extra = h.root / "data" / "picks" / "2026-04-02.json"
+    if not extra.exists():
+        extra.write_text(json.dumps({"date": "2026-04-02", "result": "hit", "pick": {"batter_id": 10101,
+                                                                                    "p_game_hit": 0.9}}))
+    import bts.model.calibrate as C
+    sw = sys.modules.get("bts.serving_witness")
+    if sw is not None and hasattr(C, "_collect") and hasattr(sw, "collect"):
+        real = sw.collect
+
+        def collect(items, build, errors, what):
+            if items is not None and what == "pick input":
+                try:
+                    rec = build()
+                except Exception:
+                    rec = None
+                if rec and rec.get("file") == "2026-04-02.json":
+                    return real(_NoAppend(), build, _NoAppend(), what)
+            return real(items, build, errors, what)
+        h.p.set(C, "_collect", collect)
+        h.p.set(sw, "note", lambda *a, **k: False)
+        h.p.set_if_exists(C, "_note", lambda *a, **k: False)
+    _run_and_pick(h)
+
+
+def sc_fault_undescribable_parquet(h):
+    _read_bytes_fault_exc(h, lambda p: p.name == "pa_2025.parquet", _BadRepr)
+    _run_and_pick(h)
+
+
+def sc_fault_undescribable_pick(h):
+    _calibration(h)
+    _read_bytes_fault_exc(h, _is_history_pick, _BadRepr)
+    _run_and_pick(h)
+
+
+def sc_fault_undescribable_cache(h):
+    _write_cache(h, _cached_blend_bytes())
+    _read_bytes_fault_exc(h, lambda p: p.name == f"blend_{W.DATE}.pkl", _BadRepr)
+    _run_and_pick(h)
+
+
+def sc_fault_parquet_buffer_alloc(h):
+    """The held buffer's construction fails after a successful read (r1 F6: distinct from the read itself)."""
+    from bts.model import predict as P
+
+    class IoProxy:
+        def __getattr__(self, name):
+            return getattr(io, name)
+
+        @staticmethod
+        def BytesIO(*a, **k):
+            raise MemoryError("golden: buffer allocation after a successful read")
+    h.p.set_if_exists(P, "io", IoProxy())
+    _run_and_pick(h)
+
+
+class _ShortFile:
+    """A real file whose every write writes, and reports, only half its argument (a successful short write)."""
+    def __init__(self, f):
+        self._f = f
+
+    def write(self, b):
+        data = bytes(b)
+        return self._f.write(data[: max(1, len(data) // 2)])
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self._f.close()
+        return False
+
+
+def sc_fault_short_write(h):
+    real_open = builtins.open
+    target = f"blend_{W.DATE}.pkl"
+
+    def opener(path, mode="r", *a, **k):
+        f = real_open(path, mode, *a, **k)
+        return _ShortFile(f) if "w" in mode and str(path).endswith(target) else f
+    h.p.set(builtins, "open", opener)
+    _run_and_pick(h)
+
+
+def sc_fault_package_query(h):
+    sw = sys.modules.get("bts.serving_witness")
+    if sw is not None and hasattr(sw, "version"):
+        real = sw.version
+        h.p.set(sw, "version", lambda name: (_ for _ in ()).throw(LookupError("golden: " + name))
+                if name == "pyarrow" else real(name))
+    _run_and_pick(h)
+
+
+def sc_fault_map_hash(h):
+    """The map's canonical hash fails while the samples' hash succeeds (r1 F6: independent of sample hashing)."""
+    _calibration(h)
+    import bts.model.calibrate as C
+    if hasattr(C, "_canon_sha256"):
+        real = C._canon_sha256
+        h.p.set(C, "_canon_sha256", lambda o: (_ for _ in ()).throw(ValueError("golden: map canon"))
+                if isinstance(o, dict) and "X_thresholds" in o else real(o))
+    _run_and_pick(h)
+
+
+def sc_fault_calibration_record(h):
+    """Building the serving calibration record fails after the assignment (r1 F3: never a stale record)."""
+    _calibration(h)
+    orch = sys.modules["bts.orchestrator"]
+    h.p.set_if_exists(orch, "_calibration_record",
+                      lambda *a, **k: (_ for _ in ()).throw(MemoryError("golden: calibration record")))
+    _run_and_pick(h)
+
+
+def _read_bytes_fault_exc(h: Harness, predicate, exc_type):
+    real = Path.read_bytes
+
+    def rb(self):
+        if predicate(self):
+            raise exc_type("golden: injected")
+        return real(self)
+    h.p.set(Path, "read_bytes", rb)
+
+
 # Delivery at the cutoff (§5.2) and the advancing clock (§5.5).
 
 def _cutoff_pick(h):
@@ -976,6 +1179,17 @@ SCENARIOS = {
     "fault_error_recording": (sc_fault_error_recording, {}),
     "fault_build": (sc_fault_build, {}),
     "fault_attrs_assignment": (sc_fault_attrs_assignment, {}),
+    "fault_attrs_copy_calibration": (sc_fault_attrs_copy_calibration, {}),
+    "fault_pick_decoder_oserror": (sc_fault_pick_decoder_oserror, {}),
+    "fault_omitted_input_lost_error": (sc_fault_omitted_input_lost_error, {}),
+    "fault_undescribable_parquet": (sc_fault_undescribable_parquet, {}),
+    "fault_undescribable_pick": (sc_fault_undescribable_pick, {}),
+    "fault_undescribable_cache": (sc_fault_undescribable_cache, {}),
+    "fault_parquet_buffer_alloc": (sc_fault_parquet_buffer_alloc, {}),
+    "fault_short_write": (sc_fault_short_write, {}),
+    "fault_package_query": (sc_fault_package_query, {}),
+    "fault_map_hash": (sc_fault_map_hash, {}),
+    "fault_calibration_record": (sc_fault_calibration_record, {}),
     "cutoff_minus_one_second": (sc_cutoff_minus_one_second, {"start_et": (12, 0)}),
     "cutoff_exact": (sc_cutoff_exact, {"start_et": (12, 0)}),
     "cutoff_advancing_clock": (sc_cutoff_advancing_clock, {"start_et": (12, 0)}),
