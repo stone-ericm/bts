@@ -94,3 +94,20 @@ def test_never_raises_on_pathological_input(tmp_path):
     blocked = tmp_path / "not_a_dir"
     blocked.write_text("")  # slates/ mkdir under a file must fail -> swallowed
     assert save_slate(_predictions(), "2026-06-11", blocked, "x") is None
+
+
+def test_v2_persists_each_rows_game_time_and_schedule_status(tmp_path):
+    """C1 4a prerequisite P1 (registration §2): eligibility needs each row's run-known start and the pregame status
+    observed in that run, at or before the write."""
+    preds = _predictions()
+    preds["game_time"] = "2027-04-01T23:05:00Z"
+    preds["status"] = ["Scheduled", "Pre-Game", "Warmup"]
+    payload = json.loads(save_slate(preds, "2027-04-01", tmp_path, "hetzner").read_text())
+    assert payload["schema_version"] == "bts_slate_v2"
+    assert [r["game_time"] for r in payload["rows"]] == ["2027-04-01T23:05:00Z"] * 3
+    assert [r["status"] for r in payload["rows"]] == ["Scheduled", "Pre-Game", "Warmup"]
+
+
+def test_v2_rows_without_the_fields_still_write(tmp_path):
+    payload = json.loads(save_slate(_predictions(), "2027-04-01", tmp_path, "hetzner").read_text())
+    assert "game_time" not in payload["rows"][0] and payload["n_rows"] == 3

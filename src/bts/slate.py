@@ -26,17 +26,21 @@ from bts.util import atomic_write_text
 
 log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = "bts_slate_v1"
+SCHEMA_VERSION = "bts_slate_v2"   # v2 (C1 4a prerequisite P1): each row's game_time and schedule status
 
 # Persisted per candidate when present in the predictions frame. Feature
 # values are deliberately excluded: they are reconstructable from the PA
 # parquets (validated to 5.55e-17 by scripts/replay_m3_serving_parity.py),
 # while the model outputs below are not.
+# v2 adds game_time (the schedule's gameDate as known at this run) and status (the
+# schedule's detailedState fetched in this run, before the write): C1 rank 4a's
+# eligibility rule needs the run-known start and a pregame-status observation at or
+# before the write (docs/sota_audit/2026-10-04-prereg-c1-calibration.md section 2).
 ROW_COLUMNS = [
     "batter_id", "batter_name", "team", "game_pk", "lineup",
     "pitcher_id", "pitcher_name",
     "p_game_hit", "p_game_blend", "p_hit_vs_starter", "p_hit_vs_reliever",
-    "est_pas", "flags", "projected",
+    "est_pas", "flags", "projected", "game_time", "status",
 ]
 
 
