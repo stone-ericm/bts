@@ -42,6 +42,7 @@ class GameMeta:
     starting_pitcher: dict  # side -> pitcher_id (the side's own starter)
     pas: tuple
     problems: tuple
+    feed_timestamp: str | None = None   # metaData.timeStamp: the producer version of this feed (provenance)
 
 
 def _lineups(players: dict, side: str, problems: list) -> tuple[dict, dict]:
@@ -107,4 +108,4 @@ def extract(feed: dict) -> GameMeta:
             problems.append(f"{side}: starting pitcher {sp[side]} did not face the first opposing PA ({first.pitcher})")
     return GameMeta(game_pk=gd["game"]["pk"], official_date=gd["datetime"]["officialDate"],
                     season=int(gd["game"]["season"]), starters=starters, substitutes=subs, starting_pitcher=sp,
-                    pas=tuple(pas), problems=tuple(problems))
+                    pas=tuple(pas), problems=tuple(problems), feed_timestamp=(feed.get("metaData") or {}).get("timeStamp"))

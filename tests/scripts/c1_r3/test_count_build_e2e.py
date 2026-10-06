@@ -66,7 +66,10 @@ def test_end_to_end_outputs(tmp_path, patched):
     assert tab["cells"]["1|away"]["counts"]["1"] == 120                  # every starter batted once in the fixture
     starts = json.loads((d / "bf_starts.json").read_text())
     assert len(starts["starts"]) == 240 and starts["league_median_bf"] == 9.0
-    for name in ("count_table.json", "bf_starts.json", "census.json"):
+    prov = json.loads((d / "provenance.json").read_text())
+    assert len(prov) == 121 and prov["700001"]["feed_timestamp"] == "20230602_010203" and prov["700001"]["certified"]
+    assert prov["799999"]["certified"] is False
+    for name in ("count_table.json", "bf_starts.json", "census.json", "provenance.json"):
         assert res["outputs"][name] == hashlib.sha256((d / name).read_bytes()).hexdigest()
     man = json.loads((d / "manifest.json").read_text())
     assert man["feeds"]["count"] == 121 and "pa_2023.parquet" in man["pa_parquets"]

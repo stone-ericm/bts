@@ -19,7 +19,9 @@ plan `docs/superpowers/plans/2026-10-05-c1-r3-count-build.md`).
 3. **Claim:** a durable `CLAIM.json` precedes the first feed read.
 4. **One pass** over every receipt-bound feed, under the acquisition's writer lock:
    - the stored bytes must match the receipt's stored sha256, and the decoded bytes its decoded sha256;
-   - then T1 extract, T2 certify, and T3/T4 rows from certified games only.
+   - then T1 extract, T2 certify, and T3/T4 rows from certified games only;
+   - each game's producer version (`metaData.timeStamp`) is kept in `provenance.json`. Chronological order is
+     certified by a strictly increasing `atBatIndex` (T1).
 
    Eligible games are those in the PA parquets (`game_pk`, `batter_id`, `is_home`; outcome-free columns).
 5. **Census:** more than 1% of eligible games quarantined writes `STOPPED_quarantine.txt` and stops. The claim
@@ -145,7 +147,7 @@ def _run(head, run_dir, feeds_dir, acq_out, pa_dir, log) -> int:
 
         # 3. claim, 4. one pass
         A.write_claim(run_dir, head)
-        counts, results, rows, starts = {}, {}, [], []
+        counts, results, rows, starts, provenance = {}, {}, [], [], {}
         for s, (b, _) in pa_bytes.items():
             counts.update(parquet_counts(pd.read_parquet(io.BytesIO(b), columns=PA_COLS)))
         for (season, pk), r in sorted(inventory.items()):
@@ -157,6 +159,8 @@ def _run(head, run_dir, feeds_dir, acq_out, pa_dir, log) -> int:
                 raise ProvenanceError(f"{r['stored_path']}: decoded bytes do not match their receipt")
             meta = M.extract(json.loads(body))
             results[pk] = V.verify_game(meta, pk=pk, season=season, parquet=counts.get(pk))
+            provenance[str(pk)] = {"feed_timestamp": meta.feed_timestamp, "decoded_sha256": r["decoded_sha256"],
+                                   "certified": pk in counts and not results[pk]}
             if pk in counts and not results[pk]:
                 rows += T.starter_counts(meta)
                 starts += B.starts(meta)
@@ -173,7 +177,8 @@ def _run(head, run_dir, feeds_dir, acq_out, pa_dir, log) -> int:
     outputs = {"count_table.json": _write_json(run_dir / "count_table.json", T.count_table(rows)),
                "bf_starts.json": _write_json(run_dir / "bf_starts.json",
                                              {"league_median_bf": B.league_median(starts), "starts": starts}),
-               "census.json": census_sha}
+               "census.json": census_sha,
+               "provenance.json": _write_json(run_dir / "provenance.json", provenance)}
     _write_json(run_dir / "results.json", {"code": head, "outputs": outputs, "census": {
         k: census[k] for k in ("eligible", "certified", "rate", "ineligible_feeds", "reasons")} | {
         "quarantined": len(census["quarantined"])}})

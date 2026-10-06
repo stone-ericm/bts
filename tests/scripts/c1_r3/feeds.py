@@ -30,7 +30,7 @@ def feed(pk=1, date="2023-06-01", *, away=None, home=None, away_pitchers=(150,),
     dt = {"officialDate": date}
     if resume:
         dt["resumeDateTime"] = resume
-    return {"gamePk": pk,
+    return {"gamePk": pk, "metaData": {"timeStamp": "20230602_010203"},
             "gameData": {"game": {"pk": pk, "season": int(date[:4]), "type": "R"}, "datetime": dt,
                          "teams": {"away": {"id": 10}, "home": {"id": 20}}},
             "liveData": {"boxscore": {"teams": {
