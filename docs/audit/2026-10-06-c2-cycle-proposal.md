@@ -1,6 +1,6 @@
 # C2 cycle proposal: scope, order, caps and stop rules for 2027 Cycle 2 (for Eric's approval)
 
-**Status:** **DRAFT 2026-10-06**, sent to Eric through the herdr manager (`projects-30`). Nothing in it is built before his recorded approval. Like the C1 proposal, it is not Codex-reviewed: each item's designs and code get their own reviews. Written by the BTS lead session (bts-lead2) from the kickoff brief `docs/ops/2026-10-06-bts-lead-kickoff.md` §3.
+**Status:** **APPROVED by Eric 2026-10-06 ~11:59 EDT as written** ("Approve as proposed (Recommended)", given directly and relayed by the herdr manager; register §C row C2-approval). On the §7 question 2 gap he ruled **"Inside the watchdog (Recommended)"**, option (i) (row C2-rank1-part-a). C2 started 10/06. Below the status line, the proposal text is unchanged. Like the C1 proposal, it is not Codex-reviewed: each item's designs and code get their own reviews.
 
 ## What is already decided
 - **Eric's order (10/06):** (a) the rank-2 watchdog; (b) 4a together with rank 3; (c) 4b; (d) P3 / W-state stays deferred. One at a time.
