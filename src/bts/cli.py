@@ -1678,7 +1678,7 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         return now + timedelta(seconds=time.monotonic() - rec.fetch_mono)
 
     rec = EntryReceipt(et_date=now.date().isoformat(), started_at=now, clock=clock,
-                       expected_username=expected_username)
+                       expected_username=expected_username, picks_dir=picks_dir)
     try:
         _check_pick_entered(Path(picks_dir), expected_username, dm_recipient, window_min, now, rec)
     except SystemExit as exc:
@@ -1689,20 +1689,22 @@ def check_pick_entered(picks_dir, expected_username, dm_recipient, window_min, n
         rec.detail = f"raised {type(exc).__name__}"
         raise
     finally:
-        rec.publish(Path(picks_dir))
+        rec.publish()
 
 
 def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now, rec):
     import sys
     import time
     import httpx
-    from bts.picks import load_pick
+    from bts.daily_decision import load_decision_bytes, scoreable_commit_from
+    from bts.picks import load_pick_bytes
     from bts.scheduler import _earliest_pick_game_et
 
     today = now.date().isoformat()
-    daily = load_pick(today, picks)
+    # The pick and decision files are each read once; the receipt binds the exact bytes parsed and gated on.
+    daily, pick_raw = load_pick_bytes(today, picks)
     if daily is None:
-        rec.outcome = "no_pick_file"
+        rec.set_outcome("no_pick_file")
         click.echo(f"check-pick-entered: no pick for {today}; nothing to check")
         return
 
@@ -1714,14 +1716,13 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # (decision.scoreable) with a pick_was_delivered fallback. This covers the
     # delivered / private_locked / locked_unconfirmed commit states and stays
     # silent for previews/deferred picks. (2026-07-06 premature-DM fix.)
-    from bts.daily_decision import is_scoreable_commit
-    if not is_scoreable_commit(today, picks, daily):
-        rec.outcome = "not_committed"
+    decision, decision_raw = load_decision_bytes(today, picks)
+    rec.selection(daily, pick_raw, decision, decision_raw)
+    if not scoreable_commit_from(decision, daily):
+        rec.set_outcome("not_committed")
         click.echo(f"check-pick-entered: pick for {today} not committed/locked; nothing to check")
         return
 
-    from bts.entry_receipt import selection_identity
-    rec.selection = selection_identity(daily, today, picks)
     first_pitch = _earliest_pick_game_et(daily)
     minutes_to_pitch = (first_pitch - now).total_seconds() / 60
     # BTS rejects submissions within 5 min of first pitch. Only check inside
@@ -1729,12 +1730,11 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     # "Fix it now!" nag is useless (and its countdown would go negative).
     from bts.picks import SUBMISSION_CUTOFF_MIN
     submit_cutoff_min = SUBMISSION_CUTOFF_MIN
-    rec.cutoff_at = first_pitch - timedelta(minutes=submit_cutoff_min)
-    rec.minutes_to_pitch = round(minutes_to_pitch, 3)
+    rec.window(first_pitch, submit_cutoff_min, minutes_to_pitch)
     # Strict lower bound: at exactly first_pitch-5 the entry is already locked
     # (Codex review #8) — never DM "0 min to submit".
     if not (submit_cutoff_min < minutes_to_pitch <= window_min):
-        rec.outcome = "outside_window"
+        rec.set_outcome("outside_window")
         click.echo(f"check-pick-entered: outside window ({minutes_to_pitch:.0f} min to pitch)")
         return
 
@@ -1743,7 +1743,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     def mark(marker):
         # The marker names this run's receipt, so a later already-confirmed run can reference the confirming one.
         marker["receipt"] = rec.attempt_id
-        rec.marker_status = marker["status"]
+        rec.marker(marker["status"])
         _atomic_write_json(status_path, marker)
     # "confirmed" is the ONLY terminal state (audit F1): an "alerted" day keeps
     # RE-VERIFYING on every run until the entry appears or the window closes —
@@ -1759,8 +1759,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         if prior.get("date") != today:
             prior = {}
         if prior.get("status") == "confirmed":
-            rec.outcome = "already_confirmed"
-            rec.references = {"confirmed_by": prior.get("receipt")}   # None: the marker predates receipts
+            rec.confirmed_by(prior.get("receipt"))   # None: the marker predates receipts
             click.echo(f"check-pick-entered: already confirmed for {today}")
             return
     was_alerted = prior.get("status") == "alerted"
@@ -1783,7 +1782,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         session = fetch_login_session(uid=uid, cookies=cookies, attempts=2)
         rec.set_account(session.user_id, session.username)
         if expected_username and session.username != expected_username:
-            rec.outcome = "identity_mismatch"
+            rec.set_outcome("identity_mismatch")
             click.echo(f"check-pick-entered: identity mismatch ({session.username!r}); skipping", err=True)
             return
         success = _cf.fetch_profile(session.user_id, cookies, session.xsid)
@@ -1798,6 +1797,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
         rec.failed(exc)
         click.echo(f"check-pick-entered: fetch failed, skipping quietly: {exc}", err=True)
         return
+    rec.responses_done(success, pending, rounds, bts_to_mlb)    # the actual response-completion time
 
     # Verify the DELIVERED pick(s) are what got entered — Eric always intends the
     # entered pick to equal the recommendation, so a wrong player or a missing
@@ -1809,8 +1809,7 @@ def _check_pick_entered(picks, expected_username, dm_recipient, window_min, now,
     }
     ok, reason = _cf.pick_entry_status(
         success, pending, rounds, now.date(), required_mlb_ids, bts_to_mlb)
-    rec.observed(profile=success, pending=pending, rounds=rounds, crosswalk=bts_to_mlb, target=now.date(),
-                 ok=ok, reason=reason, required_mlb_ids=required_mlb_ids)
+    rec.verified(ok, reason, required_mlb_ids, now.date())
     if ok and reason != "match":
         # present_unverified: entries exist but the crosswalk can't prove
         # identity. NOT terminal (Codex review #1): a wrong player hiding

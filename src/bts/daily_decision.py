@@ -8,6 +8,7 @@ docs/superpowers/specs/2026-06-21-daily-decision-record-design.md.
 from __future__ import annotations
 
 import json
+import locale
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -111,7 +112,26 @@ def load_decision(date: str, picks_dir) -> dict | None:
     if not path.exists():
         return None
     try:
-        rec = json.loads(path.read_text())
+        return parse_decision(path.read_text())
+    except OSError:
+        return None
+
+
+def load_decision_bytes(date: str, picks_dir) -> tuple[dict | None, bytes | None]:
+    """load_decision from one read, also returning the exact bytes parsed (None when absent or unreadable)."""
+    path = decision_path(date, picks_dir)
+    if not path.exists():
+        return None, None
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return None, None
+    return parse_decision(raw.decode(locale.getpreferredencoding(False), errors="strict")), raw
+
+
+def parse_decision(text: str) -> dict | None:
+    try:
+        rec = json.loads(text)
         if not isinstance(rec, dict) or rec.get("schema_version") not in ACCEPTED_SCHEMAS:
             return None
         # Reject partial / wrong-shape records that carry the schema tag but lack the
@@ -123,7 +143,7 @@ def load_decision(date: str, picks_dir) -> dict | None:
                 or "date" not in rec):
             return None
         return rec
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError:
         return None
 
 
@@ -135,8 +155,12 @@ def is_scoreable_commit(date: str, picks_dir, daily) -> bool:
     ``pick_was_delivered(daily)``.  The ``picks`` import is local to avoid a circular
     dependency (picks.py is heavier and imports from daily_decision indirectly).
     """
+    return scoreable_commit_from(load_decision(date, picks_dir), daily)
+
+
+def scoreable_commit_from(dec: dict | None, daily) -> bool:
+    """is_scoreable_commit on an already-loaded decision record (the entry receipt binds its bytes)."""
     from bts.picks import pick_was_delivered
-    dec = load_decision(date, picks_dir)
     if dec is not None:
         return bool(dec.get("scoreable"))
     return bool(daily is not None and pick_was_delivered(daily))

@@ -3,6 +3,7 @@
 import fcntl
 import hashlib
 import json
+import locale
 import logging
 import math
 import os
@@ -460,7 +461,20 @@ def load_pick(date: str, picks_dir: Path) -> DailyPick | None:
     path = picks_dir / f"{date}.json"
     if not path.exists():
         return None
-    data = json.loads(path.read_text())
+    return parse_daily_pick(path.read_text())
+
+
+def load_pick_bytes(date: str, picks_dir: Path) -> tuple[DailyPick | None, bytes | None]:
+    """load_pick from one read, also returning the exact bytes parsed (the entry receipt binds them)."""
+    path = Path(picks_dir) / f"{date}.json"
+    if not path.exists():
+        return None, None
+    raw = path.read_bytes()
+    return parse_daily_pick(raw.decode(locale.getpreferredencoding(False))), raw
+
+
+def parse_daily_pick(text: str) -> DailyPick:
+    data = json.loads(text)
     # Backfill pitcher_team for picks saved before this field existed
     data["pick"].setdefault("pitcher_team", None)
     if data["double_down"]:
