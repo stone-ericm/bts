@@ -101,3 +101,14 @@ def test_unusable_upstream_errors_are_recorded_not_raised():
             raise RuntimeError("synthetic")
     w = _build(errors=Unlistable())
     assert any("upstream errors" in e for e in w["errors"])
+
+
+def test_the_containment_helpers_never_raise():
+    class NoAppend(list):
+        def append(self, x):
+            raise RuntimeError("synthetic")
+    W.note(NoAppend(), "x")
+    W.note(None, "x")
+    errors = NoAppend()
+    W.collect(NoAppend(), {"a": 1}, errors, "what")
+    assert W.sha256_or_none(object(), [], "what") is None

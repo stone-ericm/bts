@@ -1,0 +1,626 @@
+[
+ {
+  "id": "C1",
+  "rule": "pick: decode the held bytes (no second read)",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    return reader.read(), sha\n",
+  "new": "    return f.read_text(), sha\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "calibration_on"
+  ]
+ },
+ {
+  "id": "C2",
+  "rule": "pick: capture-preparation fallback",
+  "file": "src/bts/model/calibrate.py",
+  "old": "        return f.read_text(), None\n",
+  "new": "        raise\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_pick_buffer"
+  ]
+ },
+ {
+  "id": "C3",
+  "rule": "pick: genuine OSError keeps the skip, no retry",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    except OSError as e:\n        _note(errors, f\"pick {f.name}: unreadable, skipped: {e!r}\")\n        raise\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C4",
+  "rule": "pick: fallback input recorded with nulls",
+  "file": "src/bts/model/calibrate.py",
+  "old": "        _collect(inputs, {\"file\": f.name, \"bytes\": None, \"sha256\": None}, errors, f\"pick {f.name}\")\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C5",
+  "rule": "binding: slot field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"slot\": slot_key,",
+  "new": "\"slot\": \"pick\",",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C6",
+  "rule": "binding: file_sha256 field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "rec = {\"file\": f.name, \"file_sha256\": file_sha,",
+  "new": "rec = {\"file\": f.name, \"file_sha256\": None,",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C7",
+  "rule": "binding: date field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"date\": pick_date.isoformat(),",
+  "new": "\"date\": str(today),",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C8",
+  "rule": "binding: batter_id field",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"batter_id\": bid, \"p\": sample[0], \"y\": sample[1]}",
+  "new": "\"batter_id\": str(bid), \"p\": sample[0], \"y\": sample[1]}",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C9",
+  "rule": "binding: p and y are the appended sample",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"p\": sample[0], \"y\": sample[1]}",
+  "new": "\"p\": round(sample[0], 2), \"y\": sample[1]}",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C10",
+  "rule": "binding: one per sample, in order",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if bindings is not None:\n                _bind(",
+  "new": "            if bindings is not None and slot_key == \"pick\":\n                _bind(",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C11",
+  "rule": "witness: n_fit",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_put(witness, \"n_fit\", len(samples), errors)",
+  "new": "_put(witness, \"n_fit\", len(inputs), errors)",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "C12",
+  "rule": "witness: samples hash over the bindings",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_canon_or_none(bindings, errors, \"calibration samples\")",
+  "new": "_canon_or_none(inputs, errors, \"calibration samples\")",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C13",
+  "rule": "witness: map fields from the fitted object",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"increasing\": bool(cal.increasing_),",
+  "new": "\"increasing\": True,",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C14",
+  "rule": "witness: map canonical hash",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_canon_or_none(cal_map, errors, \"calibration map\")",
+  "new": "_canon_or_none(cal_map[\"X_thresholds\"], errors, \"calibration map\")",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "C15",
+  "rule": "status: insufficient_support",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_put(witness, \"status\", \"insufficient_support\", errors)",
+  "new": "_put(witness, \"status\", \"fitted\", errors)",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "C16",
+  "rule": "status: no_sklearn",
+  "file": "src/bts/model/calibrate.py",
+  "old": "_put(witness, \"status\", \"no_sklearn\", errors)",
+  "new": "pass",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "C17",
+  "rule": "status: fitted only after the fit",
+  "file": "src/bts/model/calibrate.py",
+  "old": "        _put(witness, \"status\", \"fitted\", errors)\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "W1",
+  "rule": "containment: note",
+  "file": "src/bts/serving_witness.py",
+  "old": "    try:\n        errors.append(msg)\n    except Exception:\n        pass\n",
+  "new": "    errors.append(msg)\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "W2",
+  "rule": "containment: collect",
+  "file": "src/bts/serving_witness.py",
+  "old": "    try:\n        items.append(item)\n    except Exception as e:\n        note(errors, f\"{what}: collector append failed: {e!r}\")\n",
+  "new": "    items.append(item)\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "W3",
+  "rule": "containment: sha256_or_none",
+  "file": "src/bts/serving_witness.py",
+  "old": "    try:\n        return hashlib.sha256(raw).hexdigest()\n    except Exception as e:\n        note(errors, f\"{what}: sha256 failed: {e!r}\")\n        return None\n",
+  "new": "    return hashlib.sha256(raw).hexdigest()\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "W4",
+  "rule": "canonical JSON: separators",
+  "file": "src/bts/serving_witness.py",
+  "old": "json.dumps(obj, sort_keys=True, separators=(\",\", \":\"), allow_nan=False)",
+  "new": "json.dumps(obj, sort_keys=True, allow_nan=False)",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "W5",
+  "rule": "canonical JSON: non-finite refused",
+  "file": "src/bts/serving_witness.py",
+  "old": "separators=(\",\", \":\"), allow_nan=False).encode(",
+  "new": "separators=(\",\", \":\"), allow_nan=True).encode(",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
+  ]
+ },
+ {
+  "id": "W6",
+  "rule": "env: names only for other BTS_*",
+  "file": "src/bts/serving_witness.py",
+  "old": "sorted(k for k in os.environ if k.startswith(\"BTS_\"))",
+  "new": "sorted(f\"{k}={os.environ[k]}\" for k in os.environ if k.startswith(\"BTS_\"))",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py"
+  ]
+ },
+ {
+  "id": "W7",
+  "rule": "recipe: every recipe package",
+  "file": "src/bts/serving_witness.py",
+  "old": "RECIPE_PACKAGES = (\"model\", \"features\", \"data\")",
+  "new": "RECIPE_PACKAGES = (\"model\", \"features\")",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py"
+  ]
+ },
+ {
+  "id": "W8",
+  "rule": "build: upstream errors copied",
+  "file": "src/bts/serving_witness.py",
+  "old": "        errs.extend(errors or [])\n",
+  "new": "        errs = errors if errors is not None else errs\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py"
+  ]
+ },
+ {
+  "id": "W9",
+  "rule": "build: each part contained",
+  "file": "src/bts/serving_witness.py",
+  "old": "        try:\n            parts[key] = fn()\n        except Exception as e:\n            parts[key] = None\n            note(errs, _error(key, e))\n",
+  "new": "        parts[key] = fn()\n",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py"
+  ]
+ },
+ {
+  "id": "W10",
+  "rule": "schema v2 tag",
+  "file": "src/bts/serving_witness.py",
+  "old": "SCHEMA = \"bts_serving_witness_v2\"",
+  "new": "SCHEMA = \"bts_serving_witness_v1\"",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold"
+  ]
+ },
+ {
+  "id": "P1",
+  "rule": "parquet: parse the hashed buffer",
+  "file": "src/bts/model/predict.py",
+  "old": "    return pd.read_parquet(buffer)\n",
+  "new": "    return pd.read_parquet(parquet)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P2",
+  "rule": "parquet: capture-preparation fallback",
+  "file": "src/bts/model/predict.py",
+  "old": "        return pd.read_parquet(parquet)\n",
+  "new": "        raise\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_parquet_buffer"
+  ]
+ },
+ {
+  "id": "P3",
+  "rule": "HashingWriter: forward returns the real result",
+  "file": "src/bts/model/predict.py",
+  "old": "        return self._f.write(b)\n",
+  "new": "        self._f.write(b)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P4",
+  "rule": "HashingWriter: hashes exactly the bytes written",
+  "file": "src/bts/model/predict.py",
+  "old": "                self._h.update(b)\n",
+  "new": "                self._h.update(bytes(b)[:1])\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P5",
+  "rule": "HashingWriter: hash failure contained",
+  "file": "src/bts/model/predict.py",
+  "old": "            try:\n                self._h.update(b)\n            except Exception as e:\n                note(self._errors, f\"blend save: sha256 update failed: {e!r}\")\n                self._h = None\n",
+  "new": "            self._h.update(b)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P6",
+  "rule": "save: construction failure saves through the plain file",
+  "file": "src/bts/model/predict.py",
+  "old": "        pickle.dump(blend, f if writer is None else writer)\n",
+  "new": "        pickle.dump(blend, writer)\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P7",
+  "rule": "save: open/truncate before serialization",
+  "file": "src/bts/model/predict.py",
+  "old": "    writer = None\n    with open(path, \"wb\") as f:\n",
+  "new": "    writer = None\n    pickle.dumps(blend)\n    with open(path, \"wb\") as f:\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P8",
+  "rule": "provenance: cache branch",
+  "file": "src/bts/model/predict.py",
+  "old": "        serving_model = {\"source\": \"cache\", \"sha256\": cached_blend_sha256}\n",
+  "new": "        serving_model = {\"source\": \"trained\", \"sha256\": cached_blend_sha256}\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "P9",
+  "rule": "provenance: trained_unsaved",
+  "file": "src/bts/model/predict.py",
+  "old": "        serving_model = {\"source\": \"trained_unsaved\", \"sha256\": None}\n",
+  "new": "        serving_model = {\"source\": \"trained\", \"sha256\": None}\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P10",
+  "rule": "provenance: trained hash is the save's",
+  "file": "src/bts/model/predict.py",
+  "old": "serving_model = {\"source\": \"trained\", \"sha256\": save_blend(to_save, save_blend_path, witness_errors)}",
+  "new": "serving_model = {\"source\": \"trained\", \"sha256\": (save_blend(to_save, save_blend_path, witness_errors), None)[1]}",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "P11",
+  "rule": "attrs: contained",
+  "file": "src/bts/model/predict.py",
+  "old": "    try:\n        frame.attrs[key] = value\n    except Exception as e:\n        note(errors, f\"attrs {key}: assignment failed: {e!r}\")\n",
+  "new": "    frame.attrs[key] = value\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py"
+  ]
+ },
+ {
+  "id": "P12",
+  "rule": "R10: explicit projected false",
+  "file": "src/bts/model/predict.py",
+  "old": "                    slot[\"projected\"] = is_projected    # explicit for every slot (R10): false = posted lineup\n",
+  "new": "                    if is_projected:\n                        slot[\"projected\"] = True\n",
+  "tests": [
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold"
+  ]
+ },
+ {
+  "id": "O1",
+  "rule": "cache: unpickle the held bytes (no second read)",
+  "file": "src/bts/orchestrator.py",
+  "old": "            cached_blend = pickle.loads(raw_blend)  # noqa: S301 \u2014 loading our own cached models\n",
+  "new": "            cached_blend = load_blend(cache_path)\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O2",
+  "rule": "cache: capture-preparation fallback",
+  "file": "src/bts/orchestrator.py",
+  "old": "            raw_blend = None\n        if raw_blend is None:",
+  "new": "            raise\n        if raw_blend is None:",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_cache_buffer"
+  ]
+ },
+ {
+  "id": "O3",
+  "rule": "cache: hash handed to run_pipeline",
+  "file": "src/bts/orchestrator.py",
+  "old": "            cached_blend_sha256=cached_blend_sha256,\n",
+  "new": "            cached_blend_sha256=None,\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O4",
+  "rule": "calibration: PA through the capture",
+  "file": "src/bts/orchestrator.py",
+  "old": "                pa_df = _read_pa_parquet(current_pa, pa_inputs, calibration_errors)\n",
+  "new": "                pa_df = pd.read_parquet(current_pa)\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O5",
+  "rule": "calibration: applied at the assignment",
+  "file": "src/bts/orchestrator.py",
+  "old": "                    _cal_set(calibration, \"applied\", True, calibration_errors)\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O6",
+  "rule": "calibration: applied survives a later error",
+  "file": "src/bts/orchestrator.py",
+  "old": "        if rec is not None and rec.get(\"applied\") is not True:\n",
+  "new": "        if rec is not None:\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O7",
+  "rule": "calibration: no_pa_file",
+  "file": "src/bts/orchestrator.py",
+  "old": "                _cal_set(calibration, \"status\", \"no_pa_file\", calibration_errors)\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O8",
+  "rule": "calibration: unavailable statuses from the fit",
+  "file": "src/bts/orchestrator.py",
+  "old": "if fit_witness.get(\"status\") in (\"insufficient_support\", \"no_sklearn\"):",
+  "new": "if fit_witness.get(\"status\") in (\"insufficient_support\",):",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O9",
+  "rule": "calibration: off",
+  "file": "src/bts/orchestrator.py",
+  "old": "\"status\": None if enabled else \"off\"}",
+  "new": "\"status\": None}",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O10",
+  "rule": "attach: build contained",
+  "file": "src/bts/orchestrator.py",
+  "old": "    try:\n        witness = build(model=parts[\"serving_model\"], inputs=parts[\"serving_inputs\"], calibration=calibration,\n                        errors=upstream)\n    except Exception as e:",
+  "new": "    if True:\n        witness = build(model=parts[\"serving_model\"], inputs=parts[\"serving_inputs\"], calibration=calibration,\n                        errors=upstream)\n    if False:",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O11",
+  "rule": "attach: run_pipeline provenance moved, not left",
+  "file": "src/bts/orchestrator.py",
+  "old": "            parts[key] = predictions.attrs.pop(key)\n",
+  "new": "            parts[key] = predictions.attrs[key]\n",
+  "tests": [
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O12",
+  "rule": "transport: the witness dropped after persistence",
+  "file": "src/bts/orchestrator.py",
+  "old": "        predictions.attrs.pop(\"serving\", None)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py"
+  ]
+ },
+ {
+  "id": "B1",
+  "rule": "behaviour: attrs lost between the local tier and persistence",
+  "file": "src/bts/orchestrator.py",
+  "old": "            return df, name\n",
+  "new": "            df.attrs.clear()\n            return df, name\n",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold or calibration_on"
+  ]
+ },
+ {
+  "id": "S1",
+  "rule": "slate: v3 tag",
+  "file": "src/bts/slate.py",
+  "old": "SCHEMA_VERSION = \"bts_slate_v3\"",
+  "new": "SCHEMA_VERSION = \"bts_slate_v2\"",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold"
+  ]
+ },
+ {
+  "id": "S2",
+  "rule": "slate: strict-JSON witness or null",
+  "file": "src/bts/slate.py",
+  "old": "        json.dumps(serving, allow_nan=False)\n",
+  "new": "        json.dumps(serving)\n",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py"
+  ]
+ },
+ {
+  "id": "S3",
+  "rule": "slate: serving written",
+  "file": "src/bts/slate.py",
+  "old": "            \"serving\": _serving(predictions, date),\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "model_cold"
+  ]
+ },
+ {
+  "id": "D1",
+  "rule": "decision: delivery text",
+  "file": "src/bts/scheduler.py",
+  "old": "    return format_post(\n        daily.pick.batter_name, daily.pick.team,",
+  "new": "    return \" \" + format_post(\n        daily.pick.batter_name, daily.pick.team,",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "day_dm"
+  ]
+ },
+ {
+  "id": "D2",
+  "rule": "decision: fallback plan reason",
+  "file": "src/bts/scheduler.py",
+  "old": "FallbackPlan(\"deliver\", \"primary_projected_no_window\")",
+  "new": "FallbackPlan(\"deliver\", \"primary_projected_no_window_\")",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "day_dm"
+  ]
+ },
+ {
+  "id": "D3",
+  "rule": "decision: defer flipped to deliver",
+  "file": "src/bts/scheduler.py",
+  "old": "return FallbackPlan(\"defer\", \"primary_projected_pending_window\", pending[0][\"time_et\"])",
+  "new": "return FallbackPlan(\"deliver\", \"primary_projected_pending_window\", pending[0][\"time_et\"])",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "day_dm"
+  ]
+ }
+]
