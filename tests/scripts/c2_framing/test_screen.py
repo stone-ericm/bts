@@ -176,8 +176,9 @@ def test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes(tmp_pat
     pd.DataFrame({"season": [2026], "x": [1]}).to_parquet(tmp_path / "pa_2026.parquet")
     df = S.load_inputs(tmp_path, pins)
     assert sorted(df["season"]) == list(S.SEASONS_IN)
-    (tmp_path / "pa_2019.parquet").write_bytes(b"changed")
-    with pytest.raises(Exception):
+    pd.DataFrame({"season": [2019], "x": [-1]}).to_parquet(tmp_path / "pa_2019.parquet")     # valid, but not pinned
+    from scripts.audit.c1.admission import ProvenanceError
+    with pytest.raises(ProvenanceError, match="not the pinned"):
         S.load_inputs(tmp_path, pins)
 
 
@@ -244,7 +245,10 @@ def _stub_walk_forward(calls):
 @pytest.fixture
 def stubbed(monkeypatch, tmp_path):
     import bts.features.compute as FC
+    import bts.model.predict as PR
     monkeypatch.setenv("BTS_LGBM_DETERMINISTIC", "1")
+    monkeypatch.setitem(PR.LGB_PARAMS, "deterministic", True)       # as built at import under the flag
+    monkeypatch.setitem(PR.LGB_PARAMS, "force_row_wise", True)
     monkeypatch.setattr(S, "admission_gate", lambda: ("a" * 40, {"input_pins": {"pa_2019.parquet": "b" * 64}},
                                                        {"report_sha256": "c" * 64}))
     monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: _stub_df())
@@ -310,3 +314,17 @@ def test_an_expensive_first_walk_forward_stops_the_run(stubbed, monkeypatch):
     d = _run_dir(stubbed, S.STAGE_ONE_SEEDS[0])
     stop = json.loads((d / "STOPPED.json").read_text())
     assert stop["reason"] == "first_unit_cpu" and len(calls) == 1 and not (d / "results.json").exists()
+
+
+def test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags(stubbed, monkeypatch):
+    import bts.model.predict as PR
+    monkeypatch.setitem(PR.LGB_PARAMS, "deterministic", False)
+    with pytest.raises(SystemExit, match="deterministic flags"):
+        S.run(S.STAGE_ONE_SEEDS[0], stubbed, stubbed, walk_forward=_stub_walk_forward([]))
+
+
+def test_the_manifest_records_the_effective_lightgbm_params(stubbed):
+    import json
+    assert S.run(S.STAGE_ONE_SEEDS[0], stubbed, stubbed, walk_forward=_stub_walk_forward([])) == 0
+    man = json.loads((_run_dir(stubbed, S.STAGE_ONE_SEEDS[0]) / "manifest.json").read_text())
+    assert man["lgb_params"]["deterministic"] is True and man["lgb_params"]["force_row_wise"] is True

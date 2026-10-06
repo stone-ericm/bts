@@ -229,7 +229,10 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
         run_dir = A.make_run_dir(root, f"{head[:7]}-{stamp}")
         claim_sha = A.write_claim(run_dir, head)
     from bts.features.compute import compute_all_features
+    from bts.model.predict import LGB_PARAMS
     from bts.simulate.backtest_blend import blend_walk_forward
+    if not (LGB_PARAMS.get("deterministic") is True and LGB_PARAMS.get("force_row_wise") is True):
+        raise SystemExit("refusing: LightGBM's params were built without the deterministic flags")
     from bts.validate.scorecard import compute_full_scorecard, diff_scorecards
     walk_forward = walk_forward or blend_walk_forward
     t0 = cpu_seconds()
@@ -238,7 +241,7 @@ def run(seed: int, out_root: Path, data_dir: Path, *, walk_forward=None, now=Non
     df = framing_by(df, "fielding_catcher_id", NEW_COL)
     manifest = {"schema": "c2_framing_screen_run_v1", "head": head, "claim_sha256": claim_sha, "seed": seed,
                 "identity": identity, "input_pins": adm["input_pins"], "test_seasons": list(TEST_SEASONS),
-                "basis": BASIS, "retrain_every": RETRAIN_EVERY, "env": {
+                "basis": BASIS, "retrain_every": RETRAIN_EVERY, "lgb_params": dict(LGB_PARAMS), "env": {
                     k: os.environ.get(k) for k in ("BTS_LGBM_DETERMINISTIC", "BTS_LGBM_RANDOM_STATE", "TZ")},
                 "self_check": check, "coverage": {NEW_COL: coverage(df, NEW_COL), OLD_COL: coverage(df, OLD_COL)},
                 "features_cpu_s": cpu_seconds() - t0}

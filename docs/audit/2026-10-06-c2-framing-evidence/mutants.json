@@ -1,0 +1,262 @@
+[
+ {
+  "id": "F1",
+  "rule": "feature: strictly earlier dates",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "lambda x: x.shift(1).expanding(min_periods=5).mean()",
+  "new": "lambda x: x.shift(0).expanding(min_periods=5).mean()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F2",
+  "rule": "feature: min_periods 5",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "x.shift(1).expanding(min_periods=5)",
+  "new": "x.shift(1).expanding(min_periods=4)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F3",
+  "rule": "feature: per (key, date) daily mean",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].mean().reset_index()",
+  "new": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].max().reset_index()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F4",
+  "rule": "self-check: NaN-equal comparison",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "np.array_equal(a, b, equal_nan=True)",
+  "new": "np.array_equal(a, b, equal_nan=False)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F5",
+  "rule": "variant A replaces in place",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return [NEW_COL if c == OLD_COL else c for c in FEATURE_COLS]",
+  "new": "return [c for c in FEATURE_COLS if c != OLD_COL] + [NEW_COL]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F6",
+  "rule": "variant B appends",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return list(FEATURE_COLS) + [NEW_COL]",
+  "new": "return list(FEATURE_COLS)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F7",
+  "rule": "configs keep their extras",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "out.append((name, base + extras, config[2]) if len(config) == 3 else (name, base + extras))",
+  "new": "out.append((name, base, config[2]) if len(config) == 3 else (name, base))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F8",
+  "rule": "disposition: practical size",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "PRACTICAL_MIN = 0.003",
+  "new": "PRACTICAL_MIN = 0.0",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F9",
+  "rule": "disposition: t threshold",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "T_MIN = 1.5  ",
+  "new": "T_MIN = 0.0  ",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F10",
+  "rule": "disposition: majority of passes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "and passes >= majority:",
+  "new": "and passes >= 1:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F11",
+  "rule": "disposition: negative needs a minority of passes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "elif m <= 0 and passes < majority:",
+  "new": "elif m <= 0:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F12",
+  "rule": "disposition: both seasons above zero",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if all(v > 0 for v in mean_by_season.values()) and",
+  "new": "if any(v > 0 for v in mean_by_season.values()) and",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F13",
+  "rule": "basis: estimated_pa",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "BASIS = \"estimated_pa\"",
+  "new": "BASIS = \"actual_pa\"",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F14",
+  "rule": "inputs: 2017-2025 only",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "SEASONS_IN = tuple(range(2017, 2026))",
+  "new": "SEASONS_IN = tuple(range(2017, 2027))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F15",
+  "rule": "seeds: canonical-n10 positions 0-2",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "STAGE_ONE_SEEDS = (2273360, 260991262, 1746737973)",
+  "new": "STAGE_ONE_SEEDS = (2273360, 260991262, 42)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F16",
+  "rule": "retrain every 7",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "RETRAIN_EVERY = 7",
+  "new": "RETRAIN_EVERY = 14",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F17",
+  "rule": "first-unit stop boundary",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "return cpu_s > FIRST_UNIT_STOP_CPU_H * 3600",
+  "new": "return cpu_s >= FIRST_UNIT_STOP_CPU_H * 3600",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F18",
+  "rule": "inputs: the hashed bytes",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "raw, _ = A.read_pinned(data_dir / f\"pa_{s}.parquet\", pins[f\"pa_{s}.parquet\"])",
+  "new": "raw = (data_dir / f\"pa_{s}.parquet\").read_bytes()",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F19",
+  "rule": "run: deterministic flag required",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if os.environ.get(\"BTS_LGBM_DETERMINISTIC\") != \"1\":",
+  "new": "if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F20",
+  "rule": "run: the seed reaches LightGBM",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    os.environ[\"BTS_LGBM_RANDOM_STATE\"] = str(seed)\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F21",
+  "rule": "run: the self-check stops the run",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not check[\"identical\"]:\n",
+  "new": "    if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F22",
+  "rule": "run: the first-unit stop",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if len(units) == 1 and first_unit_stop(cpu):",
+  "new": "if False and first_unit_stop(cpu):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F23",
+  "rule": "run: one claim per seed",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if A.claimed_runs(root, register):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F24",
+  "rule": "aggregate: per-variant rows",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            per_variant[v].append(r[\"variants\"][v])\n",
+  "new": "            per_variant[v].append(r[\"variants\"][\"A\"])\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F25",
+  "rule": "coverage: the test seasons",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "part = df.loc[df[\"season\"] == s, col]",
+  "new": "part = df[col]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ },
+ {
+  "id": "F26",
+  "rule": "run: the deterministic flags reached LightGBM",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):",
+  "new": "if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py"
+  ]
+ }
+]
