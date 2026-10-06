@@ -23,6 +23,8 @@ UV_CACHE_DIR=/tmp/uv-cache uv run bts schedule --config ~/.bts-orchestrator.toml
 # Hetzner cron setup (reproducible install of cron jobs).
 # Source .env first — cron-setup now REQUIRES HEALTHCHECKS_PING_URL (no hardcoded default):
 set -a && . ./.env && set +a
+# Once watchdog P4 (1c0e759) is deployed, show/install also REQUIRE [scheduler].entry_intent in
+# ~/.bts-orchestrator.toml ("enter" = dm/public + check-pick-entered; "research" = private, no entry cron).
 bash scripts/cron-setup-hetzner.sh show      # dry-run
 bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 ```
@@ -46,7 +48,7 @@ bash scripts/cron-setup-hetzner.sh install   # install to bts user crontab
 - **restic (`bts backup`)**: snapshots store paths with the repo prefix stripped (`/data/hetzner_results/...`, not `/home/bts/...`) — use that form in `restic ls/restore`; the backup passes `--exclude "*.lock"`, which silently drops `uv.lock` too (store copies as `uv.lock.pinned`); `data/validation/` is in NO backup set (ops = picks+health_state; archive = leaderboard+hetzner_results+external).
 
 ## Season 2026 wrap (owner called the season over 2026-09-14; best streak 18)
-- **Box is SILENT since 9/14:** `~/.bts-orchestrator.toml` `pick_delivery = "private"` (snapshot `.bak-20260914-season-over`), the `check-pick-entered` cron line is commented out (snapshot `~/crontab.bak-20260914-season-over`). Picks are still computed/graded locally; the tail policy stopped producing picks 9/19; the D8 research capture (`--capture-research-on-skip` in the live-forward unit) keeps a forecast record. **Re-enable next season:** restore `pick_delivery = "dm"`, `bash scripts/cron-setup-hetzner.sh install`, restart inside a sleep window.
+- **Box is SILENT since 9/14:** `~/.bts-orchestrator.toml` `pick_delivery = "private"` (snapshot `.bak-20260914-season-over`), the `check-pick-entered` cron line is commented out (snapshot `~/crontab.bak-20260914-season-over`). Picks are still computed/graded locally; the tail policy stopped producing picks 9/19; the D8 research capture (`--capture-research-on-skip` in the live-forward unit) keeps a forecast record. **Re-enable next season:** restore `pick_delivery = "dm"` (plus `entry_intent = "enter"` once P4 is deployed), `bash scripts/cron-setup-hetzner.sh install`, restart inside a sleep window.
 - **Plan + execution:** `docs/superpowers/plans/2026-09-14-season-wrap-plan.md` (approved 9/22) · completion matrix `docs/audit/2026-season-wrap-index.md` · exposure register + protocol texts + owner decisions `docs/audit/2026-09-22-exposure-register.md` (no 2026 outcome read without a row there) · corrections `docs/audit/2026-09-corrections-index.md` (C-01: historical `all_season`/`all_time` snapshot rows hold ACTIVE streaks) · final-grab runbook `docs/audit/2026-09-22-final-grab-runbook.md` (supplemental run 9/28 after 08:00 ET) · round-board pick campaign spec `docs/superpowers/specs/2026-09-22-round-board-campaign-design.md` (NOT built; pilot one round first).
 - **Field-capture rules (owner):** one authenticated pass per capture date on Eric's real account, no request ceiling, courteous jittered pacing, 403/429 anywhere = stop and never rerun without a fresh owner decision; everything under `data/leaderboard/final_grab_<date>/` or the campaign root — never the daily corpus.
 - **W1.1 season ledger, Phase 1: COMPLETE (2026-09-28).**
