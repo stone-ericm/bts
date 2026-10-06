@@ -134,6 +134,17 @@
   "new": "\"increasing\": True,",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
+  ],
+  "equivalent": "IsotonicRegression(out_of_bounds='clip', y_min=0.0, y_max=1.0) keeps the default increasing=True, so increasing_ is True on any data (checked on decreasing data); the constant cannot differ from the fitted value"
+ },
+ {
+  "id": "C13b",
+  "rule": "witness: map y thresholds from the fitted object",
+  "file": "src/bts/model/calibrate.py",
+  "old": "\"y_thresholds\": cal.y_thresholds_.tolist(),",
+  "new": "\"y_thresholds\": cal.X_thresholds_.tolist(),",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py"
   ]
  },
  {

@@ -254,3 +254,22 @@ def test_a_map_hash_failure_returns_the_same_calibrator(tmp_path, monkeypatch):
 def test_canonical_hash_refuses_non_finite_values():
     with pytest.raises(ValueError):
         C._canon_sha256({"x": float("nan")})
+
+
+def test_a_binding_carries_the_exact_appended_float(tmp_path):
+    picks = tmp_path / "picks"
+    picks.mkdir()
+    _write(picks, "2026-06-20.json", _pick("2026-06-20", p=0.8123456789, bid=7))
+    bindings = []
+    samples = C._resolve_pick_outcomes(picks, _pa([(7, "2026-06-20", 1)]), TODAY, 30, bindings=bindings, inputs=[],
+                                       errors=[])
+    assert samples == [(0.8123456789, 1)] and bindings[0]["p"] == 0.8123456789 and bindings[0]["y"] == 1
+
+
+def test_n_fit_counts_samples_not_files(tmp_path):
+    picks, pa = _fit_world(tmp_path, n=5)
+    _write(picks, "2026-06-27x-malformed.json", "{not json")
+    _write(picks, "2026-04-01x-old.json", _pick("2026-04-01", p=0.7, bid=1))
+    w = {}
+    assert C.fit_calibrator_from_picks(picks, pa, today=TODAY, witness=w) is None
+    assert w["n_fit"] == 5 == len(w["samples"]) and len(w["pick_inputs"]) == 7
