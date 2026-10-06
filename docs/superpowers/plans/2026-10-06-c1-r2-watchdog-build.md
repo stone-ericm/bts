@@ -35,6 +35,8 @@ Each is separately reviewed until SIGN. These are production changes at **unchan
 | P5 | Checklist **C1 private-mode posting-transport guard** | Lands before the delivery-mode tests (§4.4). **Built 2026-10-06 (`04cde0a`)**; review and D7 pending |
 
 ## Phase W: the watchdog (`bts watchdog <job>`)
+
+**Status 2026-10-06: DEFERRED this cycle** after W0's final review round (row C1-r2-watchdog-deferral). W0 is built (`c429c41`) but not signed; W1 has an evidence map and a spec draft. The resume point is the W0 r3 required changes.
 | # | Piece | Notes |
 |---|---|---|
 | W0 | **Package skeleton.** The owned root `data/watchdog/` (symlink / escape refused; all locks, logs, dedup, temp and restore scratch live there). Notification state: a short owned critical section; failed or uncertain sends stay pending; the dedup key binds incident, ET date, selection and state, and survives restarts. DM transport. A clock seam | §4.2 write-confinement tracing (deny writes outside the root, including same-byte and write/undo cases). **Built 2026-10-06 (`a1607c8`)**; review pending |
