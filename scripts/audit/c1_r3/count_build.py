@@ -162,9 +162,45 @@ def _receipt_problems(recs: list) -> None:
             raise ProvenanceError(f"an unknown {kind} outcome: {r.get('outcome')!r}")
 
 
+REQUEST_KINDS = ("intent", "completion")
+
+
+def _pos_int(v) -> bool:
+    return type(v) is int and v > 0
+
+
+def _typed_requests(recs: list) -> None:
+    """Every intent and completion's identity is typed before any comparison, lookup or join (r4 R4-1): a string
+    attempt id; `kind_of` absent (the 10/04 legacy writer, a feed) or one of feed/schedule; a feed's exact positive
+    integer gamePk, or a schedule's exact positive integer season; a string `from_attempt_id` when present. Python
+    equality would otherwise let 7.0 or True stand in for 7 in a duplicate or in `unresolved`."""
+    for r in recs:
+        if r.get("kind") not in REQUEST_KINDS:
+            continue
+        aid = r.get("attempt_id")
+        if not (isinstance(aid, str) and aid):
+            raise ProvenanceError(f"a {r['kind']} receipt without a string attempt id: {aid!r}")
+        kind_of = r.get("kind_of", "feed")
+        if kind_of == "feed":
+            if not _pos_int(r.get("gamePk")):
+                raise ProvenanceError(f"attempt {aid}: a feed receipt's game id must be a positive int: {r.get('gamePk')!r}")
+        elif kind_of == "schedule":
+            if not _pos_int(r.get("season")):
+                raise ProvenanceError(f"attempt {aid}: a schedule receipt's season must be a positive int: {r.get('season')!r}")
+        else:
+            raise ProvenanceError(f"attempt {aid}: an unsupported kind_of {kind_of!r}")
+        if "from_attempt_id" in r and not (isinstance(r["from_attempt_id"], str) and r["from_attempt_id"]):
+            raise ProvenanceError(f"attempt {aid}: from_attempt_id {r['from_attempt_id']!r} is not an attempt id")
+
+
+def _canon(r: dict) -> str:
+    return json.dumps(r, sort_keys=True)
+
+
 def _witnesses(recs: list, label: str, pred) -> dict:
     """attempt_id -> record for one receipt class. A non-string attempt id, or two different records for one attempt,
-    refuses (r3 R3-5: the last assignment used to win silently)."""
+    refuses (r3 R3-5: the last assignment used to win silently). Duplicates are compared as canonical JSON, so only a
+    byte-identical repeat is tolerated (r4 R4-1: dict equality treats 7.0 and True as 7 and 1)."""
     out: dict = {}
     for r in recs:
         if not pred(r):
@@ -172,7 +208,7 @@ def _witnesses(recs: list, label: str, pred) -> dict:
         aid = r.get("attempt_id")
         if not (isinstance(aid, str) and aid):
             raise ProvenanceError(f"a {label} receipt without a string attempt id: {aid!r}")
-        if aid in out and out[aid] != r:
+        if aid in out and _canon(out[aid]) != _canon(r):
             raise ProvenanceError(f"conflicting {label} receipts for attempt {aid}")
         out[aid] = r
     return out
@@ -194,9 +230,12 @@ def feed_inventory(recs: list[dict], feeds_dir: Path) -> list[dict]:
     - **Availability:** a missing or invalid retrieval time marks the entry unavailable, and an eligible game is
       then quarantined. It is never certified with a null."""
     _receipt_problems(recs)
+    _typed_requests(recs)
     intents = _witnesses(recs, "intent", lambda r: r.get("kind") == "intent")
-    responses = _witnesses(recs, "response", lambda r: r.get("kind") == "completion" and r.get("outcome") == "response")
-    _witnesses(recs, "stored", lambda r: r.get("kind") == "completion" and r.get("outcome") == "stored")
+    # One completion per attempt across ALL terminal outcomes (r4 R4-1 B): a stored record and an http_error for the
+    # same attempt conflict. The modern layout's stored record has its own store id, linked by from_attempt_id.
+    completions = _witnesses(recs, "completion", lambda r: r.get("kind") == "completion")
+    responses = {aid: r for aid, r in completions.items() if r.get("outcome") == "response"}
     open_ = unresolved(recs)
     if open_:
         raise ProvenanceError(f"unresolved acquisition intents ({len(open_)}): reconcile before any build")

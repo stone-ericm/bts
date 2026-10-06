@@ -463,5 +463,102 @@ def test_a_boolean_game_id_cannot_bind_a_request(tmp_path, patched):
             r["gamePk"] = float(700001)
     recs.write_text("".join(json.dumps(r) + "\n" for r in lines))
     patched(data)
-    with pytest.raises(CB.ProvenanceError, match="not bound|unresolved"):
+    with pytest.raises(CB.ProvenanceError, match="not bound|unresolved|game id"):     # r4 R4-1: now typed first
         CB.main([])
+
+
+# ---- C2 (b) step 1: code review r4 R4-1 (docs/audit/2026-10-05-c1-r3-build-codex-r4.md) --------------------------------
+
+URL1 = "https://statsapi.mlb.com/api/v1.1/game/700001/feed/live"
+URL2 = "https://statsapi.mlb.com/api/v1.1/game/700002/feed/live"
+
+
+def _recs(data):
+    return data / "hetzner_results" / "c1" / "r3" / "receipts" / "2026-10-04.jsonl"
+
+
+def _no_run(data):
+    """No run directory and no claim: the admission lock file may exist, since the lock is taken before the
+    inventory, which refuses before `make_run_dir` and `write_claim`."""
+    builds = data / "hetzner_results" / "c1" / "r3" / "count_build"
+    return not builds.exists() or (not [p for p in builds.iterdir() if p.is_dir()]
+                                    and not list(builds.rglob("CLAIM.json")))
+
+
+def _refuses_before_claim(data, patched, monkeypatch, match):
+    patched(data)
+    read = []
+    monkeypatch.setattr(CB, "check_schema", lambda *a, **k: read.append("parquet"))   # any PA read would land here
+    with pytest.raises(CB.ProvenanceError, match=match):
+        CB.main([])
+    assert _no_run(data) and read == []
+
+
+def test_r41_a_float_request_then_an_equal_integer_duplicate_refuses(tmp_path, patched, monkeypatch):
+    """R4-1 A: dict equality made intent a-700001 with gamePk 7.0 equal to its integer twin, so the malformed record
+    was overwritten instead of refused."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    first = json.loads(lines[0])
+    assert first["kind"] == "intent" and first["gamePk"] == 700001
+    _recs(data).write_text(json.dumps({**first, "gamePk": float(700001)}) + "\n" + "".join(x + "\n" for x in lines))
+    _refuses_before_claim(data, patched, monkeypatch, "game id|gamePk")
+
+
+def test_r41_a_stored_and_an_http_error_completion_for_one_attempt_refuse(tmp_path, patched, monkeypatch):
+    """R4-1 B: completions were checked only within the response and stored classes, so a terminal 404 for the same
+    attempt as its stored record was ignored."""
+    data = world(tmp_path, n=3)
+    receipt(data / "hetzner_results" / "c1" / "r3",
+            {"kind": "completion", "attempt_id": "a-700001", "gamePk": 700001, "url": URL1, "outcome": "http_error",
+             "http_status": 404, "ended_utc": "2026-10-04T23:00:02+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "conflicting completion")
+
+
+def test_r41_a_malformed_error_completion_cannot_resolve_an_intent(tmp_path, patched, monkeypatch):
+    """R4-1 B: a network_error completion with gamePk 8.0 resolved an integer-8 intent by tuple equality."""
+    data = world(tmp_path, n=3)
+    acq = data / "hetzner_results" / "c1" / "r3"
+    receipt(acq, {"kind": "intent", "attempt_id": "z", "gamePk": 700002, "url": URL2,
+                  "started_utc": "2026-10-04T23:00:00+00:00"})
+    receipt(acq, {"kind": "completion", "attempt_id": "z", "gamePk": float(700002), "url": URL2,
+                  "outcome": "network_error", "ended_utc": "2026-10-04T23:00:01+00:00"})
+    _refuses_before_claim(data, patched, monkeypatch, "game id|gamePk")
+
+
+@pytest.mark.parametrize("field, value", [("attempt_id", ""), ("attempt_id", 7), ("gamePk", True), ("gamePk", 0),
+                                          ("gamePk", "700001"), ("kind_of", "mystery"), ("kind_of", "schedule"),
+                                          ("from_attempt_id", 7)])
+def test_r41_every_intent_and_completion_is_typed_before_any_join(tmp_path, patched, monkeypatch, field, value):
+    data = world(tmp_path, n=3)
+    receipt(data / "hetzner_results" / "c1" / "r3",
+            {"kind": "completion", "attempt_id": "e1", "gamePk": 700003, "url": "u", "outcome": "network_error",
+             "ended_utc": "2026-10-04T23:00:01+00:00", field: value})
+    _refuses_before_claim(data, patched, monkeypatch, "attempt id|game id|kind_of|season")
+
+
+def test_r41_genuinely_identical_repeats_and_distinct_retries_still_certify(tmp_path, patched):
+    """Positive controls: exact repeated records are tolerated, and a failed attempt followed by a successful one
+    (distinct attempt ids) is a normal retry."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    acq = data / "hetzner_results" / "c1" / "r3"
+    _recs(data).write_text("".join(x + "\n" for x in lines + lines[:2]))               # 700001's pair, repeated
+    receipt(acq, {"kind": "intent", "attempt_id": "r1", "gamePk": 700002, "url": URL2,
+                  "started_utc": "2026-10-04T22:59:00+00:00"})
+    receipt(acq, {"kind": "completion", "attempt_id": "r1", "gamePk": 700002, "url": URL2,
+                  "outcome": "network_error", "ended_utc": "2026-10-04T22:59:30+00:00"})
+    patched(data)
+    assert CB.main([]) == 0
+    census = json.loads((only_run(data) / "census.json").read_text())
+    assert census["certified"] == 3 and census["quarantined"] == {}
+
+
+def test_r41_a_duplicate_differing_only_in_number_type_is_a_conflict(tmp_path, patched, monkeypatch):
+    """Canonical comparison: an intent repeated with attempt 1 then 1.0 is not a genuinely identical duplicate."""
+    data = world(tmp_path, n=3)
+    lines = _recs(data).read_text().splitlines()
+    first = json.loads(lines[0])
+    _recs(data).write_text(json.dumps({**first, "attempt": 1}) + "\n" + json.dumps({**first, "attempt": 1.0}) + "\n"
+                           + "".join(x + "\n" for x in lines[1:]))
+    _refuses_before_claim(data, patched, monkeypatch, "conflicting intent")
