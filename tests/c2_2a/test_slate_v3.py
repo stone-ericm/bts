@@ -130,3 +130,13 @@ def test_a_witness_drop_failure_never_breaks_selection(tmp_path, monkeypatch, se
     out, sel, tier = O.run_and_pick(_config(tmp_path), "2027-04-01")
     assert sel is not None and tier == "local" and out is preds
     assert _payload(tmp_path / "slates" / "2027-04-01.json")["serving"] == WITNESS
+
+
+def test_run_and_pick_drops_the_witness_even_when_the_slate_writer_did_not(tmp_path, monkeypatch, selection):
+    """save_slate normally takes the witness off first; run_and_pick's own drop is the backstop for selection."""
+    import bts.slate as SLATE
+    preds = _preds()
+    monkeypatch.setattr(O, "predict_local", lambda date: preds)
+    monkeypatch.setattr(SLATE, "save_slate", lambda *a, **k: None)          # a writer that leaves the attrs alone
+    O.run_and_pick(_config(tmp_path), "2027-04-01")
+    assert selection["attrs"] == {}

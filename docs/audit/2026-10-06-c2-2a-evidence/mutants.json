@@ -3,47 +3,52 @@
   "id": "C1",
   "rule": "pick: decode the held bytes (no second read)",
   "file": "src/bts/model/calibrate.py",
-  "old": "    return reader.read(), sha\n",
-  "new": "    return f.read_text(), sha\n",
+  "old": "    return reader.read(), sha, recorded\n",
+  "new": "    return f.read_text(), sha, recorded\n",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_golden.py",
    "-k",
    "calibration_on"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C2",
   "rule": "pick: capture-preparation fallback",
   "file": "src/bts/model/calibrate.py",
-  "old": "        return f.read_text(), None\n",
-  "new": "        raise\n",
+  "old": "        return f.read_text(), None, recorded\n",
+  "new": "        raise RuntimeError(\"no fallback\")\n",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_golden.py",
    "-k",
    "fault_pick_buffer"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C3",
   "rule": "pick: genuine OSError keeps the skip, no retry",
   "file": "src/bts/model/calibrate.py",
-  "old": "    except OSError as e:\n        _note(errors, f\"pick {f.name}: unreadable, skipped: {e!r}\")\n        raise\n",
-  "new": "",
+  "old": "    except OSError as e:\n        try:\n            _note(errors, \"pick input unreadable, skipped: \" + f.name, e)\n        except Exception:\n            pass\n        raise\n    except Exception as e:\n        raw, prep_error = None, e\n",
+  "new": "    except Exception as e:\n        raw, prep_error = None, e\n",
   "tests": [
-   "tests/c2_2a/test_calibrate_witness.py"
-  ]
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C4",
   "rule": "pick: fallback input recorded with nulls",
   "file": "src/bts/model/calibrate.py",
-  "old": "        _collect(inputs, {\"file\": f.name, \"bytes\": None, \"sha256\": None}, errors, f\"pick {f.name}\")\n",
-  "new": "",
+  "old": "recorded = _collect(inputs, lambda: {\"file\": f.name, \"bytes\": None, \"sha256\": None}, errors, \"pick input\")",
+  "new": "recorded = True",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C5",
@@ -59,11 +64,12 @@
   "id": "C6",
   "rule": "binding: file_sha256 field",
   "file": "src/bts/model/calibrate.py",
-  "old": "rec = {\"file\": f.name, \"file_sha256\": file_sha,",
-  "new": "rec = {\"file\": f.name, \"file_sha256\": None,",
+  "old": "{\"file\": f.name, \"file_sha256\": file_sha, \"date\": pick_date.isoformat(),",
+  "new": "{\"file\": f.name, \"file_sha256\": None, \"date\": pick_date.isoformat(),",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C7",
@@ -99,22 +105,24 @@
   "id": "C10",
   "rule": "binding: one per sample, in order",
   "file": "src/bts/model/calibrate.py",
-  "old": "            if bindings is not None:\n                _bind(",
-  "new": "            if bindings is not None and slot_key == \"pick\":\n                _bind(",
+  "old": "            if bindings is not None:\n                try:\n                    if not _bind(",
+  "new": "            if bindings is not None and slot_key == \"pick\":\n                try:\n                    if not _bind(",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C11",
   "rule": "witness: n_fit",
   "file": "src/bts/model/calibrate.py",
-  "old": "_put(witness, \"n_fit\", len(samples), errors)",
-  "new": "_put(witness, \"n_fit\", len(inputs), errors)",
+  "old": "            rec[\"n_fit\"] = len(samples)\n",
+  "new": "            rec[\"n_fit\"] = len(inputs or [])\n",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C12",
@@ -161,68 +169,76 @@
   "id": "C15",
   "rule": "status: insufficient_support",
   "file": "src/bts/model/calibrate.py",
-  "old": "_put(witness, \"status\", \"insufficient_support\", errors)",
-  "new": "_put(witness, \"status\", \"fitted\", errors)",
+  "old": "status_word=\"insufficient_support\"",
+  "new": "status_word=\"fitted\"",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C16",
   "rule": "status: no_sklearn",
   "file": "src/bts/model/calibrate.py",
-  "old": "_put(witness, \"status\", \"no_sklearn\", errors)",
-  "new": "pass",
+  "old": "_fill_witness(witness, errors, status_word=\"no_sklearn\")",
+  "new": "_fill_witness(witness, errors, status_word=None)",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "C17",
   "rule": "status: fitted only after the fit",
   "file": "src/bts/model/calibrate.py",
-  "old": "        _put(witness, \"status\", \"fitted\", errors)\n",
-  "new": "",
+  "old": "_fill_witness(witness, errors, status_word=\"fitted\", samples=samples",
+  "new": "_fill_witness(witness, errors, status_word=None, samples=samples",
   "tests": [
    "tests/c2_2a/test_calibrate_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "W1",
   "rule": "containment: note",
   "file": "src/bts/serving_witness.py",
-  "old": "    try:\n        errors.append(msg)\n    except Exception:\n        pass\n",
-  "new": "    errors.append(msg)\n",
+  "old": "    try:\n        errors.append(_describe(what, exc))\n        return True\n    except Exception:\n        return False\n",
+  "new": "    errors.append(_describe(what, exc))\n    return True\n",
   "tests": [
    "tests/c2_2a/test_serving_witness.py",
-   "tests/c2_2a/test_calibrate_witness.py"
-  ]
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "W2",
   "rule": "containment: collect",
   "file": "src/bts/serving_witness.py",
-  "old": "    try:\n        items.append(item)\n    except Exception as e:\n        note(errors, f\"{what}: collector append failed: {e!r}\")\n",
-  "new": "    items.append(item)\n",
+  "old": "    try:\n        items.append(build())\n        return True\n    except Exception as e:\n        try:\n            note(errors, what + \": collector append failed\", e)\n        except Exception:\n            pass\n        return False\n",
+  "new": "    items.append(build())\n    return True\n",
   "tests": [
    "tests/c2_2a/test_serving_witness.py",
    "tests/c2_2a/test_calibrate_witness.py",
-   "tests/c2_2a/test_predict_witness.py"
-  ]
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "W3",
   "rule": "containment: sha256_or_none",
   "file": "src/bts/serving_witness.py",
-  "old": "    try:\n        return hashlib.sha256(raw).hexdigest()\n    except Exception as e:\n        note(errors, f\"{what}: sha256 failed: {e!r}\")\n        return None\n",
+  "old": "    try:\n        return hashlib.sha256(raw).hexdigest()\n    except Exception as e:\n        try:\n            note(errors, what + \": sha256 failed\", e)\n        except Exception:\n            pass\n        return None\n",
   "new": "    return hashlib.sha256(raw).hexdigest()\n",
   "tests": [
    "tests/c2_2a/test_serving_witness.py",
    "tests/c2_2a/test_calibrate_witness.py",
    "tests/c2_2a/test_predict_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "W4",
@@ -279,11 +295,12 @@
   "id": "W9",
   "rule": "build: each part contained",
   "file": "src/bts/serving_witness.py",
-  "old": "        try:\n            parts[key] = fn()\n        except Exception as e:\n            parts[key] = None\n            note(errs, _error(key, e))\n",
+  "old": "        try:\n            parts[key] = fn()\n        except Exception as e:\n            parts[key] = None\n            note(errs, key, e)\n",
   "new": "        parts[key] = fn()\n",
   "tests": [
    "tests/c2_2a/test_serving_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "W10",
@@ -325,11 +342,13 @@
   "id": "P3",
   "rule": "HashingWriter: forward returns the real result",
   "file": "src/bts/model/predict.py",
-  "old": "        return self._f.write(b)\n",
-  "new": "        self._f.write(b)\n",
+  "old": "        return n\n\n    def hexdigest(self):",
+  "new": "        return None\n\n    def hexdigest(self):",
   "tests": [
-   "tests/c2_2a/test_predict_witness.py"
-  ]
+   "tests/c2_2a/test_predict_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P4",
@@ -345,11 +364,12 @@
   "id": "P5",
   "rule": "HashingWriter: hash failure contained",
   "file": "src/bts/model/predict.py",
-  "old": "            try:\n                self._h.update(b)\n            except Exception as e:\n                note(self._errors, f\"blend save: sha256 update failed: {e!r}\")\n                self._h = None\n",
-  "new": "            self._h.update(b)\n",
+  "old": "            try:\n                self._h.update(b)\n            except Exception as e:\n                self._h = None\n",
+  "new": "            if True:\n                self._h.update(b)\n            if False:\n                self._h = None\n",
   "tests": [
    "tests/c2_2a/test_predict_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P6",
@@ -375,43 +395,47 @@
   "id": "P8",
   "rule": "provenance: cache branch",
   "file": "src/bts/model/predict.py",
-  "old": "        serving_model = {\"source\": \"cache\", \"sha256\": cached_blend_sha256}\n",
-  "new": "        serving_model = {\"source\": \"trained\", \"sha256\": cached_blend_sha256}\n",
+  "old": "        model_source, model_sha = \"cache\", cached_blend_sha256\n",
+  "new": "        model_source, model_sha = \"trained\", cached_blend_sha256\n",
   "tests": [
    "tests/c2_2a/test_predict_witness.py",
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P9",
   "rule": "provenance: trained_unsaved",
   "file": "src/bts/model/predict.py",
-  "old": "        serving_model = {\"source\": \"trained_unsaved\", \"sha256\": None}\n",
-  "new": "        serving_model = {\"source\": \"trained\", \"sha256\": None}\n",
+  "old": "        model_source, model_sha = \"trained_unsaved\", None\n",
+  "new": "        model_source, model_sha = \"trained\", None\n",
   "tests": [
    "tests/c2_2a/test_predict_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P10",
   "rule": "provenance: trained hash is the save's",
   "file": "src/bts/model/predict.py",
-  "old": "serving_model = {\"source\": \"trained\", \"sha256\": save_blend(to_save, save_blend_path, witness_errors)}",
-  "new": "serving_model = {\"source\": \"trained\", \"sha256\": (save_blend(to_save, save_blend_path, witness_errors), None)[1]}",
+  "old": "            model_sha = save_blend(to_save, save_blend_path, witness_errors)\n",
+  "new": "            save_blend(to_save, save_blend_path, witness_errors)\n",
   "tests": [
    "tests/c2_2a/test_predict_witness.py",
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P11",
   "rule": "attrs: contained",
   "file": "src/bts/model/predict.py",
-  "old": "    try:\n        frame.attrs[key] = value\n    except Exception as e:\n        note(errors, f\"attrs {key}: assignment failed: {e!r}\")\n",
-  "new": "    frame.attrs[key] = value\n",
+  "old": "    try:\n        frame.attrs[\"serving_model\"] = {\"source\": source, \"sha256\": sha}\n    except Exception as e:",
+  "new": "    if True:\n        frame.attrs[\"serving_model\"] = {\"source\": source, \"sha256\": sha}\n    if False:",
   "tests": [
    "tests/c2_2a/test_predict_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "P12",
@@ -440,14 +464,15 @@
   "id": "O2",
   "rule": "cache: capture-preparation fallback",
   "file": "src/bts/orchestrator.py",
-  "old": "            raw_blend = None\n        if raw_blend is None:",
-  "new": "            raise\n        if raw_blend is None:",
+  "old": "            cached_blend = load_blend(cache_path)\n        else:",
+  "new": "            raise RuntimeError(\"no fallback\")\n        else:",
   "tests": [
    "tests/c2_2a/test_local_witness.py",
    "tests/c2_2a/test_golden.py",
    "-k",
    "fault_cache_buffer"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O3",
@@ -473,81 +498,78 @@
   "id": "O5",
   "rule": "calibration: applied at the assignment",
   "file": "src/bts/orchestrator.py",
-  "old": "                    _cal_set(calibration, \"applied\", True, calibration_errors)\n",
+  "old": "                    cal_applied = True\n",
   "new": "",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O6",
   "rule": "calibration: applied survives a later error",
   "file": "src/bts/orchestrator.py",
-  "old": "        if rec is not None and rec.get(\"applied\") is not True:\n",
-  "new": "        if rec is not None:\n",
+  "old": "    elif applied:\n        status = \"applied\"\n    elif failure is not None:\n        status = \"failed\"\n",
+  "new": "    elif failure is not None:\n        status = \"failed\"\n    elif applied:\n        status = \"applied\"\n",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O7",
   "rule": "calibration: no_pa_file",
   "file": "src/bts/orchestrator.py",
-  "old": "                _cal_set(calibration, \"status\", \"no_pa_file\", calibration_errors)\n",
+  "old": "                cal_outcome = \"no_pa_file\"\n",
   "new": "",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O8",
   "rule": "calibration: unavailable statuses from the fit",
   "file": "src/bts/orchestrator.py",
-  "old": "if fit_witness.get(\"status\") in (\"insufficient_support\", \"no_sklearn\"):",
-  "new": "if fit_witness.get(\"status\") in (\"insufficient_support\",):",
+  "old": "elif fit.get(\"status\") in (\"insufficient_support\", \"no_sklearn\"):",
+  "new": "elif fit.get(\"status\") in (\"insufficient_support\",):",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O9",
   "rule": "calibration: off",
   "file": "src/bts/orchestrator.py",
-  "old": "\"status\": None if enabled else \"off\"}",
-  "new": "\"status\": None}",
+  "old": "    if not enabled:\n        status = \"off\"\n",
+  "new": "    if not enabled:\n        status = None\n",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O10",
   "rule": "attach: build contained",
   "file": "src/bts/orchestrator.py",
-  "old": "    try:\n        witness = build(model=parts[\"serving_model\"], inputs=parts[\"serving_inputs\"], calibration=calibration,\n                        errors=upstream)\n    except Exception as e:",
-  "new": "    if True:\n        witness = build(model=parts[\"serving_model\"], inputs=parts[\"serving_inputs\"], calibration=calibration,\n                        errors=upstream)\n    if False:",
+  "old": "    try:\n        from bts.serving_witness import build\n        upstream = list(errors or []) + list((pipeline or {}).get(\"errors\") or [])\n        witness = build(model=(pipeline or {}).get(\"model\"), inputs=(pipeline or {}).get(\"inputs\"),\n                        calibration=calibration, errors=upstream)\n    except Exception:\n        witness = None\n",
+  "new": "    if True:\n        from bts.serving_witness import build\n        upstream = list(errors or []) + list((pipeline or {}).get(\"errors\") or [])\n        witness = build(model=(pipeline or {}).get(\"model\"), inputs=(pipeline or {}).get(\"inputs\"),\n                        calibration=calibration, errors=upstream)\n    if False:\n        witness = None\n",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "O11",
   "rule": "attach: run_pipeline provenance moved, not left",
   "file": "src/bts/orchestrator.py",
-  "old": "            parts[key] = predictions.attrs.pop(key)\n",
-  "new": "            parts[key] = predictions.attrs[key]\n",
+  "old": "                parts[key] = predictions.attrs.pop(attr)\n",
+  "new": "                parts[key] = predictions.attrs[attr]\n",
   "tests": [
    "tests/c2_2a/test_local_witness.py"
-  ]
- },
- {
-  "id": "O12",
-  "rule": "transport: the witness dropped after persistence",
-  "file": "src/bts/orchestrator.py",
-  "old": "        predictions.attrs.pop(\"serving\", None)\n",
-  "new": "        pass\n",
-  "tests": [
-   "tests/c2_2a/test_slate_v3.py"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "B1",
@@ -589,14 +611,15 @@
   "id": "S3",
   "rule": "slate: serving written",
   "file": "src/bts/slate.py",
-  "old": "            \"serving\": _serving(predictions, date),\n",
+  "old": "            \"serving\": serving,\n",
   "new": "",
   "tests": [
    "tests/c2_2a/test_slate_v3.py",
    "tests/c2_2a/test_golden.py",
    "-k",
    "model_cold"
-  ]
+  ],
+  "reanchored_after_r1": true
  },
  {
   "id": "D1",
@@ -632,6 +655,187 @@
    "tests/c2_2a/test_golden.py",
    "-k",
    "day_dm"
+  ]
+ },
+ {
+  "id": "C18",
+  "rule": "F3: an incomplete input collection is withheld",
+  "file": "src/bts/model/calibrate.py",
+  "old": "if got.get(\"inputs_complete\") is True and inputs is not None:",
+  "new": "if inputs is not None:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C19",
+  "rule": "F3: an incomplete binding collection is withheld",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if (got.get(\"bindings_complete\") is True and bindings is not None\n",
+  "new": "            if (bindings is not None\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C20",
+  "rule": "F3: a failed input record marks the inventory incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if not recorded:\n                inputs_complete = False\n",
+  "new": "",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C21",
+  "rule": "F3: an unreadable pick file marks the inventory incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            if isinstance(e, OSError):\n                inputs_complete = False",
+  "new": "            if False:\n                inputs_complete = False",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C22",
+  "rule": "F3: a lost binding marks the bindings incomplete",
+  "file": "src/bts/model/calibrate.py",
+  "old": "                    if not _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample):\n                        bindings_complete = False\n",
+  "new": "                    _bind(bindings, errors, f, file_sha, pick_date, slot_key, bid, sample)\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C23",
+  "rule": "F3: completeness reported (missing keys = incomplete)",
+  "file": "src/bts/model/calibrate.py",
+  "old": "    _report(status, inputs_complete, bindings_complete)\n    return samples\n",
+  "new": "    return samples\n",
+  "tests": [
+   "tests/c2_2a/test_calibrate_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "C24",
+  "rule": "F2: decoder preparation failures take the fallback",
+  "file": "src/bts/model/calibrate.py",
+  "old": "            reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))\n        except Exception as e:\n",
+  "new": "            reader = io.TextIOWrapper(io.BytesIO(raw), encoding=io.text_encoding(None))\n        except OSError:\n            raise\n        except Exception as e:\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "W2b",
+  "rule": "F3: a failed append is reported",
+  "file": "src/bts/serving_witness.py",
+  "old": "            pass\n        return False\n\n\ndef sha256_or_none",
+  "new": "            pass\n        return True\n\n\ndef sha256_or_none",
+  "tests": [
+   "tests/c2_2a/test_serving_witness.py",
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "W11",
+  "rule": "F4: a description that cannot be formatted still yields a message",
+  "file": "src/bts/serving_witness.py",
+  "old": "    try:\n        return (str(what) if exc is None else f\"{what}: {type(exc).__name__}: {exc}\")[:300]\n    except Exception:\n",
+  "new": "    if True:\n        return (str(what) if exc is None else f\"{what}: {type(exc).__name__}: {exc}\")[:300]\n    if False:\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "W12",
+  "rule": "F4: failed package queries are recorded",
+  "file": "src/bts/serving_witness.py",
+  "old": "                note(errs, f\"packages: {name} version unavailable\")\n",
+  "new": "                pass\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_package_query"
+  ]
+ },
+ {
+  "id": "P13",
+  "rule": "F3: a PA input list shorter than the parquets read is withheld",
+  "file": "src/bts/model/predict.py",
+  "old": "        complete = inputs is not None and len(inputs) == n_inputs\n",
+  "new": "        complete = inputs is not None\n",
+  "tests": [
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_collector_appends"
+  ]
+ },
+ {
+  "id": "P14",
+  "rule": "F4: no description is built inside the except suite",
+  "file": "src/bts/model/predict.py",
+  "old": "    except Exception as e:\n        buffer, prep_error = None, e\n    if buffer is None:",
+  "new": "    except Exception as e:\n        buffer, prep_error = None, e\n        note(errors, f\"{e!r}\")\n    if buffer is None:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "P15",
+  "rule": "F5: a short write withholds the digest",
+  "file": "src/bts/model/predict.py",
+  "old": "                if n != memoryview(b).nbytes:",
+  "new": "                if False:",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py",
+   "tests/c2_2a/test_golden.py",
+   "-k",
+   "fault_short_write"
+  ]
+ },
+ {
+  "id": "O13",
+  "rule": "F1: the pipeline provenance is taken before calibration",
+  "file": "src/bts/orchestrator.py",
+  "old": "        pipeline = _take_pipeline_provenance(predictions, witness_errors)\n",
+  "new": "        pipeline = {}\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py",
+   "tests/c2_2a/test_local_witness.py"
+  ]
+ },
+ {
+  "id": "O14",
+  "rule": "F1: save_slate takes the witness before building rows",
+  "file": "src/bts/slate.py",
+  "old": "        serving = predictions.attrs.pop(\"serving\", None)\n",
+  "new": "        serving = predictions.attrs.get(\"serving\")\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "O15",
+  "rule": "F3: the calibration record's failure is contained at the call site",
+  "file": "src/bts/orchestrator.py",
+  "old": "                                              fit_witness, calibration_errors)\n        except Exception:\n            calibration = None\n",
+  "new": "                                              fit_witness, calibration_errors)\n        except ZeroDivisionError:\n            calibration = None\n",
+  "tests": [
+   "tests/c2_2a/test_r1_counterexamples.py"
+  ]
+ },
+ {
+  "id": "O16",
+  "rule": "transport: run_and_pick's own drop after persistence (backstop)",
+  "file": "src/bts/orchestrator.py",
+  "old": "        predictions.attrs.pop(\"serving\", None)\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/c2_2a/test_slate_v3.py"
   ]
  }
 ]
