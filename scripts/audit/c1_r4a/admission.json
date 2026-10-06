@@ -1,6 +1,9 @@
 {
- "reviewed_commit": null,
- "review_report": null,
- "exposure_commit": null,
- "input_pins": null
+  "reviewed_commit": null,
+  "review_report": null,
+  "exposure_commit": null,
+  "input_pins": {
+    "calendar": null,
+    "serving_contract": null
+  }
 }

@@ -13,6 +13,11 @@
 
   At least 50 scoreable test dates and 50 known rank-1 dates are required; with fewer the result is inconclusive
   (insufficient support).
+- **Secondary, descriptive** (`secondary`; never selects a map or changes a disposition): on the same known rows,
+  each date's mean, with dates weighing equally (registration §2; review r1 R10):
+  - the Brier score of each arm, and their paired difference (map minus identity);
+  - stated minus realized, before and after the map, on all rows and on the known rank-1 rows;
+  - a reliability table by decile of p (`RELIABILITY_RULE` states the bin edges and the weighting).
 """
 from __future__ import annotations
 
@@ -65,3 +70,46 @@ def disposition(*, diff: float, upper: float, guard_p95: float, n_dates: int, n_
         return {"disposition": "positive"}
     return {"disposition": "inconclusive",
             "reason": "the practical bar, the interval or the guardrail was not met"}
+
+
+WEIGHTING = "each date's mean over its known eligible rows; dates weigh equally"
+RELIABILITY_RULE = ("bins: the empirical deciles of p over all known rows (numpy.quantile, linear interpolation). Bin k "
+                    "holds edges[k] <= p < edges[k+1], and the last bin also holds p == edges[10]. Within a bin each "
+                    "row weighs 1/n_d, n_d being its date's known-row count, so dates weigh equally; n is the row "
+                    "count")
+
+
+def secondary(dates, *, a: float) -> dict:
+    """dates: [(probabilities, outcomes 0/1, rank-1 position or None), ...] over each test date's known rows."""
+    per = [(np.asarray(p, float), np.asarray(y, float), r1) for p, y, r1 in dates if len(p)]
+    if not per:
+        return {"dates": 0, "weighting": WEIGHTING}
+    mapped = [apply_map(p, a) for p, _, _ in per]
+    b_id = np.array([np.mean((p - y) ** 2) for p, y, _ in per])
+    b_map = np.array([np.mean((m - y) ** 2) for m, (_, y, _) in zip(mapped, per)])
+    r1 = [(p[r], m[r], y[r]) for m, (p, y, r) in zip(mapped, per) if r is not None]
+    out = {"weighting": WEIGHTING, "dates": len(per),
+           "brier": {"identity": float(b_id.mean()), "map": float(b_map.mean()),
+                     "difference_map_minus_identity": float((b_map - b_id).mean())},
+           "stated_minus_realized": {"identity": float(np.mean([p.mean() - y.mean() for p, y, _ in per])),
+                                     "map": float(np.mean([m.mean() - y.mean() for m, (_, y, _) in zip(mapped, per)]))},
+           "rank1_stated_minus_realized": None if not r1 else {
+               "identity": float(np.mean([p - y for p, _, y in r1])), "map": float(np.mean([m - y for _, m, y in r1])),
+               "dates": len(r1)}}
+    p_all = np.concatenate([p for p, _, _ in per])
+    y_all = np.concatenate([y for _, y, _ in per])
+    m_all = np.concatenate(mapped)
+    w_all = np.concatenate([np.full(p.size, 1 / p.size) for p, _, _ in per])
+    edges = np.quantile(p_all, np.linspace(0, 1, 11))
+    bins = np.clip(np.searchsorted(edges, p_all, side="right") - 1, 0, 9)
+    table = []
+    for k in range(10):
+        sel = bins == k
+        if sel.any():
+            w = w_all[sel]
+            table.append({"bin": k, "n": int(sel.sum()), "weight": float(w.sum()),
+                          "mean_p": float(np.average(p_all[sel], weights=w)),
+                          "mean_map": float(np.average(m_all[sel], weights=w)),
+                          "realized": float(np.average(y_all[sel], weights=w))})
+    out["reliability"] = {"rule": RELIABILITY_RULE, "edges": [float(e) for e in edges], "bins": table}
+    return out

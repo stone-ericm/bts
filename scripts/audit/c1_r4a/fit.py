@@ -9,6 +9,11 @@ likelihood with a regularizing prior, not a calibrated posterior. p is clipped t
 invalid, non-numeric, boolean, non-finite or out-of-[0, 1] probabilities are refused (the population step excludes
 and counts them first). The objective is strictly concave, so Newton's method converges. A fit needs at least 25 fit
 dates with known eligible rows; otherwise the study is inconclusive (insufficient support).
+
+**The fit-window interval (descriptive, registration §§1, 4):** the central 95% interval of the normalized weighted
+likelihood times the prior, exp(objective(a)), integrated numerically on a fixed grid of ±12 Laplace standard
+deviations around the MAP (24,001 points, trapezoid rule). It is labelled descriptive: the weighted likelihood is a
+fixed weighting, not a calibrated posterior, and the interval never selects a map or changes a disposition.
 """
 from __future__ import annotations
 
@@ -72,3 +77,34 @@ def fit_or_inconclusive(dates) -> dict:
     if not math.isfinite(a):
         raise RuntimeError("non-finite MAP")
     return {"status": "fitted", "a": a, "fit_dates": len(dates)}
+
+
+INTERVAL_LEVEL = 0.95
+INTERVAL_METHOD = ("central interval of exp(objective(a)), normalized numerically on a grid of MAP +/- 12 Laplace SDs "
+                   "(24,001 points, trapezoid rule)")
+INTERVAL_LABEL = "descriptive: a normalized weighted-likelihood posterior, not calibrated posterior uncertainty"
+
+
+def _objective_on(grid: np.ndarray, prepared) -> np.ndarray:
+    out = -grid ** 2 / (2 * PRIOR_SD ** 2)
+    for z, yy in prepared:
+        s = z[None, :] + grid[:, None]
+        out = out + np.mean(-yy * np.logaddexp(0, -s) - (1 - yy) * np.logaddexp(0, s), axis=1)
+    return out
+
+
+def posterior_interval(dates, a_map: float, *, level: float = INTERVAL_LEVEL, points: int = 24_001) -> dict:
+    """The descriptive fit-window interval for the MAP `a_map` of `dates` (the same input as fit_intercept)."""
+    prepared = [(logit(_valid(p)), np.asarray(y, dtype=float)) for p, y in dates]
+    curvature = 1 / PRIOR_SD ** 2 + sum(float(np.mean((g := 1 / (1 + np.exp(-(z + a_map)))) * (1 - g)))
+                                        for z, _ in prepared)
+    sd = 1 / math.sqrt(curvature)
+    grid = np.linspace(a_map - 12 * sd, a_map + 12 * sd, points)
+    obj = _objective_on(grid, prepared)
+    dens = np.exp(obj - obj.max())
+    cdf = np.concatenate([[0.0], np.cumsum((dens[1:] + dens[:-1]) / 2 * np.diff(grid))])
+    cdf /= cdf[-1]
+    tail = (1 - level) / 2
+    lo, hi = np.interp([tail, 1 - tail], cdf, grid)
+    return {"level": level, "bounds": [float(lo), float(hi)], "laplace_sd": sd, "method": INTERVAL_METHOD,
+            "label": INTERVAL_LABEL}
