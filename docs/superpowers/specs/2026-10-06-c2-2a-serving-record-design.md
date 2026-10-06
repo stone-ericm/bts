@@ -54,7 +54,7 @@ The parts are as in `e66b440`: `recipe` (file and serving-function hashes, plus 
 
 ## 5. Gate (red first, then green)
 1. **On/off equivalence** (golden outputs from the pre-change code):
-   - **The golden files:** a committed script, run once in a worktree at `f428e51`, writes the predictions frame's values (`p_game_hit`, `p_game_blend`, ranks, flags) plus the pick file and decision bytes for fixed fixtures. The test data is committed with its sha256 and the generator command.
+   - **The golden files:** a committed script, run once in a worktree at the deployed `f882411` (main's `src/bts` is byte-identical to it when 2a starts), writes the predictions frame's values (`p_game_hit`, `p_game_blend`, ranks, flags) plus the pick file and decision bytes for fixed fixtures. The test data is committed with its sha256 and the generator command.
    - **Training is stubbed** to a fixed tiny model on both sides, so LightGBM thread nondeterminism cannot make the comparison flaky.
    - **The new code must reproduce them exactly.** The only intended differences are the slate's schema, `serving`, and posted rows' `projected=false`.
    - **Paths covered:** the cached model, the train path, calibration off, calibration on, and a prediction failure.
