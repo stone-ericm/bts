@@ -1,0 +1,64 @@
+{
+  "kind": "defence",
+  "tool_pin": "f453283d0a0ec39a939b22c6500b5fb36f5452c0",
+  "candidate": "f882411d939d1b8eb0433beee1514170a17f689a",
+  "observer_sha256": "fc1b38da7bbec42e634156750def91f78c93d3e5e7b69783d2aff9d740f0933a",
+  "results": [
+    {
+      "label": "D-I043-1",
+      "spec_sha256": "57c0a5f4a88c9d6f7725e7418952d5503b598eab5a0120c26c8fdeca4bc62d10",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "c928f3753585cc85d83765a742e20234f9a6641672d23927eb310283c20be814",
+      "seconds": 20
+    },
+    {
+      "label": "D-I043-4",
+      "spec_sha256": "8b6e2394de3c3af8d9fecb15b0e1aaa2f5c5a7ca7fdd2712c1012423fe1ed790",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "cce168cd53aa017dae72abef6f067abcd9f2daf95ebfdb6d4c705c1f3eb7f0e2",
+      "seconds": 13
+    },
+    {
+      "label": "I-0813-a",
+      "spec_sha256": "67e589dc81f8a294b69d80040bd4db95b029036c37c5aa0c9e532e7ec8c0c524",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "bc522659fa4bb78abd55210a5ede41128958d16395629fd8b98b71172eaf73d3",
+      "seconds": 8
+    },
+    {
+      "label": "D-I043-2",
+      "spec_sha256": "cb55386bc2d3154c8efd6582edd2f2a3ed1e4f8c32a9beabf492b113fa6fe14b",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "91fe0fbaba6b8db78f7bd2c903d9a531f22b52c7cb135aecd3edb4275b68ff3e",
+      "seconds": 12
+    },
+    {
+      "label": "D-I043-3",
+      "spec_sha256": "645067b70bdb6b62e06c68654c887a140f5bf0057dcf86ccdc038579f7eed96e",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "de8e75ff9f7ac30a4b227268633f8796bfe285f1c920b5b1721eaf178eadbe45",
+      "seconds": 12
+    },
+    {
+      "label": "D-I063-2",
+      "spec_sha256": "a842eacaadc1b1ac6bf96d812c97e6747b92613855be6ddf66bc4bdc46832beb",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "1e8aed4bc50f6951e17a5564a6e4bf52da4b524be6f5db5bc43c7673b44fefe5",
+      "seconds": 15
+    },
+    {
+      "label": "I-0811-b",
+      "spec_sha256": "f606ed6a5baeb847b0045617b0db55d4925fd9cfb4344117748815c0203e311b",
+      "verdict": "accepted",
+      "reasons": [],
+      "acceptance_sha256": "8b7222897a0844e98e956a5fb243dccb7868ad151814f6dcdbffdf9fbd051802",
+      "seconds": 14
+    }
+  ]
+}

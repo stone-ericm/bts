@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/d7-f882411/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 8 items
+
+tests/test_warmup_lock_classification.py F..F....                        [100%]
+
+=================================== FAILURES ===================================
+_____ TestWarmupClassification.test_undelivered_pick_in_warmup_not_locked ______
+
+self = <tests.test_warmup_lock_classification.TestWarmupClassification object at 0x1091bdd30>
+_s = <MagicMock name='get_game_statuses_detailed' id='4447506400'>
+
+    @patch("bts.picks.get_game_statuses_detailed", return_value={823669: WARMUP})
+    def test_undelivered_pick_in_warmup_not_locked(self, _s):
+        state = classify_pick_lock_state(_daily(), DATE)
+>       assert state.locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickLockState(locked=True, stale=False, reason='game_started_or_final', game_pk=823669, abstract='L', detailed='Warmup').locked
+
+tests/test_warmup_lock_classification.py:44: AssertionError
+_ TestWarmupClassification.test_statuscode_pw_recognized_without_detailed_text _
+
+self = <tests.test_warmup_lock_classification.TestWarmupClassification object at 0x1098654f0>
+
+    def test_statuscode_pw_recognized_without_detailed_text(self):
+        """statusCode is the machine signal; detailedState is display text.
+        A PW status with unexpected display text must still classify warmup."""
+        with patch("bts.picks.get_game_statuses_detailed", return_value={
+            823669: {"abstract": "L", "detailed": "", "code": "PW"},
+        }):
+            state = classify_pick_lock_state(_daily(), DATE)
+>       assert state.locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickLockState(locked=True, stale=False, reason='game_started_or_final', game_pk=823669, abstract='L', detailed='').locked
+
+tests/test_warmup_lock_classification.py:71: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_warmup_lock_classification.py::TestWarmupClassification::test_undelivered_pick_in_warmup_not_locked
+FAILED tests/test_warmup_lock_classification.py::TestWarmupClassification::test_statuscode_pw_recognized_without_detailed_text
+========================= 2 failed, 6 passed in 0.05s ==========================

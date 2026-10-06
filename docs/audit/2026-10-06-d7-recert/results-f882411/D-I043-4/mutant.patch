@@ -1,0 +1,20 @@
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 94092fe..a709f65 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -739,14 +739,7 @@ def _classify_unposted_game_status(
+     detailed = status.get("detailed", "")
+     abstract = status.get("abstract")
+     if _is_void_detailed_state(detailed):
+-        return PickLockState(
+-            stale=True,
+-            locked=False,
+-            reason="stale_game_status",
+-            game_pk=game_pk,
+-            abstract=abstract,
+-            detailed=detailed,
+-        )
++        pass  # W1.5 mutant: pre-0799bf2 — a postponed/cancelled candidate is judged by its abstract status alone (abstract Preview stays eligible)
+ 
+     code = (status.get("code") or "").strip().upper()
+     if code == "PW" or (detailed or "").strip().lower() == "warmup":

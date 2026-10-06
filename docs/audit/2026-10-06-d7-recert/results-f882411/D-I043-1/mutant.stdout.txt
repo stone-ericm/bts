@@ -1,0 +1,131 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/d7-f882411/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 2 items
+
+tests/test_scheduler.py FF                                               [100%]
+
+=================================== FAILURES ===================================
+_____________ TestSchedulerRun.test_primary_postponed_regenerates ______________
+
+self = <tests.test_scheduler.TestSchedulerRun object at 0x10b429430>
+_mdp = <MagicMock name='_load_mdp' id='4488888640'>
+_pick_statuses = <MagicMock name='get_game_statuses' id='4560620960'>
+_strategy_statuses = <MagicMock name='get_game_statuses' id='4560627344'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4560651088'>
+mock_cascade = <MagicMock name='run_cascade' id='4560674240'>
+mock_lineups = <MagicMock name='check_confirmed_lineups' id='4560679568'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9942/test_primary_postponed_regener0')
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "F", "detailed": "Postponed"},
+        200: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "F", 200: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_primary_postponed_regenerates(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+    
+        save_pick(_daily_pick(100, batter_name="Stale"), tmp_path)
+        mock_lineups.return_value = {200: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Fresh", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 200, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+    
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[200],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+    
+>       assert result["pick_result"].locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-04', run_time='2026-04-04T22:00:00+00:00', pick=Pick(batter_name='Stale', bat...ema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), locked=True).locked
+
+tests/test_scheduler.py:807: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Pick already locked (game_started_or_final) — skipping cascade.
+______ TestSchedulerRun.test_double_down_postponed_regenerates_whole_pick ______
+
+self = <tests.test_scheduler.TestSchedulerRun object at 0x10b429730>
+_mdp = <MagicMock name='_load_mdp' id='4560836496'>
+_pick_statuses = <MagicMock name='get_game_statuses' id='4560842208'>
+_strategy_statuses = <MagicMock name='get_game_statuses' id='4560846480'>
+_detailed_statuses = <MagicMock name='get_game_statuses_detailed' id='4559562000'>
+mock_cascade = <MagicMock name='run_cascade' id='4481630480'>
+mock_lineups = <MagicMock name='check_confirmed_lineups' id='4560849904'>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9942/test_double_down_postponed_reg0')
+
+    @patch("bts.scheduler.check_confirmed_lineups")
+    @patch("bts.orchestrator.run_cascade")
+    @patch("bts.picks.get_game_statuses_detailed", return_value={
+        100: {"abstract": "P", "detailed": "Pre-Game"},
+        200: {"abstract": "F", "detailed": "Postponed"},
+        300: {"abstract": "P", "detailed": "Pre-Game"},
+    })
+    @patch("bts.strategy.get_game_statuses", return_value={100: "P", 200: "F", 300: "P"})
+    @patch("bts.picks.get_game_statuses", return_value={100: "P", 200: "F", 300: "P"})
+    @patch("bts.strategy._load_mdp", return_value=None)
+    def test_double_down_postponed_regenerates_whole_pick(
+        self, _mdp, _pick_statuses, _strategy_statuses, _detailed_statuses,
+        mock_cascade, mock_lineups, tmp_path
+    ):
+        import pandas as pd
+        from bts.scheduler import run_single_check
+        from bts.picks import save_pick
+    
+        save_pick(_daily_pick(100, double_down_game_pk=200), tmp_path)
+        mock_lineups.return_value = {300: {"home", "away"}}
+        mock_cascade.return_value = (
+            pd.DataFrame([{
+                "batter_name": "Replacement", "batter_id": 10, "team": "NYM",
+                "lineup": 1, "pitcher_name": "P", "pitcher_id": 20,
+                "game_pk": 300, "game_time": "2026-04-04T23:05:00Z",
+                "p_hit_pa": 0.30, "p_game_hit": 0.84, "flags": "",
+            }]),
+            "mac",
+        )
+    
+        result = run_single_check(
+            date="2026-04-04",
+            all_game_pks=[300],
+            confirmed_sides=set(),
+            config={
+                "orchestrator": {"picks_dir": str(tmp_path)},
+                "tiers": [{"name": "mac", "ssh_host": "mac", "bts_dir": "/bts", "timeout_min": 5}],
+            },
+            early_lock_gap=0.03,
+        )
+    
+>       assert result["pick_result"].locked is False
+E       AssertionError: assert True is False
+E        +  where True = PickResult(daily=DailyPick(date='2026-04-04', run_time='2026-04-04T22:00:00+00:00', pick=Pick(batter_name='Díaz', batt...ema_version=None, feature_env=None, feature_env_hash=None, tail_policy_sha256=None, policy_decision=None), locked=True).locked
+
+tests/test_scheduler.py:851: AssertionError
+----------------------------- Captured stderr call -----------------------------
+  Pick already locked (game_started_or_final) — skipping cascade.
+=========================== short test summary info ============================
+FAILED tests/test_scheduler.py::TestSchedulerRun::test_primary_postponed_regenerates
+FAILED tests/test_scheduler.py::TestSchedulerRun::test_double_down_postponed_regenerates_whole_pick
+============================== 2 failed in 0.86s ===============================

@@ -1,0 +1,24 @@
+diff --git a/src/bts/picks.py b/src/bts/picks.py
+index 94092fe..5ea50ec 100644
+--- a/src/bts/picks.py
++++ b/src/bts/picks.py
+@@ -750,18 +750,7 @@ def _classify_unposted_game_status(
+ 
+     code = (status.get("code") or "").strip().upper()
+     if code == "PW" or (detailed or "").strip().lower() == "warmup":
+-        # Warmup (statusCode PW) is abstract-Live but pre-first-pitch — the only
+-        # MLB state where abstract != Preview yet the contest still accepts the
+-        # pick. Locking here silently passed the day on 2026-08-13. statusCode
+-        # is the machine signal; the detailed-string match keeps older cached
+-        # status shapes (no "code" key) working.
+-        return PickLockState(
+-            locked=False,
+-            reason="warmup_not_started",
+-            game_pk=game_pk,
+-            abstract=abstract,
+-            detailed=detailed,
+-        )
++        pass  # W1.5 mutant: pre-1b50b78 — Warmup falls through to the abstract != P lock
+ 
+     if abstract != "P":
+         return PickLockState(

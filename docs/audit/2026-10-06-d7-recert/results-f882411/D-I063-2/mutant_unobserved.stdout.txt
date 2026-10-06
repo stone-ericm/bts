@@ -1,0 +1,98 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/eric/projects/bts-w15-evidence/runs/d7-f882411/wt-defence
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 7 items
+
+tests/test_cli_integration.py ..FF...                                    [100%]
+
+=================================== FAILURES ===================================
+__ TestFetchContestStreak.test_genuinely_stale_profile_still_writes_snapshot ___
+
+self = <tests.test_cli_integration.TestFetchContestStreak object at 0x10e44a540>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e635fd0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9964/test_genuinely_stale_profile_s0')
+
+    def test_genuinely_stale_profile_still_writes_snapshot(self, monkeypatch, tmp_path):
+        # source 6/1 with FOUR settled picks newer (6/2..6/5). The activeStreak counter
+        # is still current, so the snapshot/coverage split WRITES it (exit 0, no fetch DM);
+        # contest_state + the level-aware health check surface the >=2-pick staleness.
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 0, "seasonBestStreak": 9,
+            "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 1)})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        for d in ("2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05"):
+            (picks / f"{d}.json").write_text(json.dumps({"result": "hit"}))
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--dm-recipient", "x.bsky.social"])
+>       assert r.exit_code == 0, r.output
+E       AssertionError: fetch-contest-streak: profile source_date 2026-06-01 < latest resolved pick 2026-06-05 (4 settled pick(s) newer); not current, refusing to overwrite
+E         
+E       assert 2 == 0
+E        +  where 2 = <Result SystemExit(2)>.exit_code
+
+tests/test_cli_integration.py:878: AssertionError
+_ TestFetchContestStreak.test_expected_settlement_lag_writes_snapshot_no_alert _
+
+self = <tests.test_cli_integration.TestFetchContestStreak object at 0x10e44a840>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e634dd0>
+tmp_path = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9964/test_expected_settlement_lag_w0')
+
+    def test_expected_settlement_lag_writes_snapshot_no_alert(self, monkeypatch, tmp_path):
+        # source 6/4 with ONE settled pick newer (6/5) == the expected overnight lag.
+        # The current activeStreak is WRITTEN (snapshot/coverage split); no DM noise.
+        import datetime as dt
+        import bts.contest_fetch as cf
+        import bts.cli as climod
+        import bts.dm
+        self._patch_auth(monkeypatch)
+        monkeypatch.setattr(cf, "fetch_profile", lambda *a, **k: {
+            "activeStreak": 5, "seasonBestStreak": 9,
+            "predictions": [{"roundId": 1, "result": "hit"}]})
+        monkeypatch.setattr(climod, "_fetch_rounds", lambda *a, **k: {1: dt.date(2026, 6, 4)})
+        dm_calls = []
+        monkeypatch.setattr(bts.dm, "send_dm", lambda h, m: dm_calls.append((h, m)))
+        picks = tmp_path / "picks"; picks.mkdir()
+        (picks / "2026-06-05.json").write_text(json.dumps({"result": "miss"}))  # latest 6/5, gap=1
+        r = CliRunner().invoke(cli, ["fetch-contest-streak", "--picks-dir", str(picks),
+                                     "--dm-recipient", "x.bsky.social"])
+        assert r.exit_code == 0, r.output
+>       data = json.loads((picks / "account_state" / "contest_streak.json").read_text())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cli_integration.py:902: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9964/test_expected_settlement_lag_w0/picks/account_state/contest_streak.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/pb/9cjvyndj5plf63cdndwlj1gc0000gn/T/pytest-of-eric/pytest-9964/test_expected_settlement_lag_w0/picks/account_state/contest_streak.json'
+
+/Users/eric/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/pathlib.py:1013: FileNotFoundError
+=========================== short test summary info ============================
+FAILED tests/test_cli_integration.py::TestFetchContestStreak::test_genuinely_stale_profile_still_writes_snapshot
+FAILED tests/test_cli_integration.py::TestFetchContestStreak::test_expected_settlement_lag_writes_snapshot_no_alert
+========================= 2 failed, 5 passed in 1.16s ==========================
