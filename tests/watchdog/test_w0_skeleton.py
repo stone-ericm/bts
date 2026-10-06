@@ -491,15 +491,19 @@ def test_invalid_notification_state_raises_and_is_preserved(root, raw):
     assert root.read_bytes(N.STATE) == raw
 
 
-def test_the_flush_is_bounded(root):
+def test_the_flush_is_bounded_by_elapsed_monotonic_time_even_if_the_wall_clock_rolls_back(root):
+    """Round-2 N4: the budget is elapsed monotonic time; a wall clock stepping back after every send cannot extend it."""
     clock = FixedClock(T0)
+    mono = {"t": 1000.0}
     sent = []
 
     def slow(recipient, text):
         sent.append(text)
-        clock.at = clock.at + timedelta(seconds=60)
+        mono["t"] += 60.0
+        clock.at = clock.at - timedelta(hours=1)                  # the wall clock rolls back each time
         return f"m{len(sent)}"
-    n = N.Notifier(root, recipient="r", send=slow, clock=clock, budget=timedelta(seconds=90), max_sends=5)
+    n = N.Notifier(root, recipient="r", send=slow, clock=clock, budget_s=90.0, max_sends=5,
+                   monotonic=lambda: mono["t"])
     n.enqueue([CheckResult("W", "2026-10-06", Status.FAULT, "x", incident=f"I-{i}") for i in range(8)])
     report = n.flush()
     assert len(sent) == 2 and report["skipped_budget"] == 3      # 5 claimed, 2 sent within budget, 3 released
@@ -544,18 +548,22 @@ def test_the_cli_refuses_unknown_jobs_and_a_missing_recipient_and_queues_in_no_s
 
 # ---- gate 2: kernel-enforced write confinement ---------------------------------------------------------------------
 
-GATE_CHILD = r'''
+GATE_CHILD = r"""
+import json
 import bts.dm
 from bts.cli import cli
 import bts.watchdog.cli as wcli
+import bts.watchdog.notify as N
 from bts.watchdog.result import CheckResult, Status
+from bts.watchdog.root import OwnedRoot
 D = {data!r}
 sel = "802415@822934"
 mode = {{"n": 0}}
 def check(ctx):
     mode["n"] += 1
     st = Status.VERIFIED if mode["n"] == 3 else Status.FAULT
-    return [CheckResult("W-gate", ctx.et_date, st, "gate", incident="I-gate", selection=sel)]
+    return [CheckResult("W-gate", ctx.et_date, st, "gate", incident="I-gate" if st is Status.FAULT else None,
+                        selection=sel)]
 fails = {{"n": 1}}
 def send(h, m):
     if fails["n"]:
@@ -563,6 +571,7 @@ def send(h, m):
         raise RuntimeError("first send fails")
     return "dm-ok"
 bts.dm.send_dm = send
+{extra}
 wcli.JOBS["gate"] = [check]
 for _ in range(4):                  # fault (send fails), fault (retry), recovery, recurrence
     try:
@@ -571,51 +580,224 @@ for _ in range(4):                  # fault (send fails), fault (retry), recover
         if e.code:
             raise
 cli(["watchdog", "run", "gate", "--data-dir", D, "--no-send"], standalone_mode=False)
+st = N.load_state(OwnedRoot.under(D))
+notices = sorted(st["notices"].values(), key=lambda n: n["seq"])
+print("SUMMARY " + json.dumps([[n["state"], n["episode"], n["status"], n["message_id"], n["attempts"]] for n in notices]))
 print("GATE-OK")
-'''
+"""
+EXPECTED_NOTICES = [["fault", 1, "sent", "dm-ok", 2], ["recovered", 1, "sent", "dm-ok", 1],
+                    ["fault", 2, "sent", "dm-ok", 1]]
+
+
+def _summary(stdout):
+    (line,) = [x for x in stdout.splitlines() if x.startswith("SUMMARY ")]
+    return json.loads(line[len("SUMMARY "):])
 
 
 @needs_sandbox
 def test_gate2_the_real_cli_writes_only_beneath_its_root(data):
     """The actual `bts watchdog run` CLI path (fault, failed send, retry, recovery, recurrence, queue-only) in a
-    child that the kernel lets write only beneath data/watchdog. Any other write would fail with EPERM."""
+    child that the kernel lets write only beneath data/watchdog, and kills on any other write. The exact notices
+    and confirmed fake deliveries are asserted, not just a clean exit."""
     (data / "picks").mkdir()
     (data / "picks" / "2026-10-06.json").write_text("{}")
     OwnedRoot.under(data).close()
-    res = run_confined(GATE_CHILD.format(data=str(data)), data / "watchdog")
-    assert res.returncode == 0 and "GATE-OK" in res.stdout, res.stderr[-3000:]
+    res = run_confined(GATE_CHILD.format(data=str(data), extra=""), data / "watchdog")
+    assert res.returncode == 0 and "GATE-OK" in res.stdout, (res.returncode, res.stderr[-3000:])
+    assert _summary(res.stdout) == EXPECTED_NOTICES
     assert (data / "picks" / "2026-10-06.json").read_text() == "{}"
-    assert list((data / "watchdog" / "results").rglob("*.json"))
+    assert len(list((data / "watchdog" / "results").rglob("*.json"))) == 5
+
+
+SWALLOWED_OUTSIDE_WRITE = """
+_real_flush = N.Notifier.flush
+def _leaky_flush(self):
+    try:
+        open(D + "/picks/2026-10-06.json", "w").write("outside-mutant")
+    except Exception:
+        pass
+    return _real_flush(self)
+N.Notifier.flush = _leaky_flush
+"""
+
+
+@needs_sandbox
+def test_gate2_fails_on_an_outside_write_even_when_the_code_swallows_the_refusal(data):
+    """Round-2 G1: the reviewer's caught-write mutant. Under the kill profile the child dies on the denied open, so
+    the gate cannot stay green."""
+    (data / "picks").mkdir()
+    (data / "picks" / "2026-10-06.json").write_text("{}")
+    OwnedRoot.under(data).close()
+    res = run_confined(GATE_CHILD.format(data=str(data), extra=SWALLOWED_OUTSIDE_WRITE), data / "watchdog")
+    assert res.returncode in (-9, 137) and "GATE-OK" not in res.stdout
+    assert (data / "picks" / "2026-10-06.json").read_text() == "{}"
 
 
 RED = {
-    "same_byte": "open(P, 'w').write(open(P).read())",
-    "write_undo": "import os; os.replace(P, P + '.bak'); os.replace(P + '.bak', P)",
-    "thread": "import threading\nerr = []\n"
-              "def w():\n    try:\n        open(P, 'w').write('x')\n    except PermissionError as e:\n        err.append(e)\n"
-              "t = threading.Thread(target=w); t.start(); t.join()\nraise SystemExit(0 if err else 3)",
-    "subprocess": "import subprocess, sys\nr = subprocess.run([sys.executable, '-c', 'open(%r, \"w\").write(\"x\")' % P])\n"
-                  "raise SystemExit(0 if r.returncode else 4)",
-    "leaf_symlink": "import os; os.symlink(P, ROOT + '/link'); open(ROOT + '/link', 'w').write('x')",
-    "dir_fd_relative": "import os; fd = os.open(os.path.dirname(P), os.O_RDONLY); "
+    "same_byte": "b = open(P, 'rb').read()\nopen(P, 'wb').write(b)",
+    "write_undo": "import os\nos.replace(P, P + '.bak')\nos.replace(P + '.bak', P)",
+    "leaf_symlink": "import os\nos.symlink(P, ROOT + '/link')\nopen(ROOT + '/link', 'w').write('x')",
+    "dir_fd_relative": "import os\nfd = os.open(os.path.dirname(P), os.O_RDONLY)\n"
                        "os.open(os.path.basename(P), os.O_WRONLY | os.O_TRUNC, dir_fd=fd)",
+    "thread": "import threading\nerr = []\n"
+              "def w():\n    try:\n        open(P, 'w').write('x')\n    except PermissionError:\n        err.append(1)\n"
+              "t = threading.Thread(target=w)\nt.start()\nt.join()\nif not err:\n    raise SystemExit(3)",
+    "subprocess": "import subprocess, sys\n"
+                  "g = \"print('GRANDCHILD-STARTED', flush=True)\\ntry:\\n    open(%r, 'w').write('x')\\n"
+                  "except PermissionError:\\n    print('GRANDCHILD-EPERM')\\n\" % P\n"
+                  "r = subprocess.run([sys.executable, '-B', '-c', g], capture_output=True, text=True)\n"
+                  "if 'GRANDCHILD-STARTED' not in r.stdout or 'GRANDCHILD-EPERM' not in r.stdout:\n    raise SystemExit(4)",
 }
+
+
+def _red_program(kind, target, root_dir):
+    body = RED[kind]
+    if kind not in ("thread", "subprocess"):                # wrap: the specific operation must be the refusal
+        body = "try:\n" + "\n".join("    " + line for line in body.splitlines()) + \
+               "\nexcept PermissionError:\n    print('EPERM-WITNESS', flush=True)\n    raise SystemExit(0)\n" \
+               "raise SystemExit(5)"
+    else:
+        body += "\nprint('EPERM-WITNESS', flush=True)"
+    return f"P = {str(target)!r}; ROOT = {str(root_dir)!r}\nprint('CHILD-STARTED', flush=True)\n" + body
 
 
 @needs_sandbox
 @pytest.mark.parametrize("kind", sorted(RED))
 def test_gate2_red_controls_are_refused_by_the_kernel(data, kind):
-    """The gate's own red controls: each class the round-1 audit-hook tracer missed or could miss is refused with
-    EPERM, and the outside file keeps its bytes."""
+    """Round-2 G3: each red control proves its child started and that the intended operation was the one refused
+    (EPERM), and the outside file keeps its bytes."""
     target = data / "picks" / "x.json"
     target.parent.mkdir()
     target.write_text("{}")
     OwnedRoot.under(data).close()
-    code = f"P = {str(target)!r}; ROOT = {str(data / 'watchdog')!r}\n" + RED[kind]
-    res = run_confined(code, data / "watchdog")
-    if kind in ("thread", "subprocess"):
-        assert res.returncode == 0, res.stderr[-1000:]           # the child itself verified the refusal
-    else:
-        assert res.returncode != 0 and ("Operation not permitted" in res.stderr or "PermissionError" in res.stderr), \
-            res.stderr[-1000:]
+    res = run_confined(_red_program(kind, target, data / "watchdog"), data / "watchdog", kill=False)
+    assert res.returncode == 0, (res.returncode, res.stderr[-1000:])
+    assert "CHILD-STARTED" in res.stdout and "EPERM-WITNESS" in res.stdout
     assert target.read_text() == "{}" and not (data / "picks" / "x.json.bak").exists()
+
+
+@needs_sandbox
+def test_gate2_kill_profile_kills_after_start_on_an_outside_write(data):
+    """The kill profile's own red control: the child starts, then dies at its first outside write."""
+    target = data / "picks" / "x.json"
+    target.parent.mkdir()
+    target.write_text("{}")
+    OwnedRoot.under(data).close()
+    code = (f"print('CHILD-STARTED', flush=True)\ntry:\n    open({str(target)!r}, 'w').write('x')\nexcept Exception:\n"
+            "    pass\nprint('SURVIVED', flush=True)")
+    res = run_confined(code, data / "watchdog")
+    assert res.returncode in (-9, 137) and "CHILD-STARTED" in res.stdout and "SURVIVED" not in res.stdout
+    assert target.read_text() == "{}"
+
+
+# ---- W0 review r2: N1-N3 ------------------------------------------------------------------------------------------
+
+def test_n1_checker_failure_recovery_and_recurrence_through_run_job(root):
+    """The same callable fails, runs successfully (with a business fault), then fails again: the checker episode
+    recovers and recurs as episode 2."""
+    calls = {"n": 0}
+
+    def transient(ctx):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            return [CheckResult("W-test", ctx.et_date, Status.FAULT, "business fault", incident="I-b", selection="s")]
+        raise RuntimeError("down")
+    t = Transport()
+    for _ in range(3):
+        run_job("t", [transient], root=root, clock=FixedClock(T0), notifier=notifier(root, t))
+    texts = [m for _, m in t.sent]
+    assert len(texts) == 4
+    assert "checker:transient" in texts[0] and "episode 1" in texts[0]
+    assert any("RECOVERED [checker:transient]" in x for x in texts)
+    assert any("[I-b]" in x and "fault" in x for x in texts)
+    assert "checker:transient" in texts[-1] and "episode 2" in texts[-1]
+
+
+def test_n2_an_unrelated_all_clear_in_the_same_batch_does_not_recover_a_live_fault(root):
+    t = Transport()
+    n = notifier(root, t)
+    batch = [CheckResult("W-x", "2026-10-06", Status.FAULT, "bad", incident="I-bad", selection="s"),
+             CheckResult("W-x", "2026-10-06", Status.VERIFIED, "other ok", incident="I-other", selection="s")]
+    for _ in range(2):
+        n.enqueue(batch)
+        n.flush()
+    assert len(t.sent) == 1 and "[I-bad]" in t.sent[0][1]
+    (tgt,) = [x for x in N.load_state(root)["targets"].values() if x["incident"] == "I-bad"]
+    assert tgt["open"] is True and tgt["episode"] == 1
+
+
+def test_n2_an_all_clear_in_the_same_batch_as_a_fault_recovers_nothing(root):
+    """The alerting guard: an incident-less all-clear for the same (check, date, selection) in the same observation
+    as a live fault must not recover it."""
+    t = Transport()
+    n = notifier(root, t)
+    batch = [CheckResult("W-x", "2026-10-06", Status.FAULT, "bad", incident="I-bad", selection="s"),
+             CheckResult("W-x", "2026-10-06", Status.VERIFIED, "all clear?", selection="s")]
+    for _ in range(2):
+        n.enqueue(batch)
+        n.flush()
+    assert len(t.sent) == 1 and not any("RECOVERED" in m for _, m in t.sent)
+
+
+def test_n2_incident_specific_recovery_and_its_identity(root):
+    t = Transport()
+    n = notifier(root, t)
+    n.enqueue([CheckResult("W-x", "2026-10-06", Status.FAULT, "a", incident="I-a", selection="s"),
+               CheckResult("W-x", "2026-10-06", Status.FAULT, "b", incident="I-b", selection="s")])
+    n.enqueue([CheckResult("W-x", "2026-10-06", Status.VERIFIED, "a fixed", incident="I-a", selection="s")])
+    n.flush()
+    rec = [m for _, m in t.sent if "RECOVERED" in m]
+    assert rec == [rec[0]] and "[I-a]" in rec[0]
+    open_ = {x["incident"] for x in N.load_state(root)["targets"].values() if x["open"]}
+    assert open_ == {"I-b"}
+
+
+def test_n2_a_queue_only_backlog_is_sent_in_causal_order(root):
+    q = notifier(root, None, recipient=None)
+    for status in (Status.FAULT, Status.VERIFIED, Status.FAULT):
+        q.enqueue([CheckResult("W-x", "2026-10-06", status, "x", incident="I-1" if status is Status.FAULT else None,
+                               selection="s")])
+    later = Transport()
+    notifier(root, later).flush()
+    texts = [m for _, m in later.sent]
+    assert len(texts) == 3 and "episode 1" in texts[0] and "RECOVERED" in texts[1] and "episode 2" in texts[2]
+
+
+def _generated_state(root):
+    n = notifier(root, None, recipient=None)
+    n.enqueue([CheckResult("W-x", "2026-10-06", Status.FAULT, "x", incident="I-1", selection="s")])
+    return json.loads(root.read_bytes(N.STATE))
+
+
+@pytest.mark.parametrize("corrupt", ["notice_state", "notice_episode", "notice_episode_rekeyed", "target_contradiction",
+                                     "missing_queued_at", "targets_list", "bool_attempts", "bad_key",
+                                     "claim_outside_sending"])
+def test_n3_semantic_corruption_is_refused_and_preserved(root, corrupt):
+    st = _generated_state(root)
+    (nk,) = st["notices"]
+    (tk,) = st["targets"]
+    n, t = st["notices"][nk], st["targets"][tk]
+    if corrupt == "notice_state":
+        n["state"] = "unknown-state"
+    elif corrupt == "notice_episode":
+        n["episode"] = 999
+    elif corrupt == "notice_episode_rekeyed":                     # consistent key, impossible episode
+        n["episode"] = 999
+        st["notices"][N.notice_key(n["target"], 999, n["state"])] = st["notices"].pop(nk)
+    elif corrupt == "target_contradiction":
+        t.update(open=True, state="recovered", et_date="not-a-date")
+    elif corrupt == "missing_queued_at":
+        del n["queued_at"]
+    elif corrupt == "targets_list":
+        st["targets"] = []
+    elif corrupt == "bool_attempts":
+        n["attempts"] = True
+    elif corrupt == "bad_key":
+        st["notices"]["0" * 64] = st["notices"].pop(nk)
+    elif corrupt == "claim_outside_sending":
+        n["claim_token"] = "x"
+    raw = json.dumps(st).encode()
+    root.write_atomic(N.STATE, raw)
+    with pytest.raises(N.NotifyStateError):
+        notifier(root, Transport()).flush()
+    assert root.read_bytes(N.STATE) == raw

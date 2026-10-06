@@ -8,7 +8,9 @@ A job runs its checks under a job singleton lock. Each check is isolated:
 - **Transactional:** a check's results count only if all of them are valid and the check returned normally. A check
   that raises part-way (a generator, say) has its partial results discarded and replaced by one `checker_failure`
   naming the number discarded.
-- **Never silence:** a raise, an empty return or invalid output is a `checker_failure`.
+- **Never silence:** a raise, an empty return or invalid output is a `checker_failure`, targeted at
+  (name, `checker:<name>`, date). A later successful execution of the same name closes that episode, whatever the
+  business result (W0 r2 N1).
 
 **Outputs:** the results file and the notifications are attempted independently, and each failure is captured
 (`persist_error`, `notify_error`) rather than aborting the other. The outcome always carries the collected statuses.
@@ -75,7 +77,8 @@ def _valid(r) -> CheckResult:
     return r
 
 
-def _run_check(check, i: int, ctx: Context) -> list:
+def _run_check(check, i: int, ctx: Context) -> tuple[list, str, bool]:
+    """(results, the check's registered name, whether it executed successfully)."""
     name = _safe_name(check, i)
     got = 0
     try:
@@ -85,10 +88,10 @@ def _run_check(check, i: int, ctx: Context) -> list:
             out.append(_valid(r))
         if not out:
             raise RuntimeError("the check returned no result")
-        return out
+        return out, name, True
     except Exception as exc:  # noqa: BLE001 - one failing check never suppresses the others
         detail = _safe_exc(exc) + (f" ({got} partial result(s) discarded)" if got else "")
-        return [CheckResult(name, ctx.et_date, Status.CHECKER_FAILURE, detail, incident=f"checker:{name}")]
+        return [CheckResult(name, ctx.et_date, Status.CHECKER_FAILURE, detail, incident=f"checker:{name}")], name, False
 
 
 def run_job(job: str, checks, *, root: OwnedRoot, clock, notifier) -> JobOutcome:
@@ -96,8 +99,12 @@ def run_job(job: str, checks, *, root: OwnedRoot, clock, notifier) -> JobOutcome
         now = clock.now()
         ctx = Context(now.date().isoformat(), now, root)
         results: list[CheckResult] = []
+        executed_ok: list[str] = []
         for i, check in enumerate(checks):
-            results.extend(_run_check(check, i, ctx))
+            out, name, ok = _run_check(check, i, ctx)
+            results.extend(out)
+            if ok:
+                executed_ok.append(name)
         outcome = JobOutcome(results, None)
         try:
             outcome.path = root.write_atomic(
@@ -108,7 +115,7 @@ def run_job(job: str, checks, *, root: OwnedRoot, clock, notifier) -> JobOutcome
             outcome.persist_error = _safe_exc(exc)
         if notifier is not None:
             try:
-                notifier.enqueue(results)
+                notifier.enqueue(results, executed_ok=executed_ok)
                 outcome.notify_report = notifier.flush()
             except Exception as exc:  # noqa: BLE001 - reported, never success
                 outcome.notify_error = _safe_exc(exc)

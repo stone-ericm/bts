@@ -1,44 +1,52 @@
-"""Watchdog notifications (registration R5, §4.3; W0 review r1 B3, B4, B5, B7).
+"""Watchdog notifications (registration R5, §4.3; W0 reviews r1 B3–B5, B7 and r2 N1–N4).
 
-**Episodes (B3):** results are grouped by incident target, (check, incident, ET date, selection).
-- **Opening and escalation:** an alerting result (fault or checker failure) opens an episode with a fresh number.
-  A change of alerting state within an open episode is an escalation.
-- **Recovery:** a later `verified` result for the same (check, ET date, selection) closes every open episode of that
-  target and queues a recovery notice.
-- **Recurrence:** a fault after recovery opens episode n+1.
+**Targets and episodes:** a target is (check, incident, ET date, selection). An alerting result (fault or checker
+failure) opens an episode; a change of alerting state within an open episode is an escalation.
 
-Each notice's dedup key binds (target, episode, state), so repeated polling of one episode stays silent across
-restarts. `pending` and `unverifiable` change no episode.
+**Recovery is computed from the whole observation (r2 N2):** results are grouped by (check, ET date, selection).
+- If any result in a group alerts, nothing in that group recovers.
+- Otherwise, a `verified` result closes its open targets: an `incident`-carrying verified result closes only that
+  incident's target; a verified result with no incident is an all-clear for the group.
+- The recovery notice is built from the **recovered target's** own identity.
 
-**Delivery (B4, B7):**
-- **Queueing:** `enqueue` always persists notices, even with no transport (`--no-send`) and no recipient.
-- **Claims:** `flush` claims due notices under the short state lock. Each claim carries a unique token and a UTC
-  lease, and the send happens outside the lock.
-- **Completion:** a result is recorded only if the notice still carries that claim's token, so a stale sender can
-  never overwrite a newer outcome. Only a returned non-empty message id marks a notice `sent`; failures and
-  id-less returns stay `pending`.
-- **Clock rollback:** if the clock reads earlier than a claim's start, the lease counts as expired, so a duplicate
-  retry is possible (documented; exactly-once delivery is not claimed).
-- **Bounds:** at most `max_sends` sends per flush, and no new send starts after `budget` has elapsed.
+**Checker execution (r2 N1):** a checker failure targets (name, `checker:<name>`, date, no selection). A later
+successful execution of the same registered name (`executed_ok`) closes every open checker-failure target of that
+name, whatever its business result.
 
-**Validation (B5):** every stored entry is validated on load. A malformed or unknown state raises `NotifyStateError`
-and leaves the file untouched.
+**Order:** every notice carries a persistent sequence number (`seq`), and flushes go in that causal order.
+
+**Delivery (r1 B4, B7; r2 N4):**
+- `enqueue` always persists notices, even with no transport (queue-only).
+- `flush` claims due notices under the short state lock. Each claim has a unique token and a UTC lease, and sends
+  happen outside the lock.
+- A completion is recorded only if the notice still carries that token. Only a returned non-empty message id marks
+  a notice `sent`.
+- A clock read earlier than a claim's start counts the lease as expired (a duplicate is possible; exactly-once
+  delivery is not claimed).
+- The flush is bounded by `max_sends` and by an **elapsed monotonic** budget, checked before each send. Neither
+  bound interrupts an in-flight send; the whole-job deadline is a deploy-gate item.
+
+**Validation (r1 B5, r2 N3):** every container, field, type, timestamp, state, cross-reference and recomputed key
+is validated on load. Anything invalid raises `NotifyStateError` and leaves the file untouched.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from bts.watchdog.result import ALERTING, CheckResult, Status
 
 LEASE = timedelta(minutes=10)
-BUDGET = timedelta(seconds=90)
+BUDGET_S = 90.0
 MAX_SENDS = 20
 STATE = ("notify", "state.json")
 LOCK = ("notify", ".lock")
-NOTICE_STATUSES = {"pending", "sending", "sent"}
+DELIVERY = ("pending", "sending", "sent")
+ALERT_STATES = tuple(s.value for s in ALERTING)
+NOTICE_STATES = ALERT_STATES + ("recovered",)
 
 
 class NotifyStateError(RuntimeError):
@@ -64,42 +72,97 @@ def _utc(t: datetime) -> datetime:
 
 
 def _parse_utc(s) -> datetime:
+    if not isinstance(s, str):
+        raise ValueError("not a timestamp string")
     t = datetime.fromisoformat(s)
     if t.tzinfo is None:
         raise ValueError("naive time")
     return t.astimezone(timezone.utc)
 
 
+def _int(v, lo=0) -> bool:
+    return type(v) is int and v >= lo
+
+
+def _opt_str(v) -> bool:
+    return v is None or (isinstance(v, str) and v != "")
+
+
+def _bad(msg):
+    raise NotifyStateError(msg)
+
+
 def _validate(st) -> dict:
-    if not isinstance(st, dict) or set(st) != {"version", "targets", "notices"} or st["version"] != 1:
-        raise NotifyStateError("notification state is not a version-1 {targets, notices} object")
-    for k, t in st["targets"].items():
-        ok = (isinstance(t, dict) and isinstance(t.get("episode"), int) and t["episode"] >= 1
-              and isinstance(t.get("open"), bool) and t.get("state") in {s.value for s in ALERTING} | {"recovered"}
-              and isinstance(t.get("check"), str) and isinstance(t.get("et_date"), str))
-        if not ok:
-            raise NotifyStateError(f"malformed target {k}")
-    for k, n in st["notices"].items():
-        ok = (isinstance(n, dict) and n.get("status") in NOTICE_STATUSES and isinstance(n.get("text"), str)
-              and n.get("target") in st["targets"] and isinstance(n.get("attempts"), int))
-        if ok and n["status"] == "sending":
-            try:
+    """Every container, field and relationship; raises NotifyStateError on anything else."""
+    try:
+        if not isinstance(st, dict) or set(st) != {"version", "seq", "targets", "notices"} or st["version"] != 1:
+            _bad("not a version-1 {seq, targets, notices} object")
+        if not _int(st["seq"]) or not isinstance(st["targets"], dict) or not isinstance(st["notices"], dict):
+            _bad("bad seq or containers")
+        for k, t in st["targets"].items():
+            need = {"check", "incident", "et_date", "selection", "episode", "open", "state", "opened_at"}
+            if not isinstance(t, dict) or not need <= set(t) or not set(t) <= need | {"closed_at"}:
+                _bad(f"target {k}: fields")
+            if not (isinstance(t["check"], str) and t["check"] and _opt_str(t["incident"])
+                    and _opt_str(t["selection"]) and isinstance(t["et_date"], str) and _int(t["episode"], 1)
+                    and isinstance(t["open"], bool) and t["state"] in NOTICE_STATES):
+                _bad(f"target {k}: types")
+            date.fromisoformat(t["et_date"])
+            _parse_utc(t["opened_at"])
+            if t["open"] != (t["state"] in ALERT_STATES):
+                _bad(f"target {k}: open/state inconsistent")
+            if (not t["open"]) != ("closed_at" in t):
+                _bad(f"target {k}: closed_at inconsistent")
+            if "closed_at" in t:
+                _parse_utc(t["closed_at"])
+            if target_key(t["check"], t["incident"], t["et_date"], t["selection"]) != k:
+                _bad(f"target {k}: key does not match its identity")
+        seqs = set()
+        for k, n in st["notices"].items():
+            need = {"target", "episode", "state", "text", "status", "attempts", "queued_at", "seq", "message_id",
+                    "recipient", "last_error"}
+            claim = {"claim_token", "claimed_at", "lease_until"}
+            if not isinstance(n, dict) or not need <= set(n) or not set(n) <= need | claim | {"last_attempt_at"}:
+                _bad(f"notice {k}: fields")
+            t = st["targets"].get(n["target"])
+            if t is None:
+                _bad(f"notice {k}: unknown target")
+            if not (_int(n["episode"], 1) and n["episode"] <= t["episode"] and n["state"] in NOTICE_STATES
+                    and isinstance(n["text"], str) and n["text"] and n["status"] in DELIVERY and _int(n["attempts"])
+                    and _int(n["seq"], 1) and _opt_str(n["recipient"]) and _opt_str(n["last_error"])):
+                _bad(f"notice {k}: types")
+            if n["seq"] in seqs or n["seq"] > st["seq"]:
+                _bad(f"notice {k}: seq")
+            seqs.add(n["seq"])
+            _parse_utc(n["queued_at"])
+            if "last_attempt_at" in n:
+                _parse_utc(n["last_attempt_at"])
+            if notice_key(n["target"], n["episode"], n["state"]) != k:
+                _bad(f"notice {k}: key does not match its identity")
+            if (n["status"] == "sent") != (isinstance(n["message_id"], str) and n["message_id"] != ""):
+                _bad(f"notice {k}: sent/message_id inconsistent")
+            if n["status"] == "sending":
+                if set(n) & claim != claim or not (isinstance(n["claim_token"], str) and n["claim_token"]):
+                    _bad(f"notice {k}: claim")
                 _parse_utc(n["claimed_at"])
                 _parse_utc(n["lease_until"])
-                ok = isinstance(n.get("claim_token"), str) and n["claim_token"] != ""
-            except (KeyError, TypeError, ValueError):
-                ok = False
-        if ok and n["status"] == "sent":
-            ok = isinstance(n.get("message_id"), str) and n["message_id"] != ""
-        if not ok:
-            raise NotifyStateError(f"malformed notice {k}")
+            elif set(n) & claim:
+                _bad(f"notice {k}: claim fields outside sending")
+    except NotifyStateError:
+        raise
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise NotifyStateError(f"malformed notification state: {type(exc).__name__}: {exc}") from None
     return st
+
+
+def empty_state() -> dict:
+    return {"version": 1, "seq": 0, "targets": {}, "notices": {}}
 
 
 def load_state(root) -> dict:
     raw = root.read_bytes(STATE)
     if raw is None:
-        return {"version": 1, "targets": {}, "notices": {}}
+        return empty_state()
     try:
         st = json.loads(raw)
     except ValueError as exc:
@@ -115,62 +178,81 @@ def state_lock(root):
     return root.lock(LOCK, blocking=True)
 
 
-def notice_text(r: CheckResult, kind: str, episode: int) -> str:
-    tag = f" [{r.incident}]" if r.incident else ""
-    sel = f" ({r.selection})" if r.selection else ""
-    head = {"open": f"{r.status.value}", "escalation": f"escalated to {r.status.value}", "recovered": "RECOVERED"}[kind]
-    return f"BTS watchdog {head}{tag}: {r.check} on {r.et_date}{sel}, episode {episode}: {r.detail}"[:1000]
+def _text(t: dict, kind: str, episode: int, state: str, detail: str) -> str:
+    tag = f" [{t['incident']}]" if t["incident"] else ""
+    sel = f" ({t['selection']})" if t["selection"] else ""
+    head = {"open": state, "escalation": f"escalated to {state}", "recovered": "RECOVERED"}[kind]
+    return f"BTS watchdog {head}{tag}: {t['check']} on {t['et_date']}{sel}, episode {episode}: {detail}"[:1000]
 
 
 class Notifier:
     def __init__(self, root, *, recipient: str | None, send, clock, lease: timedelta = LEASE,
-                 budget: timedelta = BUDGET, max_sends: int = MAX_SENDS):
+                 budget_s: float = BUDGET_S, max_sends: int = MAX_SENDS, monotonic=time.monotonic):
         self.root, self.recipient, self.send, self.clock = root, recipient, send, clock
-        self.lease, self.budget, self.max_sends = lease, budget, max_sends
+        self.lease, self.budget_s, self.max_sends, self.monotonic = lease, budget_s, max_sends, monotonic
 
     # ---- episodes -------------------------------------------------------------------------------------------------
-    def enqueue(self, results) -> int:
-        """Apply results to the episodes and queue the resulting notices. Returns how many notices were new."""
+    def enqueue(self, results, executed_ok=()) -> int:
+        """Apply one observation (all results of a run) and the names of checks that executed successfully."""
         new = 0
         with state_lock(self.root):
             st = load_state(self.root)
             now = _utc(self.clock.now()).isoformat()
+            groups: dict = {}
             for r in results:
-                if r.status in ALERTING:
-                    tk = target_key(r.check, r.incident, r.et_date, r.selection)
-                    t = st["targets"].get(tk)
-                    if t is None or not t["open"]:
-                        ep = (t["episode"] + 1) if t else 1
-                        st["targets"][tk] = {"check": r.check, "incident": r.incident, "et_date": r.et_date,
-                                             "selection": r.selection, "episode": ep, "open": True,
-                                             "state": r.status.value, "opened_at": now}
-                        new += self._queue(st, tk, ep, r.status.value, notice_text(r, "open", ep), now)
-                    elif t["state"] != r.status.value:
-                        t["state"] = r.status.value
-                        new += self._queue(st, tk, t["episode"], r.status.value,
-                                           notice_text(r, "escalation", t["episode"]), now)
-                elif r.status is Status.VERIFIED:
+                groups.setdefault((r.check, r.et_date, r.selection), []).append(r)
+            for (check, et_date, selection), rs in groups.items():
+                alerting = [r for r in rs if r.status in ALERTING]
+                for r in alerting:
+                    new += self._alert(st, r, now)
+                verified = [r for r in rs if r.status is Status.VERIFIED]
+                if verified and not alerting:
+                    incidents = {r.incident for r in verified}
+                    all_clear = None in incidents
                     for tk, t in st["targets"].items():
-                        if (t["open"] and t["check"] == r.check and t["et_date"] == r.et_date
-                                and t["selection"] == r.selection):
-                            t.update(open=False, state="recovered", closed_at=now)
-                            new += self._queue(st, tk, t["episode"], "recovered",
-                                               notice_text(r, "recovered", t["episode"]), now)
+                        if (t["open"] and t["check"] == check and t["et_date"] == et_date
+                                and t["selection"] == selection and (all_clear or t["incident"] in incidents)):
+                            new += self._recover(st, tk, t, now, "verified")
+            for name in executed_ok:
+                for tk, t in st["targets"].items():
+                    if t["open"] and t["check"] == name and t["incident"] == f"checker:{name}":
+                        new += self._recover(st, tk, t, now, "the check executes again")
             save_state(self.root, st)
         return new
+
+    def _alert(self, st, r: CheckResult, now) -> int:
+        tk = target_key(r.check, r.incident, r.et_date, r.selection)
+        t = st["targets"].get(tk)
+        if t is None or not t["open"]:
+            ep = (t["episode"] + 1) if t else 1
+            t = {"check": r.check, "incident": r.incident, "et_date": r.et_date, "selection": r.selection,
+                 "episode": ep, "open": True, "state": r.status.value, "opened_at": now}
+            st["targets"][tk] = t
+            return self._queue(st, tk, ep, r.status.value, _text(t, "open", ep, r.status.value, r.detail), now)
+        if t["state"] != r.status.value:
+            t["state"] = r.status.value
+            return self._queue(st, tk, t["episode"], r.status.value,
+                               _text(t, "escalation", t["episode"], r.status.value, r.detail), now)
+        return 0
+
+    def _recover(self, st, tk, t, now, why) -> int:
+        t.update(open=False, state="recovered", closed_at=now)
+        return self._queue(st, tk, t["episode"], "recovered", _text(t, "recovered", t["episode"], "recovered", why), now)
 
     @staticmethod
     def _queue(st, tk, episode, state, text, now) -> int:
         nk = notice_key(tk, episode, state)
         if nk in st["notices"]:
             return 0
+        st["seq"] += 1
         st["notices"][nk] = {"target": tk, "episode": episode, "state": state, "text": text, "status": "pending",
-                             "attempts": 0, "queued_at": now, "message_id": None, "recipient": None,
-                             "last_error": None}
+                             "attempts": 0, "queued_at": now, "seq": st["seq"], "message_id": None,
+                             "recipient": None, "last_error": None}
         return 1
 
     # ---- delivery -------------------------------------------------------------------------------------------------
-    def _due(self, n, now: datetime) -> bool:
+    @staticmethod
+    def _due(n, now: datetime) -> bool:
         if n["status"] == "pending":
             return True
         if n["status"] != "sending":
@@ -179,15 +261,15 @@ class Notifier:
         return now >= until or now < claimed          # expired, or the clock rolled back past the claim
 
     def flush(self) -> dict:
-        """Send due notices (bounded). Returns {"sent": n, "failed": n, "skipped_budget": n}."""
+        """Send due notices in causal order (bounded). Returns {"sent", "failed", "skipped_budget"}."""
         report = {"sent": 0, "failed": 0, "skipped_budget": 0}
         if self.send is None or not self.recipient:
-            return report                                # queue-only (B7): notices stay pending
+            return report                                # queue-only: notices stay pending
         with state_lock(self.root):
             st = load_state(self.root)
             now = _utc(self.clock.now())
             due = sorted((k for k, n in st["notices"].items() if self._due(n, now)),
-                         key=lambda k: st["notices"][k]["queued_at"])[: self.max_sends]
+                         key=lambda k: st["notices"][k]["seq"])[: self.max_sends]
             claims = {}
             for k in due:
                 token = uuid.uuid4().hex
@@ -196,10 +278,10 @@ class Notifier:
                 claims[k] = (token, st["notices"][k]["text"])
             if claims:
                 save_state(self.root, st)
-        start = now
+        started = self.monotonic()
         outcomes = {}
         for k, (token, text) in claims.items():          # network, outside the lock
-            if _utc(self.clock.now()) - start > self.budget:
+            if self.monotonic() - started > self.budget_s:
                 outcomes[k] = (token, None, "budget exhausted before send", False)
                 report["skipped_budget"] += 1
                 continue

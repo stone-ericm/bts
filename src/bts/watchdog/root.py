@@ -12,8 +12,15 @@ post-write recheck.
   fsynced. A failed write removes only its own temp.
 - **Locks:** files opened no-follow by descriptor, then flocked.
 
-**Limit:** the watchdog never renames its own directories. An outside actor that moves the admitted root elsewhere
-keeps the descriptor's inode; that relocation is outside the watchdog's control and is not a symlink redirection.
+**What is and is not refused (W0 review r2 qualification):**
+- **Refused:** a symlink at any **directory** component (the root included), and a symlink at a lock or read
+  leaf. Each is refused by no-follow opens, never followed.
+- **Replaced, not followed:** `write_atomic`'s final `os.replace` replaces a destination name that is a symlink with
+  the new file, rather than writing through it.
+- **Ownership assumption:** descriptor anchoring keeps operations on the admitted directory **inode**; it does not
+  pin that inode to its original pathname. The watchdog never renames its own directories. Keeping the admitted
+  namespace in place (`data/watchdog` not moved by another actor) is a deployment and ownership assumption. A
+  relocation by an outside actor is not a symlink redirection, and is outside the watchdog's control.
 """
 from __future__ import annotations
 
