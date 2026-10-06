@@ -10,7 +10,8 @@
 - **What it does not change:**
   - **Requests, results, writes and the streak:** identical with or without a receipt; a test compares the request list, corrections, slot results and streak.
   - **Without a receipt:** `reconcile_results` calls `resolve_daily_slot_results(daily, d)` exactly as before.
-  - **Failures:** every recording method is guarded; a failure is listed in `degraded` and never reaches the run.
+  - **Failures:** every recording method is guarded. A failure is listed in `degraded` with the date and slot being resolved, and never reaches the run.
+  - **Timing (producer review r2 D5):** the live hooks only record events, the held response bytes and the instant each response returned. Hashing, parsing and every coverage judgement run at publication, after the run's own decisions and writes, so receipt work cannot move a decision across the cutoff.
   - **Retries and cadence** are unchanged.
 
 ## Where
@@ -29,12 +30,12 @@
 | `days[]` | one entry per target date, newest first |
 | `corrections` | the run's corrections list (the CLI output), or null |
 | `replay` | `saved` (`streak`, `saver_available`), `unavailable` (the replay refused incomplete history; the streak file was kept) or `not_reached` |
-| `degraded` | recording methods that failed |
+| `degraded` | recording hooks that failed: `{hook, error, day, slot}` (indexes into `days` and their `slots`) |
 
 **Each `days[]` entry:**
 - `date`, `cutoff_at` (08:00 ET the next day), `state`, and `detail`;
 - `selection`: the slots (`slot`, `batter_id`, `batter_name`, `game_pk`) and the pre-run `result_before` / `slot_results_before`;
-- `status_source`: the schedule fetch (`ok`, `url`, `sha256`, `completed_at`), or `{ok: false, error}`;
+- `status_source`: the schedule fetch (`ok`, `url`, `sha256`, `returned_at`), or `{ok: false, error}`;
 - `slots[]`, `write`.
 
 | Day `state` | Meaning |
@@ -49,29 +50,49 @@
 
 | Slot `state` | Meaning |
 |---|---|
-| `observed` | `result` (hit, miss or void) and its `basis`: `final_feed`, `final_feed_fallback_search` (the batter was found in another Final game that day), `schedule_void_state:<state>` or `suspended_no_evaluable_pa` |
+| `observed` | `result` (hit, miss or void); see `basis` below |
 | `pending` | not final |
 | `failed` | `error` is the exception type |
 | `not_attempted` | an earlier slot was pending or failed |
 
 **Each slot also records:**
-- `sources[]`: every payload the grader parsed for it (`url`, `sha256` of the exact bytes, `completed_at`);
+- `sources[]`: every payload the grader parsed for it (`url`, `sha256` of the exact bytes, `returned_at`);
 - `response_completed_at`: the slot's last payload, or the schedule fetch for a schedule void;
+- `high_water_at`: the latest instant among the day's status fetch and the sources of this and earlier slots;
+- `clock_regression`: whether any of the day's response instants stepped back;
+- `degraded`: the recording failures attributed to this slot or its date;
+- `actual_game_pk`: the decisive feed's own game;
 - `covered`.
+
+**`basis`** is established at publication from the consumed payloads themselves (producer review r2 D3), never from how many payloads there were:
+- `final_feed`: the decisive feed (the first one containing the batter) is Final, grades to the slot's result, and is the selected game (its own `gameData.game.pk`).
+- `suspended_no_evaluable_pa`: the same, for a suspended game graded void.
+- `schedule_void_state:<state>`: the consumed schedule lists the selected game, in a void state.
+- `fallback_other_game`: the decisive feed is Final and agrees, but is another game. It is **not** coverage.
+- `unqualified`: no decisive Final feed agrees with the result (for example a fallback feed that is still Live), or the void is not confirmed by the consumed schedule. It is **not** coverage.
 
 | `write.state` | Meaning |
 |---|---|
-| `correction_applied` | `old_result` → `new_result`, written under the scoring lock |
+| `correction_applied` | `old_result` → `new_result`, written under the scoring lock and **completed** (recorded only after `save_pick` returned) |
 | `slot_results_updated` | the day result is unchanged but the slot results changed |
 | `unchanged` | observed, and nothing to change |
 | `refused_after_cutoff` | the write would land at or after the cutoff |
 | `skipped_under_lock` | the pick was gone or ungraded when re-read under the lock |
+| `write_not_completed` | a save was intended (`intended`) but did not complete; the run raised |
+
+**Each write also records:** `written_selection`, the slots of the pick as re-read under the scoring lock, and `selection_changed`, whether that selection differs from the observed one. A changed selection is reported, not repaired: the legacy behaviour of applying the observed proposal to the re-read pick is unchanged.
 
 ## Rules for a consumer
-- **Coverage** for a date's slot is established only by a discoverable receipt whose slot is `observed`, with `covered` true. That means `response_completed_at` strictly before `cutoff_at`, and the day not `late_answer`.
+- **Coverage** for a date's slot is established only by a discoverable receipt whose slot is `observed`, with `covered` true. That requires all of:
+  - a qualifying `basis` (`final_feed`, `suspended_no_evaluable_pa` or `schedule_void_state:*`);
+  - `high_water_at` strictly before `cutoff_at`;
+  - no `clock_regression`;
+  - no `degraded` entry for the slot or its date;
+  - the day `observed`.
 - **What cannot establish coverage:** `pending`, `failed`, `not_attempted`, `past_cutoff`, `not_graded`, a late slot, an empty `corrections` list, or a process exit of 0.
 - **Coverage and corrections are separate facts.** `write.state` says whether a correction was applied or refused. `unchanged` is positive evidence that the observed result matched the stored one.
-- **Clock steps:** a slot answered after the cutoff stays uncovered even if a wall-clock step back made the run's own arrival check pass. The run's behaviour in that case is unchanged; the receipt keeps the actual response time.
+- **Clock steps (D2):** any response at or after the cutoff, or any step back in the day's response instants, makes the slot uncovered irreversibly. A later on-time reading cannot erase it. The run's own behaviour in that case is unchanged; the receipt keeps every actual instant.
+- **Publication limit (pending Eric's decision, with item C6):** if the directory fsync after the rename fails, **and** removing the file fails, **and** writing its tombstone fails, a complete receipt can remain discoverable even though the run reported it unavailable. The tombstone's own directory entry is synced (r2 C6).
 
 ## Re-certification (registration line 82), for the producer set P1, P2, P4 and C1/C2
 The following certified current-defence mutant patches (`results-f453283`) target functions in files these changes touched. Each function's body is unchanged, and each patch still applies at an offset. Re-run them with the frozen runner at the deploy candidate before claiming them current.

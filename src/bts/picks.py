@@ -1223,16 +1223,20 @@ def reconcile_results(
                     "old_result": daily.result,
                     "new_result": current_result,
                 })
-                rec.write(d, "correction_applied", old_result=daily.result, new_result=current_result)
+                rec.write_intent(d, "correction_applied", daily, old_result=daily.result, new_result=current_result)
                 daily.result = current_result
                 daily.slot_results = slot_results
                 save_pick(daily, picks_dir)
+                rec.write_done(d)
             elif slot_results != daily.slot_results:
-                rec.write(d, "slot_results_updated", old_slot_results=daily.slot_results, new_slot_results=slot_results)
+                rec.write_intent(d, "slot_results_updated", daily, old_slot_results=daily.slot_results,
+                                 new_slot_results=slot_results)
                 daily.slot_results = slot_results
                 save_pick(daily, picks_dir)
+                rec.write_done(d)
             else:
-                rec.write(d, "unchanged")
+                rec.write_intent(d, "unchanged", daily)
+                rec.write_done(d)
 
     # Recompute the streak by FORWARD replay over the season — catches result
     # corrections AND streak-increment bugs, and (unlike the old backward walk)

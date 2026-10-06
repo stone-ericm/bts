@@ -77,6 +77,7 @@ def _withdraw(path: Path, tmp: Path, renamed: bool) -> None:
             f.write(b"publication failed\n")
             f.flush()
             os.fsync(f.fileno())
+        _fsync_dir(path.parent)             # the tombstone's own directory entry (producer review r2 C6)
     except OSError:
         pass
 
