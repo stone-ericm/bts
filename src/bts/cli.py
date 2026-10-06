@@ -62,6 +62,9 @@ cli.add_command(leaderboard)
 from bts.data.backup_cli import backup
 cli.add_command(backup)
 
+from bts.watchdog.cli import watchdog
+cli.add_command(watchdog)
+
 
 @cli.group()
 def validate():
