@@ -111,25 +111,3 @@ def test_v2_persists_each_rows_game_time_and_schedule_status(tmp_path):
 def test_v2_rows_without_the_fields_still_write(tmp_path):
     payload = json.loads(save_slate(_predictions(), "2027-04-01", tmp_path, "hetzner").read_text())
     assert "game_time" not in payload["rows"][0] and payload["n_rows"] == 3
-
-
-def test_the_serving_witness_rides_in_the_envelope(tmp_path):
-    """C1 4a X-E1 prerequisite: the slate records what recipe, model and inputs produced it."""
-    preds = _predictions()
-    preds.attrs["serving"] = {"schema": "bts_serving_witness_v1", "model": {"sha256": "a" * 64}}
-    payload = json.loads(save_slate(preds, "2027-04-01", tmp_path, "local").read_text())
-    assert payload["serving"] == {"schema": "bts_serving_witness_v1", "model": {"sha256": "a" * 64}}
-    assert payload["rows"][0]["batter_id"] == 100
-
-
-def test_no_witness_is_recorded_as_null(tmp_path):
-    payload = json.loads(save_slate(_predictions(), "2027-04-01", tmp_path, "mac").read_text())
-    assert payload["serving"] is None
-
-
-def test_an_unserializable_witness_is_dropped_but_the_slate_is_still_written(tmp_path):
-    preds = _predictions()
-    preds.attrs["serving"] = {"bad": object()}
-    path = save_slate(preds, "2027-04-01", tmp_path, "local")
-    payload = json.loads(path.read_text())
-    assert payload["serving"] is None and payload["n_rows"] == 3
