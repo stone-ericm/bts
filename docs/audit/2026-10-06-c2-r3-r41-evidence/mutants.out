@@ -1,10 +1,47 @@
-# run 2026-10-06T18:34:32Z at d143af86044dd718931badaa7fe6865f5d0d989e, Python 3.12.13; command: .venv/bin/python -I docs/audit/2026-10-06-c2-r3-r41-evidence/mutant_runner.py docs/audit/2026-10-06-c2-r3-r41-evidence/mutants.json
-R1-typed-check-skipped RED ======================= 1 failed, 47 deselected in 0.90s =======================
-R2-completions-per-outcome-only RED ======================= 1 failed, 48 deselected in 0.95s =======================
-R3-bool-accepted-as-int RED ======================= 1 failed, 48 deselected in 0.93s =======================
-R4-zero-accepted RED ======================= 1 failed, 48 deselected in 0.94s =======================
-R5-unsupported-kind-of-accepted RED ======================= 1 failed, 48 deselected in 0.93s =======================
-R6-season-unchecked RED ======================= 1 failed, 48 deselected in 0.93s =======================
-R7-from-attempt-id-unchecked RED ======================= 1 failed, 48 deselected in 0.94s =======================
-R8-dict-equality-duplicates RED ======================= 1 failed, 48 deselected in 0.95s =======================
-R9-feed-game-id-unchecked RED ======================= 1 failed, 44 deselected in 0.82s =======================
+# run 2026-10-06T18:58:32Z at 117db05d8ee0e0eafbd28d5029b6e6ae4c701577, Python 3.12.13; command: .venv/bin/python -I docs/audit/2026-10-06-c2-r3-r41-evidence/mutant_runner.py docs/audit/2026-10-06-c2-r3-r41-evidence/mutants.json (every named test runs; each failing test is printed)
+R1-typed-check-skipped RED ======================= 1 failed, 68 deselected in 0.91s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_a_malformed_error_completion_cannot_resolve_an_intent
+R2-completions-per-outcome-only RED ======================= 3 failed, 66 deselected in 1.13s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_a_stored_and_an_http_error_completion_for_one_attempt_refuse
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_stored_attempt_with_any_terminal_error_conflicts[network_error-extra0]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_stored_attempt_with_any_terminal_error_conflicts[rate_limited-extra1]
+R2b-network-error-omitted RED ======================= 1 failed, 68 deselected in 0.89s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_stored_attempt_with_any_terminal_error_conflicts[network_error-extra0]
+R2c-rate-limited-omitted RED ======================= 1 failed, 68 deselected in 0.89s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_stored_attempt_with_any_terminal_error_conflicts[rate_limited-extra1]
+R3-bool-accepted-as-int RED ======================= 1 failed, 68 deselected in 0.89s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[gamePk-True]
+R4-zero-accepted RED ======================= 1 failed, 68 deselected in 0.88s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[gamePk-0]
+R5-unsupported-kind-of-accepted RED ======================= 1 failed, 68 deselected in 0.88s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[kind_of-mystery]
+R6-season-unchecked RED ====================== 12 failed, 57 deselected in 1.66s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent-None]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent-True]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent-0]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent--1]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent-2023]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[intent-2023.0]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion-None]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion-True]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion-0]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion--1]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion-2023]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_receipt_needs_an_exact_positive_int_season[completion-2023.0]
+R7-from-attempt-id-unchecked RED ======================= 1 failed, 68 deselected in 0.89s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[from_attempt_id-7]
+R8-dict-equality-duplicates RED ======================= 1 failed, 68 deselected in 0.88s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_a_duplicate_differing_only_in_number_type_is_a_conflict
+R9-feed-game-id-unchecked RED ======================= 4 failed, 65 deselected in 1.25s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_a_malformed_error_completion_cannot_resolve_an_intent
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[gamePk-True]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[gamePk-0]
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[gamePk-700001]
+R10-schedule-may-carry-game-id RED ======================= 2 failed, 67 deselected in 0.79s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_completion_cannot_carry_a_feed_game_id
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_declared_intent_cannot_anchor_a_feed[True]
+R11-identity-not-checked-at-join RED ================== 2 failed, 1 passed, 66 deselected in 0.91s ==================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_completion_for_another_season_cannot_resolve_its_intent
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_c2r1_a_schedule_declared_intent_cannot_anchor_a_feed[False]
+R12-feed-may-carry-season RED ======================= 1 failed, 68 deselected in 0.88s =======================
+    FAILED tests/scripts/c1_r3/test_count_build_e2e.py::test_r41_every_intent_and_completion_is_typed_before_any_join[season-2023]

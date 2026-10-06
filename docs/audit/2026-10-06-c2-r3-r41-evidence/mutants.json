@@ -7,18 +7,40 @@
   "tests": [
    "tests/scripts/c1_r3/test_count_build_e2e.py",
    "-k",
-   "float_request_then or malformed_error_completion"
+   "malformed_error_completion"
   ]
  },
  {
   "id": "R2-completions-per-outcome-only",
   "file": "scripts/audit/c1_r3/count_build.py",
-  "old": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\")\n    responses = {aid: r for aid, r in completions.items() if r.get(\"outcome\") == \"response\"}\n",
-  "new": "    responses = _witnesses(recs, \"response\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") == \"response\")\n    _witnesses(recs, \"stored\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") == \"stored\")\n",
+  "old": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\")\n",
+  "new": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") in (\"response\", \"stored\"))\n",
   "tests": [
    "tests/scripts/c1_r3/test_count_build_e2e.py",
    "-k",
-   "stored_and_an_http_error"
+   "stored_and_an_http_error or any_terminal_error"
+  ]
+ },
+ {
+  "id": "R2b-network-error-omitted",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\")\n",
+  "new": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") != \"network_error\")\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "any_terminal_error and network_error"
+  ]
+ },
+ {
+  "id": "R2c-rate-limited-omitted",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\")\n",
+  "new": "    completions = _witnesses(recs, \"completion\", lambda r: r.get(\"kind\") == \"completion\" and r.get(\"outcome\") != \"rate_limited\")\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "any_terminal_error and rate_limited"
   ]
  },
  {
@@ -62,7 +84,7 @@
   "tests": [
    "tests/scripts/c1_r3/test_count_build_e2e.py",
    "-k",
-   "typed_before_any_join and schedule"
+   "exact_positive_int_season"
   ]
  },
  {
@@ -95,7 +117,40 @@
   "tests": [
    "tests/scripts/c1_r3/test_count_build_e2e.py",
    "-k",
-   "float_request_then or malformed_error_completion or (typed_before_any_join and gamePk)"
+   "malformed_error_completion or (typed_before_any_join and gamePk)"
+  ]
+ },
+ {
+  "id": "R10-schedule-may-carry-game-id",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "            if r.get(\"gamePk\") is not None:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "cannot_carry_a_feed_game_id or (anchor_a_feed and True)"
+  ]
+ },
+ {
+  "id": "R11-identity-not-checked-at-join",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "        if it is not None and _request_identity(it) != _request_identity(r):\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "another_season or (anchor_a_feed and False) or bound_to_its_own_request"
+  ]
+ },
+ {
+  "id": "R12-feed-may-carry-season",
+  "file": "scripts/audit/c1_r3/count_build.py",
+  "old": "            if r.get(\"season\") is not None:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c1_r3/test_count_build_e2e.py",
+   "-k",
+   "typed_before_any_join and season-2023"
   ]
  }
 ]
