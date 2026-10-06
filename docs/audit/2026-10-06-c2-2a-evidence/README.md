@@ -69,3 +69,24 @@
 - A counted phase passes when its maximum paired Δpeak (candidate − baseline) is ≤ 250 MB.
 - If any phase exceeds 250 MB, 2a stops as designed and the redesign goes to Eric.
 - Phase times are reported, without acceptance weight; time was settled by the whole-run measurement.
+
+### Phase-level results (run 2026-10-06 after `93f5478`; `cost/phases.jsonl`, `cost/phases_summary.json`)
+| phase | paired Δpeak, max / median (MB) | control max \|Δ\| (MB) | verdict |
+|---|---|---|---|
+| load (six parquets) | 21.5 / 20.1 | 2.7 | PASS |
+| cache (9.30 MB blend) | 9.2 / 9.0 | 2.1 | PASS |
+| save (9.30 MB blend) | 0.4 / −0.0 | 3.2 | PASS |
+| tail_off (witness build) | 1.3 / 0.9 | 1.2 | PASS |
+| tail_on (calibration + witness) | 3.5 / 2.9 | 3.1 | PASS |
+| slate (351 rows) | 2.0 / 0.8 | 1.5 | PASS |
+
+- **Every control is within the aim** (≤ 125 MB); the largest is 3.2 MB.
+- **The increments match the accounting:**
+  - load holds one parquet's bytes while it is parsed (~20 MB);
+  - cache holds the cache's bytes through unpickling (~9 MB);
+  - the rest is within noise.
+- **Phase times** (median, baseline → candidate, no acceptance weight):
+  - load 1.51 → 1.58 s; cache 0.001 → 0.005 s; save 0.002 → 0.005 s;
+  - tail_off 0.0002 → 0.005 s (the witness build); tail_on 0.436 → 0.442 s; slate 0.005 → 0.006 s.
+- **Result: all six phases PASS; the 2a cost gate is met** under row C2-2a-cost-method's declared method.
+- **Scaling note (reasoning, not measured on the box):** production loads ten parquets (231 MB). The load increment is the largest single file held at once (28 MB on the box), not the sum.
