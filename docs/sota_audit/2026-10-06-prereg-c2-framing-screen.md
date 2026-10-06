@@ -1,7 +1,9 @@
-# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 2)
+# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 3)
 
 **Status:**
-- Revision 2 for the last review round. It answers review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
+- Revision 3, for the third and final review round (Eric, row **C2-framing-review-r3**).
+  - Revision 2 answered review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
+  - Revision 3 answers review r2 (`docs/audit/2026-10-06-c2-framing-codex-r2.md`, BLOCK R2-1 to R2-4).
 - The note is frozen at the reviewed commit once signed.
 - Nothing runs before three things: a plain SIGN, the exposure row X-35, and the admission record.
 
@@ -78,7 +80,11 @@ The run reads exactly ten pinned files and nothing else that affects a result.
    - the closure unchanged, with no foreign modules.
 3. Seed order:
    - Seed 1 (2273360) may run first.
-   - Seeds 2–3 run only after two things: register row `C2-framing-release-seeds-2-3`, whose ruling cell reads exactly "**RULED <date> (Eric): RELEASE seeds 2–3 of the framing screen; declared budget <N> CPU-hours per seed**" with Eric as the source; and seed 1's completed run (results, no stop).
+   - Seeds 2–3 run only after Eric's release (r2 R2-2). It is register row `C2-framing-release-seeds-2-3`, whose ruling cell reads exactly "**RULED <date> (Eric): RELEASE seeds 2–3 of the framing screen after seed-1 run `<run name>`; declared budget <N> CPU-hours per seed**":
+     - the source cell's first token must be exactly `Eric`, the shared gate's rule;
+     - N must be finite and positive;
+     - the named run must be the only run under seed 1's claim root, and it must validate as a complete run of the same admitted identity and pins (§5, `validate_run`).
+     - An empty or partial results file is not a completion.
 4. Claim: one durable claim per seed. It lives only under the canonical `~/projects/bts/data/hetzner_results/c2/framing_screen/seed_<seed>/`. The command line has no output-root option.
 5. Inputs: load the ten pinned inputs, install the frozen lookup and the park-drag bypass, then run `compute_all_features`, then the self-check, then add `catcher_framing`.
 6. Labels (the BTS scoring rule, r1 B4):
@@ -123,12 +129,18 @@ The run reads exactly ten pinned files and nothing else that affects a result.
 - The CPU cost controls the stops (§6).
 - Coverage and label counts are reported without decision weight.
 
-**`aggregate` (r1 B2):** it gives dispositions only when all of these hold:
-- exactly three distinct run directories;
-- each is under its own seed's claim root, holds `CLAIM.json`, `manifest.json` (binding that claim's sha256), `results.json` and both diffs, and has no `STOPPED.json`;
-- their seeds are exactly the three registered ones;
-- they agree on head, accepted identity, input pins, LightGBM params, feature settings, basis and retrain interval;
-- each seed's stored summary equals the one recomputed from its retained diff.
+**`aggregate` (r1 B2; r2 R2-1, R2-3):** it gives dispositions only when all of these hold:
+- exactly three distinct run directories, whose claim roots name exactly the three registered seeds;
+- each passes `validate_run`, which checks:
+  - **namespace and state:** the canonical claim namespace (`…/framing_screen/seed_<seed>/<run>`), and no stop;
+  - **claim:** a JSON claim that names the run and its code;
+  - **manifest:** schema, seed, claim binding, a 40-hex head, the registered basis, retrain interval, test seasons and feature settings, deterministic LightGBM params and environment, all ten pins and their digest, a complete accepted identity, and an identical self-check;
+  - **results:** the six registered units, in order;
+  - **retained artifacts:** every profile, scorecard and diff;
+  - **reconciliation:** P@1 per season recomputed from the profiles must equal the scorecard and the results; each diff recomputed from the retained scorecards must equal the stored diff; each stored summary recomputed from its diff must match;
+- they agree on the accepted identity (review report and its sha256, reviewed and exposure commits, admission record), input pins, LightGBM params, feature settings, basis, retrain interval and test seasons.
+
+**Each run keeps its own commit.** A metadata-only descendant, such as the commit that records Eric's release, is admitted by the shared gate. Equal commits are therefore not required, and the frozen executable identity is compared instead (r2 R2-1).
 
 Anything else is refused.
 

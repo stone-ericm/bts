@@ -279,59 +279,29 @@ def test_resumed_counts():
 
 # ---------------------------------------------------------------- B3: seed order, release, namespace
 
-ERIC_RELEASE = ("| C2-framing-release-seeds-2-3 | the seed-1 report | **RULED 2026-10-08 (Eric): RELEASE seeds 2–3 of "
-                "the framing screen; declared budget 30 CPU-hours per seed** | Eric 2026-10-08, relayed |")
+IDENT = {k: f"{k}-value" for k in ("review_report", "review_report_sha256", "reviewed_commit", "exposure_commit",
+                                     "admission_sha256")}
 
 
-def test_release_budget_needs_the_exact_ruling_and_eric_as_source():
-    assert S.release_budget(ERIC_RELEASE) == 30.0
-    assert S.release_budget(ERIC_RELEASE.replace("| Eric 2026-10-08", "| Manager 2026-10-08")) is None
-    assert S.release_budget(ERIC_RELEASE.replace("RELEASE seeds", "DENY seeds")) is None
-    assert S.release_budget(ERIC_RELEASE.replace("per seed**", "per seed** and more")) is None
-    assert S.release_budget("no row here") is None
+def _release_row(run_name, source="Eric 2026-10-08, relayed", budget="30"):
+    return (f"| C2-framing-release-seeds-2-3 | the seed-1 report | **RULED 2026-10-08 (Eric): RELEASE seeds 2–3 of the "
+            f"framing screen after seed-1 run `{run_name}`; declared budget {budget} CPU-hours per seed** | {source} |")
 
 
-def _complete_seed1(root):
-    d = root / f"seed_{S.STAGE_ONE_SEEDS[0]}" / "aaaaaaa-20261007T000000Z"
-    d.mkdir(parents=True)
-    (d / "results.json").write_text("{}")
-    return d
-
-
-def test_seed_order(tmp_path):
-    s1, s2, s3 = S.STAGE_ONE_SEEDS
-    assert S.seed_allowed(s1, "", tmp_path) == (True, "seed 1", 45.0)
-    assert S.seed_allowed(42, ERIC_RELEASE, tmp_path)[0] is False
-    ok, why, _ = S.seed_allowed(s2, "", tmp_path)
-    assert not ok and "release" in why
-    ok, why, _ = S.seed_allowed(s2, ERIC_RELEASE, tmp_path)
-    assert not ok and "seed 1's completed run" in why
-    d = _complete_seed1(tmp_path)
-    assert S.seed_allowed(s3, ERIC_RELEASE, tmp_path) == (True, "released", 30.0)
-    (d / "STOPPED.json").write_text("{}")
-    assert S.seed_allowed(s3, ERIC_RELEASE, tmp_path)[0] is False      # a stopped seed 1 is not complete
+def test_release_needs_the_exact_ruling_eric_and_a_positive_budget():
+    run = "aaaaaaa-20261007T000000Z"
+    assert S.release(_release_row(run)) == (run, 30.0)
+    assert S.release(_release_row(run, source="Ericsson, manager; no owner ruling")) is None     # r2 R2-2
+    assert S.release(_release_row(run, source="Manager 2026-10-08")) is None
+    assert S.release(_release_row(run, budget="0")) is None
+    assert S.release(_release_row(run).replace("RELEASE seeds", "DENY seeds")) is None
+    assert S.release(_release_row(run).replace("per seed**", "per seed** and more")) is None
+    assert S.release("no row here") is None
 
 
 def test_the_command_line_has_no_output_root_option():
     with pytest.raises(SystemExit):
         S.main(["run", "--seed", str(S.STAGE_ONE_SEEDS[0]), "--data-dir", "x", "--out-root", "y"])
-
-
-def test_launch_builds_the_launcher_command_with_the_seeds_budget(monkeypatch, tmp_path):
-    monkeypatch.setattr(S, "admission_gate", lambda: ("a" * 40, {}, {}))
-    calls = []
-
-    class R:
-        returncode = 0
-    assert S.launch(S.STAGE_ONE_SEEDS[0], tmp_path / "d", tmp_path / "i", _test_out_root=tmp_path,
-                    execute=lambda cmd, cwd: (calls.append(cmd), R())[1]) == 0
-    cmd = calls[0]
-    assert cmd[cmd.index("--cpu-hours") + 1] == "45" and cmd[cmd.index("--name") + 1] == "c2-framing-seed1"
-    assert "BTS_LGBM_DETERMINISTIC=1" in cmd and cmd[cmd.index("--seed") + 1] == str(S.STAGE_ONE_SEEDS[0])
-    with pytest.raises(SystemExit, match="release"):
-        S.launch(S.STAGE_ONE_SEEDS[1], tmp_path / "d", tmp_path / "i", _test_out_root=tmp_path,
-                 execute=lambda cmd, cwd: (calls.append(cmd), R())[1])
-    assert len(calls) == 1
 
 
 def test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed(monkeypatch, tmp_path):
@@ -384,9 +354,18 @@ def _stub_walk_forward(calls):
     return wf
 
 
+class _Admission:
+    """The stubbed admission: a head that can move (a metadata-only descendant) under one accepted identity."""
+    def __init__(self, pins):
+        self.head = "a" * 40
+        self.pins = pins
+
+    def __call__(self):
+        return self.head, {"input_pins": self.pins}, dict(IDENT)
+
+
 @pytest.fixture
 def stubbed(monkeypatch, tmp_path):
-    import json
     import bts.features.compute as FC
     import bts.features.park_drag as PD
     import bts.model.predict as PR
@@ -402,7 +381,8 @@ def stubbed(monkeypatch, tmp_path):
     (inputs / S.LOOKUP_NAME).write_bytes(lookup)
     pins = {n: "b" * 64 for n in S.INPUT_NAMES}
     pins[S.LOOKUP_NAME] = A.hashlib.sha256(lookup).hexdigest()
-    monkeypatch.setattr(S, "admission_gate", lambda: ("a" * 40, {"input_pins": pins}, {"report_sha256": "c" * 64}))
+    adm = _Admission(pins)
+    monkeypatch.setattr(S, "admission_gate", adm)
     monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: _stub_df())
     monkeypatch.setattr(FC, "compute_all_features", lambda df: df)
     import bts.validate.scorecard as SC
@@ -410,7 +390,7 @@ def stubbed(monkeypatch, tmp_path):
     monkeypatch.setattr(SC, "compute_full_scorecard", lambda p, **k: real_card(p, mc_trials=200))   # speed only
     out = tmp_path / "out"
     out.mkdir()
-    return out, inputs
+    return out, inputs, adm
 
 
 def _run_dir(out, seed):
@@ -420,7 +400,7 @@ def _run_dir(out, seed):
 
 
 def _run(stubbed, seed, calls=None, **k):
-    out, inputs = stubbed
+    out, inputs, _ = stubbed
     return S.run(seed, out, inputs, walk_forward=_stub_walk_forward([] if calls is None else calls),
                  _test_out_root=out, **k)
 
@@ -428,7 +408,7 @@ def _run(stubbed, seed, calls=None, **k):
 def test_run_end_to_end(stubbed):
     import json
     import bts.features.compute as FC
-    out, _ = stubbed
+    out, _, _ = stubbed
     calls = []
     seed = S.STAGE_ONE_SEEDS[0]
     assert _run(stubbed, seed, calls) == 0
@@ -447,17 +427,18 @@ def test_run_end_to_end(stubbed):
     assert set(res["variants"]) == {"A", "B"} and len(res["units"]) == 6
     assert res["variants"]["A"]["p_at_1_delta"]["2024"] > 0             # A ranks the better batter first
     assert res["variants"]["B"]["p_at_1_delta"] == {"2024": 0.0, "2025": 0.0}
-    assert res["units"][0]["labels"]["void_dropped"] == 1     # batter 2 on day 3 has only a resumed-portion PA
+    assert res["units"][0]["labels"]["void_dropped"] == 1               # batter 2 on day 3: a resumed-only PA
     for v in ("baseline", "A", "B"):
         assert (d / f"scorecard_{v}.json").exists()
         for s in (2024, 2025):
             p = pd.read_parquet(d / f"profiles_{v}_{s}.parquet")
             assert p["actual_hit"].isin([0, 1]).all() and (p.groupby("date")["rank"].min() == 1).all()
     assert (d / "diff_A.json").exists() and (d / "diff_B.json").exists()
+    S.validate_run(d, seed, out_root=out, identity=IDENT, pins=man["input_pins"])      # the run validates
 
 
 def test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards(stubbed):
-    out, _ = stubbed
+    out, _, _ = stubbed
     seed = S.STAGE_ONE_SEEDS[0]
     assert _run(stubbed, seed) == 0
     p = pd.read_parquet(_run_dir(out, seed) / "profiles_baseline_2024.parquet")
@@ -471,14 +452,9 @@ def test_a_second_run_of_the_same_seed_is_refused(stubbed):
         _run(stubbed, seed)
 
 
-def test_seeds_two_and_three_are_refused_by_run_without_the_release(stubbed):
-    with pytest.raises(SystemExit, match="release"):
-        _run(stubbed, S.STAGE_ONE_SEEDS[1])
-
-
 def test_the_self_check_stops_the_run_before_any_walk_forward(stubbed, monkeypatch):
     import json
-    out, _ = stubbed
+    out, _, _ = stubbed
     bad = _stub_df()
     bad.loc[bad.index[-1], S.OLD_COL] = 0.123
     monkeypatch.setattr(S, "load_inputs", lambda data_dir, pins: bad)
@@ -490,7 +466,7 @@ def test_the_self_check_stops_the_run_before_any_walk_forward(stubbed, monkeypat
 
 def test_an_expensive_first_walk_forward_stops_the_run(stubbed, monkeypatch):
     import json
-    out, _ = stubbed
+    out, _, _ = stubbed
     ticks = iter([0.0, 0.0, 0.0, 8 * 3600.0] + [8 * 3600.0] * 50)
     monkeypatch.setattr(S, "cpu_seconds", lambda: next(ticks))
     calls = []
@@ -509,7 +485,7 @@ def test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags(stubbed, 
 
 def test_the_manifest_records_the_effective_lightgbm_params(stubbed):
     import json
-    out, _ = stubbed
+    out, _, _ = stubbed
     assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
     man = json.loads((_run_dir(out, S.STAGE_ONE_SEEDS[0]) / "manifest.json").read_text())
     assert man["lgb_params"]["deterministic"] is True and man["lgb_params"]["force_row_wise"] is True
@@ -517,26 +493,116 @@ def test_the_manifest_records_the_effective_lightgbm_params(stubbed):
 
 def test_a_changed_frozen_lookup_is_refused(stubbed):
     from scripts.audit.c1.admission import ProvenanceError
-    out, inputs = stubbed
+    out, inputs, _ = stubbed
     (inputs / S.LOOKUP_NAME).write_bytes(b'{"1":{"away":6}}\n')
     with pytest.raises(ProvenanceError, match="not the pinned"):
         _run(stubbed, S.STAGE_ONE_SEEDS[0])
 
 
-# ---------------------------------------------------------------- B2: the aggregate
+# ---------------------------------------------------------------- seed order and Eric's release (r2 R2-1, R2-2)
+
+def _released(stubbed, monkeypatch, *, source="Eric 2026-10-08, relayed"):
+    """Seed 1 runs, then Eric's release naming it is committed (a metadata descendant: the head moves)."""
+    out, _, adm = stubbed
+    assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
+    seed1 = _run_dir(out, S.STAGE_ONE_SEEDS[0])
+    adm.head = "c" * 40
+    from scripts.audit.c1 import admission as A
+    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row(seed1.name, source=source) + "\n"
+    real_read = Path.read_text
+
+    def read_text(self, *a, **k):
+        return text if self == A.REPO / S.REGISTER_REL else real_read(self, *a, **k)
+    monkeypatch.setattr(Path, "read_text", read_text)
+    return seed1
+
+
+from pathlib import Path  # noqa: E402
+
+
+def test_seeds_two_and_three_are_refused_without_the_release(stubbed):
+    with pytest.raises(SystemExit, match="release"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def test_the_seed1_release_lifecycle_aggregates_across_a_moved_head(stubbed, monkeypatch):
+    out, _, _ = stubbed
+    seed1 = _released(stubbed, monkeypatch)
+    for seed in S.STAGE_ONE_SEEDS[1:]:
+        assert _run(stubbed, seed) == 0
+    dirs = [_run_dir(out, s) for s in S.STAGE_ONE_SEEDS]
+    agg = S.aggregate(dirs, _test_out_root=out)
+    assert agg["heads"] == ["a" * 40, "c" * 40, "c" * 40] and agg["identity"] == IDENT
+    assert agg["variants"]["A"]["n_seeds"] == 3 and agg["variants"]["B"]["disposition"] == "negative"
+    assert seed1.name in dirs[0].name
+
+
+def test_an_ericsson_source_does_not_release(stubbed, monkeypatch):
+    _released(stubbed, monkeypatch, source="Ericsson, manager; no owner ruling")
+    with pytest.raises(SystemExit, match="release"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def test_an_empty_seed1_completion_does_not_release(stubbed, monkeypatch, tmp_path):
+    import json
+    out, inputs, adm = stubbed
+    fake = out / f"seed_{S.STAGE_ONE_SEEDS[0]}" / "aaaaaaa-20261007T000000Z"
+    fake.mkdir(parents=True)
+    (fake / "results.json").write_text("{}")                             # r2 R2-2: a filename is not a completion
+    from scripts.audit.c1 import admission as A
+    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row(fake.name) + "\n"
+    real_read = Path.read_text
+    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: text if self == A.REPO / S.REGISTER_REL
+                        else real_read(self, *a, **k))
+    with pytest.raises(SystemExit, match="seed 1's run is not a complete admitted run"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def test_a_release_naming_another_run_does_not_release(stubbed, monkeypatch):
+    out, _, adm = stubbed
+    assert _run(stubbed, S.STAGE_ONE_SEEDS[0]) == 0
+    from scripts.audit.c1 import admission as A
+    text = (A.REPO / S.REGISTER_REL).read_text() + "\n" + _release_row("bbbbbbb-20261007T000000Z") + "\n"
+    real_read = Path.read_text
+    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: text if self == A.REPO / S.REGISTER_REL
+                        else real_read(self, *a, **k))
+    with pytest.raises(SystemExit, match="released run"):
+        _run(stubbed, S.STAGE_ONE_SEEDS[1])
+
+
+def test_launch_builds_the_launcher_command_with_the_seeds_budget(stubbed, monkeypatch):
+    out, inputs, _ = stubbed
+    calls = []
+
+    class R:
+        returncode = 0
+    execute = lambda cmd, cwd: (calls.append(cmd), R())[1]      # noqa: E731
+    assert S.launch(S.STAGE_ONE_SEEDS[0], out, inputs, _test_out_root=out, execute=execute) == 0
+    cmd = calls[0]
+    assert cmd[cmd.index("--cpu-hours") + 1] == "45" and cmd[cmd.index("--name") + 1] == "c2-framing-seed1"
+    assert "BTS_LGBM_DETERMINISTIC=1" in cmd and cmd[cmd.index("--seed") + 1] == str(S.STAGE_ONE_SEEDS[0])
+    with pytest.raises(SystemExit, match="release"):
+        S.launch(S.STAGE_ONE_SEEDS[1], out, inputs, _test_out_root=out, execute=execute)
+    assert len(calls) == 1
+    _released(stubbed, monkeypatch)
+    assert S.launch(S.STAGE_ONE_SEEDS[1], out, inputs, _test_out_root=out, execute=execute) == 0
+    assert calls[1][calls[1].index("--cpu-hours") + 1] == "30" and "c2-framing-seed2" in calls[1]
+
+
+# ---------------------------------------------------------------- the aggregate (r2 R2-1, R2-3)
 
 @pytest.fixture
 def three_runs(stubbed, monkeypatch):
-    monkeypatch.setattr(S, "release_budget", lambda text: 30.0)
-    out, _ = stubbed
-    for seed in S.STAGE_ONE_SEEDS:
+    out, _, _ = stubbed
+    _released(stubbed, monkeypatch)
+    for seed in S.STAGE_ONE_SEEDS[1:]:
         assert _run(stubbed, seed) == 0
     return out, [_run_dir(out, s) for s in S.STAGE_ONE_SEEDS]
 
 
 def test_aggregate_the_three_registered_seeds(three_runs):
-    _, dirs = three_runs
-    agg = S.aggregate(dirs)
+    out, dirs = three_runs
+    agg = S.aggregate(dirs, _test_out_root=out)
     assert agg["seeds"] == list(S.STAGE_ONE_SEEDS) and agg["variants"]["A"]["n_seeds"] == 3
     assert agg["variants"]["A"]["disposition"] in ("positive", "inconclusive")
     assert agg["variants"]["B"]["disposition"] == "negative"
@@ -545,65 +611,132 @@ def test_aggregate_the_three_registered_seeds(three_runs):
 @pytest.mark.parametrize("pick", [lambda d: d[:1], lambda d: d[:2], lambda d: [d[0], d[0], d[1]],
                                   lambda d: d + d[:1]])
 def test_aggregate_refuses_partial_duplicate_or_extra_runs(three_runs, pick):
-    _, dirs = three_runs
-    with pytest.raises(S.AggregateError, match="exactly 3 distinct run directories"):   # the count check itself
-        S.aggregate(pick(dirs))
+    out, dirs = three_runs
+    with pytest.raises(S.RunInvalid, match="exactly 3 distinct run directories"):    # the count check itself
+        S.aggregate(pick(dirs), _test_out_root=out)
 
 
-def test_aggregate_refuses_a_run_outside_its_seed_root(three_runs, tmp_path):
+def test_aggregate_refuses_a_foreign_seed(three_runs):
     import shutil
-    _, dirs = three_runs
-    moved = tmp_path / "elsewhere" / f"seed_{S.STAGE_ONE_SEEDS[0]}" / dirs[2].name
-    shutil.copytree(dirs[2], moved)                          # seed 3's run, under seed 1's root
-    with pytest.raises(S.AggregateError, match="not under its seed's claim root"):
-        S.aggregate([dirs[0], dirs[1], moved])
-
-
-def test_aggregate_refuses_runs_of_different_heads(three_runs):
-    import json
-    _, dirs = three_runs
-    for name in ("manifest.json", "results.json"):          # consistent within the run: only agreement catches it
-        rec = json.loads((dirs[1] / name).read_text())
-        rec["head"] = "f" * 40
-        (dirs[1] / name).write_text(json.dumps(rec))
-    with pytest.raises(S.AggregateError, match="disagree on head"):
-        S.aggregate(dirs)
-
-
-def test_aggregate_refuses_a_foreign_seed(three_runs, tmp_path):
-    import json, shutil
-    _, dirs = three_runs
-    foreign = tmp_path / "out" / "seed_42" / "x"
+    out, dirs = three_runs
+    foreign = out / "seed_42" / dirs[2].name
     shutil.copytree(dirs[2], foreign)
-    for name in ("manifest.json", "results.json"):
-        rec = json.loads((foreign / name).read_text())
-        rec["seed"] = 42
-        (foreign / name).write_text(json.dumps(rec))
-    with pytest.raises(S.AggregateError, match="registered"):
-        S.aggregate([dirs[0], dirs[1], foreign])
+    with pytest.raises(S.RunInvalid, match="registered"):
+        S.aggregate([dirs[0], dirs[1], foreign], _test_out_root=out)
 
 
-@pytest.mark.parametrize("damage", ["stopped", "claim", "summary", "head", "pins", "missing_diff"])
-def test_aggregate_refuses_inconsistent_runs(three_runs, damage):
+def test_aggregate_refuses_runs_outside_the_canonical_namespace(three_runs, tmp_path):
+    import shutil
+    out, dirs = three_runs
+    elsewhere = tmp_path / "elsewhere"
+    copies = []
+    for d in dirs:
+        c = elsewhere / d.parent.name / d.name
+        shutil.copytree(d, c)
+        copies.append(c)
+    with pytest.raises(S.RunInvalid, match="canonical claim namespace"):
+        S.aggregate(copies, _test_out_root=out)
+
+
+def _rewrite(path, fn):
     import json
-    _, dirs = three_runs
+    rec = json.loads(path.read_text())
+    fn(rec)
+    path.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
+
+
+def _rebind_claim(d):
+    """Make a damaged manifest's claim binding consistent again, so only the targeted check can refuse."""
+    import hashlib, json
+    man = json.loads((d / "manifest.json").read_text())
+    man["claim_sha256"] = hashlib.sha256((d / "CLAIM.json").read_bytes()).hexdigest()
+    (d / "manifest.json").write_text(json.dumps(man, indent=1, sort_keys=True) + "\n")
+
+
+@pytest.mark.parametrize("damage, match", [
+    ("stopped", "stopped run"), ("opaque_claim", "CLAIM.json is not valid JSON"),
+    ("claim_other_run", "claim does not name"), ("basis", "basis"), ("settings", "settings"),
+    ("identity_missing", "identity"), ("pins_missing", "pins"), ("unit_missing", "six registered units"),
+    ("summary", "stored summary"), ("missing_diff", "missing diff_B.json"),
+    ("diff_and_summary", "diff does not match its retained scorecards"),
+    ("profile", "does not reconcile"), ("deterministic", "lgb determinism"),
+])
+def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
+    import json
+    out, dirs = three_runs
     d = dirs[1]
     if damage == "stopped":
         (d / "STOPPED.json").write_text("{}")
-    elif damage == "claim":
-        (d / "CLAIM.json").write_text("{}")
+    elif damage == "opaque_claim":
+        (d / "CLAIM.json").write_bytes(b"not even JSON")
+        _rebind_claim(d)
+    elif damage == "claim_other_run":
+        _rewrite(d / "CLAIM.json", lambda r: r.update(run="other"))
+        _rebind_claim(d)
+    elif damage == "basis":
+        for x in dirs:                                    # consistently wrong across all three runs (r2 R2-3)
+            _rewrite(x / "manifest.json", lambda r: r.update(basis="actual_pa"))
+    elif damage == "settings":
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r.update(feature_settings={"ROOKIE_GATE_K": 0,
+                                                                               "PITCHER_HR_30G_MIN_PERIODS": 7}))
+    elif damage == "identity_missing":
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r.pop("identity"))
+    elif damage == "pins_missing":
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r.pop("input_pins"))
+    elif damage == "unit_missing":
+        _rewrite(d / "results.json", lambda r: r.update(units=r["units"][:5]))
     elif damage == "summary":
-        res = json.loads((d / "results.json").read_text())
-        res["variants"]["A"]["passed"] = not res["variants"]["A"]["passed"]
-        (d / "results.json").write_text(json.dumps(res))
-    elif damage in ("head", "pins"):
-        man = json.loads((d / "manifest.json").read_text())
-        if damage == "head":
-            man["head"] = "f" * 40
-        else:
-            man["input_pins"] = {**man["input_pins"], "pa_2019.parquet": "e" * 64}
-        (d / "manifest.json").write_text(json.dumps(man))
-    else:
+        _rewrite(d / "results.json", lambda r: r["variants"]["A"].update(passed=not r["variants"]["A"]["passed"]))
+    elif damage == "missing_diff":
         (d / "diff_B.json").unlink()
-    with pytest.raises(S.AggregateError):
-        S.aggregate(dirs)
+    elif damage == "diff_and_summary":                   # r2 R2-3: coherent diff + summary, scorecards unchanged
+        def bump(r):
+            for k in r["p_at_1_by_season"]:
+                r["p_at_1_by_season"][k]["delta"] = 0.02
+        for x in dirs:
+            _rewrite(x / "diff_B.json", bump)
+            _rewrite(x / "results.json", lambda r: r["variants"]["B"].update(
+                p_at_1_delta={"2024": 0.02, "2025": 0.02}, passed=True))
+    elif damage == "profile":
+        p = pd.read_parquet(d / "profiles_A_2024.parquet")
+        p.loc[p["rank"] == 1, "actual_hit"] = 1 - p.loc[p["rank"] == 1, "actual_hit"]
+        p.to_parquet(d / "profiles_A_2024.parquet", index=False)
+    elif damage == "deterministic":
+        for x in dirs:
+            _rewrite(x / "manifest.json", lambda r: r["lgb_params"].update(deterministic=False))
+    with pytest.raises(S.RunInvalid, match=match):
+        S.aggregate(dirs, _test_out_root=out)
+
+
+def test_aggregate_refuses_runs_of_different_identities(three_runs):
+    out, dirs = three_runs
+    _rewrite(dirs[2] / "manifest.json", lambda r: r["identity"].update(reviewed_commit="other"))
+    with pytest.raises(S.RunInvalid, match="disagree on identity"):
+        S.aggregate(dirs, _test_out_root=out)
+
+
+# ---------------------------------------------------------------- the mutant runner's classification (r2 R2-4)
+
+def _runner():
+    import importlib.util
+    path = Path(__file__).resolve().parents[3] / "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py"
+    spec = importlib.util.spec_from_file_location("framing_mutant_runner", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("rc, out, verdict", [
+    (1, "FAILED t.py::a - x\n1 failed, 3 passed in 0.1s", "RED"),
+    (1, "FAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 error in 0.01s", "INCONCLUSIVE(exit 1, errors)"),
+    (1, "FAILED t.py::a - x\n1 failed, 1 skipped in 0.1s", "INCONCLUSIVE(exit 1)"),
+    (0, "4 passed in 0.1s", "SURVIVED"),
+    (2, "1 error in 0.1s", "INCONCLUSIVE(exit 2)"),
+    (5, "no tests ran in 0.01s", "INCONCLUSIVE(exit 5)"),
+    (1, "FAILED t.py::a - x\n1 failed, 3 passed, 2 deselected in 0.1s", "RED"),
+])
+def test_the_runner_classifies_only_clean_failures_as_red(rc, out, verdict):
+    assert _runner().classify(rc, out)[0] == verdict

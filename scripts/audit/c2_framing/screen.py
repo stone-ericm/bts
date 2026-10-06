@@ -294,44 +294,48 @@ def admission_gate():
     return head, adm, {**A.accepted_identity(A.REPO, adm), "admission_sha256": _sha(raw)}
 
 
-RELEASE_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): RELEASE seeds 2–3 of the framing screen; declared "
-                        r"budget (\d+(?:\.\d+)?) CPU-hours per seed\*\*$")
+RELEASE_RE = re.compile(r"^\*\*RULED (\d{4}-\d{2}-\d{2}) \(Eric\): RELEASE seeds 2–3 of the framing screen after "
+                        r"seed-1 run `([0-9a-f]{7}-\d{8}T\d{6}Z)`; declared budget (\d+(?:\.\d+)?) CPU-hours per seed\*\*$")
 
 
-def release_budget(register_text: str) -> float | None:
-    """Eric's release of seeds 2-3: the register row's ruling cell must match exactly, and its source cell must name
-    Eric. Returns the per-seed declared budget, or None."""
+def release(register_text: str) -> tuple[str, float] | None:
+    """Eric's release of seeds 2-3 (register row RELEASE_ROW): the ruling cell must match exactly, naming the seed-1 run
+    it follows; the source cell's first token must be exactly `Eric` (the shared gate's rule); the budget must be a
+    finite positive number. Returns (seed-1 run name, per-seed declared budget), or None (r2 R2-2)."""
     from scripts.audit.c1 import admission as A
     cells = A.row_cells(register_text, RELEASE_ROW)
     if not cells or len(cells) < 4:
         return None
     m = RELEASE_RE.match(cells[2].strip())
-    if not m or not cells[3].strip().startswith("Eric"):
+    if not m or cells[3].split()[:1] != ["Eric"]:
         return None
-    return float(m.group(2))
-
-
-def completed_run(root: Path) -> Path | None:
-    """The one completed (results, no stop) run directory under a seed root, or None."""
-    if not root.is_dir():
+    budget = float(m.group(3))
+    if not (math.isfinite(budget) and budget > 0):
         return None
-    done = [d for d in sorted(root.iterdir()) if d.is_dir() and (d / "results.json").is_file()
-            and not (d / "STOPPED.json").exists()]
-    return done[0] if len(done) == 1 else None
+    return m.group(2), budget
 
 
-def seed_allowed(seed: int, register_text: str, out_root: Path) -> tuple[bool, str, float | None]:
-    """Seed order (row C2-framing-seed-gate): seed 1 first; seeds 2-3 only after Eric's release and seed 1's completed
-    run. Returns (allowed, reason, declared budget)."""
+def seed_allowed(seed: int, register_text: str, out_root: Path, *, identity: dict,
+                 pins: dict) -> tuple[bool, str, float | None]:
+    """Seed order (row C2-framing-seed-gate): seed 1 first; seeds 2-3 only after Eric's release, which must name seed
+    1's run, and only when that run validates as a complete run of the same admitted code and inputs (r2 R2-2).
+    Returns (allowed, reason, declared budget)."""
     if seed not in STAGE_ONE_SEEDS:
         return False, f"{seed} is not a stage-one seed {STAGE_ONE_SEEDS}", None
     if seed == STAGE_ONE_SEEDS[0]:
         return True, "seed 1", SEED1_BUDGET_CPU_H
-    budget = release_budget(register_text)
-    if budget is None:
+    rel = release(register_text)
+    if rel is None:
         return False, f"seeds 2-3 need Eric's release (register row {RELEASE_ROW})", None
-    if completed_run(out_root / f"seed_{STAGE_ONE_SEEDS[0]}") is None:
-        return False, "seeds 2-3 need seed 1's completed run", None
+    run_name, budget = rel
+    root = out_root / f"seed_{STAGE_ONE_SEEDS[0]}"
+    runs = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
+    if [d.name for d in runs] != [run_name]:
+        return False, f"seeds 2-3 need exactly seed 1's released run {run_name} under {root}", None
+    try:
+        validate_run(runs[0], STAGE_ONE_SEEDS[0], out_root=out_root, identity=identity, pins=pins)
+    except RunInvalid as e:
+        return False, f"seed 1's run is not a complete admitted run: {e}", None
     return True, "released", budget
 
 
@@ -361,7 +365,7 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
     if foreign:
         raise SystemExit(f"refusing: modules from outside this checkout: {foreign}")
     register = (A.REPO / REGISTER_REL).read_text()
-    ok, why, _ = seed_allowed(seed, register, out_root)
+    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm["input_pins"])
     if not ok:
         raise SystemExit(f"refusing: {why}")
     from bts.model.predict import LGB_PARAMS
@@ -438,54 +442,140 @@ def run(seed: int, data_dir: Path, inputs_dir: Path, *, walk_forward=None, now=N
 
 # ---------------------------------------------------------------- the aggregate (exactly the three registered seeds)
 
-class AggregateError(RuntimeError):
+class RunInvalid(RuntimeError):
     pass
 
 
-def _load(d: Path, name: str):
+AggregateError = RunInvalid                     # the aggregate's refusals are run-validation refusals
+UNIT_ORDER = [(v, s) for v in ("baseline", "A", "B") for s in TEST_SEASONS]
+IDENTITY_KEYS = ("review_report", "review_report_sha256", "reviewed_commit", "exposure_commit", "admission_sha256")
+HEX = re.compile(r"[0-9a-f]{64}")
+HEAD = re.compile(r"[0-9a-f]{40}")
+
+
+def _read(d: Path, name: str) -> bytes:
     p = d / name
     if not p.is_file():
-        raise AggregateError(f"{d}: missing {name}")
+        raise RunInvalid(f"{d}: missing {name}")
     return p.read_bytes()
 
 
-def aggregate(run_dirs: list[Path]) -> dict:
-    """Stage one's dispositions, only from exactly three distinct completed runs of the three registered seeds, all of
-    the same reviewed code and inputs; each seed's summary is recomputed from its retained diff (r1 B2)."""
+def _json_of(d: Path, name: str):
+    try:
+        return json.loads(_read(d, name))
+    except RunInvalid:
+        raise
+    except Exception as e:
+        raise RunInvalid(f"{d}: {name} is not valid JSON ({type(e).__name__})")
+
+
+def validate_run(d: Path, seed: int, *, out_root: Path, identity: dict | None = None, pins: dict | None = None) -> dict:
+    """One completed, claimed stage-one run, checked semantically (r2 R2-2, R2-3). Raises RunInvalid; returns
+    {manifest, results, summaries}. It checks:
+    - the canonical claim namespace (`out_root/seed_<seed>/<run>`), no stop, and a JSON claim naming this run and the
+      manifest's code;
+    - the manifest: schema, seed, claim binding, a 40-hex head, the registered basis, retrain interval, test seasons,
+      feature settings, deterministic LightGBM params and environment, the ten pins and their digest, a complete
+      accepted identity and an identical self-check; and, when given, the admitted identity and pins;
+    - the results: seed, head, and the six units in their registered order;
+    - every retained artifact (six profiles, three scorecards, two diffs), P@1 per season recomputed from each variant's
+      profiles against its scorecard and the results, each diff recomputed from the retained scorecards, and each
+      stored summary recomputed from its diff."""
+    import pandas as pd
+    from bts.validate.scorecard import compute_precision_at_k, diff_scorecards
+    d = Path(d)
+    if Path(d).resolve().parent != (out_root / f"seed_{seed}").resolve():
+        raise RunInvalid(f"{d}: not in the canonical claim namespace {out_root / f'seed_{seed}'}")
+    if (d / "STOPPED.json").exists():
+        raise RunInvalid(f"{d}: a stopped run is not a complete seed")
+    claim_bytes = _read(d, "CLAIM.json")
+    claim = _json_of(d, "CLAIM.json")
+    man = _json_of(d, "manifest.json")
+    res = _json_of(d, "results.json")
+    if not (isinstance(claim, dict) and claim.get("run") == d.name and isinstance(man, dict)
+            and claim.get("code") == man.get("head")):
+        raise RunInvalid(f"{d}: the claim does not name this run and its code")
+    pins_m = man.get("input_pins")
+    lgb = man.get("lgb_params") or {}
+    ident = man.get("identity")
+    env = man.get("env") or {}
+    checks = {
+        "schema": man.get("schema") == "c2_framing_screen_run_v2",
+        "seed": man.get("seed") == seed,
+        "claim binding": man.get("claim_sha256") == _sha(claim_bytes),
+        "head": isinstance(man.get("head"), str) and bool(HEAD.fullmatch(man["head"])),
+        "basis": man.get("basis") == BASIS,
+        "retrain": man.get("retrain_every") == RETRAIN_EVERY,
+        "seasons": man.get("test_seasons") == list(TEST_SEASONS),
+        "settings": man.get("feature_settings") == SETTINGS,
+        "lgb determinism": lgb.get("deterministic") is True and lgb.get("force_row_wise") is True,
+        "env": env.get("BTS_LGBM_DETERMINISTIC") == "1" and env.get("BTS_LGBM_RANDOM_STATE") == str(seed),
+        "pins": isinstance(pins_m, dict) and set(pins_m) == set(INPUT_NAMES)
+                and all(isinstance(v, str) and HEX.fullmatch(v) for v in pins_m.values()),
+        "pins digest": isinstance(pins_m, dict) and man.get("inputs_digest") == pins_digest(pins_m),
+        "identity": isinstance(ident, dict) and all(isinstance(ident.get(k), str) and ident.get(k)
+                                                    for k in IDENTITY_KEYS),
+        "self-check": (man.get("self_check") or {}).get("identical") is True,
+        "admitted identity": identity is None or (isinstance(ident, dict)
+                                                  and {k: ident.get(k) for k in IDENTITY_KEYS}
+                                                  == {k: identity.get(k) for k in IDENTITY_KEYS}),
+        "admitted pins": pins is None or pins_m == pins,
+        "results": isinstance(res, dict) and res.get("seed") == seed and res.get("head") == man.get("head"),
+    }
+    bad = [k for k, ok in checks.items() if not ok]
+    if bad:
+        raise RunInvalid(f"{d}: invalid manifest/results: {bad}")
+    units = res.get("units")
+    if not (isinstance(units, list) and [(u.get("variant"), u.get("season")) for u in units] == UNIT_ORDER):
+        raise RunInvalid(f"{d}: the six registered units are not all complete")
+    cards = {v: _json_of(d, f"scorecard_{v}.json") for v in ("baseline", "A", "B")}
+    for v in ("baseline", "A", "B"):
+        prof = pd.concat([pd.read_parquet(d / f"profiles_{v}_{s}.parquet") for s in TEST_SEASONS], ignore_index=True)
+        p1 = {str(k): x[1] for k, x in compute_precision_at_k(prof, by_season=True).items()}
+        card_p1 = {str(k): x for k, x in (cards[v].get("p_at_1_by_season") or {}).items()}
+        if p1 != card_p1 or (res.get("p_at_1_by_season") or {}).get(v) != card_p1:
+            raise RunInvalid(f"{d}: variant {v}'s P@1 does not reconcile across profiles, scorecard and results")
+    summaries = {}
+    for v in ("A", "B"):
+        stored = _json_of(d, f"diff_{v}.json")
+        recomputed = json.loads(json.dumps(diff_scorecards(cards["baseline"], cards[v]), sort_keys=True))
+        if stored != recomputed:
+            raise RunInvalid(f"{d}: variant {v}'s diff does not match its retained scorecards")
+        summary = seed_summary(stored)
+        held = (res.get("variants") or {}).get(v) or {}
+        if {k: held.get(k) for k in ("p_at_1_delta", "passed")} != {k: summary[k] for k in ("p_at_1_delta", "passed")}:
+            raise RunInvalid(f"{d}: variant {v}'s stored summary does not match its diff")
+        summaries[v] = summary
+    return {"manifest": man, "results": res, "summaries": summaries}
+
+
+def aggregate(run_dirs: list[Path], *, _test_out_root=None) -> dict:
+    """Stage one's dispositions, only from exactly three distinct runs of the three registered seeds, each validated by
+    `validate_run` in the canonical namespace, all of the same admitted code (accepted identity), inputs and settings.
+    Each run keeps its own commit: a metadata-only descendant such as Eric's committed release is admitted by the
+    shared gate, so equal HEADs are not required (r2 R2-1)."""
+    out_root = OUT_ROOT if _test_out_root is None else _test_out_root
     dirs = [Path(d).resolve() for d in run_dirs]
     if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):
-        raise AggregateError(f"need exactly {len(STAGE_ONE_SEEDS)} distinct run directories, got {len(run_dirs)}")
-    manifests, rows = [], {"A": [], "B": []}
+        raise RunInvalid(f"need exactly {len(STAGE_ONE_SEEDS)} distinct run directories, got {len(run_dirs)}")
+    seeds = []
     for d in dirs:
-        if (d / "STOPPED.json").exists():
-            raise AggregateError(f"{d}: a stopped run is not a complete seed")
-        claim = _load(d, "CLAIM.json")
-        man = json.loads(_load(d, "manifest.json"))
-        res = json.loads(_load(d, "results.json"))
-        if man.get("claim_sha256") != _sha(claim):
-            raise AggregateError(f"{d}: manifest does not bind this CLAIM.json")
-        if res.get("seed") != man.get("seed") or res.get("head") != man.get("head"):
-            raise AggregateError(f"{d}: results and manifest disagree")
-        if d.parent.name != f"seed_{man.get('seed')}":
-            raise AggregateError(f"{d}: not under its seed's claim root")
-        for v in rows:
-            summary = seed_summary(json.loads(_load(d, f"diff_{v}.json")))
-            stored = {k: res["variants"][v].get(k) for k in ("p_at_1_delta", "passed")}
-            if stored != {k: summary[k] for k in ("p_at_1_delta", "passed")}:
-                raise AggregateError(f"{d}: variant {v}'s stored summary does not match its diff")
-            rows[v].append(summary)
-        manifests.append(man)
-    seeds = [m["seed"] for m in manifests]
-    if sorted(seeds) != sorted(STAGE_ONE_SEEDS):
-        raise AggregateError(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
-    for key in ("head", "identity", "input_pins", "lgb_params", "feature_settings", "basis", "retrain_every"):
-        if any(m.get(key) != manifests[0].get(key) for m in manifests[1:]):
-            raise AggregateError(f"runs disagree on {key}")
+        m = re.fullmatch(r"seed_(\d+)", d.parent.name)
+        seeds.append(int(m.group(1)) if m else None)
+    if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:
+        raise RunInvalid(f"seeds {seeds} are not exactly the registered {list(STAGE_ONE_SEEDS)}")
+    valid = [validate_run(d, s, out_root=out_root) for d, s in zip(dirs, seeds)]
+    first = valid[0]["manifest"]
+    for key in ("identity", "input_pins", "inputs_digest", "lgb_params", "feature_settings", "basis", "retrain_every",
+                "test_seasons"):
+        if any(v["manifest"].get(key) != first.get(key) for v in valid[1:]):
+            raise RunInvalid(f"runs disagree on {key}")
     order = [seeds.index(s) for s in STAGE_ONE_SEEDS]
-    total = sum(json.loads(_load(d, "results.json"))["total_cpu_s"] for d in dirs)
-    return {"seeds": list(STAGE_ONE_SEEDS), "head": manifests[0]["head"], "total_cpu_h": total / 3600,
-            "variants": {v: {"per_seed": [rs[i] for i in order], **disposition([rs[i] for i in order])}
-                         for v, rs in rows.items()}}
+    total = sum(v["results"]["total_cpu_s"] for v in valid)
+    return {"seeds": list(STAGE_ONE_SEEDS), "heads": [valid[i]["manifest"]["head"] for i in order],
+            "identity": first["identity"], "total_cpu_h": total / 3600,
+            "variants": {var: {"per_seed": [valid[i]["summaries"][var] for i in order],
+                               **disposition([valid[i]["summaries"][var] for i in order])} for var in ("A", "B")}}
 
 
 # ---------------------------------------------------------------- the launch wrapper
@@ -504,8 +594,9 @@ def launch(seed: int, data_dir: Path, inputs_dir: Path, *, execute=subprocess.ru
     declared budget (seed 1: 45; seeds 2-3: the budget in Eric's release row)."""
     from scripts.audit.c1 import admission as A
     out_root = OUT_ROOT if _test_out_root is None else _test_out_root
-    admission_gate()
-    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root)
+    _, adm, identity = admission_gate()
+    ok, why, budget = seed_allowed(seed, (A.REPO / REGISTER_REL).read_text(), out_root, identity=identity,
+                                   pins=adm.get("input_pins"))
     if not ok:
         raise SystemExit(f"refusing: {why}")
     return execute(launch_command(seed, budget, data_dir, inputs_dir), cwd=A.REPO).returncode
