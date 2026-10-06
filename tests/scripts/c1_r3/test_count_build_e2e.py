@@ -137,7 +137,11 @@ def test_the_build_holds_the_acquisition_lock_while_reading_feeds(tmp_path, patc
 
 
 def test_admission_is_required(tmp_path, monkeypatch):
+    """A closed admission record refuses. The record is pinned here: since 2026-10-06 the repository's own
+    admission.json is populated (rank 3 was admitted), so the test must not depend on it (C2 acceptance a1, item 6)."""
     monkeypatch.setattr(CB, "DATA", world(tmp_path, n=5))
+    closed = {"reviewed_commit": None, "review_report": None, "exposure_commit": None}
+    monkeypatch.setattr(CB, "load_admission", lambda: (closed, "0" * 64))
     with pytest.raises(SystemExit, match="input_pins|reviewed_commit|review_report|exposure"):
         CB.main([])
 
