@@ -483,3 +483,44 @@ def test_r34_the_fork_refusal_itself_is_witnessed_under_eperm(data):
             "    print('FORK-EPERM-WITNESS', flush=True)\n    raise SystemExit(0)\nraise SystemExit(5)")
     res = run_confined(code, data / "watchdog", kill=False, deny_fork=True)
     assert res.returncode == 0 and "CHILD-STARTED" in res.stdout and "FORK-EPERM-WITNESS" in res.stdout
+
+
+def _plant_stale_chain(root):
+    """A [fault, recovery] chain claimed together by a flusher that then stalled past its lease."""
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    with N.state_lock(root):
+        st = N.load_state(root)
+        for i, n in enumerate(sorted(st["notices"].values(), key=lambda n: n["seq"])):
+            n.update(status="sending", claim_token=f"stale-{i}",
+                     claimed_at=(T0 - timedelta(minutes=20)).astimezone(timezone.utc).isoformat(),
+                     lease_until=(T0 - timedelta(minutes=10)).astimezone(timezone.utc).isoformat())
+        N.save_state(root, st)
+
+
+def test_r32_a_reclaim_under_max_sends_takes_the_whole_chain_and_stays_valid(root):
+    """False-refusal check (author, C2 unit 1): a stalled flusher's expired chain re-claimed with max_sends=1. A
+    partial re-claim would leave the recovery on the stale claim behind a released fault, a state the validator
+    rejects, so the failing flush could never record its outcome."""
+    _plant_stale_chain(root)
+    t = Recorder(lambda text: True)                           # every send fails
+    report = notifier(root, t, max_sends=1).flush()
+    by = {n["state"]: n for n in N.load_state(root)["notices"].values()}
+    assert by["fault"]["status"] == "pending" and by["fault"]["attempts"] == 1
+    assert by["recovered"]["status"] == "pending" and by["recovered"]["attempts"] == 0
+    assert report["failed"] == 1
+
+
+def test_r32_max_sends_bounds_the_sends_of_a_long_chain(root):
+    q = queue_only(root)
+    q.enqueue([FAULT])
+    q.enqueue([CLEAR])
+    q.enqueue([FAULT])                                        # episode 2: three notices for one target
+    t = Recorder()
+    notifier(root, t, max_sends=2).flush()
+    assert kinds(t.accepted) == ["fault", "recovered"]
+    last = max(N.load_state(root)["notices"].values(), key=lambda n: n["seq"])
+    assert last["status"] == "pending" and last["attempts"] == 0
+    notifier(root, t, max_sends=2).flush()
+    assert kinds(t.accepted) == ["fault", "recovered", "fault"]

@@ -16,9 +16,11 @@ checker-failure target of that invocation, whatever its business result.
 
 **Order (r3 R3-2):** every notice carries a persistent sequence number (`seq`). A target's unsent notices form a queue
 in `seq` order, and a notice is delivered only after every earlier notice of its target was confirmed:
-- a flush claims, per target, the longest due prefix of that queue, so nothing is claimed behind a live claim;
-- it sends each target's claimed chain in order, and at the first failure, missing message id or exhausted budget it
-  releases the rest of that chain unattempted. Other targets continue.
+- a flush claims, per target, the longest due prefix of that queue, so nothing is claimed behind a live claim. A
+  chain is always claimed whole, so all of a target's `sending` notices belong to one claim and share one lease
+  (a partial re-claim of a stalled flusher's expired chain would leave its tail on the stale claim);
+- it sends each target's claimed chain in order, and at the first failure, missing message id, exhausted budget or
+  reached `max_sends` it releases the rest of that chain unattempted. Other targets continue.
 
 **Delivery (r1 B4, B7; r2 N4):**
 - `enqueue` always persists notices, even with no transport (queue-only).
@@ -28,8 +30,9 @@ in `seq` order, and a notice is delivered only after every earlier notice of its
   a notice `sent`.
 - A clock read earlier than a claim's start counts the lease as expired (a duplicate is possible; exactly-once
   delivery is not claimed).
-- The flush is bounded by `max_sends` and by an **elapsed monotonic** budget, checked before each send. Neither
-  bound interrupts an in-flight send; the whole-job deadline is a deploy-gate item.
+- The flush is bounded by `max_sends` sends and by an **elapsed monotonic** budget, both checked before each send.
+  Whole chains are claimed in head order until `max_sends` notices are claimed. Neither bound interrupts an
+  in-flight send; the whole-job deadline is a deploy-gate item.
 
 **Validation (r1 B5, r2 N3, r3 R3-3):** every container, field, type, timestamp, state, cross-reference and recomputed
 key is validated on load, and so is the lifecycle the protocol implies (it never prunes a notice):
@@ -315,19 +318,28 @@ class Notifier:
         return now >= until or now < claimed          # expired, or the clock rolled back past the claim
 
     def _claimable(self, st, now: datetime) -> list:
-        """Per target, the longest due prefix of its unsent notices in `seq` order; merged by `seq`, then capped. A
-        target whose head is live-claimed contributes nothing (r3 R3-2)."""
+        """Per target, the longest due prefix of its unsent notices in `seq` order (r3 R3-2). A target whose head is
+        live-claimed contributes nothing. Chains are taken whole, in order of their heads, until at least `max_sends`
+        notices are claimed; the result is in `seq` order."""
         queues: dict = {}
         for k, n in st["notices"].items():
             if n["status"] != "sent":
                 queues.setdefault(n["target"], []).append(k)
-        picked = []
+        chains = []
         for ks in queues.values():
+            chain = []
             for k in sorted(ks, key=lambda k: st["notices"][k]["seq"]):
                 if not self._due(st["notices"][k], now):
                     break
-                picked.append(k)
-        return sorted(picked, key=lambda k: st["notices"][k]["seq"])[: self.max_sends]
+                chain.append(k)
+            if chain:
+                chains.append(chain)
+        picked = []
+        for chain in sorted(chains, key=lambda c: st["notices"][c[0]]["seq"]):
+            if len(picked) >= self.max_sends:
+                break
+            picked.extend(chain)
+        return sorted(picked, key=lambda k: st["notices"][k]["seq"])
 
     def flush(self) -> dict:
         """Send due notices, each target's in order (bounded). Returns {"sent", "failed", "skipped_budget", "held"}."""
@@ -346,17 +358,23 @@ class Notifier:
             if claims:
                 save_state(self.root, st)
         started = self.monotonic()
-        outcomes, blocked = {}, set()
+        outcomes, blocked, attempts = {}, set(), 0
         for k, (token, text, tk) in claims.items():      # network, outside the lock; seq order
             if tk in blocked:                            # an earlier notice of this target was not delivered
                 outcomes[k] = (token, None, "an earlier notice of this target was not delivered", False)
                 report["held"] += 1
+                continue
+            if attempts >= self.max_sends:
+                outcomes[k] = (token, None, "max_sends reached before send", False)
+                report["skipped_budget"] += 1
+                blocked.add(tk)
                 continue
             if self.monotonic() - started > self.budget_s:
                 outcomes[k] = (token, None, "budget exhausted before send", False)
                 report["skipped_budget"] += 1
                 blocked.add(tk)
                 continue
+            attempts += 1
             try:
                 mid = self.send(self.recipient, text)
             except Exception as exc:  # noqa: BLE001 - a failed send stays pending
