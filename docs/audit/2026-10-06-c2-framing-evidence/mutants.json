@@ -619,11 +619,12 @@
   "id": "H5",
   "rule": "validate: a complete accepted identity",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        \"identity\": isinstance(ident, dict) and all(",
-  "new": "        \"identity\": True or all(",
+  "old": "                    and all(isinstance(ident.get(k), str) and ident.get(k) for k in IDENTITY_KEYS),",
+  "new": "                    and True,",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_validate_refuses_an_incomplete_identity_even_when_admitted"
-  ]
+  ],
+  "reanchored_rev5": true
  },
  {
   "id": "H6",
@@ -698,18 +699,20 @@
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities"
   ],
-  "equivalent": "validate_run now requires each run's identity to equal the admission gate's trusted identity, so runs that pass validation cannot disagree on identity (r3 R3-3)"
+  "equivalent": "validate_run requires each run's identity to have exactly the five IDENTITY_KEYS (r4 R4-3) and each to equal the admission gate's trusted identity, so validated runs cannot disagree on identity over the validator's whole accepted domain"
  },
  {
   "id": "H13",
-  "rule": "runner: an error or skip is never RED (r2 R2-4)",
+  "rule": "runner: a skip or an unclean summary is never RED (r2 R2-4)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if any(w in summary for w in UNCLEAN):\n        return f\"INCONCLUSIVE(exit {returncode})\", failed, errored\n",
+  "old": "    if skipped or any(w in summary for w in UNCLEAN):\n        return f\"INCONCLUSIVE({tag})\", failed\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit2]"
   ],
-  "reanchored_rev4": true
+  "reanchored_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "N1",
@@ -782,35 +785,38 @@
   "id": "N7",
   "rule": "R3-2: each profile is its own season's evidence (whole check)",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "            if not own:\n",
+  "old": "            if problem is not None:\n",
   "new": "            if False:\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_duplicate]",
    "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_without_2025_evidence_does_not_release"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "N8",
   "rule": "R3-2: every row's season label is the unit's",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": " and bool((part[\"season\"] == s).all())",
-  "new": "",
+  "old": "    if not (pd.api.types.is_integer_dtype(part[\"season\"]) and bool((part[\"season\"] == season).all())):",
+  "new": "    if False:",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_mixed]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "N9",
   "rule": "R3-2: every row's date year is the unit's season",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": " and bool((years == s).all())",
-  "new": "",
+  "old": "    if not bool((years == season).all()):",
+  "new": "    if False:",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[dates_other_year]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "N10",
@@ -821,7 +827,8 @@
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "equivalent": "profile_problem requires each unit file to be non-empty, all of its own integer season, and to have ranks 1..n on every day, so both seasons have rank-1 rows and P@1 covers both: the coverage check cannot refuse anything profile_problem accepts (r4)"
  },
  {
   "id": "N11",
@@ -894,24 +901,27 @@
   "id": "R1",
   "rule": "R3-4: an error is never RED",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if errored:\n        return f\"INCONCLUSIVE(exit {returncode}, errors)\", failed, errored\n",
+  "old": "    if errored:\n        return f\"INCONCLUSIVE({tag}, errors)\", failed\n",
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[errors]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "R2",
-  "rule": "R3-4: an intended node that did not run is never RED",
+  "rule": "R3-4/R4-2: an intended node without its own call report is never RED",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if missing:\n        return f\"INCONCLUSIVE(exit {returncode}, {len(missing)} not run)\", failed, errored\n",
+  "old": "    if missing:\n        return f\"INCONCLUSIVE({tag}, {len(missing)} not run)\", failed\n",
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[fail_fast]",
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[survived_one_not_run]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[stdout_is_not_evidence]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_is_not_fooled_by_printed_outcomes"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
  },
  {
   "id": "R3",
@@ -937,13 +947,138 @@
  },
  {
   "id": "R5",
-  "rule": "R3-4: a summary line names its exact intended node",
+  "rule": "R4-2: a node outside the intended set means a changed selection",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "        if rest == n or rest.startswith(n + \" - \"):",
-  "new": "        if rest.startswith(n):",
+  "old": "    if unintended:\n        return f\"INCONCLUSIVE({tag}, {len(unintended)} unintended)\", failed\n",
+  "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[prefix_is_not_the_node]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[unintended_node]"
   ],
-  "added_rev4": true
+  "added_rev4": true,
+  "reanchored_rev5": true
+ },
+ {
+  "id": "H14",
+  "rule": "R4-3: exactly the five identity fields",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " and set(ident) == set(IDENTITY_KEYS)",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_extra_key]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N17",
+  "rule": "R4-1: no missing values in a scored column",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not all(bool(part[c].notna().all()) for c in SCORED_COLS):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[rank_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_missing]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N18",
+  "rule": "R4-1: ranks 1..n on every day",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"ranks are not 1..n on every day\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[ranks_not_from_one]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N19",
+  "rule": "R4-1: hits are 0/1",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"hits are not 0/1\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[hit_not_binary]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N20",
+  "rule": "R4-1: probabilities in [0, 1]",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"probabilities outside [0, 1]\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_out_of_range]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N21",
+  "rule": "R4-1: an empty unit is incomplete",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"empty\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[empty_unit]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "N22",
+  "rule": "R4-1: every scored column present",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return f\"columns {absent} absent\"\n",
+  "new": "        pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[column_absent]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "R6",
+  "rule": "R4-2: a session that did not end normally is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if not ended:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_normal_end]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "R7",
+  "rule": "R4-2: pytest's summary must agree with the recorded outcomes",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if counts.get(\"failed\", 0) != len(failed) or counts.get(\"passed\", 0) != len(passed):\n        return f\"INCONCLUSIVE({tag}, summary mismatch)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[summary_mismatch]"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "R8",
+  "rule": "R4-2: outcomes come from the recording plugin",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "_pytest(root, \"-q\", \"-p\", \"framing_runner_plugin\", *tests)",
+  "new": "_pytest(root, \"-q\", *tests)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev5": true
+ },
+ {
+  "id": "R9",
+  "rule": "R4-2: the plugin records the session's normal end",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        _f.write(json.dumps({\"end\": True}) + \"\\\\n\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev5": true
  }
 ]
