@@ -79,7 +79,7 @@ git rev-parse --short HEAD'
 
 **Pass:**
 - **Receipts:** exactly two sealed receipts for 2026-10-07 (one started near 02:00, one near 07:40). Each has a `.json.sealed` sidecar and no `.failed` file.
-- **Each receipt:** `outcome == "completed"`, `error` null, `corrections == []`, `degraded == []`, revision `f882411`, and every `days[].state` is `past_cutoff`. `replay` is `unavailable` or `saved` with streak 0.
+- **Each receipt:** `outcome == "completed"`, `error` null, `corrections == []`, `degraded == []`, revision `f882411`, and every `days[].state` is `past_cutoff`, except yesterday, which reads `no_pick_file` with `write` null (a day's correction cutoff is 08:00 ET the next day, so the pre-08:00 runs see yesterday as still open; manager ruling 10/07). `replay` is `unavailable` or `saved` with streak 0.
 - **The cron log:** two "No scoring changes detected. Streak: 0" lines from 10/07, and no Traceback.
 - **The rest:** `streak.json` content unchanged ({streak 0, saver false}), the crontab unchanged, and HEAD `f882411`.
 
