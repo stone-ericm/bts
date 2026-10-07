@@ -124,3 +124,33 @@
 **Resume at `aa4e72c`:** R11 is RED.
 
 **Result: 105 of 105 attributable RED; G8, H12 and N10 equivalent.** The permitted suite has 143 tests (118 framing, 25 shared admission).
+
+## Revision 7 (after review r6 BLOCK; Eric's row C2-framing-review-r7: full rules, a redesigned runner)
+**Runner redesigned (r6 R6-1, R6-2):**
+- **Driver process:** the mutated run is a driver that calls `pytest.main()` in-process. It writes its evidence only after `pytest.main` returns, so an abort anywhere, including unconfiguration, leaves no evidence.
+- **Sentinel:** at collection finish, after every conftest is loaded, the recorder registers a sentinel whose hooks are `tryfirst` wrappers.
+  - Pluggy calls the last-registered tryfirst wrapper outermost. So its session-finish wrapper sees any inner hook's or wrapper's abort (R6-1), and its runtest-call wrapper records what each call itself raised.
+  - Any plugin registered after the sentinel is refused.
+- **Expected failures (R6-2):** reports keep their `wasxfail` status, and an intended node marked xfail, skip or skipif is never a killer.
+- **Cross-checks:** report outcomes must match the sentinel's call observations, and pytest's counters must agree.
+- **Stated boundary:** tampering with the runner's own objects, its evidence file or pytest internals is out of scope.
+- **New tests,** all red against the revision-6 runner, which certified seven of them RED:
+  - a session-finish wrapper abort and a tryfirst wrapper abort;
+  - a non-strict XPASS and a runtime xfail;
+  - a plugin registered during the run;
+  - a makereport wrapper rewriting an outcome;
+  - an unconfigure abort;
+  - plus a 23-case classifier table over the evidence.
+
+**Spec: 116 entries.**
+- Re-anchored: H13, R6, R7, R8, R9, R11, R15, R16; R2 repointed.
+- New, R17–R24:
+  - sentinel registration;
+  - late plugins;
+  - xfail/skip markers and `wasxfail` recording;
+  - report/observation agreement and the sentinel's call record;
+  - exit status and session-finish completion.
+
+**Revision-7 run at `310dfe6`:** 113 RED, 3 SURVIVED (G8, H12, N10 as recorded).
+
+**Result: 113 of 113 attributable RED in one pass; G8, H12 and N10 equivalent.** The permitted suite has 157 tests (132 framing, 25 shared admission).
