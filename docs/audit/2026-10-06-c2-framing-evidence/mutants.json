@@ -6,7 +6,8 @@
   "old": "lambda x: x.shift(1).expanding(min_periods=5).mean()",
   "new": "lambda x: x.shift(0).expanding(min_periods=5).mean()",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference",
+   "tests/scripts/c2_framing/test_screen.py::test_the_feature_uses_only_strictly_earlier_dates"
   ]
  },
  {
@@ -16,7 +17,7 @@
   "old": "x.shift(1).expanding(min_periods=5)",
   "new": "x.shift(1).expanding(min_periods=4)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference"
   ]
  },
  {
@@ -26,7 +27,7 @@
   "old": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].mean().reset_index()",
   "new": "date_framing = df.groupby([key, \"date\"])[\"pa_borderline_csr\"].max().reset_index()",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_framing_by_any_key_matches_an_independent_reference"
   ]
  },
  {
@@ -37,8 +38,7 @@
   "new": "np.array_equal(a, b, equal_nan=False)",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_self_check_compares_against_the_production_pitcher_feature"
-  ],
-  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
+  ]
  },
  {
   "id": "F5",
@@ -47,7 +47,7 @@
   "old": "return [NEW_COL if c == OLD_COL else c for c in FEATURE_COLS]",
   "new": "return [c for c in FEATURE_COLS if c != OLD_COL] + [NEW_COL]",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_variant_bases"
   ]
  },
  {
@@ -57,7 +57,7 @@
   "old": "return list(FEATURE_COLS) + [NEW_COL]",
   "new": "return list(FEATURE_COLS)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_variant_bases"
   ]
  },
  {
@@ -67,7 +67,7 @@
   "old": "out.append((name, base + extras, config[2]) if len(config) == 3 else (name, base + extras))",
   "new": "out.append((name, base, config[2]) if len(config) == 3 else (name, base))",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_blend_configs_rewrite_the_base_and_keep_each_configs_extras"
   ]
  },
  {
@@ -77,7 +77,7 @@
   "old": "PRACTICAL_MIN = 0.003",
   "new": "PRACTICAL_MIN = 0.0",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows1-below the practical size]"
   ]
  },
  {
@@ -87,7 +87,7 @@
   "old": "T_MIN = 1.5  ",
   "new": "T_MIN = 0.0  ",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows2-t below 1.5]"
   ]
  },
  {
@@ -97,7 +97,7 @@
   "old": "and passes >= majority:",
   "new": "and passes >= 1:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows3-a minority of passes]"
   ]
  },
  {
@@ -107,7 +107,7 @@
   "old": "elif m <= 0 and passes < majority:",
   "new": "elif m <= 0:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_a_non_positive_mean_with_passing_seeds_is_inconclusive_not_negative"
   ]
  },
  {
@@ -117,7 +117,7 @@
   "old": "if all(v > 0 for v in mean_by_season.values()) and",
   "new": "if any(v > 0 for v in mean_by_season.values()) and",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_not_positive[rows0-one season's mean not above zero (every other rule met)]"
   ]
  },
  {
@@ -127,7 +127,9 @@
   "old": "BASIS = \"estimated_pa\"",
   "new": "BASIS = \"actual_pa\"",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]"
   ]
  },
  {
@@ -137,7 +139,8 @@
   "old": "SEASONS_IN = tuple(range(2017, 2026))",
   "new": "SEASONS_IN = tuple(range(2017, 2027))",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes"
   ]
  },
  {
@@ -147,7 +150,9 @@
   "old": "STAGE_ONE_SEEDS = (2273360, 260991262, 1746737973)",
   "new": "STAGE_ONE_SEEDS = (2273360, 260991262, 42)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed"
   ]
  },
  {
@@ -157,7 +162,8 @@
   "old": "RETRAIN_EVERY = 7",
   "new": "RETRAIN_EVERY = 14",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_pre_registered_constants",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
   ]
  },
  {
@@ -167,7 +173,7 @@
   "old": "return cpu_s > FIRST_UNIT_STOP_CPU_H * 3600",
   "new": "return cpu_s >= FIRST_UNIT_STOP_CPU_H * 3600",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_first_unit_stop"
   ]
  },
  {
@@ -177,7 +183,7 @@
   "old": "raw, _ = A.read_pinned(data_dir / f\"pa_{s}.parquet\", pins[f\"pa_{s}.parquet\"])",
   "new": "raw = (data_dir / f\"pa_{s}.parquet\").read_bytes()",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_load_inputs_reads_only_the_pinned_files_from_their_hashed_bytes"
   ]
  },
  {
@@ -187,7 +193,7 @@
   "old": "if os.environ.get(\"BTS_LGBM_DETERMINISTIC\") != \"1\":",
   "new": "if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_without_the_deterministic_flag_or_a_stage_one_seed"
   ]
  },
  {
@@ -198,8 +204,7 @@
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
-  ],
-  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
+  ]
  },
  {
   "id": "F21",
@@ -208,7 +213,7 @@
   "old": "    if not check[\"identical\"]:\n",
   "new": "    if False:\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_the_self_check_stops_the_run_before_any_walk_forward"
   ]
  },
  {
@@ -218,7 +223,7 @@
   "old": "if len(units) == 1 and first_unit_stop(cpu):",
   "new": "if False and first_unit_stop(cpu):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_an_expensive_first_walk_forward_stops_the_run"
   ]
  },
  {
@@ -228,7 +233,7 @@
   "old": "        if A.claimed_runs(root, register):\n",
   "new": "        if False:\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_a_second_run_of_the_same_seed_is_refused"
   ]
  },
  {
@@ -238,7 +243,7 @@
   "old": "part = df.loc[df[\"season\"] == s, col]",
   "new": "part = df[col]",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
   ]
  },
  {
@@ -248,7 +253,7 @@
   "old": "if not (LGB_PARAMS.get(\"deterministic\") is True and LGB_PARAMS.get(\"force_row_wise\") is True):",
   "new": "if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_run_refuses_when_lightgbm_params_lack_the_deterministic_flags"
   ]
  },
  {
@@ -258,7 +263,8 @@
   "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
   "new": "if len(dirs) < 1 or len(set(dirs)) != len(dirs):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>0]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>1]"
   ]
  },
  {
@@ -268,7 +274,7 @@
   "old": "if len(dirs) != len(STAGE_ONE_SEEDS) or len(set(dirs)) != len(dirs):",
   "new": "if len(dirs) != len(STAGE_ONE_SEEDS):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_partial_duplicate_or_extra_runs[<lambda>2]"
   ]
  },
  {
@@ -278,7 +284,7 @@
   "old": "    if (d / \"STOPPED.json\").exists():\n        raise RunInvalid(f\"{d}: a stopped run is not a complete seed\")\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[stopped]"
   ],
   "reanchored_rev3": true
  },
@@ -289,7 +295,7 @@
   "old": "        \"claim binding\": man.get(\"claim_sha256\") == _sha(claim_bytes),",
   "new": "        \"claim binding\": True,",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_rewritten]"
   ],
   "reanchored_rev3": true
  },
@@ -300,7 +306,7 @@
   "old": "    if Path(d).resolve().parent != (out_root / f\"seed_{seed}\").resolve():",
   "new": "    if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_outside_the_canonical_namespace"
   ],
   "reanchored_rev3": true
  },
@@ -308,12 +314,13 @@
   "id": "G6",
   "rule": "aggregate: stored summary recomputed from the diff",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        if {k: held.get(k) for k in (\"p_at_1_delta\", \"passed\")} != {k: summary[k] for k in (\"p_at_1_delta\", \"passed\")}:",
-  "new": "        if False:",
+  "old": "        if _canon({k: held.get(k) for k in (\"p_at_1_delta\", \"passed\", \"secondary\")}) != _canon(",
+  "new": "        if False and _canon({k: held.get(k) for k in (\"p_at_1_delta\", \"passed\", \"secondary\")}) != _canon(",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[summary]"
   ],
-  "reanchored_rev3": true
+  "reanchored_rev3": true,
+  "reanchored_rev4": true
  },
  {
   "id": "G7",
@@ -322,7 +329,7 @@
   "old": "    if sorted(s for s in seeds if s is not None) != sorted(STAGE_ONE_SEEDS) or None in seeds:",
   "new": "    if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_a_foreign_seed"
   ],
   "reanchored_rev3": true
  },
@@ -333,7 +340,8 @@
   "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
   "new": "    for key in (\"identity\", \"inputs_digest\",",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_other]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds"
   ],
   "reanchored_rev3": true,
   "equivalent": "validate_run checks each run's inputs_digest == pins_digest(input_pins), so runs that agree on inputs_digest agree on input_pins (barring a sha256 collision)"
@@ -345,7 +353,9 @@
   "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
   "new": "    for key in (\"head\", \"identity\", \"input_pins\", \"inputs_digest\",",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_the_seed1_release_lifecycle_aggregates_across_a_moved_head",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities"
   ],
   "reanchored_rev3": true
  },
@@ -356,7 +366,7 @@
   "old": "if len(per_seed) != len(STAGE_ONE_SEEDS) or any(",
   "new": "if not per_seed or any(",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_disposition_incomplete"
   ]
  },
  {
@@ -366,7 +376,9 @@
   "old": "    if rel is None:\n        return False, f\"seeds 2-3 need Eric's release",
   "new": "    if rel is None and False:\n        return False, f\"seeds 2-3 need Eric's release",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
   ],
   "reanchored_rev3": true
  },
@@ -377,7 +389,7 @@
   "old": "    try:\n        validate_run(runs[0], STAGE_ONE_SEEDS[0], out_root=out_root, identity=identity, pins=pins)\n    except RunInvalid as e:",
   "new": "    try:\n        pass\n    except RunInvalid as e:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release"
   ],
   "reanchored_rev3": true
  },
@@ -388,7 +400,8 @@
   "old": "if not m or cells[3].split()[:1] != [\"Eric\"]:",
   "new": "if not m or not cells[3].startswith(\"Eric\"):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release"
   ],
   "reanchored_rev3": true
  },
@@ -400,8 +413,7 @@
   "new": "    m = re.search(r\"(\\d+(?:\\.\\d+)?) CPU-hours\", cells[2])\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget"
-  ],
-  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
+  ]
  },
  {
   "id": "G15",
@@ -410,7 +422,7 @@
   "old": "    if [d.name for d in runs] != [run_name]:",
   "new": "    if not runs:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_a_release_naming_another_run_does_not_release"
   ],
   "reanchored_rev3": true
  },
@@ -421,7 +433,7 @@
   "old": "    p = p[p[\"actual_hit\"].notna()].copy()\n",
   "new": "    p = p.fillna({\"actual_hit\": 0}).copy()\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows"
   ]
  },
  {
@@ -431,7 +443,7 @@
   "old": "    p[\"rank\"] = p.groupby(\"date\").cumcount() + 1\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows"
   ]
  },
  {
@@ -441,7 +453,9 @@
   "old": "    orig = filter_out_resumed_portion(df)\n",
   "new": "    orig = df\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_original_portion_labels_exclude_the_resumed_portion",
+   "tests/scripts/c2_framing/test_screen.py::test_relabel_rebuilds_labels_and_drops_void_rows",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
   ]
  },
  {
@@ -451,7 +465,8 @@
   "old": "    C._build_probable_pitcher_lookup = _lookup\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag",
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
   ]
  },
  {
@@ -461,7 +476,7 @@
   "old": "    PD.attach_park_drag = _no_park_drag\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_the_closed_inputs_replace_the_live_lookup_and_park_drag"
   ]
  },
  {
@@ -471,7 +486,7 @@
   "old": "keep = {str(k): cache[str(k)] for k in sorted({int(g) for g in game_pks}) if str(k) in cache}",
   "new": "keep = dict(cache)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_freeze_lookup_keeps_only_the_given_games_canonically"
   ]
  },
  {
@@ -482,8 +497,7 @@
   "new": "    settings = {}\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
-  ],
-  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
+  ]
  },
  {
   "id": "G23",
@@ -492,7 +506,7 @@
   "old": "    lookup_raw, _ = A.read_pinned(inputs_dir / LOOKUP_NAME, adm[\"input_pins\"][LOOKUP_NAME])\n",
   "new": "    lookup_raw = (inputs_dir / LOOKUP_NAME).read_bytes()\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_a_changed_frozen_lookup_is_refused"
   ]
  },
  {
@@ -502,7 +516,9 @@
   "old": "            p, counts = relabel(p, labels)\n",
   "new": "            counts = {\"changed\": 0, \"void_dropped\": 0}\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end",
+   "tests/scripts/c2_framing/test_screen.py::test_profiles_carry_the_rebuilt_labels_not_the_walk_forwards",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_the_three_registered_seeds"
   ]
  },
  {
@@ -512,7 +528,9 @@
   "old": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if not ok:",
   "new": "    ok, why, _ = seed_allowed(seed, register, out_root, identity=identity, pins=adm[\"input_pins\"])\n    if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_seeds_two_and_three_are_refused_without_the_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_ericsson_source_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_an_empty_seed1_completion_does_not_release"
   ],
   "reanchored_rev3": true
  },
@@ -523,7 +541,7 @@
   "old": "return True, \"seed 1\", SEED1_BUDGET_CPU_H",
   "new": "return True, \"seed 1\", 100.0",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
   ]
  },
  {
@@ -533,7 +551,7 @@
   "old": "                                   pins=adm.get(\"input_pins\"))\n    if not ok:",
   "new": "                                   pins=adm.get(\"input_pins\"))\n    if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_launch_builds_the_launcher_command_with_the_seeds_budget"
   ],
   "reanchored_rev3": true
  },
@@ -545,8 +563,7 @@
   "new": "INPUT_NAMES = tuple(f\"pa_{s}.parquet\" for s in SEASONS_IN)",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_admission_requires_exactly_the_ten_pins"
-  ],
-  "narrowed_rev3": "the whole file also errors in the three-run fixture's setup (not a clean failure)"
+  ]
  },
  {
   "id": "G29",
@@ -555,7 +572,7 @@
   "old": "return math.inf if m > 0 else (-math.inf if m < 0 else 0.0)",
   "new": "return math.inf if m >= 0 else -math.inf",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_t_edges"
   ]
  },
  {
@@ -565,7 +582,7 @@
   "old": "    if not (math.isfinite(budget) and budget > 0):",
   "new": "    if not math.isfinite(budget):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_release_needs_the_exact_ruling_eric_and_a_positive_budget"
   ]
  },
  {
@@ -575,7 +592,7 @@
   "old": "    if not (isinstance(claim, dict) and claim.get(\"run\") == d.name and isinstance(man, dict)\n            and claim.get(\"code\") == man.get(\"head\")):",
   "new": "    if not isinstance(man, dict):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[claim_other_run]"
   ]
  },
  {
@@ -585,7 +602,7 @@
   "old": "        \"basis\": man.get(\"basis\") == BASIS,",
   "new": "        \"basis\": True,",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[basis]"
   ]
  },
  {
@@ -595,7 +612,7 @@
   "old": "        \"settings\": man.get(\"feature_settings\") == SETTINGS,",
   "new": "        \"settings\": True,",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[settings]"
   ]
  },
  {
@@ -605,7 +622,7 @@
   "old": "        \"identity\": isinstance(ident, dict) and all(",
   "new": "        \"identity\": True or all(",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[identity_missing]"
   ]
  },
  {
@@ -615,7 +632,7 @@
   "old": "        \"pins\": isinstance(pins_m, dict) and set(pins_m) == set(INPUT_NAMES)",
   "new": "        \"pins\": True or set(pins_m) == set(INPUT_NAMES)",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_validate_refuses_pins_other_than_the_ten_even_when_admitted"
   ]
  },
  {
@@ -625,18 +642,20 @@
   "old": "        \"lgb determinism\": lgb.get(\"deterministic\") is True and lgb.get(\"force_row_wise\") is True,",
   "new": "        \"lgb determinism\": True,",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[deterministic]"
   ]
  },
  {
   "id": "H8",
   "rule": "validate: the admitted identity (seed-1 release)",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        \"admitted identity\": identity is None or (",
-  "new": "        \"admitted identity\": True or (",
+  "old": "        \"admitted identity\": isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}",
+  "new": "        \"admitted identity\": True or isinstance(ident, dict) and {k: ident.get(k) for k in IDENTITY_KEYS}",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_another_identity_does_not_release",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]"
+  ],
+  "reanchored_rev4": true
  },
  {
   "id": "H9",
@@ -645,28 +664,30 @@
   "old": "    if not (isinstance(units, list) and [(u.get(\"variant\"), u.get(\"season\")) for u in units] == UNIT_ORDER):",
   "new": "    if not isinstance(units, list):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[unit_missing]"
   ]
  },
  {
   "id": "H10",
   "rule": "validate: P@1 reconciles profiles, scorecards and results",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        if p1 != card_p1 or (res.get(\"p_at_1_by_season\") or {}).get(v) != card_p1:",
+  "old": "        if (res.get(\"p_at_1_by_season\") or {}).get(v) != card[\"p_at_1_by_season\"]:",
   "new": "        if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[results_p1]"
+  ],
+  "reanchored_rev4": true
  },
  {
   "id": "H11",
   "rule": "validate: each diff recomputed from the retained scorecards",
   "file": "scripts/audit/c2_framing/screen.py",
-  "old": "        if stored != recomputed:",
+  "old": "        if _canon(stored) != _canon(recomputed):",
   "new": "        if False:",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[diff_and_summary]"
+  ],
+  "reanchored_rev4": true
  },
  {
   "id": "H12",
@@ -675,17 +696,254 @@
   "old": "    for key in (\"identity\", \"input_pins\", \"inputs_digest\",",
   "new": "    for key in (\"input_pins\", \"inputs_digest\",",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_runs_of_different_identities"
+  ],
+  "equivalent": "validate_run now requires each run's identity to equal the admission gate's trusted identity, so runs that pass validation cannot disagree on identity (r3 R3-3)"
  },
  {
   "id": "H13",
   "rule": "runner: an error or skip is never RED (r2 R2-4)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    clean = not errored and not any(w in summary for w in UNCLEAN)\n",
-  "new": "    clean = True\n",
+  "old": "    if any(w in summary for w in UNCLEAN):\n        return f\"INCONCLUSIVE(exit {returncode})\", failed, errored\n",
+  "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py"
-  ]
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]"
+  ],
+  "reanchored_rev4": true
+ },
+ {
+  "id": "N1",
+  "rule": "R3-1: each card equals a recomputation from its retained profiles",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if _canon({k: x for k, x in card.items() if k != \"timestamp\"}) != _canon(",
+  "new": "        if False and _canon({k: x for k, x in card.items() if k != \"timestamp\"}) != _canon(",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_card]",
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[profile]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N2",
+  "rule": "R3-1: the recomputation uses the registered scoring settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True), **SCORING)))",
+  "new": "card = json.loads(_canon(compute_full_scorecard(pd.concat(parts, ignore_index=True))))",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N3",
+  "rule": "R3-1: the manifest's scoring settings checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"scoring\": man.get(\"scoring\") == SCORING,",
+  "new": "        \"scoring\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[scoring]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N4",
+  "rule": "R3-1: the run records its scoring settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " \"scoring\": dict(SCORING),",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N5",
+  "rule": "R3-1: the run scores with the registered settings",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    cards = {v: compute_full_scorecard(p, **SCORING) for v, p in profiles.items()}",
+  "new": "    cards = {v: compute_full_scorecard(p) for v, p in profiles.items()}",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_run_end_to_end"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N6",
+  "rule": "R3-1: the stored summary's secondary values checked",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "\"passed\": summary[\"passed\"], \"secondary\": secondary}):",
+  "new": "\"passed\": summary[\"passed\"], \"secondary\": held.get(\"secondary\")}):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[secondary_summary]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N7",
+  "rule": "R3-2: each profile is its own season's evidence (whole check)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "            if not own:\n",
+  "new": "            if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_duplicate]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_without_2025_evidence_does_not_release"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N8",
+  "rule": "R3-2: every row's season label is the unit's",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " and bool((part[\"season\"] == s).all())",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[season_mixed]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N9",
+  "rule": "R3-2: every row's date year is the unit's season",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": " and bool((years == s).all())",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[dates_other_year]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N10",
+  "rule": "R3-2: P@1 covers exactly the two test seasons",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        if sorted(card.get(\"p_at_1_by_season\") or {}) != seasons:",
+  "new": "        if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[no_top_pick]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N11",
+  "rule": "R3-3: the run HEAD is checked against the trusted identity",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    problems = head_admitted(repo, identity, man[\"head\"])",
+  "new": "    problems = []",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[foreign_head]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_seed1_run_of_unadmitted_code_does_not_release"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N12",
+  "rule": "R3-3: the HEAD descends from the exposure commit",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "    if not A._ancestor(repo, xc, head):",
+  "new": "    if False:",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N13",
+  "rule": "R3-3: the reviewed executable closure is unchanged at the HEAD",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "               if f != ADMISSION_REL]",
+  "new": "               if False]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N14",
+  "rule": "R3-3: the admission record is the only closure file that may change",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "               if f != ADMISSION_REL]",
+  "new": "               if True]",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_head_admitted_requires_a_metadata_descendant_of_the_exposure"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N15",
+  "rule": "R3-3: aggregate validates against the gate's identity, not the runs'",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "valid = [validate_run(d, s, out_root=out_root, identity=identity, pins=adm[\"input_pins\"])",
+  "new": "valid = [validate_run(d, s, out_root=out_root, identity=json.loads((d / \"manifest.json\").read_text())[\"identity\"], pins=adm[\"input_pins\"])",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[bogus_identity]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "N16",
+  "rule": "R3-3: the runs' pins equal the admitted pins",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        \"admitted pins\": pins_m == pins,",
+  "new": "        \"admitted pins\": True,",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[pins_other]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R1",
+  "rule": "R3-4: an error is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if errored:\n        return f\"INCONCLUSIVE(exit {returncode}, errors)\", failed, errored\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[errors]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R2",
+  "rule": "R3-4: an intended node that did not run is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if missing:\n        return f\"INCONCLUSIVE(exit {returncode}, {len(missing)} not run)\", failed, errored\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[fail_fast]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[survived_one_not_run]"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R3",
+  "rule": "R3-4: inherited PYTEST_ADDOPTS removed",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    env = {k: v for k, v in os.environ.items() if k != \"PYTEST_ADDOPTS\"}",
+  "new": "    env = dict(os.environ)",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R4",
+  "rule": "R3-4: options in a test list are INVALID",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        if options:\n",
+  "new": "        if False:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_refuses_options_in_a_named_test_list"
+  ],
+  "added_rev4": true
+ },
+ {
+  "id": "R5",
+  "rule": "R3-4: a summary line names its exact intended node",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        if rest == n or rest.startswith(n + \" - \"):",
+  "new": "        if rest.startswith(n):",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[red]"
+  ],
+  "added_rev4": true
  }
 ]

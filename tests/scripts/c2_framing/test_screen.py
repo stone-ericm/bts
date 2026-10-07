@@ -754,6 +754,19 @@ def _recohere(d):
     (d / "results.json").write_text(json.dumps(res, indent=1, sort_keys=True) + "\n")
 
 
+def _edit_profile(d, v, season, fn):
+    """Edit one retained profile, recompute that variant's scorecard from the retained profiles, and make the rest of
+    the run coherent: only the season-evidence checks can refuse."""
+    import json
+    from bts.validate.scorecard import compute_full_scorecard
+    path = d / f"profiles_{v}_{season}.parquet"
+    fn(pd.read_parquet(path)).to_parquet(path, index=False)
+    parts = [pd.read_parquet(d / f"profiles_{v}_{s}.parquet") for s in S.TEST_SEASONS]
+    card = compute_full_scorecard(pd.concat(parts, ignore_index=True), **S.SCORING)
+    (d / f"scorecard_{v}.json").write_text(json.dumps(card, indent=1, sort_keys=True) + "\n")
+    _recohere(d)
+
+
 def _duplicate_2024_as_2025(d):
     """r3 R3-2's case: each variant's 2025 profile replaced by its 2024 profile (rows still say 2024), the scorecards
     recomputed from what is retained, and everything downstream made coherent."""
@@ -783,7 +796,7 @@ def _rebind_claim(d):
     (d / "manifest.json").write_text(json.dumps(man, indent=1, sort_keys=True) + "\n")
 
 
-@pytest.mark.parametrize("damage, match", [
+DAMAGE = [
     ("stopped", "stopped run"), ("opaque_claim", "CLAIM.json is not valid JSON"),
     ("claim_other_run", "claim does not name"), ("basis", "basis"), ("settings", "settings"),
     ("identity_missing", "identity"), ("pins_missing", "pins"), ("unit_missing", "six registered units"),
@@ -794,7 +807,14 @@ def _rebind_claim(d):
     ("secondary_card", "does not match a recomputation from its retained profiles"),
     ("season_duplicate", "not complete 2025 evidence"), ("bogus_identity", r"\['admitted identity'\]"),
     ("foreign_head", "is not admitted"), ("scoring", r"\['scoring'\]"),
-])
+    ("results_p1", "does not reconcile across profiles, scorecard and results"),
+    ("season_mixed", "not complete 2025 evidence"), ("dates_other_year", "not complete 2025 evidence"),
+    ("pins_other", r"\['admitted pins'\]"), ("no_top_pick", "does not cover exactly the test seasons"),
+    ("secondary_summary", "stored summary does not match its diff"),
+]
+
+
+@pytest.mark.parametrize("damage, match", DAMAGE, ids=[c[0] for c in DAMAGE])
 def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
     import json
     out, dirs = three_runs
@@ -864,6 +884,22 @@ def test_aggregate_refuses_an_invalid_run(three_runs, damage, match):
     elif damage == "scoring":
         for x in dirs:
             _rewrite(x / "manifest.json", lambda r: r.update(scoring={"mc_trials": 10, "season_length": 180}))
+    elif damage == "results_p1":                         # only the results' copy of P@1 moved
+        _rewrite(d / "results.json", lambda r: r["p_at_1_by_season"]["B"].update({"2024": 0.5}))
+    elif damage == "season_mixed":                       # some 2025 rows labelled 2024 (dates still 2025), coherent
+        _edit_profile(d, "A", 2025, lambda p: p.assign(season=[2024 if i < 3 else 2025 for i in range(len(p))]))
+    elif damage == "dates_other_year":                   # 2025's rows keep their season label but carry 2024 dates
+        _edit_profile(d, "A", 2025, lambda p: p.assign(date=pd.to_datetime(p["date"]) - pd.DateOffset(years=1)))
+    elif damage == "secondary_summary":                  # only the stored summary's secondary value moved
+        _rewrite(d / "results.json", lambda r: r["variants"]["B"]["secondary"].update(p_57_exact={"delta": 0.5}))
+    elif damage == "no_top_pick":                        # 2025 rows remain, but no day has a rank-1 pick
+        _edit_profile(d, "A", 2025, lambda p: p[p["rank"] != 1])
+    elif damage == "pins_other":                         # ten well-formed pins, consistent, but not the admitted ones
+        def other(r):
+            r["input_pins"] = {k: "c" * 64 for k in r["input_pins"]}
+            r["inputs_digest"] = S.pins_digest(r["input_pins"])
+        for x in dirs:
+            _rewrite(x / "manifest.json", other)
     with pytest.raises(S.RunInvalid, match=match):
         S.aggregate(dirs, _test_out_root=out)
 
@@ -903,7 +939,7 @@ def _runner():
 INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
 
 
-@pytest.mark.parametrize("rc, out, verdict", [
+CLASSIFY = [
     (1, "PASSED t.py::b\nPASSED t.py::c[x - y]\nFAILED t.py::a - x\n1 failed, 2 passed in 0.1s", "RED"),
     (1, "PASSED t.py::b\nFAILED t.py::c[x - y] - boom\nFAILED t.py::a - x\n2 failed, 1 passed in 0.1s", "RED"),
     (1, "PASSED t.py::c[x - y]\nFAILED t.py::a - x\nERROR t.py::b - setup\n1 failed, 1 passed, 1 error in 0.01s",
@@ -915,7 +951,11 @@ INTENDED = ["t.py::a", "t.py::b", "t.py::c[x - y]"]
     # r3 R3-4: a named test that never executed (fail-fast) leaves the run incomplete, whatever the summary says
     (1, "FAILED t.py::a - x\n!!! stopping after 1 failures !!!\n1 failed in 0.1s", "INCONCLUSIVE(exit 1, 2 not run)"),
     (0, "PASSED t.py::a\nPASSED t.py::b\n2 passed in 0.1s", "INCONCLUSIVE(exit 0, 1 not run)"),
-])
+]
+CLASSIFY_IDS = ["red", "red_two_failed", "errors", "skipped", "survived", "exit2", "exit5", "fail_fast", "survived_one_not_run"]
+
+
+@pytest.mark.parametrize("rc, out, verdict", CLASSIFY, ids=CLASSIFY_IDS)
 def test_the_runner_classifies_only_complete_clean_failures_as_red(rc, out, verdict):
     assert _runner().classify(rc, out, INTENDED)[0] == verdict
 
