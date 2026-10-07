@@ -86,7 +86,7 @@ q("Q20", "cache: the held bytes' hash is recorded", SW, "        w.cache = (sha,
   [lw + "test_a_cached_blend_is_loaded_from_the_hashed_bytes_once"])
 q("Q21", "cache: the hash stands only when the held loader was used", SW,
   "    if w.cache is not None and w.cache[1] is used:", "    if w.cache is not None:",
-  [lw + "test_a_cache_capture_preparation_failure_loads_the_original_path_once"])
+  [core + "test_the_cache_hash_stands_only_for_the_held_loader"])
 q("Q22", "pa_open: one PA ledger per witness", SW, "    if w is None or w.pipeline_inputs is not None:",
   "    if w is None:", [pw + "test_a_second_run_pipeline_under_one_witness_records_nothing"])
 q("Q23", "pa_names: only for this run's ledger", SW, "    if w is not None and w.pipeline_inputs is ledger:",
@@ -104,7 +104,7 @@ q("Q26", "hashing_writer: unwitnessed saves write through the plain file", SW,
   [pw + "test_an_unwitnessed_save_writes_through_the_plain_file"])
 q("Q27", "saved: a withheld digest is recorded with its error", SW,
   '        note(w.errors, "blend save: the bytes hashed are not the bytes the file reports written; digest withheld")',
-  "        pass", gold("fault_short_write"))
+  "        pass", [core + "test_a_withheld_save_digest_is_recorded_as_an_error"])
 q("Q28", "calibration_pa: the PA file's name is recorded", SW, "    w.calibration.pa_name = path.name", "    pass",
   [lw + "test_calibration_applied_records_every_part"])
 q("Q29", "pick_file: an unreadable pick takes the C-level OSError stand-in", SW,
@@ -238,6 +238,31 @@ q("H34", "_take_serving: a failed warning for an unserializable witness is conta
   '        try:\n            log.warning("serving witness not serializable (slate still written)")\n        except Exception:\n'
   '            pass', '        log.warning("serving witness not serializable (slate still written)")',
   [T + "test_slate_v3.py::test_a_failed_warning_for_an_unserializable_witness_still_writes_the_slate"])
+# Masked layers, as r1's O11 (ledger run at c007271): each mutant removes a layer whose loss the next layer hides, so
+# it is run combined with that next layer, whose own removal has its own entry (H31; the call-site guard is reached
+# only by an unforeseen fault).
+sl = Path(SL).read_text()
+def span(a, b):
+    i = sl.index(a); j = sl.index(b, i) + len(b)
+    assert sl.count(a) == 1 and sl.count(b) == 1
+    return sl[i:j]
+o14 = span('        serving = predictions.attrs.pop("serving", None)\n', '            predictions.attrs.pop("serving", None)\n')
+o14_new = o14.replace('        serving = predictions.attrs.pop("serving", None)\n', '        serving = predictions.attrs.get("serving")\n'
+                      ).replace('            predictions.attrs.pop("serving", None)\n', '            pass\n')
+for m in kept:
+    if m["id"] == "O14":
+        m.update(rule="F1: save_slate takes the witness off the frame before building rows (combined with the backstop "
+                      "drop, which masks it alone; r4)", old=o14, new=o14_new)
+inner = '        try:\n            log.warning("serving witness not serializable (slate still written)")\n        except Exception:\n            pass'
+guard = ('        try:\n            serving = _take_serving(predictions)    # off the frame before the row extraction copies '
+         'its attrs\n        except Exception:\n            serving = None')
+h34 = span(inner, guard)
+h34_new = h34.replace(inner, '        log.warning("serving witness not serializable (slate still written)")').replace(
+    guard, '        serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs')
+for m in N:
+    if m["id"] == "H34":
+        m.update(rule="_take_serving: a failed warning for an unserializable witness is contained (combined with "
+                      "save_slate's call-site guard, which masks it alone)", old=h34, new=h34_new)
 ms = kept + N
 ids = [m["id"] for m in ms]
 assert len(ids) == len(set(ids))

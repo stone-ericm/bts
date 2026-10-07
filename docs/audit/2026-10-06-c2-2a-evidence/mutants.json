@@ -210,10 +210,10 @@
  },
  {
   "id": "O14",
-  "rule": "F1: save_slate takes the witness before building rows",
+  "rule": "F1: save_slate takes the witness off the frame before building rows (combined with the backstop drop, which masks it alone; r4)",
   "file": "src/bts/slate.py",
-  "old": "        serving = predictions.attrs.pop(\"serving\", None)\n",
-  "new": "        serving = predictions.attrs.get(\"serving\")\n",
+  "old": "        serving = predictions.attrs.pop(\"serving\", None)\n    except Exception:\n        try:\n            serving = predictions.attrs.get(\"serving\")\n        except Exception:\n            serving = None\n    try:\n        json.dumps(serving, allow_nan=False)\n        return serving\n    except Exception:\n        try:\n            log.warning(\"serving witness not serializable (slate still written)\")\n        except Exception:\n            pass\n        return None\n\n\ndef save_slate(\n    predictions: pd.DataFrame | None,\n    date: str,\n    picks_dir: Path,\n    tier_name: str | None,\n) -> Path | None:\n    \"\"\"Write the ranked slate for `date`. Returns the path, or None on any failure.\"\"\"\n    try:\n        if predictions is None or predictions.empty:\n            return None\n        try:\n            serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs\n        except Exception:\n            serving = None\n        try:\n            predictions.attrs.pop(\"serving\", None)\n",
+  "new": "        serving = predictions.attrs.get(\"serving\")\n    except Exception:\n        try:\n            serving = predictions.attrs.get(\"serving\")\n        except Exception:\n            serving = None\n    try:\n        json.dumps(serving, allow_nan=False)\n        return serving\n    except Exception:\n        try:\n            log.warning(\"serving witness not serializable (slate still written)\")\n        except Exception:\n            pass\n        return None\n\n\ndef save_slate(\n    predictions: pd.DataFrame | None,\n    date: str,\n    picks_dir: Path,\n    tier_name: str | None,\n) -> Path | None:\n    \"\"\"Write the ranked slate for `date`. Returns the path, or None on any failure.\"\"\"\n    try:\n        if predictions is None or predictions.empty:\n            return None\n        try:\n            serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs\n        except Exception:\n            serving = None\n        try:\n            pass\n",
   "tests": [
    "tests/c2_2a/test_r1_counterexamples.py"
   ]
@@ -459,7 +459,7 @@
   "old": "    if w.cache is not None and w.cache[1] is used:",
   "new": "    if w.cache is not None:",
   "tests": [
-   "tests/c2_2a/test_local_witness.py::test_a_cache_capture_preparation_failure_loads_the_original_path_once"
+   "tests/c2_2a/test_witness_core.py::test_the_cache_hash_stands_only_for_the_held_loader"
   ],
   "added_r4": true
  },
@@ -525,9 +525,7 @@
   "old": "        note(w.errors, \"blend save: the bytes hashed are not the bytes the file reports written; digest withheld\")",
   "new": "        pass",
   "tests": [
-   "tests/c2_2a/test_golden.py",
-   "-k",
-   "fault_short_write"
+   "tests/c2_2a/test_witness_core.py::test_a_withheld_save_digest_is_recorded_as_an_error"
   ],
   "added_r4": true
  },
@@ -1039,10 +1037,10 @@
  },
  {
   "id": "H34",
-  "rule": "_take_serving: a failed warning for an unserializable witness is contained",
+  "rule": "_take_serving: a failed warning for an unserializable witness is contained (combined with save_slate's call-site guard, which masks it alone)",
   "file": "src/bts/slate.py",
-  "old": "        try:\n            log.warning(\"serving witness not serializable (slate still written)\")\n        except Exception:\n            pass",
-  "new": "        log.warning(\"serving witness not serializable (slate still written)\")",
+  "old": "        try:\n            log.warning(\"serving witness not serializable (slate still written)\")\n        except Exception:\n            pass\n        return None\n\n\ndef save_slate(\n    predictions: pd.DataFrame | None,\n    date: str,\n    picks_dir: Path,\n    tier_name: str | None,\n) -> Path | None:\n    \"\"\"Write the ranked slate for `date`. Returns the path, or None on any failure.\"\"\"\n    try:\n        if predictions is None or predictions.empty:\n            return None\n        try:\n            serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs\n        except Exception:\n            serving = None",
+  "new": "        log.warning(\"serving witness not serializable (slate still written)\")\n        return None\n\n\ndef save_slate(\n    predictions: pd.DataFrame | None,\n    date: str,\n    picks_dir: Path,\n    tier_name: str | None,\n) -> Path | None:\n    \"\"\"Write the ranked slate for `date`. Returns the path, or None on any failure.\"\"\"\n    try:\n        if predictions is None or predictions.empty:\n            return None\n        serving = _take_serving(predictions)    # off the frame before the row extraction copies its attrs",
   "tests": [
    "tests/c2_2a/test_slate_v3.py::test_a_failed_warning_for_an_unserializable_witness_still_writes_the_slate"
   ],

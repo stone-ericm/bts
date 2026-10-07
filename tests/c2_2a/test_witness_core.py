@@ -119,6 +119,35 @@ def test_the_cache_hooks_without_a_witness_are_the_deployed_load(files):
     assert W.cache_loader(files / "a.bin", deployed, None) is deployed and W.cache_used(deployed, None) is None
 
 
+def test_the_cache_hash_stands_only_for_the_held_loader(files):
+    """The held loader was made (its hash recorded), but the computation used the deployed one (a fault between the
+    two): the path was read a second time, so the held bytes' hash is not the loaded bytes' and is withheld."""
+    w = W.Serving()
+    deployed = object()
+    held = W.cache_loader(files / "a.bin", deployed, w)
+    assert held is not deployed and w.cache is not None
+    W.cache_used(deployed, w)
+    assert w.cache_used is False and any("loaded from the path" in e for e in w.errors)
+    w2 = W.Serving()
+    W.cache_used(W.cache_loader(files / "a.bin", deployed, w2), w2)
+    assert w2.cache_used is True and w2.errors == []
+
+
+def test_a_withheld_save_digest_is_recorded_as_an_error():
+    class ShortSink(io.BytesIO):
+        def write(self, b):
+            return super().write(bytes(b)[:2])
+    w = W.Serving()
+    token = W.begin(w)
+    try:
+        f = W.hashing_writer(ShortSink())
+        f.write(b"abcdef")
+        W.saved(f)
+    finally:
+        W.end(token)
+    assert w.save_digest is None and any("digest withheld" in e for e in w.errors)
+
+
 def test_a_sealed_witness_records_nothing(files):
     w = W.Serving()
     token = W.begin(w)
