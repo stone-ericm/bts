@@ -10,13 +10,23 @@ evidence (r5 R5-1, r6 R6-1). Outcomes never come from pytest's text output (r4 R
   `tryfirst` wrappers. Pluggy calls the last-registered tryfirst wrapper outermost, so the sentinel's
   `pytest_sessionfinish` wrapper sees any inner hook or wrapper abort (r6 R6-1), and its `pytest_runtest_call` wrapper
   records what each test call itself raised, independently of the reports built from it;
-- the plugins registered after the sentinel (any could wrap it), and the intended nodes carrying an xfail, skip or skipif
-  marker.
+- whether a plugin registered after the sentinel, which could wrap it (r7 R7-1). There are three layers:
+  - every registration after the sentinel, counted as an EVENT through pytest's public `pytest_plugin_registered` hook,
+    and kept even if the plugin later unregisters itself;
+  - a final census of the registry;
+  - the sentinel's own check, each time it runs, that it is the outermost implementation of that hook. That catches an
+    outer wrapper even when its registration bypassed pytest's API;
+- the intended nodes carrying an xfail, skip or skipif marker.
+
+The driver guarantee, precisely: evidence is written only after `pytest.main` returns. An abort that escapes
+`pytest.main` (for example from unconfiguration) leaves no evidence. An abort pytest itself catches (`pytest.exit`,
+KeyboardInterrupt, an abort in a session-finish hook) may still leave evidence, and each such case is refused explicitly
+by the rules below. The sentinel's ordering claim holds because a later registration is detected by those three layers.
 
 A mutant is RED only when all of these hold:
 - the driver's evidence exists and its pytest exit status is the process return code;
 - no interrupt, internal error or collection error; the sentinel's session finish completed; no plugin was registered
-  after the sentinel;
+  after the sentinel, and the sentinel was outermost each time it ran;
 - no intended node is marked xfail/skip/skipif, and no report is skipped, xfailed or xpassed (r6 R6-2);
 - no setup or teardown failed; every intended node has its own setup, call and teardown reports; no unintended node ran;
 - every intended call report's outcome agrees with what the sentinel saw the call do (a rewritten or fabricated report
@@ -43,11 +53,17 @@ DRIVER = '''import json, sys
 import pytest
 
 class Sentinel:
-    def __init__(self):
-        self.calls, self.finish = {}, None
+    def __init__(self, pm):
+        self.pm, self.calls, self.finish, self.not_outermost = pm, {}, None, []
+
+    def _outermost(self, caller, where):
+        impls = caller.get_hookimpls()
+        if not impls or impls[-1].plugin is not self:     # pluggy calls the list's last implementation first
+            self.not_outermost.append(where)
 
     @pytest.hookimpl(wrapper=True, tryfirst=True)
     def pytest_runtest_call(self, item):
+        self._outermost(self.pm.hook.pytest_runtest_call, item.nodeid)
         try:
             result = yield
         except BaseException as e:
@@ -58,6 +74,7 @@ class Sentinel:
 
     @pytest.hookimpl(wrapper=True, tryfirst=True)
     def pytest_sessionfinish(self, session, exitstatus):
+        self._outermost(self.pm.hook.pytest_sessionfinish, "sessionfinish")
         try:
             result = yield
         except BaseException as e:
@@ -70,6 +87,11 @@ class Sentinel:
 class Recorder:
     def __init__(self):
         self.records, self.sentinel, self.config, self.at_sentinel, self.marked = [], None, None, None, []
+        self.late_events = 0
+
+    def pytest_plugin_registered(self, plugin):
+        if self.sentinel is not None and plugin is not self.sentinel:
+            self.late_events += 1                        # an event: kept even if the plugin later unregisters
 
     def pytest_configure(self, config):
         self.config = config
@@ -81,7 +103,7 @@ class Recorder:
     def pytest_collection_finish(self, session):
         self.marked = [i.nodeid for i in session.items
                        if any(i.get_closest_marker(m) for m in ("xfail", "skip", "skipif"))]
-        self.sentinel = Sentinel()
+        self.sentinel = Sentinel(session.config.pluginmanager)
         session.config.pluginmanager.register(self.sentinel, "framing-runner-sentinel")
         self.at_sentinel = {id(p) for p in session.config.pluginmanager.get_plugins()}
 
@@ -100,9 +122,10 @@ rec = Recorder()
 rc = int(pytest.main(args, plugins=[rec]))
 late = None
 if rec.at_sentinel is not None:
-    late = len({id(p) for p in rec.config.pluginmanager.get_plugins()} - rec.at_sentinel)
+    late = rec.late_events + len({id(p) for p in rec.config.pluginmanager.get_plugins()} - rec.at_sentinel)
 evidence = {"rc": rc, "records": rec.records, "calls": rec.sentinel.calls if rec.sentinel else {},
-            "finish": rec.sentinel.finish if rec.sentinel else None, "late_plugins": late, "marked": rec.marked}
+            "finish": rec.sentinel.finish if rec.sentinel else None, "late_plugins": late,
+            "not_outermost": rec.sentinel.not_outermost if rec.sentinel else None, "marked": rec.marked}
 with open(out, "x") as f:
     json.dump(evidence, f)
 sys.exit(rc)
@@ -149,6 +172,8 @@ def classify(returncode: int, intended, bundle: dict | None) -> tuple[str, list]
         return f"INCONCLUSIVE({tag}, session finish incomplete)", failed
     if bundle.get("late_plugins") != 0:
         return f"INCONCLUSIVE({tag}, plugins registered late)", failed
+    if bundle.get("not_outermost") != []:
+        return f"INCONCLUSIVE({tag}, sentinel not outermost)", failed
     if set(bundle.get("marked") or []) & set(intended):
         return f"INCONCLUSIVE({tag}, marked xfail or skip)", failed
     if any(r["outcome"] == "skipped" or r.get("wasxfail") for r in reports):

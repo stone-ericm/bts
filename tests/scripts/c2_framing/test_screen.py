@@ -1020,7 +1020,7 @@ def _bundle(records, failed_nodes=(), rc=None, **over):
          "calls": {n: ("AssertionError" if n in failed_nodes else None) for n in nodes},
          "finish": {"exitstatus": (1 if failed_nodes else 0) if rc is None else rc, "testsfailed": len(failed_nodes),
                     "testscollected": len(set(nodes))},
-         "late_plugins": 0, "marked": []}
+         "late_plugins": 0, "not_outermost": [], "marked": []}
     b.update(over)
     return b
 
@@ -1040,6 +1040,8 @@ CLASSIFY = [
     (1, _bundle(ONE_FAIL, [A], finish={"raised": "Exit"}), "INCONCLUSIVE(exit 1, session finish incomplete)"),
     (1, _bundle(ONE_FAIL, [A], finish=None), "INCONCLUSIVE(exit 1, session finish incomplete)"),
     (1, _bundle(ONE_FAIL, [A], late_plugins=1), "INCONCLUSIVE(exit 1, plugins registered late)"),
+    # r7 R7-1: the sentinel found itself not outermost at a call or at session finish
+    (1, _bundle(ONE_FAIL, [A], not_outermost=["sessionfinish"]), "INCONCLUSIVE(exit 1, sentinel not outermost)"),
     # r6 R6-2: expected-failure status is kept, and xfail/skip-marked nodes are never killers
     (1, _bundle(_phases(A, "failed") + [_rec(B, "passed", "setup"), _rec(B, "passed", wasxfail=True),
                                          _rec(B, "passed", "teardown")] + _phases(C), [A]),
@@ -1063,7 +1065,7 @@ CLASSIFY = [
      "INCONCLUSIVE(exit 1, session mismatch)"),
 ]
 CLASSIFY_IDS = ["red", "red_two_failed", "survived", "no_evidence", "exit_mismatch", "interrupted", "internal_error",
-                "collection_error", "finish_raised", "finish_missing", "late_plugin", "xpass", "marked", "skipped",
+                "collection_error", "finish_raised", "finish_missing", "late_plugin", "not_outermost", "xpass", "marked", "skipped",
                 "errors", "fail_fast", "teardown_cut_short", "unintended_node", "report_flipped", "call_unobserved",
                 "failed_count_mismatch", "collected_count_mismatch",
                 "exit_status_mismatch"]
@@ -1258,6 +1260,76 @@ def test_an_unconfigure_abort_leaves_no_evidence(tmp_path, capsys):
         "def pytest_unconfigure(config):\n"
         "    if val() != 1:\n"
         "        pytest.exit('2 failed at unconfigure', returncode=1)\n"), expect="no normal end")
+
+
+_LATE = ("class Late:\n"
+         "    def __init__(self, pm, base):\n"
+         "        self.pm, self.base = pm, base\n"
+         "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n"
+         "    def pytest_sessionfinish(self, session, exitstatus):\n"
+         "        result = yield\n"
+         "        (pluggy.PluginManager.unregister if self.base else type(self.pm).unregister)(self.pm, self)\n"
+         "        if val() != 1:\n"
+         "            pytest.exit('2 failed in a late wrapper', returncode=1)\n"
+         "        return result\n")
+
+
+def test_a_self_unregistering_late_wrapper_is_refused(tmp_path, capsys):
+    """r7 R7-1: a test registers a tryfirst session-finish wrapper (outside the sentinel), which aborts after the
+    sentinel's record and unregisters itself before the final census. The registration event is retained."""
+    body = lambda r: _VAL + "import pluggy\n" + _LATE + (
+        "def test_first(request):\n"
+        "    request.config.pluginmanager.register(Late(request.config.pluginmanager, False), 'late-wrapper')\n"
+        "    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="plugins registered late")
+
+
+def test_the_late_registration_evidence_is_produced_and_retained(tmp_path):
+    """r7 R7-1, the producer itself: a plugin registered during the run and unregistered at once still counts."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first(request):\n"
+        "    pm = request.config.pluginmanager\n"
+        "    p = object()\n"
+        "    pm.register(p, 'brief')\n"
+        "    pm.unregister(p)\n"
+        "    assert val() == 1\n"))
+    rc, out, bundle = _runner().run_mutant(root, ["test_scratch.py"])
+    assert bundle is not None and bundle["late_plugins"] >= 1 and bundle["not_outermost"] == []
+    assert _runner().classify(rc, ["test_scratch.py::test_first"], bundle)[0] == "INCONCLUSIVE(exit 0, plugins registered late)"
+
+
+def test_an_outer_wrapper_without_a_registration_event_is_still_seen(tmp_path, capsys):
+    """Defence in depth: a wrapper registered through pluggy's base class (bypassing pytest's registration hook) and
+    unregistered before the census is still caught, because the sentinel checks it is outermost when it runs."""
+    body = lambda r: _VAL + "import pluggy\n" + _LATE + (
+        "def test_first(request):\n"
+        "    pm = request.config.pluginmanager\n"
+        "    pluggy.PluginManager.register(pm, Late(pm, True), 'hidden-wrapper')\n"
+        "    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="sentinel not outermost")
+
+
+def test_a_hidden_call_wrapper_is_seen(tmp_path, capsys):
+    """Only the sentinel's per-call outermost check can see this: a call wrapper registered through pluggy's base class
+    (no registration event) wraps the second test's call and unregisters itself before the final census."""
+    body = lambda r: _VAL + "import pluggy\n" + (
+        "class Hidden:\n"
+        "    def __init__(self, pm):\n"
+        "        self.pm = pm\n"
+        "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n"
+        "    def pytest_runtest_call(self, item):\n"
+        "        try:\n"
+        "            return (yield)\n"
+        "        finally:\n"
+        "            pluggy.PluginManager.unregister(self.pm, self)\n"
+        "def test_first(request):\n"
+        "    pm = request.config.pluginmanager\n"
+        "    pluggy.PluginManager.register(pm, Hidden(pm), 'hidden-call-wrapper')\n"
+        "    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n")
+    _inconclusive(tmp_path, capsys, "", body=body, expect="sentinel not outermost")
 
 
 def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
