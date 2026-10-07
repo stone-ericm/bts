@@ -1579,7 +1579,7 @@
   "rule": "r9 gate: a from-import cannot rebind a builtin",
   "file": "scripts/audit/c2_framing/mutant_runner.py",
   "old": "                if a.name != \"*\":\n                    bind(node, a.asname or a.name)\n",
-  "new": "",
+  "new": "                pass\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_gate_refuses_code_outside_the_runners_scope[from_import_rebinds_builtin]"
   ],
@@ -2048,7 +2048,7 @@
   "old": "            last[f] = _ctime(f)\n    print(\"NOT RED:\"",
   "new": "    print(\"NOT RED:\"",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_two_mutants_of_one_target_are_both_red"
+   "tests/scripts/c2_framing/test_screen.py::test_mutants_across_two_targets_are_all_red"
   ],
   "added_rev9": true
  },
@@ -2071,17 +2071,6 @@
   "new": "if False})",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_a_harmless_early_plugin_is_still_foreign"
-  ],
-  "added_rev9": true
- },
- {
-  "id": "R90",
-  "rule": "r9: blocked plugin names (None) are not plugins",
-  "file": "scripts/audit/c2_framing/mutant_runner.py",
-  "old": "for p in pm.get_plugins() if p is not None)",
-  "new": "for p in pm.get_plugins())",
-  "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_a_clean_run_has_no_foreign_plugins_and_no_plugin_changes"
   ],
   "added_rev9": true
  },

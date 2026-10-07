@@ -1182,7 +1182,7 @@ def _gate(tmp_path, source, name="test_scratch.py", extra=None):
 
 GATE_REFUSED = [
     ("import_unlisted", "import importlib\n", "import importlib"),
-    ("from_import_unlisted", "from os import system\n", "import os"),
+    ("from_import_unlisted", "from os import name\n", "import os"),       # `name` is an allowed attribute
     ("relative_import", "from . import x\n", "relative import"),
     ("star_import", "from pathlib import *\n", "import pathlib.*"),
     ("dotted_without_alias", "import scripts.audit.c2_framing.screen\n", "without an alias"),
@@ -1387,14 +1387,17 @@ def test_a_file_written_into_the_root_during_the_run_refuses_it(tmp_path, capsys
     assert "X1 INCONCLUSIVE(exit 1, files changed during the run)" in out and "NOT RED: X1" in out, out
 
 
-def test_two_mutants_of_one_target_are_both_red(tmp_path, capsys):
-    """The runner's own restore of a target is not a change: the next mutant of the same file still runs."""
-    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
-    entries = json.loads(spec.read_text())
-    spec.write_text(json.dumps(entries + [dict(entries[0], id="X2", new="value = 3")]))
+def test_mutants_across_two_targets_are_all_red(tmp_path, capsys):
+    """The runner's own restore of a target is not a change: the next mutant, of the other target or the same one, runs."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _READ + (
+        "def test_first():\n"
+        f"    assert val() == {_ONE} and pathlib.Path(__file__).with_name('other.py').read_text() == {_ONE}\n"))
+    (root / "other.py").write_text("value = 1\n")
+    x1 = json.loads(spec.read_text())[0]
+    spec.write_text(json.dumps([x1, dict(x1, id="X2", file="other.py"), dict(x1, id="X3", new="value = 3")]))
     assert R.main(str(spec), root=root) == 0
     out = capsys.readouterr().out
-    assert "X1 RED" in out and "X2 RED" in out and "NOT RED: none" in out, out
+    assert "X1 RED" in out and "X2 RED" in out and "X3 RED" in out and "NOT RED: none" in out, out
 
 
 def test_a_target_rewritten_during_the_run_refuses_it(tmp_path, capsys):

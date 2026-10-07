@@ -127,11 +127,11 @@ ALLOWED_ATTRIBUTES = frozenset({
 ALLOWED_KEYWORDS = frozenset({
     '_test_out_root', 'actual_hit', 'atol', 'basis', 'budget', 'calls', 'capture_output', 'check', 'code', 'columns',
     'date', 'deterministic', 'dtype', 'equal_nan', 'execute', 'exempt', 'exist_ok', 'extra', 'feature_settings',
-    'finish', 'foreign_plugins', 'head', 'id', 'identity', 'ids', 'ignore_index', 'indent', 'index', 'late_plugins',
-    'marked', 'match', 'mc_trials', 'name', 'new', 'not_outermost', 'out_root', 'p_57_exact', 'p_at_1_delta',
-    'p_game_hit', 'parents', 'passed', 'pid', 'pins', 'plugin', 'plugin_changes', 'raising', 'rank', 'reverse',
-    'reviewed_commit', 'root', 'rtol', 'run', 'scoring', 'season', 'season_length', 'sort_keys', 'source', 'start',
-    'text', 'units', 'unrecognized_extra', 'walk_forward', 'wasxfail', 'years',
+    'file', 'finish', 'foreign_plugins', 'head', 'id', 'identity', 'ids', 'ignore_index', 'indent', 'index',
+    'late_plugins', 'marked', 'match', 'mc_trials', 'name', 'new', 'not_outermost', 'out_root', 'p_57_exact',
+    'p_at_1_delta', 'p_game_hit', 'parents', 'passed', 'pid', 'pins', 'plugin', 'plugin_changes', 'raising', 'rank',
+    'reverse', 'reviewed_commit', 'root', 'rtol', 'run', 'scoring', 'season', 'season_length', 'sort_keys', 'source',
+    'start', 'text', 'units', 'unrecognized_extra', 'walk_forward', 'wasxfail', 'years',
 })
 ALLOWED_PARAMETERS = frozenset({
     'a', 'args', 'blend_configs', 'body', 'budget', 'bundle', 'call', 'calls', 'canary', 'capsys', 'cmd', 'cwd', 'd',
@@ -211,7 +211,7 @@ class Recorder:
         pm = session.config.pluginmanager
         self.marked = [i.nodeid for i in session.items
                        if any(i.get_closest_marker(m) for m in ("xfail", "skip", "skipif"))]
-        self.foreign = sorted({o for o in (_origin(p) for p in pm.get_plugins() if p is not None)
+        self.foreign = sorted({o for o in (_origin(p) for p in pm.get_plugins())
                                if o != "__main__" and not o.startswith("_pytest.")})
         self.sentinel = Sentinel(pm)
         pm.register(self.sentinel, "framing-runner-sentinel")
