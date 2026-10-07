@@ -1137,6 +1137,22 @@ def test_a_later_session_finish_abort_is_not_a_normal_end(tmp_path, capsys):
     assert (root / "target.py").read_text() == "value = 1\n"
 
 
+def test_an_exit_after_the_last_report_is_still_an_interrupt(tmp_path, capsys):
+    """r5 R5-1, isolated: pytest.exit after the last test's teardown has reported. Every phase report exists and the
+    counters agree; only pytest's interrupt hook shows the session did not end normally."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], lambda r: _VAL + (
+        "def test_first():\n    assert val() == 1\n"
+        "def test_second():\n    assert val() == 1\n"))
+    (root / "conftest.py").write_text(_VAL + (
+        "def pytest_runtest_logfinish(nodeid, location):\n"
+        "    if nodeid.endswith('test_second') and val() != 1:\n"
+        "        pytest.exit('2 failed after the last test', returncode=1)\n"))
+    assert _runner().main(str(spec), root=root) == 1
+    out = capsys.readouterr().out
+    assert "X1 INCONCLUSIVE(exit 1, interrupted)" in out and "NOT RED: X1" in out
+    assert (root / "target.py").read_text() == "value = 1\n"
+
+
 def test_the_runner_refuses_options_in_a_named_test_list(tmp_path, capsys):
     canary = tmp_path / "canary"
     spec, root = _scratch_mutant(tmp_path, ["test_scratch.py", "-x"], lambda r: _VAL + (
