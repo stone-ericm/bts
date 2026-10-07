@@ -1154,7 +1154,7 @@ def test_the_run_environment_is_scrubbed(monkeypatch):
     assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1" and env["PYTHONDONTWRITEBYTECODE"] == "1"
     assert env["PYTHONPYCACHEPREFIX"].startswith("/dev/null/")                # no cache can exist there
     root = Path("/r")
-    assert R._pytest_cmd(root, "x")[1:5] == ["-B", "-P", "-s", "-m"]
+    assert R._python()[1:] == ["-B", "-P", "-s"] and R._pytest_cmd(root, "x")[1:6] == ["-B", "-P", "-s", "-m", "pytest"]
     args = R._args(root, "x")
     assert args[args.index("-c") + 1] == "/dev/null" and "--noconftest" in args and args[-1] == "x"
 
@@ -1187,6 +1187,9 @@ GATE_REFUSED = [
     ("star_import", "from pathlib import *\n", "import pathlib.*"),
     ("dotted_without_alias", "import scripts.audit.c2_framing.screen\n", "without an alias"),
     ("pytest_alias", "import pytest as p\n", "pytest imported as p"),
+    ("import_rebinds_builtin", "import json as len\n", "rebinds builtin len"),
+    ("from_import_rebinds_builtin", "from json import loads as len\n", "rebinds builtin len"),
+    ("from_pytest_main", "from pytest import main\n", "import pytest.main"),
     ("pytest_exit", "import pytest\npytest.exit('x')\n", "pytest.exit"),
     ("pytest_main", "import pytest\npytest.main([])\n", "pytest.main"),
     ("pytest_bare", "import pytest\nx = [pytest]\n", "pytest used other than as pytest.<name>"),
@@ -1205,6 +1208,8 @@ GATE_REFUSED = [
     ("pytest_plugins", "pytest_plugins = ['p']\n", "name pytest_plugins"),
     ("pytestmark", "pytestmark = []\n", "name pytestmark"),
     ("module_getattr", "def __getattr__(name):\n    return 1\n", "name __getattr__"),
+    ("module_dunder_init", "def __init__():\n    pass\n", "name __init__"),
+    ("dunder_loader", "x = __loader__\n", "name __loader__"),
     ("dunder_assign", "__test__ = False\n", "name __test__"),
     ("dunder_walrus", "y = (__x__ := 1)\n", "name __x__"),
     ("builtin_rebind", "len = 3\n", "rebinds builtin len"),
@@ -1214,6 +1219,8 @@ GATE_REFUSED = [
     ("lambda_parameter", "f = lambda request: 1\n", "parameter request"),
     ("keyword_unlisted", "import json\njson.dumps(1, cls=None)\n", "keyword cls"),
     ("keyword_splat", "import json\nd = {}\njson.dumps(1, **d)\n", "keyword splat"),
+    ("keyword_splat_rebuilt", "import json\ndef f(**k):\n    k['cls'] = None\n    return json.dumps(1, **k)\n",
+     "keyword splat"),
     ("metaclass", "class X(metaclass=type):\n    pass\n", "keyword metaclass"),
     ("setattr_two_arguments", "def test_x(monkeypatch):\n    monkeypatch.setattr('json.dumps', len)\n",
      "setattr needs (object, literal name, value)"),
@@ -1244,6 +1251,15 @@ def test_the_gate_refuses_a_named_test_that_is_not_a_file_in_the_root(tmp_path):
     (tmp_path / "test_out.py").write_text("x = 1\n")
     problems = R.scope_problems(root, ["sub", "../test_out.py", "test_missing.py"])
     assert [p.split(":")[0] for p in problems] == ["sub", "../test_out.py", "test_missing.py"], problems
+
+
+def test_the_gate_refuses_packages_that_reach_above_the_root(tmp_path):
+    root = tmp_path / "gate"
+    root.mkdir()
+    for d in (tmp_path, root):
+        (d / "__init__.py").write_text("")
+    (root / "test_scratch.py").write_text("x = 1\n")
+    assert R.scope_problems(root, ["test_scratch.py"]) == ["test_scratch.py: its packages reach above the root"]
 
 
 def test_the_gate_scans_the_mutated_bytes_of_a_suite_file(tmp_path):
@@ -1300,6 +1316,8 @@ def test_the_reviewed_vocabulary_excludes_known_escape_routes():
     assert not R.ALLOWED_KEYWORDS & DANGEROUS["keywords"]
     assert not R.ALLOWED_PARAMETERS & DANGEROUS["parameters"]
     assert R.PYTEST_ATTRIBUTES == {"fixture", "mark", "raises"}
+    assert "len" in R._BUILTIN_NAMES and "getattr" in R._BUILTIN_NAMES
+    assert not [p for p in R.ALLOWED_PARAMETERS if p in R._BUILTIN_NAMES or p.startswith(("pytest", "__"))]
     assert not [a for a in R.ALLOWED_ATTRIBUTES if a.startswith("__")]
 
 
@@ -1333,6 +1351,20 @@ def test_the_change_scan_reports_changed_new_and_removed_entries(tmp_path):
     assert sorted(Path(c).name for c in changed) == ["edited.py", "pkg"], changed
 
 
+def test_an_unlistable_directory_is_reported(tmp_path):
+    tree = tmp_path / "tree"
+    (tree / "locked").mkdir(parents=True)
+    marker = tmp_path / "marker"
+    marker.write_text("t0")
+    t0 = marker.stat().st_ctime_ns
+    (tree / "locked").chmod(0)                       # also a ctime change, so check the listing failure itself
+    try:
+        changed = R.changed_since(t0 + 10 ** 15, [tree])         # a t0 in the future: only the failure can report
+    finally:
+        (tree / "locked").chmod(0o755)
+    assert [Path(c).name for c in changed] == ["locked"], changed
+
+
 def test_the_scan_roots_cover_the_root_and_the_interpreters_trees(tmp_path):
     trees = R.interpreter_trees()
     assert any((Path(t) / "json" / "__init__.py").is_file() for t in trees)          # the standard library
@@ -1353,6 +1385,16 @@ def test_a_file_written_into_the_root_during_the_run_refuses_it(tmp_path, capsys
     assert R.main(str(spec), root=root) == 1
     out = capsys.readouterr().out
     assert "X1 INCONCLUSIVE(exit 1, files changed during the run)" in out and "NOT RED: X1" in out, out
+
+
+def test_two_mutants_of_one_target_are_both_red(tmp_path, capsys):
+    """The runner's own restore of a target is not a change: the next mutant of the same file still runs."""
+    spec, root = _scratch_mutant(tmp_path, ["test_scratch.py"], _two_read_failing())
+    entries = json.loads(spec.read_text())
+    spec.write_text(json.dumps(entries + [dict(entries[0], id="X2", new="value = 3")]))
+    assert R.main(str(spec), root=root) == 0
+    out = capsys.readouterr().out
+    assert "X1 RED" in out and "X2 RED" in out and "NOT RED: none" in out, out
 
 
 def test_a_target_rewritten_during_the_run_refuses_it(tmp_path, capsys):
@@ -1478,6 +1520,19 @@ def test_a_harmless_early_plugin_is_still_foreign(tmp_path):
     bundle = _dynamic(tmp_path, _two_val_failing, "name pytest_plugins", "foreign plugins",
                       plugin="def pytest_report_header(config):\n    return 'scratch'\n")
     assert bundle["foreign_plugins"] == ["scratch_plugin"]
+
+
+def test_an_early_plugin_unregistered_during_the_run_is_seen(tmp_path):
+    """r9: removing a plugin registered before the sentinel adds nothing and leaves the sentinel outermost; only the
+    watch on pluggy's remove code sees it."""
+    body = lambda r: _VAL + _PLUGINS + ("def test_first(request):\n"
+                                        "    request.config.pluginmanager.unregister(name='scratch_plugin')\n"
+                                        "    assert val() == 1\n"
+                                        "def test_second():\n    assert val() == 1\n")
+    bundle = _dynamic(tmp_path, body, "parameter request", "plugin system changed",
+                      plugin="def pytest_report_header(config):\n    return 'scratch'\n")
+    assert bundle["late_plugins"] == 0 and bundle["not_outermost"] == []
+    assert bundle["plugin_changes"] and all(c == "HookCaller._remove_plugin" for c in bundle["plugin_changes"])
 
 
 def test_a_non_strict_xpass_is_not_a_kill(tmp_path):

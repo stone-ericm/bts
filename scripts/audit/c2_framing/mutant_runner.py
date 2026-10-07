@@ -35,10 +35,10 @@ the user site to the import path (`-P -s`) and neither writes nor reads bytecode
 suite, and the installed and repository code it imports.
 
 ENFORCEMENT that the imported code is the reviewed code (the change scan). Code written to disk during the ledger and
-imported later would bypass the gate. From the ledger's start, no file or directory under the root, the interpreter's
-prefixes or its import path may change (ctime, which no process can set back); the mutation targets, which the runner
+imported later would bypass the gate. From the ledger's start, no file or directory under the root or any directory on
+the interpreter's import path may change (ctime, which no process can set back); the mutation targets, which the runner
 itself writes, must keep the ctime of the runner's last write while pytest runs. Any change refuses the mutant, and
-every mutant after it.
+every mutant after it. (Run the ledger with `python -B`, so the runner itself writes no bytecode there.)
 
 THE RUN. Each mutant's named tests are its intended set: before mutating, `pytest --collect-only` on the unmutated
 source lists exactly the nodes they select. The mutated run is a DRIVER process that calls `pytest.main()` in-process
@@ -77,8 +77,8 @@ A mutant is RED only when all of these hold:
 - the exit status is 1 and at least one intended node FAILED.
 A complete clean pass (exit status 0) is SURVIVED; anything else is INCONCLUSIVE, and a gate refusal is REFUSED.
 
-Inherited selection and early-stop options cannot apply: the environment is scrubbed, the ini file is empty and its
-`addopts` are cleared, and a named test list holding any option is INVALID before anything is mutated. The runner's
+Inherited selection and early-stop options cannot apply: the environment is scrubbed, the configuration file is empty,
+and a named test list holding any option is INVALID before anything is mutated. The runner's
 root (default: this repository) is pytest's rootdir and working directory, so collection stays inside it.
 
 Every failure is printed; the file is restored by hash after each mutant; the runner exits 1 if any mutant is not RED.
@@ -98,7 +98,7 @@ ALLOWED_MODULES = frozenset({
     'subprocess',
 })
 ALLOWED_BUILTINS = frozenset({
-    'Exception', 'SystemExit', 'ValueError', 'any', 'bool', 'bytes', 'dict', 'enumerate', 'float', 'int',
+    'Exception', 'SystemExit', 'ValueError', 'all', 'any', 'bool', 'bytes', 'dict', 'enumerate', 'float', 'int',
     'isinstance', 'iter', 'len', 'list', 'next', 'range', 'round', 'set', 'sorted', 'str', 'tuple', 'zip',
 })
 ALLOWED_ATTRIBUTES = frozenset({
@@ -106,31 +106,32 @@ ALLOWED_ATTRIBUTES = frozenset({
     'ALLOWED_PARAMETERS', 'BASIS', 'BLEND_CONFIGS', 'DataFrame', 'DateOffset', 'FEATURE_COLS', 'FunctionDef',
     'IDENTITY_KEYS', 'INPUT_NAMES', 'LGB_PARAMS', 'LOOKUP_NAME', 'NA', 'NEW_COL', 'OLD_COL', 'PYTEST_ATTRIBUTES',
     'Path', 'ProvenanceError', 'REGISTER_REL', 'REPO', 'RETRAIN_EVERY', 'ROOKIE_GATE_K', 'RunInvalid', 'SCORING',
-    'SEASONS_IN', 'SETTINGS', 'STAGE_ONE_SEEDS', 'TEST_SEASONS', '_args', '_build_probable_pitcher_lookup', '_env',
-    '_pytest_cmd', '_t', 'admission_gate', 'aggregate', 'all', 'any', 'append', 'arg', 'args', 'array', 'as_posix',
-    'assert_allclose', 'assert_array_equal', 'assign', 'astype', 'attach_park_drag', 'base_cols', 'blend_configs',
-    'body', 'changed_since', 'chdir', 'check_settings', 'classify', 'collect', 'compute_all_features',
-    'compute_full_scorecard', 'concat', 'copy', 'copytree', 'cpu_seconds', 'default_rng', 'defaults', 'delenv',
-    'diff_scorecards', 'disposition', 'drop', 'dropna', 'dumps', 'encode', 'exists', 'first_unit_stop', 'fixture',
-    'framing_by', 'freeze_lookup', 'frozen_lookup', 'get', 'get_table', 'groupby', 'head', 'head_admitted',
-    'hexdigest', 'iloc', 'index', 'inf', 'install_closed_inputs', 'interpreter_trees', 'is_dir', 'is_file', 'isclose',
-    'isin', 'isna', 'isspace', 'items', 'iterdir', 'iterrows', 'join', 'kw_defaults', 'kwonlyargs', 'launch',
-    'literal_eval', 'load_inputs', 'loads', 'loc', 'main', 'mark', 'mean', 'min', 'mkdir', 'name', 'nan', 'notna',
-    'original_portion_labels', 'out', 'parametrize', 'parent', 'parents', 'parse', 'pins', 'pins_digest', 'pop',
-    'raises', 'random', 'read_bytes', 'read_parquet', 'read_text', 'readouterr', 'relabel', 'relative_to', 'release',
-    'replace', 'resolve', 'resumed_counts', 'run', 'run_mutant', 'scan_roots', 'scope_problems', 'seed_summary',
-    'self_check', 'setattr', 'setenv', 'setitem', 'sha256', 'sort_index', 'split', 'sqrt', 'st_ctime_ns',
-    'startswith', 'stat', 'stdout', 'strip', 'suite_files', 'testing', 'to_datetime', 'to_dict', 'to_numpy',
-    'to_parquet', 'unique', 'unlink', 'update', 'validate_run', 'with_name', 'write_bytes', 'write_text',
+    'SEASONS_IN', 'SETTINGS', 'STAGE_ONE_SEEDS', 'TEST_SEASONS', '_BUILTIN_NAMES', '_args',
+    '_build_probable_pitcher_lookup', '_env', '_pytest_cmd', '_python', '_t', 'admission_gate', 'aggregate', 'all',
+    'any', 'append', 'arg', 'args', 'array', 'as_posix', 'assert_allclose', 'assert_array_equal', 'assign', 'astype',
+    'attach_park_drag', 'base_cols', 'blend_configs', 'body', 'changed_since', 'chdir', 'check_settings', 'chmod',
+    'classify', 'collect', 'compute_all_features', 'compute_full_scorecard', 'concat', 'copy', 'copytree',
+    'cpu_seconds', 'default_rng', 'defaults', 'delenv', 'diff_scorecards', 'disposition', 'drop', 'dropna', 'dumps',
+    'encode', 'exists', 'first_unit_stop', 'fixture', 'framing_by', 'freeze_lookup', 'frozen_lookup', 'get',
+    'get_table', 'groupby', 'head', 'head_admitted', 'hexdigest', 'iloc', 'index', 'inf', 'install_closed_inputs',
+    'interpreter_trees', 'is_dir', 'is_file', 'isclose', 'isin', 'isna', 'isspace', 'items', 'iterdir', 'iterrows',
+    'join', 'kw_defaults', 'kwonlyargs', 'launch', 'literal_eval', 'load_inputs', 'loads', 'loc', 'main', 'mark',
+    'mean', 'min', 'mkdir', 'name', 'nan', 'notna', 'original_portion_labels', 'out', 'parametrize', 'parent',
+    'parents', 'parse', 'pins', 'pins_digest', 'pop', 'raises', 'random', 'read_bytes', 'read_parquet', 'read_text',
+    'readouterr', 'relabel', 'relative_to', 'release', 'replace', 'resolve', 'resumed_counts', 'run', 'run_mutant',
+    'scan_roots', 'scope_problems', 'seed_summary', 'self_check', 'setattr', 'setenv', 'setitem', 'sha256',
+    'sort_index', 'split', 'sqrt', 'st_ctime_ns', 'startswith', 'stat', 'stdout', 'strip', 'suite_files', 'testing',
+    'to_datetime', 'to_dict', 'to_numpy', 'to_parquet', 'unique', 'unlink', 'update', 'validate_run', 'with_name',
+    'write_bytes', 'write_text',
 })
 ALLOWED_KEYWORDS = frozenset({
     '_test_out_root', 'actual_hit', 'atol', 'basis', 'budget', 'calls', 'capture_output', 'check', 'code', 'columns',
     'date', 'deterministic', 'dtype', 'equal_nan', 'execute', 'exempt', 'exist_ok', 'extra', 'feature_settings',
-    'finish', 'foreign_plugins', 'head', 'identity', 'ids', 'ignore_index', 'indent', 'index', 'late_plugins',
-    'marked', 'match', 'mc_trials', 'name', 'not_outermost', 'out_root', 'p_57_exact', 'p_at_1_delta', 'p_game_hit',
-    'parents', 'passed', 'pid', 'pins', 'plugin', 'plugin_changes', 'raising', 'rank', 'reverse', 'reviewed_commit',
-    'root', 'rtol', 'run', 'scoring', 'season', 'season_length', 'sort_keys', 'source', 'start', 'text', 'units',
-    'unrecognized_extra', 'walk_forward', 'wasxfail', 'years',
+    'finish', 'foreign_plugins', 'head', 'id', 'identity', 'ids', 'ignore_index', 'indent', 'index', 'late_plugins',
+    'marked', 'match', 'mc_trials', 'name', 'new', 'not_outermost', 'out_root', 'p_57_exact', 'p_at_1_delta',
+    'p_game_hit', 'parents', 'passed', 'pid', 'pins', 'plugin', 'plugin_changes', 'raising', 'rank', 'reverse',
+    'reviewed_commit', 'root', 'rtol', 'run', 'scoring', 'season', 'season_length', 'sort_keys', 'source', 'start',
+    'text', 'units', 'unrecognized_extra', 'walk_forward', 'wasxfail', 'years',
 })
 ALLOWED_PARAMETERS = frozenset({
     'a', 'args', 'blend_configs', 'body', 'budget', 'bundle', 'call', 'calls', 'canary', 'capsys', 'cmd', 'cwd', 'd',
@@ -259,12 +260,17 @@ sys.exit(rc)
 '''
 
 
+def _python() -> list[str]:
+    """The interpreter for every collection and run: no bytecode, no script directory or user site on the path."""
+    return [sys.executable, "-B", "-P", "-s"]
+
+
 def _pytest_cmd(root: Path, *args) -> list[str]:
-    return [sys.executable, "-B", "-P", "-s", "-m", "pytest", *_args(root, *args)]
+    return [*_python(), "-m", "pytest", *_args(root, *args)]
 
 
 def _args(root: Path, *args) -> list[str]:
-    return [f"--rootdir={root}", "-c", os.devnull, "-o", "addopts=", "--noconftest", "-p", "no:cacheprovider", *args]
+    return [f"--rootdir={root}", "-c", os.devnull, "--noconftest", "-p", "no:cacheprovider", *args]
 
 
 def _env() -> dict:
@@ -421,8 +427,8 @@ def _vocabulary_problems(data: bytes, filename: str) -> list[str]:
                 up = parents.get(node)
                 if not (isinstance(up, ast.Attribute) and up.value is node):
                     bad(node, "pytest used other than as pytest.<name>")
-            elif ident.startswith("pytest") or (_dunder(ident) and ident not in ALLOWED_DUNDER_NAMES):
-                bad(node, f"name {ident}")
+            elif _dunder(ident) and ident not in ALLOWED_DUNDER_NAMES:
+                bad(node, f"name {ident}")        # __builtins__, __import__, __loader__ (pytest's rewrite hook), ...
             elif ident in _BUILTIN_NAMES and ident not in ALLOWED_BUILTINS:
                 bad(node, f"builtin {ident}")
         elif isinstance(node, ast.Attribute):
@@ -435,16 +441,10 @@ def _vocabulary_problems(data: bytes, filename: str) -> list[str]:
             if not (isinstance(node, ast.FunctionDef) and node.name in ALLOWED_DUNDER_METHODS
                     and isinstance(parents.get(node), ast.ClassDef)):
                 bind(node, node.name)
-        elif isinstance(node, ast.arg):
-            bind(node, node.arg)
+        elif isinstance(node, ast.arg):                     # (no allowed parameter is a builtin, dunder or pytest*)
             if node.arg not in ALLOWED_PARAMETERS:
                 bad(node, f"parameter {node.arg}")
         elif isinstance(node, ast.ExceptHandler) and node.name:
-            bind(node, node.name)
-        elif isinstance(node, (ast.Global, ast.Nonlocal)):
-            for ident in node.names:
-                bind(node, ident)
-        elif isinstance(node, (ast.TypeVar, ast.ParamSpec, ast.TypeVarTuple)):
             bind(node, node.name)
         elif isinstance(node, ast.Match):
             bad(node, "match statement")
@@ -486,9 +486,8 @@ def scope_problems(root: Path, tests: list[str], overrides: dict | None = None) 
 # ---------------------------------------------------------------- the change scan
 
 def interpreter_trees() -> list[str]:
-    """Where the run's interpreter imports code from: its prefixes and every directory on its import path."""
-    trees = [sys.prefix, sys.base_prefix] + [p for p in sys.path if p and os.path.isdir(p)]
-    return sorted({os.path.realpath(t) for t in trees})
+    """Where the run's interpreter imports code from: every directory on its import path."""
+    return sorted({os.path.realpath(p) for p in sys.path if p and os.path.isdir(p)})
 
 
 def scan_roots(root: Path) -> list[str]:
@@ -500,18 +499,13 @@ def scan_roots(root: Path) -> list[str]:
 
 
 def changed_since(t0: int, roots, exempt=()) -> list[str]:
-    """Every file or directory under the roots whose ctime is t0 or later, or that cannot be read (fail closed)."""
+    """Every file or directory under the roots whose ctime is t0 or later, or that cannot be listed (fail closed)."""
     skip = {os.path.realpath(e) for e in exempt}
     changed = set()
     for r in roots:
         for dirpath, dirnames, filenames in os.walk(r, onerror=lambda e: changed.add(str(e.filename))):
             for path in [dirpath] + [os.path.join(dirpath, n) for n in dirnames + filenames]:
-                if path in skip:
-                    continue
-                try:
-                    if os.lstat(path).st_ctime_ns >= t0:
-                        changed.add(path)
-                except OSError:
+                if path not in skip and os.lstat(path).st_ctime_ns >= t0:
                     changed.add(path)
     return sorted(changed)
 
@@ -538,7 +532,7 @@ def run_mutant(root: Path, tests: list[str]):
     work = Path(tempfile.mkdtemp(prefix="framing-runner-"))
     (work / "framing_runner_driver.py").write_text(DRIVER)
     evidence = work / "evidence.json"
-    r = subprocess.run([sys.executable, "-B", "-P", "-s", str(work / "framing_runner_driver.py"), str(evidence),
+    r = subprocess.run([*_python(), str(work / "framing_runner_driver.py"), str(evidence),
                         *_args(root, "-q", *tests)], cwd=root, env=_env(), capture_output=True, text=True)
     bundle = None
     if evidence.is_file():
@@ -550,7 +544,6 @@ def run_mutant(root: Path, tests: list[str]):
 
 
 def main(spec: str, only: str | None = None, *, root: Path = REPO) -> int:
-    sys.dont_write_bytecode = True                     # the runner itself writes nothing under the scanned trees
     t0 = time.time_ns()
     root = Path(root).resolve()
     roots = scan_roots(root)

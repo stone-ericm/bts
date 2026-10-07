@@ -1,14 +1,15 @@
-# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 8)
+# C2 side item (e): catcher-grouped framing screen, stage one — pre-registration (revision 9)
 
 **Status:**
-- Revision 8, for review round 8 (Eric, row **C2-framing-review-r8**, under the full review rules with the registration-hook fix; no ninth round without a new ruling). Rounds 4 to 7 were authorized by rows **C2-framing-review-r4** to **-r7**.
+- Revision 9, for review round 9 (Eric, row **C2-framing-review-r9**: the mutant runner's threat model stated and the boundary enforced; the experiment and its result checks stay under the full rules; no tenth round without a new ruling). Rounds 4 to 8 were authorized by rows **C2-framing-review-r4** to **-r8**.
   - Revision 2 answered review r1 (`docs/audit/2026-10-06-c2-framing-codex-r1.md`, BLOCK B1–B7).
   - Revision 3 answered review r2 (`docs/audit/2026-10-06-c2-framing-codex-r2.md`, BLOCK R2-1 to R2-4).
   - Revision 4 answered review r3 (`docs/audit/2026-10-06-c2-framing-codex-r3.md`, BLOCK R3-1 to R3-4). Only the after-the-run checks and the mutant runner changed. The run's computation, inputs, labels, settings and variants did not.
   - Revision 5 answered review r4 (`docs/audit/2026-10-06-c2-framing-codex-r4.md`, BLOCK R4-1 to R4-3). Again only the after-the-run checks and the mutant runner changed.
   - Revision 6 answered review r5 (`docs/audit/2026-10-07-c2-framing-codex-r5.md`, BLOCK R5-1; nonblocking R5-2). The mutant runner's end-of-session evidence changed, and two small validator refusals were added.
   - Revision 7 answered review r6 (`docs/audit/2026-10-07-c2-framing-codex-r6.md`, BLOCK R6-1, R6-2), both in the mutant runner, which was redesigned.
-  - Revision 8 answers review r7 (`docs/audit/2026-10-07-c2-framing-codex-r7.md`, BLOCK R7-1), in the mutant runner only (evidence README, revision 8). Nothing in the run or its validator changes.
+  - Revision 8 answered review r7 (`docs/audit/2026-10-07-c2-framing-codex-r7.md`, BLOCK R7-1), in the mutant runner only.
+  - Revision 9 answers review r8 (`docs/audit/2026-10-07-c2-framing-codex-r8.md`, BLOCK R8-1) under Eric's ruling C2-framing-review-r9, in the mutant runner and its tests only (§9; evidence README, revision 9). The runner moves to `scripts/audit/c2_framing/mutant_runner.py`. Nothing in the run or its validator changes: `screen.py` is byte-identical to revision 8.
 - The note is frozen at the reviewed commit once signed.
 - Nothing runs before three things: a plain SIGN, the exposure row X-35, and the admission record.
 
@@ -220,3 +221,13 @@ Anything else is refused.
 - **A small, consumed evaluation:** 2 seasons, 3 algorithm seeds.
 - **Not comparable to 2026-03-31's 85.1% → 87.0%:** a single model, a 13-feature base, seed 42, and probably the actual_pa basis.
 - **No serving input:** production has no pre-game catcher input.
+
+## 9. The mutant ledger's threat model (revision 9; Eric's row C2-framing-review-r9)
+The mutant ledger certifies, for each mutant, what pytest did with the named tests: they all ran completely, and at least one failed. The runner's guarantee is bounded by a stated threat model, and the boundary is enforced, not assumed.
+- **Out of scope:** test code that changes pytest's plugin system (registers, unregisters or wraps hook implementations, or loads plugins), wraps its hooks, or aborts the session. Also out of scope, as since revision 7: deliberate tampering with the runner's own objects, its evidence file or pytest's internals, and another process acting on the run from outside.
+- **Enforced before anything runs:** the runner refuses (REFUSED) any mutant whose suite, meaning every file the run imports as test code, uses anything outside a reviewed vocabulary. The vocabulary is the real suite's own imports, builtins, attributes, keywords and parameters. It contains no name that reaches pytest's plugin manager, configuration, session, nodes or hooks, a frame, dynamic import, deserialization or an in-process abort. Hook-like and dunder bindings are refused, and so is `pytest` other than `pytest.fixture`, `pytest.mark` or `pytest.raises`.
+- **Enforced in what loads:** no ini setting, no conftest, no entry-point plugin, no inherited Python or pytest environment variable, and no bytecode is read or written. So a run contains pytest's builtin plugins, the runner, the gated suite, and the installed and repository code it imports.
+- **Enforced in that code:** no file or directory under the repository or any directory on the interpreter's import path may change during the ledger, except the mutation targets the runner itself writes. Code written to disk and imported later would otherwise bypass the gate.
+- **Child processes** the suite starts reach the run only through the operating system. A signal is refused (interrupted, or no evidence), a written file is caught by the change scan, and a debugger is out of scope.
+- **Defence in depth** stays behind the gate. These dynamic checks refuse a run in which a foreign plugin was registered, any hook implementation was added or removed after the sentinel (by any API), the session was interrupted or did not finish, or a report disagrees with what the test call did.
+- **The experiment and its result checks** (§3 to §7, `screen.py`) are not narrowed. They remain under the full review rules.
