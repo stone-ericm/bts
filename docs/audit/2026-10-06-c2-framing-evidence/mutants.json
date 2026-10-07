@@ -703,16 +703,16 @@
  },
  {
   "id": "H13",
-  "rule": "runner: a skip or an unclean summary is never RED (r2 R2-4)",
+  "rule": "runner: a skip is never RED (r2 R2-4)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if skipped or any(w in summary for w in UNCLEAN):\n        return f\"INCONCLUSIVE({tag})\", failed\n",
+  "old": "    if any(r[\"outcome\"] == \"skipped\" for r in reports):\n        return f\"INCONCLUSIVE({tag}, skipped)\", failed\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]",
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit2]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]"
   ],
   "reanchored_rev4": true,
-  "reanchored_rev5": true
+  "reanchored_rev5": true,
+  "reanchored_rev6": true
  },
  {
   "id": "N1",
@@ -901,13 +901,14 @@
   "id": "R1",
   "rule": "R3-4: an error is never RED",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if errored:\n        return f\"INCONCLUSIVE({tag}, errors)\", failed\n",
+  "old": "    if any(r[\"when\"] != \"call\" and r[\"outcome\"] == \"failed\" for r in reports):\n        return f\"INCONCLUSIVE({tag}, errors)\", failed\n",
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[errors]"
   ],
   "added_rev4": true,
-  "reanchored_rev5": true
+  "reanchored_rev5": true,
+  "reanchored_rev6": true
  },
  {
   "id": "R2",
@@ -1039,25 +1040,29 @@
  },
  {
   "id": "R6",
-  "rule": "R4-2: a session that did not end normally is never RED",
+  "rule": "R5-1: without pytest's session-finish record the session did not end normally",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if not ended:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", failed\n",
+  "old": "    if len(sessions) != 1:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", failed\n",
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_normal_end]"
   ],
-  "added_rev5": true
+  "added_rev5": true,
+  "reanchored_rev6": true
  },
  {
   "id": "R7",
-  "rule": "R4-2: pytest's summary must agree with the recorded outcomes",
+  "rule": "R5-1: pytest's own counters must agree with the reports (replaces the text cross-check)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if counts.get(\"failed\", 0) != len(failed) or counts.get(\"passed\", 0) != len(passed):\n        return f\"INCONCLUSIVE({tag}, summary mismatch)\", failed\n",
-  "new": "",
+  "old": "    if (sess[\"testscollected\"] != len(intended) or sess[\"testsfailed\"] != len(failed)\n            or sess[\"exitstatus\"] != returncode):\n",
+  "new": "    if False:\n",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[summary_mismatch]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[failed_count_mismatch]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collected_count_mismatch]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]"
   ],
-  "added_rev5": true
+  "added_rev5": true,
+  "reanchored_rev6": true
  },
  {
   "id": "R8",
@@ -1072,13 +1077,113 @@
  },
  {
   "id": "R9",
-  "rule": "R4-2: the plugin records the session's normal end",
+  "rule": "R5-1: the plugin writes pytest's session-finish record",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "        _f.write(json.dumps({\"end\": True}) + \"\\\\n\")\n",
-  "new": "",
+  "old": "    _write({\"session\": {\"exitstatus\": int(exitstatus), \"testsfailed\": int(session.testsfailed),\n                        \"testscollected\": int(session.testscollected)}})\n",
+  "new": "    pass\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
   ],
-  "added_rev5": true
+  "added_rev5": true,
+  "reanchored_rev6": true
+ },
+ {
+  "id": "R10",
+  "rule": "R5-1: an interrupt (pytest.exit, KeyboardInterrupt) is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if any(\"interrupted\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, interrupted)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[interrupted]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R11",
+  "rule": "R5-1: the plugin records pytest's interrupt hook",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    _write({\"interrupted\": excinfo.typename})\n",
+  "new": "    pass\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_is_not_fooled_by_an_aborted_teardown"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R12",
+  "rule": "R5-1: every intended node's setup and teardown reports are required",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if incomplete:\n        return f\"INCONCLUSIVE({tag}, {len(incomplete)} incomplete)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[teardown_cut_short]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R13",
+  "rule": "R5-1: an internal error is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if any(\"internalerror\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, internal error)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[internal_error]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R14",
+  "rule": "R5-1: a collection error is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if any(\"collecterror\" in r for r in records):\n        return f\"INCONCLUSIVE({tag}, collection errors)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collection_error]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R15",
+  "rule": "R5-1: pytest's exit status must be the process return code",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "\n            or sess[\"exitstatus\"] != returncode):\n",
+  "new": "):\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "R16",
+  "rule": "R5-1: the session-finish record is written last (after every other session-finish hook)",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "@pytest.hookimpl(trylast=True)\ndef pytest_sessionfinish",
+  "new": "@pytest.hookimpl(tryfirst=True)\ndef pytest_sessionfinish",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_later_session_finish_abort_is_not_a_normal_end"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "N23",
+  "rule": "R5-2: probabilities must be numeric (never coerced)",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        return \"probabilities are not numeric\"",
+  "new": "        pass",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_aggregate_refuses_an_invalid_run[p_strings]"
+  ],
+  "added_rev6": true
+ },
+ {
+  "id": "N24",
+  "rule": "R5-2: a rescoring failure is a refusal, not a crash",
+  "file": "scripts/audit/c2_framing/screen.py",
+  "old": "        except Exception as e:                          # r5 R5-2: a refusal, never an unexpected exception\n",
+  "new": "        except ZeroDivisionError as e:\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_rescoring_failure_is_a_refusal_not_a_crash"
+  ],
+  "added_rev6": true
  }
 ]
