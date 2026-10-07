@@ -677,6 +677,32 @@ def sc_calibration_no_pa_file(h):
     _run_and_pick(h)
 
 
+def sc_calibration_empty_pa(h):
+    """Calibration's own read of the current-year PA (in predict_local, on both sides) yields an empty frame, so the
+    resolver reads no pick file and returns no samples (code review r4: the "read nothing" listing). The pipeline's
+    read of the same file is unaffected."""
+    _calibration(h)
+    real = pd.read_parquet
+
+    def read(src, *a, **k):
+        out = real(src, *a, **k)
+        return out.iloc[0:0] if sys._getframe(1).f_code.co_name == "predict_local" else out
+    h.p.set(pd, "read_parquet", read)
+    _run_and_pick(h)
+
+
+def sc_genuine_pick_unreadable(h):
+    """One history pick file is genuinely unreadable (mode 000) while the day runs: the deployed resolver's read
+    raises, and its handler skips the file, with no second read (code review r4: the unreadable stand-in)."""
+    _calibration(h)
+    target = sorted(p for p in (h.root / "data" / "picks").glob("2*.json") if _is_history_pick(p))[0]
+    os.chmod(target, 0)
+    try:
+        _run_and_pick(h)
+    finally:
+        os.chmod(target, 0o644)
+
+
 def sc_calibration_insufficient_support(h):
     _calibration(h)
     picks = h.root / "data" / "picks"
@@ -1162,6 +1188,8 @@ SCENARIOS = {
     "calibration_on": (sc_calibration_on, {}),
     "calibration_off_explicit": (sc_calibration_off_explicit, {}),
     "calibration_no_pa_file": (sc_calibration_no_pa_file, {}),
+    "calibration_empty_pa": (sc_calibration_empty_pa, {}),
+    "genuine_pick_unreadable": (sc_genuine_pick_unreadable, {}),
     "calibration_insufficient_support": (sc_calibration_insufficient_support, {}),
     "calibration_no_sklearn": (sc_calibration_no_sklearn, {}),
     "calibration_changed_history": (sc_calibration_changed_history, {}),

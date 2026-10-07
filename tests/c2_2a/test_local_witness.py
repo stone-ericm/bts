@@ -170,6 +170,7 @@ def test_inputs_and_only_the_serving_key_remain_in_attrs(world):
 def test_a_prediction_failure_returns_none_as_before(world, monkeypatch):
     monkeypatch.setattr(P, "predict", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("synthetic")))
     assert _run(world) is None
+    assert W.current() is None                           # and leaves no witness open for any later caller
 
 
 # ---------------------------------------------------------------- calibration (§3.2)

@@ -55,6 +55,7 @@ FILES = ("src/bts/model/predict.py", "src/bts/model/calibrate.py", "src/bts/orch
 SCENARIOS = (
     "model_cached", "model_cold", "calibration_on", "calibration_off_explicit", "calibration_no_pa_file",
     "calibration_insufficient_support", "calibration_no_sklearn", "calibration_two_thresholds", "day_dm",
+    "calibration_empty_pa", "genuine_pick_unreadable",
     "fault_parquet_buffer", "fault_parquet_buffer_alloc", "fault_parquet_hash", "fault_cache_buffer",
     "fault_cache_hash", "fault_hashing_writer_construction", "fault_hashing_writer_hash",
     "fault_hashing_writer_finalisation", "fault_short_write", "fault_calibration_pa_buffer", "fault_pick_buffer",

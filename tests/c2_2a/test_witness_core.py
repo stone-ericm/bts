@@ -172,3 +172,56 @@ def test_an_unknown_status_is_never_published_as_not_applied():
     assert rec["status"] is None and rec["applied"] is None
     c.applied = True
     assert c.record()["applied"] is True and c.record()["status"] == "applied"
+
+
+def test_a_held_pick_whose_record_did_not_stand_is_not_counted(tmp_path):
+    """Only a path the computation read is recorded as consumed-with-unknown-bytes; a held stand-in whose record was
+    lost (it has a name too) is never re-recorded that way."""
+    f = tmp_path / "2026-06-20.json"
+    f.write_text("{}")
+
+    class NoAppend(list):
+        def append(self, x):
+            raise RuntimeError("synthetic")
+    led = W.Ledger([], "pick input")
+    led.records = NoAppend()
+    held = led.hold(f, W._pick_text(f))
+    assert held.read_text() == "{}"
+    led.records = []
+    led.confirm(held)
+    assert led.records == [] and not led.complete(["2026-06-20.json"])
+
+
+def test_a_path_read_that_failed_is_never_counted_as_consumed(tmp_path, monkeypatch):
+    """Capture preparation failed (the path is used), and then the path's own read failed: skipped as deployed,
+    and that file is not recorded as consumed."""
+    from bts.model import calibrate as C
+    picks = tmp_path / "picks"
+    picks.mkdir()
+    (picks / "2026-06-20.json").write_text("{}")
+    monkeypatch.setattr(Path, "read_bytes", lambda self: (_ for _ in ()).throw(MemoryError("synthetic buffer")))
+    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: (_ for _ in ()).throw(PermissionError("synthetic")))
+    w = W.Serving()
+    token = W.begin(w)
+    try:
+        assert C._resolve_pick_outcomes(picks, pd.DataFrame({"batter_id": [1], "date": ["2026-06-20"],
+                                                             "is_hit": [1], "is_resumed_portion": [False]}),
+                                        pd.Timestamp("2026-06-30").date(), 30) == []
+    finally:
+        W.end(token)
+    assert w.calibration.picks.records == [] and not w.calibration.picks.complete(w.calibration.pick_names)
+
+
+def test_the_slate_drops_the_witness_from_the_frame_even_if_taking_it_failed(tmp_path, monkeypatch):
+    """save_slate's backstop: if taking the witness fails, it is still dropped from the frame before the rows are
+    extracted, so pandas never copies it (r1 F1), and the slate is written with a null witness."""
+    from bts import slate as S
+    frame = pd.DataFrame({"batter_id": [1], "game_pk": [10], "p_game_hit": [0.8]})
+    frame.attrs["serving"] = {"schema": "x"}
+    monkeypatch.setattr(S, "_take_serving", lambda predictions: (_ for _ in ()).throw(MemoryError("synthetic")))
+    g = pd.DataFrame.__finalize__.__globals__
+    real = g["deepcopy"]
+    monkeypatch.setitem(g, "deepcopy", lambda obj, *a, **k: (_ for _ in ()).throw(MemoryError("copied the witness"))
+                        if isinstance(obj, dict) and "serving" in obj else real(obj, *a, **k))
+    path = S.save_slate(frame, "2026-06-30", tmp_path, "local")
+    assert path is not None and json.loads(path.read_text())["serving"] is None and frame.attrs == {}

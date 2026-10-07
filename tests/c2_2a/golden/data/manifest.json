@@ -1,5 +1,5 @@
 {
- "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out /private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/golden_r4",
+ "command": "/Users/eric/projects/bts-c2-2a-golden/.venv/bin/python3 -m tests.c2_2a.golden.generate --out /private/tmp/claude-501/-Users-eric-projects-bts/5f91aea8-99ec-4c37-9eab-f76e81b81a0f/scratchpad/golden_r4b",
  "commit": "f882411d939d1b8eb0433beee1514170a17f689a",
  "environment": {
   "OMP_NUM_THREADS": "1",
@@ -17,6 +17,7 @@
   "calibration_apply_failure.json": "6f455c35789e8ba327bde58196ace19f6867d77112a55e55ff0fecf7b061e948",
   "calibration_changed_history.json": "5340386da38fcdb9fd1e8213929c22377b3607e88f21875fb179c0ac297296cd",
   "calibration_decode_error.json": "74d4b06eebf2596e368fb236618f95337825631a94055929a63cc1b1741c446e",
+  "calibration_empty_pa.json": "b35d63462fc992f04621f08aa160d2d1a205711eec958c2e320a51857cda168f",
   "calibration_error_after_assignment.json": "9725c8bbdec4c90db7f33650253270b6c5d9cd156d755f2064abce772a1ba32d",
   "calibration_fit_failure.json": "ee0cdbf5debea8f316ea04ca42ee40629bb7a4754d190baa9aba9a8131942aba",
   "calibration_insufficient_support.json": "5ec1069f077188adc8854cf87fc0c8470c0b6367569f33d0f39ab590b44eb9d5",
@@ -69,6 +70,7 @@
   "genuine_cache_unpickle_stateful.json": "68f6831571ae73d3b60cdb4ec4e82dee0f6c7777472ce76f050f007e08f18587",
   "genuine_parquet_parse.json": "5cd275e9686976be73d72ed33bc494a1cf3ecc3d4319b07c4a869d9adc2e98e2",
   "genuine_partial_write.json": "1f29849e99a56e7a6b57406dc12e046255e17db4573bbbb42fdec7728c93ada0",
+  "genuine_pick_unreadable.json": "23e52166560dd423a8d894da935b2b0f7b68ae32a37f5399d58fe4b58c81eb69",
   "genuine_save_serialization.json": "f5992c63d359fc6e115480ec5f066cf9ed1b5b3b3c6fe6f5ec4a1a09adb3dd8f",
   "model_cached.json": "54f215657ecc9a5db19d761054ac4852084f1b69eaff27b8e0ec72c12ae3ec25",
   "model_cold.json": "a9c87a504dbb9428c1b1103a947577a698f84ea78db677b94905f7ba8989601e",
@@ -78,7 +80,7 @@
   "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "fakes.py": "f0cedfdd9ce077558715208af604585c527720fec47c8f86e048120221cf445d",
   "generate.py": "26877c14aaea06561d5af7bbda2b2432c0208f89515e36a3719fa77094222187",
-  "scenarios.py": "d2d4452fb519c5e0dbf9201468d781085d5749d32d22cfe729a350b29043319a",
+  "scenarios.py": "5e3954c8397386b8ab405ebc7bb608e5969323f011aa6266795bfa3f5909f801",
   "world.py": "594c1c7edba218058e70355752521f170e9ed4dca4b63ec81f1df510c372a65c"
  },
  "partial": false,
@@ -97,6 +99,8 @@
   "calibration_on",
   "calibration_off_explicit",
   "calibration_no_pa_file",
+  "calibration_empty_pa",
+  "genuine_pick_unreadable",
   "calibration_insufficient_support",
   "calibration_no_sklearn",
   "calibration_changed_history",

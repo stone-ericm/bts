@@ -149,7 +149,8 @@ EXPECT_CAL = {
     "fault_map_extraction": ("applied", True), "fault_error_recording": ("applied", True),
     "fault_attrs_copy_calibration": ("applied", True), "fault_pick_decoder_oserror": ("applied", True),
     "fault_omitted_input_lost_error": ("applied", True), "fault_undescribable_pick": ("applied", True),
-    "fault_map_hash": ("applied", True),
+    "fault_map_hash": ("applied", True), "calibration_empty_pa": ("insufficient_support", False),
+    "genuine_pick_unreadable": ("applied", True),
     "fault_provenance_take": ("applied", True), "fault_pa_append_landed": ("applied", True),
 }
 CACHE_SOURCE = {"model_cached", "fault_cache_buffer", "fault_cache_hash", "fault_undescribable_cache"}
@@ -175,11 +176,12 @@ def _check_witness(name, cand, observed):
         status, applied = EXPECT_CAL.get(name, ("off", False))
         assert (c["status"], c["applied"], c["enabled"]) == (status, applied, status != "off")
         if status in ("applied", "insufficient_support") and name not in (
-                "fault_collector_appends", "fault_sample_canonicalisation", "fault_omitted_input_lost_error"):
+                "fault_collector_appends", "fault_sample_canonicalisation", "fault_omitted_input_lost_error",
+                "calibration_empty_pa", "genuine_pick_unreadable"):
             _assert_calibration_bound(c, cand, check_map=name != "fault_map_hash")
     clean = not name.startswith("fault_") and name not in (
         "calibration_decode_error", "calibration_fit_failure", "calibration_apply_failure",
-        "calibration_error_after_assignment")
+        "calibration_error_after_assignment", "genuine_pick_unreadable")
     if clean:
         assert w["errors"] == [] and c["errors"] == []
         assert all(i["sha256"] for i in w["inputs"]) and model["sha256"] == cache
@@ -265,6 +267,17 @@ def _failed_with_error(w, c, cand, observed):
     assert c["errors"]
 
 
+def _read_nothing(w, c, cand, observed):
+    # the resolver consumed no pick file: an empty inventory, complete, and no samples (code review r4)
+    assert c["pick_inputs"] == [] and c["samples"] == [] and c["n_fit"] == 0 and c["map"] is None
+
+
+def _unreadable_withheld(w, c, cand, observed):
+    # the unreadable file was skipped with no second read; the consumed inventory is incomplete, so withheld
+    assert c["pick_inputs"] is None and c["n_fit"] and set(cand["pick_reads"].values()) == {1}
+    assert any("unreadable" in e for e in c["errors"])
+
+
 def _landed_pa_withheld(w, c, cand, observed):
     # every PA append landed and raised, its error lost: withheld on both sides, whatever the lengths say (r2 R2-2)
     assert w["inputs"] is None and "PA inputs incomplete; withheld" in w["errors"]
@@ -289,6 +302,7 @@ _SPECIFIC = {
     "fault_pick_decoder_oserror": _null_pick_inputs, "fault_undescribable_pick": _null_pick_inputs,
     "fault_omitted_input_lost_error": _withheld_inputs, "fault_map_hash": _null_map_hash,
     "fault_package_query": _package_error, "fault_pa_append_landed": _landed_pa_withheld,
+    "calibration_empty_pa": _read_nothing, "genuine_pick_unreadable": _unreadable_withheld,
 }
 
 

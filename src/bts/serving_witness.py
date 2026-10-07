@@ -68,23 +68,6 @@ def note(errors, what, exc=None) -> bool:
         return False
 
 
-def collect(items, build, errors, what: str) -> bool:
-    """Append `build()` to a provenance collector. The record is built inside the guard. Never raises; returns False
-    when building or appending failed (the caller then treats that part as incomplete, whether or not the error itself
-    could be recorded)."""
-    if items is None:
-        return True
-    try:
-        items.append(build())
-        return True
-    except Exception as e:
-        try:
-            note(errors, what + ": collector append failed", e)
-        except Exception:
-            pass
-        return False
-
-
 def sha256_or_none(raw, errors, what: str):
     """sha256 hex of the held bytes, or None with a recorded error."""
     try:
