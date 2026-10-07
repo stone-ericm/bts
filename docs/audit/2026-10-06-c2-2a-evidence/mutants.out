@@ -847,3 +847,16 @@ P22 RED ========================= 2 failed, 18 passed in 2.35s =================
 P23 SURVIVED ======================= 1 passed, 63 deselected in 6.98s =======================
 NOT RED: C13,P23
 exit 1
+# resume at 3cbe84851839459a49441f077f9d46c9b61680d2, 2026-10-06 21:14 EDT: O18, P18 with exact gate node ids (their -k deselected the unit tests); P23 against the new two-layer test
+O18 RED ============================== 2 failed in 8.38s ===============================
+    FAILED tests/c2_2a/test_r2_counterexamples.py::test_a_failed_provenance_take_still_clears_the_frame_before_calibration
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_provenance_take]
+P18 RED ============================== 4 failed in 7.54s ===============================
+    FAILED tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[1-inputs]
+    FAILED tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[2-inputs]
+    FAILED tests/c2_2a/test_r2_counterexamples.py::test_a_pa_input_that_raised_after_appending_is_withheld[3-pa_input]
+    FAILED tests/c2_2a/test_golden.py::test_the_candidate_reproduces_the_baseline[fault_pa_append_landed]
+P23 RED ============================== 1 failed in 2.25s ===============================
+    FAILED tests/c2_2a/test_r2_counterexamples.py::test_the_count_still_withholds_when_the_flag_cannot_be_cleared
+NOT RED: none
+exit 0
