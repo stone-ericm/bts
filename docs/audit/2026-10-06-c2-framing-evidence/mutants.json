@@ -703,16 +703,18 @@
  },
  {
   "id": "H13",
-  "rule": "runner: a skip is never RED (r2 R2-4)",
+  "rule": "runner: a skip, xfail or xpass is never RED (r2 R2-4, r6 R6-2)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if any(r[\"outcome\"] == \"skipped\" for r in reports):\n        return f\"INCONCLUSIVE({tag}, skipped)\", failed\n",
+  "old": "    if any(r[\"outcome\"] == \"skipped\" or r.get(\"wasxfail\") for r in reports):\n        return f\"INCONCLUSIVE({tag}, xfail or skip)\", failed\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[skipped]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[xpass]"
   ],
   "reanchored_rev4": true,
   "reanchored_rev5": true,
-  "reanchored_rev6": true
+  "reanchored_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "N1",
@@ -918,7 +920,6 @@
   "new": "",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[fail_fast]",
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[stdout_is_not_evidence]",
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_is_not_fooled_by_printed_outcomes"
   ],
   "added_rev4": true,
@@ -1040,52 +1041,56 @@
  },
  {
   "id": "R6",
-  "rule": "R5-1: without pytest's session-finish record the session did not end normally",
+  "rule": "R6-1: without the driver's evidence (written after pytest.main returns) the session did not end normally",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if len(sessions) != 1:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", failed\n",
+  "old": "    if bundle is None:\n        return f\"INCONCLUSIVE({tag}, no normal end)\", []\n",
   "new": "",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_normal_end]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[no_evidence]",
+   "tests/scripts/c2_framing/test_screen.py::test_an_unconfigure_abort_leaves_no_evidence"
   ],
   "added_rev5": true,
-  "reanchored_rev6": true
+  "reanchored_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R7",
   "rule": "R5-1: pytest's own counters must agree with the reports (replaces the text cross-check)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    if (sess[\"testscollected\"] != len(intended) or sess[\"testsfailed\"] != len(failed)\n            or sess[\"exitstatus\"] != returncode):\n",
+  "old": "    if (finish.get(\"testscollected\") != len(intended) or finish.get(\"testsfailed\") != len(failed)\n            or finish.get(\"exitstatus\") != returncode):\n",
   "new": "    if False:\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[failed_count_mismatch]",
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collected_count_mismatch]",
-   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]"
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[collected_count_mismatch]"
   ],
   "added_rev5": true,
-  "reanchored_rev6": true
+  "reanchored_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R8",
-  "rule": "R4-2: outcomes come from the recording plugin",
+  "rule": "R6-1: the mutated run goes through the driver",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "_pytest(root, \"-q\", \"-p\", \"framing_runner_plugin\", *tests)",
+  "old": "[sys.executable, \"-B\", str(work / \"framing_runner_driver.py\"), str(evidence),\n                        *_args(root, \"-q\", *tests)]",
   "new": "_pytest(root, \"-q\", *tests)",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
   ],
-  "added_rev5": true
+  "added_rev5": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R9",
-  "rule": "R5-1: the plugin writes pytest's session-finish record",
+  "rule": "R6-1: the sentinel records a completed session finish",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    _write({\"session\": {\"exitstatus\": int(exitstatus), \"testsfailed\": int(session.testsfailed),\n                        \"testscollected\": int(session.testscollected)}})\n",
-  "new": "    pass\n",
+  "old": "        self.finish = {\"exitstatus\": int(session.exitstatus), \"testsfailed\": int(session.testsfailed),\n                       \"testscollected\": int(session.testscollected)}\n",
+  "new": "        pass\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
   ],
   "added_rev5": true,
-  "reanchored_rev6": true
+  "reanchored_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R10",
@@ -1102,12 +1107,13 @@
   "id": "R11",
   "rule": "R5-1: the plugin records pytest's interrupt hook",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "    _write({\"interrupted\": excinfo.typename})\n",
-  "new": "    pass\n",
+  "old": "        self.records.append({\"interrupted\": excinfo.typename})\n",
+  "new": "        pass\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_an_exit_after_the_last_report_is_still_an_interrupt"
   ],
-  "added_rev6": true
+  "added_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R12",
@@ -1146,23 +1152,26 @@
   "id": "R15",
   "rule": "R5-1: pytest's exit status must be the process return code",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "\n            or sess[\"exitstatus\"] != returncode):\n",
+  "old": "\n            or finish.get(\"exitstatus\") != returncode):\n",
   "new": "):\n",
   "tests": [
    "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_status_mismatch]"
   ],
-  "added_rev6": true
+  "added_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "R16",
-  "rule": "R5-1: the session-finish record is written last (after every other session-finish hook)",
+  "rule": "R6-1: the sentinel's session-finish wrapper is outermost (tryfirst, registered after collection)",
   "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
-  "old": "@pytest.hookimpl(trylast=True)\ndef pytest_sessionfinish",
-  "new": "@pytest.hookimpl(tryfirst=True)\ndef pytest_sessionfinish",
+  "old": "    @pytest.hookimpl(wrapper=True, tryfirst=True)\n    def pytest_sessionfinish(self, session, exitstatus):",
+  "new": "    @pytest.hookimpl(wrapper=True, trylast=True)\n    def pytest_sessionfinish(self, session, exitstatus):",
   "tests": [
-   "tests/scripts/c2_framing/test_screen.py::test_a_later_session_finish_abort_is_not_a_normal_end"
+   "tests/scripts/c2_framing/test_screen.py::test_a_tryfirst_wrapper_abort_is_still_seen",
+   "tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end"
   ],
-  "added_rev6": true
+  "added_rev6": true,
+  "reanchored_rev7": true
  },
  {
   "id": "N23",
@@ -1185,5 +1194,99 @@
    "tests/scripts/c2_framing/test_screen.py::test_a_rescoring_failure_is_a_refusal_not_a_crash"
   ],
   "added_rev6": true
+ },
+ {
+  "id": "R17",
+  "rule": "R6-1: the sentinel is registered (after collection)",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "        session.config.pluginmanager.register(self.sentinel, \"framing-runner-sentinel\")\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R18",
+  "rule": "R6-1: a plugin registered after the sentinel is refused",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if bundle.get(\"late_plugins\") != 0:\n        return f\"INCONCLUSIVE({tag}, plugins registered late)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[late_plugin]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_plugin_registered_during_the_run_is_refused"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R19",
+  "rule": "R6-2: an xfail/skip/skipif-marked intended node is never a killer",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if set(bundle.get(\"marked\") or []) & set(intended):\n        return f\"INCONCLUSIVE({tag}, marked xfail or skip)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[marked]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_non_strict_xpass_is_not_a_kill"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R20",
+  "rule": "R6-2: each report keeps its expected-failure status",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "\"wasxfail\": hasattr(report, \"wasxfail\")})",
+  "new": "\"wasxfail\": False})",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_a_runtime_xfail_is_not_a_kill"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R21",
+  "rule": "R6-1: report outcomes agree with the sentinel's own call observations",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if any(n not in calls or (calls[n] is not None) != (n in failed) for n in intended):\n        return f\"INCONCLUSIVE({tag}, report mismatch)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[report_flipped]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[call_unobserved]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_rewritten_report_is_refused"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R22",
+  "rule": "R6-1: the sentinel records what a failing call raised",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "            self.calls[item.nodeid] = type(e).__name__\n",
+  "new": "            self.calls[item.nodeid] = None\n",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_clears_inherited_fail_fast_and_runs_every_named_test"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R23",
+  "rule": "R6-1: the evidence's exit status is the process return code",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if bundle.get(\"rc\") != returncode:\n        return f\"INCONCLUSIVE({tag}, exit mismatch)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[exit_mismatch]"
+  ],
+  "added_rev7": true
+ },
+ {
+  "id": "R24",
+  "rule": "R6-1: an incomplete or aborted session finish is never RED",
+  "file": "docs/audit/2026-10-06-c2-framing-evidence/mutant_runner.py",
+  "old": "    if not isinstance(finish, dict) or \"raised\" in finish:\n        return f\"INCONCLUSIVE({tag}, session finish incomplete)\", failed\n",
+  "new": "",
+  "tests": [
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_raised]",
+   "tests/scripts/c2_framing/test_screen.py::test_the_runner_classifies_only_complete_clean_failures_as_red[finish_missing]",
+   "tests/scripts/c2_framing/test_screen.py::test_a_session_finish_wrapper_abort_is_not_a_normal_end"
+  ],
+  "added_rev7": true
  }
 ]
